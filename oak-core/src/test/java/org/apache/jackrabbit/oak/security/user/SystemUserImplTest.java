@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -49,6 +48,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.security.auth.login.LoginException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -95,7 +95,7 @@ public class SystemUserImplTest extends AbstractSecurityTest {
                 ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, (AuthorizableActionProvider) securityProvider -> {
                     AuthorizableAction action = new AccessControlAction();
                     action.init(securityProvider, ConfigurationParameters.of(AccessControlAction.USER_PRIVILEGE_NAMES, new String[]{PrivilegeConstants.JCR_ALL}));
-                    return ImmutableList.of(action);
+                    return List.of(action);
                 }));
     }
 

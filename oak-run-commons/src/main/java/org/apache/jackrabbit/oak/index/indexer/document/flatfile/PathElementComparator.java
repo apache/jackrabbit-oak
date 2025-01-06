@@ -24,7 +24,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 
 public class PathElementComparator implements Comparator<Iterable<String>> {
     private final Set<String> preferred;
@@ -34,7 +34,7 @@ public class PathElementComparator implements Comparator<Iterable<String>> {
     }
 
     public PathElementComparator(Iterable<String> preferredPathElements) {
-        this.preferred = ImmutableSet.copyOf(preferredPathElements);
+        this.preferred = CollectionUtils.toSet(preferredPathElements);
     }
 
     @Override

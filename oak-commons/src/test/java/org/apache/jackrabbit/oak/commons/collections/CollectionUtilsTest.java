@@ -84,6 +84,37 @@ public class CollectionUtilsTest {
     }
 
     @Test
+    public void testReverseWithNonEmptyList() {
+        List<String> list = List.of("a", "b", "c");
+        List<String> result = CollectionUtils.reverse(list);
+        List<String> expected = List.of("c", "b", "a");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testReverseWithEmptyList() {
+        List<String> list = List.of();
+        List<String> result = CollectionUtils.reverse(list);
+        List<String> expected = List.of();
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testReverseWithNullList() {
+        List<String> list = null;
+        CollectionUtils.reverse(list);
+        fail("Shouldn't reach here");
+    }
+
+    @Test
+    public void testReverseWithSingleElementList() {
+        List<String> list = List.of("a");
+        List<String> result = CollectionUtils.reverse(list);
+        List<String> expected = List.of("a");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
     public void iterableToSet() {
         // create an iterable
         final Set<String> s = new HashSet<>(data);
@@ -186,6 +217,261 @@ public class CollectionUtilsTest {
     @Test(expected = NullPointerException.class)
     public void nullArrayToSet() {
         CollectionUtils.toSet((String[])null);
+    }
+
+    @Test
+    public void arrayToLinkedSet() {
+        final Set<String> s = CollectionUtils.toLinkedSet(data);
+        Assert.assertEquals(s, CollectionUtils.toLinkedSet(data.toArray()));
+    }
+
+    @Test
+    public void arrayContainingNullToLinkedSet() {
+        final Set<String> expected = Collections.singleton(null);
+        final Set<String> result = CollectionUtils.toLinkedSet((String)null);
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void nullArrayToLinkedSet() {
+        CollectionUtils.toLinkedSet((String[])null);
+    }
+
+    @Test
+    public void testUnionWithNonEmptySets() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("d", "e", "f");
+
+        final Set<String> expected = Set.of("a", "b", "c", "d", "e", "f");
+        Assert.assertEquals(expected, CollectionUtils.union(set1, set2));
+    }
+
+    @Test
+    public void testUnionWithEmptySet() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = new HashSet<>();
+
+        final Set<String> expected = Set.of("a", "b", "c");
+        Assert.assertEquals(expected, CollectionUtils.union(set1, set2));
+    }
+
+    @Test
+    public void testUnionWithBothEmptySets() {
+        final Set<String> set1 = new HashSet<>();
+        final Set<String> set2 = new HashSet<>();
+
+        Assert.assertEquals(new HashSet<>(), CollectionUtils.union(set1, set2));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testUnionWithNullFirstSet() {
+        Set<String> set1 = null;
+        Set<String> set2 = Set.of("a", "b", "c");
+
+        CollectionUtils.union(set1, set2);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testUnionWithNullSecondSet() {
+        Set<String> set1 = Set.of("a", "b", "c");
+        Set<String> set2 = null;
+
+        CollectionUtils.union(set1, set2);
+    }
+
+    @Test
+    public void testUnionWithOverlappingSets() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("b", "c", "d");
+
+        final Set<String> expected = Set.of("a", "b", "c", "d");
+        Assert.assertEquals(expected, CollectionUtils.union(set1, set2));
+    }
+
+    @Test
+    public void testIntersectionWithNonEmptySets() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("b", "c", "d");
+
+        final Set<String> result = CollectionUtils.intersection(set1, set2);
+
+        final Set<String> expected = Set.of("b", "c");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testIntersectionWithEmptySet() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of();
+
+        Assert.assertEquals(Collections.EMPTY_SET, CollectionUtils.intersection(set1, set2));
+    }
+
+    @Test
+    public void testIntersectionWithBothEmptySets() {
+        final Set<String> set1 = new HashSet<>();
+        final Set<String> set2 = new HashSet<>();
+
+        Assert.assertEquals(Collections.EMPTY_SET, CollectionUtils.intersection(set1, set2));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testIntersectionWithNullFirstSet() {
+        final Set<String> set1 = null;
+        final Set<String> set2 = Set.of("a", "b", "c");
+
+        CollectionUtils.intersection(set1, set2);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testIntersectionWithNullSecondSet() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = null;
+
+        CollectionUtils.intersection(set1, set2);
+    }
+
+    @Test
+    public void testIntersectionWithNoCommonElements() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("d", "e", "f");
+
+        Assert.assertEquals(Collections.EMPTY_SET, CollectionUtils.intersection(set1, set2));
+    }
+
+    @Test
+    public void testSymmetricDifferenceWithNonEmptySets() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("b", "c", "d");
+
+        final Set<String> result = CollectionUtils.symmetricDifference(set1, set2);
+
+        final Set<String> expected = Set.of("a", "d");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testSymmetricDifferenceWithEmptySet() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of();
+
+        final Set<String> result = CollectionUtils.symmetricDifference(set1, set2);
+
+        final Set<String> expected = Set.of("a", "b", "c");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testSymmetricDifferenceWithBothEmptySets() {
+        final Set<String> set1 = Set.of();
+        final Set<String> set2 = Set.of();
+
+        final Set<String> result = CollectionUtils.symmetricDifference(set1, set2);
+
+        final Set<String> expected = Set.of();
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSymmetricDifferenceWithNullFirstSet() {
+        final Set<String> set1 = null;
+        final Set<String> set2 = Set.of("a", "b", "c");
+
+        CollectionUtils.symmetricDifference(set1, set2);
+        fail("Shouldn't reach here");
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testSymmetricDifferenceWithNullSecondSet() {
+        Set<String> set1 = Set.of("a", "b", "c");
+        Set<String> set2 = null;
+
+        CollectionUtils.symmetricDifference(set1, set2);
+        fail("Shouldn't reach here");
+    }
+
+    @Test
+    public void testSymmetricDifferenceWithNoCommonElements() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("d", "e", "f");
+
+        final Set<String> result = CollectionUtils.symmetricDifference(set1, set2);
+
+        final Set<String> expected = Set.of("a", "b", "c", "d", "e", "f");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testDifferenceWithNonEmptySets() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("b", "c", "d");
+
+        final Set<String> result = CollectionUtils.difference(set1, set2);
+
+        final Set<String> expected = Set.of("a");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testDifferenceWithEmptySet() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of();
+
+        final Set<String> result = CollectionUtils.difference(set1, set2);
+
+        final Set<String> expected = Set.of("a", "b", "c");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testDifferenceWithBothEmptySets() {
+        final Set<String> set1 = Set.of();
+        final Set<String> set2 = Set.of();
+
+        final Set<String> result = CollectionUtils.difference(set1, set2);
+
+        final Set<String> expected = Set.of();
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testDifferenceWithNullFirstSet() {
+        final Set<String> set1 = null;
+        final Set<String> set2 = Set.of("a", "b", "c");
+
+        CollectionUtils.difference(set1, set2);
+        fail("Shouldn't reach here");
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testDifferenceWithNullSecondSet() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = null;
+
+        CollectionUtils.difference(set1, set2);
+        fail("Shouldn't reach here");
+    }
+
+    @Test
+    public void testDifferenceWithNoCommonElements() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("d", "e", "f");
+
+        final Set<String> result = CollectionUtils.difference(set1, set2);
+
+        final Set<String> expected = Set.of("a", "b", "c");
+        Assert.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testDifferenceWithAllCommonElements() {
+        final Set<String> set1 = Set.of("a", "b", "c");
+        final Set<String> set2 = Set.of("a", "b", "c");
+
+        final Set<String> result = CollectionUtils.difference(set1, set2);
+
+        final Set<String> expected = Set.of();
+        Assert.assertEquals(expected, result);
     }
 
     @Test

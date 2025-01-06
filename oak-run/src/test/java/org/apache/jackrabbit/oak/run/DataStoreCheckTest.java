@@ -40,11 +40,8 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -203,14 +200,14 @@ public class DataStoreCheckTest {
         Random rand = new Random();
         String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(deletedBlobId);
-        long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+        long count = setupDataStore.countDeleteChunks(List.of(deletedBlobId), 0);
         assertEquals(1, count);
         setupDataStore.close();
 
         testAllParams(dump, repoHome);
 
         assertFileEquals(dump, "[id]", blobsAdded);
-        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Set.of(deletedBlobId)));
+        assertFileEquals(dump, "[ref]", CollectionUtils.union(blobsAdded, Set.of(deletedBlobId)));
         assertFileEquals(dump, "[consistency]", Set.of(deletedBlobId));
     }
 
@@ -224,7 +221,7 @@ public class DataStoreCheckTest {
         blobsAdded.remove(deletedBlobId);
 
         long count = setupDataStore
-            .countDeleteChunks(ImmutableList.of(deletedBlobId),
+            .countDeleteChunks(List.of(deletedBlobId),
                 0);
         assertEquals(1, count);
         setupDataStore.close();
@@ -233,7 +230,7 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIdsAndPath(Sets.union(blobsAdded, Set.of(deletedBlobId)), dsOption, blobsAddedWithNodes));
+            encodedIdsAndPath(CollectionUtils.union(blobsAdded, Set.of(deletedBlobId)), dsOption, blobsAddedWithNodes));
         assertFileEquals(dump, "[consistency]",
             encodedIdsAndPath(Set.of(deletedBlobId), dsOption, blobsAddedWithNodes));
     }
@@ -250,11 +247,11 @@ public class DataStoreCheckTest {
         Random rand = new Random();
         String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(deletedBlobId);
-        long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+        long count = setupDataStore.countDeleteChunks(List.of(deletedBlobId), 0);
 
         String activeDeletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(activeDeletedBlobId);
-        count += setupDataStore.countDeleteChunks(ImmutableList.of(activeDeletedBlobId), 0);
+        count += setupDataStore.countDeleteChunks(List.of(activeDeletedBlobId), 0);
         assertEquals(2, count);
 
         // artificially put the deleted id in the tracked .del file
@@ -265,7 +262,7 @@ public class DataStoreCheckTest {
         testAllParams(dump, repoHome);
 
         assertFileEquals(dump, "[id]", blobsAdded);
-        assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Set.of(deletedBlobId, activeDeletedBlobId)));
+        assertFileEquals(dump, "[ref]", CollectionUtils.union(blobsAdded, Set.of(deletedBlobId, activeDeletedBlobId)));
         assertFileEquals(dump, "[consistency]", Set.of(deletedBlobId));
     }
 
@@ -281,11 +278,11 @@ public class DataStoreCheckTest {
         Random rand = new Random();
         String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(deletedBlobId);
-        long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+        long count = setupDataStore.countDeleteChunks(List.of(deletedBlobId), 0);
 
         String activeDeletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(activeDeletedBlobId);
-        count += setupDataStore.countDeleteChunks(ImmutableList.of(activeDeletedBlobId), 0);
+        count += setupDataStore.countDeleteChunks(List.of(activeDeletedBlobId), 0);
         assertEquals(2, count);
 
         // artificially put the deleted id in the tracked .del file
@@ -297,7 +294,7 @@ public class DataStoreCheckTest {
 
         assertFileEquals(dump, "[id]", encodedIds(blobsAdded, dsOption));
         assertFileEquals(dump, "[ref]",
-            encodedIdsAndPath(Sets.union(blobsAdded, Set.of(deletedBlobId, activeDeletedBlobId)), dsOption,
+            encodedIdsAndPath(CollectionUtils.union(blobsAdded, Set.of(deletedBlobId, activeDeletedBlobId)), dsOption,
                 blobsAddedWithNodes));
         assertFileEquals(dump, "[consistency]",
             encodedIdsAndPath(Set.of(deletedBlobId), dsOption, blobsAddedWithNodes));

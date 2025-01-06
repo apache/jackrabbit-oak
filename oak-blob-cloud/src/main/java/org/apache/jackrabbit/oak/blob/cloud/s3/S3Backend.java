@@ -1244,6 +1244,7 @@ public class S3Backend extends AbstractSharedBackend {
                 getClass().getClassLoader());
             ObjectListing prevObjectListing = s3service.listObjects(bucket);
             List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+            List<String> keysToDelete = new ArrayList<>();
             int nThreads = Integer.parseInt(properties.getProperty("maxConnections"));
             ExecutorService executor = Executors.newFixedThreadPool(nThreads,
                 new NamedThreadFactory("s3-object-rename-worker"));
@@ -1257,6 +1258,7 @@ public class S3Backend extends AbstractSharedBackend {
                     if( s3ObjSumm.getKey().startsWith(KEY_PREFIX)) {
                         deleteList.add(new DeleteObjectsRequest.KeyVersion(
                             s3ObjSumm.getKey()));
+                        keysToDelete.add(s3ObjSumm.getKey());
                     }
                 }
                 if (!prevObjectListing.isTruncated()) break;
@@ -1278,25 +1280,30 @@ public class S3Backend extends AbstractSharedBackend {
             LOG.info("Renamed [{}] keys, time taken [{}]sec", count,
                 ((System.currentTimeMillis() - startTime) / 1000));
             // Delete older keys.
-            if (deleteList.size() > 0) {
-                DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(
-                    bucket);
-                int batchSize = 500, startIndex = 0, size = deleteList.size();
-                int endIndex = batchSize < size ? batchSize : size;
-                while (endIndex <= size) {
-                    delObjsReq.setKeys(Collections.unmodifiableList(deleteList.subList(
-                        startIndex, endIndex)));
-                    DeleteObjectsResult dobjs = s3service.deleteObjects(delObjsReq);
-                    LOG.info("Records[{}] deleted in datastore from index [{}] to [{}]",
-                        dobjs.getDeletedObjects().size(), startIndex, (endIndex - 1));
-                    if (endIndex == size) {
-                        break;
-                    } else {
-                        startIndex = endIndex;
-                        endIndex = (startIndex + batchSize) < size
-                                ? (startIndex + batchSize)
-                                : size;
+            if (!deleteList.isEmpty()) {
+                RemoteStorageMode mode = (RemoteStorageMode) properties.getOrDefault(S3Constants.MODE, RemoteStorageMode.S3);
+                if (mode == RemoteStorageMode.S3) {
+                    DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(
+                            bucket);
+                    int batchSize = 500, startIndex = 0, size = deleteList.size();
+                    int endIndex = Math.min(batchSize, size);
+                    while (endIndex <= size) {
+                        delObjsReq.setKeys(Collections.unmodifiableList(deleteList.subList(
+                                startIndex, endIndex)));
+                        DeleteObjectsResult dobjs = s3service.deleteObjects(delObjsReq);
+                        LOG.info("Records[{}] deleted in datastore from index [{}] to [{}]",
+                                dobjs.getDeletedObjects().size(), startIndex, (endIndex - 1));
+                        if (endIndex == size) {
+                            break;
+                        } else {
+                            startIndex = endIndex;
+                            endIndex = Math.min((startIndex + batchSize), size);
+                        }
                     }
+                } else {
+                    long keysDeleteStartTime = System.currentTimeMillis();
+                    keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
+                    LOG.debug("Delete operation for rename keys from gcp took: {} seconds", ((System.currentTimeMillis() - keysDeleteStartTime) / 1000));
                 }
             }
         } finally {

@@ -24,7 +24,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
@@ -43,8 +42,8 @@ public class RemappingTest extends AbstractUserTest {
     private Session session;
     private Authorizable authorizable;
 
-    private List<String> unmappedPaths = ImmutableList.of("uTest:property", "uTest:node/uTest:property2");
-    private List<String> mappedPaths = ImmutableList.of("my:property", "my:node/my:property2");
+    private List<String> unmappedPaths = List.of("uTest:property", "uTest:node/uTest:property2");
+    private List<String> mappedPaths = List.of("my:property", "my:node/my:property2");
     private Value nameValue;
 
     @Override

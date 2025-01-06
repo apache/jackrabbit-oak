@@ -30,11 +30,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.StringJoiner;
 
 import javax.jcr.Value;
 import javax.jcr.observation.Event;
-
-import org.apache.jackrabbit.guava.common.base.MoreObjects;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -328,15 +327,15 @@ public class EventFactory {
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper("Event")
-                    .add("type", getType())
-                    .add("path", getPath())
-                    .add("identifier", getIdentifier())
-                    .add("info", getInfo())
-                    .add("userID", getUserID())
-                    .add("userData", getUserData())
-                    .add("date", getDate())
-                    .add("external", isExternal())
+            return new StringJoiner(", ", "Event [", "]")
+                    .add("type=" + getType())
+                    .add("path=" + getPath())
+                    .add("identifier=" + getIdentifier())
+                    .add("info=" + getInfo())
+                    .add("userID=" + getUserID())
+                    .add("userData=" + getUserData())
+                    .add("date=" + getDate())
+                    .add("external=" + isExternal())
                     .toString();
         }
 

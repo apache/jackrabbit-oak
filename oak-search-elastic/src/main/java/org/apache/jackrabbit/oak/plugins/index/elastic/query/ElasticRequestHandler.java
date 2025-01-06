@@ -820,7 +820,7 @@ public class ElasticRequestHandler {
         PropertyDefinition mixinType = defn.getConfig(JCR_MIXINTYPES);
         if (mixinType != null && mixinType.propertyIndex) {
             for (String type : filter.getMixinTypes()) {
-                queries.add(TermQuery.of(t -> t.field(JCR_MIXINTYPES).value(FieldValue.of(type)))._toQuery());
+                queries.add(TermQuery.of(t -> t.field(definition.getElasticKeyword(JCR_MIXINTYPES)).value(FieldValue.of(type)))._toQuery());
             }
         }
 

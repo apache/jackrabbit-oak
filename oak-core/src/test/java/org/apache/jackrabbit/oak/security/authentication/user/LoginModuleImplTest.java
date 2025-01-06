@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -71,6 +71,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_CREDENTIALS;
 import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_PRE_AUTH_LOGIN;
@@ -375,7 +377,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         assertTrue(lm.commit());
 
         // verify subject has been updated with test-user principals
-        Set<Principal> expected = new ImmutableSet.Builder().add(foreignPrincipal).addAll(principals).build();
+        Set<Principal> expected = Stream.concat(Stream.of(foreignPrincipal), principals.stream()).collect(Collectors.toSet());
         assertEquals(expected, subject.getPrincipals());
         // no other public credentials than the AuthInfo
         assertEquals(1, subject.getPublicCredentials().size());
@@ -674,7 +676,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     public void testLoginLogoutPreexistingReadonlySubject() throws Exception {
         createTestUser();
         Subject subject = new Subject(true, Collections.singleton(() -> "JMXPrincipal: foo"), Collections.EMPTY_SET, Collections.EMPTY_SET);
-        Subject.doAs(subject, (PrivilegedExceptionAction<Void>) () -> {
+        Java23Subject.doAs(subject, (PrivilegedExceptionAction<Void>) () -> {
             LogCustomizer logCustomizer = LogCustomizer
                     .forLogger("org.apache.jackrabbit.oak.core.ContentSessionImpl")
                     .enable(Level.ERROR)

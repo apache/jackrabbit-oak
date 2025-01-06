@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -78,18 +77,18 @@ public class MapRecordTest {
         }
         NodeState before = builder.getNodeState();
 
-        for (String name : Sets.difference(beforeNames, afterNames)) {
+        for (String name : CollectionUtils.difference(beforeNames, afterNames)) {
             builder.getChildNode(name).remove();
         }
-        for (String name : Sets.difference(afterNames, beforeNames)) {
+        for (String name : CollectionUtils.difference(afterNames, beforeNames)) {
             builder.setChildNode(name);
         }
         NodeState after = builder.getNodeState();
 
-        for (String name : Sets.difference(beforeNames, afterNames)) {
+        for (String name : CollectionUtils.difference(beforeNames, afterNames)) {
             expect(diff.childNodeDeleted(name, before.getChildNode(name))).andReturn(true);
         }
-        for (String name : Sets.difference(afterNames, beforeNames)) {
+        for (String name : CollectionUtils.difference(afterNames, beforeNames)) {
             expect(diff.childNodeAdded(name, after.getChildNode(name))).andReturn(true);
         }
         replay(diff);

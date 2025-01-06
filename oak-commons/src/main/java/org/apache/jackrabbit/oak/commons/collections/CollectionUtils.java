@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +33,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -113,13 +115,27 @@ public class CollectionUtils {
     }
 
     /**
+     * Returns a new list containing the elements of the specified list in reverse order.
+     *
+     * @param <T> the type of elements in the list
+     * @param l the list to be reversed, must not be null
+     * @return a new list containing the elements of the specified list in reverse order
+     * @throws NullPointerException if the list is null
+     */
+    @NotNull
+    public static <T> List<T> reverse(final List<T> l) {
+        Objects.requireNonNull(l);
+        return IntStream.range(0, l.size()).map(i -> l.size() - 1- i).mapToObj(l::get).collect(Collectors.toList());
+    }
+
+    /**
      * Convert an iterable to a set. The returning set is mutable and supports all optional operations.
      * @param iterable the iterable to convert
      * @return the set
      * @param <T> the type of the elements
      */
     @NotNull
-    public static <T> Set<T> toSet(@NotNull  final Iterable<T> iterable) {
+    public static <T> Set<T> toSet(@NotNull  final Iterable<? extends T> iterable) {
         Objects.requireNonNull(iterable);
         final Set<T> result = new HashSet<>();
         iterable.forEach(result::add);
@@ -185,10 +201,94 @@ public class CollectionUtils {
         Objects.requireNonNull(elements);
         // make sure the set does not need to be resized given the initial content
         final Set<T> result = new HashSet<>(ensureCapacity(elements.length));
-        for (T element : elements) {
-            result.add(element);
-        }
+        result.addAll(Arrays.asList(elements));
         return result;
+    }
+
+    /**
+     * Convert a vararg list of items to a set.  The returning set is mutable and supports all optional operations.
+     * @param elements elements to convert
+     * @return the set
+     * @param <T> the type of the elements
+     */
+    @SafeVarargs
+    @NotNull
+    public static <T> Set<T> toLinkedSet(@NotNull final T... elements) {
+        Objects.requireNonNull(elements);
+        // make sure the set does not need to be resized given the initial content
+        final Set<T> result = new LinkedHashSet<>(ensureCapacity(elements.length));
+        result.addAll(Arrays.asList(elements));
+        return result;
+    }
+
+    /**
+     * Returns a new set containing the union of the two specified sets.
+     * The union of two sets is a set containing all the elements of both sets.
+     *
+     * @param <T> the type of elements in the sets
+     * @param s1 the first set, must not be null
+     * @param s2 the second set, must not be null
+     * @return a new set containing the union of the two specified sets
+     * @throws NullPointerException if either of the sets is null
+     */
+    @NotNull
+    public static <T> Set<T> union(@NotNull final Set<T> s1, @NotNull final Set<T> s2) {
+        Objects.requireNonNull(s1);
+        Objects.requireNonNull(s2);
+        return Stream.concat(s1.stream(), s2.stream()).collect(Collectors.toSet());
+    }
+
+    /**
+     * Returns a new set containing the intersection of the two specified sets.
+     * The intersection of two sets is a set containing only the elements that are present in both sets.
+     *
+     * @param <T> the type of elements in the sets
+     * @param s1 the first set, must not be null
+     * @param s2 the second set, must not be null
+     * @return a new set containing the intersection of the two specified sets
+     * @throws NullPointerException if either of the sets is null
+     */
+    @NotNull
+    public static <T> Set<T> intersection(@NotNull final Set<T> s1, @NotNull final Set<T> s2) {
+        Objects.requireNonNull(s1);
+        Objects.requireNonNull(s2);
+        return s1.stream().filter(s2::contains).collect(Collectors.toSet());
+    }
+
+    /**
+     * Returns a new set containing the symmetric difference of the two specified sets.
+     * The symmetric difference of two sets is a set containing elements that are in either of the sets,
+     * but not in their intersection.
+     *
+     * @param <T> the type of elements in the sets
+     * @param s1 the first set, must not be null
+     * @param s2 the second set, must not be null
+     * @return a new set containing the symmetric difference of the two specified sets
+     * @throws NullPointerException if either of the sets is null
+     */
+    public static <T> Set<T> symmetricDifference(final Set<T> s1, final Set<T> s2) {
+        Objects.requireNonNull(s1);
+        Objects.requireNonNull(s2);
+        final Set<T> result = new HashSet<>(s1);
+        s2.stream().filter(Predicate.not(result::add)).forEach(result::remove);
+        return result;
+    }
+
+    /**
+     * Returns a new set containing the difference of the two specified sets.
+     * The difference of two sets is a set containing elements that are in the first set
+     * but not in the second set.
+     *
+     * @param <T> the type of elements in the sets
+     * @param s1 the first set, must not be null
+     * @param s2 the second set, must not be null
+     * @return a new set containing the difference of the two specified sets
+     * @throws NullPointerException if either of the sets is null
+     */
+    public static <T> Set<T> difference(final Set<T> s1, final Set<T> s2) {
+        Objects.requireNonNull(s1);
+        Objects.requireNonNull(s2);
+        return s1.stream().filter(e -> !s2.contains(e)).collect(Collectors.toSet());
     }
 
     /**

@@ -35,8 +35,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -799,8 +797,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
 
-        List<RevisionVector> headRevisions = Lists.reverse(
-                createTestData(nodeStores, random, numChanges));
+        List<RevisionVector> headRevisions = CollectionUtils.reverse(createTestData(nodeStores, random, numChanges));
         NodeDocument doc = getRootDocument(store);
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
@@ -979,8 +976,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
-        List<RevisionVector> headRevisions = Lists.reverse(
-                createTestData(nodeStores, random, numChanges));
+        List<RevisionVector> headRevisions = CollectionUtils.reverse(createTestData(nodeStores, random, numChanges));
 
         NodeDocument doc = getRootDocument(store);
 
@@ -1057,8 +1053,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
-        List<RevisionVector> headRevisions = Lists.reverse(
-                createTestData(nodeStores, random, numChanges));
+        List<RevisionVector> headRevisions = CollectionUtils.reverse(createTestData(nodeStores, random, numChanges));
 
         NodeBuilder builder = ns1.getRoot().builder();
         builder.setProperty("q", 1);
@@ -1072,8 +1067,7 @@ public class NodeDocumentTest {
         }
         // do not yet merge, but create more test data
         int numMoreChanges = 50;
-        List<RevisionVector> moreRevs = Lists.reverse(
-                createTestData(nodeStores, random, numMoreChanges, numChanges));
+        List<RevisionVector> moreRevs = CollectionUtils.reverse(createTestData(nodeStores, random, numMoreChanges, numChanges));
         headRevisions = CollectionUtils.toList(Iterables.concat(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
@@ -1086,8 +1080,7 @@ public class NodeDocumentTest {
 
         // and create yet more test data
         numMoreChanges = 50;
-        moreRevs = Lists.reverse(
-                createTestData(nodeStores, random, numMoreChanges, numChanges));
+        moreRevs = CollectionUtils.reverse(createTestData(nodeStores, random, numMoreChanges, numChanges));
         headRevisions = CollectionUtils.toList(Iterables.concat(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
@@ -1192,8 +1185,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
 
-        List<RevisionVector> headRevisions = Lists.reverse(
-                createTestData(nodeStores, random, numChanges));
+        List<RevisionVector> headRevisions = CollectionUtils.reverse(createTestData(nodeStores, random, numChanges));
         NodeDocument doc = getRootDocument(store);
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);

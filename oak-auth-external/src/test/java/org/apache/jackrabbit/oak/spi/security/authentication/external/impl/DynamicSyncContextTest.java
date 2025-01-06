@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -47,6 +46,7 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -119,7 +119,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
     private void assertDynamicMembership(@NotNull Authorizable a, @NotNull ExternalIdentity externalIdentity, long depth) throws Exception {
         Value[] vs = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
-        Set<String> pNames = ImmutableList.copyOf(vs).stream().map(value -> {
+        Set<String> pNames = Arrays.stream(vs).map(value -> {
             try {
                 return value.getString();
             } catch (RepositoryException e) {

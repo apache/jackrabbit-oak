@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -29,9 +30,6 @@ import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 
 public class TestIdentityProvider implements ExternalIdentityProvider {
@@ -76,7 +74,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         addUser(new TestUser(ID_SECOND_USER, getName())
                 .withProperty("profile/name", "Second User")
                 .withProperty("age", 24)
-                .withProperty("col", ImmutableList.of("v1", "v2", "v3"))
+                .withProperty("col", List.of("v1", "v2", "v3"))
                 .withProperty("boolArr", new Boolean[]{true, false})
                 .withProperty("charArr", new char[]{'t', 'o', 'b'})
                 .withProperty("byteArr", new byte[0])
@@ -238,7 +236,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
 
         @NotNull
         public TestIdentity withGroups(@NotNull ExternalIdentityRef... groups) {
-            this.groups.addAll(ImmutableSet.copyOf(groups));
+            this.groups.addAll(Set.of(groups));
             return this;
         }
     }
@@ -284,7 +282,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         @NotNull
         @Override
         public Iterable<ExternalIdentityRef> getDeclaredMembers() {
-            return ImmutableList.of();
+            return List.of();
         }
     }
 

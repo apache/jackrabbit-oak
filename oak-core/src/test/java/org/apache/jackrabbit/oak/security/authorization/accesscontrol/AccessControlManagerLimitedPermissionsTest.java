@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -319,10 +317,10 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         assertArrayEquals(new Privilege[0], testAcMgr.getPrivileges(null, testPrincipals));
 
         Privilege[] privs = testAcMgr.getPrivileges(testPath);
-        assertEquals(ImmutableSet.copyOf(testPrivileges), ImmutableSet.copyOf(privs));
+        assertEquals(Set.of(testPrivileges), Set.of(privs));
 
         privs = testAcMgr.getPrivileges(testPath, testPrincipals);
-        assertEquals(ImmutableSet.copyOf(testPrivileges), ImmutableSet.copyOf(privs));
+        assertEquals(Set.of(testPrivileges), Set.of(privs));
 
         // but for 'admin' the test-session doesn't have sufficient privileges
         try {
@@ -339,7 +337,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         root.commit();
 
         testRoot.refresh();
-        List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+        List<Principal> principals = List.of(testPrincipal, EveryonePrincipal.getInstance());
         for (Principal principal : principals) {
             // testRoot can't read access control content -> doesn't see
             // the existing policies and creates a new applicable policy.
@@ -359,7 +357,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         testRoot.refresh();
         PrincipalManager testPrincipalMgr = getPrincipalManager(testRoot);
 
-        List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+        List<Principal> principals = List.of(testPrincipal, EveryonePrincipal.getInstance());
         for (Principal principal : principals) {
             if (testPrincipalMgr.hasPrincipal(principal.getName())) {
                 // testRoot can't read access control content -> doesn't see
@@ -419,7 +417,7 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
 
         testRoot.refresh();
 
-        List<String> paths = ImmutableList.of(testPath, NodeTypeConstants.NODE_TYPES_PATH);
+        List<String> paths = List.of(testPath, NodeTypeConstants.NODE_TYPES_PATH);
         for (String path : paths) {
             assertFalse(testAcMgr.hasPrivileges(path, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
             try {

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user.whiteboard;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AbstractAuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
@@ -64,7 +63,7 @@ public class WhiteboardAuthorizableActionProviderTest {
     public void testRegisteredImplementation() {
         actionProvider.start(whiteboard);
 
-        AuthorizableActionProvider registered = securityProvider -> ImmutableList.of(new TestAction());
+        AuthorizableActionProvider registered = securityProvider -> List.of(new TestAction());
         whiteboard.register(AuthorizableActionProvider.class, registered, Map.of());
 
         List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(Mockito.mock(SecurityProvider.class));

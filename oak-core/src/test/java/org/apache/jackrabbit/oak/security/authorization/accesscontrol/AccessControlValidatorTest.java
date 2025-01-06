@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -63,7 +61,9 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -148,7 +148,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
 
     @NotNull
     private Tree createPolicy(@NotNull Tree tree, boolean createRestrictionNode) throws AccessDeniedException {
-        tree.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+        tree.setProperty(JCR_MIXINTYPES, List.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
 
         Tree acl = TreeUtil.addChild(tree, REP_POLICY, NT_REP_ACL);
         acl.setOrderableChildren(true);
@@ -163,7 +163,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     private static Tree createACE(@NotNull Tree acl, @NotNull String aceName, @NotNull String ntName, @NotNull String principalName, @NotNull String... privilegeNames) throws AccessDeniedException {
         Tree ace = TreeUtil.addChild(acl, aceName, ntName);
         ace.setProperty(REP_PRINCIPAL_NAME, principalName);
-        ace.setProperty(REP_PRIVILEGES, ImmutableList.copyOf(privilegeNames), Type.NAMES);
+        ace.setProperty(REP_PRIVILEGES, Arrays.asList(privilegeNames), Type.NAMES);
         return ace;
     }
 
@@ -176,7 +176,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     @Test(expected = CommitFailedException.class)
     public void testPolicyWithOutChildOrder() throws Exception {
         Tree testRoot = getTestTree();
-        testRoot.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+        testRoot.setProperty(JCR_MIXINTYPES, List.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
         TreeUtil.addChild(testRoot, REP_POLICY, NT_REP_ACL);
 
         try {
@@ -189,7 +189,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     @Test(expected = CommitFailedException.class)
     public void testOnlyRootIsRepoAccessControllable() throws Exception {
         Tree testRoot = getTestTree();
-        testRoot.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_REPO_ACCESS_CONTROLLABLE), Type.NAMES);
+        testRoot.setProperty(JCR_MIXINTYPES, List.of(MIX_REP_REPO_ACCESS_CONTROLLABLE), Type.NAMES);
 
         try {
             root.commit();
@@ -201,7 +201,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     @Test(expected = CommitFailedException.class)
     public void testAddInvalidRepoPolicy() throws Exception {
         Tree testRoot = getTestTree();
-        testRoot.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+        testRoot.setProperty(JCR_MIXINTYPES, List.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
         TreeUtil.addChild(testRoot, REP_REPO_POLICY, NT_REP_ACL);
         try {
             root.commit();
@@ -439,7 +439,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         Tree ace = createDuplicateAceTree();
         Tree rest = TreeUtil.addChild(ace, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         rest.setProperty(AccessControlConstants.REP_GLOB, "some/glob", Type.STRING);
-        rest.setProperty(AccessControlConstants.REP_GLOBS, ImmutableList.of("glob1", "glob2"), Type.STRINGS);
+        rest.setProperty(AccessControlConstants.REP_GLOBS, List.of("glob1", "glob2"), Type.STRINGS);
         
         try {
             root.commit();
@@ -455,7 +455,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         Tree policy = root.getTree(testPath + "/rep:policy");
         Tree ace = TreeUtil.addChild(policy, "duplicateAce", NT_REP_GRANT_ACE);
         ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
-        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_ADD_CHILD_NODES), Type.NAMES);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, List.of(PrivilegeConstants.JCR_ADD_CHILD_NODES), Type.NAMES);
         return ace;
     }
 
@@ -606,7 +606,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     @Test(expected = CommitFailedException.class)
     public void testAddPolicyTreeWithInvalidName() throws Exception {
         Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
-        rootTree.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+        rootTree.setProperty(JCR_MIXINTYPES, List.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
         TreeUtil.addChild(rootTree, "invalidName", NT_REP_ACL);
 
         Validator v = createRootValidator(rootTree);
@@ -622,7 +622,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
         Tree policy = createPolicy(rootTree, false);
         Tree entry = policy.getChild(aceName);
-        entry.setProperty(REP_PRIVILEGES, ImmutableList.of(), Type.NAMES);
+        entry.setProperty(REP_PRIVILEGES, List.of(), Type.NAMES);
 
         Validator v = createRootValidator(rootTree);
         try {

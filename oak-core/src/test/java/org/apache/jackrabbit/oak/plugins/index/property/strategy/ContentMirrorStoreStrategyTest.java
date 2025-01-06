@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
-import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static java.util.Arrays.asList;
+
+import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
@@ -37,6 +37,7 @@ import java.util.function.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -306,21 +307,21 @@ public class ContentMirrorStoreStrategyTest {
         indexMeta.setChildNode(INDEX_CONTENT_NODE_NAME, builder.getNodeState());
 
         Iterable<String> paths = store.query(filter, null, indexMeta.getNodeState(), KEY);
-        assertThat(copyOf(paths), containsInAnyOrder("a", "a/c", "b"));
+        assertThat(CollectionUtils.toList(paths), containsInAnyOrder("a", "a/c", "b"));
 
         FilterImpl filter2 = FilterImpl.newTestInstance();
         filter2.restrictPath("/content/a", Filter.PathRestriction.ALL_CHILDREN);
 
         paths = store.query(filter2, null, indexMeta.getNodeState(), KEY);
-        assertThat(copyOf(paths), containsInAnyOrder("a", "a/c"));
+        assertThat(CollectionUtils.toList(paths), containsInAnyOrder("a", "a/c"));
 
         store = new ContentMirrorStoreStrategy(INDEX_CONTENT_NODE_NAME, "/content", true);
 
         paths = store.query(filter, null, indexMeta.getNodeState(), KEY);
-        assertThat(copyOf(paths), containsInAnyOrder("/content/a", "/content/a/c", "/content/b"));
+        assertThat(CollectionUtils.toList(paths), containsInAnyOrder("/content/a", "/content/a/c", "/content/b"));
 
         paths = store.query(filter2, null, indexMeta.getNodeState(), KEY);
-        assertThat(copyOf(paths), containsInAnyOrder("/content/a", "/content/a/c"));
+        assertThat(CollectionUtils.toList(paths), containsInAnyOrder("/content/a", "/content/a/c"));
     }
 
     private static void assertInRange(String msg, double expected, double actual) {

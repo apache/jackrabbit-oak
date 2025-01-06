@@ -17,8 +17,9 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Collections;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -78,7 +79,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     private Tree createPrivilegeTree(@NotNull String privName, @NotNull String... aggr) {
         Tree privTree = privilegesTree.addChild(privName);
         privTree.setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
-        privTree.setProperty(REP_AGGREGATES, ImmutableSet.copyOf(aggr), Type.NAMES);
+        privTree.setProperty(REP_AGGREGATES, Set.of(aggr), Type.NAMES);
         return privTree;
     }
 
@@ -128,7 +129,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         try {
             Tree privTree = createPrivilegeTree("test");
             privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES,
-                    ImmutableList.of(JCR_READ, JCR_MODIFY_PROPERTIES), Type.NAMES));
+                    List.of(JCR_READ, JCR_MODIFY_PROPERTIES), Type.NAMES));
             setPrivilegeBits(privTree, REP_BITS, 340);
 
             root.commit();
@@ -210,7 +211,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     public void testAggregatesIncludesJcrAll() throws Exception {
         try {
             Tree privTree = createPrivilegeTree("test");
-            privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(JCR_ALL, JCR_READ, JCR_WRITE), Type.NAMES));
+            privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES, List.of(JCR_ALL, JCR_READ, JCR_WRITE), Type.NAMES));
             PrivilegeBits.getInstance(bitsProvider.getBits(JCR_ALL, JCR_READ, JCR_WRITE)).writeTo(privTree);
 
             root.commit();
@@ -223,7 +224,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     public void testAggregatesMatchesExisting() throws Exception {
         try {
             Tree privTree = createPrivilegeTree("test");
-            privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES));
+            privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES, List.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES));
             PrivilegeBits.getInstance(bitsProvider.getBits(REP_READ_NODES, REP_READ_PROPERTIES)).writeTo(privTree);
 
             root.commit();
@@ -235,8 +236,8 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     @Test(expected = CommitFailedException.class)
     public void testPropertyChanged() throws Exception {
         try {
-            PropertyState before = PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES);
-            PropertyState after = PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(REP_READ_NODES), Type.NAMES);
+            PropertyState before = PropertyStates.createProperty(REP_AGGREGATES, List.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES);
+            PropertyState after = PropertyStates.createProperty(REP_AGGREGATES, List.of(REP_READ_NODES), Type.NAMES);
 
             PrivilegeValidator validator = new PrivilegeValidator(root, root, getTreeProvider());
             validator.propertyChanged(before, after);
@@ -248,7 +249,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     @Test(expected = CommitFailedException.class)
     public void testPropertyDeleted() throws Exception {
         try {
-            PropertyState before = PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES);
+            PropertyState before = PropertyStates.createProperty(REP_AGGREGATES, List.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES);
 
             PrivilegeValidator validator = new PrivilegeValidator(root, root, getTreeProvider());
             validator.propertyDeleted(before);
@@ -287,7 +288,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             NodeState newDef = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
                     .setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
                     .setProperty(REP_BITS, 8)
-                    .setProperty(REP_AGGREGATES, ImmutableList.of("unknown", JCR_READ), Type.NAMES)
+                    .setProperty(REP_AGGREGATES, List.of("unknown", JCR_READ), Type.NAMES)
                     .getNodeState();
 
             PrivilegeValidator validator = createPrivilegeValidator();
@@ -305,7 +306,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             NodeState newDef = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
                     .setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
                     .setProperty(REP_BITS, 8)
-                    .setProperty(REP_AGGREGATES, ImmutableList.of("test", JCR_READ), Type.NAMES)
+                    .setProperty(REP_AGGREGATES, List.of("test", JCR_READ), Type.NAMES)
                     .getNodeState();
 
             PrivilegeValidator validator = createPrivilegeValidator();
@@ -324,7 +325,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             NodeState newDef = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
                     .setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
                     .setProperty(REP_BITS, 8)
-                    .setProperty(REP_AGGREGATES, ImmutableList.of("test2", JCR_READ), Type.NAMES)
+                    .setProperty(REP_AGGREGATES, List.of("test2", JCR_READ), Type.NAMES)
                     .getNodeState();
 
             PrivilegeValidator validator = createPrivilegeValidator();
@@ -343,7 +344,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         Tree privDefs = root.getTree(PRIVILEGES_PATH);
         Tree newPriv = TreeUtil.addChild(privDefs, "newPriv", NT_REP_PRIVILEGE);
         PrivilegeBits.getInstance(PrivilegeBits.BUILT_IN.get(JCR_READ), PrivilegeBits.BUILT_IN.get(JCR_ADD_CHILD_NODES)).writeTo(newPriv);
-        newPriv.setProperty(REP_AGGREGATES, ImmutableList.of(JCR_READ, JCR_ADD_CHILD_NODES), Type.NAMES);
+        newPriv.setProperty(REP_AGGREGATES, List.of(JCR_READ, JCR_ADD_CHILD_NODES), Type.NAMES);
 
         TreeProvider tp = mock(TreeProvider.class);
         when(tp.createReadOnlyTree(any(Tree.class), anyString(), any(NodeState.class))).thenReturn(newPriv);

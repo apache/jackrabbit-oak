@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -72,7 +71,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
 
-    private static List<String> PATH_OUTSIDE_SCOPE = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_CHILD_PATH);
+    private static List<String> PATH_OUTSIDE_SCOPE = List.of(ROOT_PATH, TEST_PATH, TEST_CHILD_PATH);
 
     private CompositePermissionProvider cppTestUser;
     private CompositePermissionProvider cppAdminUser;

@@ -23,7 +23,6 @@ import java.util.List;
 
 import javax.jcr.query.Query;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -49,7 +48,7 @@ public class RelativePathTest extends AbstractQueryTest {
                     public void initialize(@NotNull NodeBuilder builder) {
                         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
                         IndexUtils.createIndexDefinition(index, "myProp", true,
-                                false, ImmutableList.<String>of("myProp"), null);
+                                false, List.of("myProp"), null);
                     }
                 })
                 .with(new OpenSecurityProvider())
@@ -68,7 +67,7 @@ public class RelativePathTest extends AbstractQueryTest {
         root.commit();
         setTraversalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [n/myProp] is not null",
-                ImmutableList.of("/a", "/b"));
+                List.of("/a", "/b"));
 
         List<String> lines = executeQuery(
                 "explain select [jcr:path] from [nt:base] where [n/myProp] is not null",
@@ -79,7 +78,7 @@ public class RelativePathTest extends AbstractQueryTest {
 
         assertQuery(
                 "select [jcr:path] from [nt:base] where [n/myProp] = 'foo'",
-                ImmutableList.of("/a"));
+                List.of("/a"));
         setTraversalEnabled(false);
     }
 }

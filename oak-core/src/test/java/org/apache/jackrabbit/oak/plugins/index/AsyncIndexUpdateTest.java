@@ -97,9 +97,6 @@ import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import ch.qos.logback.classic.Level;
@@ -211,10 +208,10 @@ public class AsyncIndexUpdateTest {
 
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         assertEquals(Set.of("testRoot"), find(lookup, "foo", "abc"));
-        assertEquals(ImmutableSet.<String> of(), find(lookup, "foo", "def"));
-        assertEquals(ImmutableSet.<String> of(), find(lookup, "foo", "ghi"));
+        assertEquals(Set.<String> of(), find(lookup, "foo", "def"));
+        assertEquals(Set.<String> of(), find(lookup, "foo", "ghi"));
 
-        assertEquals(ImmutableSet.<String> of(), find(lookup, "bar", "abc"));
+        assertEquals(Set.<String> of(), find(lookup, "bar", "abc"));
         assertEquals(Set.of("testRoot"), find(lookup, "bar", "def"));
         assertEquals(Set.of("testSecond"), find(lookup, "bar", "ghi"));
 
@@ -268,7 +265,7 @@ public class AsyncIndexUpdateTest {
                 .getChildNode("newchild").getChildNode("other"));
         assertEquals(Set.of("testChild"),
                 find(lookupChild, "foo", "xyz"));
-        assertEquals(ImmutableSet.<String> of(),
+        assertEquals(Set.<String> of(),
                 find(lookupChild, "foo", "abc"));
     }
 
@@ -1882,7 +1879,7 @@ public class AsyncIndexUpdateTest {
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         CollectingValidatorProvider v = new CollectingValidatorProvider();
 
-        async.setValidatorProviders(ImmutableList.<ValidatorProvider>of(v));
+        async.setValidatorProviders(List.of(v));
         async.run();
 
         assertFalse(v.visitedPaths.isEmpty());

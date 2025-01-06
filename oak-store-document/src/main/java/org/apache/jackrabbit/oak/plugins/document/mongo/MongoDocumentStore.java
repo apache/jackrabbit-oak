@@ -40,7 +40,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
@@ -121,7 +120,6 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
-import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
 import static com.mongodb.client.model.Projections.include;
 import static java.lang.Integer.MAX_VALUE;
 import static java.util.Collections.emptyList;
@@ -1388,7 +1386,7 @@ public class MongoDocumentStore implements DocumentStore {
     private <T extends Document> Map<UpdateOp, T> bulkModify(final Collection<T> collection, final List<UpdateOp> updateOps,
                                                              final Map<String, T> oldDocs) {
         Map<String, UpdateOp> bulkOperations = createMap(updateOps);
-        Set<String> lackingDocs = difference(bulkOperations.keySet(), oldDocs.keySet());
+        Set<String> lackingDocs = CollectionUtils.difference(bulkOperations.keySet(), oldDocs.keySet());
         oldDocs.putAll(findDocuments(collection, lackingDocs));
 
         CacheChangesTracker tracker = null;
@@ -1398,7 +1396,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         try {
             final BulkRequestResult bulkResult = sendBulkRequest(collection, bulkOperations.values(), oldDocs, false);
-            final Set<String> potentiallyUpdatedDocsSet = difference(bulkOperations.keySet(), bulkResult.failedUpdates);
+            final Set<String> potentiallyUpdatedDocsSet = CollectionUtils.difference(bulkOperations.keySet(), bulkResult.failedUpdates);
 
             final Map<String, T> updatedDocsMap = new HashMap<>(potentiallyUpdatedDocsSet.size());
 
@@ -1476,7 +1474,7 @@ public class MongoDocumentStore implements DocumentStore {
                                                              List<UpdateOp> updateOperations,
                                                              Map<String, T> oldDocs) {
         Map<String, UpdateOp> bulkOperations = createMap(updateOperations);
-        Set<String> lackingDocs = difference(bulkOperations.keySet(), oldDocs.keySet());
+        Set<String> lackingDocs = CollectionUtils.difference(bulkOperations.keySet(), oldDocs.keySet());
         oldDocs.putAll(findDocuments(collection, lackingDocs));
 
         CacheChangesTracker tracker = null;
@@ -1488,14 +1486,14 @@ public class MongoDocumentStore implements DocumentStore {
             BulkRequestResult bulkResult = sendBulkRequest(collection, bulkOperations.values(), oldDocs, true);
 
             if (collection == Collection.NODES) {
-                List<NodeDocument> docsToCache = new ArrayList<NodeDocument>();
+                List<NodeDocument> docsToCache = new ArrayList<>();
                 for (UpdateOp op : filterKeys(bulkOperations, x -> bulkResult.upserts.contains(x)).values()) {
                     NodeDocument doc = Collection.NODES.newDocument(this);
                     UpdateUtils.applyChanges(doc, op);
                     docsToCache.add(doc);
                 }
 
-                for (String key : difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
+                for (String key : CollectionUtils.difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
                     T oldDoc = oldDocs.get(key);
                     if (oldDoc != null && oldDoc != NodeDocument.NULL) {
                         NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));
@@ -2056,7 +2054,7 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public Map<String, String> getStats() {
         Map<String, String> builder = new HashMap<>();
-        List<MongoCollection<?>> all = ImmutableList.of(nodes, clusterNodes, settings, journal);
+        List<MongoCollection<?>> all = List.of(nodes, clusterNodes, settings, journal);
         all.forEach(c -> toMapBuilder(builder,
                 connection.getDatabase().runCommand(
                     new BasicDBObject("collStats", c.getNamespace().getCollectionName()),

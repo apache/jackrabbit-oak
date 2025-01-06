@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -41,7 +40,7 @@ import static org.junit.Assert.assertTrue;
 public class CugContextTest extends AbstractCugTest implements NodeTypeConstants {
 
     private static String CUG_PATH = "/content/a/rep:cugPolicy";
-    private static List<String> NO_CUG_PATH = ImmutableList.of(
+    private static List<String> NO_CUG_PATH = List.of(
             "/content",
             "/content/a",
             "/content/rep:policy",
@@ -116,7 +115,7 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
         assertTrue(CugContext.INSTANCE.definesLocation(TreeLocation.create(root, CUG_PATH)));
         assertTrue(CugContext.INSTANCE.definesLocation(TreeLocation.create(root, CUG_PATH + "/" + CugConstants.REP_PRINCIPAL_NAMES)));
 
-        List<String> existingNoCug = ImmutableList.of(
+        List<String> existingNoCug = List.of(
                 "/content",
                 "/content/a",
                 "/content/rep:policy"
@@ -126,7 +125,7 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
             assertFalse(path, CugContext.INSTANCE.definesLocation(TreeLocation.create(root, path + "/" + CugConstants.REP_PRINCIPAL_NAMES)));
         }
 
-        List<String> nonExistingCug = ImmutableList.of(
+        List<String> nonExistingCug = List.of(
                 "/content/rep:cugPolicy",
                 UNSUPPORTED_PATH + "/rep:cugPolicy");
         for (String path : nonExistingCug) {

@@ -23,16 +23,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.References;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
@@ -47,18 +44,27 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("UnusedDeclaration")
-@Component
-@Service(value = IndexAugmentorFactory.class)
-@References({
-        @Reference(name = "IndexFieldProvider",
-                policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                referenceInterface = IndexFieldProvider.class),
-        @Reference(name = "FulltextQueryTermsProvider",
-                policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                referenceInterface = FulltextQueryTermsProvider.class)
-})
+@Component(
+        service = { IndexAugmentorFactory.class },
+        reference = {
+                @Reference(
+                        name = "IndexFieldProvider",
+                        bind = "bindIndexFieldProvider",
+                        unbind = "unbindIndexFieldProvider",
+                        policy = ReferencePolicy.DYNAMIC,
+                        cardinality = ReferenceCardinality.MULTIPLE,
+                        service = IndexFieldProvider.class
+                ),
+                @Reference(
+                        name = "FulltextQueryTermsProvider",
+                        bind = "bindFulltextQueryTermsProvider",
+                        unbind = "unbindFulltextQueryTermsProvider",
+                        policy = ReferencePolicy.DYNAMIC,
+                        cardinality = ReferenceCardinality.MULTIPLE,
+                        service = FulltextQueryTermsProvider.class
+                )
+        }
+)
 public class IndexAugmentorFactory {
 
     private static final PerfLogger PERFLOG = new PerfLogger(
@@ -178,7 +184,7 @@ public class IndexAugmentorFactory {
 
         CompositeIndexFieldProvider(String nodeType, List<IndexFieldProvider> providers) {
             this.nodeType = nodeType;
-            this.providers = ImmutableList.copyOf(providers);
+            this.providers = List.copyOf(providers);
         }
 
         @NotNull
@@ -212,7 +218,7 @@ public class IndexAugmentorFactory {
 
         CompositeFulltextQueryTermsProvider(String nodeType, List<FulltextQueryTermsProvider> providers) {
             this.nodeType = nodeType;
-            this.providers = ImmutableList.copyOf(providers);
+            this.providers = List.copyOf(providers);
         }
 
         @Override

@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -95,7 +94,7 @@ public class DocumentBundlor {
 
     private DocumentBundlor(List<Include> includes) {
         checkArgument(!includes.isEmpty(), "Include list cannot be empty");
-        this.includes = ImmutableList.copyOf(includes);
+        this.includes = List.copyOf(includes);
     }
 
     public boolean isBundled(String relativePath) {

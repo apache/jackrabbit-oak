@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -436,7 +435,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
         Validate.checkState(versionable.hasProperty(JCR_PREDECESSORS));
         PropertyState state = versionable.getProperty(JCR_PREDECESSORS);
-        List<String> predecessors = ImmutableList.copyOf(state.getValue(Type.REFERENCES));
+        List<String> predecessors = CollectionUtils.toList(state.getValue(Type.REFERENCES));
         NodeBuilder version = vHistory.child(calculateVersion(vHistory, versionable));
 
         String versionUUID = UUIDUtils.generateUUID();

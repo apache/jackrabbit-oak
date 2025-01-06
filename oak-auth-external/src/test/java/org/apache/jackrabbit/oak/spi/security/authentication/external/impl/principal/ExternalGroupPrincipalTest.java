@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -26,6 +24,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -38,7 +37,9 @@ import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
@@ -69,10 +70,10 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
         Authorizable notMember = getUserManager(root).getAuthorizable(ID_SECOND_USER);
         assertFalse(principal.isMember(notMember.getPrincipal()));
 
-        root.getTree(notMember.getPath()).setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("secondGroup"), Type.STRINGS);
+        root.getTree(notMember.getPath()).setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, List.of("secondGroup"), Type.STRINGS);
         assertFalse(principal.isMember(notMember.getPrincipal()));
 
-        root.getTree(notMember.getPath()).setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of(), Type.STRINGS);
+        root.getTree(notMember.getPath()).setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, List.of(), Type.STRINGS);
         assertFalse(principal.isMember(new PrincipalImpl(notMember.getPrincipal().getName())));
     }
 
@@ -80,7 +81,8 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
     public void testIsMemberExternalGroup() throws Exception {
         GroupPrincipal principal = getGroupPrincipal();
 
-        Iterable<String> exGroupPrincNames = Iterables.transform(ImmutableList.copyOf(idp.listGroups()), ExternalIdentity::getPrincipalName);
+        List<String> exGroupPrincNames = CollectionUtils.toStream(
+                idp.listGroups()).map(ExternalIdentity::getPrincipalName).collect(Collectors.toList());
         for (String principalName : exGroupPrincNames) {
             assertFalse(principal.isMember(new PrincipalImpl(principalName)));
         }

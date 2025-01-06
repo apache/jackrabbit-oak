@@ -39,7 +39,6 @@ import org.bson.conversions.Bson;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -232,7 +231,7 @@ public class DocumentNodeStoreHelper {
 
         @Override
         public int compare(BlobReferences o1, BlobReferences o2) {
-            int c = Longs.compare(o1.garbageSize, o2.garbageSize);
+            int c = Long.compare(o1.garbageSize, o2.garbageSize);
             if (c != 0) {
                 return c;
             }

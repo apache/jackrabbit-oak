@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -84,7 +84,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testHasPrivilege() throws Exception {
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
+        try (ContentSession cs = Java23Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
             PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
 
             Set<Principal> principals = Collections.singleton(testPrincipal);
@@ -99,7 +99,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testNotHasPrivilege() throws Exception {
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
+        try (ContentSession cs = Java23Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
             PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
 
             Set<Principal> principals = Collections.singleton(testPrincipal);
@@ -140,7 +140,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testGetPrivileges() throws Exception {
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
+        try (ContentSession cs = Java23Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
             PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
 
             Privilege[] expected = privilegesFromNames(JCR_READ);
@@ -152,7 +152,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
 
     @Test(expected = PathNotFoundException.class)
     public void testGetPrivilegesAtRoot() throws Exception {
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
+        try (ContentSession cs = Java23Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
             PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
             testAcMgr.getPrivileges(ROOT_PATH);
         }
@@ -186,7 +186,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
 
     @Test(expected = AccessDeniedException.class)
     public void testGetEffectivePoliciesLimitedAccess() throws Exception {
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
+        try (ContentSession cs = Java23Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
             PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
             testAcMgr.getEffectivePolicies(readablePaths.next());
         }
@@ -201,9 +201,9 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
         root.commit();
 
         // test-session can read-ac at readable path but cannot access principal-based policy
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
+        try (ContentSession cs = Java23Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
             PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
-            Set<AccessControlPolicy> effective = ImmutableSet.copyOf(testAcMgr.getEffectivePolicies(path));
+            Set<AccessControlPolicy> effective = Set.of(testAcMgr.getEffectivePolicies(path));
 
             assertEquals(1, effective.size());
             assertTrue(effective.contains(ReadPolicy.INSTANCE));
@@ -220,7 +220,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
         root.commit();
 
         // test-session can read-ac at readable path and at principal-based policy
-        try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
+        try (ContentSession cs = Java23Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
             PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
             Set<AccessControlPolicy> effective = CollectionUtils.toSet(testAcMgr.getEffectivePolicies(path));
 

@@ -18,7 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
+import java.util.List;
+
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getCreateStatsConsumer;
@@ -54,31 +55,31 @@ public class UpsertMetricUpdaterTest extends BaseUpdaterTest {
 
     @Test
     public void updateNodesEmptyList() {
-        uMUWithoutThrottling.update(NODES, 100, of(), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithoutThrottling.update(NODES, 100, List.of(), isNodesCollectionUpdated(), getCreateStatsConsumer());
         assertWithoutThrottling(0, 0, 0);
     }
 
     @Test
     public void updateNonNodesCollection() {
-        uMUWithThrottling.update(JOURNAL, 100, of(), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithThrottling.update(JOURNAL, 100, List.of(), isNodesCollectionUpdated(), getCreateStatsConsumer());
         assertWithThrottling(0, 0, 0);
     }
 
     @Test
     public void updateNodes() {
-        uMUWithThrottling.update(NODES, 100, of("a", "b"), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithThrottling.update(NODES, 100, List.of("a", "b"), isNodesCollectionUpdated(), getCreateStatsConsumer());
         assertWithThrottling(2, 0, 50);
 
-        uMUWithoutThrottling.update(NODES, 100, of("a", "b"), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithoutThrottling.update(NODES, 100, List.of("a", "b"), isNodesCollectionUpdated(), getCreateStatsConsumer());
         assertWithoutThrottling(2, 0, 50);
     }
 
     @Test
     public void updateNodesWithPreviousDocId() {
-        uMUWithThrottling.update(NODES, 100, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithThrottling.update(NODES, 100, List.of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), isNodesCollectionUpdated(), getCreateStatsConsumer());
         assertWithThrottling(1, 1, 100);
 
-        uMUWithoutThrottling.update(NODES, 100, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), isNodesCollectionUpdated(), getCreateStatsConsumer());
+        uMUWithoutThrottling.update(NODES, 100, List.of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), isNodesCollectionUpdated(), getCreateStatsConsumer());
         assertWithoutThrottling(1, 1, 100);
     }
 

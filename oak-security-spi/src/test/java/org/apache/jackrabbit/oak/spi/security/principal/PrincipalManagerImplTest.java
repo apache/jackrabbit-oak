@@ -20,12 +20,12 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
@@ -54,7 +54,7 @@ public class PrincipalManagerImplTest {
     }
 
     private static void assertIterator(@NotNull Iterator<? extends Principal> expected, @NotNull Iterator<? extends Principal> result) {
-        assertEquals(ImmutableSet.copyOf(expected), ImmutableSet.copyOf(result));
+        assertEquals(CollectionUtils.toSet(expected), CollectionUtils.toSet(result));
     }
 
     @Test

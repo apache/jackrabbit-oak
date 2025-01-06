@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -36,6 +35,7 @@ import org.junit.Test;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import java.util.Collections;
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.junit.Assert.assertEquals;
@@ -421,7 +421,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         // cannot be relativized during the reconnect-preparation
         NodeBuilder before = new MemoryNodeBuilder(getTreeProvider().asNodeState(adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH)));
         NodeBuilder cugNode = before.getChildNode("content").getChildNode("rep:cugPolicy");
-        cugNode.setProperty(HIDDEN_NESTED_CUGS, ImmutableList.of("/nested/out/of/hierarchy", "/content/subtree"), Type.STRINGS);
+        cugNode.setProperty(HIDDEN_NESTED_CUGS, List.of("/nested/out/of/hierarchy", "/content/subtree"), Type.STRINGS);
 
         NestedCugHook nch = new NestedCugHook();
         nch.processCommit(before.getNodeState(), after, new CommitInfo("sid", null));
@@ -442,7 +442,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         // for that very cug)
         NodeBuilder after = new MemoryNodeBuilder(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
         NodeBuilder cugNode = after.getChildNode("content").getChildNode("rep:cugPolicy");
-        cugNode.setProperty(HIDDEN_NESTED_CUGS, ImmutableList.of(), Type.STRINGS);
+        cugNode.setProperty(HIDDEN_NESTED_CUGS, List.of(), Type.STRINGS);
 
         NodeState before = getTreeProvider().asNodeState(adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH));
 
@@ -467,7 +467,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         // the nested cug of the before-state (and thus cannot clean-up the hidden structure)
         NodeBuilder before = new MemoryNodeBuilder(getTreeProvider().asNodeState(adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH)));
         NodeBuilder cugNode = before.getChildNode("content").getChildNode("rep:cugPolicy");
-        cugNode.setProperty(HIDDEN_NESTED_CUGS, ImmutableList.of(), Type.STRINGS);
+        cugNode.setProperty(HIDDEN_NESTED_CUGS, List.of(), Type.STRINGS);
 
         NestedCugHook nch = new NestedCugHook();
         nch.processCommit(before.getNodeState(), after, new CommitInfo("sid", null));
@@ -510,7 +510,7 @@ public class NestedCugHookTest extends AbstractCugTest {
         // the nested /content with the root node (and thus cannot clean-up the hidden structure,
         // which is already 'cleaned' for that very cug)
         NodeBuilder after = new MemoryNodeBuilder(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
-        after.setProperty(HIDDEN_NESTED_CUGS, ImmutableList.of(), Type.STRINGS);
+        after.setProperty(HIDDEN_NESTED_CUGS, List.of(), Type.STRINGS);
         after.setProperty(HIDDEN_TOP_CUG_CNT, 0);
         NodeState before = getTreeProvider().asNodeState(adminSession.getLatestRoot().getTree(PathUtils.ROOT_PATH));
 

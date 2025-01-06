@@ -17,9 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.ALL;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.NONE;
@@ -34,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -44,6 +42,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.jcr.NamespaceException;
 import javax.jcr.Node;
@@ -58,9 +58,6 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -323,7 +320,7 @@ public class RepositoryUpgrade {
      * @param includes Paths to be included in the copy.
      */
     public void setIncludes(@NotNull String... includes) {
-        this.includePaths = copyOf(requireNonNull(includes));
+        this.includePaths = Set.of(requireNonNull(includes));
     }
 
     /**
@@ -333,7 +330,7 @@ public class RepositoryUpgrade {
      * @param excludes Paths to be excluded from the copy.
      */
     public void setExcludes(@NotNull String... excludes) {
-        this.excludePaths = copyOf(requireNonNull(excludes));
+        this.excludePaths = Set.of(requireNonNull(excludes));
     }
 
     /**
@@ -343,7 +340,7 @@ public class RepositoryUpgrade {
      * @param merges Paths to be merged during copy.
      */
     public void setMerges(@NotNull String... merges) {
-        this.mergePaths = copyOf(requireNonNull(merges));
+        this.mergePaths = Set.of(requireNonNull(merges));
     }
 
     /**
@@ -774,8 +771,9 @@ public class RepositoryUpgrade {
             while (it.hasNext()) {
                 Privilege aggrPriv = it.next();
 
-                List<String> aggrNames = Lists.transform(ImmutableList.copyOf(aggrPriv.getDeclaredAggregatePrivileges()),
-                        input -> (input == null) ? null : input.getName());
+                List<String> aggrNames = Arrays.stream(aggrPriv.getDeclaredAggregatePrivileges()).
+                        map(input -> (input == null) ? null : input.getName()).collect(Collectors.toList());
+
                 if (allAggregatesRegistered(pMgr, aggrNames)) {
                     pMgr.registerPrivilege(aggrPriv.getName(), aggrPriv.isAbstract(), aggrNames.toArray(new String[aggrNames.size()]));
                     it.remove();
@@ -941,8 +939,8 @@ public class RepositoryUpgrade {
     private String copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot, String workspaceName)
             throws RepositoryException {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        final Set<String> excludes = union(copyOf(this.excludePaths), Set.of("/jcr:system/jcr:versionStorage"));
-        final Set<String> merges = union(copyOf(this.mergePaths), Set.of("/jcr:system"));
+        final Set<String> excludes = Stream.concat(this.excludePaths.stream(), Stream.of("/jcr:system/jcr:versionStorage")).collect(Collectors.toUnmodifiableSet());
+        final Set<String> merges = Stream.concat(this.mergePaths.stream(), Stream.of("/jcr:system")).collect(Collectors.toUnmodifiableSet());
 
         logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes, merges);
 
@@ -961,7 +959,7 @@ public class RepositoryUpgrade {
 
     static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths, NodeState sourceRoot) {
         if (!includePaths.contains("/")) {
-            return copyOf(includePaths);
+            return Set.copyOf(includePaths);
         }
 
         // include child nodes from source individually to avoid deleting other initialized content

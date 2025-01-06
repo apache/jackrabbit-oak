@@ -21,7 +21,8 @@ package org.apache.jackrabbit.oak.plugins.commit;
 import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandlers;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import java.util.List;
+
 
 /**
  * Utility class providing conflict handlers used for JCR.
@@ -34,7 +35,7 @@ public final class JcrConflictHandler {
      * and {@link AnnotatingConflictHandler}.
      */
     public static CompositeConflictHandler createJcrConflictHandler() {
-        return new CompositeConflictHandler(ImmutableList.of(
+        return new CompositeConflictHandler(List.of(
                 new JcrLastModifiedConflictHandler(),
                 ConflictHandlers.wrap(new ChildOrderConflictHandler()),
                 new AnnotatingConflictHandler()));

@@ -25,7 +25,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.jetbrains.annotations.NotNull;
@@ -73,7 +72,7 @@ public class PropInfo {
      * @param value value of the property being imported
      */
     public PropInfo(@Nullable String name, int type, @NotNull TextValue value) {
-        this(name, type, ImmutableList.of(value), MultipleStatus.UNKNOWN);
+        this(name, type, List.of(value), MultipleStatus.UNKNOWN);
     }
 
     /**
@@ -100,7 +99,7 @@ public class PropInfo {
                     @NotNull MultipleStatus multipleStatus) {
         this.name = name;
         this.type = type;
-        this.values = ImmutableList.copyOf(values);
+        this.values = List.copyOf(values);
         this.multipleStatus = multipleStatus;
     }
 

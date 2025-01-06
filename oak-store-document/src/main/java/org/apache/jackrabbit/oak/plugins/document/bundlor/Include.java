@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 
@@ -53,7 +53,7 @@ public class Include {
     private final String pattern;
 
     public Include(String pattern){
-        List<String> pathElements = ImmutableList.copyOf(PathUtils.elements(pattern));
+        List<String> pathElements = CollectionUtils.toList(PathUtils.elements(pattern));
         List<String> elementList = new ArrayList<>(pathElements.size());
         Directive directive = Directive.NONE;
         for (int i = 0; i < pathElements.size(); i++) {

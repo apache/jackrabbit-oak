@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -76,7 +75,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         this.principal = principal;
         this.privilegeBits = privilegeBits;
         this.isAllow = isAllow;
-        this.restrictions = (restrictions == null) ? Collections.emptySet() : ImmutableSet.copyOf(restrictions);
+        this.restrictions = (restrictions == null) ? Collections.emptySet() : Collections.unmodifiableSet(restrictions);
         this.namePathMapper = namePathMapper;
         this.valueFactory = new PartialValueFactory(namePathMapper);
     }

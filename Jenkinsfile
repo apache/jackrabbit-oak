@@ -63,7 +63,7 @@ def buildModule(moduleSpec) {
                     // clean all modules
                     sh "${MAVEN_CMD} -T 1C clean"
                     // build and install up to desired module
-                    sh "${MAVEN_CMD} -Dbaseline.skip=true -Prat -T 1C install -DskipTests -pl :${moduleName} -am"
+                    sh "${MAVEN_CMD} -Dbaseline.skip=true -T 1C install -DskipTests -pl :${moduleName} -am"
                     try {
                         sh "${MAVEN_CMD} ${testOptions} -DtrimStackTrace=false -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS -Dmongo.db=MongoMKDB-${MONGODB_SUFFIX} clean verify -pl :${moduleName}"
                     } finally {

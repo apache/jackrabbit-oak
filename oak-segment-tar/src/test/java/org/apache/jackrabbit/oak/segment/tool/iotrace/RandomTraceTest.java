@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -61,16 +60,16 @@ public class RandomTraceTest {
     @Test
     public void testTraverseNonExistingPath() {
         List<List<String>> trace = new ArrayList<>();
-        new RandomAccessTrace(ImmutableList.of("/not/here"), 0, 1, trace::add)
+        new RandomAccessTrace(List.of("/not/here"), 0, 1, trace::add)
             .run(createTree(emptyList()));
         assertEquals(1, trace.size());
-        assertEquals(ImmutableList.of("/not/here"), trace.get(0));
+        assertEquals(List.of("/not/here"), trace.get(0));
     }
 
     @Test
     public void testTraverse() {
         List<List<String>> trace = new ArrayList<>();
-        ImmutableList<String> paths = ImmutableList.of("/a/b/c", "/d/e/f");
+        List<String> paths = List.of("/a/b/c", "/d/e/f");
         new RandomAccessTrace(paths, 0, 2, trace::add)
                 .run(createTree(paths));
         assertEquals(2, trace.size());

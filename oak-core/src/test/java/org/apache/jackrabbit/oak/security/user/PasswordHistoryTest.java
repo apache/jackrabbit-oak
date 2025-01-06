@@ -24,11 +24,11 @@ import java.util.Map;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -62,7 +62,9 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
     @NotNull
     private List<String> getHistory(@NotNull User user) throws RepositoryException {
         Iterable<String> history = TreeUtil.getStrings(root.getTree(user.getPath()).getChild(REP_PWD), REP_PWD_HISTORY);
-        return (history == null) ? Collections.emptyList() : ImmutableList.copyOf(history).reverse();
+        List<String> result = history == null ? Collections.emptyList() : CollectionUtils.toList(history);
+        Collections.reverse(result);
+        return result;
     }
 
     /**
@@ -217,7 +219,7 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
         User user = getTestUser();
         Tree userTree = root.getTree(user.getPath());
 
-        List<ConfigurationParameters> configs = ImmutableList.of(
+        List<ConfigurationParameters> configs = List.of(
                 ConfigurationParameters.EMPTY,
                 ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, PASSWORD_HISTORY_DISABLED_SIZE),
                 ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, -1),

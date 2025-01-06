@@ -26,13 +26,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -67,7 +67,6 @@ import org.junit.Test;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
@@ -1047,7 +1046,7 @@ public class DocumentBundlingTest {
     }
 
     private static List<String> childNames(NodeState state, String path){
-        return copyOf(getNode(state, path).getChildNodeNames());
+        return CollectionUtils.toList(getNode(state, path).getChildNodeNames());
     }
 
     static NodeBuilder newNode(String typeName){

@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -104,7 +103,7 @@ public abstract class IndexPlannerCommonTest {
         defn.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, createFilter("nt:base"),
-                ImmutableList.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
+                List.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
         assertNotNull(planner.getPlan());
         assertTrue(pr(planner.getPlan()).isUniquePathsRequired());
     }
@@ -114,7 +113,7 @@ public abstract class IndexPlannerCommonTest {
         NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, createFilter("nt:file"),
-                ImmutableList.of(new QueryIndex.OrderEntry("jcr:score", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
+                List.of(new QueryIndex.OrderEntry("jcr:score", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
         assertNull(planner.getPlan());
     }
 
@@ -1158,7 +1157,7 @@ public abstract class IndexPlannerCommonTest {
 
         TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter,
-                    ImmutableList.of(new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
+                    List.of(new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
 
@@ -1184,7 +1183,7 @@ public abstract class IndexPlannerCommonTest {
 
         TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter,
-                    ImmutableList.of(new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
+                    List.of(new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
 
@@ -1338,7 +1337,7 @@ public abstract class IndexPlannerCommonTest {
 
         TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, createFilter("nt:base"),
-                    ImmutableList.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING),
+                    List.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING),
                             new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
             assertNotNull(planner.getPlan());
             assertEquals(1, planner.getPlan().getEstimatedEntryCount());
@@ -1356,7 +1355,7 @@ public abstract class IndexPlannerCommonTest {
 
         TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, createFilter("nt:base"),
-                    ImmutableList.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING),
+                    List.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING),
                             new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
 
             assertNotNull(planner.getPlan());

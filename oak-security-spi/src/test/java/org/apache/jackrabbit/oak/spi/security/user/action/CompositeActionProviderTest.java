@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.List;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -47,7 +47,7 @@ public class CompositeActionProviderTest {
         AuthorizableActionProvider aap = new TestAuthorizableActionProvider();
         AuthorizableActionProvider aap2 = new TestAuthorizableActionProvider();
 
-        assertEquals(ImmutableList.of(TestAction.INSTANCE, TestAction.INSTANCE), new CompositeActionProvider(aap, aap2).getAuthorizableActions(securityProvider));
+        assertEquals(List.of(TestAction.INSTANCE, TestAction.INSTANCE), new CompositeActionProvider(aap, aap2).getAuthorizableActions(securityProvider));
     }
 
     @Test
@@ -55,7 +55,7 @@ public class CompositeActionProviderTest {
         AuthorizableActionProvider aap = new TestAuthorizableActionProvider();
         AuthorizableActionProvider aap2 = new TestAuthorizableActionProvider();
 
-        assertEquals(ImmutableList.of(TestAction.INSTANCE, TestAction.INSTANCE), new CompositeActionProvider(ImmutableList.of(aap, aap2)).getAuthorizableActions(securityProvider));
+        assertEquals(List.of(TestAction.INSTANCE, TestAction.INSTANCE), new CompositeActionProvider(List.of(aap, aap2)).getAuthorizableActions(securityProvider));
     }
 
 
@@ -64,7 +64,7 @@ public class CompositeActionProviderTest {
         @NotNull
         @Override
         public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-            return ImmutableList.of(TestAction.INSTANCE);
+            return List.of(TestAction.INSTANCE);
         }
     }
 

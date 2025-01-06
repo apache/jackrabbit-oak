@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -887,7 +886,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         SortedMap m = (SortedMap) f.get(registration);
         assertEquals(3, m.size());
         Collection c = m.values();
-        assertTrue(Iterables.elementsEqual(ImmutableList.of(service2, service3, service1), c));
+        assertTrue(Iterables.elementsEqual(List.of(service2, service3, service1), c));
     }
 
     @Test
@@ -1105,7 +1104,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         assertNull(context.getService(SecurityProvider.class));
 
         AuthorizationConfiguration mockConfiguration = mockConfiguration(AuthorizationConfiguration.class);
-        when(mockConfiguration.getMonitors(any(StatisticsProvider.class))).thenReturn(ImmutableList.of(new TestMonitor()));
+        when(mockConfiguration.getMonitors(any(StatisticsProvider.class))).thenReturn(List.of(new TestMonitor()));
 
         registration.bindAuthorizationConfiguration(mockConfiguration, Collections.singletonMap(SERVICE_PID, "customAuthorizationConfig"));
         SecurityProvider service = context.getService(SecurityProvider.class);

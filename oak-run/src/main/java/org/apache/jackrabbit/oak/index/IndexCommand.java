@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.index;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
@@ -205,7 +205,7 @@ public class IndexCommand implements Command {
         if (definitions != null) {
             IndexDefinitionUpdater updater = new IndexDefinitionUpdater(definitions);
             Set<String> indexPathsFromJson = updater.getIndexPaths();
-            Set<String> diff = Sets.difference(indexPathsFromJson, indexPaths);
+            Set<String> diff = CollectionUtils.difference(indexPathsFromJson, indexPaths);
             if (!diff.isEmpty()) {
                 log.info("Augmenting the indexPaths with {} which are present in {}", diff, definitions);
             }

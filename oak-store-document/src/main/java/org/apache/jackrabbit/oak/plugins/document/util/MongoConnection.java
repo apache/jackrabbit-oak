@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.MoreObjects;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
@@ -159,17 +159,16 @@ public class MongoConnection {
     }
 
     public static String toString(MongoClientOptions opts) {
-        return MoreObjects.toStringHelper(opts)
-                .add("connectionsPerHost", opts.getConnectionsPerHost())
-                .add("connectTimeout", opts.getConnectTimeout())
-                .add("socketTimeout", opts.getSocketTimeout())
-                .add("socketKeepAlive", opts.isSocketKeepAlive())
-                .add("maxWaitTime", opts.getMaxWaitTime())
-                .add("heartbeatFrequency", opts.getHeartbeatFrequency())
-                .add("threadsAllowedToBlockForConnectionMultiplier",
-                        opts.getThreadsAllowedToBlockForConnectionMultiplier())
-                .add("readPreference", opts.getReadPreference().getName())
-                .add("writeConcern", opts.getWriteConcern())
+        return new StringJoiner(", ", opts.getClass().getSimpleName() + "[", "]")
+                .add("connectionsPerHost=" + opts.getConnectionsPerHost())
+                .add("connectTimeout=" + opts.getConnectTimeout())
+                .add("socketTimeout=" + opts.getSocketTimeout())
+                .add("socketKeepAlive=" + opts.isSocketKeepAlive())
+                .add("maxWaitTime=" + opts.getMaxWaitTime())
+                .add("heartbeatFrequency=" + opts.getHeartbeatFrequency())
+                .add("threadsAllowedToBlockForConnectionMultiplier=" + opts.getThreadsAllowedToBlockForConnectionMultiplier())
+                .add("readPreference=" + opts.getReadPreference().getName())
+                .add("writeConcern=" + opts.getWriteConcern())
                 .toString();
     }
 

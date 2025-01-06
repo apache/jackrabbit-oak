@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
-import org.apache.jackrabbit.guava.common.base.MoreObjects;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -31,6 +30,7 @@ import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 
 import javax.management.openmbean.CompositeData;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -450,16 +450,16 @@ public class PersistentCacheStats extends AnnotatedStandardMBean implements Pers
 
     @Override
     public String cacheInfoAsString() {
-        return MoreObjects.toStringHelper("PersistentCacheStats")
-                .add("requestCount", getRequestCount())
-                .add("hitCount", getHitCount())
-                .add("hitRate", String.format("%1.2f", getHitRate()))
-                .add("missCount", getMissCount())
-                .add("missRate", String.format("%1.2f", getMissRate()))
-                .add("loadCount", getLoadCount())
-                .add("loadSuccessCount", getLoadSuccessCount())
-                .add("loadExceptionCount", getLoadExceptionCount())
-                .add("totalWeight", IOUtils.humanReadableByteCount(estimateCurrentWeight()))
+        return new StringJoiner(", ", "PersistentCacheStats [", "]")
+                .add("requestCount=" + getRequestCount())
+                .add("hitCount=" + getHitCount())
+                .add("hitRate=" + String.format("%1.2f", getHitRate()))
+                .add("missCount=" + getMissCount())
+                .add("missRate=" + String.format("%1.2f", getMissRate()))
+                .add("loadCount=" + getLoadCount())
+                .add("loadSuccessCount=" + getLoadSuccessCount())
+                .add("loadExceptionCount=" + getLoadExceptionCount())
+                .add("totalWeight=" + IOUtils.humanReadableByteCount(estimateCurrentWeight()))
                 .toString();
     }
 

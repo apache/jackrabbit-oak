@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
 import java.io.IOException;
@@ -51,7 +50,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.create;
 import static org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreObserverTest.documentState;
@@ -78,7 +76,7 @@ public class SecondaryStoreCacheTest {
 
     @Test
     public void basicTest() throws Exception{
-        SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
+        SecondaryStoreCache cache = createCache(new PathFilter(List.of("/a"), empty));
 
         NodeBuilder nb = primary.getRoot().builder();
         create(nb, "/a/b", "/a/c", "/x/y/z");
@@ -92,7 +90,7 @@ public class SecondaryStoreCacheTest {
 
     @Test
     public void updateAndReadAtReadRev() throws Exception{
-        SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
+        SecondaryStoreCache cache = createCache(new PathFilter(List.of("/a"), empty));
 
         NodeBuilder nb = primary.getRoot().builder();
         create(nb, "/a/b", "/a/c", "/x/y/z");
@@ -130,7 +128,7 @@ public class SecondaryStoreCacheTest {
 
     @Test
     public void updateAndReadAtPrevRevision() throws Exception {
-        SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
+        SecondaryStoreCache cache = createCache(new PathFilter(List.of("/a"), empty));
 
         NodeBuilder nb = primary.getRoot().builder();
         create(nb, "/a/b", "/a/c");
@@ -154,7 +152,7 @@ public class SecondaryStoreCacheTest {
 
     @Test
     public void binarySearch() throws Exception{
-        SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
+        SecondaryStoreCache cache = createCache(new PathFilter(List.of("/a"), empty));
 
         List<AbstractDocumentNodeState> roots = new ArrayList<>();
         List<RevisionVector> revs = new ArrayList<>();
@@ -185,7 +183,7 @@ public class SecondaryStoreCacheTest {
 
     @Test
     public void readWithSecondaryLagging() throws Exception{
-        PathFilter pathFilter = new PathFilter(of("/a"), empty);
+        PathFilter pathFilter = new PathFilter(List.of("/a"), empty);
         SecondaryStoreCache cache = createBuilder(pathFilter).buildCache();
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver(cache);
 
@@ -220,7 +218,7 @@ public class SecondaryStoreCacheTest {
 
     @Test
     public void isCached() throws Exception{
-        SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
+        SecondaryStoreCache cache = createCache(new PathFilter(List.of("/a"), empty));
 
         assertTrue(cache.isCached(Path.fromString("/a")));
         assertTrue(cache.isCached(Path.fromString("/a/b")));
@@ -229,7 +227,7 @@ public class SecondaryStoreCacheTest {
 
     @Test
     public void bundledNodes() throws Exception{
-        SecondaryStoreCache cache = createCache(new PathFilter(of("/"), empty));
+        SecondaryStoreCache cache = createCache(new PathFilter(List.of("/"), empty));
         primary.setNodeStateCache(cache);
 
         NodeBuilder builder = primary.getRoot().builder();

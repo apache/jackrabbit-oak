@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import java.util.List;
 import java.util.Set;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
@@ -107,7 +107,7 @@ public class JcrAllCommitHookTest extends AbstractSecurityTest {
         Root r = adminSession.getLatestRoot();
         Tree t = r.getTree(PRIVILEGES_PATH);
         Tree jcrAll = t.getChild(JCR_ALL);
-        jcrAll.setProperty(REP_AGGREGATES, ImmutableList.of("newPriv"), Type.NAMES);
+        jcrAll.setProperty(REP_AGGREGATES, List.of("newPriv"), Type.NAMES);
         t.addChild("newPriv");
         NodeState after = getTreeProvider().asNodeState(r.getTree(PathUtils.ROOT_PATH));
         hook.processCommit(before, after, null);
