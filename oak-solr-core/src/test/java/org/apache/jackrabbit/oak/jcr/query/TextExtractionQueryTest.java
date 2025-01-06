@@ -29,6 +29,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 
+@Deprecated(forRemoval=true, since="1.74.0")
 public class TextExtractionQueryTest extends AbstractQueryTest {
 
     public void testFileContains() throws Exception {

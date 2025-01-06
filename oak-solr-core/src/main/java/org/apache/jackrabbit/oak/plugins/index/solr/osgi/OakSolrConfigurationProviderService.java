@@ -36,6 +36,8 @@ import org.osgi.service.metatype.annotations.Option;
 
 /**
  * OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider}
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
 @Component(
         immediate = true,
@@ -44,6 +46,7 @@ import org.osgi.service.metatype.annotations.Option;
 @Designate(
         ocd = OakSolrConfigurationProviderService.Configuration.class
 )
+@Deprecated(forRemoval=true, since="1.74.0")
 public class OakSolrConfigurationProviderService implements OakSolrConfigurationProvider {
 
     @ObjectClassDefinition(
