@@ -51,12 +51,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -638,13 +638,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                                 Iterator<String> idIter = blobStore.resolveChunks(blobId);
                                 Iterator<List<String>> partitions = Iterators.partition(idIter, getBatchCount());
                                 while (partitions.hasNext()) {
-                                    List<String> idBatch = Lists.transform(partitions.next(), id -> {
-                                            if (logPath && nodeId != null) {
-                                                return id + DELIM + nodeId;
-                                            } else {
-                                                return id;
-                                            }
-                                        });
+                                    List<String> idBatch = partitions.next().stream()
+                                            .map(id -> {
+                                                if (logPath && nodeId != null) {
+                                                    return id + DELIM + nodeId;
+                                                } else {
+                                                    return id;
+                                                }
+                                            }).collect(Collectors.toList());
                                     if (debugMode) {
                                         LOG.trace("chunkIds : {}", idBatch);
                                     }

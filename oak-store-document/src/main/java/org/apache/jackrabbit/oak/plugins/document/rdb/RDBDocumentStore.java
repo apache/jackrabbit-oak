@@ -55,6 +55,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.stream.Collectors;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -90,7 +91,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Implementation of {@link DocumentStore} for relational databases.
@@ -441,8 +441,8 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
         stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
-                collection, Lists.transform(updateOps, input -> input.getId()));
-        return new ArrayList<T>(results.values());
+                collection, updateOps.stream().map(UpdateOp::getId).collect(Collectors.toList()));
+        return new ArrayList<>(results.values());
     }
 
     private <T extends Document> Map<String, T> readDocumentCached(Collection<T> collection, Set<String> keys) {

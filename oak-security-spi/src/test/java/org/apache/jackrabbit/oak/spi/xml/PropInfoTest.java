@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
@@ -28,6 +27,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -241,13 +241,13 @@ public class PropInfoTest {
         List<TextValue> tvs = List.of(mockTextValue("24", PropertyType.LONG));
         PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, tvs);
 
-        assertEquals(Lists.transform(tvs, input -> {
-            try {
-                return input.getValue(PropertyType.LONG);
-            } catch (RepositoryException e) {
-                throw new RuntimeException();
-            }
-        }), propInfo.getValues(PropertyType.LONG));
+        assertEquals(tvs.stream().map(input -> {
+                    try {
+                        return input.getValue(PropertyType.LONG);
+                    } catch (RepositoryException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).collect(Collectors.toList()), propInfo.getValues(PropertyType.LONG));
     }
 
     @Test

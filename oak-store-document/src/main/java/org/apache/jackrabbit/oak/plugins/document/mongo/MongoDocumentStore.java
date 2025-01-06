@@ -37,12 +37,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import com.mongodb.Block;
@@ -1364,9 +1364,9 @@ public class MongoDocumentStore implements DocumentStore {
                     input -> input.getId()));
         } finally {
             stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
-                    collection, Lists.transform(updateOps, input -> input.getId()));
+                    collection, updateOps.stream().map(UpdateOp::getId).collect(Collectors.toList()));
         }
-        List<T> resultList = new ArrayList<T>(results.values());
+        List<T> resultList = new ArrayList<>(results.values());
         log("createOrUpdate returns", resultList);
         return resultList;
     }

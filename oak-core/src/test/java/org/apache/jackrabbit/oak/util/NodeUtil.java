@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.util;
 
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.stream.Collectors;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -220,7 +220,7 @@ public class NodeUtil {
     }
 
     public void setNames(String propertyName, String... values) {
-        tree.setProperty(propertyName, Lists.transform(Arrays.asList(values), jcrName -> getOakName(jcrName)), NAMES);
+        tree.setProperty(propertyName, Arrays.stream(values).map(this::getOakName).collect(Collectors.toList()), NAMES);
     }
 
     public void setDate(String name, long time) {
