@@ -22,8 +22,6 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Provider of {@link org.apache.solr.client.solrj.SolrClient}s instances
- * <p>
- * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
 public interface SolrServerProvider extends Closeable {
 
