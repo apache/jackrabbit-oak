@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

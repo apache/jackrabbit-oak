@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.ContiguousSet;
 import org.apache.jackrabbit.guava.common.collect.DiscreteDomain;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Range;
 
 public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {

@@ -26,7 +26,6 @@ import javax.jcr.NodeIterator;
 import javax.jcr.query.Query;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
