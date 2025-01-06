@@ -55,7 +55,6 @@ import java.util.function.Predicate;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -144,8 +143,7 @@ public final class NodeDocument extends Document {
      */
     static final int MODIFIED_IN_SECS_RESOLUTION = 5;
 
-    private static final NavigableMap<Revision, Range> EMPTY_RANGE_MAP =
-            Maps.unmodifiableNavigableMap(new TreeMap<Revision, Range>(REVERSE));
+    private static final NavigableMap<Revision, Range> EMPTY_RANGE_MAP = Collections.unmodifiableNavigableMap(new TreeMap<>(REVERSE));
 
     /**
      * The list of revision to root commit depth mappings to find out if a
@@ -1360,7 +1358,7 @@ public final class NodeDocument extends Document {
                 }
                 transformed.put(r.high, r);
             }
-            ranges = Maps.unmodifiableNavigableMap(transformed);
+            ranges = Collections.unmodifiableNavigableMap(transformed);
         }
         return ranges;
     }
