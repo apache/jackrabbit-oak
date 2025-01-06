@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -96,8 +97,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import ch.qos.logback.classic.Level;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
@@ -521,7 +520,7 @@ public class AsyncIndexUpdateTest {
     // OAK-1784
     @Test
     public void failOnConflict() throws Exception {
-        final Map<Thread, Semaphore> locks = Maps.newIdentityHashMap();
+        final Map<Thread, Semaphore> locks = new IdentityHashMap<>();
         NodeStore store = new MemoryNodeStore() {
             @NotNull
             @Override

@@ -20,12 +20,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
@@ -61,7 +60,7 @@ public class VersionGCWithSplitTest {
 
     private Clock clock;
 
-    private Map<Thread, Semaphore> updateLocks = Maps.newIdentityHashMap();
+    private Map<Thread, Semaphore> updateLocks = new IdentityHashMap<>();
 
     private DocumentNodeStore store;
 

@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -39,7 +40,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -377,7 +377,7 @@ public class CollectionUtils {
      */
     @NotNull
     public static <E> Set<E> newIdentityHashSet() {
-        return Collections.newSetFromMap(Maps.newIdentityHashMap());
+        return Collections.newSetFromMap(new IdentityHashMap<>());
     }
 
     /**
