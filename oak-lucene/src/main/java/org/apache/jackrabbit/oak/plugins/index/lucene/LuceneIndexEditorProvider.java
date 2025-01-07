@@ -71,21 +71,22 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
  *
  */
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
+    private final static Logger LOG = LoggerFactory.getLogger(LuceneIndexEditorProvider.class);
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexCopier indexCopier;
     private final ExtractedTextCache extractedTextCache;
     private final IndexAugmentorFactory augmentorFactory;
     private final IndexTracker indexTracker;
     private final MountInfoProvider mountInfoProvider;
     private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
+    private final LuceneIndexMBean mbean;
+    private final StatisticsProvider statisticsProvider;
+
     private GarbageCollectableBlobStore blobStore;
     private IndexingQueue indexingQueue;
     private boolean nrtIndexingEnabled;
     private LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
 
-    private final LuceneIndexMBean mbean;
-    private final StatisticsProvider statisticsProvider;
 
     /**
      * Number of indexed Lucene document that can be held in memory
@@ -153,8 +154,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +
-                    "ContextAwareCallback [%s]", callback);
+            checkArgument(callback instanceof ContextAwareCallback,
+                    "callback instance not of type ContextAwareCallback [%s]", callback);
             IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
             BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
             indexingContext.registerIndexCommitCallback(blobDeletionCallback);
@@ -179,15 +180,14 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                     //some initializer code does the commit with out it. So ignore such calls with
                     //warning now
                     //TODO Revisit use of warn level once all such cases are analyzed
-                    log.warn("No CommitContext found for commit", new Exception());
+                    LOG.warn("No CommitContext found for commit", new Exception());
                     return null;
                 }
 
                 //TODO Also check if index has been done once
 
 
-                writerFactory = new LocalIndexWriterFactory(getDocumentHolder(commitContext),
-                        indexPath);
+                writerFactory = new LocalIndexWriterFactory(getDocumentHolder(commitContext), indexPath);
 
                 //IndexDefinition from tracker might differ from one passed here for reindexing
                 //case which should be fine. However reusing existing definition would avoid
@@ -195,15 +195,16 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 if (indexTracker != null){
                     indexDefinition = indexTracker.getIndexDefinition(indexPath);
                     if (indexDefinition != null && !indexDefinition.hasMatchingNodeTypeReg(root)){
-                        log.debug("Detected change in NodeType registry for index {}. Would not use " +
+                        LOG.debug("Detected change in NodeType registry for index {}. Would not use " +
                                 "existing index definition", indexDefinition.getIndexPath());
                         indexDefinition = null;
                     }
                 }
 
                 if (indexDefinition == null) {
-                    indexDefinition = LuceneIndexDefinition.newBuilder(root, definition.getNodeState(),
-                            indexPath).build();
+                    indexDefinition = LuceneIndexDefinition
+                            .newBuilder(root, definition.getNodeState(), indexPath)
+                            .build();
                 }
 
                 if (indexDefinition.hasSyncPropertyDefinitions()) {
@@ -314,8 +315,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private static class COWDirectoryCleanupCallback implements IndexCommitCallback, COWDirectoryTracker {
         private static final Logger LOG = LoggerFactory.getLogger(COWDirectoryCleanupCallback.class);
 
-        private List<CopyOnWriteDirectory> openedCoWDirectories = new ArrayList<>();
-        private List<File> reindexingLocalDirectories = new ArrayList<>();
+        private final List<CopyOnWriteDirectory> openedCoWDirectories = new ArrayList<>();
+        private final List<File> reindexingLocalDirectories = new ArrayList<>();
 
         @Override
         public void commitProgress(IndexProgress indexProgress) {

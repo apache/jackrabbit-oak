@@ -150,8 +150,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
         }
 
         String headBucketName = idx.getString(PROP_HEAD_BUCKET);
-        requireNonNull(headBucketName, String.format("[%s] property not found in [%s] for index [%s]",
-                PROP_HEAD_BUCKET, idx, indexPath));
+        requireNonNull(headBucketName, "[" + PROP_HEAD_BUCKET + "] property not found in [" + idx + "] for index [" + indexPath + "]");
 
         return idx.child(headBucketName);
     }
@@ -165,12 +164,12 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
     }
 
     private static Set<String> getValueKeys(PropertyState property, ValuePattern pattern) {
-        Set<String> keys = new HashSet<>();
         if (property != null
                 && property.getType().tag() != PropertyType.BINARY
                 && property.count() != 0) {
-            keys.addAll(encode(PropertyValues.create(property), pattern));
+            return encode(PropertyValues.create(property), pattern);
+        } else {
+            return Set.of();
         }
-        return keys;
     }
 }

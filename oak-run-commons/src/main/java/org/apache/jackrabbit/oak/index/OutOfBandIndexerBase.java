@@ -133,7 +133,7 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
         nodesTraversed++;
     }
 
-    protected void preformIndexUpdate(NodeState baseState) throws IOException, CommitFailedException {
+    private void preformIndexUpdate(NodeState baseState) throws IOException, CommitFailedException {
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
 
         IndexUpdate indexUpdate = new IndexUpdate(

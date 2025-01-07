@@ -320,8 +320,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
   }
 
   static class MatcherState {
-    final static MatcherState NONE = new MatcherState(Collections.<Aggregate.Matcher>emptyList(),
-        Collections.<Aggregate.Matcher>emptyList());
+    final static MatcherState NONE = new MatcherState(List.of(), List.of());
 
     final List<Aggregate.Matcher> matched;
     final List<Aggregate.Matcher> inherited;

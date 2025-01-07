@@ -136,7 +136,7 @@ public class IndexerSupport {
             LOG.warn("Using head state for indexing. Such an index cannot be imported back");
         } else {
             checkpointedState = indexHelper.getNodeStore().retrieve(checkpoint);
-            requireNonNull(checkpointedState, String.format("Not able to retrieve revision referred via checkpoint [%s]", checkpoint));
+            requireNonNull(checkpointedState, "Not able to retrieve revision referred via checkpoint [" + checkpoint + "]");
             checkpointInfo = indexHelper.getNodeStore().checkpointInfo(checkpoint);
         }
         return checkpointedState;
