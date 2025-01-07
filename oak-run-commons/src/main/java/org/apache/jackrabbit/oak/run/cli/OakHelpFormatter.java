@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 
 import joptsimple.BuiltinHelpFormatter;
@@ -136,7 +135,7 @@ public class OakHelpFormatter implements HelpFormatter {
 
         @Override
         public int compareTo(OptionCategory that) {
-            return Ints.compare(this.bean.order(), that.bean.order());
+            return Integer.compare(this.bean.order(), that.bean.order());
         }
     }
 

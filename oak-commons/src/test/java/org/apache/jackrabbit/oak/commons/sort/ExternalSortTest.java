@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.commons.sort;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.jackrabbit.guava.common.io.Files;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.junit.After;
 import org.junit.Before;
@@ -528,7 +527,7 @@ public class ExternalSortTest {
 
         @Override
         public int compareTo(TestLine o) {
-            return Ints.compare(value, o.value);
+            return Integer.compare(value, o.value);
         }
 
         @Override
