@@ -25,6 +25,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -161,7 +162,7 @@ public class TypePredicate implements Predicate<NodeState> {
         if (primaryTypes != null && primaryTypes.contains(primary)) {
             return true;
         }
-        if (mixinTypes != null && CollectionUtils.toStream(mixins).anyMatch(mixinTypes::contains)) {
+        if (mixinTypes != null && StreamUtils.toStream(mixins).anyMatch(mixinTypes::contains)) {
             return true;
         }
         return false;
@@ -175,7 +176,7 @@ public class TypePredicate implements Predicate<NodeState> {
                 return true;
             }
             if (mixinTypes != null
-                    && CollectionUtils.toStream(TreeUtil.getNames(input, JCR_MIXINTYPES)).anyMatch(mixinTypes::contains)) {
+                    && StreamUtils.toStream(TreeUtil.getNames(input, JCR_MIXINTYPES)).anyMatch(mixinTypes::contains)) {
                 return true;
             }
         }
@@ -193,7 +194,7 @@ public class TypePredicate implements Predicate<NodeState> {
                 return true;
             }
             if (mixinTypes != null
-                    && CollectionUtils.toStream(input.getNames(JCR_MIXINTYPES)).anyMatch(mixinTypes::contains)) {
+                    && StreamUtils.toStream(input.getNames(JCR_MIXINTYPES)).anyMatch(mixinTypes::contains)) {
                 return true;
             }
         }

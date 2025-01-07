@@ -497,7 +497,7 @@ public class CollectionUtilsTest {
     public void iteratorToStream() {
         List<String> input = List.of("a", "b", "c");
         Iterator<String> iterator = input.iterator();
-        Stream<String> stream = CollectionUtils.toStream(iterator);
+        Stream<String> stream = StreamUtils.toStream(iterator);
         List<String> result = stream.collect(Collectors.toList());
         Assert.assertEquals(input.toString(), result.toString());
     }
