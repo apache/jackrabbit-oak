@@ -35,7 +35,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -102,7 +101,7 @@ public class SharedDataStoreTest {
 
             Properties props = new Properties();
             props.setProperty("fsBackendPath", folder.newFolder().getAbsolutePath());
-            PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+            PropertiesUtil.populate(ds, CollectionUtils.fromProperties(props), false);
             ds.setProperties(props);
             ds.init(folder.newFolder().getAbsolutePath());
             dataStore = ds;

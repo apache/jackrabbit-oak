@@ -28,12 +28,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -261,7 +261,7 @@ public abstract class BlobStoreFixture implements Closeable{
             }
         }
 
-        for (Map.Entry<String, ?> e : Maps.fromProperties(System.getProperties()).entrySet()) {
+        for (Map.Entry<String, ?> e : CollectionUtils.fromProperties(System.getProperties()).entrySet()) {
             String key = e.getKey();
             if (key.startsWith("ds.") || key.startsWith("bs.")) {
                 key = key.substring(3); //length of bs.

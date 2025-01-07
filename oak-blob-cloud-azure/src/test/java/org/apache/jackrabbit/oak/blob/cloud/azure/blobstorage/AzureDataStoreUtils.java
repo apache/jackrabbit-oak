@@ -39,6 +39,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
 import org.jetbrains.annotations.NotNull;
@@ -109,7 +110,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map<String, String> filtered = Maps.filterEntries(Maps.fromProperties(props),
+            Map<String, String> filtered = Maps.filterEntries(CollectionUtils.fromProperties(props),
                     input -> !Strings.isNullOrEmpty((String) input.getValue()));
             props = new Properties();
             props.putAll(filtered);
@@ -121,7 +122,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
 
     public static DataStore getAzureDataStore(Properties props, String homeDir) throws Exception {
         AzureDataStore ds = new AzureDataStore();
-        PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+        PropertiesUtil.populate(ds, CollectionUtils.fromProperties(props), false);
         ds.setProperties(props);
         ds.init(homeDir);
 

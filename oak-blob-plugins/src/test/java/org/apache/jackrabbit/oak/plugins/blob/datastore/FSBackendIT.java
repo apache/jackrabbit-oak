@@ -29,7 +29,6 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.junit.After;
 import org.junit.Before;
@@ -88,7 +88,7 @@ public class FSBackendIT {
             ds = new CachingFileDataStore();
             Map<String, ?> config = DataStoreUtils.getConfig();
             props.putAll(config);
-            PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+            PropertiesUtil.populate(ds, CollectionUtils.fromProperties(props), false);
             ds.setProperties(props);
             ds.init(dataStoreDir);
         } catch (Exception e) {

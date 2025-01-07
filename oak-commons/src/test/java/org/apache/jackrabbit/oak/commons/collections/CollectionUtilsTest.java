@@ -28,7 +28,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -498,6 +500,62 @@ public class CollectionUtilsTest {
         Stream<String> stream = CollectionUtils.toStream(iterator);
         List<String> result = stream.collect(Collectors.toList());
         Assert.assertEquals(input.toString(), result.toString());
+    }
+
+    @Test
+    public void testFromProperties() {
+        final Properties properties = new Properties();
+        properties.setProperty("key1", "value1");
+        properties.setProperty("key2", "value2");
+
+        final Map<String, String> result = CollectionUtils.fromProperties(properties);
+
+        Assert.assertEquals(2, result.size());
+        Assert.assertEquals("value1", result.get("key1"));
+        Assert.assertEquals("value2", result.get("key2"));
+    }
+
+    @Test
+    public void testFromPropertiesWithNonStringValues() {
+        final Properties properties = new Properties();
+        properties.put("key1", 1.1);
+        properties.setProperty("key2", "value2");
+
+        final Map<String, String> result = CollectionUtils.fromProperties(properties);
+
+        Assert.assertEquals(2, result.size());
+        Assert.assertEquals("1.1", result.get("key1"));
+        Assert.assertEquals("value2", result.get("key2"));
+    }
+
+    @Test
+    public void testFromPropertiesAfterModifying() {
+        final Properties properties = new Properties();
+        properties.setProperty("key1", "value1");
+        properties.setProperty("key2", "value2");
+
+        final Map<String, String> result = CollectionUtils.fromProperties(properties);
+
+        // now modify the properties and verify that it doesn't affect the already created Map
+        properties.setProperty("key1", "value3");
+
+        Assert.assertEquals(2, result.size());
+        Assert.assertEquals("value1", result.get("key1"));
+        Assert.assertEquals("value2", result.get("key2"));
+    }
+
+    @Test
+    public void testFromPropertiesEmpty() {
+        final Properties properties = new Properties();
+
+        final Map<String, String> result = CollectionUtils.fromProperties(properties);
+
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testFromPropertiesNull() {
+        Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.fromProperties(null));
     }
 
     @Test

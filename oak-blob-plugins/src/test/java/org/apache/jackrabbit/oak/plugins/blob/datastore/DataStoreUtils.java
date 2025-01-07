@@ -24,12 +24,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
-
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +76,7 @@ public class DataStoreUtils {
 
     public static Map<String, ?> getConfig() {
         Map<String, Object> result = new HashMap<>();
-        for (Map.Entry<String, ?> e : Maps.fromProperties(System.getProperties()).entrySet()) {
+        for (Map.Entry<String, ?> e : CollectionUtils.fromProperties(System.getProperties()).entrySet()) {
             String key = e.getKey();
             if (key.startsWith(DS_PROP_PREFIX) || key.startsWith(BS_PROP_PREFIX)) {
                 key = key.substring(3); //length of bs.
@@ -108,7 +107,7 @@ public class DataStoreUtils {
         ds.setMinRecordLength(10);
         Map<String, ?> config = DataStoreUtils.getConfig();
         props.putAll(config);
-        PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+        PropertiesUtil.populate(ds, CollectionUtils.fromProperties(props), false);
         ds.setProperties(props);
         ds.init(cachePath);
         return ds;

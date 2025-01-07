@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -395,6 +396,24 @@ public class CollectionUtils {
     public static <K, V> Map<K, V> newHashMap(final int capacity) {
         // make sure the Map does not need to be resized given the initial content
         return new HashMap<>(ensureCapacity(capacity));
+    }
+
+    /**
+     * Converts a {@link Properties} object to an unmodifiable {@link Map} with
+     * string keys and values.
+     *
+     * @param properties the {@link Properties} object to convert, must not be null
+     * @return an unmodifiable {@link Map} containing the same entries as the given {@link Properties} object
+     * @throws NullPointerException if the properties parameter is null
+     */
+    @NotNull
+    public static Map<String, String> fromProperties(final @NotNull Properties properties) {
+        Objects.requireNonNull(properties);
+        return properties.entrySet()
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        e -> String.valueOf(e.getKey()),
+                        e -> String.valueOf(e.getValue())));
     }
 
     /**

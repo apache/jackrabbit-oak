@@ -45,6 +45,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -122,7 +123,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map filtered = Maps.filterEntries(Maps.fromProperties(props),
+            Map filtered = Maps.filterEntries(CollectionUtils.fromProperties(props),
                     input ->!Strings.isNullOrEmpty((String) input.getValue()));
             props = new Properties();
             props.putAll(filtered);
