@@ -41,7 +41,7 @@ public class PropertyIndexUtil {
 
     public static Set<String> encode(Set<String> set) {
         if (set == null || set.isEmpty()) {
-            return Set.of();
+            return set;
         }
         Set<String> values = new HashSet<>();
         for (String v : set) {
