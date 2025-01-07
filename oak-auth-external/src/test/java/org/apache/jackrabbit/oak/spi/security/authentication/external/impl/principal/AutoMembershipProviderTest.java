@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -24,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -107,14 +107,14 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     }
     
     private static void assertMatchingEntries(@NotNull Iterator<Authorizable> it, @NotNull String... expectedIds) {
-        Set<String> ids = ImmutableSet.copyOf(Iterators.transform(it, authorizable -> {
+        Set<String> ids = CollectionUtils.toSet(Iterators.transform(it, authorizable -> {
             try {
                 return authorizable.getID();
             } catch (RepositoryException repositoryException) {
                 return "";
             }
         }));
-        assertEquals(ImmutableSet.copyOf(expectedIds), ids);
+        assertEquals(Set.of(expectedIds), ids);
     }
 
     @Test
@@ -378,7 +378,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     public void testGetMembershipExternalUser() throws Exception {
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
 
-        Set<Group> groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), false));
+        Set<Group> groups = CollectionUtils.toSet(provider.getMembership(getTestUser(), false));
         assertEquals(2, groups.size());
         assertTrue(groups.contains(automembershipGroup1));
         assertTrue(groups.contains(automembershipGroup2));
@@ -388,7 +388,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     public void testGetMembershipExternalUserInherited() throws Exception {
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
 
-        Set<Group> groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), true));
+        Set<Group> groups = CollectionUtils.toSet(provider.getMembership(getTestUser(), true));
         assertEquals(2, groups.size());
         assertTrue(groups.contains(automembershipGroup1));
     }
@@ -399,12 +399,12 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
 
         Group baseGroup = getTestGroup(automembershipGroup1);
 
-        Set<Group> groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), false));
+        Set<Group> groups = CollectionUtils.toSet(provider.getMembership(getTestUser(), false));
         assertEquals(2, groups.size());
         assertTrue(groups.contains(automembershipGroup1));
         assertTrue(groups.contains(automembershipGroup2));
 
-        groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), true));
+        groups = CollectionUtils.toSet(provider.getMembership(getTestUser(), true));
         assertEquals(3, groups.size());
         assertTrue(groups.contains(automembershipGroup1));
         assertTrue(groups.contains(automembershipGroup2));
@@ -421,12 +421,12 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         automembershipGroup2.addMember(automembershipGroup1);
         root.commit();
 
-        Set<Group> groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), false));
+        Set<Group> groups = CollectionUtils.toSet(provider.getMembership(getTestUser(), false));
         assertEquals(2, groups.size());
         assertTrue(groups.contains(automembershipGroup1));
         assertTrue(groups.contains(automembershipGroup2));
 
-        groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), true));
+        groups = CollectionUtils.toSet(provider.getMembership(getTestUser(), true));
         assertEquals(2, groups.size()); // all duplicates must be properly filtered and everyone must be omitted
         assertTrue(groups.contains(automembershipGroup1));
         assertTrue(groups.contains(automembershipGroup2));
@@ -512,7 +512,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
 
         AutoMembershipProvider amp = createAutoMembershipProvider(root, um);
-        Set<Group> membership = ImmutableSet.copyOf(amp.getMembership(getTestUser(), true));
+        Set<Group> membership = CollectionUtils.toSet(amp.getMembership(getTestUser(), true));
         assertEquals(2, membership.size());
     }
     

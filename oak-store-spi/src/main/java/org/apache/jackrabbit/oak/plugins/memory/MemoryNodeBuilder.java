@@ -26,7 +26,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 //                                                                         //
 // WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! //
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
@@ -34,6 +33,7 @@ import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidNa
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
+import java.util.StringJoiner;
 
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -557,7 +557,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public String toString() {
-        return toStringHelper(this).add("path", getPath()).toString();
+        return new StringJoiner(", ", MemoryNodeBuilder.class.getSimpleName() + "[", "]")
+                .add("path=" + getPath())
+                .toString();
     }
 
     //------------------------------------------------------------< Head >---
@@ -704,7 +706,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
         @Override
         public String toString() {
-            return toStringHelper(this).add("path", builder.getPath()).toString();
+            return new StringJoiner(", ", UnconnectedHead.class.getSimpleName() + "[", "]")
+                    .add("path=" + builder.getPath())
+                    .toString();
         }
     }
 
@@ -769,7 +773,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
         @Override
         public String toString() {
-            return toStringHelper(this).add("path", builder.getPath()).toString();
+            return new StringJoiner(", ", ConnectedHead.class.getSimpleName() + "[", "]")
+                    .add("path=" + builder.getPath())
+                    .toString();
         }
     }
 

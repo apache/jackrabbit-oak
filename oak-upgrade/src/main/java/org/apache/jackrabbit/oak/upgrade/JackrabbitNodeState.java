@@ -57,8 +57,6 @@ import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.id.NodeId;
@@ -138,7 +136,7 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     private final Map<NodeId, JackrabbitNodeState> nodeStateCache;
 
-    private final List<String> ignoredPaths = ImmutableList.of("/jcr:system/jcr:nodeTypes");
+    private final List<String> ignoredPaths = List.of("/jcr:system/jcr:nodeTypes");
 
     public static JackrabbitNodeState createRootNodeState(
             RepositoryContext context,
@@ -171,7 +169,7 @@ class JackrabbitNodeState extends AbstractNodeState {
 
 
         PersistenceManager pm = context.getWorkspaceInfo(workspaceName).getPersistenceManager();
-        final Map<NodeId, JackrabbitNodeState> mountPoints = ImmutableMap.of(
+        final Map<NodeId, JackrabbitNodeState> mountPoints = Map.of(
                 VERSION_STORAGE_NODE_ID, versionStorage,
                 ACTIVITIES_NODE_ID, activities
         );

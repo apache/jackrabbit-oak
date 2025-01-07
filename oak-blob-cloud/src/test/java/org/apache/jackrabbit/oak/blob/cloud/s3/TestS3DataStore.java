@@ -104,7 +104,7 @@ public class TestS3DataStore {
     @Test
     public void testAccessParamLeakOnError() throws Exception {
         expectedEx.expect(RepositoryException.class);
-        expectedEx.expectMessage("Could not initialize S3 from {s3Region=us-standard, intValueKey=25}");
+        expectedEx.expectMessage("Could not initialize S3 from {mode=S3, s3Region=us-standard, intValueKey=25}");
 
         props.put(S3Constants.ACCESS_KEY, "abcd");
         props.put(S3Constants.SECRET_KEY, "123456");

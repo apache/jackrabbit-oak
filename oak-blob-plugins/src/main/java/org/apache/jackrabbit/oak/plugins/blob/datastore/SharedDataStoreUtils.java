@@ -21,12 +21,11 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
@@ -73,7 +72,7 @@ public class SharedDataStoreUtils {
      */
     public static Set<String> refsNotAvailableFromRepos(List<DataRecord> repos,
             List<DataRecord> refs) {
-        return Sets.difference(FluentIterable.from(repos)
+        return CollectionUtils.difference(FluentIterable.from(repos)
                 .uniqueIndex(input -> SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString())).keySet(),
                 FluentIterable.from(refs)
                         .index(input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString())).keySet());
@@ -132,7 +131,7 @@ public class SharedDataStoreUtils {
         }
 
         public String getNameFromId(String id) {
-            return Joiner.on(DELIM).join(getType(), id);
+            return String.join(DELIM, getType(), id);
         }
 
         /**
@@ -144,8 +143,8 @@ public class SharedDataStoreUtils {
          * @return
          */
         public String getNameFromIdPrefix(String id, String prefix) {
-            return Joiner.on("_").join(
-                Joiner.on(DELIM).join(getType(), id),
+            return String.join("_",
+                String.join(DELIM, getType(), id),
                 prefix);
         }
 

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.io.Closer;
 
 import java.io.IOException;
@@ -85,7 +84,7 @@ public class RevisionsCommand implements Command {
 
     private static final Logger LOG = LoggerFactory.getLogger(RevisionsCommand.class);
 
-    private static final String USAGE = Joiner.on(System.lineSeparator()).join(
+    private static final String USAGE = String.join(System.lineSeparator(),
             "revisions {<jdbc-uri> | <mongodb-uri>} <sub-command> [options]",
             "where sub-command is one of",
             "  info           give information about the revisions state without performing",

@@ -48,8 +48,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
 
     public RDBDocumentStoreTest(DocumentStoreFixture dsf) {

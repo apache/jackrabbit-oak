@@ -37,8 +37,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 
 public class ElasticFunctionIndexCommonTest extends FunctionIndexCommonTest {
     @ClassRule
-    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
-            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticFunctionIndexCommonTest() {
         indexOptions = new ElasticIndexOptions();

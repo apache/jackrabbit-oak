@@ -18,10 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.report;
 
-import org.apache.jackrabbit.guava.common.collect.EvictingQueue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * A Reporter implementation that logs every nth node
@@ -34,7 +36,12 @@ public class LoggingReporter extends PeriodicReporter {
 
     private final String verb;
 
-    private final EvictingQueue lastPaths = EvictingQueue.create(100);
+    private final LinkedHashMap<String, Boolean> lastPaths = new LinkedHashMap<>() {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+            return size() > 100;
+        }
+    };
 
     /**
      * Constructor that allows setting the intervals to log node and property
@@ -77,10 +84,10 @@ public class LoggingReporter extends PeriodicReporter {
 
     protected boolean skipNodeState(@NotNull final ReportingNodeState nodeState) {
         String path = nodeState.getPath();
-        if (lastPaths.contains(path)) {
+        if (lastPaths.containsKey(path)) {
             return true;
         } else {
-            lastPaths.add(path);
+            lastPaths.put(path, Boolean.TRUE);
             return false;
         }
     }

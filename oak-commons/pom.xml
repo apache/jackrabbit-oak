@@ -55,7 +55,8 @@
               org.apache.jackrabbit.oak.commons.json,
               org.apache.jackrabbit.oak.commons.log,
               org.apache.jackrabbit.oak.commons.sort,
-              org.apache.jackrabbit.oak.commons.properties
+              org.apache.jackrabbit.oak.commons.properties,
+              org.apache.jackrabbit.oak.commons.jdkcompat
             </Export-Package>
           </instructions>
         </configuration>
@@ -128,6 +129,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-collections4</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
       <scope>test</scope>
@@ -137,6 +143,6 @@
       <artifactId>lz4-java</artifactId>
       <version>1.8.0</version>
       <scope>test</scope>
-    </dependency>    
+    </dependency>
   </dependencies>
 </project>

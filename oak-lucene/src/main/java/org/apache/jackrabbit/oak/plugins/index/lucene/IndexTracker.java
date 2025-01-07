@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -185,10 +185,10 @@ public class IndexTracker {
         this.root = root;
 
         if (!updates.isEmpty()) {
-            indices = ImmutableMap.<String, LuceneIndexNodeManager>builder()
-                    .putAll(Maps.filterKeys(original, x -> !updates.keySet().contains(x)))
-                    .putAll(Maps.filterValues(updates, x -> x != null))
-                    .build();
+            Map<String, LuceneIndexNodeManager> builder = new HashMap<>();
+            builder.putAll(Maps.filterKeys(original, x -> !updates.keySet().contains(x)));
+            builder.putAll(Maps.filterValues(updates, x -> x != null));
+            indices = Collections.unmodifiableMap(builder);
 
             badIndexTracker.markGoodIndexes(updates.keySet());
 
@@ -262,10 +262,10 @@ public class IndexTracker {
                 if (index != null) {
                     LuceneIndexNode indexNode = index.acquire();
                     requireNonNull(indexNode);
-                    indices = ImmutableMap.<String, LuceneIndexNodeManager>builder()
-                            .putAll(indices)
-                            .put(path, index)
-                            .build();
+                    Map<String, LuceneIndexNodeManager> builder = new HashMap<>();
+                    builder.putAll(indices);
+                    builder.put(path, index);
+                    indices = Collections.unmodifiableMap(builder);
                     badIndexTracker.markGoodIndex(path);
                     return indexNode;
                 }

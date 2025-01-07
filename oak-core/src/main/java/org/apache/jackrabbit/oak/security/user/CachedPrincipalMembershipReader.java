@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-
 import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.EXPIRATION_NO_CACHE;
 
 import java.security.Principal;
@@ -27,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.jcr.AccessDeniedException;
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -227,7 +225,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
                 }
             }
             cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
-            String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
+            String value = (groupPrincipals.isEmpty()) ? "" : String.join(",", Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
             cache.setProperty(this.propertyName, value);
 
             root.commit(CommitMarker.asCommitAttributes());

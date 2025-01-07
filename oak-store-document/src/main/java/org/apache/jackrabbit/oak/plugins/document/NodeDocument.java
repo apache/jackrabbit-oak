@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -55,9 +54,7 @@ import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -146,8 +143,7 @@ public final class NodeDocument extends Document {
      */
     static final int MODIFIED_IN_SECS_RESOLUTION = 5;
 
-    private static final NavigableMap<Revision, Range> EMPTY_RANGE_MAP =
-            Maps.unmodifiableNavigableMap(new TreeMap<Revision, Range>(REVERSE));
+    private static final NavigableMap<Revision, Range> EMPTY_RANGE_MAP = Collections.unmodifiableNavigableMap(new TreeMap<>(REVERSE));
 
     /**
      * The list of revision to root commit depth mappings to find out if a
@@ -766,7 +762,7 @@ public final class NodeDocument extends Document {
         // if we don't have clusterIds, we can use the local changes only
         boolean fullScan = true;
         Iterable<Revision> changes = Iterables.mergeSorted(
-                ImmutableList.of(
+                List.of(
                         getLocalRevisions().keySet(),
                         getLocalCommitRoot().keySet()),
                 getLocalRevisions().comparator()
@@ -777,7 +773,7 @@ public final class NodeDocument extends Document {
             // include previous documents as well (only needed in rare cases)
             fullScan = false;
             changes = Iterables.mergeSorted(
-                    ImmutableList.of(
+                    List.of(
                             changes,
                             getChanges(REVISIONS, lower),
                             getChanges(COMMIT_ROOT, lower)
@@ -1362,7 +1358,7 @@ public final class NodeDocument extends Document {
                 }
                 transformed.put(r.high, r);
             }
-            ranges = Maps.unmodifiableNavigableMap(transformed);
+            ranges = Collections.unmodifiableNavigableMap(transformed);
         }
         return ranges;
     }
@@ -1561,7 +1557,7 @@ public final class NodeDocument extends Document {
      */
     Iterable<Revision> getAllChanges() {
         RevisionVector empty = new RevisionVector();
-        return Iterables.mergeSorted(ImmutableList.of(
+        return Iterables.mergeSorted(List.of(
                 getChanges(REVISIONS, empty),
                 getChanges(COMMIT_ROOT, empty)
         ), StableRevisionComparator.REVERSE);
@@ -1820,7 +1816,7 @@ public final class NodeDocument extends Document {
                 }
             };
         } else {
-            changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges::apply));
+            changes = Iterables.concat(transform(List.copyOf(ranges), rangeToChanges::apply));
         }
         return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
     }

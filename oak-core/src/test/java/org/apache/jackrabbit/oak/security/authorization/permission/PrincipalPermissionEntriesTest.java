@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
@@ -173,7 +172,7 @@ public class PrincipalPermissionEntriesTest {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(2);
         Collection<PermissionEntry> collection = Set.of(permissionEntry);
         Map<String, Collection<PermissionEntry>> allEntries =
-                        ImmutableMap.of("/path", collection, "/path2", collection);
+                        Map.of("/path", collection, "/path2", collection);
 
         ppe.putAllEntries(allEntries);
 

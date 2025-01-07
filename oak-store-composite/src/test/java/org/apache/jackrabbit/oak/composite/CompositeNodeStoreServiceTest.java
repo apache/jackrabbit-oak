@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 
@@ -73,14 +71,14 @@ public class CompositeNodeStoreServiceTest {
 		nodeStoreLibs.merge(libsRoot, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
 		// Define read-only mounts
-		registerActivateMountInfoConfig("libs", ImmutableList.of("/libs"));
-		registerActivateMountInfoConfig("apps", ImmutableList.of("/apps"));
+		registerActivateMountInfoConfig("libs", List.of("/libs"));
+		registerActivateMountInfoConfig("apps", List.of("/apps"));
 
         registerMountInfoProviderService("libs", "apps");
         
 		// Register node stores
 		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(globalStore), ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
+		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(globalStore), Map.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(nodeStoreLibs), Map.of("role", "composite-mount-libs"));
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(nodeStoreApps), Map.of("role", "composite-mount-apps"));
 		ctx.registerInjectActivateService(new NodeStoreChecksService());
@@ -107,7 +105,7 @@ public class CompositeNodeStoreServiceTest {
 		
 		ctx.registerService(MountInfoProvider.class, mip);
 		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
+		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), Map.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), Map.of("role", "composite-mount-libs"));
 		ctx.registerInjectActivateService(new NodeStoreChecksService());
 		
@@ -130,7 +128,7 @@ public class CompositeNodeStoreServiceTest {
 		
 		ctx.registerService(MountInfoProvider.class, mip);
 		ctx.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
-		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), ImmutableMap.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
+		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(global), Map.of("role", "composite-global", "registerDescriptors", Boolean.TRUE));
 		ctx.registerService(NodeStoreProvider.class, new SimpleNodeStoreProvider(mount), Map.of("role", "composite-mount-libs"));
 		ctx.registerInjectActivateService(new NodeStoreChecksService());
 		

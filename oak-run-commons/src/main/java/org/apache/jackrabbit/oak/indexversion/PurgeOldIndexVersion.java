@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -228,7 +227,7 @@ public abstract class PurgeOldIndexVersion implements Closeable {
             NodeBuilder nodeBuilder = PurgeOldVersionUtils.getNode(rootBuilder, nodeName);
             if (nodeBuilder.exists()) {
                 String type = nodeBuilder.getProperty(TYPE_PROPERTY_NAME).getValue(Type.STRING);
-                List<IndexEditorProvider> indexEditorProviders = ImmutableList.of(
+                List<IndexEditorProvider> indexEditorProviders = List.of(
                         new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider());
                 EditorHook hook = new EditorHook(new IndexUpdateProvider(CompositeIndexEditorProvider.compose(indexEditorProviders)));
                 if (toDeleteIndexNameObject.getOperation() == IndexVersionOperation.Operation.DELETE_HIDDEN_AND_DISABLE) {

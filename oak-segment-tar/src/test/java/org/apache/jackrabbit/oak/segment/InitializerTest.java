@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
@@ -49,7 +48,7 @@ public class InitializerTest {
 
         SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(
                 ConfigurationParameters.of(Map.of(UserConfiguration.NAME,
-                        ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous",
+                        ConfigurationParameters.of(Map.of("anonymousId", "anonymous",
                                 "adminId", "admin",
                                 "usersPath", "/home/users",
                                 "groupsPath", "/home/groups",

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment.tool;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
 import static java.util.Collections.emptySet;
 import static org.apache.commons.io.FileUtils.sizeOfDirectory;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -359,8 +358,8 @@ public class Compact {
         Set<File> afterFiles = listFiles(path);
         printFiles(System.out, afterFiles);
         System.out.printf("    size %s\n", printableSize(sizeOfDirectory(path)));
-        System.out.printf("    removed files %s\n", fileNames(difference(beforeFiles, afterFiles)));
-        System.out.printf("    added files %s\n", fileNames(difference(afterFiles, beforeFiles)));
+        System.out.printf("    removed files %s\n", fileNames(CollectionUtils.difference(beforeFiles, afterFiles)));
+        System.out.printf("    added files %s\n", fileNames(CollectionUtils.difference(afterFiles, beforeFiles)));
         System.out.printf("Compaction succeeded in %s.\n", printableStopwatch(watch));
         return 0;
     }

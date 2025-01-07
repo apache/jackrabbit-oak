@@ -20,7 +20,6 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -135,7 +134,7 @@ public class AutoMembershipTest extends AbstractExternalTest {
                         new AppConfigurationEntry(
                                 ExternalLoginModule.class.getName(),
                                 SUFFICIENT,
-                                ImmutableMap.of(
+                                Map.of(
                                         ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, syncConfig.getName(),
                                         ExternalLoginModule.PARAM_IDP_NAME, idp.getName())),
                         new AppConfigurationEntry(

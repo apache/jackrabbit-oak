@@ -15,14 +15,13 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.spi.monitor;
 
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
+import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.junit.Test;
 
@@ -31,8 +30,8 @@ public class CompositeIOMonitorTest {
 
     @Test
     public void testComposition() {
-        ImmutableList<IOMonitorAssertion> ioMonitors =
-                ImmutableList.of(new IOMonitorAssertion(), new IOMonitorAssertion());
+        List<IOMonitorAssertion> ioMonitors =
+                List.of(new IOMonitorAssertion(), new IOMonitorAssertion());
         IOMonitor ioMonitor = new CompositeIOMonitor(ioMonitors);
 
         ioMonitor.beforeSegmentRead(FILE, 0, 0, 0);
@@ -50,8 +49,8 @@ public class CompositeIOMonitorTest {
 
     @Test
     public void testUnregisterComposition() {
-        ImmutableList<IOMonitorAssertion> ioMonitors =
-                ImmutableList.of(new IOMonitorAssertion(), new IOMonitorAssertion());
+        List<IOMonitorAssertion> ioMonitors =
+                List.of(new IOMonitorAssertion(), new IOMonitorAssertion());
 
         CompositeIOMonitor ioMonitor = new CompositeIOMonitor();
         ioMonitor.registerIOMonitor(ioMonitors.get(0));

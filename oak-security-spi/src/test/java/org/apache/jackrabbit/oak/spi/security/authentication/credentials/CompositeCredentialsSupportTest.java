@@ -22,8 +22,6 @@ import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -71,7 +69,7 @@ public class CompositeCredentialsSupportTest {
         assertNotNull(attributes);
         assertTrue(attributes.isEmpty());
 
-        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expected = Map.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
         expected.forEach((key, value) -> sc.setAttribute(key, value));
 
         attributes = credentialsSupport.getAttributes(sc);
@@ -99,7 +97,7 @@ public class CompositeCredentialsSupportTest {
         assertNotNull(attributesD);
         assertTrue(attributesD.isEmpty());
 
-        Map<String, ?> expectedS = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expectedS = Map.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
         assertTrue(credentialsSupport.setAttributes(sc, expectedS));
 
         Map<String, ?> expectedT = Map.of("test", "Test1CredentialsSupport");

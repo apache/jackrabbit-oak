@@ -33,16 +33,13 @@ import org.junit.ClassRule;
 public class ElasticIndexQuerySQL2OptimisationCommonTest extends IndexQuerySQL2OptimisationCommonTest {
 
     protected TestRepository repositoryOptionsUtil;
-    private final ElasticConnection esConnection;
     private final ElasticIndexTracker indexTracker;
 
-
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticIndexQuerySQL2OptimisationCommonTest() {
-        this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
+        ElasticConnection esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
         this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
         this.editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,

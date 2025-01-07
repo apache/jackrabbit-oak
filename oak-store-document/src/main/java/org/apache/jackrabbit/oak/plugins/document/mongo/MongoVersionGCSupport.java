@@ -75,8 +75,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.client.FindIterable;
@@ -481,7 +479,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 .forEach((Block<BasicDBObject>) doc -> ids.add(getID(doc)));
 
         StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
-        Joiner.on(System.getProperty("line.separator")).appendTo(sb, ids);
+        sb.append(String.join(System.getProperty("line.separator"), ids));
         LOG.debug(sb.toString());
     }
 

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
@@ -60,6 +59,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.function.Function;
 
 import javax.jcr.InvalidItemStateException;
@@ -862,7 +862,9 @@ public class NodeDelegate extends ItemDelegate {
 
     @Override
     public String toString() {
-        return toStringHelper(this).add("tree", tree).toString();
+        return new StringJoiner(", ", NodeDelegate.class.getSimpleName() + "[", "]")
+                .add("tree=" + tree)
+                .toString();
     }
 
     //------------------------------------------------------------< internal >---

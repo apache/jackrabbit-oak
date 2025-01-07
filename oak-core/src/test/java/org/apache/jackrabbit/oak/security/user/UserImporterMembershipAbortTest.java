@@ -18,13 +18,14 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.junit.Assert.assertTrue;
 
@@ -38,13 +39,13 @@ public class UserImporterMembershipAbortTest extends UserImporterMembershipIgnor
 
     @Test(expected = ConstraintViolationException.class)
     public void testUnknownMember() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, unknownContentId)));
         importer.processReferences();
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testMixedMembers() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId, knownMemberContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, unknownContentId, knownMemberContentId)));
         importer.processReferences();
     }
 
@@ -59,7 +60,7 @@ public class UserImporterMembershipAbortTest extends UserImporterMembershipIgnor
 
     @Test(expected = ConstraintViolationException.class)
     public void testNewMembersToEveryone() throws Exception {
-        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(knownMemberContentId), Type.STRINGS);
+        groupTree.setProperty(REP_MEMBERS, List.of(knownMemberContentId), Type.STRINGS);
         groupTree.setProperty(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
 
         Tree userTree = createUserTree();

@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -169,7 +168,7 @@ public class ExternalIdentityRefTest {
 
     @Test
     public void testToString() {
-        for (ExternalIdentityRef r : ImmutableList.of(ref, refEmptyProvider, refEmptyProvider)) {
+        for (ExternalIdentityRef r : List.of(ref, refEmptyProvider, refEmptyProvider)) {
             assertEquals("ExternalIdentityRef{" + "id='" + r.getId() + '\'' + ", providerName='" + r.getProviderName() + '\'' + '}', r.toString());
         }
     }

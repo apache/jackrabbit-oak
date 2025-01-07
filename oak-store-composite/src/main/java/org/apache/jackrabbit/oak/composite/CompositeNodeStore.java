@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -56,10 +55,8 @@ import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.copyOf;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 
 import static java.lang.System.currentTimeMillis;
 import static org.apache.jackrabbit.oak.composite.ModifiedPathDiff.getModifiedPaths;
@@ -243,8 +240,9 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
             LOG.debug("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception("call stack"));
             return Collections.emptyMap();
         }
-        return copyOf(filterKeys(ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint),
-                input -> !input.startsWith(CHECKPOINT_METADATA)));
+        return ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint).entrySet().stream().
+                filter(e -> !e.getKey().startsWith(CHECKPOINT_METADATA)).
+                collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     Map<String, String> allCheckpointInfo(String checkpoint) {
@@ -295,7 +293,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
     }
 
     private String getPartialCheckpointName(MountedNodeStore nodeStore, String globalCheckpoint, Map<String, String> globalCheckpointProperties, boolean resolveByName) {
-        Set<String> validCheckpointNames = ImmutableSet.copyOf(nodeStore.getNodeStore().checkpoints());
+        Set<String> validCheckpointNames = CollectionUtils.toSet(nodeStore.getNodeStore().checkpoints());
         String result = globalCheckpointProperties.get(CHECKPOINT_METADATA_MOUNT + nodeStore.getMount().getName());
         if (result != null && validCheckpointNames.contains(result)) {
             return result;

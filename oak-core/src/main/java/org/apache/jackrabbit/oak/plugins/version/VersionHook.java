@@ -31,8 +31,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.guava.common.collect.Collections2.transform;
 import static org.apache.jackrabbit.oak.spi.commit.CompositeHook.compose;
 
 /**
@@ -76,6 +76,7 @@ public class VersionHook implements CommitHook {
         providers.add(new VersionableCollector.Provider(existingVersionables));
         providers.add(new OrphanedVersionCleaner.Provider(existingVersionables));
 
-        return compose(transform(providers, input -> new EditorHook(input))).processCommit(before, after, info);
+        return compose(providers.stream().map(input -> new EditorHook(input)).
+                collect(Collectors.toList())).processCommit(before, after, info);
     }
 }

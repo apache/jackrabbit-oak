@@ -55,6 +55,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.stream.Collectors;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -89,10 +90,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Implementation of {@link DocumentStore} for relational databases.
@@ -443,8 +441,8 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
         stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
-                collection, Lists.transform(updateOps, input -> input.getId()));
-        return new ArrayList<T>(results.values());
+                collection, updateOps.stream().map(UpdateOp::getId).collect(Collectors.toList()));
+        return new ArrayList<>(results.values());
     }
 
     private <T extends Document> Map<String, T> readDocumentCached(Collection<T> collection, Set<String> keys) {
@@ -460,7 +458,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
 
-        Set<String> documentsToRead = Sets.difference(keys, documents.keySet());
+        Set<String> documentsToRead = CollectionUtils.difference(keys, documents.keySet());
         Map<String, T> readDocuments = readDocumentsUncached(collection, documentsToRead);
         documents.putAll(readDocuments);
 
@@ -533,7 +531,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
         oldDocs.putAll(freshDocs);
 
-        try (CacheChangesTracker tracker = obtainTracker(collection, Sets.union(oldDocs.keySet(), missingDocs) )) {
+        try (CacheChangesTracker tracker = obtainTracker(collection, CollectionUtils.union(oldDocs.keySet(), missingDocs) )) {
             List<T> docsToUpdate = new ArrayList<T>(updates.size());
             Set<String> keysToUpdate = new HashSet<String>();
             for (UpdateOp update : updates) {
@@ -558,7 +556,7 @@ public class RDBDocumentStore implements DocumentStore {
                 Set<String> successfulUpdates = db.update(connection, tmd, docsToUpdate, upsert);
                 connection.commit();
 
-                Set<String> failedUpdates = Sets.difference(keysToUpdate, successfulUpdates);
+                Set<String> failedUpdates = CollectionUtils.difference(keysToUpdate, successfulUpdates);
                 oldDocs.keySet().removeAll(failedUpdates);
 
                 if (LOG.isTraceEnabled()) {
@@ -877,15 +875,15 @@ public class RDBDocumentStore implements DocumentStore {
     @NotNull
     @Override
     public Map<String, String> getStats() {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        Map<String, String> builder = new HashMap<>();
         tableMeta.forEach((k, v) -> toMapBuilder(builder, k, v));
         if (LOG.isDebugEnabled()) {
             LOG.debug("statistics obtained: " + builder.toString());
         }
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
-    private <T extends Document> void toMapBuilder(ImmutableMap.Builder<String, String> builder, Collection<T> collection, RDBTableMetaData meta) {
+    private <T extends Document> void toMapBuilder(Map<String, String> builder, Collection<T> collection, RDBTableMetaData meta) {
         String prefix = collection.toString();
         builder.put(prefix + ".ns", meta.getCatalog() + "." + meta.getName());
         builder.put(prefix + ".schemaInfo", meta.getSchemaInfo());
@@ -1028,13 +1026,12 @@ public class RDBDocumentStore implements DocumentStore {
 
         this.dbInfo = RDBDocumentStoreDB.getValue(md.getDatabaseProductName());
         this.db = new RDBDocumentStoreJDBC(this.dbInfo, this.ser, QUERYHITSLIMIT, QUERYTIMELIMIT);
-        this.metadata = ImmutableMap.<String,String>builder()
-                .put("type", "rdb")
-                .put("db", md.getDatabaseProductName())
-                .put("version", md.getDatabaseProductVersion())
-                .put("driver", md.getDriverName())
-                .put("driverVersion", md.getDriverVersion())
-                .build();
+        this.metadata = Map.of(
+                "type", "rdb",
+                "db", md.getDatabaseProductName(),
+                "version", md.getDatabaseProductVersion(),
+                "driver", md.getDriverName(),
+                "driverVersion", md.getDriverVersion());
         String versionDiags = dbInfo.checkVersion(md);
         if (!versionDiags.isEmpty()) {
             LOG.error(versionDiags);
@@ -1833,7 +1830,7 @@ public class RDBDocumentStore implements DocumentStore {
             final List<String> excludeKeyPatterns, final List<QueryCondition> conditions, final int limit, final String sortBy) {
 
         final RDBTableMetaData tmd = getTable(collection);
-        Set<String> allowedProps = Sets.intersection(INDEXEDPROPERTIES, tmd.getColumnProperties());
+        Set<String> allowedProps = CollectionUtils.intersection(INDEXEDPROPERTIES, tmd.getColumnProperties());
         for (QueryCondition cond : conditions) {
             if (!allowedProps.contains(cond.getPropertyName())) {
                 String message = "indexed property " + cond.getPropertyName() + " not supported, query was '" + cond

@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.serialization.ValidatingObjectInputStream;
@@ -105,7 +104,7 @@ public class DataStoreCacheUpgradeUtils {
      * @param path the root of the datastore
      */
     public static void moveDownloadCache(final File path) {
-        final List<String> exceptions = ImmutableList.of("tmp", UPLOAD_STAGING_DIR, DOWNLOAD_DIR);
+        final List<String> exceptions = List.of("tmp", UPLOAD_STAGING_DIR, DOWNLOAD_DIR);
         File newDownloadDir = new File(path, DOWNLOAD_DIR);
 
         FileTreeTraverser.depthFirstPostOrder(path)

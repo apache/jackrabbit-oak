@@ -18,20 +18,20 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerElastic;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
@@ -56,6 +56,7 @@ import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 
@@ -160,7 +161,7 @@ public class ElasticIndexCommand implements Command {
         if (definitions != null) {
             IndexDefinitionUpdater updater = new IndexDefinitionUpdater(definitions);
             Set<String> indexPathsFromJson = updater.getIndexPaths();
-            Set<String> diff = Sets.difference(indexPathsFromJson, indexPaths);
+            Set<String> diff = CollectionUtils.difference(indexPathsFromJson, indexPaths);
             if (!diff.isEmpty()) {
                 log.info("Augmenting the indexPaths with {} which are present in {}", diff, definitions);
             }
@@ -199,6 +200,9 @@ public class ElasticIndexCommand implements Command {
         IndexerSupport indexerSupport = createIndexerSupport(indexHelper, checkpoint);
         log.info("Proceeding to index {} upto checkpoint {} {}", indexHelper.getIndexPaths(), checkpoint,
                 indexerSupport.getCheckpointInfo());
+
+        List<String> indexNames = indexerSupport.getIndexDefinitions().stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+        indexHelper.getIndexReporter().setIndexNames(indexNames);
 
         if (opts.getCommonOpts().isMongo() && indexOpts.isDocTraversalMode()) {
             log.info("Using Document order traversal to perform reindexing");
@@ -245,7 +249,7 @@ public class ElasticIndexCommand implements Command {
     }
 
     private static void logCliArgs(String[] args) {
-        log.info("Command line arguments used for indexing [{}]", Joiner.on(' ').join(args));
+        log.info("Command line arguments used for indexing [{}]", String.join(" ", args));
         List<String> inputArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
         if (!inputArgs.isEmpty()) {
             log.info("System properties and vm options passed {}", inputArgs);

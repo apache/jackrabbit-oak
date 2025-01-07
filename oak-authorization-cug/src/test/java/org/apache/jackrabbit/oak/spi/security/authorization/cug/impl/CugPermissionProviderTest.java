@@ -25,7 +25,6 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -88,11 +87,11 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         PATH_INCUG_MAP.put(INVALID_PATH, false);
     }
 
-    private static final List<String> READABLE_PATHS = ImmutableList.of(
+    private static final List<String> READABLE_PATHS = List.of(
             "/content/a/b/c", "/content/a/b/c/jcr:primaryType",
             "/content/a/b/c/nonExisting", "/content/a/b/c/nonExisting/jcr:primaryType");
 
-    private static final List<String> NOT_READABLE_PATHS = ImmutableList.of(
+    private static final List<String> NOT_READABLE_PATHS = List.of(
             "/", "/jcr:primaryType",
             UNSUPPORTED_PATH, UNSUPPORTED_PATH + "/jcr:primaryType",
             "/content", "/content/jcr:primaryType",

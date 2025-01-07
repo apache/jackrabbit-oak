@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.progress;
 
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -64,7 +62,7 @@ public class NodeCounterMBeanEstimatorTest {
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        Map<String, Integer> counts = ImmutableMap.of(
+        Map<String, Integer> counts = Map.of(
                 "/", 100,
                 "/content", 50,
                 "/content/old", 10,

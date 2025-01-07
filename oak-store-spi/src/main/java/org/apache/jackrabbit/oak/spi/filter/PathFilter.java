@@ -122,7 +122,9 @@ public class PathFilter {
      * @param includes list of paths which should be included
      * @param excludes list of paths which should not be included
      */
-    public PathFilter(Iterable<String> includes, Iterable<String> excludes) {
+    public PathFilter(@NotNull Iterable<String> includes, @NotNull Iterable<String> excludes) {
+        checkPathsAreAbsolute(includes, "included");
+        checkPathsAreAbsolute(excludes, "excluded");
         Set<String> includeCopy = CollectionUtils.toSet(includes);
         Set<String> excludeCopy = CollectionUtils.toSet(excludes);
         PathUtils.unifyInExcludes(includeCopy, excludeCopy);
@@ -194,5 +196,13 @@ public class PathFilter {
             }
         }
         return false;
+    }
+
+    private static void checkPathsAreAbsolute(Iterable<String> paths, String pathType) {
+        for (String path : paths) {
+            if (!PathUtils.isAbsolute(path)) {
+                throw new IllegalStateException("Invalid path in " + pathType + " paths list: " + path + ". Paths must be absolute.");
+            }
+        }
     }
 }

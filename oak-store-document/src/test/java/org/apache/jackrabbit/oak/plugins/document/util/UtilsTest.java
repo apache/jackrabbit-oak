@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.commons.codec.binary.Hex;
@@ -443,34 +442,34 @@ public class UtilsTest {
     @Test
     public void getMaxExternalRevisionTime() {
         int localClusterId = 1;
-        List<Revision> revs = ImmutableList.of();
+        List<Revision> revs = Collections.emptyList();
         long revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(Long.MIN_VALUE, revTime);
 
-        revs = ImmutableList.of(Revision.fromString("r1-0-1"));
+        revs = List.of(Revision.fromString("r1-0-1"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(Long.MIN_VALUE, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r1-0-1"),
                 Revision.fromString("r2-0-2"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r3-0-1"),
                 Revision.fromString("r2-0-2"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r1-0-1"),
                 Revision.fromString("r2-0-2"),
                 Revision.fromString("r2-0-3"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r1-0-1"),
                 Revision.fromString("r3-0-2"),
                 Revision.fromString("r2-0-3"));

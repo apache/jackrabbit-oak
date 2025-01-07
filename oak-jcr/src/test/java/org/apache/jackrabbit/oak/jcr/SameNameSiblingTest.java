@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -27,7 +26,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -169,5 +171,10 @@ public class SameNameSiblingTest extends AbstractRepositoryTest {
             assertFalse(sns.hasNode(name));
             assertTrue(sns.hasNode(rename(name)));
         }
+    }
+
+    // helper methods
+    private List<String> asList(final String s1, final String[] sArr) {
+        return Stream.concat(Stream.of(s1), Stream.of(sArr)).collect(Collectors.toList());
     }
 }

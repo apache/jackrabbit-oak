@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization.accesscontrol;
 
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import javax.jcr.RepositoryException;
@@ -27,7 +28,6 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -186,15 +186,16 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
 
     public void testAddEntryWithInvalidPrincipals() throws Exception {
         // EXERCISE: explain for each principal in the list why using it for an ACE fails
-        List<Principal> invalidPrincipals = ImmutableList.of(
+        List<Principal> invalidPrincipals = Arrays.asList(
                 new InvalidTestPrincipal("unknown"),
                 null,
-                new PrincipalImpl(""), new Principal() {
-            @Override
-            public String getName() {
-                return "unknown";
-            }
-        });
+                    new PrincipalImpl(""),
+                    new Principal() {
+                        @Override
+                        public String getName() {
+                            return "unknown";
+                        }
+                });
 
         for (Principal principal : invalidPrincipals) {
             try {
@@ -227,7 +228,7 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
         Privilege customPriv = ((JackrabbitWorkspace) superuser.getWorkspace()).getPrivilegeManager().registerPrivilege(privilegeName, true, new String[0]);
 
         // EXERCISE : walks through this test and explain why adding those ACEs fails.
-        List<Privilege[]> invalidPrivileges = ImmutableList.of(
+        List<Privilege[]> invalidPrivileges = Arrays.asList(
                 new Privilege[0],
                 null,
                 new Privilege[] {customPriv}

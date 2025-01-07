@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -588,11 +587,11 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     private static Map<String, PropertyState> asMap(Iterable<? extends PropertyState> props){
-        ImmutableMap.Builder<String, PropertyState> builder = ImmutableMap.builder();
+        Map<String, PropertyState> builder = new HashMap<>();
         for (PropertyState ps : props){
             builder.put(ps.getName(), ps);
         }
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
     /**
@@ -789,7 +788,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         public BundlingContext(Matcher matcher, Map<String, PropertyState> rootProperties,
                                boolean hasBundledChildren, boolean hasNonBundledChildren) {
             this.matcher = matcher;
-            this.rootProperties = ImmutableMap.copyOf(rootProperties);
+            this.rootProperties = Map.copyOf(rootProperties);
             this.hasBundledChildren = hasBundledChildren;
             this.hasNonBundledChildren = hasNonBundledChildren;
         }

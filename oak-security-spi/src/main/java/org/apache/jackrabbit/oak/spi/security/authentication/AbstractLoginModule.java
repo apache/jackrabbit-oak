@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.DestroyFailedException;
@@ -36,12 +38,12 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -211,9 +213,7 @@ public abstract class AbstractLoginModule implements LoginModule {
     @Override
     public boolean logout() throws LoginException {
         boolean success = false;
-        Set<Object> creds = ImmutableSet.builder()
-                .addAll(subject.getPublicCredentials(Credentials.class))
-                .addAll(subject.getPublicCredentials(AuthInfo.class)).build();
+        Set<Object> creds = Stream.concat(subject.getPublicCredentials(Credentials.class).stream(), subject.getPublicCredentials(AuthInfo.class).stream()).collect(Collectors.toSet());
         if (!subject.getPrincipals().isEmpty() && !creds.isEmpty()) {
             // clear subject if not readonly
             if (!subject.isReadOnly()) {
@@ -475,7 +475,7 @@ public abstract class AbstractLoginModule implements LoginModule {
 
                 final ContentRepository repository = rcb.getContentRepository();
                 if (repository != null) {
-                    systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+                    systemSession = Java23Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
                         @Override
                         public ContentSession run() throws LoginException, NoSuchWorkspaceException {
                             return repository.login(null, rcb.getWorkspaceName());

@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import com.mongodb.MongoClient;
 
 import org.bson.Document;
@@ -133,7 +132,7 @@ public class MongodProcessFactory extends ExternalResource {
         if (portsWithHost.isEmpty()) {
             return host;
         }
-        return Joiner.on(',').join(portsWithHost);
+        return String.join(",", portsWithHost);
     }
 
     //----------------------------< internal >----------------------------------

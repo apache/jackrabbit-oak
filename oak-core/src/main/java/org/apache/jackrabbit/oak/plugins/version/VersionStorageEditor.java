@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import org.apache.jackrabbit.guava.common.annotations.VisibleForTesting;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -159,7 +158,7 @@ class VersionStorageEditor extends DefaultEditor {
 
     //-------------------------< internal >-------------------------------------
 
-    @VisibleForTesting
+    // VisibleForTesting
     static boolean isVersionStorageNode(NodeState state) {
         String ntName = state.getName(JCR_PRIMARYTYPE);
         return (Objects.nonNull(ntName) && VERSION_STORE_NT_NAMES.contains(ntName))

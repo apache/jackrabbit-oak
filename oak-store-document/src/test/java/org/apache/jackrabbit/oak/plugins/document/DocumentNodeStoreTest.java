@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -97,8 +96,6 @@ import javax.jcr.InvalidItemStateException;
 
 import org.apache.jackrabbit.guava.common.base.Throwables;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -3327,7 +3324,7 @@ public class DocumentNodeStoreTest {
         assertNotNull(doc);
         long previousValue = -1;
         List<String> values = new ArrayList<>(doc.getLocalMap("p").values());
-        for (String v : Lists.reverse(values)) {
+        for (String v : CollectionUtils.reverse(values)) {
             long currentValue = Long.parseLong(v);
             assertEquals(previousValue + 1, currentValue);
             previousValue = currentValue;
@@ -3920,28 +3917,28 @@ public class DocumentNodeStoreTest {
         final long UL = Long.MAX_VALUE; // unknown
         // childNodeCount = none
         getChildNodeCountTest(0,
-                of(0L, 1L),
-                of(0L, 0L)
+                List.of(0L, 1L),
+                List.of(0L, 0L)
         );
         // childNodeCount = less than initial fetch size 42
         getChildNodeCountTest(42,
-                of( 0L,  1L, 41L, 42L, 43L, 100L),
-                of(42L, 42L, 42L, 42L, 42L, 42L)
+                List.of( 0L,  1L, 41L, 42L, 43L, 100L),
+                List.of(42L, 42L, 42L, 42L, 42L, 42L)
         );
         // childNodeCount = initial fetch size (100)
         getChildNodeCountTest(100,
-                of(  0L,   1L,  99L, 100L, 101L, 200L),
-                of(100L, 100L, 100L, 100L, 100L, 100L)
+                List.of(  0L,   1L,  99L, 100L, 101L, 200L),
+                List.of(100L, 100L, 100L, 100L, 100L, 100L)
         );
         // childNodeCount = initial fetch size + 1 (100 + 1)
         getChildNodeCountTest(101,
-                of(0L, 1L, 99L, 100L, 101L, 200L),
-                of(UL, UL,  UL,   UL, 101L, 101L)
+                List.of(0L, 1L, 99L, 100L, 101L, 200L),
+                List.of(UL, UL,  UL,   UL, 101L, 101L)
         );
         // childNodeCount = first two fetches (100 + 200)
         getChildNodeCountTest(300,
-                of(0L, 1L, 99L, 100L, 101L, 200L, 299L, 300L, 301L, 400L),
-                of(UL, UL,  UL,   UL, 300L, 300L, 300L, 300L, 300L, 300L)
+                List.of(0L, 1L, 99L, 100L, 101L, 200L, 299L, 300L, 301L, 400L),
+                List.of(UL, UL,  UL,   UL, 300L, 300L, 300L, 300L, 300L, 300L)
         );
     }
 

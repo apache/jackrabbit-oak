@@ -25,7 +25,6 @@ import java.util.Set;
 
 import javax.management.openmbean.CompositeData;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;

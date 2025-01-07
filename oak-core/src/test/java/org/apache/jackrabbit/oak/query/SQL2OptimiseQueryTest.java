@@ -17,8 +17,9 @@
 package org.apache.jackrabbit.oak.query;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
+
 import static javax.jcr.query.Query.JCR_SQL2;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
@@ -125,7 +126,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         
         statement = String.format("SELECT * FROM [%s] WHERE p = 'a' OR p = 'b'",
             NT_OAK_UNSTRUCTURED);
-        expected = of("/test/a", "/test/b", "/test2/a");
+        expected = List.of("/test/a", "/test/b", "/test2/a");
         setQuerySelectionMode(ORIGINAL);
         original = executeQuery(statement, JCR_SQL2, true);
         setQuerySelectionMode(ALTERNATIVE);
@@ -137,7 +138,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         statement = String.format(
             "SELECT * FROM [%s] WHERE p = 'a' OR p = 'b' OR p = 'c' OR p = 'd' OR p = 'e' ",
             NT_OAK_UNSTRUCTURED);
-        expected = of("/test/a", "/test/b", "/test/c", "/test/d", "/test/e", "/test2/a");
+        expected = List.of("/test/a", "/test/b", "/test/c", "/test/d", "/test/e", "/test2/a");
         setQuerySelectionMode(ORIGINAL);
         original = executeQuery(statement, JCR_SQL2, true);
         setQuerySelectionMode(ALTERNATIVE);
@@ -149,7 +150,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         statement = String.format(
             "SELECT * FROM [%s] WHERE (p = 'a' OR p = 'b') AND (p1 = 'a1' OR p1 = 'b1')",
             NT_OAK_UNSTRUCTURED);
-        expected = of("/test/a", "/test/b");
+        expected = List.of("/test/a", "/test/b");
         setQuerySelectionMode(ORIGINAL);
         original = executeQuery(statement, JCR_SQL2, true);
         setQuerySelectionMode(ALTERNATIVE);
@@ -161,7 +162,8 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         statement = String.format(
             "SELECT * FROM [%s] WHERE (p = 'a' AND p1 = 'a1') OR (p = 'b' AND p1 = 'b1')",
             NT_OAK_UNSTRUCTURED);
-        expected = of("/test/a", "/test/b");
+        expected = List.of("/test/a", "/test/b");
+        expected = List.of("/test/a", "/test/b");
         setQuerySelectionMode(ORIGINAL);
         original = executeQuery(statement, JCR_SQL2, true);
         setQuerySelectionMode(ALTERNATIVE);
@@ -176,7 +178,7 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
             + "OR c.[p3] = 'a') " 
             + "AND ISDESCENDANTNODE(c, '/test') "
             + "ORDER BY added DESC";
-        expected = of("/test/a", "/test/b", "/test/c");
+        expected = List.of("/test/a", "/test/b", "/test/c");
         setQuerySelectionMode(ORIGINAL);
         original = executeQuery(statement, JCR_SQL2, true);
         setQuerySelectionMode(ALTERNATIVE);

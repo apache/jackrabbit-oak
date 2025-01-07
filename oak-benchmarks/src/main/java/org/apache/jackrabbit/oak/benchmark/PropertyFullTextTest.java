@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -36,10 +34,10 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.RowIterator;
 
 import java.io.File;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
@@ -181,7 +179,7 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
                 t.setProperty("jcr:primaryType", "nt:unstructured", NAME);
 
                 NodeBuilder uuid = IndexUtils.createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
-                        ImmutableList.<String>of("jcr:uuid"), null);
+                        List.of("jcr:uuid"), null);
                 uuid.setProperty("info",
                         "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
 

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype.write;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -143,7 +142,7 @@ public class NodeTypeRegistryTest {
         
         Tree test = root.getTree("/").addChild("test");
         test.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, NAME);
-        test.setProperty(JCR_MIXINTYPES, of(MIX_INDEXABLE), Type.NAMES);
+        test.setProperty(JCR_MIXINTYPES, List.of(MIX_INDEXABLE), Type.NAMES);
         test.addChild("oak:index").setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
         root.commit();
     }

@@ -21,7 +21,6 @@ import java.util.Set;
 
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -73,7 +72,7 @@ public class AccessControlTest extends AbstractCugTest {
          *   - /content2      : allow everyone,  deny testGroup (isolated)
          *
          */
-        acPaths = ImmutableList.of(
+        acPaths = List.of(
                 "/content/rep:policy",
                 PermissionConstants.PERMISSIONS_STORE_PATH,
                 "/content/a/rep:cugPolicy",

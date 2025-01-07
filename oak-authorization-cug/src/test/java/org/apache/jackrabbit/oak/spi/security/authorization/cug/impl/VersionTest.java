@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -76,12 +75,12 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
         // - /content2      : allow everyone,  deny testGroup (isolated)
         setupCugsAndAcls();
 
-        readAccess = ImmutableList.of(
+        readAccess = List.of(
                 SUPPORTED_PATH,
                 "/content/subtree",
                 "/content/aa");
 
-        noReadAccess = ImmutableList.of(
+        noReadAccess = List.of(
                 UNSUPPORTED_PATH,  /* no access */
                 "/content2",       /* granted by cug only */
                 "/content/a",      /* granted by ace, denied by cug */

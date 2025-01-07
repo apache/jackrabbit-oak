@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
@@ -158,7 +157,7 @@ public class ExternalLoginTest extends AbstractExternalTest {
                         new AppConfigurationEntry(
                                 ExternalLoginModule.class.getName(),
                                 SUFFICIENT,
-                                ImmutableMap.of(
+                                Map.of(
                                         ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, syncConfig.getName(),
                                         ExternalLoginModule.PARAM_IDP_NAME, idp.getName())),
                         new AppConfigurationEntry(

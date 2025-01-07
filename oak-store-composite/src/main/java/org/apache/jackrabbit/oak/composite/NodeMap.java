@@ -18,9 +18,10 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -35,9 +36,9 @@ public class NodeMap<T> {
     }
 
     public static <T> NodeMap<T> create(Map<MountedNodeStore, T> nodes) {
-        ImmutableMap.Builder<MountedNodeStore, CacheableSupplier<T>> suppliers = ImmutableMap.builder();
+        Map<MountedNodeStore, CacheableSupplier<T>> suppliers = new HashMap<>();
         nodes.forEach((mns, node) -> suppliers.put(mns, new CacheableSupplier<T>(node)));
-        return new NodeMap<>(suppliers.build());
+        return new NodeMap<>(Collections.unmodifiableMap(suppliers));
     }
 
     public T get(MountedNodeStore nodeStore) {
@@ -50,15 +51,15 @@ public class NodeMap<T> {
     }
 
     public <R> NodeMap<R> getAndApply(BiFunction<MountedNodeStore, T, R> function) {
-        ImmutableMap.Builder<MountedNodeStore, CacheableSupplier<R>> newSuppliers = ImmutableMap.builder();
+        Map<MountedNodeStore, CacheableSupplier<R>> newSuppliers = new HashMap<>();
         suppliers.forEach((mns, node) -> newSuppliers.put(mns, node.getAndApply(curry(function, mns))));
-        return new NodeMap<>(newSuppliers.build());
+        return new NodeMap<>(Collections.unmodifiableMap(newSuppliers));
     }
 
     public <R> NodeMap<R> lazyApply(BiFunction<MountedNodeStore, T, R> function) {
-        ImmutableMap.Builder<MountedNodeStore, CacheableSupplier<R>> newSuppliers = ImmutableMap.builder();
+        Map<MountedNodeStore, CacheableSupplier<R>> newSuppliers = new HashMap<>();
         suppliers.forEach((mns, node) -> newSuppliers.put(mns, node.lazyApply(curry(function, mns))));
-        return new NodeMap<>(newSuppliers.build());
+        return new NodeMap<>(Collections.unmodifiableMap(newSuppliers));
     }
 
     private static <T, U, R> Function<U, R> curry(BiFunction<T, U, R> function, T value) {
@@ -66,14 +67,14 @@ public class NodeMap<T> {
     }
 
     public NodeMap<T> replaceNode(MountedNodeStore nodeStore, T node) {
-        ImmutableMap.Builder<MountedNodeStore, CacheableSupplier<T>> newSuppliers = ImmutableMap.builder();
+        Map<MountedNodeStore, CacheableSupplier<T>> newSuppliers = new HashMap<>();
         suppliers.forEach((mns, n) -> {
             if (mns != nodeStore) {
                 newSuppliers.put(mns, n);
             }
         });
         newSuppliers.put(nodeStore, new CacheableSupplier<>(node));
-        return new NodeMap<>(newSuppliers.build());
+        return new NodeMap<>(Collections.unmodifiableMap(newSuppliers));
     }
 
     private static class CacheableSupplier<T> implements Supplier<T> {

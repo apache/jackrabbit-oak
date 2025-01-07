@@ -1,4 +1,4 @@
-#   ~ Licensed to the Apache Software Foundation (ASF) under one
+#  ~ Licensed to the Apache Software Foundation (ASF) under one
 #  ~ or more contributor license agreements.  See the NOTICE file
 #  ~ distributed with this work for additional information
 #  ~ regarding copyright ownership.  The ASF licenses this file
@@ -37,7 +37,7 @@ jobs:
           cache: maven
       - name: Build
         # executing ITs requires installing artifacts to the local repository
-        run: mvn -B install -Pcoverage -PintegrationTesting -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS
+        run: mvn -B install -Pcoverage,integrationTesting,javadoc -Dnsfixtures=SEGMENT_TAR,DOCUMENT_NS
       - name: Upload build result
         uses: actions/upload-artifact@v4
         with:

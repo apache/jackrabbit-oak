@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
@@ -175,7 +174,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         String extId = new ExternalIdentityRef(testGroup.getID(), idp.getName()).getString();
         testGroup.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, getValueFactory(root).createValue(extId));
 
-        Map<String, String> nameType = ImmutableMap.of(
+        Map<String, String> nameType = Map.of(
                 UserConstants.REP_MEMBERS, UserConstants.NT_REP_MEMBERS,
                 UserConstants.REP_MEMBERS_LIST, UserConstants.NT_REP_MEMBER_REFERENCES_LIST);
         

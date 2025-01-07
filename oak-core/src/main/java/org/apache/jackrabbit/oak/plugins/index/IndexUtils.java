@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROPERTY_NAME;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
@@ -42,7 +43,6 @@ import java.util.stream.StreamSupport;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -131,7 +131,7 @@ public final class IndexUtils {
                                              @NotNull String[] propertyNames,
                                              @NotNull String... declaringNodeTypeNames) throws RepositoryException {
 
-        return createIndexDefinition(indexNode, indexDefName, unique, ImmutableList.copyOf(propertyNames), ImmutableList.copyOf(declaringNodeTypeNames), PropertyIndexEditorProvider.TYPE, null);
+        return createIndexDefinition(indexNode, indexDefName, unique, Arrays.asList(propertyNames), Arrays.asList(declaringNodeTypeNames), PropertyIndexEditorProvider.TYPE, null);
     }
 
     /**

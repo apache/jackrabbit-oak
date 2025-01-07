@@ -15,15 +15,14 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.file.proc;
 
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
@@ -45,7 +44,7 @@ class TarNode extends AbstractNode {
     @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return ImmutableList.of(
+        return List.of(
             createProperty("name", name),
             createProperty("size", backend.getTarSize(name).orElse(-1L))
         );

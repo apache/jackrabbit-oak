@@ -57,7 +57,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
@@ -374,7 +373,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     }
 
     public List<DataStoreCacheStatsMBean> getStats() {
-        return ImmutableList.of(cache.getCacheStats(), cache.getStagingCacheStats());
+        return List.of(cache.getCacheStats(), cache.getStagingCacheStats());
     }
 
     protected CompositeDataStoreCache getCache() {

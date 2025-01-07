@@ -38,7 +38,7 @@ public class TestS3DSWithSmallCache extends TestS3Ds {
     @Override
     @Before
     public void setUp() throws Exception {
-        super.setUp();
         props.setProperty("cacheSize", String.valueOf(dataLength * 10));
+        super.setUp();
     }
 }

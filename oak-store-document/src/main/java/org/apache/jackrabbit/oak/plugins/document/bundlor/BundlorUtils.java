@@ -27,9 +27,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
@@ -86,7 +86,7 @@ public final class BundlorUtils {
         int expectedDepth = matcher.depth() + 1;
 
         for (String key : keys){
-            List<String> elements = ImmutableList.copyOf(PathUtils.elements(key));
+            List<String> elements = CollectionUtils.toList(PathUtils.elements(key));
             int depth = elements.size() - 1;
 
             if (depth == expectedDepth

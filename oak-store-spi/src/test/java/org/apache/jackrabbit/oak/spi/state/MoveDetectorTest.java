@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -126,7 +125,7 @@ public class MoveDetectorTest {
         move(rootBuilder, "/test/z", "/test/y/z");
         NodeState moved = move(rootBuilder, "/test/y/z/zz", "/test/x/zz").getNodeState();
         MoveExpectation moveExpectation = new MoveExpectation(
-                ImmutableMap.of("/test/z", "/test/y/z", "/test/z/zz", "/test/x/zz"));
+                Map.of("/test/z", "/test/y/z", "/test/z/zz", "/test/x/zz"));
         MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
@@ -146,7 +145,7 @@ public class MoveDetectorTest {
         move(rootBuilder, "/test/z", "/test/y/z");
         NodeState moved = move(rootBuilder, "/test/y/z/added", "/test/x/added").getNodeState();
         MoveExpectation moveExpectation = new MoveExpectation(
-                ImmutableMap.of("/test/z", "/test/y/z"));
+                Map.of("/test/z", "/test/y/z"));
         MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {

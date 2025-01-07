@@ -41,8 +41,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.primitives.Longs;
-
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Component;
@@ -614,7 +612,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         Collections.sort(leaderBoard, new Comparator<LeaderBoardData>() {
             @Override
             public int compare(LeaderBoardData o1, LeaderBoardData o2) {
-                return Longs.compare(o1.getProcessingTime(), o2.getProcessingTime());
+                return Long.compare(o1.getProcessingTime(), o2.getProcessingTime());
             }
         });
         // assign new index value according to sort order

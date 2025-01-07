@@ -26,7 +26,6 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -171,7 +170,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(new CugValidatorProvider());
+        return List.of(new CugValidatorProvider());
     }
 
     @NotNull

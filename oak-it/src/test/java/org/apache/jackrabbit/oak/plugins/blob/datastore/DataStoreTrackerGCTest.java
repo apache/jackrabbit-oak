@@ -31,8 +31,6 @@ import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
@@ -62,7 +60,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.lang.String.valueOf;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -387,7 +384,7 @@ public class DataStoreTrackerGCTest {
         state.blobsPresent.addAll(newBlobs);
 
         // The new blobs should not be found now as new snapshot not done
-        assertEquals(Sets.difference(state.blobsAdded, retrieveTracked(tracker)), newBlobs);
+        assertEquals(CollectionUtils.difference(state.blobsAdded, retrieveTracked(tracker)), newBlobs);
 
         //force gc to retrieve blob ids from datastore
         cluster.gc.collectGarbage(false, true);
@@ -470,12 +467,9 @@ public class DataStoreTrackerGCTest {
         Set<String> existingAfterGC = iterate(s1);
 
         // Check the state of the blob store after gc
-        assertEquals(
-            union(state1.blobsPresent, state2.blobsPresent), existingAfterGC);
+        assertEquals(CollectionUtils.union(state1.blobsPresent, state2.blobsPresent), existingAfterGC);
         // Tracked blobs should reflect deletions after gc
-        assertEquals(
-            union(state1.blobsPresent, state2.blobsPresent),
-            retrieveTracked(tracker1));
+        assertEquals(CollectionUtils.union(state1.blobsPresent, state2.blobsPresent), retrieveTracked(tracker1));
 
         // Again create snapshots at both cluster nodes to synchronize the latest state of
         // local references with datastore at each node
@@ -506,8 +500,7 @@ public class DataStoreTrackerGCTest {
 
         customLogs.finished();
         // Check the state of the blob store after gc
-        assertEquals(
-            union(state1.blobsPresent, state2.blobsPresent), existingAfterGC);
+        assertEquals(CollectionUtils.union(state1.blobsPresent, state2.blobsPresent), existingAfterGC);
     }
 
     /**

@@ -24,6 +24,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,10 +37,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -719,7 +718,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         if (requireNodeLevelExcerpt) {
-            String nodeExcerpt = Joiner.on("...").join(columnNameToExcerpts.values());
+            String nodeExcerpt = String.join("...", columnNameToExcerpts.values());
 
             nodeExcerptColumns.forEach(nodeExcerptColumnName -> columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt));
         }
@@ -1689,7 +1688,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 Facets facets = FacetHelper.getFacets(searcher, query, plan, config);
                 if (facets != null) {
                     try {
-                        ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
+                        List<Facet> res = new ArrayList<>();
                         FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
                         if (topChildren != null) {
                             for (LabelAndValue lav : topChildren.labelValues) {
@@ -1697,7 +1696,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                                         lav.label, lav.value.intValue()
                                 ));
                             }
-                            return res.build();
+                            return Collections.unmodifiableList(res);
                         }
                     } catch (IllegalArgumentException iae) {
                         LOG.debug(iae.getMessage(), iae);
@@ -1713,7 +1712,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         private List<Facet> getFacetsUncached(Facets facets, int numberOfFacets, String columnName) throws IOException {
             String facetFieldName = FulltextIndex.parseFacetField(columnName);
             try {
-                ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
+                List<Facet> res = new ArrayList<>();
                 FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
                 if (topChildren == null) {
                     return null;
@@ -1723,7 +1722,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                             lav.label, lav.value.intValue()
                     ));
                 }
-                return res.build();
+                return Collections.unmodifiableList(res);
             } catch (IllegalArgumentException iae) {
                 LOG.debug(iae.getMessage(), iae);
                 LOG.warn("facets for {} not yet indexed: {}", facetFieldName, iae);
@@ -1747,7 +1746,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
             if (facets != null) {
                 try {
-                    ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
+                    List<Facet> res = new ArrayList<>();
                     FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
                     if (topChildren != null) {
                         for (LabelAndValue lav : topChildren.labelValues) {
@@ -1755,7 +1754,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                                 lav.label, lav.value.intValue()
                             ));
                         }
-                        return res.build();
+                        return Collections.unmodifiableList(res);
                     }
                 } catch (IllegalArgumentException iae) {
                     LOG.debug(iae.getMessage(), iae);

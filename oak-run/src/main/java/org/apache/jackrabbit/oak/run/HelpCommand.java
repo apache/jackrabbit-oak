@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.run.commons.Command;
 
 import static org.apache.jackrabbit.oak.run.AvailableModes.MODES;
@@ -27,7 +25,7 @@ class HelpCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         System.err.print("Available run modes: ");
-        System.err.println(Joiner.on(", ").join(MODES.getModes()));
+        System.err.println(String.join(", ", MODES.getModes()));
         System.exit(1);
     }
 

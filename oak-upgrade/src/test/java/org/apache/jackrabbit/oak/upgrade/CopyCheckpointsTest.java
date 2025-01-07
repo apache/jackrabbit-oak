@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
@@ -132,7 +131,7 @@ public class CopyCheckpointsTest extends AbstractOak2OakTest {
         }
 
         String[] args = getArgs();
-        log.info("oak2oak {}", Joiner.on(' ').join(args));
+        log.info("oak2oak {}", String.join(" ", args));
         try {
             MigrationCliArguments cliArgs = new MigrationCliArguments(OptionParserFactory.create().parse(args));
             MigrationOptions options = new MigrationOptions(cliArgs);

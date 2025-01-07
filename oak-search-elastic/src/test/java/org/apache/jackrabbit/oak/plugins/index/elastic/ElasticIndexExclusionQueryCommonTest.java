@@ -25,8 +25,7 @@ import org.junit.ClassRule;
 public class ElasticIndexExclusionQueryCommonTest extends IndexExclusionQueryCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
-            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     @Override
     protected ContentRepository createRepository() {

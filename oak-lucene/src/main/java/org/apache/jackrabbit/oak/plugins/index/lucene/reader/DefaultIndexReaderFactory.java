@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
@@ -55,7 +54,7 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
         if (!mountInfoProvider.hasNonDefaultMounts()) {
             LuceneIndexReader reader = createReader(definition, defnState, indexPath,
                     FulltextIndexConstants.INDEX_DATA_CHILD_NAME, SUGGEST_DATA_CHILD_NAME);
-            return reader != null ? ImmutableList.of(reader) : Collections.<LuceneIndexReader>emptyList();
+            return reader != null ? List.of(reader) : Collections.emptyList();
         } else {
             return createMountedReaders(definition, defnState, indexPath);
         }
@@ -63,7 +62,7 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
 
     private List<LuceneIndexReader> createMountedReaders(LuceneIndexDefinition definition, NodeState defnState, String
             indexPath) throws IOException {
-        ImmutableList.Builder<LuceneIndexReader> readers = ImmutableList.builder();
+        List<LuceneIndexReader> readers = new ArrayList<>();
         LuceneIndexReader reader = createReader(mountInfoProvider.getDefaultMount(), definition, defnState, indexPath);
         //Default mount is the first entry. This ensures that suggester, spellcheck can work on that untill they
         //support multiple readers
@@ -77,7 +76,7 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
                 readers.add(reader);
             }
         }
-        return readers.build();
+        return Collections.unmodifiableList(readers);
     }
 
     @Nullable

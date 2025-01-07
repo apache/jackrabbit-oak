@@ -40,6 +40,7 @@ import org.junit.After;
 
 import static org.junit.Assert.assertNotNull;
 
+@Deprecated(forRemoval=true, since="1.74.0")
 public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
     private SolrServerProvider solrServerProvider;

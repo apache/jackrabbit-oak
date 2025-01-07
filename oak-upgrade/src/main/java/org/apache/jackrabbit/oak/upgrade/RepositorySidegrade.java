@@ -19,14 +19,16 @@ package org.apache.jackrabbit.oak.upgrade;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -69,8 +71,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
@@ -217,7 +217,7 @@ public class RepositorySidegrade {
      * @param includes Paths to be included in the copy.
      */
     public void setIncludes(@NotNull String... includes) {
-        this.includePaths = copyOf(requireNonNull(includes));
+        this.includePaths = Set.of(requireNonNull(includes));
     }
 
     /**
@@ -227,7 +227,7 @@ public class RepositorySidegrade {
      * @param excludes Paths to be excluded from the copy.
      */
     public void setExcludes(@NotNull String... excludes) {
-        this.excludePaths = copyOf(requireNonNull(excludes));
+        this.excludePaths = Set.of(requireNonNull(excludes));
     }
 
     /**
@@ -237,7 +237,7 @@ public class RepositorySidegrade {
      * @param merges Paths to be merged during copy.
      */
     public void setMerges(@NotNull String... merges) {
-        this.mergePaths = copyOf(requireNonNull(merges));
+        this.mergePaths = Set.of(requireNonNull(merges));
     }
 
     public void setFilterLongNames(boolean filterLongNames) {
@@ -465,17 +465,16 @@ public class RepositorySidegrade {
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        ImmutableSet.Builder<String> excludes = new ImmutableSet.Builder<>();
-        excludes.addAll(excludePaths);
+        final Set<String> excludes = new HashSet<>(excludePaths);
         if (!versionCopyConfiguration.isCopyAll()) {
             excludes.add("/jcr:system/jcr:versionStorage");
         }
         excludes.add("/:async");
 
-        final Set<String> merges = union(copyOf(this.mergePaths), Set.of("/jcr:system"));
+        final Set<String> merges = Stream.concat(this.mergePaths.stream(), Stream.of("/jcr:system")).collect(Collectors.toUnmodifiableSet());
         NodeStateCopier.builder()
             .include(includes)
-            .exclude(excludes.build())
+            .exclude(Set.copyOf(excludes))
             .merge(merges)
             .copy(sourceRoot, targetRoot);
 

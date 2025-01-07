@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.run.cli;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
@@ -53,7 +52,8 @@ public class Options {
     }
 
     public Options(OptionBeans... options) {
-        this.oakRunOptions = Sets.newEnumSet(asList(options), OptionBeans.class);
+        this.oakRunOptions = EnumSet.noneOf(OptionBeans.class);
+        this.oakRunOptions.addAll(asList(options));
     }
 
     public OptionSet parseAndConfigure(OptionParser parser, String[] args) throws IOException {

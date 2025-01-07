@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -94,7 +93,7 @@ public class PolicyValidatorLimitedUserTest extends AbstractPrincipalBasedTest {
         policy.setProperty(REP_PRINCIPAL_NAME, getTestSystemUser().getPrincipal().getName());
         Tree entry = TreeUtil.addChild(policy, "entry", NT_REP_PRINCIPAL_ENTRY);
         entry.setProperty(REP_EFFECTIVE_PATH, effectiveOakPath, Type.PATH);
-        entry.setProperty(REP_PRIVILEGES, ImmutableSet.copyOf(privNames), Type.NAMES);
+        entry.setProperty(REP_PRIVILEGES, Set.of(privNames), Type.NAMES);
         return entry;
     }
 

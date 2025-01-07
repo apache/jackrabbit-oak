@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -164,7 +163,7 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(new PrincipalPolicyValidatorProvider(new MgrProviderImpl(this), principals, workspaceName));
+        return List.of(new PrincipalPolicyValidatorProvider(new MgrProviderImpl(this), principals, workspaceName));
     }
 
     @NotNull

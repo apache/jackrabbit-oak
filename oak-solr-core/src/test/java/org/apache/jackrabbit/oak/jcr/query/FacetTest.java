@@ -32,7 +32,10 @@ import org.apache.jackrabbit.oak.query.facet.FacetResult;
 
 /**
  * Test for faceting capabilities via JCR API
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
+@Deprecated(forRemoval=true, since="1.74.0")
 public class FacetTest extends AbstractQueryTest {
 
     public void testFacetRetrieval() throws Exception {

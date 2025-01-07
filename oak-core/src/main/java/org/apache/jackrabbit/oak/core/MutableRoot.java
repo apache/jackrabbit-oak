@@ -28,12 +28,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -386,10 +386,10 @@ class MutableRoot implements Root, PermissionAware {
     }
 
     private static Map<String, Object> newInfoWithCommitContext(Map<String, Object> info){
-        return ImmutableMap.<String, Object>builder()
-                .putAll(info)
-                .put(CommitContext.NAME, new SimpleCommitContext())
-                .build();
+        Map<String, Object> builder = new HashMap<>();
+        builder.putAll(info);
+        builder.put(CommitContext.NAME, new SimpleCommitContext());
+        return Collections.unmodifiableMap(builder);
     }
 
     //--------------------------------------------------------------------------------------------< PermissionAware >---

@@ -26,8 +26,7 @@ import org.junit.Test;
 public class ElasticIndexAggregationTest extends IndexAggregationCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
-            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticIndexAggregationTest() {
         this.indexOptions = new ElasticIndexOptions();

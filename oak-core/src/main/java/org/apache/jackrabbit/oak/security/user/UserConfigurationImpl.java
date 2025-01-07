@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -195,6 +194,12 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
                 name = "RFC7613 Username Comparison Profile",
                 description = "Enable the UsercaseMappedProfile defined in RFC7613 for username comparison.")
         boolean enableRFC7613UsercaseMappedProfile() default false;
+
+        @AttributeDefinition(
+                name = "Allow Disable Anonymous User",
+                description = "By default the anonymous user can be disabled. By changing this option to false trying "
+                        + "to disable the anonymous user will throw an exception.")
+        boolean allowDisableAnonymous() default true;
     }
 
     private static final UserAuthenticationFactory DEFAULT_AUTH_FACTORY = new UserAuthenticationFactoryImpl();
@@ -268,13 +273,13 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()), new CacheValidatorProvider(principals, getTreeProvider()));
+        return List.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()), new CacheValidatorProvider(principals, getTreeProvider()));
     }
 
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
-        return ImmutableList.of(new RepMembersConflictHandler(), new CacheConflictHandler());
+        return List.of(new RepMembersConflictHandler(), new CacheConflictHandler());
     }
 
     @NotNull

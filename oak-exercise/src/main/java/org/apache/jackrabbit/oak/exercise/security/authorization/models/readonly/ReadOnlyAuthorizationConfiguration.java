@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -344,25 +343,25 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
     @NotNull
     @Override
     public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
-        return ImmutableList.of();
+        return List.of();
     }
 
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of();
+        return List.of();
     }
 
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
-        return ImmutableList.of();
+        return List.of();
     }
 
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return ImmutableList.of();
+        return List.of();
     }
 
     @NotNull

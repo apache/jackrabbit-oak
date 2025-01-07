@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -108,7 +107,7 @@ public class HybridPropertyIndexLookupTest {
         Iterable<String> paths = lookup.query(filter, propertyName,
                 filter.getPropertyRestriction(propertyName));
 
-        assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/a"));
+        assertThat(CollectionUtils.toList(paths), containsInAnyOrder("/a"));
     }
 
     @Test
@@ -128,14 +127,14 @@ public class HybridPropertyIndexLookupTest {
         Iterable<String> paths = lookup.query(filter, propertyName,
                 filter.getPropertyRestriction(propertyName));
 
-        assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/a"));
+        assertThat(CollectionUtils.toList(paths), containsInAnyOrder("/a"));
 
         lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState(),
                 "/content", true);
         paths = lookup.query(filter, propertyName,
                 filter.getPropertyRestriction(propertyName));
 
-        assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/content/a"));
+        assertThat(CollectionUtils.toList(paths), containsInAnyOrder("/content/a"));
     }
 
     private void propertyUpdated(String nodePath, String propertyRelativeName, String value){
@@ -157,7 +156,7 @@ public class HybridPropertyIndexLookupTest {
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
         Iterable<String> paths = lookup.query(filter, propertyName,
                 filter.getPropertyRestriction(propertyRestrictionName));
-        return ImmutableList.copyOf(paths);
+        return CollectionUtils.toList(paths);
     }
 
     private PropertyDefinition pd(String propName){

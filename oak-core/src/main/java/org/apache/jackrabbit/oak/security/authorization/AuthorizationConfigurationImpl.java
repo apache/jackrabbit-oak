@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.monitor.AuthorizationMonitor;
@@ -159,7 +158,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @NotNull
     @Override
     public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
-        return ImmutableList.of(
+        return List.of(
                 new VersionablePathHook(workspaceName, this),
                 new PermissionHook(workspaceName, getRestrictionProvider(), this));
     }
@@ -167,7 +166,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @NotNull
     @Override
     public List<ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(
+        return List.of(
                 new PermissionStoreValidatorProvider(),
                 new PermissionValidatorProvider(workspaceName, principals, moveTracker, this),
                 new AccessControlValidatorProvider(this));
@@ -176,7 +175,7 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return ImmutableList.of(new AccessControlImporter());
+        return List.of(new AccessControlImporter());
     }
 
     @NotNull

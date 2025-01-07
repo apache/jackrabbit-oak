@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.jetbrains.annotations.NotNull;
@@ -158,9 +158,9 @@ public class DefaultSyncConfigTest {
         // only global ids for getAutoMembership(Authorizable) as no specific config for 'gr'
         assertEquals(globalGroupIds, dscA.getAutoMembership(gr));
         // for 'user' the combine set of global and conditional config is returned
-        Set<String> expected = ImmutableSet.<String>builder()
-                .addAll(globalGroupIds)
-                .addAll(configGroupIds).build();
+        Set<String> expected = new HashSet<>();
+        expected.addAll(globalGroupIds);
+        expected.addAll(configGroupIds);
         assertEquals(expected, dscA.getAutoMembership(user));
     }
 }

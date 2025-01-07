@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.spi.observation;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -74,11 +72,11 @@ public final class ChangeSet {
     ChangeSet(int maxPathDepth, Set<String> parentPaths, Set<String> parentNodeNames, Set<String> parentNodeTypes,
             Set<String> propertyNames, Set<String> allNodeTypes) {
         this.maxPathDepth = maxPathDepth;
-        this.parentPaths = parentPaths == null ? null : ImmutableSet.copyOf(parentPaths);
-        this.parentNodeNames = parentNodeNames == null ? null : ImmutableSet.copyOf(parentNodeNames);
-        this.parentNodeTypes = parentNodeTypes == null ? null : ImmutableSet.copyOf(parentNodeTypes);
-        this.propertyNames = propertyNames == null ? null : ImmutableSet.copyOf(propertyNames);
-        this.allNodeTypes = allNodeTypes == null ? null : ImmutableSet.copyOf(allNodeTypes);
+        this.parentPaths = parentPaths == null ? null : Set.copyOf(parentPaths);
+        this.parentNodeNames = parentNodeNames == null ? null : Set.copyOf(parentNodeNames);
+        this.parentNodeTypes = parentNodeTypes == null ? null : Set.copyOf(parentNodeTypes);
+        this.propertyNames = propertyNames == null ? null : Set.copyOf(propertyNames);
+        this.allNodeTypes = allNodeTypes == null ? null : Set.copyOf(allNodeTypes);
         
         boolean hitsMaxPathDepth = false;
         if (parentPaths != null) {

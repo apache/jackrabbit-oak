@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
-import org.apache.jackrabbit.guava.common.collect.Sets
 import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore

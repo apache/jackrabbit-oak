@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
@@ -31,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
@@ -205,7 +203,7 @@ public class IndexRootDirectory {
         }
 
         Collections.reverse(result);
-        String name = Joiner.on('_').join(result);
+        String name = String.join("_", result);
         if (name.length() > MAX_NAME_LENGTH){
             name = name.substring(0, MAX_NAME_LENGTH);
         }

@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,11 +37,7 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
     public ImmutablePrivilegeDefinition(@NotNull String name, boolean isAbstract, @Nullable Iterable<String> declaredAggregateNames) {
         this.name = name;
         this.isAbstract = isAbstract;
-        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-        if (declaredAggregateNames != null) {
-            builder.addAll(declaredAggregateNames);
-        }
-        this.declaredAggregateNames = builder.build();
+        this.declaredAggregateNames = declaredAggregateNames != null ? Collections.unmodifiableSet(CollectionUtils.toSet(declaredAggregateNames)) : Set.of();
         hashcode = Objects.hash(this.name, this.isAbstract, this.declaredAggregateNames);
     }
 

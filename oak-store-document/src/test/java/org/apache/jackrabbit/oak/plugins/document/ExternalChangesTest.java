@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -301,7 +300,7 @@ public class ExternalChangesTest {
 
         @Override
         public String buildAsString() {
-            return Joiner.on(",").join(allProps.values);
+            return String.join(",", allProps.values);
         }
 
         @Override

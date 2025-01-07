@@ -17,10 +17,12 @@
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -28,10 +30,6 @@ import javax.management.ObjectName;
 import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.DEFAULT;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_LEADER;
@@ -74,10 +72,10 @@ public class WhiteboardUtils {
             Whiteboard whiteboard, Runnable runnable, Map<String, Object> extraProps, long delayInSeconds,
             ScheduleExecutionInstanceTypes scheduleExecutionInstanceTypes, boolean useDedicatedPool) {
 
-        ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
-                .putAll(extraProps)
-                .put("scheduler.period", delayInSeconds)
-                .put("scheduler.concurrent", false);
+        Map<String, Object> builder = new HashMap<>();
+        builder.putAll(extraProps);
+        builder.put("scheduler.period", delayInSeconds);
+        builder.put("scheduler.concurrent", false);
         if (scheduleExecutionInstanceTypes == RUN_ON_SINGLE) {
             //Make use of feature while running in Sling SLING-5387
             builder.put("scheduler.runOn", "SINGLE");
@@ -90,7 +88,7 @@ public class WhiteboardUtils {
             builder.put("scheduler.threadPool", "oak");
         }
         return whiteboard.register(
-                Runnable.class, runnable, builder.build());
+                Runnable.class, runnable, Collections.unmodifiableMap(builder));
     }
 
     public static <T> Registration registerMBean(
@@ -110,11 +108,12 @@ public class WhiteboardUtils {
 
             // ensure the MBean is tracked by the Aries JMX Whiteboard
             // https://aries.apache.org/documentation/modules/jmx.html#_whiteboard_support
-            ImmutableMap.Builder properties = ImmutableMap.builder();
+            @SuppressWarnings("rawtypes")
+            Map properties = new HashMap();
             properties.put("jmx.objectname", new ObjectName(JMX_OAK_DOMAIN, table));
             properties.putAll(attrs);
 
-            return whiteboard.register(iface, bean, properties.build());
+            return whiteboard.register(iface, bean, Collections.unmodifiableMap(properties));
         } catch (MalformedObjectNameException e) {
             throw new IllegalArgumentException(e);
         }
@@ -164,7 +163,7 @@ public class WhiteboardUtils {
             if (predicate == null) {
                 return tracker.getServices();
             } else {
-                return ImmutableList.copyOf(Iterables.filter(tracker.getServices(), (input) -> predicate.test(input)));
+                return tracker.getServices().stream().filter(predicate).collect(Collectors.toUnmodifiableList());
             }
         } finally {
             tracker.stop();

@@ -25,6 +25,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
@@ -47,8 +48,9 @@ class UserImpl extends AuthorizableImpl implements User {
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
 
-        isAdmin = UserUtil.isAdmin(userManager.getConfig(), id);
-        pwHistory = new PasswordHistory(userManager.getConfig());
+        ConfigurationParameters configurationParameters = userManager.getConfig();
+        isAdmin = UserUtil.isAdmin(configurationParameters, id);
+        pwHistory = new PasswordHistory(configurationParameters);
     }
 
     //---------------------------------------------------< AuthorizableImpl >---
@@ -131,9 +133,7 @@ class UserImpl extends AuthorizableImpl implements User {
 
     @Override
     public void disable(@Nullable String reason) throws RepositoryException {
-        if (isAdmin) {
-            throw new RepositoryException("The administrator user cannot be disabled.");
-        }
+        validateDisableUser();
 
         getUserManager().onDisable(this, reason);
 
@@ -145,6 +145,18 @@ class UserImpl extends AuthorizableImpl implements User {
             } // else: not disabled -> nothing to
         } else {
             tree.setProperty(REP_DISABLED, reason);
+        }
+    }
+
+    private void validateDisableUser() throws RepositoryException {
+        if (isAdmin) {
+            throw new RepositoryException("The administrator user cannot be disabled.");
+        }
+
+        boolean isAnonymous = UserUtil.getAnonymousId(getUserManager().getConfig()).equals(getID());
+        boolean allowDisableAnonymous = getUserManager().getConfig().getConfigValue(UserConstants.PARAM_ALLOW_DISABLE_ANONYMOUS, true);
+        if (isAnonymous && !allowDisableAnonymous) {
+            throw new RepositoryException("The anonymous user cannot be disabled.");
         }
     }
 

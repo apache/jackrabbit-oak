@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.jetbrains.annotations.NotNull;
@@ -125,7 +124,7 @@ public class DefaultSyncConfigImplTest {
     public void testValidMapping() {
         String[] validMapping = new String[] {"valid=mapping","valid2=mapping"};
         DefaultSyncConfig.User userConfig = DefaultSyncConfigImpl.of(ConfigurationParameters.of(PARAM_USER_PROPERTY_MAPPING, validMapping)).user();
-        assertEquals(ImmutableMap.of("valid","mapping","valid2","mapping"), userConfig.getPropertyMapping());
+        assertEquals(Map.of("valid","mapping","valid2","mapping"), userConfig.getPropertyMapping());
     }
 
     private static Map<String,String> getMapping(@NotNull String[] defaultMapping) {

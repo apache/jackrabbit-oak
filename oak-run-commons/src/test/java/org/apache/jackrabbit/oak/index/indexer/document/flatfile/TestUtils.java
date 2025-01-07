@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -31,7 +30,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
@@ -53,11 +51,10 @@ public class TestUtils {
 
     static List<String> sortPaths(List<String> paths, Comparator<Iterable<String>> comparator) {
         List<Iterable<String>> copy = paths.stream()
-                .map(p -> copyOf(elements(p)))
+                .map(p -> CollectionUtils.toList(elements(p)))
                 .sorted(comparator)
                 .collect(toList());
-        Joiner j = Joiner.on('/');
-        return copy.stream().map(e -> "/" + j.join(e)).collect(toList());
+        return copy.stream().map(e -> "/" + String.join("/", e)).collect(toList());
     }
 
     static CountingIterable<NodeStateEntry> createList(Set<String> preferred, List<String> paths) {

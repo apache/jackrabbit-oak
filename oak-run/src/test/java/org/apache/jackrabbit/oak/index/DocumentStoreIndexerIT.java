@@ -472,7 +472,6 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
 
             SortedMap<String, Counter> counters = metricsStatisticsProvider.getRegistry().getCounters();
             assertMetric(counters, DocumentStoreIndexerBase.METRIC_INDEXING_DURATION_SECONDS);
-            assertMetric(counters, DocumentStoreIndexerBase.METRIC_MERGE_NODE_STORE_DURATION_SECONDS);
             assertMetric(counters, DocumentStoreIndexerBase.METRIC_FULL_INDEX_CREATION_DURATION_SECONDS);
         } finally {
             executor.shutdown();

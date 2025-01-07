@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
 import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
 import static javax.jcr.PropertyType.BINARY;
@@ -413,7 +412,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             }
         }
 
-        Set<UUID> inMem = intersection(backend.getReferencedSegmentIds(), uuids);
+        Set<UUID> inMem = CollectionUtils.intersection(backend.getReferencedSegmentIds(), uuids);
         if (!inMem.isEmpty()) {
             sb.append("In Memory segment references: ");
             sb.append(newline);

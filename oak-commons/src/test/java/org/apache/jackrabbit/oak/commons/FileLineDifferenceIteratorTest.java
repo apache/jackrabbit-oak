@@ -35,10 +35,9 @@ import java.util.TreeSet;
 import java.util.function.Function;
 
 import org.apache.commons.io.LineIterator;
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -109,7 +108,7 @@ public class FileLineDifferenceIteratorTest {
         remove(marked, 3, 2);
 
         // without escaping, the line breaks will be resolved
-        assertDiff(Joiner.on(",").join(marked), Joiner.on(",").join(all),
+        assertDiff(String.join(",", marked), String.join(",", all),
             asList("/a", "c", "/a/b"));
     }
 
@@ -120,7 +119,7 @@ public class FileLineDifferenceIteratorTest {
         List<String> marked = escape(getLineBreakStrings());
         List<String> diff = remove(marked, 3, 2);
 
-        assertDiff(Joiner.on(",").join(marked), Joiner.on(",").join(all), diff);
+        assertDiff(String.join(",", marked), String.join(",", all), diff);
     }
 
     @Test
@@ -160,12 +159,12 @@ public class FileLineDifferenceIteratorTest {
 
     private static void assertReverseDiff(String marked, String all, List<String> diff) throws IOException {
         Iterator<String> itr = createItr(all, marked);
-        assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
+        assertThat("marked: " + marked + " all: " + all, CollectionUtils.toList(itr), is(diff));
     }
 
     private static void assertDiff(String marked, String all, List<String> diff) throws IOException {
         Iterator<String> itr = createItr(marked, all);
-        assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
+        assertThat("marked: " + marked + " all: " + all, CollectionUtils.toList(itr), is(diff));
     }
 
     private static Iterator<String> createItr(String marked, String all) throws IOException {
@@ -174,7 +173,7 @@ public class FileLineDifferenceIteratorTest {
 
     private static LineIterator lineItr(String seq) {
         Iterable<String> seqItr = Splitter.on(',').trimResults().split(seq);
-        String lines = Joiner.on(System.getProperty("line.separator")).join(seqItr);
+        String lines = String.join(System.getProperty("line.separator"), seqItr);
         return new LineIterator(new StringReader(lines));
     }
 
@@ -190,6 +189,6 @@ public class FileLineDifferenceIteratorTest {
                 }
             });
 
-        assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
+        assertThat("marked: " + marked + " all: " + all, CollectionUtils.toList(itr), is(diff));
     }
 }

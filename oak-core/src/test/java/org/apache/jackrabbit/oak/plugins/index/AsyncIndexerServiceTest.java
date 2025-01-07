@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdateTest.CommitInfoCollector;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService.AsyncConfig;
@@ -82,7 +81,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void leaseTimeout() {
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5"},
                 "leaseTimeOutMinutes" , "20"
         );
@@ -94,7 +93,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void leaseTimeout2() {
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5:13", "foo-async:5"},
                 "leaseTimeOutMinutes" , "20"
         );
@@ -141,7 +140,7 @@ public class AsyncIndexerServiceTest {
         nodeStore = new MemoryNodeStore();
         injectDefaultServices();
 
-        Map<String,Object> config = ImmutableMap.of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5"},
                 "leaseTimeOutMinutes" , "20"
         );
@@ -172,7 +171,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void corruptIndexTimeout() throws Exception{
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5"},
                 "failingIndexTimeoutSeconds" , "43",
                 "errorWarnIntervalSeconds" , "53"

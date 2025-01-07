@@ -30,7 +30,6 @@ import java.util.Random;
 
 import javax.jcr.query.Query;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -61,7 +60,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
                         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
                         IndexUtils.createIndexDefinition(
                                 index, "xyz", true, false,
-                                ImmutableList.of("x", "y", "z", "w"), null);
+                                List.of("x", "y", "z", "w"), null);
                     }
                 })
                 .with(new OpenSecurityProvider())
@@ -79,7 +78,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
         root.commit();
         setTraversalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [x] is not null",
-                ImmutableList.of("/a"));
+                List.of("/a"));
 
         List<String> lines = executeQuery(
                 "explain select [jcr:path] from [nt:base] where [x] is not null",
@@ -105,13 +104,13 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
 
         assertQuery(
                 "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'",
-                ImmutableList.of("/a"));
+                List.of("/a"));
         assertQuery(
                 "select [jcr:path] from [nt:base] where [x] = 'foo' OR [z] = 'foo'",
-                ImmutableList.of("/a", "/c"));
+                List.of("/a", "/c"));
         assertQuery(
                 "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'",
-                ImmutableList.of("/a", "/b"));
+                List.of("/a", "/b"));
         setTraversalEnabled(false);
     }
 

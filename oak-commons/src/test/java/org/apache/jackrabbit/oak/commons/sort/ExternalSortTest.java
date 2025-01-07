@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.commons.sort;
 
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -488,7 +487,7 @@ public class ExternalSortTest {
         Function<String, TestLine> stringToType = line -> line != null ? new TestLine(line) : null;
         Function<TestLine, String> typeToString = tl -> tl != null ? tl.line : null;
 
-        String testData = Joiner.on('\n').join(transform(testLines, tl -> tl.line));
+        String testData = String.join("\n", transform(testLines, tl -> tl.line));
         File testFile = folder.newFile();
         try (BufferedWriter bufferedWriter = Files.newWriter(testFile, charset)) {
             bufferedWriter.write(testData);

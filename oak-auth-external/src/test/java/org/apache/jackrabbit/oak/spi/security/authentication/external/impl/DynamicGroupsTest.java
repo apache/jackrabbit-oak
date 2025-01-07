@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -26,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
@@ -294,7 +292,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         UserManager um = getUserManager(r);
         PrincipalManager pm = getPrincipalManager(r);
         
-        List<ExternalIdentityRef> declaredGroupRefs = ImmutableList.copyOf(previouslySyncedUser.getDeclaredGroups());
+        List<ExternalIdentityRef> declaredGroupRefs = CollectionUtils.toList(previouslySyncedUser.getDeclaredGroups());
         assertTrue(declaredGroupRefs.size() > 1);
         
         String groupId = declaredGroupRefs.get(0).getId();

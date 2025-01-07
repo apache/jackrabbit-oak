@@ -38,7 +38,6 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -99,7 +98,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
@@ -194,25 +192,25 @@ public class HybridIndexTest extends AbstractQueryTest {
         runAsyncIndex();
 
         setTraversalEnabled(false);
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a"));
 
         //Add new node. This would not be reflected in result as local index would not be updated
         createPath("/b").setProperty("foo", "bar");
         root.commit();
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a"));
 
         //Now let some time elapse such that readers can be refreshed
         clock.waitUntil(clock.getTime() + refreshDelta + 1);
 
         //Now recently added stuff should be visible without async indexing run
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a", "/b"));
 
         createPath("/c").setProperty("foo", "bar");
         root.commit();
 
         //Post async index it should still be upto date
         runAsyncIndex();
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b", "/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a", "/b", "/c"));
     }
 
     @Test
@@ -262,7 +260,7 @@ public class HybridIndexTest extends AbstractQueryTest {
 
         runAsyncIndex();
         assertEquals(1, testBlob.accessCount);
-        assertQuery("select * from [nt:base] where CONTAINS(*, 'sky')", of("/test/msg/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'sky')", List.of("/test/msg/jcr:content"));
 
     }
 
@@ -281,12 +279,12 @@ public class HybridIndexTest extends AbstractQueryTest {
         runAsyncIndex();
 
         setTraversalEnabled(false);
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a"));
 
         //Add new node. This should get immediately reelected as its a sync index
         createPath("/b").setProperty("foo", "bar");
         root.commit();
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a", "/b"));
     }
 
     @Test
@@ -299,19 +297,19 @@ public class HybridIndexTest extends AbstractQueryTest {
         createPath("/a").setProperty("foo", "bar");
         root.commit();
         setTraversalEnabled(false);
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a"));
 
         //Add new node. This should get immediately reelected as its a sync index
         createPath("/b").setProperty("foo", "bar");
         root.commit();
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a", "/b"));
 
         runAsyncIndex();
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a", "/b"));
 
         createPath("/c").setProperty("foo", "bar");
         root.commit();
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b", "/c"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a", "/b", "/c"));
     }
 
     @Test
@@ -325,7 +323,7 @@ public class HybridIndexTest extends AbstractQueryTest {
 
         createPath("/a").setProperty("foo", "bar");
         root.commit();
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a"));
 
         optionalEditorProvider.delegate = new TypeEditorProvider(false);
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
@@ -335,7 +333,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         b.setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:TestNode", Type.NAME);
         b.setProperty("bar", "foo");
         root.commit();
-        assertQuery("select [jcr:path] from [nt:base] where [bar] = 'foo'", of("/b"));
+        assertQuery("select [jcr:path] from [nt:base] where [bar] = 'foo'", List.of("/b"));
     }
 
     @Test
@@ -354,7 +352,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         //such that it does not indexes test nodetype
         Tree nodeType = root.getTree("/oak:index/nodetype");
         if (!nodeType.hasProperty(IndexConstants.DECLARING_NODE_TYPES)){
-            nodeType.setProperty(IndexConstants.DECLARING_NODE_TYPES, ImmutableList.of("nt:file"), Type.NAMES);
+            nodeType.setProperty(IndexConstants.DECLARING_NODE_TYPES, List.of("nt:file"), Type.NAMES);
             nodeType.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         }
 
@@ -364,7 +362,7 @@ public class HybridIndexTest extends AbstractQueryTest {
 
         createPath("/a").setProperty("foo", "bar");
         root.commit();
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", List.of("/a"));
 
         optionalEditorProvider.delegate = new TypeEditorProvider(false);
         NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
@@ -380,7 +378,7 @@ public class HybridIndexTest extends AbstractQueryTest {
 
         String query = "select [jcr:path] from [oak:TestNode] ";
         assertThat(explain(query), containsString("/oak:index/hybridtest"));
-        assertQuery(query, of("/b", "/c"));
+        assertQuery(query, List.of("/b", "/c"));
     }
 
     @Test

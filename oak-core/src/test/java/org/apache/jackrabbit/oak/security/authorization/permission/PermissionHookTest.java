@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -456,7 +455,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         // verify that the permission provider still exposes the correct privilege
         // (jcr:all) for the given childPath irrespective of the dynamic nature of
         // the privilege bits in the persisted permission entry.
-        Set<Principal> principalSet = ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
+        Set<Principal> principalSet = Set.of(EveryonePrincipal.getInstance());
         PermissionProvider permissionProvider = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), principalSet);
         Tree childTree = root.getTree(childPath);
         assertTrue(permissionProvider.hasPrivileges(childTree, PrivilegeConstants.JCR_ALL));
@@ -798,7 +797,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         assertEquals(2, principalPermissionStore.getChildrenCount(10));
         Iterable<String> paths = Iterables.transform(principalPermissionStore.getChildren(), tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
 
-        assertEquals(Set.of(testPath, t.getPath()), ImmutableSet.copyOf(paths));
+        assertEquals(Set.of(testPath, t.getPath()), CollectionUtils.toSet(paths));
     }
 
     @Test

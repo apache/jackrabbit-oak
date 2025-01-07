@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,8 +27,6 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * Test for measuring the performance of setting a single property and
@@ -108,7 +107,7 @@ public class SetPropertyTest extends AbstractTest {
         
         Map<Thread, Node> nodes = map.get(currentFixtureName);
         if (nodes == null) {
-            nodes = Maps.newIdentityHashMap();
+            nodes = new IdentityHashMap<>();
         }
         return nodes;
     }

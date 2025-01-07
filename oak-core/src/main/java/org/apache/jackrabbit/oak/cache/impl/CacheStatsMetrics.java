@@ -25,7 +25,6 @@ import java.util.Map;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.osgi.service.component.annotations.Component;
@@ -51,7 +50,7 @@ public class CacheStatsMetrics {
     static final String ELEMENT = "element";
     static final String LOAD_TIME = "loadTime";
 
-    private static final List<String> TYPES = ImmutableList.of(
+    private static final List<String> TYPES = List.of(
             REQUEST, HIT, MISS, EVICTION, ELEMENT, LOAD_TIME);
 
     private Map<String, CacheStatsMBean> cacheStatsMBeans = new HashMap<>();

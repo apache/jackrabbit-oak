@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -24,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -134,7 +134,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
     }
     
     private static @NotNull Set<String> getMembersIds(@NotNull InheritedMembersIterator it) {
-        return ImmutableSet.copyOf(Iterators.transform(it, authorizable -> {
+        return CollectionUtils.toSet(Iterators.transform(it, authorizable -> {
             try {
                 return authorizable.getID();
             } catch (RepositoryException repositoryException) {

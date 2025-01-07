@@ -20,7 +20,6 @@ import java.util.List;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -149,7 +148,7 @@ public class L6_AuthorizableContentTest extends AbstractJCRTest {
         String expectedNodeTypeName = null; // EXERCISE
         assertEquals(expectedNodeTypeName, node.getPrimaryNodeType().getName());
 
-        List<String> mixinTypes = ImmutableList.of(); // EXERCISE : fill the list
+        List<String> mixinTypes = List.of(); // EXERCISE : fill the list
         for (String mixin : mixinTypes) {
             assertTrue(node.isNodeType(mixin));
         }
@@ -174,7 +173,7 @@ public class L6_AuthorizableContentTest extends AbstractJCRTest {
         String expectedNodeTypeName = null; // EXERCISE
         assertEquals(expectedNodeTypeName, node.getPrimaryNodeType().getName());
 
-        List<String> mixinTypes = ImmutableList.of(); // EXERCISE : fill the list
+        List<String> mixinTypes = List.of(); // EXERCISE : fill the list
         for (String mixin : mixinTypes) {
             assertTrue(node.isNodeType(mixin));
         }

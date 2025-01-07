@@ -51,15 +51,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -263,9 +260,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             // Get all the references available
             List<DataRecord> refFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
-            ImmutableListMultimap<String, DataRecord> references =
-                FluentIterable.from(refFiles).index(
-                        input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()));
+
+            ListValuedMap<String, DataRecord> references = new ArrayListValuedHashMap<>();
+            for (DataRecord input : refFiles) {
+                references.put(SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()), input);
+            }
+
+//            ImmutableListMultimap<String, DataRecord> references =
+//                FluentIterable.from(refFiles).index(
+//                        input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()));
 
             // Get all the markers available
             List<DataRecord> markerFiles =
@@ -289,8 +292,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
 
                 if (references.containsKey(id)) {
-                    ImmutableList<DataRecord> refRecs = references.get(id);
-                    for(DataRecord refRec : refRecs) {
+                    for(DataRecord refRec : references.get(id)) {
                         String uniqueSessionId = refRec.getIdentifier().toString()
                             .substring(SharedStoreRecordType.REFERENCES.getType().length() + 1);
 
@@ -634,15 +636,16 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                             try {
                                 Iterator<String> idIter = blobStore.resolveChunks(blobId);
-                                final Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
                                 Iterator<List<String>> partitions = Iterators.partition(idIter, getBatchCount());
                                 while (partitions.hasNext()) {
-                                    List<String> idBatch = Lists.transform(partitions.next(), id -> {
-                                            if (logPath) {
-                                                return delimJoiner.join(id, nodeId);
-                                            }
-                                            return id;
-                                        });
+                                    List<String> idBatch = partitions.next().stream()
+                                            .map(id -> {
+                                                if (logPath && nodeId != null) {
+                                                    return id + DELIM + nodeId;
+                                                } else {
+                                                    return id;
+                                                }
+                                            }).collect(Collectors.toList());
                                     if (debugMode) {
                                         LOG.trace("chunkIds : {}", idBatch);
                                     }

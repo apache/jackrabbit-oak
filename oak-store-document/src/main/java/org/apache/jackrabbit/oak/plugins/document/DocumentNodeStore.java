@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgumen
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -136,9 +135,7 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
-
 import org.apache.jackrabbit.guava.common.base.Suppliers;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
@@ -164,7 +161,7 @@ public final class DocumentNodeStore
      * List of meta properties which are created by DocumentNodeStore and which needs to be
      * retained in any cloned copy of DocumentNodeState.
      */
-    public static final List<String> META_PROP_NAMES = ImmutableList.of(
+    public static final List<String> META_PROP_NAMES = List.of(
             DocumentBundlor.META_PROP_PATTERN,
             DocumentBundlor.META_PROP_BUNDLING_PATH,
             DocumentBundlor.META_PROP_NON_BUNDLED_CHILD,
@@ -1962,7 +1959,7 @@ public final class DocumentNodeStore
         // reset each branch commit in reverse order
         Map<Path, UpdateOp> operations = new HashMap<>();
         AtomicReference<Revision> currentRev = new AtomicReference<>();
-        for (Revision r : reverse(revs)) {
+        for (Revision r : CollectionUtils.reverse(revs)) {
             operations.clear();
             Revision previous = currentRev.getAndSet(r);
             if (previous == null) {

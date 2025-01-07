@@ -26,10 +26,10 @@ import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.Nullable;
@@ -92,7 +92,7 @@ class CSVFileBinaryResourceProvider implements BinaryResourceProvider, Closeable
             String encoding = input.get(JCR_ENCODING);
             String blobId = input.get(BLOB_ID);
             String length = input.get(LENGTH);
-            Long len = length != null ? Longs.tryParse(length) : null;
+            Long len = length != null ? LongUtils.tryParse(length) : null;
             if (path == null || blobId == null || mimeType == null) {
                 log.warn("Ignoring invalid record {}. Either of mimeType, blobId or path is null", input);
                 return null;
