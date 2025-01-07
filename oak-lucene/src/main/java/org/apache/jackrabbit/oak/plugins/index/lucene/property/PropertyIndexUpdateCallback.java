@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
-import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_CREATED;
@@ -79,11 +78,11 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
             return;
         }
 
-        Set<String> beforeKeys = getValueKeys(before, pd.valuePattern);
-        Set<String> afterKeys = getValueKeys(after, pd.valuePattern);
+        HashSet<String> beforeKeys = getValueKeys(before, pd.valuePattern);
+        HashSet<String> afterKeys = getValueKeys(after, pd.valuePattern);
 
         //Remove duplicates
-        Set<String> sharedKeys = new HashSet<>(beforeKeys);
+        HashSet<String> sharedKeys = new HashSet<>(beforeKeys);
         sharedKeys.retainAll(afterKeys);
         beforeKeys.removeAll(sharedKeys);
         afterKeys.removeAll(sharedKeys);
@@ -107,7 +106,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
                         nodePath,
                         null,
                         null,
-                        emptySet(), //Disable pruning with empty before keys
+                        Set.of(), //Disable pruning with empty before keys
                         afterKeys);
             }
 
@@ -163,13 +162,13 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
         return idx;
     }
 
-    private static Set<String> getValueKeys(PropertyState property, ValuePattern pattern) {
+    private static HashSet<String> getValueKeys(PropertyState property, ValuePattern pattern) {
+        HashSet<String> keys = new HashSet<>();
         if (property != null
                 && property.getType().tag() != PropertyType.BINARY
                 && property.count() != 0) {
-            return encode(PropertyValues.create(property), pattern);
-        } else {
-            return Set.of();
+            keys.addAll(encode(PropertyValues.create(property), pattern));
         }
+        return keys;
     }
 }
