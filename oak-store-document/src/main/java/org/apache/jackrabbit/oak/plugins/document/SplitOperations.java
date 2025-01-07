@@ -42,7 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Suppliers;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static java.util.Objects.requireNonNull;
 
@@ -110,7 +109,7 @@ class SplitOperations {
         this.headRevision = requireNonNull(headRev).getRevision(context.getClusterId());
         this.numRevsThreshold = numRevsThreshold;
         this.nodeExistsAtHeadRevision = Suppliers.memoize(() -> doc.getLiveRevision(context, headRev,
-                        Maps.<Revision, String>newHashMap(),
+                        new HashMap<>(),
                         new LastRevs(headRev)) != null);
     }
 

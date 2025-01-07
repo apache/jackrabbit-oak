@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -37,6 +36,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.Assert.assertFalse;
@@ -102,7 +102,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
 
             uoeThrown = false;
             try {
-                readOnlyStore.remove(collection, Maps.<String, Long>newHashMap());
+                readOnlyStore.remove(collection, new HashMap<>());
             } catch (UnsupportedOperationException uoe) {
                 //catch uoe thrown by read only wrapper
                 uoeThrown = true;

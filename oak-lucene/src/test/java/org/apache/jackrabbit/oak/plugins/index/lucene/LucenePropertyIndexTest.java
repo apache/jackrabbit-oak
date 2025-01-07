@@ -45,7 +45,6 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -1430,7 +1429,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
         List<? extends ResultRow> result = CollectionUtils.toList(
-            qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
+            qe.executeQuery(query, lang, limit, 0, new HashMap<>(),
                 NO_MAPPINGS).getRows());
 
         String measure = "";
