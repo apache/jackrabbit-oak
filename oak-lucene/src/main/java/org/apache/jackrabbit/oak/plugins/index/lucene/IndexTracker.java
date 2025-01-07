@@ -29,6 +29,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
@@ -49,8 +50,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-
-
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.isLuceneIndexNode;
@@ -186,7 +185,7 @@ public class IndexTracker {
 
         if (!updates.isEmpty()) {
             Map<String, LuceneIndexNodeManager> builder = new HashMap<>();
-            builder.putAll(Maps.filterKeys(original, x -> !updates.keySet().contains(x)));
+            builder.putAll(CollectionUtils.filterKeys(original, x -> !updates.containsKey(x)));
             builder.putAll(Maps.filterValues(updates, x -> x != null));
             indices = Collections.unmodifiableMap(builder);
 

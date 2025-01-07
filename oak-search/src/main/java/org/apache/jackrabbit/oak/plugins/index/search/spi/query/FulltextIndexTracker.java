@@ -27,6 +27,7 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -45,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
@@ -148,7 +148,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
 
         if (!updates.isEmpty()) {
             Map<String, I> builder = new HashMap<>();
-            builder.putAll(filterKeys(original, x -> !updates.keySet().contains(x)));
+            builder.putAll(CollectionUtils.filterKeys(original, x -> !updates.containsKey(x)));
             builder.putAll(filterValues(updates, x -> x != null));
             indices = Collections.unmodifiableMap(builder);
 

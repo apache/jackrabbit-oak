@@ -98,7 +98,6 @@ import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
@@ -251,7 +250,7 @@ public class S3Backend extends AbstractSharedBackend {
             LOG.error("Error ", e);
             Map<String, Object> filteredMap = new HashMap<>();
             if (properties != null) {
-                filteredMap = Maps.filterKeys(Utils.asMap(properties),
+                filteredMap = CollectionUtils.filterKeys(Utils.asMap(properties),
                         input -> !input.equals(S3Constants.ACCESS_KEY) &&!input.equals(S3Constants.SECRET_KEY));
             }
             throw new DataStoreException("Could not initialize S3 from " + filteredMap, e);
