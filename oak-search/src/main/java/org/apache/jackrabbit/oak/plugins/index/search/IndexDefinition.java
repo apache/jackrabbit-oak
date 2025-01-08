@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -1892,7 +1890,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     private static IndexFormatVersion versionFrom(PropertyState ps) {
-        return IndexFormatVersion.getVersion(Ints.checkedCast(ps.getValue(Type.LONG)));
+        return IndexFormatVersion.getVersion(Math.toIntExact(ps.getValue(Type.LONG)));
     }
 
     private static boolean hasIndexingRules(NodeState defn) {

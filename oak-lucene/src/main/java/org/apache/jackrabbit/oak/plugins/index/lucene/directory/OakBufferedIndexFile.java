@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -312,7 +311,7 @@ class OakBufferedIndexFile implements OakIndexFile {
 
     private static int determineBlobSize(NodeBuilder file){
         if (file.hasProperty(OakDirectory.PROP_BLOB_SIZE)){
-            return Ints.checkedCast(file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
+            return Math.toIntExact(file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
         }
         return DEFAULT_BLOB_SIZE;
     }
