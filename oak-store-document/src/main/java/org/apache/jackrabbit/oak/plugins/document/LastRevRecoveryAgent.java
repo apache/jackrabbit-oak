@@ -81,6 +81,8 @@ public class LastRevRecoveryAgent {
 
     private final Consumer<Integer> afterRecovery;
 
+    //OAK-11284: optionally limit the maximum duration of a synchronous recovery operation that may occur when
+    //inactive node IDs are reused.
     private static final long SYNC_RECOVERY_TIMEOUT_MILLIS =
             SystemPropertySupplier
                     .create("oak.documentMK.syncRecoveryTimeoutMillis", -1)
