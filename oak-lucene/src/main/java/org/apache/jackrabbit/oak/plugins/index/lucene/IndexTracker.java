@@ -23,10 +23,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
@@ -186,7 +186,7 @@ public class IndexTracker {
         if (!updates.isEmpty()) {
             Map<String, LuceneIndexNodeManager> builder = new HashMap<>();
             builder.putAll(CollectionUtils.filterKeys(original, x -> !updates.containsKey(x)));
-            builder.putAll(Maps.filterValues(updates, x -> x != null));
+            builder.putAll(CollectionUtils.filterValues(updates, Objects::nonNull));
             indices = Collections.unmodifiableMap(builder);
 
             badIndexTracker.markGoodIndexes(updates.keySet());
