@@ -63,10 +63,11 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
     private long textSize = 0;
     private long entryCount = 0;
     private final Set<String> preferredPathElements;
+    private final long maxDurationSeconds;
 
     public IncrementalFlatFileStoreStrategy(NodeStore nodeStore, @NotNull String beforeCheckpoint, @NotNull String afterCheckpoint, File storeDir,
                                             Set<String> preferredPathElements, @NotNull Compression algorithm,
-                                            Predicate<String> pathPredicate, IncrementalFlatFileStoreNodeStateEntryWriter entryWriter) {
+                                            Predicate<String> pathPredicate, IncrementalFlatFileStoreNodeStateEntryWriter entryWriter, long maxDurationSeconds) {
         this.nodeStore = nodeStore;
         this.beforeCheckpoint = beforeCheckpoint;
         this.afterCheckpoint = afterCheckpoint;
@@ -76,6 +77,7 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
         this.entryWriter = entryWriter;
         this.preferredPathElements = preferredPathElements;
         this.comparator = new PathElementComparator(preferredPathElements);
+        this.maxDurationSeconds = maxDurationSeconds;
     }
 
     @Override
@@ -85,7 +87,7 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
         try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, algorithm)) {
             NodeState before = Objects.requireNonNull(nodeStore.retrieve(beforeCheckpoint));
             NodeState after = Objects.requireNonNull(nodeStore.retrieve(afterCheckpoint));
-            Exception e = EditorDiff.process(VisibleEditor.wrap(new IncrementalFlatFileStoreEditor(w, entryWriter, pathPredicate, this)), before, after);
+            Exception e = EditorDiff.process(VisibleEditor.wrap(new IncrementalFlatFileStoreEditor(w, entryWriter, pathPredicate, this, maxDurationSeconds)), before, after);
             if (e != null) {
                 log.error("Exception while building incremental store for checkpoint before {}, after {}", beforeCheckpoint, afterCheckpoint, e);
                 throw new RuntimeException(e);

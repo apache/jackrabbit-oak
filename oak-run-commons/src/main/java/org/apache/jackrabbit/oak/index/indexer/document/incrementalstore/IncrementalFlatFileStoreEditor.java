@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 public class IncrementalFlatFileStoreEditor implements Editor {
@@ -38,18 +39,29 @@ public class IncrementalFlatFileStoreEditor implements Editor {
     private final IncrementalFlatFileStoreNodeStateEntryWriter entryWriter;
     private final Predicate<String> predicate;
     private final IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy;
+    // if not 0, timeout if System.nanoTime() exceeds this value
+    private final long timeoutAtNanos;
     private static final int LINE_SEP_LENGTH = System.getProperty("line.separator").length();
 
     public IncrementalFlatFileStoreEditor(BufferedWriter bufferedWriter, IncrementalFlatFileStoreNodeStateEntryWriter entryWriter, Predicate<String> predicate,
-                                          IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy) {
+                                          IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy, long maxDurationSeconds) {
         this.bufferedWriter = bufferedWriter;
         this.entryWriter = entryWriter;
         this.predicate = predicate;
         this.incrementalFlatFileStoreStrategy = incrementalFlatFileStoreStrategy;
+        long timeout;
+        if (maxDurationSeconds == Long.MAX_VALUE) {
+            timeout = 0;
+        } else {
+            timeout = System.nanoTime() + TimeUnit.NANOSECONDS.convert(maxDurationSeconds, TimeUnit.SECONDS);
+            log.info("Max duration: " + maxDurationSeconds + " timeout: " + timeout + " now: " + System.nanoTime());
+        }
+        this.timeoutAtNanos = timeout;
     }
 
     @Override
     public void enter(NodeState before, NodeState after) {
+        checkTimeout();
     }
 
     @Override
@@ -110,6 +122,15 @@ public class IncrementalFlatFileStoreEditor implements Editor {
         } catch (IOException ex) {
             log.error("Error while creating incremental store", ex);
             throw new RuntimeException("Error while creating incremental store", ex);
+        }
+    }
+
+    private void checkTimeout() {
+        if (timeoutAtNanos != 0) {
+            long now = System.nanoTime();
+            if (now > timeoutAtNanos) {
+                throw new RuntimeException("Timeout");
+            }
         }
     }
 }
