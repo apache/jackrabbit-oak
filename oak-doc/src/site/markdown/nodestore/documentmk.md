@@ -785,7 +785,9 @@ limited using the system property `oak.documentMK.syncRecoveryTimeoutMillis`.
 A positive value will specify this maximum duration in milliseconds, while a
 negative value doesn't limit the recovery time. The default is `-1`.
 If the duration is exceeded, the node will no longer try to reuse the ID
-and pick one that doesn't need recovery.
+and pick one that doesn't need recovery. Note that this feature has been
+specifically designed for a certain unusual Oak deployment and is not
+recommended for general use. 
 
 ### <a name="update-lease-for-a-cluster-node-id"></a> Update lease for a cluster node ID
 
