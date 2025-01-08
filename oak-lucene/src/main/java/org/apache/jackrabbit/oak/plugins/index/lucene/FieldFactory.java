@@ -50,6 +50,7 @@ public final class FieldFactory {
 
     private static final FieldType OAK_TYPE_NOT_STORED = new FieldType();
 
+    // create an ordered, immutable list of Type tags
     private static final List<Integer> TYPABLE_TAGS = Collections.unmodifiableList(List.of(
             Type.DATE.tag(),
             Type.BOOLEAN.tag(),
