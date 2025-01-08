@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asISO8601;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -46,6 +45,7 @@ import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
@@ -726,7 +726,7 @@ public class LastRevRecoveryAgent {
         for (String property : doc.keySet().stream().filter(PROPERTY_OR_DELETED).collect(Collectors.toSet())) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             // collect committed changes of this cluster node
-            for (Map.Entry<Revision, String> entry : filterKeys(valueMap, cp::test).entrySet()) {
+            for (Map.Entry<Revision, String> entry : CollectionUtils.filterKeys(valueMap, cp).entrySet()) {
                 Revision rev = entry.getKey();
                 String cv = revisionContext.getCommitValue(rev, doc);
                 if (isCommitted(cv)) {

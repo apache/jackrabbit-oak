@@ -119,7 +119,6 @@ import static java.util.Objects.isNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
 import static com.mongodb.client.model.Projections.include;
 import static java.lang.Integer.MAX_VALUE;
 import static java.util.Collections.emptyList;
@@ -1487,7 +1486,7 @@ public class MongoDocumentStore implements DocumentStore {
 
             if (collection == Collection.NODES) {
                 List<NodeDocument> docsToCache = new ArrayList<>();
-                for (UpdateOp op : filterKeys(bulkOperations, x -> bulkResult.upserts.contains(x)).values()) {
+                for (UpdateOp op : CollectionUtils.filterKeys(bulkOperations, bulkResult.upserts::contains).values()) {
                     NodeDocument doc = Collection.NODES.newDocument(this);
                     UpdateUtils.applyChanges(doc, op);
                     docsToCache.add(doc);

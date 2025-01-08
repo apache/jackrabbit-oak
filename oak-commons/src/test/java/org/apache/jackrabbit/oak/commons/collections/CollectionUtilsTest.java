@@ -24,6 +24,7 @@ import org.junit.Test;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -33,6 +34,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -556,6 +558,80 @@ public class CollectionUtilsTest {
     @Test
     public void testFromPropertiesNull() {
         Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.fromProperties(null));
+    }
+
+    @Test
+    public void testFilterKeys() {
+        final Map<String, Integer> map = new HashMap<>();
+        map.put("one", 1);
+        map.put("two", 2);
+        map.put("three", 3);
+
+        final Predicate<String> predicate = key -> key.startsWith("t");
+
+        final Map<String, Integer> result = CollectionUtils.filterKeys(map, predicate);
+
+        Assert.assertEquals(2, result.size());
+        Assert.assertTrue(result.containsKey("two"));
+        Assert.assertTrue(result.containsKey("three"));
+        Assert.assertFalse(result.containsKey("one"));
+    }
+
+    @Test
+    public void testFilterKeysEmptyMap() {
+        final Map<String, Integer> map = new HashMap<>();
+        final Predicate<String> predicate = key -> key.startsWith("t");
+
+        final Map<String, Integer> result = CollectionUtils.filterKeys(map, predicate);
+
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testFilterNullKeys() {
+        final Map<String, Integer> map = new HashMap<>();
+        map.put("one", 1);
+        map.put("two", 2);
+        map.put("three", 3);
+        map.put(null, 4);
+
+        final Predicate<String> predicate = Objects::isNull;
+
+        final Map<String, Integer> result = CollectionUtils.filterKeys(map, predicate);
+
+        Assert.assertEquals(1, result.size());
+    }
+
+    @Test
+    public void testFilterNonNullKeys() {
+        final Map<String, Integer> map = new HashMap<>();
+        map.put("one", 1);
+        map.put("two", 2);
+        map.put("three", 3);
+        map.put(null, 4);
+
+        final Predicate<String> predicate = Objects::nonNull;
+
+        final Map<String, Integer> result = CollectionUtils.filterKeys(map, predicate);
+
+        Assert.assertEquals(3, result.size());
+    }
+
+    @Test
+    public void testFilterKeysNullMap() {
+        final Predicate<String> predicate = key -> key.startsWith("t");
+
+        Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.filterKeys(null, predicate));
+    }
+
+    @Test
+    public void testFilterKeysNullPredicate() {
+        final Map<String, Integer> map = new HashMap<>();
+        map.put("one", 1);
+        map.put("two", 2);
+        map.put("three", 3);
+
+        Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.filterKeys(map, null));
     }
 
     @Test
