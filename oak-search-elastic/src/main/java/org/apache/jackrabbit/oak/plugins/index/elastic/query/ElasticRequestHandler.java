@@ -556,13 +556,17 @@ public class ElasticRequestHandler {
                     QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, ElasticIndexDefinition.DYNAMIC_PROPERTIES + ".value", pr, false);
                     bqBuilder.must(m -> m.nested(nf -> nf.path(ElasticIndexDefinition.DYNAMIC_PROPERTIES).query(Query.of(q -> q.queryString(qsqBuilder.build())))));
                 } else {
-                    boolean dbEnabled = !elasticIndexDefinition.getDynamicBoostProperties().isEmpty();
+                    // TODO: we include dynamic boosted values in the full-text query if there is at least one dynamic property with useInFullTextQuery set to true
+                    // This might not be ideal when there are multiple dynamic properties with different useInFullTextQuery settings (very unlikely)
+                    // A better approach would be to include the values at index time (requires a refactoring of the DocumentMaker to access the ElasticIndexDefinition)
+                    boolean includeDynamicBoostedValues = !elasticIndexDefinition.getDynamicBoostProperties().isEmpty() &&
+                            elasticIndexDefinition.getDynamicBoostProperties().stream().anyMatch(ElasticPropertyDefinition::useInFullTextQuery);
 
                     // Experimental support for inference queries
                     if (elasticIndexDefinition.inferenceDefinition != null && elasticIndexDefinition.inferenceDefinition.queries != null) {
-                        bqBuilder.must(m -> m.bool(b -> inference(b, propertyName, text, pr, dbEnabled)));
+                        bqBuilder.must(m -> m.bool(b -> inference(b, propertyName, text, pr, includeDynamicBoostedValues)));
                     } else {
-                        QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr, dbEnabled);
+                        QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr, includeDynamicBoostedValues);
                         bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
                     }
                 }
@@ -878,7 +882,7 @@ public class ElasticRequestHandler {
         return Query.of(q -> q.multiMatch(m -> m.fields(uuid)));
     }
 
-    private static QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr, boolean dynamicBoostEnabled) {
+    private static QueryStringQuery.Builder fullTextQuery(String text, String fieldName, PlanResult pr, boolean includeDynamicBoostedValues) {
         LOG.debug("fullTextQuery for text: '{}', fieldName: '{}'", text, fieldName);
         QueryStringQuery.Builder qsqBuilder = new QueryStringQuery.Builder()
                 .query(FulltextIndex.rewriteQueryText(text))
@@ -890,7 +894,7 @@ public class ElasticRequestHandler {
                 qsqBuilder.fields(pd.name + "^" + pd.boost);
             }
             // dynamic boost is included only for :fulltext field
-            if (dynamicBoostEnabled) {
+            if (includeDynamicBoostedValues) {
                 qsqBuilder.fields(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT + "^" + DYNAMIC_BOOST_WEIGHT);
             }
         }

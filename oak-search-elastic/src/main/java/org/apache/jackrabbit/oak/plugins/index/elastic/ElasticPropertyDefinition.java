@@ -34,6 +34,12 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
   private static final int DEFAULT_CANDIDATES = 500;
   private KnnSearchParameters knnSearchParameters;
 
+  /**
+   * Whether to use dynamic boosted values in full text queries, default is true
+   */
+  private static final String PROP_USE_IN_FULL_TEXT_QUERY = "useInFullTextQuery";
+  private final boolean useInFullTextQuery;
+
   public ElasticPropertyDefinition(IndexDefinition.IndexingRule idxDefn, String nodeName, NodeState defn) {
     super(idxDefn, nodeName, defn);
     if (this.useInSimilarity) {
@@ -43,11 +49,16 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
           getOptionalValue(defn, PROP_K, DEFAULT_K),
           getOptionalValue(defn, PROP_CANDIDATES, DEFAULT_CANDIDATES));
     }
+    this.useInFullTextQuery = this.dynamicBoost && getOptionalValue(defn, PROP_USE_IN_FULL_TEXT_QUERY, true);
   }
 
   public KnnSearchParameters getKnnSearchParameters() {
     return knnSearchParameters;
   }
+
+    public boolean useInFullTextQuery() {
+        return useInFullTextQuery;
+    }
 
   /**
    * Class for defining parameters of approximate knn search on dense_vector fields

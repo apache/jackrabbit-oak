@@ -230,6 +230,10 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
     }
 
     protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags) throws Exception {
+        createAssetsIndexAndProperties(lite, similarityTags, true);
+    }
+
+    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags, boolean useInFullTextQuery) throws Exception {
         NodeTypeRegistry.register(root, new ByteArrayInputStream(ASSET_NODE_TYPE.getBytes()), "test nodeType");
         Tree indexRuleProps = createIndex("dam:Asset", lite);
 
@@ -237,6 +241,7 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         predictedTagsDynamicBoost.setProperty("name", "jcr:content/metadata/predictedTags/.*");
         predictedTagsDynamicBoost.setProperty("isRegexp", true);
         predictedTagsDynamicBoost.setProperty("dynamicBoost", true);
+        predictedTagsDynamicBoost.setProperty("useInFullTextQuery", useInFullTextQuery);
 
         if (similarityTags) {
             Tree predictedTags = createNodeWithType(indexRuleProps, "predictedTags", JcrConstants.NT_UNSTRUCTURED, "");
