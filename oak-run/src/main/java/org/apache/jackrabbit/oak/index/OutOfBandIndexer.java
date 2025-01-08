@@ -20,13 +20,14 @@ package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 
-import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 
 public class OutOfBandIndexer extends OutOfBandIndexerBase {
@@ -44,7 +45,7 @@ public class OutOfBandIndexer extends OutOfBandIndexerBase {
         IndexEditorProvider lucene = createLuceneEditorProvider();
         IndexEditorProvider property = createPropertyEditorProvider();
 
-        return CompositeIndexEditorProvider.compose(asList(lucene, property));
+        return CompositeIndexEditorProvider.compose(List.of(lucene, property));
     }
 
     private IndexEditorProvider createPropertyEditorProvider() throws IOException {

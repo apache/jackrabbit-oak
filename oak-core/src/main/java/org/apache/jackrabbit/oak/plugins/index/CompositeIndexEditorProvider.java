@@ -34,21 +34,13 @@ import org.jetbrains.annotations.NotNull;
 public class CompositeIndexEditorProvider implements IndexEditorProvider {
 
     @NotNull
-    public static IndexEditorProvider compose(
-            @NotNull Collection<IndexEditorProvider> providers) {
+    public static IndexEditorProvider compose(@NotNull Collection<IndexEditorProvider> providers) {
         if (providers.isEmpty()) {
-            return new IndexEditorProvider() {
-                @Override
-                public Editor getIndexEditor(
-                        @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
-                    return null;
-                }
-            };
+            return (type, builder, root, callback) -> null;
         } else if (providers.size() == 1) {
             return providers.iterator().next();
         } else {
-            return new CompositeIndexEditorProvider(
-                    List.copyOf(providers));
+            return new CompositeIndexEditorProvider(List.copyOf(providers));
         }
     }
 
@@ -66,7 +58,7 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
     public Editor getIndexEditor(
             @NotNull String type, @NotNull NodeBuilder builder, @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
-        List<Editor> indexes = new ArrayList<>();
+        List<Editor> indexes = new ArrayList<>(providers.size());
         for (IndexEditorProvider provider : providers) {
             Editor e = provider.getIndexEditor(type, builder, root, callback);
             if (e != null) {

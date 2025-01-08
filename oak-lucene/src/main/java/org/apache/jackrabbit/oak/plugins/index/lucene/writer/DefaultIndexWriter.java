@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
@@ -121,7 +122,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         //it indicates that the index is empty. In such a case trigger
         //creation of write such that an empty Lucene index state is persisted
         //in directory
-        if (reindex && writer == null){
+        if (reindex && writer == null) {
             getWriter();
         }
 
@@ -148,7 +149,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             writer.close();
             PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
 
-            if (!indexUpdated){
+            if (!indexUpdated) {
                 long genAtEnd = getLatestGeneration(directory);
                 indexUpdated = genAtEnd != genAtStart;
             }
@@ -184,8 +185,9 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     /**
      * eventually update suggest dictionary
-     * @throws IOException if suggest dictionary update fails
+     *
      * @param analyzer the analyzer used to update the suggester
+     * @throws IOException if suggest dictionary update fails
      */
     private boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
         synchronized (this) {
@@ -228,7 +230,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
                 Calendar suggesterLastUpdatedTime = ISO8601.parse(suggesterLastUpdatedValue.getValue(Type.DATE));
 
                 int updateFrequency = definition.getSuggesterUpdateFrequencyMinutes();
-                Calendar nextSuggestUpdateTime = (Calendar)suggesterLastUpdatedTime.clone();
+                Calendar nextSuggestUpdateTime = (Calendar) suggesterLastUpdatedTime.clone();
                 nextSuggestUpdateTime.add(Calendar.MINUTE, updateFrequency);
                 if (currentTime.after(nextSuggestUpdateTime)) {
                     updateSuggestions = (writer != null || isIndexUpdatedAfter(suggesterLastUpdatedTime));
@@ -292,8 +294,6 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             }
             sb.append(", ");
         }
-        log.trace("Directory overall size: {}, files: {}",
-                org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(overallSize),
-                sb.toString());
+        log.trace("Directory overall size: {}, files: {}", IOUtils.humanReadableByteCount(overallSize), sb);
     }
 }
