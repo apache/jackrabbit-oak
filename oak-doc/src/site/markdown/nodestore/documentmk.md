@@ -785,7 +785,9 @@ limited using the system property `oak.documentMK.syncRecoveryTimeoutMillis`.
 A positive value will specify this maximum duration in milliseconds, while a
 negative value doesn't limit the recovery time. The default is `-1`.
 If the duration is exceeded, the node will no longer try to reuse the ID
-and pick one that doesn't need recovery. Note that this feature has been
+and pick one that doesn't need recovery.
+
+Note that this feature has been
 specifically designed for a certain unusual Oak deployment and is not
 recommended for general use. 
 
