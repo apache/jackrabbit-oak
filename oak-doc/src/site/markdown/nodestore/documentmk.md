@@ -788,7 +788,7 @@ If the duration is exceeded, the node will no longer try to reuse the ID
 and pick one that doesn't need recovery.
 
 Note that this feature has been
-specifically designed for a certain unusual Oak deployment and is not
+specifically designed for unusual Oak deployments (requiring significantly longer lease timeouts) and is not
 recommended for general use. 
 
 ### <a name="update-lease-for-a-cluster-node-id"></a> Update lease for a cluster node ID
