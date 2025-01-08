@@ -81,7 +81,7 @@ public class RdbDockerRule extends ExternalResource {
         }
         rdbContainer = new GenericContainer<>(IMAGE)
                 .withExposedPorts(exposedPort)
-                .withStartupTimeout(Duration.ofMinutes(10));
+                .withStartupTimeout(Duration.ofMinutes(15));
 
         try {
             long startTime = Instant.now().toEpochMilli();
@@ -122,7 +122,7 @@ public class RdbDockerRule extends ExternalResource {
             return false;
         }
         RemoteDockerImage remoteDockerImage = new RemoteDockerImage(IMAGE);
-        remoteDockerImage.get(10, TimeUnit.MINUTES);
+        remoteDockerImage.get(60, TimeUnit.MINUTES);
         return true;
     }
 
