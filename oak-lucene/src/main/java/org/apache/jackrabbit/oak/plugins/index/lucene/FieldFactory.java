@@ -20,9 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
@@ -50,13 +48,12 @@ public final class FieldFactory {
 
     private static final FieldType OAK_TYPE_NOT_STORED = new FieldType();
 
-    // create an ordered, immutable list of Type tags
-    private static final List<Integer> TYPABLE_TAGS = Collections.unmodifiableList(List.of(
+    private static final Set<Integer> TYPABLE_TAGS = Set.of(
             Type.DATE.tag(),
             Type.BOOLEAN.tag(),
             Type.DOUBLE.tag(),
             Type.LONG.tag()
-        ).stream().sorted().collect(Collectors.toList()));
+        );
 
     static {
         OAK_TYPE.setIndexed(true);
