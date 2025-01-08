@@ -38,7 +38,7 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
    * Whether to use dynamic boosted values in full text queries, default is true
    */
   private static final String PROP_USE_IN_FULL_TEXT_QUERY = "useInFullTextQuery";
-  private boolean useInFullTextQuery = true;
+  private final boolean useInFullTextQuery;
 
   public ElasticPropertyDefinition(IndexDefinition.IndexingRule idxDefn, String nodeName, NodeState defn) {
     super(idxDefn, nodeName, defn);
@@ -49,9 +49,7 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
           getOptionalValue(defn, PROP_K, DEFAULT_K),
           getOptionalValue(defn, PROP_CANDIDATES, DEFAULT_CANDIDATES));
     }
-    if (this.dynamicBoost) {
-      this.useInFullTextQuery = getOptionalValue(defn, PROP_USE_IN_FULL_TEXT_QUERY, true);
-    }
+    this.useInFullTextQuery = this.dynamicBoost && getOptionalValue(defn, PROP_USE_IN_FULL_TEXT_QUERY, true);
   }
 
   public KnnSearchParameters getKnnSearchParameters() {
