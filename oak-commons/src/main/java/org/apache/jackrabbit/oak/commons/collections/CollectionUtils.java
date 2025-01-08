@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -433,8 +434,8 @@ public class CollectionUtils {
         Objects.requireNonNull(predicate);
         return map.entrySet()
                 .stream()
-                .filter(e -> predicate.test(e.getKey()))
-                .collect(HashMap::new, (m,v)->m.put(v.getKey(), v.getValue()), HashMap::putAll);
+                .filter(e -> predicate.test(e.getKey())) // using LinkedHashMap to maintain the order of previous map
+                .collect(LinkedHashMap::new, (m, v)->m.put(v.getKey(), v.getValue()), LinkedHashMap::putAll);
     }
 
     /**
