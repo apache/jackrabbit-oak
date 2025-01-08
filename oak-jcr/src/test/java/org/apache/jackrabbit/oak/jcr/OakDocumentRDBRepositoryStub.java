@@ -26,6 +26,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.RdbUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
@@ -35,16 +36,11 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
  */
 public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
-    protected static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest;DB_CLOSE_ON_EXIT=FALSE");
-
-    protected static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
-
-    protected static final String PASSWD = System.getProperty("rdb.jdbc-passwd", "");
 
     private final Repository repository;
 
     private static final String fname = (new File("target")).isDirectory() ? "target/" : "";
-    private static final String jdbcUrl = URL.replace("{fname}", fname);
+    private static final String jdbcUrl = RdbUtils.mapJdbcURL().replace("{fname}", fname);
 
     /**
      * Constructor as required by the JCR TCK.
@@ -64,7 +60,7 @@ public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
             m = new RDBDocumentNodeStoreBuilder().
                     memoryCacheSize(64 * 1024 * 1024).
                     setPersistentCache("target/persistentCache,time").
-                    setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, USERNAME, PASSWD), options).
+                    setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, RdbUtils.USERNAME, RdbUtils.PASSWD), options).
                     build();
             Jcr jcr = new Jcr(m);
             preCreateRepository(jcr);
@@ -83,7 +79,7 @@ public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
     public static boolean isAvailable() {
         try {
-            Connection c = DriverManager.getConnection(OakDocumentRDBRepositoryStub.jdbcUrl, USERNAME, PASSWD);
+            Connection c = DriverManager.getConnection(OakDocumentRDBRepositoryStub.jdbcUrl, RdbUtils.USERNAME, RdbUtils.PASSWD);
             c.close();
             return true;
         }
