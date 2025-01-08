@@ -98,8 +98,8 @@ public class ElasticDynamicBoostTest extends DynamicBoostCommonTest {
         createPredictedTag(predicted1, "blue", 1.0);
 
         Tree predicted2 = createAssetNodeWithPredicted(testParent, "asset2", "flower with a lot of blue and a bit of red");
-        createPredictedTag(predicted1, "fooTag", 1.0);
-        createPredictedTag(predicted1, "barTag", 100.0);
+        createPredictedTag(predicted2, "fooTag", 1.0);
+        createPredictedTag(predicted2, "barTag", 100.0);
         createPredictedTag(predicted2, "red", 1.0);
         createPredictedTag(predicted2, "blue", 9.0);
 
@@ -112,10 +112,10 @@ public class ElasticDynamicBoostTest extends DynamicBoostCommonTest {
         assertEventually(() -> {
             // with this test we are checking that the dynamic boost is not included in the fulltext search
             assertQuery("//element(*, dam:Asset)[jcr:contains(., 'fooTag')]", XPATH, List.of());
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'flower OR fooTag')",
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower OR fooTag')",
                     List.of("/test/asset1", "/test/asset2"));
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'flower OR barTag')",
-                    List.of("/test/asset1", "/test/asset2"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower OR barTag')",
+                    List.of("/test/asset2", "/test/asset1"));
         });
 
     }
