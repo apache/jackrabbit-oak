@@ -41,7 +41,6 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -123,8 +122,8 @@ public class S3DataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map filtered = Maps.filterEntries(CollectionUtils.fromProperties(props),
-                    input ->!Strings.isNullOrEmpty((String) input.getValue()));
+            Map<String, String> filtered = CollectionUtils.filterEntries(CollectionUtils.fromProperties(props),
+                    input ->!Strings.isNullOrEmpty(input.getValue()));
             props = new Properties();
             props.putAll(filtered);
         }

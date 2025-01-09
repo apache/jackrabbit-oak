@@ -36,6 +36,7 @@ import javax.net.ssl.HttpsURLConnection;
 import com.azure.storage.blob.BlobContainerClient;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -110,8 +111,8 @@ public class AzureDataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map<String, String> filtered = Maps.filterEntries(CollectionUtils.fromProperties(props),
-                    input -> !Strings.isNullOrEmpty((String) input.getValue()));
+            Map<String, String> filtered = CollectionUtils.filterEntries(CollectionUtils.fromProperties(props),
+                    input -> !Strings.isNullOrEmpty(input.getValue()));
             props = new Properties();
             props.putAll(filtered);
         }
@@ -163,6 +164,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         if (null != overrideProperties) {
             mergedProperties.putAll(overrideProperties);
         }
+
         // set properties needed for direct access testing
         if (null == mergedProperties.getProperty("cacheSize", null)) {
             mergedProperties.put("cacheSize", "0");

@@ -709,6 +709,64 @@ public class CollectionUtilsTest {
     }
 
     @Test
+    public void testFilterEntries() {
+        final Map<String, Integer> map = new HashMap<>();
+        map.put("one", 1);
+        map.put("two", 2);
+        map.put("three", 3);
+
+        final Predicate<Map.Entry<String, Integer>> predicate = entry -> entry.getValue() > 1;
+
+        final Map<String, Integer> result = CollectionUtils.filterEntries(map, predicate);
+
+        Assert.assertEquals(2, result.size());
+        Assert.assertTrue(result.containsKey("two"));
+        Assert.assertTrue(result.containsKey("three"));
+        Assert.assertFalse(result.containsKey("one"));
+    }
+
+    @Test
+    public void testFilterEntriesEmptyMap() {
+        final Map<String, Integer> map = new HashMap<>();
+        final Predicate<Map.Entry<String, Integer>> predicate = entry -> entry.getValue() > 1;
+
+        final Map<String, Integer> result = CollectionUtils.filterEntries(map, predicate);
+
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testFilterEntriesNoMatch() {
+        final Map<String, Integer> map = new HashMap<>();
+        map.put("one", 1);
+        map.put("two", 2);
+        map.put("three", 3);
+
+        final Predicate<Map.Entry<String, Integer>> predicate = entry -> entry.getValue() > 3;
+
+        final Map<String, Integer> result = CollectionUtils.filterEntries(map, predicate);
+
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testFilterEntriesNullMap() {
+        final Predicate<Map.Entry<String, Integer>> predicate = entry -> entry.getValue() > 1;
+
+        Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.filterEntries(null, predicate));
+    }
+
+    @Test
+    public void testFilterEntriesNullPredicate() {
+        final Map<String, Integer> map = new HashMap<>();
+        map.put("one", 1);
+        map.put("two", 2);
+        map.put("three", 3);
+
+        Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.filterEntries(map, null));
+    }
+
+    @Test
     public void ensureCapacity() {
         int capacity = CollectionUtils.ensureCapacity(8);
         Assert.assertEquals(11, capacity);
