@@ -51,6 +51,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.ListValuedMap;
@@ -274,7 +275,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
             Map<String, DataRecord> markers = markerFiles.stream().collect(Collectors.toUnmodifiableMap(
                 input -> input.getIdentifier().toString().substring(SharedStoreRecordType.MARKED_START_MARKER.getType().length() + 1),
-                input -> input));
+                    Function.identity()));
 
             // Get all the repositories registered
             List<DataRecord> repoFiles =
