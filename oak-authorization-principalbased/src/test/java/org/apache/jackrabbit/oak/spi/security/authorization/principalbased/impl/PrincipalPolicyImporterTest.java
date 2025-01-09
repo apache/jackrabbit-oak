@@ -21,6 +21,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -138,7 +139,7 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
     }
 
     private List<PropInfo> mockPropInfos(@NotNull Map<String, String> restrictions, int propertyType) throws RepositoryException {
-        return mockPropInfos(Maps.transformValues(restrictions, string -> {
+        return mockPropInfos(CollectionUtils.transformValues(restrictions, string -> {
             try {
                 return new Value[] {getValueFactory(root).createValue(string, propertyType)};
             } catch (ValueFormatException e) {
