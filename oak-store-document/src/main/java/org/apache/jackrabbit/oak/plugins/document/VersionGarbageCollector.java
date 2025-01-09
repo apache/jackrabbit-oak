@@ -43,10 +43,7 @@ import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
@@ -2550,7 +2547,7 @@ public class VersionGarbageCollector {
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException(entry);
             }
-            return Maps.immutableEntry(id, modified);
+            return Map.entry(id, modified);
         }
     }
 
