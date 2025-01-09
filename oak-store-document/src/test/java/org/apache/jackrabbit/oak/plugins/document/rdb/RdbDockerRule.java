@@ -80,6 +80,7 @@ public class RdbDockerRule extends ExternalResource {
             return;
         }
         rdbContainer = new GenericContainer<>(IMAGE)
+                .withPrivilegedMode(true)
                 .withExposedPorts(exposedPort)
                 .withStartupTimeout(Duration.ofMinutes(15));
 

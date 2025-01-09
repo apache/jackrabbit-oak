@@ -46,7 +46,7 @@ public class RdbUtils {
                 rule.apply(new Statement() {
                     @Override
                     public void evaluate() {
-                        port.set(rule.getExposedPort());
+                        port.set(rule.getMappedPort());
                     }
                 }, Description.EMPTY).evaluate();
             }
