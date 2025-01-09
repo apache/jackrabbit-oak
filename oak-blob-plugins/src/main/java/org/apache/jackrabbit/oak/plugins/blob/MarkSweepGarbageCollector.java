@@ -57,7 +57,6 @@ import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
@@ -273,8 +272,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             // Get all the markers available
             List<DataRecord> markerFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
-            Map<String, DataRecord> markers = Maps.uniqueIndex(markerFiles,
-                    input -> input.getIdentifier().toString().substring(SharedStoreRecordType.MARKED_START_MARKER.getType().length() + 1));
+            Map<String, DataRecord> markers = markerFiles.stream().collect(Collectors.toUnmodifiableMap(
+                input -> input.getIdentifier().toString().substring(SharedStoreRecordType.MARKED_START_MARKER.getType().length() + 1),
+                input -> input));
 
             // Get all the repositories registered
             List<DataRecord> repoFiles =

@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -93,7 +94,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
@@ -1523,7 +1523,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private static Map<String, UpdateOp> createMap(List<UpdateOp> updateOps) {
-        return Maps.uniqueIndex(updateOps, input -> input.getId());
+        return updateOps.stream().collect(Collectors.toMap(UpdateOp::getId, Function.identity()));
     }
 
     private <T extends Document> Map<String, T> findDocuments(Collection<T> collection, Set<String> keys) {
