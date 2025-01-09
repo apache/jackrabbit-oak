@@ -65,6 +65,7 @@
                           <exclude>com/google/common/eventbus/**</exclude>
                           <exclude>com/google/common/html/**</exclude>
                           <exclude>com/google/common/net/**</exclude>
+                          <exclude>com/google/common/primitives/**</exclude>
                           <exclude>com/google/common/reflect/**</exclude>
                           <exclude>com/google/common/xml/**</exclude>
                       </excludes>
@@ -103,7 +104,6 @@
               ${pref}.common.hash;version="${exported.guava.version}";uses:="${pref}.common.base",
               ${pref}.common.io;version="${exported.guava.version}";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.graph,${pref}.common.hash",
               ${pref}.common.math;version="${exported.guava.version}",
-              ${pref}.common.primitives;version="${exported.guava.version}";uses:="${pref}.common.base",
               ${pref}.common.util.concurrent;version="${exported.guava.version}";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent.internal",
             </Export-Package>
             <Import-Package>
