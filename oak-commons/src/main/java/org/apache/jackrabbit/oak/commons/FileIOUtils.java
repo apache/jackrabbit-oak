@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static org.apache.jackrabbit.guava.common.io.FileWriteMode.APPEND;
 import static org.apache.jackrabbit.guava.common.io.Files.asByteSink;
 import static org.apache.jackrabbit.guava.common.io.Files.move;
-import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
 import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.mergeSortedFiles;
@@ -35,6 +34,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -232,7 +232,7 @@ public final class FileIOUtils {
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
         @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
-        BufferedWriter writer = newWriter(f, UTF_8);
+        BufferedWriter writer = new BufferedWriter(new FileWriter(f, UTF_8));
         boolean threw = true;
 
         int count = 0;

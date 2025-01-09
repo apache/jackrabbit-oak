@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -719,7 +720,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     private void createGibberishLoad(File home, File pendingUploadFile) throws IOException {
         BufferedWriter writer = null;
         try {
-            writer = Files.newWriter(pendingUploadFile, StandardCharsets.UTF_8);
+            writer = new BufferedWriter(new FileWriter(pendingUploadFile, StandardCharsets.UTF_8));
             FileIOUtils.writeAsLine(writer, "jerhgiuheirghoeoorqehgsjlwjpfkkwpkf", false);
         } finally {
             Closeables.close(writer, true);

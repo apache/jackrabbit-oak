@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.run;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.charset.StandardCharsets;
@@ -42,7 +43,6 @@ import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -197,7 +197,7 @@ public class DataStoreCommand implements Command {
             if (dataStoreOpts.dumpRefs()) {
                 log.info("Initiating dump of data store references");
                 final File referencesTemp = File.createTempFile("traverseref", null, new File(opts.getTempDirectory()));
-                final BufferedWriter writer = Files.newWriter(referencesTemp, StandardCharsets.UTF_8);
+                final BufferedWriter writer = new BufferedWriter(new FileWriter(referencesTemp, StandardCharsets.UTF_8));
 
                 boolean threw = true;
                 try {
