@@ -53,7 +53,7 @@ public enum SegmentVersion {
      * Latest segment version
      */
     public static final SegmentVersion LATEST_VERSION = max(allOf(SegmentVersion.class),
-        (v1, v2) -> Integer.compareUnsigned(Byte.toUnsignedInt(v1.version), Byte.toUnsignedInt(v2.version));
+        (v1, v2) -> Integer.compare(Byte.toUnsignedInt(v1.version), Byte.toUnsignedInt(v2.version)));
 
     private final byte version;
 
