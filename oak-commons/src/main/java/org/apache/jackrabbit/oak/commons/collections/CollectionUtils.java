@@ -427,6 +427,7 @@ public class CollectionUtils {
      * @param predicate the predicate to apply to the keys, must not be null
      * @return a new map containing only the entries whose keys match the predicate
      * @throws NullPointerException if the map or predicate is null
+     * @see CollectionUtils#filterValues(Map, Predicate)
      */
     @NotNull
     public static <K,V> Map<K, V> filterKeys(final @NotNull Map<K, V> map, final @NotNull Predicate<? super K> predicate) {
@@ -436,6 +437,28 @@ public class CollectionUtils {
                 .stream()
                 .filter(e -> predicate.test(e.getKey())) // using LinkedHashMap to maintain the order of previous map
                 .collect(LinkedHashMap::new, (m, v)->m.put(v.getKey(), v.getValue()), LinkedHashMap::putAll);
+    }
+
+    /**
+     * Create a new {@link Map} after filtering the entries of the given map
+     * based on the specified predicate applied to the values.
+     *
+     * @param <K> the type of keys in the map
+     * @param <V> the type of values in the map
+     * @param map the map to filter, must not be null
+     * @param predicate the predicate to apply to the values, must not be null
+     * @return a new map containing only the entries whose values match the predicate
+     * @throws NullPointerException if the map or predicate is null
+     * @see CollectionUtils#filterKeys(Map, Predicate)
+     */
+    @NotNull
+    public static <K,V> Map<K, V> filterValues(final @NotNull Map<K, V> map, final @NotNull Predicate<? super V> predicate) {
+        Objects.requireNonNull(map);
+        Objects.requireNonNull(predicate);
+        return map.entrySet()
+                .stream()
+                .filter(e -> predicate.test(e.getValue())) // using LinkedHashMap to maintain the order of previous map
+                .collect(LinkedHashMap::new, (m,v)->m.put(v.getKey(), v.getValue()), LinkedHashMap::putAll);
     }
 
     /**

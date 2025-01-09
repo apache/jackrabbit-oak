@@ -635,6 +635,80 @@ public class CollectionUtilsTest {
     }
 
     @Test
+    public void testFilterValues() {
+        final Map<Integer, String> map = new HashMap<>();
+        map.put(1, "one");
+        map.put(2, "two");
+        map.put(3, "three");
+
+        final Predicate<String> predicate = value -> value.startsWith("t");
+
+        final Map<Integer, String> result = CollectionUtils.filterValues(map, predicate);
+
+        Assert.assertEquals(2, result.size());
+        Assert.assertTrue(result.containsKey(2));
+        Assert.assertTrue(result.containsKey(3));
+        Assert.assertFalse(result.containsKey(1));
+    }
+
+    @Test
+    public void testFilterValuesEmptyMap() {
+        final Map<String, String> map = new HashMap<>();
+        final Predicate<String> predicate = key -> key.startsWith("t");
+
+        final Map<String, String> result = CollectionUtils.filterValues(map, predicate);
+
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testFilterNullValues() {
+        final Map<String, Integer> map = new HashMap<>();
+        map.put("one", 1);
+        map.put("two", 2);
+        map.put("three", 3);
+        map.put(null, null);
+
+        final Predicate<Integer> predicate = Objects::isNull;
+
+        final Map<String, Integer> result = CollectionUtils.filterValues(map, predicate);
+
+        Assert.assertEquals(1, result.size());
+    }
+
+    @Test
+    public void testFilterNonNullValues() {
+        final Map<String, Integer> map = new HashMap<>();
+        map.put("one", 1);
+        map.put("two", 2);
+        map.put("three", 3);
+        map.put(null, null);
+
+        final Predicate<Integer> predicate = Objects::nonNull;
+
+        final Map<String, Integer> result = CollectionUtils.filterValues(map, predicate);
+
+        Assert.assertEquals(3, result.size());
+    }
+
+    @Test
+    public void testFilterValuesNullMap() {
+        final Predicate<String> predicate = key -> key.startsWith("t");
+
+        Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.filterKeys(null, predicate));
+    }
+
+    @Test
+    public void testFilterValuesNullPredicate() {
+        final Map<String, Integer> map = new HashMap<>();
+        map.put("one", 1);
+        map.put("two", 2);
+        map.put("three", 3);
+
+        Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.filterKeys(map, null));
+    }
+
+    @Test
     public void ensureCapacity() {
         int capacity = CollectionUtils.ensureCapacity(8);
         Assert.assertEquals(11, capacity);
