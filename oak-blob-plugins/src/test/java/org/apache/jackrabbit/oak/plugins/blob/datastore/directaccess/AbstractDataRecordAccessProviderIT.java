@@ -34,7 +34,6 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.io.ByteStreams.toByteArray;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -111,7 +110,7 @@ public abstract class AbstractDataRecordAccessProviderIT {
                 assertNotNull(retrievedRecord);
 
                 in.reset();
-                assertTrue(Arrays.equals(toByteArray(in), toByteArray(retrievedRecord.getStream())));
+                assertTrue(Arrays.equals(in.readAllBytes(), retrievedRecord.getStream().readAllBytes()));
             }
             finally {
                 if (null != uploadedRecord) {

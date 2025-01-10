@@ -48,7 +48,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 
-import static org.apache.jackrabbit.guava.common.io.ByteStreams.toByteArray;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -165,7 +164,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
             assertEquals(200, conn.getResponseCode());
 
             testStream.reset();
-            assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
+            assertTrue(Arrays.equals(testStream.readAllBytes(), conn.getInputStream().readAllBytes()));
         }
         finally {
             if (null != record) {
@@ -240,7 +239,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
                 );
 
                 testStream.reset();
-                assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
+                assertTrue(Arrays.equals(testStream.readAllBytes(), conn.getInputStream().readAllBytes()));
             }
         }
         finally {
@@ -586,7 +585,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
                 DataRecord retrievedRecord = doGetRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 assertNotNull(retrievedRecord);
                 uploadStream.reset();
-                assertTrue(Arrays.equals(toByteArray(uploadStream), toByteArray(retrievedRecord.getStream())));
+                assertTrue(Arrays.equals(uploadStream.readAllBytes(), retrievedRecord.getStream().readAllBytes()));
             }
             finally {
                 if (null != uploadedRecord) {
