@@ -156,13 +156,10 @@ public class CloudBlobStore extends CachingBlobStore {
                 LOG.error(message);
                 throw new IOException(message);
             }
-    
-            Payload payload = cloudBlob.getPayload();
-            try {
-                data = payload.getInput().readAllBytes();
-                cache.put(id, data);        
-            } finally {
-                payload.close();
+
+            try (Payload payload = cloudBlob.getPayload()) {
+                data = payload.openStream().readAllBytes();
+                cache.put(id, data);
             }
         }
         if (blockId.getPos() == 0) {
