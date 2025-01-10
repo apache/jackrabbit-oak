@@ -19,11 +19,11 @@ package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -64,7 +64,7 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
             final SimpleCredentials sc = (SimpleCredentials) credentials;
-            return Maps.asMap(Set.of(sc.getAttributeNames()), sc::getAttribute);
+            return Set.of(sc.getAttributeNames()).stream().collect(Collectors.toMap(Function.identity(), sc::getAttribute));
         } else {
             return Collections.emptyMap();
         }
