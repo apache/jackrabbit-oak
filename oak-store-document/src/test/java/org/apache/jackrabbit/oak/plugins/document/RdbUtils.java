@@ -72,34 +72,6 @@ public class RdbUtils {
                     .withPrivilegedMode(true)
                     .withExposedPorts(exposedPort)
                     .withStartupTimeout(Duration.ofMinutes(15));
-//                    .withStartupCheckStrategy(new StartupCheckStrategy() {
-//                        @Override
-//                        public StartupStatus checkStartupState(DockerClient dockerClient, String s) {
-//                            LOG.error("checkStartupState#1");
-//                            Connection connection = null;
-//                            try  {
-//                                String url = RdbUtils.mapJdbcURL();
-//                                LOG.error("checkStartupState#2");
-//                                DataSource dataSource = RDBDataSourceFactory.forJdbcUrl(url, RdbUtils.USERNAME, RdbUtils.PASSWD);
-//                                connection = dataSource.getConnection();
-//                                LOG.error("checkStartupState#3");
-//                            } catch (Throwable expected) {
-//                                LOG.error("checkStartupState#4");
-//                                return StartupStatus.NOT_YET_KNOWN;
-//                            } finally {
-//                                if (connection != null) {
-//                                    try {
-//                                        connection.close();
-//                                    } catch (SQLException expected) {}
-//                                }
-//                            }
-//                            LOG.error("checkStartupState#5");
-//
-//                            return StartupStatus.SUCCESSFUL;
-//                        }
-//                    }.withTimeout(Duration.ofMinutes(10)));
-
-
             try {
                 long startTime = Instant.now().toEpochMilli();
                 rdbContainer.start();
