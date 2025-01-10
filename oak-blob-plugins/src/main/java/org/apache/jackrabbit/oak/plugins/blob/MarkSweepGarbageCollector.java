@@ -31,6 +31,7 @@ import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
@@ -59,7 +60,6 @@ import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -514,7 +514,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         long deletedSize = 0;
         int numDeletedSizeAvailable = 0;
         try {
-            removesWriter = Files.newWriter(fs.getGarbage(), StandardCharsets.UTF_8);
+            removesWriter = new BufferedWriter(new FileWriter(fs.getGarbage(), StandardCharsets.UTF_8));
             ArrayDeque<String> removesQueue = new ArrayDeque<String>();
             iterator =
                     FileUtils.lineIterator(fs.getGcCandidates(), StandardCharsets.UTF_8.name());
@@ -622,7 +622,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @param logPath whether to log path in the file or not
      */
     protected void iterateNodeTree(GarbageCollectorFileState fs, final boolean logPath) throws IOException {
-        final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), StandardCharsets.UTF_8);
+        final BufferedWriter writer = new BufferedWriter(new FileWriter(fs.getMarkedRefs(), StandardCharsets.UTF_8));
         final AtomicInteger count = new AtomicInteger();
         try {
             marker.collectReferences(

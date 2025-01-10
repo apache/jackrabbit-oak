@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -488,7 +489,7 @@ public class ExternalSortTest {
 
         String testData = String.join("\n", transform(testLines, tl -> tl.line));
         File testFile = folder.newFile();
-        try (BufferedWriter bufferedWriter = Files.newWriter(testFile, charset)) {
+        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(testFile, charset))) {
             bufferedWriter.write(testData);
         }
 

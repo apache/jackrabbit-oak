@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -48,7 +49,6 @@ import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
@@ -426,7 +426,7 @@ public class DataStoreCheckCommand implements Command {
 
     private static void retrieveBlobReferences(GarbageCollectableBlobStore blobStore, BlobReferenceRetriever marker,
         File marked, String dsType, boolean isVerbose) throws IOException {
-        final BufferedWriter writer = Files.newWriter(marked, StandardCharsets.UTF_8);
+        final BufferedWriter writer = new BufferedWriter(new FileWriter(marked, StandardCharsets.UTF_8));
         final AtomicInteger count = new AtomicInteger();
         boolean threw = true;
         try {
@@ -549,7 +549,7 @@ public class DataStoreCheckCommand implements Command {
             Stopwatch watch = createStarted();
 
             try {
-                writer = Files.newWriter(references, StandardCharsets.UTF_8);
+                writer = new BufferedWriter(new FileWriter(references, StandardCharsets.UTF_8));
                 if (paths.length == 0) {
                     traverseChildren(nodeStore.getRoot(), "/", writer, count);
                 } else {
