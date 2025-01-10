@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.upgrade.blob;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -32,7 +31,6 @@ import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -105,7 +103,7 @@ public class LengthCachingDataStoreTest {
         assertEquals(dr, dr2);
 
         assertEquals(dr.getLength(), dr2.getLength());
-        assertTrue(supplier(dr).contentEquals(supplier(dr2)));
+        assertArrayEquals(streamAsByteArray(dr), streamAsByteArray(dr2));
     }
 
     @Test
@@ -180,16 +178,9 @@ public class LengthCachingDataStoreTest {
         return data;
     }
 
-    private static ByteSource supplier(final DataRecord dr) {
-        return new ByteSource() {
-            @Override
-            public InputStream openStream() throws IOException {
-                try {
-                    return dr.getStream();
-                } catch (DataStoreException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
+    private static byte[] streamAsByteArray(final DataRecord dr) throws IOException, DataStoreException {
+        try (InputStream is = dr.getStream()) {
+            return is.readAllBytes();
+        }
     }
 }
