@@ -17,11 +17,9 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -56,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_ITEM_NAMES;
@@ -139,13 +138,13 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
     }
 
     private List<PropInfo> mockPropInfos(@NotNull Map<String, String> restrictions, int propertyType) throws RepositoryException {
-        return mockPropInfos(CollectionUtils.transformValues(restrictions, string -> {
+        return mockPropInfos(restrictions.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> {
             try {
-                return new Value[] {getValueFactory(root).createValue(string, propertyType)};
-            } catch (ValueFormatException e) {
-                throw new RuntimeException(e);
+                return new Value[] {getValueFactory(root).createValue(e.getValue(), propertyType)};
+            } catch (ValueFormatException ex) {
+                throw new RuntimeException(ex);
             }
-        }));
+        })));
     }
 
     private List<PropInfo> mockPropInfos(@NotNull Map<String, Value[]> restrictions) throws RepositoryException {

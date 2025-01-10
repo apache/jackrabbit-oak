@@ -21,12 +21,8 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -270,7 +266,9 @@ class CommitBuilder {
         requireNonNull(revision);
 
         Revision from = this.revision;
-        Map<Path, UpdateOp> operations = CollectionUtils.transformValues(this.operations, op -> rewrite(op, from, revision));
+        Map<Path, UpdateOp> operations = this.operations.entrySet()
+                .stream()
+                .collect(LinkedHashMap::new, (m,e)->m.put(e.getKey(), rewrite(e.getValue(), from, revision)), LinkedHashMap::putAll);
         return new Commit(nodeStore, revision, baseRevision, startRevisions,
                 operations, addedNodes, removedNodes, nodesWithBinaries,
                 bundledNodes);

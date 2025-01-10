@@ -34,7 +34,6 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -765,50 +764,6 @@ public class CollectionUtilsTest {
         map.put("three", 3);
 
         Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.filterEntries(map, null));
-    }
-
-    @Test
-    public void testTransformValues() {
-        final Map<String, Integer> map = new HashMap<>();
-        map.put("one", 1);
-        map.put("two", 2);
-        map.put("three", 3);
-
-        final Function<Integer, String> function = value -> "Number " + value;
-
-        final Map<String, String> result = CollectionUtils.transformValues(map, function);
-
-        Assert.assertEquals(3, result.size());
-        Assert.assertEquals("Number 1", result.get("one"));
-        Assert.assertEquals("Number 2", result.get("two"));
-        Assert.assertEquals("Number 3", result.get("three"));
-    }
-
-    @Test
-    public void testTransformValuesEmptyMap() {
-        final Map<String, Integer> map = new HashMap<>();
-        final Function<Integer, String> function = value -> "Number " + value;
-
-        final Map<String, String> result = CollectionUtils.transformValues(map, function);
-
-        Assert.assertTrue(result.isEmpty());
-    }
-
-    @Test
-    public void testTransformValuesNullMap() {
-        final Function<Integer, String> function = value -> "Number " + value;
-
-        Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.transformValues(null, function));
-    }
-
-    @Test
-    public void testTransformValuesNullFunction() {
-        final Map<String, Integer> map = new HashMap<>();
-        map.put("one", 1);
-        map.put("two", 2);
-        map.put("three", 3);
-
-        Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.transformValues(map, null));
     }
 
     @Test

@@ -36,7 +36,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -485,27 +484,6 @@ public class CollectionUtils {
                 .stream()
                 .filter(predicate) // using LinkedHashMap to maintain the order of previous map
                 .collect(LinkedHashMap::new, (m,e)->m.put(e.getKey(), e.getValue()), LinkedHashMap::putAll);
-    }
-
-    /**
-     * Create a new {@link Map} after transforming the values of the given map
-     * based on the specified function.
-     *
-     * @param <K> the type of keys in the map
-     * @param <V1> the type of original values in the map
-     * @param <V2> the type of transformed values in the map
-     * @param map the map whose values are to be transformed, must not be null
-     * @param function the function to apply to the values, must not be null
-     * @return a new map containing the same keys as the given map, but with values transformed by the specified function
-     * @throws NullPointerException if the map or function is null
-     */
-    @NotNull
-    public static <K, V1, V2> Map<K, V2> transformValues(final @NotNull Map<K, V1> map, final @NotNull Function<? super V1, ? extends V2> function) {
-        Objects.requireNonNull(map);
-        Objects.requireNonNull(function);
-        return map.entrySet()
-                .stream() // using LinkedHashMap to maintain the order of previous map
-                .collect(LinkedHashMap::new, (m, e)->m.put(e.getKey(), function.apply(e.getValue())), LinkedHashMap::putAll);
     }
 
     /**
