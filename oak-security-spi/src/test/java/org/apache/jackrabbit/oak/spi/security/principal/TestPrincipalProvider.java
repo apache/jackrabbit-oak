@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -28,8 +29,6 @@ import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -55,18 +54,20 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
     public TestPrincipalProvider(String... principalNames) {
         this.exposesEveryone = true;
-        this.principals = Maps.toMap(CollectionUtils.toLinkedSet(Arrays.asList(principalNames)), input -> new ItemBasedPrincipal() {
-            @NotNull
-            @Override
-            public String getPath() {
-                return "/path/to/principal/" + input;
-            }
+        this.principals = CollectionUtils.toLinkedSet(Arrays.asList(principalNames))
+                .stream() // using LinkedHashMap to maintain the order of LinkedSet
+                .collect(LinkedHashMap::new, (m, e)-> m.put(e, new ItemBasedPrincipal() {
+                    @NotNull
+                    @Override
+                    public String getPath() {
+                        return "/path/to/principal/" + e;
+                    }
 
-            @Override
-            public String getName() {
-                return input;
-            }
-        });
+                    @Override
+                    public String getName() {
+                        return e;
+                    }
+                }), LinkedHashMap::putAll);
     }
 
     public Iterable<Principal> getTestPrincipals() {
