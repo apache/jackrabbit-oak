@@ -41,15 +41,12 @@ public class DocumentRdbFixture extends NodeStoreFixture {
 
     private final Map<NodeStore, DataSource> dataSources = new ConcurrentHashMap<NodeStore, DataSource>();
 
-    private String jdbcUrl;
-
-    private final String fname = (new File("target")).isDirectory() ? "target/" : "";
+    private static final String jdbcUrl = RdbUtils.mapJdbcURL();
 
     @Override
     public NodeStore createNodeStore() {
         String prefix = "T" + Long.toHexString(System.currentTimeMillis());
         RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
-        this.jdbcUrl = RdbUtils.mapJdbcURL().replace("{fname}", fname);
         DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, RdbUtils.USERNAME, RdbUtils.PASSWD);
         //do not reuse the whiteboard
         setWhiteboard(new DefaultWhiteboard());

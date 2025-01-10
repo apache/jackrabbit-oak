@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -36,11 +35,9 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
  */
 public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
+    private static final String jdbcUrl = RdbUtils.mapJdbcURL();
 
     private final Repository repository;
-
-    private static final String fname = (new File("target")).isDirectory() ? "target/" : "";
-    private static final String jdbcUrl = RdbUtils.mapJdbcURL().replace("{fname}", fname);
 
     /**
      * Constructor as required by the JCR TCK.
@@ -79,7 +76,7 @@ public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
     public static boolean isAvailable() {
         try {
-            Connection c = DriverManager.getConnection(OakDocumentRDBRepositoryStub.jdbcUrl, RdbUtils.USERNAME, RdbUtils.PASSWD);
+            Connection c = DriverManager.getConnection(jdbcUrl, RdbUtils.USERNAME, RdbUtils.PASSWD);
             c.close();
             return true;
         }
