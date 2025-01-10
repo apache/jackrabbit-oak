@@ -87,7 +87,7 @@ public class RdbDockerRule extends ExternalResource {
         try {
             long startTime = Instant.now().toEpochMilli();
             rdbContainer.start();
-            Thread.sleep(300000);
+            Thread.sleep(180000);
             LOG.info("RDB container started in: " + (Instant.now().toEpochMilli() - startTime) + " ms");
         } catch (Exception e) {
             LOG.error("error while starting RDB container, error: ", e);
