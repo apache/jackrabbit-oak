@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -201,7 +200,7 @@ public class BlobThroughPutTest {
 
         static {
             try {
-                DATA = ByteStreams.toByteArray(new RandomStream(BLOB_SIZE, 100));
+                DATA = (new RandomStream(BLOB_SIZE, 100)).readAllBytes();
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             }

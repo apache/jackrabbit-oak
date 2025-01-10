@@ -33,8 +33,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
@@ -182,7 +180,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
     @Override
     public ArrayBasedBlob createBlob(InputStream inputStream) throws IOException {
         try {
-            return new ArrayBasedBlob(ByteStreams.toByteArray(inputStream));
+            return new ArrayBasedBlob(inputStream.readAllBytes());
         }
         finally {
             inputStream.close();
