@@ -192,7 +192,10 @@ public class JsonSerializer {
             List<ChildNodeEntry> entries = new ArrayList<>(names.size());
             for (String name : names) {
                 try {
-                    entries.add(new MemoryChildNodeEntry(name, node.getChildNode(name)));
+                    NodeState childNode = node.getChildNode(name);
+                    if (childNode.exists()) {
+                        entries.add(new MemoryChildNodeEntry(name, childNode));
+                    }
                 } catch (Throwable t) {
                     if (catchExceptions) {
                         String message = "Cannot read node " + basePath + "/" + name + " : " + t.getMessage();
