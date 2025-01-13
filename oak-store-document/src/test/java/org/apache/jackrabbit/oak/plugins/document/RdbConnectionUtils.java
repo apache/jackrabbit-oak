@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import com.github.dockerjava.api.DockerClient;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.startupcheck.StartupCheckStrategy;
 import org.testcontainers.images.RemoteDockerImage;
 import org.testcontainers.utility.DockerImageName;
 
@@ -38,9 +36,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class RdbUtils {
+public class RdbConnectionUtils {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RdbUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RdbConnectionUtils.class);
 
     public static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest;DB_CLOSE_ON_EXIT=FALSE");
     public static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
@@ -76,7 +74,7 @@ public class RdbUtils {
                 long startTime = Instant.now().toEpochMilli();
                 rdbContainer.start();
                 LOG.info("RDB container started in: " + (Instant.now().toEpochMilli() - startTime) + " ms");
-                String url = RdbUtils.mapJdbcURL();
+                String url = RdbConnectionUtils.mapJdbcURL();
                 LOG.info("Mapped JDBC URL is {}.", url);
                 boolean containerReady = false;
                 LOG.info("Trying to connect to {}", url);
@@ -84,7 +82,7 @@ public class RdbUtils {
                     Thread.sleep(10000);
                     Connection connection = null;
                     try {
-                        DataSource dataSource = RDBDataSourceFactory.forJdbcUrl(url, RdbUtils.USERNAME, RdbUtils.PASSWD);
+                        DataSource dataSource = RDBDataSourceFactory.forJdbcUrl(url, RdbConnectionUtils.USERNAME, RdbConnectionUtils.PASSWD);
                         connection = dataSource.getConnection();
                         containerReady = true;
                     } catch (SQLException expected) {

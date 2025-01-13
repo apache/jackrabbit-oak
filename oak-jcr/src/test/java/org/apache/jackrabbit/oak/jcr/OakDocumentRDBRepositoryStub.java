@@ -25,7 +25,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.RdbUtils;
+import org.apache.jackrabbit.oak.plugins.document.RdbConnectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
  */
 public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
-    private static final String jdbcUrl = RdbUtils.mapJdbcURL();
+    private static final String jdbcUrl = RdbConnectionUtils.mapJdbcURL();
 
     private final Repository repository;
 
@@ -57,7 +57,7 @@ public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
             m = new RDBDocumentNodeStoreBuilder().
                     memoryCacheSize(64 * 1024 * 1024).
                     setPersistentCache("target/persistentCache,time").
-                    setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, RdbUtils.USERNAME, RdbUtils.PASSWD), options).
+                    setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, RdbConnectionUtils.USERNAME, RdbConnectionUtils.PASSWD), options).
                     build();
             Jcr jcr = new Jcr(m);
             preCreateRepository(jcr);
@@ -76,7 +76,7 @@ public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
 
     public static boolean isAvailable() {
         try {
-            Connection c = DriverManager.getConnection(jdbcUrl, RdbUtils.USERNAME, RdbUtils.PASSWD);
+            Connection c = DriverManager.getConnection(jdbcUrl, RdbConnectionUtils.USERNAME, RdbConnectionUtils.PASSWD);
             c.close();
             return true;
         }

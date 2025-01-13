@@ -51,7 +51,7 @@ public class AbstractRDBConnectionTest extends DocumentMKTestBase {
 
     @Before
     public void setUpConnection() throws Exception {
-        dataSource = RDBDataSourceFactory.forJdbcUrl(RdbUtils.mapJdbcURL(), USERNAME, PASSWD);
+        dataSource = RDBDataSourceFactory.forJdbcUrl(RdbConnectionUtils.mapJdbcURL(), USERNAME, PASSWD);
         Revision.setClock(getTestClock());
         mk = new DocumentMK(newBuilder(dataSource).build());
     }
