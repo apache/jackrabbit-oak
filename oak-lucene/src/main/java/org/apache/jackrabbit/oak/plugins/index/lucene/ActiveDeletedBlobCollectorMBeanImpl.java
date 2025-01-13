@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
@@ -47,6 +46,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -212,25 +212,25 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
      * @return true if all running index cycles have been through; false otherwise
      */
     private boolean waitForRunningIndexCycles() {
-        Map<IndexStatsMBean, Long> origIndexLaneToExecutinoCountMap = Maps.asMap(
-                new HashSet<>(StreamSupport.stream(asyncIndexInfoService.getAsyncLanes().spliterator(), false)
-                        .map(lane -> asyncIndexInfoService.getInfo(lane).getStatsMBean())
-                        .filter(bean -> {
-                            String beanStatus;
-                            try {
-                                if (bean != null) {
-                                    beanStatus = bean.getStatus();
-                                } else {
-                                    return false;
-                                }
-                            } catch (Exception e) {
-                                LOG.warn("Exception during getting status for {}. Ignoring this indexer lane", bean.getName(), e);
-                                return false;
-                            }
-                            return STATUS_RUNNING.equals(beanStatus);
-                        })
-                        .collect(Collectors.toList())),
-                IndexStatsMBean::getTotalExecutionCount);
+        Map<IndexStatsMBean, Long> origIndexLaneToExecutinoCountMap = new HashSet<>(StreamSupport.stream(asyncIndexInfoService.getAsyncLanes().spliterator(), false)
+                .map(lane -> asyncIndexInfoService.getInfo(lane).getStatsMBean())
+                .filter(bean -> {
+                    String beanStatus;
+                    try {
+                        if (bean != null) {
+                            beanStatus = bean.getStatus();
+                        } else {
+                            return false;
+                        }
+                    } catch (Exception e) {
+                        LOG.warn("Exception during getting status for {}. Ignoring this indexer lane", bean.getName(), e);
+                        return false;
+                    }
+                    return STATUS_RUNNING.equals(beanStatus);
+                })
+                .collect(Collectors.toList()))
+                .stream()
+                .collect(Collectors.toMap(Function.identity(), IndexStatsMBean::getTotalExecutionCount));
 
         if (!origIndexLaneToExecutinoCountMap.isEmpty()) {
             LOG.info("Found running index lanes ({}). Sleep a bit before continuing.",

@@ -69,8 +69,15 @@ Technical task
     [OAK-11359] - Remove usage of Guava Ints.checkedCast
     [OAK-11360] - remove usage of Guava Ints.contains()
     [OAK-11362] - Remove usage of Guava Maps.filterEntries
+    [OAK-11363] - Remove usage of Guava Maps.uniqueIndex
     [OAK-11366] - Remove usage of Guava UnsignedBytes.compare()
     [OAK-11367] - Remove usage of Guava Chars.contains()
+    [OAK-11371] - remove use of Guava Files.newWriter()
+    [OAK-11374] - Remove usage of Guava Maps.immutableEntry
+    [OAK-11375] - Remove usage of Guava Maps.transformValues
+    [OAK-11377] - Remove usage of Guava ByteStreams.toByteArray()
+    [OAK-11381] - Remove usage of Guava Maps.asMap
+    [OAK-11382] - Remove usage of Guava Maps.toMap
 
 Bug
 
@@ -80,6 +87,7 @@ Bug
     [OAK-11294] - documentmk: broken logging in ClusterNodeInfo
     [OAK-11303] - The log message with the report on index import does not include index names
     [OAK-11307] - oak-search-elastic: mixin filtered queries do not produce results
+    [OAK-11379] - JsonSerializer output contains deleted children of orderable nodes
 
 Improvement
 

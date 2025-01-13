@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -49,7 +50,6 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.io.Files.move;
-import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.emptyIterator;
@@ -673,7 +673,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             close();
 
             processFile = new File(rootDir, prefix + IN_PROCESS.getFileNameSuffix());
-            writer = newWriter(processFile, StandardCharsets.UTF_8);
+            writer = new BufferedWriter(new FileWriter(processFile, StandardCharsets.UTF_8));
             LOG.info("Created new process file and writer over {} ", processFile.getAbsolutePath());
         }
 

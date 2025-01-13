@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.datastore;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.nio.charset.StandardCharsets;
@@ -242,7 +243,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
             return;
         }
         File file = new File(directory, fileName);
-        BufferedWriter bw = Files.newWriter(file, StandardCharsets.UTF_8);
+        BufferedWriter bw = new BufferedWriter(new FileWriter(file, StandardCharsets.UTF_8));
         for (String id : blobIds) {
             bw.write(id);
             bw.newLine();

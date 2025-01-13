@@ -22,6 +22,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -38,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.IOFileFilter;
@@ -217,7 +217,7 @@ public class ActiveDeletedBlobCollectorFactory {
             if (blobIdsTracked) {
                 try {
                     idTempDeleteFile = File.createTempFile("idTempDelete", null, rootDirectory);
-                    idTempDeleteWriter = Files.newWriter(idTempDeleteFile, StandardCharsets.UTF_8);
+                    idTempDeleteWriter = new BufferedWriter(new FileWriter(idTempDeleteFile, StandardCharsets.UTF_8));
                 } catch (Exception e) {
                     LOG.warn("Unable to open a writer to a temp file, will ignore tracker sync");
                     blobIdsTracked = false;

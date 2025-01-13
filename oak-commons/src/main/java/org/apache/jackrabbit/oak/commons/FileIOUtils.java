@@ -19,22 +19,21 @@ package org.apache.jackrabbit.oak.commons;
 import static java.io.File.createTempFile;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FileUtils.forceDelete;
-import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.io.IOUtils.copyLarge;
 import static org.apache.jackrabbit.guava.common.io.Closeables.close;
-import static org.apache.jackrabbit.guava.common.io.FileWriteMode.APPEND;
-import static org.apache.jackrabbit.guava.common.io.Files.asByteSink;
 import static org.apache.jackrabbit.guava.common.io.Files.move;
-import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
 import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.mergeSortedFiles;
 import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.sortInBatch;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -146,14 +145,11 @@ public final class FileIOUtils {
         boolean threw = true;
 
         try {
-            appendStream = asByteSink(appendTo, APPEND).openBufferedStream();
+            appendStream = new BufferedOutputStream(new FileOutputStream(appendTo, true));
 
             for (File f : files) {
-                InputStream iStream = new FileInputStream(f);
-                try {
+                try (InputStream iStream = new FileInputStream(f)) {
                     copyLarge(iStream, appendStream);
-                } finally {
-                    closeQuietly(iStream);
                 }
             }
             threw = false;
@@ -232,7 +228,7 @@ public final class FileIOUtils {
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
         @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
-        BufferedWriter writer = newWriter(f, UTF_8);
+        BufferedWriter writer = new BufferedWriter(new FileWriter(f, UTF_8));
         boolean threw = true;
 
         int count = 0;

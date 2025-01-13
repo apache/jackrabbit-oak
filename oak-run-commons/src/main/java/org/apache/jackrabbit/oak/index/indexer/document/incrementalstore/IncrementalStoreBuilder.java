@@ -50,6 +50,7 @@ public class IncrementalStoreBuilder {
     private final IndexHelper indexHelper;
     private final String initialCheckpoint;
     private final String finalCheckpoint;
+    private long maxDurationSeconds = Long.MAX_VALUE;
     private Predicate<String> pathPredicate = path -> true;
     private Set<String> preferredPathElements = Collections.emptySet();
     private BlobStore blobStore;
@@ -107,6 +108,10 @@ public class IncrementalStoreBuilder {
         return this;
     }
 
+    public IncrementalStoreBuilder withMaxDurationSeconds(long maxDurationSeconds) {
+        this.maxDurationSeconds = maxDurationSeconds;
+        return this;
+    }
 
     public IndexStore build() throws IOException, CompositeException {
         logFlags();
@@ -115,11 +120,12 @@ public class IncrementalStoreBuilder {
         if (sortStrategyType == IncrementalSortStrategyType.INCREMENTAL_FFS_STORE ||
                 sortStrategyType == IncrementalSortStrategyType.INCREMENTAL_TREE_STORE) {
             IncrementalFlatFileStoreNodeStateEntryWriter entryWriter = new IncrementalFlatFileStoreNodeStateEntryWriter(blobStore);
+
             IncrementalIndexStoreSortStrategy strategy = new IncrementalFlatFileStoreStrategy(
                     indexHelper.getNodeStore(),
                     initialCheckpoint,
                     finalCheckpoint,
-                    dir, preferredPathElements, algorithm, pathPredicate, entryWriter);
+                    dir, preferredPathElements, algorithm, pathPredicate, entryWriter, maxDurationSeconds);
             File metadataFile = strategy.createMetadataFile();
             File incrementalStoreFile = strategy.createSortedStoreFile();
             long entryCount = strategy.getEntryCount();
@@ -147,4 +153,5 @@ public class IncrementalStoreBuilder {
         log.info("Compression enabled while sorting : {} ({})", IndexStoreUtils.compressionEnabled(), OAK_INDEXER_USE_ZIP);
         log.info("LZ4 enabled for compression algorithm : {} ({})", IndexStoreUtils.useLZ4(), OAK_INDEXER_USE_LZ4);
     }
+
 }

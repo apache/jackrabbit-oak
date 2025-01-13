@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.exporter;
 
+import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -75,7 +76,7 @@ public class NodeStateSerializer {
             Validate.checkState(dir.mkdirs(), "Cannot create directory [%s]", dir.getAbsolutePath());
         }
         File file = new File(dir, getFileName());
-        try (Writer writer = Files.newWriter(file, StandardCharsets.UTF_8)){
+        try (Writer writer = new BufferedWriter(new FileWriter(file, StandardCharsets.UTF_8))) {
             serialize(writer, createBlobSerializer(dir));
         }
         closeSerializer();
