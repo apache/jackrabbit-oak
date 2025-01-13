@@ -40,7 +40,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -517,32 +516,6 @@ public class CollectionUtils {
                 }
             }
         };
-    }
-
-    /**
-     * Generates a (non-parallel) {@linkplain Stream} for the {@linkplain Iterable}
-     * @param iterable iterable to convert
-     * @return the stream
-     */
-    @NotNull
-    public static <T> Stream<T> toStream(@NotNull Iterable<T> iterable) {
-        Objects.requireNonNull(iterable);
-        return StreamSupport.stream(iterable.spliterator(), false);
-    }
-
-    /**
-     * Generates a (non-parallel) {@linkplain Stream} for the
-     * {@linkplain Iterable}
-     * <p>
-     * This method is not thread-safe
-     *
-     * @param iterator
-     *            iterator to convert
-     * @return the stream (representing the remaining elements in the iterator)
-     */
-    @NotNull
-    public static <T> Stream<T> toStream(@NotNull Iterator<T> iterator) {
-        return StreamSupport.stream(toIterable(iterator).spliterator(), false);
     }
 
     /**

@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -223,7 +223,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         this.propertiesByName = getDefinedRules()
                 .stream()
-                .flatMap(rule -> Stream.concat(CollectionUtils.toStream(rule.getProperties()),
+                .flatMap(rule -> Stream.concat(StreamUtils.toStream(rule.getProperties()),
                         rule.getFunctionRestrictions().stream()))
                 .filter(pd -> pd.index) // keep only properties that can be indexed
                 .collect(Collectors.groupingBy(pd -> {
@@ -433,12 +433,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
          */
         public InferenceDefinition(NodeState inferenceNode) {
             if (inferenceNode.hasChildNode("properties")) {
-                this.properties = CollectionUtils.toStream(inferenceNode.getChildNode("properties").getChildNodeEntries())
+                this.properties = StreamUtils.toStream(inferenceNode.getChildNode("properties").getChildNodeEntries())
                         .map(cne -> new Property(cne.getName(), cne.getNodeState()))
                         .collect(Collectors.toList());
             }
             if (inferenceNode.hasChildNode("queries")) {
-                this.queries = CollectionUtils.toStream(inferenceNode.getChildNode("queries").getChildNodeEntries())
+                this.queries = StreamUtils.toStream(inferenceNode.getChildNode("queries").getChildNodeEntries())
                         .map(cne -> new Query(cne.getName(), cne.getNodeState()))
                         .collect(Collectors.toList());
             }

@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -318,7 +319,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
     }
 
     private static boolean checkpointExists(NodeStore nodeStore, String checkpoint) {
-        return CollectionUtils.toStream(nodeStore.checkpoints()).anyMatch(x -> Objects.equals(x, checkpoint));
+        return StreamUtils.toStream(nodeStore.checkpoints()).anyMatch(x -> Objects.equals(x, checkpoint));
     }
 
     private String checkpointDebugInfo() {

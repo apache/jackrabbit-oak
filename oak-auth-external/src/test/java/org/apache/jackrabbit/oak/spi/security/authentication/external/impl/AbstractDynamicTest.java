@@ -20,7 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -116,7 +116,7 @@ public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
 
     @NotNull
     static List<String> getIds(@NotNull Iterator<? extends Authorizable> authorizables) {
-        return CollectionUtils.toStream(authorizables).map(authorizable -> {
+        return StreamUtils.toStream(authorizables).map(authorizable -> {
             try {
                 return authorizable.getID();
             } catch (RepositoryException repositoryException) {
@@ -127,6 +127,6 @@ public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
 
     @NotNull
     static List<String> getPrincipalNames(@NotNull Iterator<Principal> groupPrincipals) {
-        return CollectionUtils.toStream(groupPrincipals).map(Principal::getName).collect(Collectors.toList());
+        return StreamUtils.toStream(groupPrincipals).map(Principal::getName).collect(Collectors.toList());
     }
 }

@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -176,7 +177,7 @@ public class TypeEditor extends DefaultEditor {
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || CollectionUtils.toStream(mixins).anyMatch(typesToCheck::contains);
+                || StreamUtils.toStream(mixins).anyMatch(typesToCheck::contains);
         this.parent = null;
         this.nodeName = null;
         this.types = requireNonNull(types);
@@ -196,7 +197,7 @@ public class TypeEditor extends DefaultEditor {
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || CollectionUtils.toStream(mixins).anyMatch(typesToCheck::contains);
+                || StreamUtils.toStream(mixins).anyMatch(typesToCheck::contains);
         this.parent = requireNonNull(parent);
         this.nodeName = requireNonNull(name);
         this.types = parent.types;
