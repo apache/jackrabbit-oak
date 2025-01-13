@@ -65,7 +65,6 @@ public class RdbConnectionUtils {
         }
         RDB_AVAILABLE = dockerAvailable && imageAvailable;
         if (RDB_AVAILABLE) {
-            LOG.error("New container");
             rdbContainer = new GenericContainer<>(DockerImageName.parse(IMG))
                     .withPrivilegedMode(true)
                     .withExposedPorts(exposedPort)
