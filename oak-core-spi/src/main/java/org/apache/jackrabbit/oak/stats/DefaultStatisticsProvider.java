@@ -62,9 +62,9 @@ public final class DefaultStatisticsProvider implements StatisticsProvider {
 
     private synchronized SimpleStats getStats(String type, boolean resetValueEachSecond, SimpleStats.Type statsType,
                                               StatsOptions options){
-        Type enumType = Type.getType(type);
         SimpleStats stats = statsMeters.get(type);
         if (stats == null){
+            Type enumType = Type.getType(type);
             if (enumType != null) {
                 stats = new SimpleStats(repoStats.getCounter(enumType), statsType);
             } else if (options.isTimeSeriesEnabled()) {
