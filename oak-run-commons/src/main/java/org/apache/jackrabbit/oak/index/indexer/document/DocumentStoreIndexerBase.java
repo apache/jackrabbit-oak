@@ -266,6 +266,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     public IndexStore buildStore(String initialCheckpoint, String finalCheckpoint) throws IOException, CommitFailedException {
+        return buildStore(initialCheckpoint, finalCheckpoint, Long.MAX_VALUE);
+    }
+
+    public IndexStore buildStore(String initialCheckpoint, String finalCheckpoint, long maxDurationSeconds) throws IOException, CommitFailedException {
         IncrementalStoreBuilder builder;
         IndexStore incrementalStore;
         Set<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
@@ -308,6 +312,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         try {
             builder = new IncrementalStoreBuilder(indexHelper.getWorkDir(), indexHelper, initialCheckpoint, finalCheckpoint)
                     .withPreferredPathElements(preferredPathElements)
+                    .withMaxDurationSeconds(maxDurationSeconds)
                     .withPathPredicate(predicate)
                     .withBlobStore(indexHelper.getGCBlobStore());
             incrementalStore = builder.build();
