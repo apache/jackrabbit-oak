@@ -33,7 +33,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -227,7 +227,7 @@ class SplitOperations {
     }
 
     private boolean hasBinaryPropertyForSplit(Iterable<String> values) {
-        return doc.hasBinary() && CollectionUtils.toStream(values).map(binarySize).anyMatch(BINARY_FOR_SPLIT_THRESHOLD);
+        return doc.hasBinary() && StreamUtils.toStream(values).map(binarySize).anyMatch(BINARY_FOR_SPLIT_THRESHOLD);
     }
 
     /**

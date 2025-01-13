@@ -496,15 +496,6 @@ public class CollectionUtilsTest {
     }
 
     @Test
-    public void iteratorToStream() {
-        List<String> input = List.of("a", "b", "c");
-        Iterator<String> iterator = input.iterator();
-        Stream<String> stream = CollectionUtils.toStream(iterator);
-        List<String> result = stream.collect(Collectors.toList());
-        Assert.assertEquals(input.toString(), result.toString());
-    }
-
-    @Test
     public void testFromProperties() {
         final Properties properties = new Properties();
         properties.setProperty("key1", "value1");
