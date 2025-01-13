@@ -709,6 +709,9 @@ public class IncrementalStoreTest {
 
     private Backend createNodeStore(boolean readOnly) {
         MongoConnection c = connectionFactory.getConnection();
+        if (!readOnly) {
+            MongoUtils.dropCollections(c.getDatabase());
+        }
         DocumentMK.Builder builder = builderProvider.newBuilder();
         builder.setMongoDB(c.getMongoClient(), c.getDBName());
         if (readOnly) {
