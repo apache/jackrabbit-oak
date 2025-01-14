@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.upgrade.blob;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -35,7 +36,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
@@ -45,6 +45,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.slf4j.Logger;
@@ -287,17 +288,13 @@ public class LengthCachingDataStore extends AbstractDataStore {
             File configFile = new File(delegateConfigFilePath);
             checkArgument(configFile.exists(), "Delegate DataStore config file %s does not exist", configFile.getAbsolutePath());
 
-            InputStream is = null;
-            try {
+            try (InputStream is = new FileInputStream(configFile)) {
                 Properties props = new Properties();
-                is = Files.asByteSource(configFile).openStream();
                 props.load(is);
                 PropertiesUtil.populate(delegate, propsToMap(props), false);
                 log.info("Configured the delegating DataStore via {}", configFile.getAbsolutePath());
             } catch (IOException e) {
                 throw new RepositoryException("Error reading from config file " + configFile.getAbsolutePath(), e);
-            } finally {
-                IOUtils.closeQuietly(is);
             }
         }
 
