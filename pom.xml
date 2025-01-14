@@ -285,6 +285,39 @@ An announcement mail template can be found at:
         </plugins>
       </build>
     </profile>
+    <profile>
+      <id>pedantic</id>
+      <build>
+        <plugins>
+          <!-- create aggregate HTML reports on unit and integration tests -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-report-plugin</artifactId>
+            <inherited>false</inherited>
+            <configuration>
+              <aggregate>true</aggregate>
+              <linkXRef>false</linkXRef>
+            </configuration>
+            <executions>
+              <execution>
+                <id>aggregate-ut-reports</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>report-only</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>aggregate-it-reports</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>failsafe-report-only</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 
 </project>
