@@ -48,7 +48,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -512,7 +512,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             if (nodetype.exists()) {
                 List<String> nodetypes = new ArrayList<>();
                 if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
-                    nodetypes = CollectionUtils.toList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
+                    nodetypes = ListUtils.toList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
                 }
 
                 if (nodetypes.isEmpty()) {

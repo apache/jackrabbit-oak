@@ -26,7 +26,7 @@ import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
@@ -281,7 +281,7 @@ public class Diff {
                 List<String> revDiffs = revs.subList(Math.min(s, e), Math.max(s, e) + 1);
                 if (s > e) {
                     // reverse list
-                    revDiffs = CollectionUtils.reverse(revDiffs);
+                    revDiffs = ListUtils.reverse(revDiffs);
                 }
                 if (revDiffs.size() < 2) {
                     System.out.println("Nothing to diff: " + revDiffs);

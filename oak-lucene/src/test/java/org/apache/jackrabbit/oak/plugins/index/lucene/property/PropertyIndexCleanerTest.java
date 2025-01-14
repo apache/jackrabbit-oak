@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner.CleanupStats;
@@ -331,7 +331,7 @@ public class PropertyIndexCleanerTest {
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, getNode(root, indexPath));
         FilterImpl filter = FilterImpl.newTestInstance();
         Iterable<String> paths = lookup.query(filter, propertyName,   PropertyValues.newString(value));
-        return CollectionUtils.toList(paths);
+        return ListUtils.toList(paths);
     }
 
     private static class SimpleAsyncInfoService implements AsyncIndexInfoService {

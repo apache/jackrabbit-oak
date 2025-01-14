@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -347,7 +347,7 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
 
             query = "/jcr:root/test/* order by fn:name() descending option(index tag fnName)";
             assertXpathPlan(query, "/oak:index/fnName");
-            assertEquals(CollectionUtils.reverse(expected), executeQuery(query, XPATH));
+            assertEquals(ListUtils.reverse(expected), executeQuery(query, XPATH));
 
             // order by fn:name() although function index is on "name()"
             query = "/jcr:root/test/* order by fn:name() option(index tag name)";
@@ -360,7 +360,7 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
 
             query = "/jcr:root/test/* order by fn:name() descending option(index tag name)";
             assertXpathPlan(query, "/oak:index/name");
-            assertEquals(CollectionUtils.reverse(expected), executeQuery(query, XPATH));
+            assertEquals(ListUtils.reverse(expected), executeQuery(query, XPATH));
         });
     }
 
@@ -421,7 +421,7 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
 
             query = "/jcr:root/test/* order by fn:local-name() descending option(index tag fnLocalName)";
             assertXpathPlan(query, "/oak:index/fnLocalName");
-            assertEquals(CollectionUtils.reverse(expected), executeQuery(query, XPATH));
+            assertEquals(ListUtils.reverse(expected), executeQuery(query, XPATH));
 
             // order by fn:name() although function index is on "name()"
             query = "/jcr:root/test/* order by fn:local-name() option(index tag localName)";
@@ -434,7 +434,7 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
 
             query = "/jcr:root/test/* order by fn:local-name() descending option(index tag localName)";
             assertXpathPlan(query, "/oak:index/localName");
-            assertEquals(CollectionUtils.reverse(expected), executeQuery(query, XPATH));
+            assertEquals(ListUtils.reverse(expected), executeQuery(query, XPATH));
         });
     }
 

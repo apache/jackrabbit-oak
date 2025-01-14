@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -268,7 +268,7 @@ public class DynamicGroupValidatorTest extends AbstractPrincipalTest {
 
         Tree groupTree = r.getTree(localGroup.getPath());
         Tree userTree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
-        List<String> members = CollectionUtils.toList(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
+        List<String> members = ListUtils.toList(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
         members.add(userTree.getProperty(JCR_UUID).getValue(Type.STRING));
         groupTree.setProperty(REP_MEMBERS, members, Type.WEAKREFERENCES);
         r.commit();
@@ -300,7 +300,7 @@ public class DynamicGroupValidatorTest extends AbstractPrincipalTest {
         r.commit();
         
         Tree groupTree = r.getTree(localGroup.getPath());
-        List<String> members = CollectionUtils.toList(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
+        List<String> members = ListUtils.toList(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
         members.remove(1);
         groupTree.setProperty(REP_MEMBERS, members, Type.WEAKREFERENCES);
         r.commit();
@@ -318,7 +318,7 @@ public class DynamicGroupValidatorTest extends AbstractPrincipalTest {
 
         Tree groupTree = r.getTree(localGroup.getPath());
         Tree userTree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
-        List<String> members = CollectionUtils.toList(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
+        List<String> members = ListUtils.toList(groupTree.getProperty(REP_MEMBERS).getValue(Type.STRINGS));
         members.add(userTree.getProperty(JCR_UUID).getValue(Type.STRING));
         groupTree.setProperty(REP_MEMBERS, members, Type.WEAKREFERENCES);
         try {

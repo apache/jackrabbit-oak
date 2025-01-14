@@ -69,6 +69,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -384,7 +385,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
 
     private void addNameToList(NodeBuilder type, String name, String value) {
         List<String> values;
-        values = CollectionUtils.toList(getNames(type, name));
+        values = ListUtils.toList(getNames(type, name));
         if (!values.contains(value)) {
             values.add(value);
         }

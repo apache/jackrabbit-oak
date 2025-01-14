@@ -32,7 +32,7 @@ import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
@@ -76,7 +76,7 @@ public class IndexPrinter implements InventoryPrinter {
     }
 
     private void asyncLanesInfo(PrinterOutput po) {
-        List<String> asyncLanes = CollectionUtils.toList(asyncIndexInfoService.getAsyncLanes());
+        List<String> asyncLanes = ListUtils.toList(asyncIndexInfoService.getAsyncLanes());
         po.startSection("Async Indexers State", true);
         po.text("Number of async indexer lanes", asyncLanes.size());
 

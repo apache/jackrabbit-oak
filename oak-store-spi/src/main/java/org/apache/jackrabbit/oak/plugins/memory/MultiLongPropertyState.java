@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
@@ -37,7 +37,7 @@ public class MultiLongPropertyState extends MultiPropertyState<Long> {
      * @return  The new property state of type {@link Type#LONGS}
      */
     public static PropertyState createLongProperty(String name, Iterable<Long> values) {
-        return new MultiLongPropertyState(name, CollectionUtils.toList(values));
+        return new MultiLongPropertyState(name, ListUtils.toList(values));
     }
 
     @Override

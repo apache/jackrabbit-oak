@@ -61,7 +61,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
@@ -456,7 +456,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             List<RecordId> thisLevel = list;
             while (thisLevel.size() > 1) {
                 List<RecordId> nextLevel = new ArrayList<>();
-                for (List<RecordId> bucket : CollectionUtils.partitionList(thisLevel, ListRecord.LEVEL_SIZE)) {
+                for (List<RecordId> bucket : ListUtils.partitionList(thisLevel, ListRecord.LEVEL_SIZE)) {
                     if (bucket.size() > 1) {
                         nextLevel.add(writeListBucket(bucket));
                     } else {

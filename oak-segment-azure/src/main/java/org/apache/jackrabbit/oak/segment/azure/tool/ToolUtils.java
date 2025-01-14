@@ -38,7 +38,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
@@ -197,7 +197,7 @@ public class ToolUtils {
                 try (JournalReader journalReader = new JournalReader(journal)) {
                     Iterator<String> revisionIterator = Iterators.transform(journalReader,
                          entry -> entry.getRevision());
-                    return CollectionUtils.toList(revisionIterator);
+                    return ListUtils.toList(revisionIterator);
                 } catch (Exception e) {
                     log.error("Error while reading from journal file");
                     e.printStackTrace();

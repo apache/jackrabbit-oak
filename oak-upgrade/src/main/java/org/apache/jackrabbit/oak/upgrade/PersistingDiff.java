@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.segment.RecordId;
@@ -124,7 +124,7 @@ public class PersistingDiff implements NodeStateDiff {
             }
             currentDiff = currentDiff.parent;
         }
-        segments = CollectionUtils.reverse(segments);
+        segments = ListUtils.reverse(segments);
 
         StringBuilder path = new StringBuilder();
         for (String segment : segments) {

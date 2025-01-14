@@ -31,7 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
@@ -306,7 +306,7 @@ public class PropertyDefinition {
         if (FulltextIndexConstants.REGEX_ALL_PROPS.equals(path)) {
             return EMPTY_ANCESTORS;
         } else {
-            return toArray(CollectionUtils.toList(elements(PathUtils.getParentPath(path))), String.class);
+            return toArray(ListUtils.toList(elements(PathUtils.getParentPath(path))), String.class);
         }
     }
 

@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -1046,7 +1046,7 @@ public class DocumentBundlingTest {
     }
 
     private static List<String> childNames(NodeState state, String path){
-        return CollectionUtils.toList(getNode(state, path).getChildNodeNames());
+        return ListUtils.toList(getNode(state, path).getChildNodeNames());
     }
 
     static NodeBuilder newNode(String typeName){

@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -707,7 +708,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
         Long[] s = {0L, 0L};
 
-        List<String> names = CollectionUtils.toList(ns.getChildNodeNames());
+        List<String> names = ListUtils.toList(ns.getChildNodeNames());
 
         if (names.contains("root")) {
             List<String> temp = new ArrayList<>();

@@ -28,13 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
-
 import joptsimple.BuiltinHelpFormatter;
 import joptsimple.HelpFormatter;
 import joptsimple.OptionDescriptor;
 import joptsimple.OptionSpec;
 
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.jetbrains.annotations.Nullable;
 
 public class OakHelpFormatter implements HelpFormatter {
@@ -46,7 +45,7 @@ public class OakHelpFormatter implements HelpFormatter {
 
     public OakHelpFormatter(Iterable<OptionsBean> optionBeans, @Nullable String commandName,
                             @Nullable String summary,@Nullable String connectionString) {
-        this.optionBeans = CollectionUtils.toList(optionBeans);
+        this.optionBeans = ListUtils.toList(optionBeans);
         this.commandName = commandName;
         this.summary = summary;
         this.connectionString = connectionString;

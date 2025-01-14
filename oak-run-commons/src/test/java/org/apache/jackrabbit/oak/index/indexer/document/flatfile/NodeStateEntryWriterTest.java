@@ -22,18 +22,16 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -111,7 +109,7 @@ public class NodeStateEntryWriterTest {
         NodeStateEntry e1 = new NodeStateEntryBuilder(b1.getNodeState(), "/a/b/c/d").build();
 
         String json = nw.asJson(e1.getNodeState());
-        List<String> pathElements = CollectionUtils.toList(elements(e1.getPath()));
+        List<String> pathElements = ListUtils.toList(elements(e1.getPath()));
 
         String line = nw.toString(pathElements, json);
 
@@ -131,7 +129,7 @@ public class NodeStateEntryWriterTest {
         NodeStateEntry e1 = new NodeStateEntryBuilder(b1.getNodeState(), "/").build();
 
         String json = nw.asJson(e1.getNodeState());
-        List<String> pathElements = CollectionUtils.toList(elements(e1.getPath()));
+        List<String> pathElements = ListUtils.toList(elements(e1.getPath()));
 
         String line = nw.toString(pathElements, json);
 
@@ -153,9 +151,9 @@ public class NodeStateEntryWriterTest {
         b.setProperty("foo1", "bar1");
         String json2 = nw.asJson(b.getNodeState());
 
-        String line1 = nw.toString(CollectionUtils.toList(elements("/")), json1);
-        String line2 = nw.toString(CollectionUtils.toList(elements("/sub-node")), json1);
-        String line3 = nw.toString(CollectionUtils.toList(elements("/sub-node")), json2);
+        String line1 = nw.toString(ListUtils.toList(elements("/")), json1);
+        String line2 = nw.toString(ListUtils.toList(elements("/sub-node")), json1);
+        String line3 = nw.toString(ListUtils.toList(elements("/sub-node")), json2);
 
         NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
 

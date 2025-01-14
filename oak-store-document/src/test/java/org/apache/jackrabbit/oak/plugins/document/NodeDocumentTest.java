@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -797,7 +796,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
 
-        List<RevisionVector> headRevisions = CollectionUtils.reverse(createTestData(nodeStores, random, numChanges));
+        List<RevisionVector> headRevisions = ListUtils.reverse(createTestData(nodeStores, random, numChanges));
         NodeDocument doc = getRootDocument(store);
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
@@ -976,7 +975,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
-        List<RevisionVector> headRevisions = CollectionUtils.reverse(createTestData(nodeStores, random, numChanges));
+        List<RevisionVector> headRevisions = ListUtils.reverse(createTestData(nodeStores, random, numChanges));
 
         NodeDocument doc = getRootDocument(store);
 
@@ -1053,7 +1052,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns1 = createTestStore(store, 1, 0);
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
-        List<RevisionVector> headRevisions = CollectionUtils.reverse(createTestData(nodeStores, random, numChanges));
+        List<RevisionVector> headRevisions = ListUtils.reverse(createTestData(nodeStores, random, numChanges));
 
         NodeBuilder builder = ns1.getRoot().builder();
         builder.setProperty("q", 1);
@@ -1067,8 +1066,8 @@ public class NodeDocumentTest {
         }
         // do not yet merge, but create more test data
         int numMoreChanges = 50;
-        List<RevisionVector> moreRevs = CollectionUtils.reverse(createTestData(nodeStores, random, numMoreChanges, numChanges));
-        headRevisions = CollectionUtils.toList(Iterables.concat(moreRevs, headRevisions));
+        List<RevisionVector> moreRevs = ListUtils.reverse(createTestData(nodeStores, random, numMoreChanges, numChanges));
+        headRevisions = ListUtils.toList(Iterables.concat(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
         // now merge the branch and update 'q'. this will split
@@ -1080,8 +1079,8 @@ public class NodeDocumentTest {
 
         // and create yet more test data
         numMoreChanges = 50;
-        moreRevs = CollectionUtils.reverse(createTestData(nodeStores, random, numMoreChanges, numChanges));
-        headRevisions = CollectionUtils.toList(Iterables.concat(moreRevs, headRevisions));
+        moreRevs = ListUtils.reverse(createTestData(nodeStores, random, numMoreChanges, numChanges));
+        headRevisions = ListUtils.toList(Iterables.concat(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
         NodeDocument doc = getRootDocument(store);
@@ -1185,7 +1184,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns2 = createTestStore(store, 2, 0);
         List<DocumentNodeStore> nodeStores = List.of(ns1, ns2);
 
-        List<RevisionVector> headRevisions = CollectionUtils.reverse(createTestData(nodeStores, random, numChanges));
+        List<RevisionVector> headRevisions = ListUtils.reverse(createTestData(nodeStores, random, numChanges));
         NodeDocument doc = getRootDocument(store);
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);

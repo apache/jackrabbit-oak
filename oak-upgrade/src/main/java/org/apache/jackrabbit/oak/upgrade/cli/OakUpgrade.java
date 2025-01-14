@@ -26,7 +26,7 @@ import org.apache.jackrabbit.guava.common.io.Closer;
 
 import joptsimple.OptionSet;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;
@@ -95,7 +95,7 @@ public class OakUpgrade {
 
     private static RepositoryInitializer createCompositeInitializer() {
         ServiceLoader<RepositoryInitializer> loader = ServiceLoader.load(RepositoryInitializer.class);
-        List<RepositoryInitializer> initializers = CollectionUtils.toList(loader.iterator());
+        List<RepositoryInitializer> initializers = ListUtils.toList(loader.iterator());
         return new CompositeInitializer(initializers);
     }
 

@@ -28,7 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -105,7 +105,7 @@ public class StringSortTest {
         Collections.sort(paths, comparator);
         collector.sort();
 
-        List<String> sortedPaths = CollectionUtils.toList(collector.getIds());
+        List<String> sortedPaths = ListUtils.toList(collector.getIds());
         assertEquals(paths.size(), sortedPaths.size());
         assertEquals(paths, sortedPaths);
     }

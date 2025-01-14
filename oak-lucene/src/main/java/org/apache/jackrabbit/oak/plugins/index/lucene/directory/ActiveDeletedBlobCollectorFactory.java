@@ -46,7 +46,7 @@ import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker.Options;
@@ -272,7 +272,7 @@ public class ActiveDeletedBlobCollectorFactory {
 
                                     lastDeletedBlobTimestamp = Math.max(lastDeletedBlobTimestamp, blobDeletionTimestamp);
 
-                                    List<String> chunkIds = CollectionUtils.toList(blobStore.resolveChunks(deletedBlobId));
+                                    List<String> chunkIds = ListUtils.toList(blobStore.resolveChunks(deletedBlobId));
                                     if (chunkIds.size() > 0) {
                                         long deleted = blobStore.countDeleteChunks(chunkIds, 0);
                                         if (deleted < 1) {

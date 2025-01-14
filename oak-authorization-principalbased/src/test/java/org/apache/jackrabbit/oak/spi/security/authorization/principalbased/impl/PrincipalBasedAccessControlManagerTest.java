@@ -23,7 +23,7 @@ import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -554,7 +554,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(principals, new String[0]);
         AccessControlPolicy[] expected = acMgr.getEffectivePolicies(principals);
         
-        assertArrayEquals(expected, (CollectionUtils.toList(effective).toArray()));
+        assertArrayEquals(expected, (ListUtils.toList(effective).toArray()));
     }
 
     @Test
@@ -567,7 +567,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         String[] paths = readablePaths.stream().map(oakPath -> namePathMapper.getJcrPath(oakPath)).distinct().toArray(String[]::new);
         assertEquals(3, paths.length);
         
-        List<AccessControlPolicy> effective = CollectionUtils.toList(acMgr.getEffectivePolicies(Collections.singleton(validPrincipal), paths));
+        List<AccessControlPolicy> effective = ListUtils.toList(acMgr.getEffectivePolicies(Collections.singleton(validPrincipal), paths));
 
         assertEquals(1, effective.size());
         assertEquals(ReadPolicy.INSTANCE, effective.get(0));

@@ -30,10 +30,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
@@ -194,9 +194,9 @@ public class EventGenerator {
                 if (OAK_CHILD_ORDER.equals(before.getName())) {
                     // list the child node names before and after the change
                     List<String> beforeNames =
-                            CollectionUtils.toList(before.getValue(NAMES));
+                            ListUtils.toList(before.getValue(NAMES));
                     List<String> afterNames =
-                            CollectionUtils.toList(after.getValue(NAMES));
+                            ListUtils.toList(after.getValue(NAMES));
 
                     // check only those names that weren't added or removed
                     beforeNames.retainAll(new HashSet<>(afterNames));

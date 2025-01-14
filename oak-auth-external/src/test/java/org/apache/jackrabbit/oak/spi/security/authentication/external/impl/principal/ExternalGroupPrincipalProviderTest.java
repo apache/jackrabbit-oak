@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
@@ -586,7 +587,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
                 return in.iterator();
             }
         };
-        List<Principal> out = CollectionUtils.toList(p.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
+        List<Principal> out = ListUtils.toList(p.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
         Collections.sort(in, Comparator.comparing(Principal::getName));
         assertEquals(in, out);
     }

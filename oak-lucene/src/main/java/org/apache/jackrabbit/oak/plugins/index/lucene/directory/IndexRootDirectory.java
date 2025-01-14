@@ -37,7 +37,7 @@ import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -189,7 +189,7 @@ public class IndexRootDirectory {
      * The resulting file name would be truncated to MAX_NAME_LENGTH
      */
     static String getIndexFolderBaseName(String indexPath) {
-        List<String> elements = CollectionUtils.toList(PathUtils.elements(indexPath));
+        List<String> elements = ListUtils.toList(PathUtils.elements(indexPath));
         Collections.reverse(elements);
         List<String> result = new ArrayList<>(2);
 

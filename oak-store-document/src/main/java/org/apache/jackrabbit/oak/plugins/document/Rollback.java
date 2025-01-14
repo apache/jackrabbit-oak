@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.jetbrains.annotations.NotNull;
 
 import static java.util.Objects.requireNonNull;
@@ -95,7 +95,7 @@ class Rollback {
             reverse.setNew(false);
             reverseOps.add(reverse);
         }
-        for (List<UpdateOp> ops : CollectionUtils.partitionList(reverseOps, batchSize)) {
+        for (List<UpdateOp> ops : ListUtils.partitionList(reverseOps, batchSize)) {
             store.createOrUpdate(NODES, ops);
         }
         removeCollisionMarker(store, commitRootId);

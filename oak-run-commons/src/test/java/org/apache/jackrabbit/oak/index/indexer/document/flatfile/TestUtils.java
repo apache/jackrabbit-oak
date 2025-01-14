@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -51,7 +51,7 @@ public class TestUtils {
 
     static List<String> sortPaths(List<String> paths, Comparator<Iterable<String>> comparator) {
         List<Iterable<String>> copy = paths.stream()
-                .map(p -> CollectionUtils.toList(elements(p)))
+                .map(p -> ListUtils.toList(elements(p)))
                 .sorted(comparator)
                 .collect(toList());
         return copy.stream().map(e -> "/" + String.join("/", e)).collect(toList());
