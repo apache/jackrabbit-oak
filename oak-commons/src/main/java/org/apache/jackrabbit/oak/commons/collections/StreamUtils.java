@@ -25,6 +25,9 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Utility methods for {@link Stream} conversions.
+ */
 public class StreamUtils {
 
     private StreamUtils() {
