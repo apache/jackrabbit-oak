@@ -28,6 +28,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+/**
+ * Utility methods for {@link java.util.List} conversions.
+ */
 public class ListUtils {
 
     private ListUtils() {
