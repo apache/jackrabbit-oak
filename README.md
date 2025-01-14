@@ -1,3 +1,10 @@
+[![ASF Jira](https://img.shields.io/badge/ASF%20JIRA-OAK-orange)](https://issues.apache.org/jira/projects/OAK/summary)
+[![Maven Central](https://img.shields.io/maven-central/v/org.apache.jackrabbit/oak-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/org.apache.jackrabbit/oak-core)
+[![Build](https://github.com/apache/jackrabbit-oak/actions/workflows/build.yml/badge.svg)](https://github.com/apache/jackrabbit-oak/actions/workflows/build.yml)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=org.apache.jackrabbit%3Ajackrabbit-oak&metric=bugs)](https://sonarcloud.io/summary/new_code?id=org.apache.jackrabbit%3Ajackrabbit-oak)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=org.apache.jackrabbit%3Ajackrabbit-oak&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=org.apache.jackrabbit%3Ajackrabbit-oak)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=org.apache.jackrabbit%3Ajackrabbit-oak&metric=coverage)](https://sonarcloud.io/summary/new_code?id=org.apache.jackrabbit%3Ajackrabbit-oak)
+
 Jackrabbit Oak - the next generation content repository
 =======================================================
 
