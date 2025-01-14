@@ -27,7 +27,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -141,9 +141,9 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
     private static void assertTrackedDeleted(Iterator<String> afterDeletions,
         GarbageCollectableBlobStore blobStore) throws IOException {
 
-        List<String> afterDeletionIds = CollectionUtils.toList(afterDeletions);
+        List<String> afterDeletionIds = ListUtils.toList(afterDeletions);
         // get the currently tracked ones
-        List<String> trackedIds = CollectionUtils.toList(((BlobTrackingStore) blobStore).getTracker().get());
+        List<String> trackedIds = ListUtils.toList(((BlobTrackingStore) blobStore).getTracker().get());
         assertEquals("Tracked ids length different from current blob list",
             trackedIds.size(), afterDeletionIds.size());
         assertTrue("Tracked ids different from current blob list",

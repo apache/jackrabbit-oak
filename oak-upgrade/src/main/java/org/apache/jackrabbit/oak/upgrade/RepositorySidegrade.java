@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
@@ -382,7 +382,7 @@ public class RepositorySidegrade {
             if (temp == null) {
                 continue;
             }
-            List<String> tempValues = CollectionUtils.toList(temp.getValue(Type.STRINGS));
+            List<String> tempValues = ListUtils.toList(temp.getValue(Type.STRINGS));
             for (Map.Entry<String, String> sToD : checkpointSegmentToDoc.entrySet()) {
                 if (tempValues.contains(sToD.getKey())) {
                     tempValues.set(tempValues.indexOf(sToD.getKey()), sToD.getValue());

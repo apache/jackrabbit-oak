@@ -34,6 +34,7 @@ import ch.qos.logback.classic.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -346,7 +347,7 @@ public class DataStoreTrackerGCTest {
             Iterator<String> idIter =
                 ((GarbageCollectableBlobStore) ds.getBlobStore())
                     .resolveChunks(b.toString());
-            List<String> ids = CollectionUtils.toList(idIter);
+            List<String> ids = ListUtils.toList(idIter);
             if (toBeDeleted != i) {
                 set.addAll(ids);
             }

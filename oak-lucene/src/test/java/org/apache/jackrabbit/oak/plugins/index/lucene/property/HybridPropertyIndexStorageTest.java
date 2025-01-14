@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -204,7 +204,7 @@ public class HybridPropertyIndexStorageTest {
         HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
         FilterImpl filter = createFilter(root, "nt:base");
         Iterable<String> paths = lookup.query(filter, propertyName, value);
-        return CollectionUtils.toList(paths);
+        return ListUtils.toList(paths);
     }
 
     private PropertyIndexUpdateCallback newCallback(){

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -42,7 +42,7 @@ public class BucketSwitcherTest {
     @Test
     public void basic() throws Exception {
         bs.switchBucket(100);
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), empty());
+        assertThat(ListUtils.toList(bs.getOldBuckets()), empty());
     }
 
     @Test
@@ -51,7 +51,7 @@ public class BucketSwitcherTest {
         builder.setProperty(PROP_HEAD_BUCKET, "1");
 
         bs.switchBucket(100);
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), empty());
+        assertThat(ListUtils.toList(bs.getOldBuckets()), empty());
     }
 
     @Test
@@ -64,7 +64,7 @@ public class BucketSwitcherTest {
         bs.switchBucket(100);
         assertFalse(builder.hasProperty(PROP_PREVIOUS_BUCKET));
         assertEquals("2", builder.getString(PROP_HEAD_BUCKET));
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
+        assertThat(ListUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
     }
 
     @Test
@@ -80,7 +80,7 @@ public class BucketSwitcherTest {
         assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
         assertTrue(builder.hasChildNode("3"));
 
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
+        assertThat(ListUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
     }
 
     @Test
@@ -95,7 +95,7 @@ public class BucketSwitcherTest {
         bs.switchBucket(150);
         assertFalse(builder.hasProperty(PROP_PREVIOUS_BUCKET));
         assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1", "2"));
+        assertThat(ListUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1", "2"));
     }
 
     /**
@@ -116,7 +116,7 @@ public class BucketSwitcherTest {
 
         assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
         assertEquals("2", builder.getString(PROP_PREVIOUS_BUCKET));
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
+        assertThat(ListUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
 
         NodeState state1 = builder.getNodeState();
         assertFalse(bs.switchBucket(100));
@@ -125,7 +125,7 @@ public class BucketSwitcherTest {
         //as previous
         assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
         assertEquals("2", builder.getString(PROP_PREVIOUS_BUCKET));
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
+        assertThat(ListUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
 
         NodeState state2 = builder.getNodeState();
         assertFalse(bs.switchBucket(100));
@@ -133,7 +133,7 @@ public class BucketSwitcherTest {
         //Async indexer time still not changed. So head bucket remains same
         assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
         assertEquals("2", builder.getString(PROP_PREVIOUS_BUCKET));
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
+        assertThat(ListUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
 
         NodeState state3 = builder.getNodeState();
 
@@ -158,7 +158,7 @@ public class BucketSwitcherTest {
 
         assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
         assertEquals("2", builder.getString(PROP_PREVIOUS_BUCKET));
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
+        assertThat(ListUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1"));
 
         NodeState state1 = builder.getNodeState();
         assertTrue(bs.switchBucket(150));
@@ -166,14 +166,14 @@ public class BucketSwitcherTest {
         //This time previous bucket should be discarded
         assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
         assertNull(builder.getString(PROP_PREVIOUS_BUCKET));
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1", "2"));
+        assertThat(ListUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1", "2"));
 
         NodeState state2 = builder.getNodeState();
         assertTrue(bs.switchBucket(200));
 
         assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
         assertNull(builder.getString(PROP_PREVIOUS_BUCKET));
-        assertThat(CollectionUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1", "2"));
+        assertThat(ListUtils.toList(bs.getOldBuckets()), containsInAnyOrder("1", "2"));
 
         //assert no change done after previous is removed
         //not even change of asyncIndexedTo

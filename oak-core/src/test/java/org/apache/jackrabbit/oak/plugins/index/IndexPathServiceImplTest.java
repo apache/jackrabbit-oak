@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -100,7 +101,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
 
         List<String> nodetypes = new ArrayList<>();
         if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
-            nodetypes = CollectionUtils.toList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
+            nodetypes = ListUtils.toList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
         }
 
         nodetypes.add(INDEX_DEFINITIONS_NODE_TYPE);

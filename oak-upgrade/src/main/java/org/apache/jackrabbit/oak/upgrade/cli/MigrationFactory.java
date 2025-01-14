@@ -24,7 +24,7 @@ import java.util.ServiceLoader;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.core.RepositoryContext;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -123,7 +123,7 @@ public class MigrationFactory {
 
     private List<CommitHook> loadCommitHooks() {
         ServiceLoader<CommitHook> loader = ServiceLoader.load(CommitHook.class);
-        return Collections.unmodifiableList(CollectionUtils.toList(loader.iterator()));
+        return Collections.unmodifiableList(ListUtils.toList(loader.iterator()));
     }
 
 }

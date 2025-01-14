@@ -23,7 +23,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
@@ -292,7 +292,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         UserManager um = getUserManager(r);
         PrincipalManager pm = getPrincipalManager(r);
         
-        List<ExternalIdentityRef> declaredGroupRefs = CollectionUtils.toList(previouslySyncedUser.getDeclaredGroups());
+        List<ExternalIdentityRef> declaredGroupRefs = ListUtils.toList(previouslySyncedUser.getDeclaredGroups());
         assertTrue(declaredGroupRefs.size() > 1);
         
         String groupId = declaredGroupRefs.get(0).getId();

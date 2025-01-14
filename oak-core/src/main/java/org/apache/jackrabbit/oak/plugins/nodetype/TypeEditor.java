@@ -49,7 +49,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
@@ -442,9 +442,9 @@ public class TypeEditor extends DefaultEditor {
     }
 
     private static boolean mixinsChanged(NodeState before, Iterable<String> after) {
-        List<String> pre = CollectionUtils.toList(before.getNames(JCR_MIXINTYPES));
+        List<String> pre = ListUtils.toList(before.getNames(JCR_MIXINTYPES));
         Collections.sort(pre);
-        List<String> post = CollectionUtils.toList(after);
+        List<String> post = ListUtils.toList(after);
         Collections.sort(post);
         if (pre.isEmpty() && post.isEmpty()) {
             return false;
@@ -468,7 +468,7 @@ public class TypeEditor extends DefaultEditor {
             constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
         }
 
-        List<String> names = CollectionUtils.toList(after.getChildNodeNames());
+        List<String> names = ListUtils.toList(after.getChildNodeNames());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
                 constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");

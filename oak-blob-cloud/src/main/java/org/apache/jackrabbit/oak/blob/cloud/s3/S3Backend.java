@@ -51,6 +51,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -1125,7 +1126,7 @@ public class S3Backend extends AbstractSharedBackend {
                     return false;
                 }
 
-                List<S3ObjectSummary> listing = CollectionUtils.toList(
+                List<S3ObjectSummary> listing = ListUtils.toList(
                     filter(prevObjectListing.getObjectSummaries(),
                             input -> !input.getKey().startsWith(META_KEY_PREFIX)));
 

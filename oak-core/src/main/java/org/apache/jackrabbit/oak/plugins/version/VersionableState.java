@@ -60,7 +60,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -187,7 +187,7 @@ class VersionableState {
         frozen.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
         List<String> mixinTypes;
         if (node.hasProperty(JCR_MIXINTYPES)) {
-            mixinTypes = CollectionUtils.toList(node.getNames(JCR_MIXINTYPES));
+            mixinTypes = ListUtils.toList(node.getNames(JCR_MIXINTYPES));
         } else {
             mixinTypes = Collections.emptyList();
         }

@@ -82,6 +82,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -1959,7 +1960,7 @@ public final class DocumentNodeStore
         // reset each branch commit in reverse order
         Map<Path, UpdateOp> operations = new HashMap<>();
         AtomicReference<Revision> currentRev = new AtomicReference<>();
-        for (Revision r : CollectionUtils.reverse(revs)) {
+        for (Revision r : ListUtils.reverse(revs)) {
             operations.clear();
             Revision previous = currentRev.getAndSet(r);
             if (previous == null) {

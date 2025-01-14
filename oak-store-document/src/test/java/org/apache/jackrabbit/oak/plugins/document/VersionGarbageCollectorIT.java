@@ -64,7 +64,6 @@ import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionNotRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionRemovedFromAllDocuments;
@@ -111,7 +110,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.FailingDocumentStore.FailedUpdateOpListener;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode;
@@ -3068,11 +3067,11 @@ public class VersionGarbageCollectorIT {
         store1.runBackgroundOperations();
 
         List<NodeDocument> previousDocTestFoo =
-                CollectionUtils.toList(getDoc("/test/" + subNodeName).getAllPreviousDocs());
+                ListUtils.toList(getDoc("/test/" + subNodeName).getAllPreviousDocs());
         List<NodeDocument> previousDocTestFoo2 =
-                CollectionUtils.toList(getDoc("/test2/" + subNodeName).getAllPreviousDocs());
+                ListUtils.toList(getDoc("/test2/" + subNodeName).getAllPreviousDocs());
         List<NodeDocument> previousDocRoot =
-                CollectionUtils.toList(getDoc("/").getAllPreviousDocs());
+                ListUtils.toList(getDoc("/").getAllPreviousDocs());
 
         assertEquals(1, previousDocTestFoo.size());
         assertEquals(1, previousDocTestFoo2.size());
@@ -3624,7 +3623,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(foo);
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
-        List<String> prevIds = CollectionUtils.toList(Iterators.transform(
+        List<String> prevIds = ListUtils.toList(Iterators.transform(
                 foo.getPreviousDocLeaves(), input -> input.getId()));
 
         // run gc on another document node store
@@ -3811,7 +3810,7 @@ public class VersionGarbageCollectorIT {
 
         NodeDocument doc = getDoc("/foo");
         assertNotNull(doc);
-        List<NodeDocument> prevDocs = CollectionUtils.toList(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
 
@@ -3822,7 +3821,7 @@ public class VersionGarbageCollectorIT {
 
         doc = getDoc("/foo");
         assertNotNull(doc);
-        prevDocs = CollectionUtils.toList(doc.getAllPreviousDocs());
+        prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(0, prevDocs.size());
 
         assertEquals(value, store1.getRoot().getChildNode("foo").getString("prop"));
@@ -3849,7 +3848,7 @@ public class VersionGarbageCollectorIT {
 
         // now /foo must have previous docs
         NodeDocument doc = getDoc("/foo");
-        List<NodeDocument> prevDocs = CollectionUtils.toList(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
 
@@ -3875,7 +3874,7 @@ public class VersionGarbageCollectorIT {
 
         doc = getDoc("/foo");
         assertNotNull(doc);
-        prevDocs = CollectionUtils.toList(doc.getAllPreviousDocs());
+        prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(0, prevDocs.size());
         // check value
         assertEquals(value, store1.getRoot().getChildNode("foo").getString("prop"));

@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.junit.Test;
 
 import java.util.Iterator;
@@ -46,7 +46,7 @@ public class TapeSamplingTest {
         List<Integer> input = range(start, end);
         TapeSampling<Integer> res = new TapeSampling<>(r, input.iterator(), input.size(), k);
 
-        List<Integer> samples = CollectionUtils.toList(res.getSamples());
+        List<Integer> samples = ListUtils.toList(res.getSamples());
         List<Integer> expected = range(end - k + 1, end);
 
         assertEquals(expected, samples);
@@ -67,7 +67,7 @@ public class TapeSamplingTest {
         List<Integer> input = range(start, end);
         TapeSampling<Integer> res = new TapeSampling<>(r, input.iterator(), input.size(), k);
 
-        List<Integer> samples = CollectionUtils.toList(res.getSamples());
+        List<Integer> samples = ListUtils.toList(res.getSamples());
         List<Integer> expected = range(start, start + k - 1);
 
         assertEquals(expected, samples);
@@ -83,7 +83,7 @@ public class TapeSamplingTest {
         List<Integer> input = range(start, end);
         TapeSampling<Integer> res = new TapeSampling<>(r, input.iterator(), input.size(), k);
 
-        List<Integer> samples = CollectionUtils.toList(res.getSamples());
+        List<Integer> samples = ListUtils.toList(res.getSamples());
         List<Integer> expected = input;
 
         assertEquals(expected, samples);
@@ -136,6 +136,6 @@ public class TapeSamplingTest {
             }
         };
 
-        return CollectionUtils.toList(iter);
+        return ListUtils.toList(iter);
     }
 }

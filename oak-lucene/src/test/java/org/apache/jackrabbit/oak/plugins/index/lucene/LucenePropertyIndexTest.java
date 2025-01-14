@@ -58,7 +58,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
@@ -1106,9 +1106,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         child.setProperty("bar", "baz");
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", CollectionUtils
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", ListUtils
                 .toList(Iterables.concat(List.of("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", CollectionUtils
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", ListUtils
                 .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), List.of("/test/a"))));
     }
 
@@ -1196,10 +1196,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         // Add the path of property added as timestamp string in the sorted list
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", CollectionUtils
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", ListUtils
                 .toList(Iterables.concat(List.of("/test/n0"), getSortedPaths(tuples, OrderDirection.ASC))));
         // Append the path of property added as timestamp string to the sorted list
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", CollectionUtils
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", ListUtils
                 .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), List.of("/test/n0"))));
     }
 
@@ -1428,7 +1428,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
-        List<? extends ResultRow> result = CollectionUtils.toList(
+        List<? extends ResultRow> result = ListUtils.toList(
             qe.executeQuery(query, lang, limit, 0, new HashMap<>(),
                 NO_MAPPINGS).getRows());
 

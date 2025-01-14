@@ -68,7 +68,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -216,7 +216,7 @@ public class LuceneIndexTest {
         List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
         Cursor cursor = queryIndex.query(plans.get(0), indexed);
 
-        List<String> paths = CollectionUtils.toList(transform(cursor, IndexRow::getPath));
+        List<String> paths = ListUtils.toList(transform(cursor, IndexRow::getPath));
         assertFalse(paths.isEmpty());
         assertEquals(LuceneIndex.LUCENE_QUERY_BATCH_SIZE + 1, paths.size());
     }

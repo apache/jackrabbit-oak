@@ -23,7 +23,7 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import com.microsoft.azure.storage.blob.DeleteSnapshotsOption;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptions;
 import org.apache.jackrabbit.oak.segment.azure.util.CaseInsensitiveKeysMapAccess;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
@@ -218,7 +218,7 @@ public class AzureJournalFile implements JournalFile {
             }
             int firstBlockSize = Math.min(lineLimit - lineCount, lines.size());
             List<String> firstBlock = lines.subList(0, firstBlockSize);
-            List<List<String>> remainingBlocks = CollectionUtils.partitionList(lines.subList(firstBlockSize, lines.size()), lineLimit);
+            List<List<String>> remainingBlocks = ListUtils.partitionList(lines.subList(firstBlockSize, lines.size()), lineLimit);
             List<List<String>> allBlocks = new ArrayList<>();
             allBlocks.addAll(firstBlock.isEmpty() ? List.of() : List.of(firstBlock));
             allBlocks.addAll(remainingBlocks);

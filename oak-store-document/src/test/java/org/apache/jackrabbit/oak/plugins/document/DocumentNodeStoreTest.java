@@ -99,7 +99,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -1973,7 +1973,7 @@ public class DocumentNodeStoreTest {
 
         // on cluster node 2, remove of child-0 is not yet visible
         DocumentNodeState bar = asDocumentNodeState(ns2.getRoot().getChildNode("foo").getChildNode("bar"));
-        List<ChildNodeEntry> children = CollectionUtils.toList(bar.getChildNodeEntries());
+        List<ChildNodeEntry> children = ListUtils.toList(bar.getChildNodeEntries());
         assertEquals(2, Iterables.size(children));
         RevisionVector invalidate = bar.getLastRevision();
         assertNotNull(invalidate);
@@ -1990,7 +1990,7 @@ public class DocumentNodeStoreTest {
         // forget cache entry for deleted node
         ns2.invalidateNodeCache("/foo/bar/child-0", invalidate);
 
-        children = CollectionUtils.toList(ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
+        children = ListUtils.toList(ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
         assertEquals(1, Iterables.size(children));
     }
 
@@ -2032,13 +2032,13 @@ public class DocumentNodeStoreTest {
         merge(ns2, b2);
 
         // on cluster node 2, add of child-1 is not yet visible
-        List<ChildNodeEntry> children = CollectionUtils.toList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
+        List<ChildNodeEntry> children = ListUtils.toList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
         assertEquals(1, Iterables.size(children));
 
         // this will make changes from cluster node 1 visible
         ns2.runBackgroundOperations();
 
-        children = CollectionUtils.toList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
+        children = ListUtils.toList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
         assertEquals(2, Iterables.size(children));
     }
 
@@ -3324,7 +3324,7 @@ public class DocumentNodeStoreTest {
         assertNotNull(doc);
         long previousValue = -1;
         List<String> values = new ArrayList<>(doc.getLocalMap("p").values());
-        for (String v : CollectionUtils.reverse(values)) {
+        for (String v : ListUtils.reverse(values)) {
             long currentValue = Long.parseLong(v);
             assertEquals(previousValue + 1, currentValue);
             previousValue = currentValue;

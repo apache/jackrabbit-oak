@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -342,7 +342,7 @@ public class Aggregate {
         }
 
         public boolean matches(String nodePath) {
-            List<String> pathElements = CollectionUtils.toList(PathUtils.elements(nodePath));
+            List<String> pathElements = ListUtils.toList(PathUtils.elements(nodePath));
             if (pathElements.size() != elements.length){
                 return false;
             }

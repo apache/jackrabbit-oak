@@ -37,6 +37,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
@@ -169,7 +170,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         DataIdentifier d20 = new DataIdentifier("d-20");
         DataIdentifier d30 = new DataIdentifier("d-30");
         List<DataIdentifier> dis = List.of(d10, d20, d30);
-        List<DataRecord> recs = CollectionUtils.toList(
+        List<DataRecord> recs = ListUtils.toList(
             Iterables.transform(dis, input -> new TimeDataRecord(input)));
         OakFileDataStore mockedDS = mock(OakFileDataStore.class);
         when(mockedDS.getAllRecords()).thenReturn(recs.iterator());

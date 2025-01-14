@@ -37,7 +37,7 @@ import java.util.function.Function;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -159,12 +159,12 @@ public class FileLineDifferenceIteratorTest {
 
     private static void assertReverseDiff(String marked, String all, List<String> diff) throws IOException {
         Iterator<String> itr = createItr(all, marked);
-        assertThat("marked: " + marked + " all: " + all, CollectionUtils.toList(itr), is(diff));
+        assertThat("marked: " + marked + " all: " + all, ListUtils.toList(itr), is(diff));
     }
 
     private static void assertDiff(String marked, String all, List<String> diff) throws IOException {
         Iterator<String> itr = createItr(marked, all);
-        assertThat("marked: " + marked + " all: " + all, CollectionUtils.toList(itr), is(diff));
+        assertThat("marked: " + marked + " all: " + all, ListUtils.toList(itr), is(diff));
     }
 
     private static Iterator<String> createItr(String marked, String all) throws IOException {
@@ -189,6 +189,6 @@ public class FileLineDifferenceIteratorTest {
                 }
             });
 
-        assertThat("marked: " + marked + " all: " + all, CollectionUtils.toList(itr), is(diff));
+        assertThat("marked: " + marked + " all: " + all, ListUtils.toList(itr), is(diff));
     }
 }

@@ -36,87 +36,12 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.Assert.fail;
 
 public class CollectionUtilsTest {
 
     final List<String> data = Arrays.asList("one", "two", "three", null);
-
-    @Test
-    public void iterableToList() {
-        // create an iterable
-        final Iterable<String> iterable = new SimpleIterable<>(data);
-
-        Assert.assertEquals(data, CollectionUtils.toList(iterable));
-
-    }
-
-    @Test
-    public void iterableToLinkedList() {
-        // create an iterable
-        final Iterable<String> iterable = new SimpleIterable<>(data);
-
-        Assert.assertEquals(data, CollectionUtils.toLinkedList(iterable));
-    }
-
-    @Test
-    public void iteratorToList() {
-        // create an iterator
-        final Iterable<String> iterable = new SimpleIterable<>(data);
-
-        Assert.assertEquals(data, CollectionUtils.toList(iterable.iterator()));
-    }
-
-    @Test
-    public void partitionList() {
-        final List<String> list = List.of("a", "b", "c", "d", "e", "f", "g");
-        final List<List<String>> partitions = CollectionUtils.partitionList(list, 3);
-        Assert.assertEquals(3, partitions.size());
-        Assert.assertEquals(List.of("a", "b", "c"), partitions.get(0));
-        Assert.assertEquals(List.of("d", "e", "f"), partitions.get(1));
-        Assert.assertEquals(List.of("g"), partitions.get(2));
-    }
-
-    @Test
-    public void partitionListWhenListIsSmallerThanPartitionSize() {
-        final List<String> list = List.of("a");
-        final List<List<String>> partitions = CollectionUtils.partitionList(list, 3);
-        Assert.assertEquals(1, partitions.size());
-        Assert.assertEquals(List.of("a"), partitions.get(0));
-    }
-
-    @Test
-    public void testReverseWithNonEmptyList() {
-        List<String> list = List.of("a", "b", "c");
-        List<String> result = CollectionUtils.reverse(list);
-        List<String> expected = List.of("c", "b", "a");
-        Assert.assertEquals(expected, result);
-    }
-
-    @Test
-    public void testReverseWithEmptyList() {
-        List<String> list = List.of();
-        List<String> result = CollectionUtils.reverse(list);
-        List<String> expected = List.of();
-        Assert.assertEquals(expected, result);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void testReverseWithNullList() {
-        List<String> list = null;
-        CollectionUtils.reverse(list);
-        fail("Shouldn't reach here");
-    }
-
-    @Test
-    public void testReverseWithSingleElementList() {
-        List<String> list = List.of("a");
-        List<String> result = CollectionUtils.reverse(list);
-        List<String> expected = List.of("a");
-        Assert.assertEquals(expected, result);
-    }
 
     @Test
     public void iterableToSet() {

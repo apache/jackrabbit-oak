@@ -48,6 +48,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -139,7 +140,7 @@ public class RDBDocumentStoreJDBC {
     public int delete(Connection connection, RDBTableMetaData tmd, List<String> allIds) throws SQLException {
         int count = 0;
 
-        for (List<String> ids : CollectionUtils.partitionList(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
+        for (List<String> ids : ListUtils.partitionList(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
             PreparedStatement stmt;
             PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
             String sql = "delete from " + tmd.getName() + " where " + inClause.getStatementComponent();

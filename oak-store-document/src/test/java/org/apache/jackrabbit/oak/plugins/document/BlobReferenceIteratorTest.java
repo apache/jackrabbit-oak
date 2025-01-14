@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
@@ -132,7 +132,7 @@ public class BlobReferenceIteratorTest {
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
-        List<ReferencedBlob> collectedBlobs = CollectionUtils.toList(store.getReferencedBlobsIterator());
+        List<ReferencedBlob> collectedBlobs = ListUtils.toList(store.getReferencedBlobsIterator());
         assertEquals(blobs.size(), collectedBlobs.size());
         assertEquals(new HashSet<>(blobs), new HashSet<>(collectedBlobs));
     }

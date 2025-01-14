@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -112,7 +112,7 @@ public class IndexInfoServiceImplTest {
         service.bindInfoProviders(type_c);
         service.bindInfoProviders(type_d);
 
-        List<IndexInfo> infos = CollectionUtils.toList(service.getAllIndexInfo());
+        List<IndexInfo> infos = ListUtils.toList(service.getAllIndexInfo());
 
         //Result would only have 2 entries. One throwing exception would be ignored
         assertEquals(2, infos.size());
