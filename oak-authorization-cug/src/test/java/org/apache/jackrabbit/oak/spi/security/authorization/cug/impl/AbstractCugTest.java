@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -269,7 +269,7 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
                 assertFalse(tree.hasProperty(HIDDEN_NESTED_CUGS));
             } else {
                 assertTrue(tree.hasProperty(HIDDEN_NESTED_CUGS));
-                assertEquals(Set.of(expectedNestedPaths), CollectionUtils.toSet(tree.getProperty(HIDDEN_NESTED_CUGS).getValue(Type.PATHS)));
+                assertEquals(Set.of(expectedNestedPaths), SetUtils.toSet(tree.getProperty(HIDDEN_NESTED_CUGS).getValue(Type.PATHS)));
 
                 assertTrue(tree.hasProperty(HIDDEN_TOP_CUG_CNT));
                 assertEquals(Long.valueOf(expectedNestedPaths.length), tree.getProperty(HIDDEN_TOP_CUG_CNT).getValue(Type.LONG));
@@ -282,7 +282,7 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
             assertFalse(tree.hasProperty(HIDDEN_NESTED_CUGS));
         } else {
             assertTrue(tree.hasProperty(HIDDEN_NESTED_CUGS));
-            assertEquals(Set.of(expectedNestedPaths), CollectionUtils.toSet(tree.getProperty(HIDDEN_NESTED_CUGS).getValue(Type.PATHS)));
+            assertEquals(Set.of(expectedNestedPaths), SetUtils.toSet(tree.getProperty(HIDDEN_NESTED_CUGS).getValue(Type.PATHS)));
         }
     }
 

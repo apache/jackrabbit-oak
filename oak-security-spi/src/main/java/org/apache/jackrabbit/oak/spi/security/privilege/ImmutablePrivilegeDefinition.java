@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,7 +37,7 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
     public ImmutablePrivilegeDefinition(@NotNull String name, boolean isAbstract, @Nullable Iterable<String> declaredAggregateNames) {
         this.name = name;
         this.isAbstract = isAbstract;
-        this.declaredAggregateNames = declaredAggregateNames != null ? Collections.unmodifiableSet(CollectionUtils.toSet(declaredAggregateNames)) : Set.of();
+        this.declaredAggregateNames = declaredAggregateNames != null ? Collections.unmodifiableSet(SetUtils.toSet(declaredAggregateNames)) : Set.of();
         hashcode = Objects.hash(this.name, this.isAbstract, this.declaredAggregateNames);
     }
 

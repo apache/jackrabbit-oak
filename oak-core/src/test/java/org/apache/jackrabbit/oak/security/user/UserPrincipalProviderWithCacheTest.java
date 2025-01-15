@@ -27,8 +27,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
@@ -183,7 +183,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         PrincipalManager principalManager = getPrincipalManager(systemRoot);
 
         PrincipalIterator principalIterator = principalManager.getGroupMembership(getTestUser().getPrincipal());
-        assertPrincipals(CollectionUtils.toSet(principalIterator), EveryonePrincipal.getInstance(), testGroup.getPrincipal());
+        assertPrincipals(SetUtils.toSet(principalIterator), EveryonePrincipal.getInstance(), testGroup.getPrincipal());
 
         root.refresh();
 

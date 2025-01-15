@@ -41,7 +41,7 @@ import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
@@ -186,7 +186,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
             }
 
             checkReferentialIntegrity(refStores, root, definition.getNodeState(),
-                    CollectionUtils.difference(rmIds, newIds));
+                    SetUtils.difference(rmIds, newIds));
 
             // update weak references
             for (Entry<String, Set<String>> ref : rmWeakRefs.entrySet()) {

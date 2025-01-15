@@ -41,7 +41,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
@@ -270,7 +270,7 @@ public class SharedDataStoreUtilsTest {
         Set<String> repos = SharedDataStoreUtils
             .refsNotOld(ds.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
                 ds.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()), 3);
-        assertEquals(CollectionUtils.toSet(repoId2), repos);
+        assertEquals(SetUtils.toSet(repoId2), repos);
     }
 
     @Test
@@ -300,7 +300,7 @@ public class SharedDataStoreUtilsTest {
         Set<String> repos = SharedDataStoreUtils
             .refsNotOld(ds.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
                 ds.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()), 2);
-        assertEquals(CollectionUtils.toSet(repoId1, repoId2), repos);
+        assertEquals(SetUtils.toSet(repoId1, repoId2), repos);
     }
 
     @Test
@@ -457,7 +457,7 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<String> retrieved = CollectionUtils.toSet(dataStore.getAllChunkIds(0));
+        Set<String> retrieved = SetUtils.toSet(dataStore.getAllChunkIds(0));
         assertEquals(added, retrieved);
     }
 
@@ -473,7 +473,7 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<String> retrieved = CollectionUtils.toSet(Iterables.transform(CollectionUtils.toSet(dataStore.getAllRecords()),
+        Set<String> retrieved = SetUtils.toSet(Iterables.transform(SetUtils.toSet(dataStore.getAllRecords()),
                 input -> input.getIdentifier().toString()));
 
         assertEquals(added, retrieved);
@@ -504,7 +504,7 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<String> retrieved = CollectionUtils.toSet(Iterables.transform(CollectionUtils.toSet(dataStore.getAllRecords()),
+        Set<String> retrieved = SetUtils.toSet(Iterables.transform(SetUtils.toSet(dataStore.getAllRecords()),
                 input -> input.getIdentifier().toString()));
 
         assertEquals(added, retrieved);
@@ -520,7 +520,7 @@ public class SharedDataStoreUtilsTest {
             added.add(dataStore.addRecord(randomStream(i, 16516)));
         }
 
-        Set<DataRecord> retrieved = CollectionUtils.toSet((dataStore.getAllRecords()));
+        Set<DataRecord> retrieved = SetUtils.toSet((dataStore.getAllRecords()));
         assertRecords(added, retrieved);
     }
 

@@ -38,7 +38,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -120,7 +120,7 @@ public class ExternalGroupPrincipalProviderWithCacheTest extends AbstractPrincip
     @NotNull
     Set<Principal> getExternalGroupPrincipals(@NotNull String userId) throws Exception {
         if (syncConfig.user().getMembershipNestingDepth() == 1) {
-            return CollectionUtils.toSet(idp.getUser(userId).getDeclaredGroups()).stream().map(externalIdentityRef -> {
+            return SetUtils.toSet(idp.getUser(userId).getDeclaredGroups()).stream().map(externalIdentityRef -> {
                 try {
                     return new PrincipalImpl(idp.getIdentity(externalIdentityRef).getPrincipalName());
                 } catch (ExternalIdentityException e) {

@@ -55,7 +55,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -326,7 +326,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 return Collections.emptyIterator();
             }
 
-            Set<Value> valueSet = CollectionUtils.toSet(vs);
+            Set<Value> valueSet = SetUtils.toSet(vs);
             Iterator<Group> declared = Iterators.filter(Iterators.transform(valueSet.iterator(), value -> {
                 try {
                     String groupPrincipalName = value.getString();

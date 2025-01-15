@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.directory.api.util.Strings;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -64,7 +64,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<String> ids = Iterators.transform(users, externalUser -> externalUser.getId());
 
         Set<String> expectedIds = Set.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
-        assertEquals(expectedIds, CollectionUtils.toSet(ids));
+        assertEquals(expectedIds, SetUtils.toSet(ids));
     }
 
     @Test
@@ -74,7 +74,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<String> ids = Iterators.transform(users, externalUser -> externalUser.getId());
 
         Set<String> expectedIds = Set.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
-        assertEquals(expectedIds, CollectionUtils.toSet(ids));
+        assertEquals(expectedIds, SetUtils.toSet(ids));
     }
 
     /**
@@ -203,7 +203,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterable<String> memberIds = Iterables.transform(memberrefs, externalIdentityRef -> externalIdentityRef.getId());
 
         Set<String> expected = Set.of(TEST_GROUP1_MEMBERS);
-        assertEquals(expected, CollectionUtils.toSet(memberIds));
+        assertEquals(expected, SetUtils.toSet(memberIds));
     }
 
     @Test
@@ -238,7 +238,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         Iterable<ExternalIdentityRef> groupRefs = user.getDeclaredGroups();
         Iterable<String> groupIds = Iterables.transform(groupRefs, externalIdentityRef -> externalIdentityRef.getId());
-        assertEquals(Set.of(TEST_USER1_GROUPS), CollectionUtils.toSet(groupIds));
+        assertEquals(Set.of(TEST_USER1_GROUPS), SetUtils.toSet(groupIds));
     }
 
     @Test
@@ -297,7 +297,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<String> ids = Iterators.transform(groups, externalGroup -> externalGroup.getId());
 
         Set<String> expectedIds = Set.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
-        assertEquals(expectedIds, CollectionUtils.toSet(ids));
+        assertEquals(expectedIds, SetUtils.toSet(ids));
     }
 
     @Test
@@ -308,6 +308,6 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         Iterator<String> ids = Iterators.transform(groups, externalGroup -> externalGroup.getId());
 
         Set<String> expectedIds = Set.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
-        assertEquals(expectedIds, CollectionUtils.toSet(ids));
+        assertEquals(expectedIds, SetUtils.toSet(ids));
     }
 }

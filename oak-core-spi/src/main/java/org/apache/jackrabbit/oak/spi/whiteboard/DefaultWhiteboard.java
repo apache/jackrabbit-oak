@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 
 public class DefaultWhiteboard implements Whiteboard {
@@ -37,7 +37,7 @@ public class DefaultWhiteboard implements Whiteboard {
     private synchronized <T> void registered(Class<T> type, Service service) {
         Set<Service> services = registry.get(type);
         if (services == null) {
-            services = CollectionUtils.newIdentityHashSet();
+            services = SetUtils.newIdentityHashSet();
             registry.put(type, services);
         }
         services.add(service);

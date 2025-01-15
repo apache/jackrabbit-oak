@@ -47,7 +47,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -245,7 +245,7 @@ public final class IndexUtils {
     @Nullable
     public static String getAsyncLaneName(NodeState idxState, String indexPath, PropertyState async) {
         if (async != null) {
-            Set<String> asyncNames = CollectionUtils.toSet(async.getValue(Type.STRINGS));
+            Set<String> asyncNames = SetUtils.toSet(async.getValue(Type.STRINGS));
             asyncNames.remove(IndexConstants.INDEXING_MODE_NRT);
             asyncNames.remove(IndexConstants.INDEXING_MODE_SYNC);
             checkArgument(!asyncNames.isEmpty(), "No valid async name found for " +

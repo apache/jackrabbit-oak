@@ -27,7 +27,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -217,7 +217,7 @@ public class PrivilegeManagerImplTest extends AbstractSecurityTest {
 
         Iterable<String> aggr = TreeUtil.getStrings(privTree, PrivilegeConstants.REP_AGGREGATES);
         assertNotNull(aggr);
-        assertEquals(Set.of("jcr:read", "jcr:write"), CollectionUtils.toSet(aggr));
+        assertEquals(Set.of("jcr:read", "jcr:write"), SetUtils.toSet(aggr));
 
     }
 }

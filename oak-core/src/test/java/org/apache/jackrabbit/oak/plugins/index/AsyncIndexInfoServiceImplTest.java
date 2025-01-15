@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -49,7 +49,7 @@ public class AsyncIndexInfoServiceImplTest {
         AsyncIndexUpdate async2 = new AsyncIndexUpdate("foo-async", store, provider);
         async2.run();
 
-        Set<String> names = CollectionUtils.toSet(service.getAsyncLanes());
+        Set<String> names = SetUtils.toSet(service.getAsyncLanes());
         assertThat(names, containsInAnyOrder("async", "foo-async"));
 
         service.bindStatsMBeans(async.getIndexStats());
@@ -61,7 +61,7 @@ public class AsyncIndexInfoServiceImplTest {
         AsyncIndexUpdate async = new AsyncIndexUpdate("foo-async", store, provider);
         async.run();
 
-        Set<String> names = CollectionUtils.toSet(service.getAsyncLanes());
+        Set<String> names = SetUtils.toSet(service.getAsyncLanes());
         assertThat(names, containsInAnyOrder("foo-async"));
 
         service.bindStatsMBeans(async.getIndexStats());

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ProtectionConfig;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
@@ -58,8 +58,8 @@ public class ProtectionConfigImpl implements ProtectionConfig {
 
     @Activate
     protected void activate(Map<String, Object> properties) {
-        propertyNames = CollectionUtils.toSet(PropertiesUtil.toStringArray(properties.get("propertyNames"), new String[0]));
-        nodeNames = CollectionUtils.toSet(PropertiesUtil.toStringArray(properties.get("nodeNames"), new String[0]));
+        propertyNames = SetUtils.toSet(PropertiesUtil.toStringArray(properties.get("propertyNames"), new String[0]));
+        nodeNames = SetUtils.toSet(PropertiesUtil.toStringArray(properties.get("nodeNames"), new String[0]));
     }
     
     @Override

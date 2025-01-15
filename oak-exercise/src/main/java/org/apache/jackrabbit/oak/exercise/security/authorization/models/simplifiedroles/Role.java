@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
@@ -41,7 +41,7 @@ final class Role {
 
     private Role(long permissions, String... privilegeNames) {
         this.permissions = permissions;
-        this.privilegeNames = Collections.unmodifiableSet(CollectionUtils.toSet(privilegeNames));
+        this.privilegeNames = Collections.unmodifiableSet(SetUtils.toSet(privilegeNames));
     }
 
     private Role(@NotNull Role base, long permissions, String... privilegeNames) {

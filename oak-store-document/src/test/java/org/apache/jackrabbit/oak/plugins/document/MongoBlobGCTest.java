@@ -44,8 +44,8 @@ import com.mongodb.client.MongoCollection;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectorFileState;
@@ -206,7 +206,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void gcDirectMongoDelete() throws Exception {
         DataStoreState state = setUp(true);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(CollectionUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
 
@@ -237,7 +237,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         state.blobsAdded.addAll(specialCharNodeBlobs);
         state.blobsPresent.addAll(specialCharNodeBlobs);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(CollectionUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
     
@@ -245,14 +245,14 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void noGc() throws Exception {
         DataStoreState state = setUp(true);
         Set<String> existingAfterGC = gc(86400);
-        assertTrue(CollectionUtils.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
     }    
 
     @Test
     public void gcVersionDelete() throws Exception {
         DataStoreState state = setUp(false);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(CollectionUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
     @Test
@@ -260,7 +260,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         DataStoreState state = setUp(true);
         addInlined();
         Set<String> existingAfterGC = gc(0);
-        assertTrue(CollectionUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
     
     @Test
@@ -268,7 +268,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         DataStoreState state = setUp(false);
         addInlined();
         Set<String> existingAfterGC = gc(0);
-        assertTrue(CollectionUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
     
     @Test
@@ -299,7 +299,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         assertTrue("blobsAdded: " + state.blobsAdded +
                         ", blobsPresent: " + state.blobsPresent +
                         ", existingAfterGC: " + existingAfterGC,
-                CollectionUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+                SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
         
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gcObj = init(86400, executor);
@@ -355,8 +355,8 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         Set<String> existingAfterGC = iterate();
         log.info("{} Blobs existing after gc {}", existingAfterGC.size(), existingAfterGC);
     
-        assertTrue(CollectionUtils.difference(state.blobsPresent, existingAfterGC).isEmpty());
-        assertEquals(gc.additionalBlobs, CollectionUtils.symmetricDifference(state.blobsPresent, existingAfterGC));
+        assertTrue(SetUtils.difference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertEquals(gc.additionalBlobs, SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC));
     }
 
     @Test

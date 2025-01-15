@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
@@ -67,7 +67,7 @@ public class JcrAllCommitHookTest extends AbstractSecurityTest {
     @Test
     public void testJcrAll() throws Exception {
         Privilege all = privilegeManager.getPrivilege(JCR_ALL);
-        Set<Privilege> aggregates = CollectionUtils.toSet(all.getDeclaredAggregatePrivileges());
+        Set<Privilege> aggregates = SetUtils.toSet(all.getDeclaredAggregatePrivileges());
 
         assertTrue(aggregates.contains(newPrivilege));
     }

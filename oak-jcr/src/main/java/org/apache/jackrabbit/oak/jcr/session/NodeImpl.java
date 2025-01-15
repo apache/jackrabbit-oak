@@ -80,7 +80,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -1017,7 +1017,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 // distinguish between a combination of removeMixin and addMixin
                 // and Node#remove plus subsequent addNode when it comes to
                 // autocreated properties like jcr:create, jcr:uuid and so forth.
-                Set<String> mixins = CollectionUtils.toLinkedSet(getNames(dlg.getTree(), JCR_MIXINTYPES));
+                Set<String> mixins = SetUtils.toLinkedSet(getNames(dlg.getTree(), JCR_MIXINTYPES));
                 if (!mixins.isEmpty() && mixins.remove(getOakName(mixinName))) {
                     PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, mixins, NAMES);
                     sessionContext.getAccessManager().checkPermissions(dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT);

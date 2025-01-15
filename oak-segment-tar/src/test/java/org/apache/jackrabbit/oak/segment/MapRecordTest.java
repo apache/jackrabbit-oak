@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -56,12 +56,12 @@ public class MapRecordTest {
     @Test
     public void testOak1104() {
         Pattern pattern = Pattern.compile(", ");
-        Set<String> beforeNames = CollectionUtils.toSet(pattern.split(
+        Set<String> beforeNames = SetUtils.toSet(pattern.split(
                 "_b_Lucene41_0.doc, _b.fdx, _b.fdt, segments_34, _b_4.del,"
                 + " _b_Lucene41_0.pos, _b.nvm, _b.nvd, _b.fnm, _3n.si,"
                 + " _b_Lucene41_0.tip, _b_Lucene41_0.tim, _3n.cfe,"
                 + " segments.gen, _3n.cfs, _b.si"));
-        Set<String> afterNames = CollectionUtils.toSet(pattern.split(
+        Set<String> afterNames = SetUtils.toSet(pattern.split(
                 "_b_Lucene41_0.pos, _3k.cfs, _3j_1.del, _b.nvm, _b.nvd,"
                 + " _3d.cfe, _3d.cfs, _b.fnm, _3j.si, _3h.si, _3i.cfe,"
                 + " _3i.cfs, _3e_2.del, _3f.si, _b_Lucene41_0.tip,"
@@ -77,18 +77,18 @@ public class MapRecordTest {
         }
         NodeState before = builder.getNodeState();
 
-        for (String name : CollectionUtils.difference(beforeNames, afterNames)) {
+        for (String name : SetUtils.difference(beforeNames, afterNames)) {
             builder.getChildNode(name).remove();
         }
-        for (String name : CollectionUtils.difference(afterNames, beforeNames)) {
+        for (String name : SetUtils.difference(afterNames, beforeNames)) {
             builder.setChildNode(name);
         }
         NodeState after = builder.getNodeState();
 
-        for (String name : CollectionUtils.difference(beforeNames, afterNames)) {
+        for (String name : SetUtils.difference(beforeNames, afterNames)) {
             expect(diff.childNodeDeleted(name, before.getChildNode(name))).andReturn(true);
         }
-        for (String name : CollectionUtils.difference(afterNames, beforeNames)) {
+        for (String name : SetUtils.difference(afterNames, beforeNames)) {
             expect(diff.childNodeAdded(name, after.getChildNode(name))).andReturn(true);
         }
         replay(diff);

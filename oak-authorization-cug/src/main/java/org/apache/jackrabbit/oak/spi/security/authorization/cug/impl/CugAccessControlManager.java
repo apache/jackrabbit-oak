@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -166,7 +166,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 throw new AccessControlException("Unexpected primary type of node rep:cugPolicy.");
             } else {
                 // remove the rep:CugMixin if it has been explicitly added upon setPolicy
-                Set<String> mixins = CollectionUtils.toSet(TreeUtil.getNames(tree, JCR_MIXINTYPES));
+                Set<String> mixins = SetUtils.toSet(TreeUtil.getNames(tree, JCR_MIXINTYPES));
                 if (mixins.remove(MIX_REP_CUG_MIXIN)) {
                     tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
                 } else {
@@ -373,7 +373,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 Tree cug = CugUtil.getCug(t);
                 PropertyState pNames = (cug == null) ? null : cug.getProperty(REP_PRINCIPAL_NAMES);
                 if (pNames != null) {
-                    if (!Collections.disjoint(CollectionUtils.toSet(principalNames), CollectionUtils.toSet(pNames.getValue(Type.STRINGS)))) {
+                    if (!Collections.disjoint(SetUtils.toSet(principalNames), SetUtils.toSet(pNames.getValue(Type.STRINGS)))) {
                         candidates.add(path);
                     }
                     Iterables.addAll(eval, nestedCugPaths(cug));

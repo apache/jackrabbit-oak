@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore;
 import org.junit.After;
@@ -129,7 +129,7 @@ public class BlobIdTrackerStoreTest {
         Set<String> retrieved = retrieve(store);
 
         assertTrue("Incorrect elements with add before snapshot",
-                CollectionUtils.symmetricDifference(initAdd, retrieved).containsAll(Set.of("10001", "10002", "10003")));
+                SetUtils.symmetricDifference(initAdd, retrieved).containsAll(Set.of("10001", "10002", "10003")));
     }
 
     @Test

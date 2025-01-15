@@ -29,7 +29,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
@@ -179,7 +179,7 @@ public class PermissionsTest {
             for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, CollectionUtils.toSet(Splitter.on(',').split(Permissions.getString(key))));
+            assertEquals(expected, SetUtils.toSet(Splitter.on(',').split(Permissions.getString(key))));
         });
     }
 
@@ -201,7 +201,7 @@ public class PermissionsTest {
             for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, CollectionUtils.toSet(Splitter.on(',').split(Permissions.getString(key))));
+            assertEquals(expected, SetUtils.toSet(Splitter.on(',').split(Permissions.getString(key))));
         });
     }
 
@@ -229,7 +229,7 @@ public class PermissionsTest {
                 Permissions.SET_PROPERTY, Set.of(Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY),
                 Permissions.WRITE, Set.of(Permissions.ADD_NODE, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.REMOVE_PROPERTY,Permissions.MODIFY_PROPERTY)
         );
-        aggregation.forEach((key, value) -> assertEquals(value, CollectionUtils.toSet(Permissions.aggregates(key))));
+        aggregation.forEach((key, value) -> assertEquals(value, SetUtils.toSet(Permissions.aggregates(key))));
     }
 
     @Test
@@ -246,7 +246,7 @@ public class PermissionsTest {
         Set<Long> expected = new HashSet<>(Permissions.PERMISSION_NAMES.keySet());
         expected.removeAll(List.of(Permissions.ALL, Permissions.WRITE, Permissions.READ, Permissions.SET_PROPERTY, Permissions.REMOVE));
 
-        assertEquals(expected, CollectionUtils.toSet(aggregates));
+        assertEquals(expected, SetUtils.toSet(aggregates));
     }
 
     @Test

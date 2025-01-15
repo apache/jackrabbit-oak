@@ -19,15 +19,12 @@ package org.apache.jackrabbit.oak.commons;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.junit.Assert;
 import org.junit.Test;
-
-import static java.util.stream.Collectors.toSet;
 
 /**
  * Test the PathUtils class.
@@ -521,26 +518,26 @@ public class PathUtilsTest extends TestCase {
     }
 
     public void testOptimizeForIncludes() throws Exception{
-        Set<String> includes = CollectionUtils.toSet("/a", "/a/b");
+        Set<String> includes = SetUtils.toSet("/a", "/a/b");
         Set<String> excludes = new HashSet<>(Set.of("/a/b"));
         PathUtils.unifyInExcludes(includes, excludes);
         assertEquals("Excludes supercedes include", Set.of("/a"), includes);
         assertEquals(Set.of("/a/b"), excludes);
 
-        includes = CollectionUtils.toSet("/a", "/a/b/c");
+        includes = SetUtils.toSet("/a", "/a/b/c");
         excludes = new HashSet<>(Set.of("/a/b"));
         PathUtils.unifyInExcludes(includes, excludes);
         assertEquals("Excludes supercedes include", Set.of("/a"), includes);
         assertEquals(Set.of("/a/b"), excludes);
 
-        includes = CollectionUtils.toSet("/a", "/a/b/c");
+        includes = SetUtils.toSet("/a", "/a/b/c");
         excludes = new HashSet<>();
         PathUtils.unifyInExcludes(includes, excludes);
         assertEquals(Set.of("/a"), includes);
     }
 
     public void testOptimizeForExcludes() throws Exception{
-        Set<String> includes = CollectionUtils.toSet("/a", "/b");
+        Set<String> includes = SetUtils.toSet("/a", "/b");
         Set<String> excludes = new HashSet<>(Set.of("/c"));
         PathUtils.unifyInExcludes(includes, excludes);
         assertEquals(Set.of("/a", "/b"), includes);

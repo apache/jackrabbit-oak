@@ -42,7 +42,7 @@ import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnWriteDirectory;
@@ -104,7 +104,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private final boolean prefetchEnabled;
     private volatile boolean closed;
     private final IndexRootDirectory indexRootDirectory;
-    private final Set<String> validatedIndexPaths = CollectionUtils.newConcurrentHashSet();
+    private final Set<String> validatedIndexPaths = SetUtils.newConcurrentHashSet();
     private final IndexSanityChecker.IndexSanityStatistics indexSanityStatistics = new IndexSanityChecker.IndexSanityStatistics();
 
     public IndexCopier(Executor executor, File indexRootDir) throws IOException {

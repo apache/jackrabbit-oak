@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -439,7 +439,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         root.commit();
 
         Tree tree = root.getTree(SUPPORTED_PATH);
-        Set<String> mixins = CollectionUtils.toSet(TreeUtil.getNames(tree, NodeTypeConstants.JCR_MIXINTYPES));
+        Set<String> mixins = SetUtils.toSet(TreeUtil.getNames(tree, NodeTypeConstants.JCR_MIXINTYPES));
         mixins.remove(MIX_REP_CUG_MIXIN);
         tree.setProperty(JcrConstants.JCR_MIXINTYPES, mixins, NAMES);
 
@@ -583,7 +583,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         AccessControlPolicy[] testgroupEffective = cugAccessControlManager.getEffectivePolicies(Set.of(getTestGroupPrincipal()));
         assertEquals(2, testgroupEffective.length);
 
-        assertTrue(CollectionUtils.intersection(Set.of(everyoneEffective), Set.of(testgroupEffective)).isEmpty());
+        assertTrue(SetUtils.intersection(Set.of(everyoneEffective), Set.of(testgroupEffective)).isEmpty());
     }
 
     @Test

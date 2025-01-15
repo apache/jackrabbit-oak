@@ -24,6 +24,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
@@ -286,7 +287,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     @NotNull
     private Set<String> updateMembers(boolean isRemove, @NotNull String... memberIds) throws RepositoryException {
-        Set<String> failedIds = CollectionUtils.toSet(memberIds);
+        Set<String> failedIds = SetUtils.toSet(memberIds);
         int importBehavior = UserUtil.getImportBehavior(getUserManager().getConfig());
 
         DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();

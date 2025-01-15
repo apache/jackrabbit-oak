@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -566,7 +566,7 @@ public class NodeStoreTest extends OakBaseTest {
             cps.add(store.checkpoint(TimeUnit.HOURS.toMillis(1), info));
         }
         assertEquals(numCps, cps.size());
-        assertEquals(cps, CollectionUtils.toSet(store.checkpoints()));
+        assertEquals(cps, SetUtils.toSet(store.checkpoints()));
         Set<String> keys = new HashSet<>();
         for (String cp : cps) {
             info = store.checkpointInfo(cp);

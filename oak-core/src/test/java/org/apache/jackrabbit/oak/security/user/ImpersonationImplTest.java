@@ -32,7 +32,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
@@ -172,7 +172,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         assertNotNull(property);
 
         Set<String> expected = Set.of(impersonator.getPrincipal().getName(), principal2.getName());
-        assertEquals(expected, CollectionUtils.toSet(property.getValue(Type.STRINGS)));
+        assertEquals(expected, SetUtils.toSet(property.getValue(Type.STRINGS)));
 
         impersonation.revokeImpersonation(impersonator.getPrincipal());
 
@@ -180,7 +180,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         assertNotNull(property);
 
         expected = Set.of(principal2.getName());
-        assertEquals(expected, CollectionUtils.toSet(property.getValue(Type.STRINGS)));
+        assertEquals(expected, SetUtils.toSet(property.getValue(Type.STRINGS)));
 
         impersonation.revokeImpersonation(principal2);
         assertNull(tree.getProperty(UserConstants.REP_IMPERSONATORS));

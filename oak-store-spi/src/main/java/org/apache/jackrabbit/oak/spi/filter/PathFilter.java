@@ -27,7 +27,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
@@ -125,8 +125,8 @@ public class PathFilter {
     public PathFilter(@NotNull Iterable<String> includes, @NotNull Iterable<String> excludes) {
         checkPathsAreAbsolute(includes, "included");
         checkPathsAreAbsolute(excludes, "excluded");
-        Set<String> includeCopy = CollectionUtils.toSet(includes);
-        Set<String> excludeCopy = CollectionUtils.toSet(excludes);
+        Set<String> includeCopy = SetUtils.toSet(includes);
+        Set<String> excludeCopy = SetUtils.toSet(excludes);
         PathUtils.unifyInExcludes(includeCopy, excludeCopy);
         Validate.checkState(!includeCopy.isEmpty(), "No valid include provided. Includes %s, " +
                 "Excludes %s", includes, excludes);

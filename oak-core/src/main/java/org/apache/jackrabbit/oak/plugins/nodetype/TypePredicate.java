@@ -24,7 +24,7 @@ import java.util.function.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -115,7 +115,7 @@ public class TypePredicate implements Predicate<NodeState> {
 
     private static Set<String> add(Set<String> names, String name) {
         if (names == null) {
-            return CollectionUtils.toSet(name);
+            return SetUtils.toSet(name);
         } else {
             names.add(name);
             return names;

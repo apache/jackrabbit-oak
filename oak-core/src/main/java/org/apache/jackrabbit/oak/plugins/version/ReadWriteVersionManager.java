@@ -34,8 +34,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
@@ -455,7 +455,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 throw new IllegalStateException("Missing " + JCR_SUCCESSORS +
                         " property on " + predecessor);
             }
-            Set<String> refs = CollectionUtils.toSet(state.getValue(Type.REFERENCES));
+            Set<String> refs = SetUtils.toSet(state.getValue(Type.REFERENCES));
             refs.add(versionUUID);
             predecessor.setProperty(JCR_SUCCESSORS, refs, Type.REFERENCES);
         }

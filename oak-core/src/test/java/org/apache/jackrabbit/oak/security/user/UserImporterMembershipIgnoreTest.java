@@ -26,8 +26,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
@@ -136,7 +136,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(Set.of(unknownContentId, knownMemberContentId), CollectionUtils.toSet(members.getValue(Type.STRINGS)));
+        assertEquals(Set.of(unknownContentId, knownMemberContentId), SetUtils.toSet(members.getValue(Type.STRINGS)));
     }
 
     @Test
@@ -151,7 +151,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(Set.of(contentId), CollectionUtils.toSet(members.getValue(Type.STRINGS)));
+        assertEquals(Set.of(contentId), SetUtils.toSet(members.getValue(Type.STRINGS)));
     }
 
     @Test

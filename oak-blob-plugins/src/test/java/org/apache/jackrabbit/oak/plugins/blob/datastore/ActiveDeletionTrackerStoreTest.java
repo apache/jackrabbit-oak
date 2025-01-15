@@ -31,8 +31,8 @@ import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.ActiveDeletionTracker;
 import org.junit.After;
@@ -109,7 +109,7 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilter = create(range(7, 10), folder);
         Iterator<String> filtered = tracker.filter(toFilter);
 
-        assertEquals("incorrect elements after filtering", CollectionUtils.toSet(range(7, 10)), CollectionUtils.toSet(filtered));
+        assertEquals("incorrect elements after filtering", SetUtils.toSet(range(7, 10)), SetUtils.toSet(filtered));
     }
 
     @Test

@@ -28,7 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,8 +109,8 @@ public class ConfigurationParametersTest {
         dict.put("a", "b");
 
         ConfigurationParameters cp = ConfigurationParameters.of(dict);
-        assertEquals(CollectionUtils.toSet(Iterators.forEnumeration(dict.keys())), Set.copyOf(cp.keySet()));
-        assertEquals(CollectionUtils.toSet(Iterators.forEnumeration(dict.elements())), Set.copyOf(cp.values()));
+        assertEquals(SetUtils.toSet(Iterators.forEnumeration(dict.keys())), Set.copyOf(cp.keySet()));
+        assertEquals(SetUtils.toSet(Iterators.forEnumeration(dict.elements())), Set.copyOf(cp.values()));
 
     }
 
@@ -463,10 +463,10 @@ public class ConfigurationParametersTest {
     @Test
     public void testConversionToStringArray() {
         String[] stringArray = new String[] {"a", "b"};
-        Set<String> stringSet = CollectionUtils.toSet(stringArray);
+        Set<String> stringSet = SetUtils.toSet(stringArray);
 
         TestObject[] testObjectArray = new TestObject[] {new TestObject("a"), new TestObject("b")};
-        Set<TestObject> testObjectSet = CollectionUtils.toSet(testObjectArray);
+        Set<TestObject> testObjectSet = SetUtils.toSet(testObjectArray);
 
         String[] defaultStrings = new String[]{"abc", "def", "ghi"};
 

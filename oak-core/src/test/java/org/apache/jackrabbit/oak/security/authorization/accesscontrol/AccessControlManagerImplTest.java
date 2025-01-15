@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
@@ -1169,15 +1169,15 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(NT_REP_GRANT_ACE, TreeUtil.getPrimaryTypeName(ace));
         assertEquals(testPrincipal.getName(), TreeUtil.getString(ace, REP_PRINCIPAL_NAME));
         assertEquals(
-                CollectionUtils.toSet(testPrivileges),
-                CollectionUtils.toSet(privilegesFromNames(TreeUtil.getStrings(ace, REP_PRIVILEGES))));
+                SetUtils.toSet(testPrivileges),
+                SetUtils.toSet(privilegesFromNames(TreeUtil.getStrings(ace, REP_PRIVILEGES))));
         assertFalse(ace.hasChild(REP_RESTRICTIONS));
 
         Tree ace2 = children.next();
         assertEquals(NT_REP_DENY_ACE, TreeUtil.getPrimaryTypeName(ace2));
         assertEquals(EveryonePrincipal.NAME, requireNonNull(ace2.getProperty(REP_PRINCIPAL_NAME)).getValue(Type.STRING));
         Privilege[] privs = privilegesFromNames(TreeUtil.getNames(ace2, REP_PRIVILEGES));
-        assertEquals(CollectionUtils.toSet(testPrivileges), CollectionUtils.toSet(privs));
+        assertEquals(SetUtils.toSet(testPrivileges), SetUtils.toSet(privs));
         assertTrue(ace2.hasChild(REP_RESTRICTIONS));
         Tree restr = ace2.getChild(REP_RESTRICTIONS);
         assertEquals("*/something", requireNonNull(restr.getProperty(REP_GLOB)).getValue(Type.STRING));
@@ -1370,7 +1370,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         root.commit();
 
         assertEquals(Set.of(JcrConstants.MIX_LOCKABLE, MIX_REP_ACCESS_CONTROLLABLE),
-                CollectionUtils.toSet(TreeUtil.getNames(root.getTree(testPath), JcrConstants.JCR_MIXINTYPES)));
+                SetUtils.toSet(TreeUtil.getNames(root.getTree(testPath), JcrConstants.JCR_MIXINTYPES)));
     }
 
     //--------------------------< removePolicy(String, AccessControlPolicy) >---

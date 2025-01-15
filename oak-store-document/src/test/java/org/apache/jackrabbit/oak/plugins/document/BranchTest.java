@@ -22,7 +22,7 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -465,6 +465,6 @@ public class BranchTest {
         for (String p : expected) {
             expectedSet.add(Path.fromString(p));
         }
-        assertEquals(expectedSet, CollectionUtils.toSet(actual));
+        assertEquals(expectedSet, SetUtils.toSet(actual));
     }
 }

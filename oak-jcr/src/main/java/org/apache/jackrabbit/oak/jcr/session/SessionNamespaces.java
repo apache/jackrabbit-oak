@@ -28,7 +28,7 @@ import javax.jcr.NamespaceException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.util.XMLChar;
 import org.jetbrains.annotations.NotNull;
@@ -108,7 +108,7 @@ public class SessionNamespaces extends LocalNameMapper {
             return toArray(global, String.class);
         }
 
-        Set<String> prefixes = CollectionUtils.toSet(global);
+        Set<String> prefixes = SetUtils.toSet(global);
 
         // remove the prefixes of the namespaces that have been remapped
         for (String uri : local.values()) {

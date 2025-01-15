@@ -29,7 +29,7 @@ import com.microsoft.azure.storage.StorageException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -127,7 +127,7 @@ public class SplitPersistenceBlobTest {
         throws IOException, CommitFailedException {
         String blobId = createLoad(split, splitFileStore).getContentIdentity();
 
-        assertReferences(2, CollectionUtils.toSet(baseBlobId, blobId));
+        assertReferences(2, SetUtils.toSet(baseBlobId, blobId));
     }
 
     private static Blob createBlob(NodeStore nodeStore, int size) throws IOException {

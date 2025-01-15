@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.segment.tool.check;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -229,7 +229,7 @@ public class CheckHelper {
         Set<String> checkpoints = requestedCheckpoints;
 
         if (requestedCheckpoints.contains("all")) {
-            checkpoints = CollectionUtils.toLinkedSet(SegmentNodeStoreBuilders.builder(store).build().checkpoints());
+            checkpoints = SetUtils.toLinkedSet(SegmentNodeStoreBuilders.builder(store).build().checkpoints());
         }
 
         ConsistencyChecker.ConsistencyCheckResult result = newConsistencyChecker().checkConsistency(

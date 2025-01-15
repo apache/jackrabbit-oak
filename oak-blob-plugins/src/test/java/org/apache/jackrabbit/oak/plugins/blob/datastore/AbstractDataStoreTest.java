@@ -36,7 +36,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.core.data.RandomInputStream;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -420,7 +420,7 @@ public abstract class AbstractDataStoreTest {
         rec = ds.addRecord(new ByteArrayInputStream(data));
         list.add(rec.getIdentifier());
 
-        for (DataIdentifier dataIdentifier : CollectionUtils.toSet(ds.getAllIdentifiers())) {
+        for (DataIdentifier dataIdentifier : SetUtils.toSet(ds.getAllIdentifiers())) {
             assertTrue("record found on list", list.remove(dataIdentifier));
         }
         Assert.assertEquals(0, list.size());

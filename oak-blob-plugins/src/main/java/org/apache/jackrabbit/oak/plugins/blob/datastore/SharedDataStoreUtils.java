@@ -25,7 +25,7 @@ import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
@@ -72,7 +72,7 @@ public class SharedDataStoreUtils {
      */
     public static Set<String> refsNotAvailableFromRepos(List<DataRecord> repos,
             List<DataRecord> refs) {
-        return CollectionUtils.difference(FluentIterable.from(repos)
+        return SetUtils.difference(FluentIterable.from(repos)
                 .uniqueIndex(input -> SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString())).keySet(),
                 FluentIterable.from(refs)
                         .index(input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString())).keySet());

@@ -21,9 +21,9 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
@@ -222,7 +222,7 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
         // test-session can read-ac at readable path and at principal-based policy
         try (ContentSession cs = Java23Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
             PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
-            Set<AccessControlPolicy> effective = CollectionUtils.toSet(testAcMgr.getEffectivePolicies(path));
+            Set<AccessControlPolicy> effective = SetUtils.toSet(testAcMgr.getEffectivePolicies(path));
 
             assertEquals(2, effective.size());
             assertTrue(effective.remove(ReadPolicy.INSTANCE));

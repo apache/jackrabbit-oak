@@ -30,7 +30,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Segment;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -67,7 +67,7 @@ public class TarNodeTest {
         Backend backend = mock(Backend.class);
         when(backend.getSegmentIds("t")).thenReturn(names);
 
-        assertEquals(names, CollectionUtils.toSet(new TarNode(backend, "t").getChildNodeNames()));
+        assertEquals(names, SetUtils.toSet(new TarNode(backend, "t").getChildNodeNames()));
     }
 
     @Test

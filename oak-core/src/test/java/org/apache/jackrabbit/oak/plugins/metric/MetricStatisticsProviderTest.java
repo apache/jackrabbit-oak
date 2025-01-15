@@ -39,7 +39,7 @@ import javax.management.QueryExp;
 import com.codahale.metrics.JmxReporter;
 import org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -177,7 +177,7 @@ public class MetricStatisticsProviderTest {
         }
 
         //Assert that we get same reference for every call
-        Set<MeterStats> statsSet = CollectionUtils.newIdentityHashSet();
+        Set<MeterStats> statsSet = SetUtils.newIdentityHashSet();
 
         for (MeterStats m : statsQueue){
             statsSet.add(m);

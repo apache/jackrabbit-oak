@@ -22,7 +22,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
@@ -117,7 +117,7 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
         assertNotNull(extPrincipalNames);
 
         // the resulting rep:externalPrincipalNames must contain the name of the principal
-        Set<String> pNames = CollectionUtils.toSet(extPrincipalNames.getValue(Type.STRINGS));
+        Set<String> pNames = SetUtils.toSet(extPrincipalNames.getValue(Type.STRINGS));
         assertTrue(pNames + " must contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
     }
 

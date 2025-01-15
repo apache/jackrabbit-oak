@@ -79,7 +79,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -378,7 +378,7 @@ public class NodeDelegate extends ItemDelegate {
 
     public void removeMixin(String typeName) throws RepositoryException {
         Tree tree = getTree();
-        Set<String> mixins = CollectionUtils.toLinkedSet(getNames(tree, JCR_MIXINTYPES));
+        Set<String> mixins = SetUtils.toLinkedSet(getNames(tree, JCR_MIXINTYPES));
         if (!mixins.remove(typeName)) {
             throw new NoSuchNodeTypeException("Mixin " + typeName +" not contained in " + getPath());
         }
@@ -386,7 +386,7 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public void setMixins(Set<String> mixinNames) throws RepositoryException {
-        Set<String> existingMixins = CollectionUtils.toLinkedSet(getNames(tree, JCR_MIXINTYPES));
+        Set<String> existingMixins = SetUtils.toLinkedSet(getNames(tree, JCR_MIXINTYPES));
         if (existingMixins.isEmpty()) {
             updateMixins(mixinNames, Collections.<String>emptySet());
         } else {
@@ -409,7 +409,7 @@ public class NodeDelegate extends ItemDelegate {
 
         if (!removedOakMixinNames.isEmpty()) {
             // 2. retrieve the updated set of mixin types, remove the mixins that should no longer be present
-            Set<String> mixinNames = CollectionUtils.toLinkedSet(getNames(getTree(), JCR_MIXINTYPES));
+            Set<String> mixinNames = SetUtils.toLinkedSet(getNames(getTree(), JCR_MIXINTYPES));
             if (mixinNames.removeAll(removedOakMixinNames)) {
                 // FIXME: add mixins to add again as the removal may change the effect of type inheritance as evaluated during #addMixin
                 mixinNames.addAll(addMixinNames);

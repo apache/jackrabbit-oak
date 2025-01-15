@@ -49,7 +49,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorServi
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexFile;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -643,11 +643,11 @@ public class IndexCopierTest {
         Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
                 IndexCopier.COWDirectoryTracker.NOOP);
 
-        assertEquals(Set.of("t1"), CollectionUtils.toSet(local.listAll()));
+        assertEquals(Set.of("t1"), SetUtils.toSet(local.listAll()));
         assertEquals(t1.length, local.fileLength("t1"));
 
         byte[] t2 = writeFile(local, "t2");
-        assertEquals(Set.of("t1", "t2"), CollectionUtils.toSet(local.listAll()));
+        assertEquals(Set.of("t1", "t2"), SetUtils.toSet(local.listAll()));
         assertEquals(t2.length, local.fileLength("t2"));
 
         assertTrue(local.fileExists("t1"));
@@ -659,10 +659,10 @@ public class IndexCopierTest {
         readAndAssert(local, "t2", t2);
 
         local.deleteFile("t1");
-        assertEquals(Set.of("t2"), CollectionUtils.toSet(local.listAll()));
+        assertEquals(Set.of("t2"), SetUtils.toSet(local.listAll()));
 
         local.deleteFile("t2");
-        assertEquals(Set.of(), CollectionUtils.toSet(local.listAll()));
+        assertEquals(Set.of(), SetUtils.toSet(local.listAll()));
 
 
         try {
@@ -700,7 +700,7 @@ public class IndexCopierTest {
         byte[] t2 = writeFile(remote, "t2");
         Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
                 IndexCopier.COWDirectoryTracker.NOOP);
-        assertEquals(Set.of("t1", "t2"), CollectionUtils.toSet(local.listAll()));
+        assertEquals(Set.of("t1", "t2"), SetUtils.toSet(local.listAll()));
 
         byte[] t3 = writeFile(local, "t3");
 

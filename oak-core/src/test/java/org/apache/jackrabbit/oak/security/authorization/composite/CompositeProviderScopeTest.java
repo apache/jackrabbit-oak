@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,7 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -287,7 +286,7 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
             String[] actions = defActionsGranted.get(p);
 
             if (testProvider.isSupported(p)) {
-                Set<String> expected = CollectionUtils.toSet(actions);
+                Set<String> expected = SetUtils.toSet(actions);
                 expected.removeAll(denied);
 
                 boolean canSetProperty = TreeLocation.create(readOnlyRoot, p).getProperty() != null;

@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -121,7 +121,7 @@ public class UserImporterImpersonationIgnoreTest extends UserImporterBaseTest {
 
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         assertNotNull(impersonators);
-        assertEquals(Set.of("impersonator1", testUser.getPrincipal().getName()), CollectionUtils.toSet(impersonators.getValue(Type.STRINGS)));
+        assertEquals(Set.of("impersonator1", testUser.getPrincipal().getName()), SetUtils.toSet(impersonators.getValue(Type.STRINGS)));
     }
 
     @Test
