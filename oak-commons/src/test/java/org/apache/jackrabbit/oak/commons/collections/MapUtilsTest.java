@@ -32,7 +32,6 @@ import java.util.function.Predicate;
  * <p>
  * This class contains test cases to verify the functionality of the methods
  * in the {@link MapUtils} class.
- * </p>
  */
 public class MapUtilsTest {
 
