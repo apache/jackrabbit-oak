@@ -63,8 +63,8 @@ import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -459,7 +459,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
 
-        Set<String> documentsToRead = CollectionUtils.difference(keys, documents.keySet());
+        Set<String> documentsToRead = SetUtils.difference(keys, documents.keySet());
         Map<String, T> readDocuments = readDocumentsUncached(collection, documentsToRead);
         documents.putAll(readDocuments);
 
@@ -532,7 +532,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
         oldDocs.putAll(freshDocs);
 
-        try (CacheChangesTracker tracker = obtainTracker(collection, CollectionUtils.union(oldDocs.keySet(), missingDocs) )) {
+        try (CacheChangesTracker tracker = obtainTracker(collection, SetUtils.union(oldDocs.keySet(), missingDocs) )) {
             List<T> docsToUpdate = new ArrayList<T>(updates.size());
             Set<String> keysToUpdate = new HashSet<String>();
             for (UpdateOp update : updates) {
@@ -557,7 +557,7 @@ public class RDBDocumentStore implements DocumentStore {
                 Set<String> successfulUpdates = db.update(connection, tmd, docsToUpdate, upsert);
                 connection.commit();
 
-                Set<String> failedUpdates = CollectionUtils.difference(keysToUpdate, successfulUpdates);
+                Set<String> failedUpdates = SetUtils.difference(keysToUpdate, successfulUpdates);
                 oldDocs.keySet().removeAll(failedUpdates);
 
                 if (LOG.isTraceEnabled()) {
@@ -1831,7 +1831,7 @@ public class RDBDocumentStore implements DocumentStore {
             final List<String> excludeKeyPatterns, final List<QueryCondition> conditions, final int limit, final String sortBy) {
 
         final RDBTableMetaData tmd = getTable(collection);
-        Set<String> allowedProps = CollectionUtils.intersection(INDEXEDPROPERTIES, tmd.getColumnProperties());
+        Set<String> allowedProps = SetUtils.intersection(INDEXEDPROPERTIES, tmd.getColumnProperties());
         for (QueryCondition cond : conditions) {
             if (!allowedProps.contains(cond.getPropertyName())) {
                 String message = "indexed property " + cond.getPropertyName() + " not supported, query was '" + cond

@@ -61,7 +61,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.AsyncIndexStats;
@@ -116,7 +116,7 @@ public class AsyncIndexUpdateTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value) {
-        return CollectionUtils.toSet(lookup.query(FilterImpl.newTestInstance(), name,
+        return SetUtils.toSet(lookup.query(FilterImpl.newTestInstance(), name,
                 PropertyValues.newString(value)));
     }
 
@@ -879,7 +879,7 @@ public class AsyncIndexUpdateTest {
                 mns.listCheckpoints().size() == 1);
         assertTrue(
                 "Expecting one temp checkpoint",
-                CollectionUtils.toSet(
+                SetUtils.toSet(
                         store.getRoot().getChildNode(ASYNC)
                                 .getStrings("async-temp")).size() == 1);
 
@@ -892,7 +892,7 @@ public class AsyncIndexUpdateTest {
                 mns.listCheckpoints().size() == 2);
         assertTrue(
                 "Expecting two temp checkpoints",
-                CollectionUtils.toSet(
+                SetUtils.toSet(
                         store.getRoot().getChildNode(ASYNC)
                                 .getStrings("async-temp")).size() == 2);
 
@@ -1222,7 +1222,7 @@ public class AsyncIndexUpdateTest {
                 ASYNC);
         assertEquals(firstCp, asyncNode.getString("async-slow"));
         assertEquals(secondCp, asyncNode.getString("async"));
-        assertFalse(CollectionUtils.toSet(asyncNode.getStrings("async-temp")).contains(
+        assertFalse(SetUtils.toSet(asyncNode.getStrings("async-temp")).contains(
                 firstCp));
 
         NodeState indexNode = store.getRoot().getChildNode(

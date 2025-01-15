@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -229,7 +229,7 @@ public class CommitQueueTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                queue.suspendUntilAll(CollectionUtils.union(Set.of(newHeadRev), revisions));
+                queue.suspendUntilAll(SetUtils.union(Set.of(newHeadRev), revisions));
             }
         });
         t.start();

@@ -57,7 +57,7 @@ import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
@@ -156,7 +156,7 @@ abstract public class OakDirectoryTestBase {
         dir.close();
 
         dir = createDir(builder, true, "/foo");
-        assertEquals(fileNames, CollectionUtils.toSet(dir.listAll()));
+        assertEquals(fileNames, SetUtils.toSet(dir.listAll()));
     }
 
     @Test
@@ -172,7 +172,7 @@ abstract public class OakDirectoryTestBase {
         dir.close();
 
         dir = createDir(new ReadOnlyBuilder(builder.getNodeState()), false, "/foo");
-        Set<String> files =  CollectionUtils.toSet(dir.listAll());
+        Set<String> files =  SetUtils.toSet(dir.listAll());
         dir.close();
         assertEquals(fileNames, files);
     }

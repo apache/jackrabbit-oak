@@ -55,8 +55,8 @@ import javax.swing.tree.DefaultTreeModel;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -413,7 +413,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             }
         }
 
-        Set<UUID> inMem = CollectionUtils.intersection(backend.getReferencedSegmentIds(), uuids);
+        Set<UUID> inMem = SetUtils.intersection(backend.getReferencedSegmentIds(), uuids);
         if (!inMem.isEmpty()) {
             sb.append("In Memory segment references: ");
             sb.append(newline);

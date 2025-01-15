@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -57,7 +57,7 @@ class NameValidator extends DefaultValidator {
 
     NameValidator(NodeState namespaces, boolean initPhase) {
         this.namespaces = namespaces;
-        this.prefixes = CollectionUtils.toSet(namespaces.getChildNode(REP_NSDATA).getStrings(REP_PREFIXES));
+        this.prefixes = SetUtils.toSet(namespaces.getChildNode(REP_NSDATA).getStrings(REP_PREFIXES));
         this.initPhase = initPhase;
     }
 
@@ -117,7 +117,7 @@ class NameValidator extends DefaultValidator {
     private void checkPrefix(String prefix) throws CommitFailedException {
         if (prefix.isEmpty() || !contains(prefixes, namespaces, prefix)) {
             String msg = "Invalid namespace prefix(" + prefixes + "): " + prefix +
-                    " in " + namespaces + " " + CollectionUtils.toSet(namespaces.getChildNodeNames());
+                    " in " + namespaces + " " + SetUtils.toSet(namespaces.getChildNodeNames());
             if (initPhase && !strictInitialNSChecks) {
                 LOG.warn(msg);
                 return;

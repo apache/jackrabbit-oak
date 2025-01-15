@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Record;
 import org.junit.Test;
@@ -62,7 +62,7 @@ public class RecordsNodeTest {
             .map(Object::toString)
             .collect(toSet());
 
-        assertEquals(names, CollectionUtils.toSet(new RecordsNode(backend, "s").getChildNodeNames()));
+        assertEquals(names, SetUtils.toSet(new RecordsNode(backend, "s").getChildNodeNames()));
     }
 
     private static Record newRecord(Integer number) {

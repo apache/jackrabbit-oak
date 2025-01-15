@@ -36,8 +36,8 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
@@ -181,7 +181,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
 
         Set<String> expected = Set.of("d-10","d-20");
         Iterator<String> chunks = ds.getAllChunkIds(25);
-        assertEquals(expected, CollectionUtils.toSet(chunks));
+        assertEquals(expected, SetUtils.toSet(chunks));
     }
 
     @Test

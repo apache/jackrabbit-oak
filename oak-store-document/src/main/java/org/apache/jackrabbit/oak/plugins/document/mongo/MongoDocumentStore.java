@@ -63,6 +63,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -1386,7 +1387,7 @@ public class MongoDocumentStore implements DocumentStore {
     private <T extends Document> Map<UpdateOp, T> bulkModify(final Collection<T> collection, final List<UpdateOp> updateOps,
                                                              final Map<String, T> oldDocs) {
         Map<String, UpdateOp> bulkOperations = createMap(updateOps);
-        Set<String> lackingDocs = CollectionUtils.difference(bulkOperations.keySet(), oldDocs.keySet());
+        Set<String> lackingDocs = SetUtils.difference(bulkOperations.keySet(), oldDocs.keySet());
         oldDocs.putAll(findDocuments(collection, lackingDocs));
 
         CacheChangesTracker tracker = null;
@@ -1396,7 +1397,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         try {
             final BulkRequestResult bulkResult = sendBulkRequest(collection, bulkOperations.values(), oldDocs, false);
-            final Set<String> potentiallyUpdatedDocsSet = CollectionUtils.difference(bulkOperations.keySet(), bulkResult.failedUpdates);
+            final Set<String> potentiallyUpdatedDocsSet = SetUtils.difference(bulkOperations.keySet(), bulkResult.failedUpdates);
 
             final Map<String, T> updatedDocsMap = new HashMap<>(potentiallyUpdatedDocsSet.size());
 
@@ -1474,7 +1475,7 @@ public class MongoDocumentStore implements DocumentStore {
                                                              List<UpdateOp> updateOperations,
                                                              Map<String, T> oldDocs) {
         Map<String, UpdateOp> bulkOperations = createMap(updateOperations);
-        Set<String> lackingDocs = CollectionUtils.difference(bulkOperations.keySet(), oldDocs.keySet());
+        Set<String> lackingDocs = SetUtils.difference(bulkOperations.keySet(), oldDocs.keySet());
         oldDocs.putAll(findDocuments(collection, lackingDocs));
 
         CacheChangesTracker tracker = null;
@@ -1493,7 +1494,7 @@ public class MongoDocumentStore implements DocumentStore {
                     docsToCache.add(doc);
                 }
 
-                for (String key : CollectionUtils.difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
+                for (String key : SetUtils.difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
                     T oldDoc = oldDocs.get(key);
                     if (oldDoc != null && oldDoc != NodeDocument.NULL) {
                         NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));

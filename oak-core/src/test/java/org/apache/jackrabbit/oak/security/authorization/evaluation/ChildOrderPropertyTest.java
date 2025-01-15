@@ -29,7 +29,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
@@ -64,7 +64,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
     @Test
     public void testGetProperties() {
-        Set<String> propertyNames = CollectionUtils.toSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
+        Set<String> propertyNames = SetUtils.toSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
 
         Tree a = root.getTree("/a");
         for (PropertyState prop : a.getProperties()) {

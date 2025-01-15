@@ -26,8 +26,8 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.security.user.AbstractUserTest;
@@ -145,7 +145,7 @@ public class UserQueryManagerTest extends AbstractUserTest {
                 assertFalse(result.hasNext());
                 break;
             default:
-                assertEquals(Set.of(expected), CollectionUtils.toSet(result));
+                assertEquals(Set.of(expected), SetUtils.toSet(result));
         }
     }
 

@@ -81,8 +81,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -549,7 +549,7 @@ public final class DocumentNodeStore
      * reverts changes done by commits in the set that are older than the
      * current head revision.
      */
-    private final Set<Revision> inDoubtTrunkCommits = CollectionUtils.newConcurrentHashSet();
+    private final Set<Revision> inDoubtTrunkCommits = SetUtils.newConcurrentHashSet();
 
     /**
      * Contains journal entry revisions (branch commit style) that were created
@@ -558,7 +558,7 @@ public final class DocumentNodeStore
      * upon each backgroundWrite. It is used to avoid duplicate journal entries
      * that would otherwise be created as a result of merge (normal plus exclusive) retries
      */
-    private final Set<String> pendingRollbackInvalidations = CollectionUtils.newConcurrentHashSet();
+    private final Set<String> pendingRollbackInvalidations = SetUtils.newConcurrentHashSet();
 
     private final Predicate<Path> nodeCachePredicate;
 
@@ -2245,7 +2245,7 @@ public final class DocumentNodeStore
             return null;
         }
         // make sure all changes up to checkpoint are visible
-        suspendUntilAll(CollectionUtils.toSet(rv));
+        suspendUntilAll(SetUtils.toSet(rv));
         return getRoot(rv);
     }
 
@@ -4029,7 +4029,7 @@ public final class DocumentNodeStore
         
         // otherwise wait until the visibility token's revisions all become visible
         // (or maxWaitMillis has passed)
-        commitQueue.suspendUntilAll(CollectionUtils.toSet(visibilityTokenRv), maxWaitMillis);
+        commitQueue.suspendUntilAll(SetUtils.toSet(visibilityTokenRv), maxWaitMillis);
         
         // if we got interrupted above would throw InterruptedException
         // otherwise, we don't know why suspendUntilAll returned, so

@@ -26,7 +26,7 @@ import java.util.Set;
 import javax.management.openmbean.TabularData;
 
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -59,13 +59,13 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
 
         checkpointMBean.createCheckpoint(100);
         Set<String> afterCheckpointBlobs = createBlobs(cluster.blobStore, 2, 100);
-        Set<String> present = CollectionUtils.union(cluster.blobStoreState.blobsPresent, afterCheckpointBlobs);
+        Set<String> present = SetUtils.union(cluster.blobStoreState.blobsPresent, afterCheckpointBlobs);
         long maxGcAge = checkpointMBean.getOldestCheckpointCreationTimestamp() - afterSetupTime;
 
         log.info("{} blobs remaining : {}", present.size(), present);
 
         Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
-        assertTrue(CollectionUtils.symmetricDifference(present, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(present, existingAfterGC).isEmpty());
     }
 
     @Test
@@ -79,7 +79,7 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
         long maxGcAge = checkpointMBean.getOldestCheckpointCreationTimestamp() - afterSetupTime;
 
         Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
-        assertTrue(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
     }
 
     @Test
@@ -100,7 +100,7 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
         log.info("Max age configured {}", maxGcAge);
 
         Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
-        assertTrue(CollectionUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
     }
 
     /**

@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
@@ -60,7 +60,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
     public void hasPrivilegesTest() throws Exception {
         Set<String> supp1 = Set.of(JCR_READ, JCR_NAMESPACE_MANAGEMENT);
         Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
-        Set<String> all = CollectionUtils.union(supp1, supp2);
+        Set<String> all = SetUtils.union(supp1, supp2);
 
         // tests all possible 256 shuffles
         for (CompositionType type : CompositionType.values()) {
@@ -85,7 +85,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
     public void isGrantedTest() throws Exception {
         Set<String> supp1 = Set.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
         Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
-        Set<String> all = CollectionUtils.union(supp1, supp2);
+        Set<String> all = SetUtils.union(supp1, supp2);
 
         Map<String, Long> grantMap = new HashMap<>();
         grantMap.put(JCR_READ, Permissions.READ);
@@ -132,7 +132,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
     public void getRepositoryPermissionTest() throws Exception {
         Set<String> supp1 = Set.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
         Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
-        Set<String> all = CollectionUtils.union(supp1, supp2);
+        Set<String> all = SetUtils.union(supp1, supp2);
 
         Map<String, Long> grantMap = new HashMap<>();
         grantMap.put(JCR_READ, Permissions.READ);
@@ -162,7 +162,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
     public void getTreePermissionTest() throws Exception {
         Set<String> supp1 = Set.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
         Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
-        Set<String> all = CollectionUtils.union(supp1, supp2);
+        Set<String> all = SetUtils.union(supp1, supp2);
 
         Map<String, Long> grantMap = new HashMap<>();
         grantMap.put(JCR_READ, Permissions.READ);
@@ -217,11 +217,11 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         if (type == CompositionType.OR) {
-            return CollectionUtils.difference(CollectionUtils.difference(check, granted1), granted2).isEmpty();
+            return SetUtils.difference(SetUtils.difference(check, granted1), granted2).isEmpty();
         } else {
-            Set<String> f1 = CollectionUtils.intersection(supported1, check);
+            Set<String> f1 = SetUtils.intersection(supported1, check);
             boolean hasf1 = granted1.containsAll(f1);
-            Set<String> f2 = CollectionUtils.intersection(supported2, check);
+            Set<String> f2 = SetUtils.intersection(supported2, check);
             boolean hasf2 = granted2.containsAll(f2);
             return hasf1 && hasf2;
         }
@@ -270,7 +270,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         @Override
         public boolean hasPrivileges(Tree tree, @NotNull String... privilegeNames) {
-            Set<String> in = CollectionUtils.toSet(privilegeNames);
+            Set<String> in = SetUtils.toSet(privilegeNames);
             return granted.containsAll(in);
         }
 

@@ -32,7 +32,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,7 +54,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
     public TestPrincipalProvider(String... principalNames) {
         this.exposesEveryone = true;
-        this.principals = CollectionUtils.toLinkedSet(Arrays.asList(principalNames))
+        this.principals = SetUtils.toLinkedSet(Arrays.asList(principalNames))
                 .stream() // using LinkedHashMap to maintain the order of LinkedSet
                 .collect(LinkedHashMap::new, (m, e)-> m.put(e, new ItemBasedPrincipal() {
                     @NotNull

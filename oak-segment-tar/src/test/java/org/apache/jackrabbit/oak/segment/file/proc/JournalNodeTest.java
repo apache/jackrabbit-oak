@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -60,7 +60,7 @@ public class JournalNodeTest {
         Backend backend = mock(Backend.class);
         when(backend.getCommitHandles()).thenReturn(names);
 
-        assertEquals(names, CollectionUtils.toSet(new JournalNode(backend).getChildNodeNames()));
+        assertEquals(names, SetUtils.toSet(new JournalNode(backend).getChildNodeNames()));
     }
 
 }

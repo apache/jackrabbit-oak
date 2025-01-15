@@ -28,7 +28,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -336,7 +336,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
       if (matched.isEmpty()){
         affectedMatchers = Collections.emptySet();
       } else {
-        affectedMatchers = CollectionUtils.newIdentityHashSet();
+        affectedMatchers = SetUtils.newIdentityHashSet();
       }
     }
 

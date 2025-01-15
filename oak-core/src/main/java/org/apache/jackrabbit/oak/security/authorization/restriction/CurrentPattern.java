@@ -20,7 +20,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -99,7 +99,7 @@ class CurrentPattern implements RestrictionPattern {
 
     CurrentPattern(@NotNull String treePath, @NotNull Iterable<String> propertyNames) {
         this.treePath = treePath;
-        this.propertyNames = CollectionUtils.toSet(propertyNames);
+        this.propertyNames = SetUtils.toSet(propertyNames);
     }
 
     @Override

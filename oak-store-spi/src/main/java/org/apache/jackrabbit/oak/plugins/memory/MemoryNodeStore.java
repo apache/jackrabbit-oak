@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -242,7 +242,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
     /** test purpose only! */
     public Set<String> listCheckpoints() {
-        return CollectionUtils.toSet(checkpoints());
+        return SetUtils.toSet(checkpoints());
     }
 
     //------------------------------------------------------------< private >---

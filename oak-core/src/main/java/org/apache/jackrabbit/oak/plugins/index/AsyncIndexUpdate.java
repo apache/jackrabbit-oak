@@ -56,7 +56,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -1448,7 +1448,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         @Override
         public void splitIndexingTask(String paths, String newIndexTaskName) {
-            splitIndexingTask(CollectionUtils.toSet(Splitter.on(",").trimResults()
+            splitIndexingTask(SetUtils.toSet(Splitter.on(",").trimResults()
                     .omitEmptyStrings().split(paths)), newIndexTaskName);
         }
 

@@ -26,7 +26,7 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,7 +48,7 @@ public final class AuthInfoImpl implements AuthInfo {
                         @Nullable Iterable<? extends Principal> principals) {
         this.userID = userID;
         this.attributes = (attributes == null) ? Collections.emptyMap() : attributes;
-        this.principals = (principals == null) ? Collections.emptySet() : Set.copyOf(CollectionUtils.toSet(principals));
+        this.principals = (principals == null) ? Collections.emptySet() : Set.copyOf(SetUtils.toSet(principals));
     }
 
     public static AuthInfo createFromSubject(@NotNull Subject subject) {

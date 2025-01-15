@@ -32,8 +32,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectionRepoStats;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -126,8 +126,8 @@ public class SharedBlobStoreGCTest {
         // Execute the gc with sweep
         cluster1.gc.collectGarbage(false);
 
-        assertTrue(CollectionUtils.symmetricDifference(
-                CollectionUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
+        assertTrue(SetUtils.symmetricDifference(
+                SetUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
                 cluster1.getExistingBlobIds()).isEmpty());
     }
 
@@ -143,8 +143,8 @@ public class SharedBlobStoreGCTest {
         // Execute the gc with sweep
         cluster1.gc.collectGarbage(false);
 
-        assertTrue(CollectionUtils.symmetricDifference(
-                CollectionUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
+        assertTrue(SetUtils.symmetricDifference(
+                SetUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
                 cluster1.getExistingBlobIds()).isEmpty());
     }
 
@@ -175,8 +175,8 @@ public class SharedBlobStoreGCTest {
             }
         }
     
-        assertTrue(CollectionUtils.difference(actualNumBlobs, observedNumBlobs).isEmpty());
-        assertTrue(CollectionUtils.difference(actualRepoIds, observedRepoIds).isEmpty());
+        assertTrue(SetUtils.difference(actualNumBlobs, observedNumBlobs).isEmpty());
+        assertTrue(SetUtils.difference(actualRepoIds, observedRepoIds).isEmpty());
     }
 
     @Test
@@ -209,8 +209,8 @@ public class SharedBlobStoreGCTest {
         // Execute the gc with sweep
         cluster2.gc.collectGarbage(false);
 
-        assertTrue(CollectionUtils.symmetricDifference(
-            CollectionUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
+        assertTrue(SetUtils.symmetricDifference(
+            SetUtils.union(cluster1.getInitBlobs(), cluster2.getInitBlobs()),
             cluster1.getExistingBlobIds()).isEmpty());
     }
 
@@ -277,7 +277,7 @@ public class SharedBlobStoreGCTest {
             }
         }
 
-        assertTrue(CollectionUtils.difference(actualRepoIds, observedRepoIds).isEmpty());
+        assertTrue(SetUtils.difference(actualRepoIds, observedRepoIds).isEmpty());
 
         // Only run the mark phase on all the nodes to get the stats
         cluster1.gc.collectGarbage(true);
@@ -302,8 +302,8 @@ public class SharedBlobStoreGCTest {
             }
         }
 
-        assertTrue(CollectionUtils.difference(actualNumBlobs, observedNumBlobs).isEmpty());
-        assertTrue(CollectionUtils.difference(actualRepoIds, observedRepoIds).isEmpty());
+        assertTrue(SetUtils.difference(actualNumBlobs, observedNumBlobs).isEmpty());
+        assertTrue(SetUtils.difference(actualRepoIds, observedRepoIds).isEmpty());
     }
 
     @After

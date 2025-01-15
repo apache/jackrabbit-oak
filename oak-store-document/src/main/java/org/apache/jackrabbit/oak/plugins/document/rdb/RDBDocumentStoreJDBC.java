@@ -47,8 +47,8 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -430,7 +430,7 @@ public class RDBDocumentStoreJDBC {
     }
 
     private static <T extends Document> void assertNoDuplicatedIds(List<T> documents) {
-        if (CollectionUtils.toSet(transform(documents, Document::getId)).size() < documents.size()) {
+        if (SetUtils.toSet(transform(documents, Document::getId)).size() < documents.size()) {
             throw new IllegalArgumentException("There are duplicated ids in the document list");
         }
     }

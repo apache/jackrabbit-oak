@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
@@ -129,7 +129,7 @@ public class MutableTreeTest extends OakBaseTest {
     public void getProperties() {
         Tree tree = root.getTree("/");
 
-        Set<PropertyState> expectedProperties = CollectionUtils.toSet(
+        Set<PropertyState> expectedProperties = SetUtils.toSet(
                 LongPropertyState.createLongProperty("a", 1L),
                 LongPropertyState.createLongProperty("b", 2L),
                 LongPropertyState.createLongProperty("c", 3L));

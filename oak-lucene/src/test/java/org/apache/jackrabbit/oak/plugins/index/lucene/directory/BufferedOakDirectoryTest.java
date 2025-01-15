@@ -27,7 +27,7 @@ import ch.qos.logback.classic.Level;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -85,7 +85,7 @@ public class BufferedOakDirectoryTest {
         base.close();
         buffered.close();
         base = createDir(builder, false);
-        assertEquals(Set.of("file"), CollectionUtils.toSet(base.listAll()));
+        assertEquals(Set.of("file"), SetUtils.toSet(base.listAll()));
         base.close();
 
         buffered = createDir(builder, true);
@@ -94,7 +94,7 @@ public class BufferedOakDirectoryTest {
 
         // must only disappear after buffered is closed
         base = createDir(builder, false);
-        assertEquals(Set.of("file"), CollectionUtils.toSet(base.listAll()));
+        assertEquals(Set.of("file"), SetUtils.toSet(base.listAll()));
         base.close();
         buffered.close();
         base = createDir(builder, false);
@@ -140,12 +140,12 @@ public class BufferedOakDirectoryTest {
                 names.add(name);
             }
         }
-        assertEquals(names, CollectionUtils.toSet(dir.listAll()));
+        assertEquals(names, SetUtils.toSet(dir.listAll()));
         dir.close();
 
         // open unbuffered and check list as well
         dir = createDir(builder, false);
-        assertEquals(names, CollectionUtils.toSet(dir.listAll()));
+        assertEquals(names, SetUtils.toSet(dir.listAll()));
         dir.close();
     }
 

@@ -23,7 +23,7 @@ import java.nio.file.Paths;
 import java.util.Set;
 import javax.inject.Inject;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
@@ -68,7 +68,7 @@ public class BackwardCompatibleMountCompositeIT extends CompositeTestSupport {
         
         NodeState root = store.getRoot();
         Set<String> expectedNodes = Set.of("content", "apps", "libs");
-        Set<String> actualNodes = CollectionUtils.toSet(root.getChildNodeNames());
+        Set<String> actualNodes = SetUtils.toSet(root.getChildNodeNames());
         assertTrue("Expected nodes " + expectedNodes + ", but was " + actualNodes, actualNodes.containsAll(expectedNodes));
 
         assertTrue("'libs' path should be mounted", root.getChildNode("libs").getChildNode("libsMount").exists());

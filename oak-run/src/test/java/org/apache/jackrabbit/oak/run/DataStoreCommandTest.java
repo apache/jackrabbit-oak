@@ -55,7 +55,7 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtil
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.MemoryBlobStoreNodeStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -566,7 +566,7 @@ public class DataStoreCommandTest {
         additionalParams += " --check-consistency-gc true";
         testGc(dump, data, 0, false, false);
 
-        assertFileEquals(dump, "avail-", CollectionUtils.difference(data.added, data.missingDataStore));
+        assertFileEquals(dump, "avail-", SetUtils.difference(data.added, data.missingDataStore));
 
         // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
         assertFileEquals(dump, "consistencyCandidatesAfterGC", data.missingDataStore);
@@ -710,7 +710,7 @@ public class DataStoreCommandTest {
 
         cmd.execute(argsList.toArray(new String[0]));
         assertFileEquals(dump, "avail-", new HashSet<>());
-        assertFileEquals(dump, "marked-", CollectionUtils.difference(data.added, data.deleted));
+        assertFileEquals(dump, "marked-", SetUtils.difference(data.added, data.deleted));
     }
 
 
@@ -733,23 +733,23 @@ public class DataStoreCommandTest {
         cmd.execute(argsList.toArray(new String[0]));
         
         if (!markOnly) {
-            assertFileEquals(dump, "avail-", CollectionUtils.difference(data.added, data.missingDataStore));
+            assertFileEquals(dump, "avail-", SetUtils.difference(data.added, data.missingDataStore));
         } else {
             assertFileNull(dump, "avail-");
         }
 
         // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
         assertFileEquals(dump, "marked-", verbose ?
-                encodedIdsAndPath(CollectionUtils.difference(verboseRootPath ? data.addedSubset :
+                encodedIdsAndPath(SetUtils.difference(verboseRootPath ? data.addedSubset :
                         data.added, data.deleted), blobFixture.getType(), data.idToPath, true) :
                 (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
-                        encodedIdsAndPath(CollectionUtils.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
-                        CollectionUtils.difference(data.added, data.deleted));
+                        encodedIdsAndPath(SetUtils.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
+                        SetUtils.difference(data.added, data.deleted));
         
         if (!markOnly) {
             // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
             assertFileEquals(dump, "gccand-", verbose ?
-                    encodedIdsAndPath(verboseRootPath ? CollectionUtils.intersection(data.addedSubset, data.missingDataStore) :
+                    encodedIdsAndPath(verboseRootPath ? SetUtils.intersection(data.addedSubset, data.missingDataStore) :
                             data.missingDataStore, blobFixture.getType(), data.idToPath, true) :
                     (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
                             encodedIdsAndPath(data.missingDataStore, blobFixture.getType(), data.idToPath, false) :
@@ -775,9 +775,9 @@ public class DataStoreCommandTest {
 
         // Verbose would have paths as well as ids changed, otherwise only ids would be listed as it is.
         assertFileEquals(dump, "dump-ref-", verbose ?
-                encodedIdsAndPath(CollectionUtils.difference(verboseRootPath ? data.addedSubset :
+                encodedIdsAndPath(SetUtils.difference(verboseRootPath ? data.addedSubset :
                         data.added, data.deleted), blobFixture.getType(), data.idToPath, true) :
-                CollectionUtils.difference(data.added, data.deleted), "dump");
+                SetUtils.difference(data.added, data.deleted), "dump");
 
     }
 
@@ -797,8 +797,8 @@ public class DataStoreCommandTest {
 
         // Verbose would have backend friendly encoded ids
         assertFileEquals(dump, "dump-id-", verbose ?
-                encodeIds(CollectionUtils.difference(data.added, data.missingDataStore), blobFixture.getType()) :
-                        CollectionUtils.difference(data.added, data.missingDataStore), "dump");
+                encodeIds(SetUtils.difference(data.added, data.missingDataStore), blobFixture.getType()) :
+                        SetUtils.difference(data.added, data.missingDataStore), "dump");
 
     }
 
@@ -815,21 +815,21 @@ public class DataStoreCommandTest {
         cmd.execute(argsList.toArray(new String[0]));
 
         if (!markOnly && !refsOld) {
-            assertFileEquals(dump, "avail-", CollectionUtils.difference(data.added, data.missingDataStore));
+            assertFileEquals(dump, "avail-", SetUtils.difference(data.added, data.missingDataStore));
         } else {
             assertFileNull(dump, "avail-");
         }
 
-        assertFileEquals(dump, "marked-", CollectionUtils.difference(data.added, data.deleted));
+        assertFileEquals(dump, "marked-", SetUtils.difference(data.added, data.deleted));
         if (!markOnly && !refsOld) {
             assertFileEquals(dump, "gccand-", data.deleted);
         } else {
             assertFileNull(dump, "gccand-");
         }
 
-        Set<String> blobsBeforeGc = CollectionUtils.difference(data.added, data.missingDataStore);
+        Set<String> blobsBeforeGc = SetUtils.difference(data.added, data.missingDataStore);
         if (maxAge <= 0) {
-            assertEquals(CollectionUtils.difference(blobsBeforeGc, data.deleted), blobs(setupDataStore));
+            assertEquals(SetUtils.difference(blobsBeforeGc, data.deleted), blobs(setupDataStore));
         } else {
             assertEquals(blobsBeforeGc, blobs(setupDataStore));
         }
@@ -922,11 +922,11 @@ public class DataStoreCommandTest {
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, Type dsOption, Map<String, String> idToNodes,
         boolean encodeId) {
-        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> String.join(",", encodeId ? encodeId(input, dsOption) : input, idToNodes.get(input))));
+        return SetUtils.toSet(Iterators.transform(ids.iterator(), input -> String.join(",", encodeId ? encodeId(input, dsOption) : input, idToNodes.get(input))));
     }
 
     private static Set<String> encodeIds(Set<String> ids, Type dsOption) {
-        return CollectionUtils.toSet(Iterators.transform(ids.iterator(), input -> encodeId(input, dsOption)));
+        return SetUtils.toSet(Iterators.transform(ids.iterator(), input -> encodeId(input, dsOption)));
     }
 
 

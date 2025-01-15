@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -112,7 +112,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     @Override
     @NotNull
     protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        Iterable<String> pn = Iterables.transform(CollectionUtils.toLinkedSet(privilegeNames), privName -> getNamePathMapper().getJcrName(privName));
+        Iterable<String> pn = Iterables.transform(SetUtils.toLinkedSet(privilegeNames), privName -> getNamePathMapper().getJcrName(privName));
         return super.privilegesFromNames(pn);
     }
 

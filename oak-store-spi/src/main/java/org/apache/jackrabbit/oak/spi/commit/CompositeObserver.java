@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class CompositeObserver implements Observer {
 
-    private final Set<Observer> observers = CollectionUtils.newIdentityHashSet();
+    private final Set<Observer> observers = SetUtils.newIdentityHashSet();
 
     public synchronized void addObserver(@NotNull Observer observer) {
         Validate.checkState(observers.add(requireNonNull(observer)));

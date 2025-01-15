@@ -49,7 +49,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
@@ -623,7 +623,7 @@ public class IndexUpdate implements Editor, PathSource {
         final CommitInfo commitInfo;
         final IndexDisabler indexDisabler;
         private boolean ignoreReindexFlags = IGNORE_REINDEX_FLAGS;
-        final Set<IndexCommitCallback> indexCommitCallbacks = CollectionUtils.newIdentityHashSet();
+        final Set<IndexCommitCallback> indexCommitCallbacks = SetUtils.newIdentityHashSet();
         final CorruptIndexHandler corruptIndexHandler;
         final IndexingProgressReporter progressReporter;
         private int changedNodeCount;

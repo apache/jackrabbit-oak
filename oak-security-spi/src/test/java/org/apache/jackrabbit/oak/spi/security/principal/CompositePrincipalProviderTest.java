@@ -32,7 +32,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -59,7 +59,7 @@ public class CompositePrincipalProviderTest {
     }
 
     private static void assertIterator(@NotNull Iterable<? extends Principal> expected, @NotNull Iterator<? extends Principal> result) {
-        assertEquals(CollectionUtils.toSet(expected), CollectionUtils.toSet(result));
+        assertEquals(SetUtils.toSet(expected), SetUtils.toSet(result));
     }
 
     @Test

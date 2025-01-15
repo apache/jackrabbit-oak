@@ -26,7 +26,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
@@ -231,15 +231,15 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r1, r2, store);
-        assertEquals(Set.of("/", "/foo"), CollectionUtils.toSet(sort));
+        assertEquals(Set.of("/", "/foo"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r1, r3, store);
-        assertEquals(Set.of("/", "/foo", "/bar"), CollectionUtils.toSet(sort));
+        assertEquals(Set.of("/", "/foo", "/bar"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r1, r4, store);
-        assertEquals(Set.of("/", "/foo", "/bar"), CollectionUtils.toSet(sort));
+        assertEquals(Set.of("/", "/foo", "/bar"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r2, r2, store);
@@ -247,11 +247,11 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r2, r3, store);
-        assertEquals(Set.of("/", "/bar"), CollectionUtils.toSet(sort));
+        assertEquals(Set.of("/", "/bar"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r2, r4, store);
-        assertEquals(Set.of("/", "/bar"), CollectionUtils.toSet(sort));
+        assertEquals(Set.of("/", "/bar"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r3, r3, store);
@@ -259,7 +259,7 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r3, r4, store);
-        assertEquals(Set.of("/", "/bar"), CollectionUtils.toSet(sort));
+        assertEquals(Set.of("/", "/bar"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r4, r4, store);

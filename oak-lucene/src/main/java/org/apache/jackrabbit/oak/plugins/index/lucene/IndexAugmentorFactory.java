@@ -25,13 +25,13 @@ import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -77,8 +77,8 @@ public class IndexAugmentorFactory {
     private volatile Map<String, CompositeFulltextQueryTermsProvider> fulltextQueryTermsProviderMap;
 
     public IndexAugmentorFactory() {
-        indexFieldProviders = CollectionUtils.newIdentityHashSet();
-        fulltextQueryTermsProviders = CollectionUtils.newIdentityHashSet();
+        indexFieldProviders = SetUtils.newIdentityHashSet();
+        fulltextQueryTermsProviders = SetUtils.newIdentityHashSet();
 
         resetState();
     }

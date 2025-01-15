@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -319,7 +319,7 @@ public class PropertyIndexTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value, Filter filter) {
-        return CollectionUtils.toSet(lookup.query(filter, name, value == null ? null
+        return SetUtils.toSet(lookup.query(filter, name, value == null ? null
                 : PropertyValues.newString(value)));
     }
 

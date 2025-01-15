@@ -21,7 +21,7 @@ import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
@@ -281,7 +281,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
                 @Override
                 public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-                    Set<String> privs = CollectionUtils.toSet(privilegeNames);
+                    Set<String> privs = SetUtils.toSet(privilegeNames);
                     privs.removeAll(READ_PRIVILEGE_NAMES);
 
                     return privs.isEmpty();

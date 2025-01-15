@@ -24,7 +24,7 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.ValidationEntry;
@@ -74,7 +74,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
         nodeName = PermissionUtil.getEntryName(accessControlledPath);
 
-        Set<String> orderedChildNames = CollectionUtils.toLinkedSet(node.getNames(OAK_CHILD_ORDER));
+        Set<String> orderedChildNames = SetUtils.toLinkedSet(node.getNames(OAK_CHILD_ORDER));
         long n = orderedChildNames.size();
         if (node.getChildNodeCount(n + 1) > n) {
             addAll(orderedChildNames, node.getChildNodeNames());

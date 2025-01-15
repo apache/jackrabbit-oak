@@ -54,7 +54,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -709,7 +709,7 @@ public class IndexUpdateTest {
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(NT_BASE);        
         SelectorImpl selector = new SelectorImpl(type, NT_BASE);
         Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]", new QueryEngineSettings());
-        return CollectionUtils.toSet(lookup.query(filter, name,
+        return SetUtils.toSet(lookup.query(filter, name,
                 PropertyValues.newString(value)));
     }
 

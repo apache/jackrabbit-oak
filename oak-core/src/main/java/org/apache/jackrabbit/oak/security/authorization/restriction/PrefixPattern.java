@@ -20,7 +20,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
@@ -45,7 +45,7 @@ class PrefixPattern implements RestrictionPattern {
     private final Set<String> prefixes;
 
     PrefixPattern(@NotNull Iterable<String> prefixes) {
-        this.prefixes = CollectionUtils.toSet(prefixes);
+        this.prefixes = SetUtils.toSet(prefixes);
     }
 
     @Override

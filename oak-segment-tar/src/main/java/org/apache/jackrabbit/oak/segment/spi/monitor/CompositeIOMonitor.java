@@ -24,7 +24,7 @@ import static java.util.Collections.emptySet;
 import java.io.File;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,7 +40,7 @@ public class CompositeIOMonitor implements IOMonitor {
      * @param ioMonitors  {@link IOMonitor} instances to delegate to
      */
     public CompositeIOMonitor(@NotNull Iterable<? extends IOMonitor> ioMonitors) {
-        this.ioMonitors = CollectionUtils.newConcurrentHashSet(requireNonNull(ioMonitors));
+        this.ioMonitors = SetUtils.newConcurrentHashSet(requireNonNull(ioMonitors));
     }
 
     /**

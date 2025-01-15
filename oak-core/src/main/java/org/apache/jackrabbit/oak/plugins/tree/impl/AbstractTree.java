@@ -35,7 +35,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
@@ -126,7 +126,7 @@ public abstract class AbstractTree implements Tree {
         NodeBuilder nodeBuilder = getNodeBuilder();
         PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
         if (order != null && order.getType() == NAMES) {
-            Set<String> names = CollectionUtils.toLinkedSet(nodeBuilder.getChildNodeNames());
+            Set<String> names = SetUtils.toLinkedSet(nodeBuilder.getChildNodeNames());
             List<String> ordered = new ArrayList<>(names.size());
             for (String name : order.getValue(NAMES)) {
                 // only include names of child nodes that actually exist

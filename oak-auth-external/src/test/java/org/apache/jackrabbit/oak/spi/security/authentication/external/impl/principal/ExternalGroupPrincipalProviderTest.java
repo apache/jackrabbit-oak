@@ -27,8 +27,8 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
@@ -214,7 +214,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
     @Test
     public void testGetPrincipalInheritedGroups() throws Exception {
-        Set<ExternalIdentityRef> declared = CollectionUtils.toSet(idp.getUser(USER_ID).getDeclaredGroups());
+        Set<ExternalIdentityRef> declared = SetUtils.toSet(idp.getUser(USER_ID).getDeclaredGroups());
 
         for (ExternalIdentityRef ref : declared) {
             for (ExternalIdentityRef inheritedGroupRef : idp.getIdentity(ref).getDeclaredGroups()) {
@@ -492,20 +492,20 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     @Test
     public void testFindPrincipalsByHintTypeGroup() {
         Set<? extends Principal> expected = buildExpectedPrincipals("a");
-        Set<? extends Principal> res = CollectionUtils.toSet(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_GROUP));
+        Set<? extends Principal> res = SetUtils.toSet(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_GROUP));
         assertEquals(expected, res);
 
-        Set<? extends Principal> res2 = CollectionUtils.toSet(principalProvider.findPrincipals("a", false, PrincipalManager.SEARCH_TYPE_GROUP, 0, -1));
+        Set<? extends Principal> res2 = SetUtils.toSet(principalProvider.findPrincipals("a", false, PrincipalManager.SEARCH_TYPE_GROUP, 0, -1));
         assertEquals(expected, res2);
     }
 
     @Test
     public void testFindPrincipalsByHintTypeAll() {
         Set<? extends Principal> expected = buildExpectedPrincipals("a");
-        Set<? extends Principal> res = CollectionUtils.toSet(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL));
+        Set<? extends Principal> res = SetUtils.toSet(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL));
         assertEquals(expected, res);
 
-        Set<? extends Principal> res2 = CollectionUtils.toSet(principalProvider.findPrincipals("a", false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
+        Set<? extends Principal> res2 = SetUtils.toSet(principalProvider.findPrincipals("a", false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
         assertEquals(expected, res2);
     }
 
@@ -515,9 +515,9 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         sync(externalUser);
 
         Set<? extends Principal> expected = buildExpectedPrincipals("_gr_u_");
-        Set<? extends Principal> res = CollectionUtils.toSet(principalProvider.findPrincipals("_", PrincipalManager.SEARCH_TYPE_ALL));
+        Set<? extends Principal> res = SetUtils.toSet(principalProvider.findPrincipals("_", PrincipalManager.SEARCH_TYPE_ALL));
         assertEquals(expected, res);
-        Set<? extends Principal> res2 = CollectionUtils.toSet(principalProvider.findPrincipals("_", false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
+        Set<? extends Principal> res2 = SetUtils.toSet(principalProvider.findPrincipals("_", false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
         assertEquals(expected, res2);
     }
 
@@ -527,9 +527,9 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         sync(externalUser);
 
         Set<? extends Principal> expected = buildExpectedPrincipals("g%r%");
-        Set<? extends Principal> res = CollectionUtils.toSet(principalProvider.findPrincipals("%", PrincipalManager.SEARCH_TYPE_ALL));
+        Set<? extends Principal> res = SetUtils.toSet(principalProvider.findPrincipals("%", PrincipalManager.SEARCH_TYPE_ALL));
         assertEquals(expected, res);
-        Set<? extends Principal> res2 = CollectionUtils.toSet(principalProvider.findPrincipals("%", false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
+        Set<? extends Principal> res2 = SetUtils.toSet(principalProvider.findPrincipals("%", false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
         assertEquals(expected, res2);
     }
 
@@ -541,16 +541,16 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
     @Test
     public void testFindPrincipalsByTypeGroup() throws Exception {
-        Set<? extends Principal> res = CollectionUtils.toSet(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP));
+        Set<? extends Principal> res = SetUtils.toSet(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP));
         assertEquals(getExpectedAllSearchResult(USER_ID), res);
 
-        Set<? extends Principal> res2 = CollectionUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, -1));
+        Set<? extends Principal> res2 = SetUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, -1));
         assertEquals(getExpectedAllSearchResult(USER_ID), res2);
     }
 
     @Test
     public void testFindPrincipalsByTypeAll() throws Exception {
-        Set<? extends Principal> res = CollectionUtils.toSet(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL));
+        Set<? extends Principal> res = SetUtils.toSet(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL));
         assertEquals(getExpectedAllSearchResult(USER_ID), res);
     }
 
@@ -570,10 +570,10 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         }
 
         Iterator<? extends Principal> res = principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL);
-        assertEquals(expected, CollectionUtils.toSet(res));
+        assertEquals(expected, SetUtils.toSet(res));
         Iterator<? extends Principal> res2 = principalProvider.findPrincipals("a", false,
                 PrincipalManager.SEARCH_TYPE_ALL, 0, -1);
-        assertEquals(expected, CollectionUtils.toSet(res2));
+        assertEquals(expected, SetUtils.toSet(res2));
     }
 
     @Test
@@ -598,7 +598,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
         long offset = 2;
         long expectedSize = (all.size() <= offset) ? 0 : all.size()-offset;
-        Set<? extends Principal> result = CollectionUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, offset, -1));
+        Set<? extends Principal> result = SetUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, offset, -1));
         assertEquals(expectedSize, result.size());
     }
 
@@ -606,7 +606,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     public void testFindPrincipalsWithOffsetEqualsResultSize() throws Exception {
         Set<Principal> all = getExpectedAllSearchResult(USER_ID);
 
-        Set<? extends Principal> result = CollectionUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, all.size(), -1));
+        Set<? extends Principal> result = SetUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, all.size(), -1));
         assertTrue(result.isEmpty());
     }
 
@@ -614,13 +614,13 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     public void testFindPrincipalsWithOffsetExceedsResultSize() throws Exception {
         Set<Principal> all = getExpectedAllSearchResult(USER_ID);
 
-        Set<? extends Principal> result = CollectionUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, all.size()+1, -1));
+        Set<? extends Principal> result = SetUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, all.size()+1, -1));
         assertTrue(result.isEmpty());
     }
 
     @Test
     public void testFindPrincipalsWithLimit() {
-        Set<? extends Principal> result = CollectionUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, 1));
+        Set<? extends Principal> result = SetUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, 1));
         int expectedSize = (hasDynamicGroups()) ? 0 : 1;
         assertEquals(expectedSize, result.size());
     }
@@ -629,13 +629,13 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
     public void testFindPrincipalsWithLimitExceedsResultSize() throws Exception {
         Set<Principal> all = getExpectedAllSearchResult(USER_ID);
 
-        Set<? extends Principal> result = CollectionUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, all.size()+1));
+        Set<? extends Principal> result = SetUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, all.size()+1));
         assertEquals(all, result);
     }
 
     @Test
     public void testFindPrincipalsWithZeroLimit() {
-        Set<? extends Principal> result = CollectionUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, 0));
+        Set<? extends Principal> result = SetUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, 0, 0));
         assertTrue(result.isEmpty());
     }
 
@@ -645,7 +645,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
 
         long offset = all.size()-1;
         long limit = all.size();
-        Set<? extends Principal> result = CollectionUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, offset, limit));
+        Set<? extends Principal> result = SetUtils.toSet(principalProvider.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_GROUP, offset, limit));
         int expectedSize = (hasDynamicGroups()) ? 0 : 1;
         assertEquals(expectedSize, result.size());
     }

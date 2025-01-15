@@ -26,7 +26,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -121,7 +121,7 @@ public class IndexDisabler {
                 NodeBuilder nodeTypeIndexBuilder = child(rootBuilder, nodeTypeIndexPath);
                 PropertyState declaringNodeTypes = nodeTypeIndexBuilder.getProperty(DECLARING_NODE_TYPES);
                 if (nodeTypeIndexBuilder.exists() && declaringNodeTypes != null){
-                    Set<String> existingTypes = CollectionUtils.toSet(declaringNodeTypes.getValue(Type.NAMES));
+                    Set<String> existingTypes = SetUtils.toSet(declaringNodeTypes.getValue(Type.NAMES));
                     if (existingTypes.remove(nodeTypeName)) {
                         disabledIndexes.add(indexPath);
                         nodeTypeIndexBuilder.setProperty(DECLARING_NODE_TYPES, existingTypes, Type.NAMES);

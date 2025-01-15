@@ -38,7 +38,7 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -89,7 +89,7 @@ public class SameNameSiblingTest extends AbstractRepositoryTest {
 
     @Test
     public void iterateSiblings() throws RepositoryException {
-        Set<String> expected = CollectionUtils.toSet(SIBLINGS);
+        Set<String> expected = SetUtils.toSet(SIBLINGS);
         expected.add(SIBLING);
         expected.remove(SIBLINGS[0]);
 

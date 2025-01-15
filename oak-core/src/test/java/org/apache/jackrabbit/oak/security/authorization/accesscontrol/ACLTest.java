@@ -40,7 +40,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
@@ -91,7 +91,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
 
     private static void assertACE(@NotNull JackrabbitAccessControlEntry ace, boolean isAllow, @NotNull Privilege... privileges) {
         assertEquals(isAllow, ace.isAllow());
-        assertEquals(CollectionUtils.toSet(privileges), CollectionUtils.toSet(ace.getPrivileges()));
+        assertEquals(SetUtils.toSet(privileges), SetUtils.toSet(ace.getPrivileges()));
     }
 
     @NotNull

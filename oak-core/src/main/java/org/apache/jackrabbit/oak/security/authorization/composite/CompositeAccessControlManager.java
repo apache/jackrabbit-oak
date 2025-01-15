@@ -37,7 +37,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
@@ -74,7 +74,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
         Set<Privilege> privs = new HashSet<>();
         for (AccessControlManager acMgr : acMgrs) {
-            privs.addAll(CollectionUtils.toSet(acMgr.getSupportedPrivileges(absPath)));
+            privs.addAll(SetUtils.toSet(acMgr.getSupportedPrivileges(absPath)));
         }
         return privs.toArray(new Privilege[0]);
     }
