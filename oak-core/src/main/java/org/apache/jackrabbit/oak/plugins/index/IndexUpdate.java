@@ -31,9 +31,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABL
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.spi.commit.CompositeEditor.compose;
-import static org.apache.jackrabbit.oak.spi.commit.EditorDiff.process;
-import static org.apache.jackrabbit.oak.spi.commit.VisibleEditor.wrap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,7 +54,10 @@ import org.apache.jackrabbit.oak.plugins.index.progress.NodeCountEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.TraversalRateEstimator;
 import org.apache.jackrabbit.oak.plugins.index.upgrade.IndexDisabler;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
+import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -134,7 +134,7 @@ public class IndexUpdate implements Editor, PathSource {
     /**
      * Editors for indexes that need to be re-indexed.
      */
-    private final Map<String, Editor> reindex = new HashMap<String, Editor>();
+    private final Map<String, Editor> reindex = new HashMap<>();
 
     public IndexUpdate(
             IndexEditorProvider provider, String async,
@@ -182,8 +182,10 @@ public class IndexUpdate implements Editor, PathSource {
         }
 
         // no-op when reindex is empty
-        CommitFailedException exception = process(
-                wrap(wrapProgress(compose(reindex.values()))), MISSING_NODE, after);
+        CommitFailedException exception = EditorDiff.process(
+                VisibleEditor.wrap(wrapProgress(CompositeEditor.compose(reindex.values()))),
+                MISSING_NODE,
+                after);
         rootState.progressReporter.reindexingTraversalEnd();
         if (exception != null) {
             throw exception;
@@ -503,7 +505,7 @@ public class IndexUpdate implements Editor, PathSource {
                 children.add(child);
             }
         }
-        return compose(children);
+        return CompositeEditor.compose(children);
     }
 
     @Override @NotNull
@@ -518,7 +520,7 @@ public class IndexUpdate implements Editor, PathSource {
                 children.add(child);
             }
         }
-        return compose(children);
+        return CompositeEditor.compose(children);
     }
 
     @Override @Nullable
@@ -531,7 +533,7 @@ public class IndexUpdate implements Editor, PathSource {
                 children.add(child);
             }
         }
-        return compose(children);
+        return CompositeEditor.compose(children);
     }
 
     public void commitProgress(IndexProgress indexProgress) {
