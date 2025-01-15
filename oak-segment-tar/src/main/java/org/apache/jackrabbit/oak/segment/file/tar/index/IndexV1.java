@@ -17,13 +17,13 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+
+import static java.util.Objects.checkIndex;
 
 class IndexV1 implements Index {
 
@@ -103,7 +103,7 @@ class IndexV1 implements Index {
 
     @Override
     public IndexEntryV1 entry(int i) {
-        return new IndexEntryV1(entries, checkElementIndex(i, count()) * IndexEntryV1.SIZE);
+        return new IndexEntryV1(entries, checkIndex(i, count()) * IndexEntryV1.SIZE);
     }
 
 }

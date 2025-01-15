@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
+import static java.util.Objects.checkIndex;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
@@ -158,7 +158,7 @@ class OakBufferedIndexFile implements OakIndexFile {
     }
 
     private void loadBlob(int i) throws IOException {
-        checkElementIndex(i, data.size());
+        checkIndex(i, data.size());
         if (index != i) {
             flushBlob();
             Validate.checkState(!blobModified);

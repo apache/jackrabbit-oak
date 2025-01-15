@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
+import static java.util.Objects.checkIndex;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
@@ -190,7 +190,7 @@ public class Template {
     }
 
     SegmentPropertyState getProperty(RecordId recordId, int index) {
-        checkElementIndex(index, properties.length);
+        checkIndex(index, properties.length);
         Segment segment = requireNonNull(recordId).getSegment();
 
         int offset = 2 * RECORD_ID_BYTES;

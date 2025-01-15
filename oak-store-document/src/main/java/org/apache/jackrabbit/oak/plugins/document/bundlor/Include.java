@@ -25,7 +25,7 @@ import java.util.List;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
+import static java.util.Objects.checkIndex;
 
 /**
  * Include represents a single path pattern which captures the path which
@@ -116,14 +116,14 @@ public class Include {
      */
     public boolean match(String nodeName, int depth) {
         int elementIndex = depth - 1;
-        checkElementIndex(elementIndex, elements.length);
+        checkIndex(elementIndex, elements.length);
         String e = elements[elementIndex];
         return STAR.equals(e) || nodeName.equals(e);
     }
 
     public boolean matchAny(int depth){
         int elementIndex = depth - 1;
-        checkElementIndex(elementIndex, elements.length);
+        checkIndex(elementIndex, elements.length);
         return STAR.equals(elements[elementIndex]);
     }
 
