@@ -22,7 +22,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlList;
@@ -153,7 +153,7 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
 
         String jcrNodePathName = getNamePathMapper().getJcrName(AccessControlConstants.REP_NODE_PATH);
         String path = extractPathFromRestrictions(restrictions, jcrNodePathName);
-        Map<String, Value> filteredRestrictions = CollectionUtils.filterEntries(restrictions, entry -> !jcrNodePathName.equals(entry.getKey()));
+        Map<String, Value> filteredRestrictions = MapUtils.filterEntries(restrictions, entry -> !jcrNodePathName.equals(entry.getKey()));
 
         return addEntry(path, privileges, filteredRestrictions, (mvRestrictions == null) ? Collections.emptyMap() : mvRestrictions);
     }

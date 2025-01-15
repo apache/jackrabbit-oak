@@ -27,7 +27,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -62,7 +62,7 @@ public class CachingFileDataStoreTest extends AbstractDataStoreTest {
             ds = new CachingFileDataStore();
             Map<String, ?> config = DataStoreUtils.getConfig();
             props.putAll(config);
-            PropertiesUtil.populate(ds, CollectionUtils.fromProperties(props), false);
+            PropertiesUtil.populate(ds, MapUtils.fromProperties(props), false);
             ds.setProperties(props);
             ds.init(dataStoreDir);
         } catch (Exception e) {

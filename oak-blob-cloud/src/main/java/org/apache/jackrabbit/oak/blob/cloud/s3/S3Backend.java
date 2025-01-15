@@ -50,8 +50,8 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -251,7 +251,7 @@ public class S3Backend extends AbstractSharedBackend {
             LOG.error("Error ", e);
             Map<String, Object> filteredMap = new HashMap<>();
             if (properties != null) {
-                filteredMap = CollectionUtils.filterKeys(Utils.asMap(properties),
+                filteredMap = MapUtils.filterKeys(Utils.asMap(properties),
                         input -> !input.equals(S3Constants.ACCESS_KEY) &&!input.equals(S3Constants.SECRET_KEY));
             }
             throw new DataStoreException("Could not initialize S3 from " + filteredMap, e);

@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -78,7 +78,7 @@ public class S3DataStoreServiceTest {
 
     private void registerBlobStore() throws IOException {
         Map<String, Object> properties = new HashMap<>();
-        properties.putAll(CollectionUtils.fromProperties(S3DataStoreUtils.getS3Config()));
+        properties.putAll(MapUtils.fromProperties(S3DataStoreUtils.getS3Config()));
         properties.put("repository.home", folder.newFolder().getAbsolutePath());
         service = new S3DataStoreService();
         injectServices(service, context.bundleContext());

@@ -23,7 +23,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
@@ -298,7 +298,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
 
         // calculate the contentID for each memberId and remember ids that cannot be processed
-        Map<String, String> updateMap = CollectionUtils.newHashMap(memberIds.length);
+        Map<String, String> updateMap = MapUtils.newHashMap(memberIds.length);
         MembershipProvider mp = getMembershipProvider();
         for (String memberId : memberIds) {
             if (Strings.isNullOrEmpty(memberId)) {

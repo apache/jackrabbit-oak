@@ -43,7 +43,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE;
@@ -102,7 +102,7 @@ public class SharedDataStoreTest {
 
             Properties props = new Properties();
             props.setProperty("fsBackendPath", folder.newFolder().getAbsolutePath());
-            PropertiesUtil.populate(ds, CollectionUtils.fromProperties(props), false);
+            PropertiesUtil.populate(ds, MapUtils.fromProperties(props), false);
             ds.setProperties(props);
             ds.init(folder.newFolder().getAbsolutePath());
             dataStore = ds;

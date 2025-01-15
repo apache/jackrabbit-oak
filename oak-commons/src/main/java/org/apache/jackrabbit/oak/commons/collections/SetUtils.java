@@ -94,7 +94,7 @@ public class SetUtils {
      *
      * @param capacity the expected number of elements
      * @throws IllegalArgumentException if capacity is negative
-     * @see CollectionUtils#newHashMap(int)
+     * @see MapUtils#newHashMap(int)
      * @see SetUtils#newLinkedHashSet(int)
      */
     @NotNull
@@ -148,7 +148,7 @@ public class SetUtils {
      *
      * @param capacity the expected number of elements
      * @throws IllegalArgumentException if capacity is negative
-     * @see CollectionUtils#newHashMap(int)
+     * @see MapUtils#newHashMap(int)
      * @see SetUtils#newHashSet(int)
      */
     @NotNull
@@ -182,7 +182,7 @@ public class SetUtils {
      *
      * @return a new, empty {@link Set} which is backed by {@link ConcurrentHashMap}.
      *
-     * @see CollectionUtils#newHashMap(int)
+     * @see MapUtils#newHashMap(int)
      * @see SetUtils#newLinkedHashSet(int)
      * @see SetUtils#newConcurrentHashSet(Iterable) (int)
      */
@@ -198,7 +198,7 @@ public class SetUtils {
      * @return a new, empty {@link Set} which is backed by {@link ConcurrentHashMap}.
      * @throws NullPointerException if any element of the iterable is null
      *
-     * @see CollectionUtils#newHashMap(int)
+     * @see MapUtils#newHashMap(int)
      * @see SetUtils#newLinkedHashSet(int)
      * @see SetUtils#newConcurrentHashSet()
      */
