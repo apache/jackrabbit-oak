@@ -61,8 +61,8 @@ import com.mongodb.client.model.CreateCollectionOptions;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -1488,7 +1488,7 @@ public class MongoDocumentStore implements DocumentStore {
 
             if (collection == Collection.NODES) {
                 List<NodeDocument> docsToCache = new ArrayList<>();
-                for (UpdateOp op : CollectionUtils.filterKeys(bulkOperations, bulkResult.upserts::contains).values()) {
+                for (UpdateOp op : MapUtils.filterKeys(bulkOperations, bulkResult.upserts::contains).values()) {
                     NodeDocument doc = Collection.NODES.newDocument(this);
                     UpdateUtils.applyChanges(doc, op);
                     docsToCache.add(doc);

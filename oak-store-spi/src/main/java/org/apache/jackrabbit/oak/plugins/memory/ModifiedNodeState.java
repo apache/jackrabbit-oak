@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -215,7 +215,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             final Set<String> keys = nodes.keySet(); 
             return concat(
                     filter(base.getChildNodeNames(), x -> !keys.contains(x)),
-                    CollectionUtils.filterValues(nodes, NodeState.EXISTS).keySet());
+                    MapUtils.filterValues(nodes, NodeState.EXISTS).keySet());
         }
     }
 
@@ -348,7 +348,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                     x -> !keys.contains(x == null ? null : x.getName());
             return concat(
                     filter(base.getChildNodeEntries(), predicate::test),
-                    iterable(CollectionUtils.filterValues(nodes, NodeState.EXISTS).entrySet()));
+                    iterable(MapUtils.filterValues(nodes, NodeState.EXISTS).entrySet()));
         }
     }
 

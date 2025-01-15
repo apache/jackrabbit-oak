@@ -19,14 +19,8 @@
 package org.apache.jackrabbit.oak.commons.collections;
 
 import java.util.ArrayDeque;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -56,110 +50,6 @@ public class CollectionUtils {
         ArrayDeque<T> arrayDeque = new ArrayDeque<>();
         iterable.forEach(arrayDeque::add);
         return arrayDeque;
-    }
-
-    /**
-     * Creates a new, empty HashMap with expected capacity.
-     * <p>
-     * The returned map uses the default load factor of 0.75, and its capacity is
-     * large enough to add expected number of elements without resizing.
-     *
-     * @param capacity the expected number of elements
-     * @throws IllegalArgumentException if capacity is negative
-     * @see SetUtils#newHashSet(int)
-     * @see SetUtils#newLinkedHashSet(int)
-     */
-    @NotNull
-    public static <K, V> Map<K, V> newHashMap(final int capacity) {
-        // make sure the Map does not need to be resized given the initial content
-        return new HashMap<>(ensureCapacity(capacity));
-    }
-
-    /**
-     * Converts a {@link Properties} object to an unmodifiable {@link Map} with
-     * string keys and values.
-     *
-     * @param properties the {@link Properties} object to convert, must not be null
-     * @return an unmodifiable {@link Map} containing the same entries as the given {@link Properties} object
-     * @throws NullPointerException if the properties parameter is null
-     */
-    @NotNull
-    public static Map<String, String> fromProperties(final @NotNull Properties properties) {
-        Objects.requireNonNull(properties);
-        return properties.entrySet()
-                .stream()
-                .collect(Collectors.toUnmodifiableMap(
-                        e -> String.valueOf(e.getKey()),
-                        e -> String.valueOf(e.getValue())));
-    }
-
-    /**
-     * Create a new {@link Map} after filtering the entries of the given map
-     * based on the specified predicate applied to the keys.
-     *
-     * @param <K> the type of keys in the map
-     * @param <V> the type of values in the map
-     * @param map the map to filter, must not be null
-     * @param predicate the predicate to apply to the keys, must not be null
-     * @return a new map containing only the entries whose keys match the predicate
-     * @throws NullPointerException if the map or predicate is null
-     * @see CollectionUtils#filterValues(Map, Predicate)
-     * @see CollectionUtils#filterEntries(Map, Predicate)
-     */
-    @NotNull
-    public static <K,V> Map<K, V> filterKeys(final @NotNull Map<K, V> map, final @NotNull Predicate<? super K> predicate) {
-        Objects.requireNonNull(map);
-        Objects.requireNonNull(predicate);
-        return map.entrySet()
-                .stream()
-                .filter(e -> predicate.test(e.getKey())) // using LinkedHashMap to maintain the order of previous map
-                .collect(LinkedHashMap::new, (m, e)->m.put(e.getKey(), e.getValue()), LinkedHashMap::putAll);
-    }
-
-    /**
-     * Create a new {@link Map} after filtering the entries of the given map
-     * based on the specified predicate applied to the values.
-     *
-     * @param <K> the type of keys in the map
-     * @param <V> the type of values in the map
-     * @param map the map to filter, must not be null
-     * @param predicate the predicate to apply to the values, must not be null
-     * @return a new map containing only the entries whose values match the predicate
-     * @throws NullPointerException if the map or predicate is null
-     * @see CollectionUtils#filterKeys(Map, Predicate)
-     * @see CollectionUtils#filterEntries(Map, Predicate)
-     */
-    @NotNull
-    public static <K,V> Map<K, V> filterValues(final @NotNull Map<K, V> map, final @NotNull Predicate<? super V> predicate) {
-        Objects.requireNonNull(map);
-        Objects.requireNonNull(predicate);
-        return map.entrySet()
-                .stream()
-                .filter(e -> predicate.test(e.getValue())) // using LinkedHashMap to maintain the order of previous map
-                .collect(LinkedHashMap::new, (m,e)->m.put(e.getKey(), e.getValue()), LinkedHashMap::putAll);
-    }
-
-    /**
-     * Create a new {@link Map} after filtering the entries of the given map
-     * based on the specified predicate applied to the {@link java.util.Map.Entry}.
-     *
-     * @param <K> the type of keys in the map
-     * @param <V> the type of values in the map
-     * @param map the map to filter, must not be null
-     * @param predicate the predicate to apply to the {@link java.util.Map.Entry}, must not be null
-     * @return a new map containing only the entries whose values match the predicate
-     * @throws NullPointerException if the map or predicate is null
-     * @see CollectionUtils#filterKeys(Map, Predicate)
-     * @see CollectionUtils#filterValues(Map, Predicate)
-     */
-    @NotNull
-    public static <K,V> Map<K, V> filterEntries(final @NotNull Map<K, V> map, final @NotNull Predicate<? super Map.Entry<K, V>> predicate) {
-        Objects.requireNonNull(map);
-        Objects.requireNonNull(predicate);
-        return map.entrySet()
-                .stream()
-                .filter(predicate) // using LinkedHashMap to maintain the order of previous map
-                .collect(LinkedHashMap::new, (m,e)->m.put(e.getKey(), e.getValue()), LinkedHashMap::putAll);
     }
 
     /**
