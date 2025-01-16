@@ -130,6 +130,33 @@ public class GlobalNameMapper implements NameMapper {
         return oakName;
     }
 
+    @Override
+    @NotNull
+    public String getExpandedJcrName(@NotNull String oakName) {
+        String qualifiedName = getJcrName(oakName); // sanity check
+        String uri;
+        final String localName;
+        int colon = qualifiedName.indexOf(':');
+        if (colon > 0) {
+            String oakPrefix = qualifiedName.substring(0, colon);
+            // local mapping must take precedence...
+            uri = getSessionLocalMappings().get(oakPrefix);
+            if (uri == null) {
+                // ...over global mappings
+                uri = getNamespacesProperty(oakPrefix);
+            }
+            if (uri == null) {
+                throw new IllegalStateException(
+                        "No namespace mapping found for " + oakName);
+            }
+            localName = qualifiedName.substring(colon + 1);
+        } else {
+            uri = "";
+            localName = qualifiedName;
+        }
+        return "{" + uri + "}" + localName;
+    }
+
     @Override @Nullable
     public String getOakNameOrNull(@NotNull String jcrName) {
         if (jcrName.startsWith("{")) {

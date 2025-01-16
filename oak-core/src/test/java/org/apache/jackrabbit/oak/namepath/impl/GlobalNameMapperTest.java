@@ -48,6 +48,7 @@ public class GlobalNameMapperTest {
         assertEquals("", mapper.getJcrName(""));
         assertEquals("", mapper.getOakNameOrNull(""));
         assertEquals("", mapper.getOakName(""));
+        assertEquals("{}", mapper.getExpandedJcrName(""));
     }
 
 
@@ -84,6 +85,11 @@ public class GlobalNameMapperTest {
         for (String jcrName : jcrToOak.keySet()) {
             assertEquals(jcrToOak.get(jcrName), mapper.getOakNameOrNull(jcrName));
             assertEquals(jcrToOak.get(jcrName), mapper.getOakName(jcrName));
+            if (GlobalNameMapper.isExpandedName(jcrName)) {
+                assertEquals(jcrName, mapper.getExpandedJcrName(jcrToOak.get(jcrName)));
+            } else {
+                assertEquals("{}"+jcrName, mapper.getExpandedJcrName(jcrToOak.get(jcrName)));
+            }
         }
 
         assertNull(mapper.getOakNameOrNull("{http://www.example.com/bar}bar"));
@@ -97,17 +103,28 @@ public class GlobalNameMapperTest {
 
     @Test
     public void testPrefixedNames() throws RepositoryException {
-        List<String> prefixed = new ArrayList<String>();
-        prefixed.add("nt:base");
-        prefixed.add("foo: bar");
-        prefixed.add("quu:bar ");
-        // unknown prefixes are only captured by the NameValidator
-        prefixed.add("unknown:bar");
+        Map<String, String> prefixedToExpanded = new HashMap<>();
+        prefixedToExpanded.put("nt:base", "{http://www.jcp.org/jcr/nt/1.0}base");
+        prefixedToExpanded.put("foo: bar", "{http://www.example.com/foo} bar");
+        prefixedToExpanded.put("quu:bar ", "{http://www.example.com/quu}bar ");
 
-        for (String name : prefixed) {
+        for (String name : prefixedToExpanded.keySet()) {
             assertEquals(name, mapper.getOakNameOrNull(name));
             assertEquals(name, mapper.getOakName(name));
             assertEquals(name, mapper.getJcrName(name));
+            assertEquals(prefixedToExpanded.get(name), mapper.getExpandedJcrName(name));
+        }
+
+        // unknown prefixes are only captured by the NameValidator
+        String unknownPrefix = "unknown:bar";
+        assertEquals(unknownPrefix, mapper.getOakNameOrNull(unknownPrefix));
+        assertEquals(unknownPrefix, mapper.getOakName(unknownPrefix));
+        assertEquals(unknownPrefix, mapper.getJcrName(unknownPrefix));
+        try {
+            mapper.getExpandedJcrName(unknownPrefix);
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            // successs
         }
     }
 
