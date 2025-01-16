@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.File;
@@ -25,18 +24,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.io.BaseEncoding;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -95,7 +91,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
      * Set Base64 encoded signing key
      */
     public void setReferenceKeyEncoded(String encodedKey) {
-        this.referenceKey = BaseEncoding.base64().decode(encodedKey);
+        this.referenceKey = Base64.getDecoder().decode(encodedKey);
     }
 
     /**
