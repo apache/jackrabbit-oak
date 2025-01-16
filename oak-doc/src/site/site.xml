@@ -137,6 +137,7 @@ under the License.
       </item>
       <item href="features/atomic-counter.html" name="Atomic Counter" />
       <item href="features/observation.html" name="Observation" />
+      <item href="plugins/versionmanager.html" name="Version Manager" />
     </menu>
     <menu name="Using Oak">
       <item href="use_getting_started.html" name="Getting Started" />

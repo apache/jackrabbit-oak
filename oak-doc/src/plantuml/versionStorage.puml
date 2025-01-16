@@ -1,0 +1,53 @@
+/'
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.  
+'/
+@startuml
+!pragma layout smetana
+
+
+package versionStorage {
+    object "frozenNode [nt:frozenNode]" as frozenNode1
+    map "1.1 [nt:version]" as version2 {
+      jcr:frozenNode *-> frozenNode1
+      jcr:predecessors => [1.0]
+      jcr:successors => []
+      jcr:uuid => 345
+    }
+    object "frozenNode [nt:frozenNode]" as frozenNode2
+    map "1.0 [nt:version]" as version1 {
+      jcr:frozenNode *-> frozenNode2
+      jcr:predecessors =>[jcr:rootVersion]
+      jcr:successors *-> version2
+      jc:uuid => 234
+    }
+    object "frozenNode [nt:frozenNode]" as frozenNode3
+    map "jcr:rootVersion [nt:version]" as rootVersion {
+      jcr:frozenNode *-> frozenNode3
+      jcr:predecessors => empty
+      jcr:successors *-> version1
+      jcr:uuid => 123
+    }
+}
+
+map "myNode [mix:versionable]" as myNode {
+      jcr:baseVersion *-> rootVersion
+      jcr:predecessors *-> rootVersion
+      jcr:versionHistory => ??
+    }
+}
+@enduml

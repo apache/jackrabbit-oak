@@ -32,8 +32,49 @@
   <url>http://jackrabbit.apache.org/oak/docs/</url>
   <packaging>jar</packaging>
 
+  <properties>
+    <version.plantuml-maven-plugin>0.2</version.plantuml-maven-plugin>
+  </properties>
   <build>
     <plugins>
+      <plugin>
+        <groupId>it.mulders.puml</groupId>
+        <artifactId>plantuml-maven-plugin</artifactId>
+        <version>${version.plantuml-maven-plugin}</version>
+        <dependencies>
+          <dependency>
+            <groupId>it.mulders.puml</groupId>
+            <artifactId>plantuml-v1-adapter</artifactId>
+            <version>${version.plantuml-maven-plugin}</version>
+          </dependency>
+          <dependency>
+            <groupId>net.sourceforge.plantuml</groupId>
+            <artifactId>plantuml</artifactId>
+            <version>1.2025.0</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <id>generate-svg-from-plantuml</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>pre-site</phase>
+            <configuration>
+              <sourceFiles>
+                <directory>src/plantuml</directory>
+                <includes>
+                  <include>**/*.dot</include>
+                  <include>**/*.puml</include>
+                </includes>
+              </sourceFiles>
+              <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
+              <format>SVG</format>
+              <stripPath>src/plantuml</stripPath>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
