@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import static java.util.Objects.checkIndex;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -180,7 +180,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
 
         Segment segment = getSegment();
         ListRecord values = getValueList(segment);
-        checkElementIndex(index, values.size());
+        checkIndex(index, values.size());
         return getValue(values.getEntry(index), type);
     }
 
@@ -219,7 +219,7 @@ public class SegmentPropertyState extends Record implements PropertyState {
     @Override
     public long size(int index) {
         ListRecord values = getValueList(getSegment());
-        checkElementIndex(index, values.size());
+        checkIndex(index, values.size());
         RecordId entry = values.getEntry(index);
 
         if (getType().equals(BINARY) || getType().equals(BINARIES)) {

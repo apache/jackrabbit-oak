@@ -23,10 +23,10 @@ import static java.lang.Math.min;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
+import static java.util.Objects.checkIndex;
 import static java.util.Objects.requireNonNull;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
@@ -333,7 +333,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private RecordId writeMapLeaf(int level, Collection<MapEntry> entries) throws IOException {
             requireNonNull(entries);
             int size = entries.size();
-            checkElementIndex(size, MapRecord.MAX_SIZE);
+            checkIndex(size, MapRecord.MAX_SIZE);
             checkPositionIndex(level, MapRecord.MAX_NUMBER_OF_LEVELS);
             checkArgument(size != 0 || level == MapRecord.MAX_NUMBER_OF_LEVELS);
             return writeOperationHandler.execute(gcGeneration, newWriteOperation(
@@ -341,7 +341,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeMapBranch(int level, int size, MapRecord... buckets) throws IOException {
-            checkElementIndex(size, MapRecord.MAX_SIZE);
+            checkIndex(size, MapRecord.MAX_SIZE);
             int bitmap = 0;
             List<RecordId> bucketIds = new ArrayList<>(buckets.length);
             for (int i = 0; i < buckets.length; i++) {
