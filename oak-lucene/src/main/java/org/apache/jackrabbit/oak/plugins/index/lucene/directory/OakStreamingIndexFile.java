@@ -33,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static java.util.Objects.checkFromToIndex;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
@@ -222,7 +222,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
     @Override
     public void readBytes(byte[] b, int offset, int len)
             throws IOException {
-        checkPositionIndexes(offset, offset + len, requireNonNull(b).length);
+        checkFromToIndex(offset, offset + len, requireNonNull(b).length);
 
         if (len < 0 || position + len > length) {
             String msg = String.format("Invalid byte range request for [%s][%s], " +

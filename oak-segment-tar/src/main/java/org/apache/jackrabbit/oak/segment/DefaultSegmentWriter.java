@@ -23,12 +23,12 @@ import static java.lang.Math.min;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
+import static java.util.Objects.checkFromToIndex;
 import static java.util.Objects.checkIndex;
 import static java.util.Objects.requireNonNull;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
@@ -619,7 +619,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private RecordId writeBlock(@NotNull byte[] bytes, int offset, int length)
                 throws IOException {
             requireNonNull(bytes);
-            checkPositionIndexes(offset, offset + length, bytes.length);
+            checkFromToIndex(offset, offset + length, bytes.length);
             return writeOperationHandler.execute(gcGeneration, newWriteOperation(
                 RecordWriters.newBlockWriter(bytes, offset, length)));
         }
