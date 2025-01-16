@@ -353,6 +353,12 @@ public class SessionContext implements NamePathMapper {
         return namePathMapper.getJcrName(oakName);
     }
 
+    @NotNull
+    @Override
+    public String getExpandedJcrName(@NotNull String oakName) {
+        return namePathMapper.getExpandedJcrName(oakName);
+    }
+
     @Override
     @Nullable
     public String getOakPath(String jcrPath) {
