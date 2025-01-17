@@ -45,8 +45,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.io.BaseEncoding;
 import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -135,6 +135,12 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
      * Encryption key for creating secure references from blobId
      */
     private byte[] referenceKey;
+
+    /**
+     * Encode in Base 32, hex encoding, no line breaks, padding with "="
+     */
+    private static final Base32 BASE32ENCODER =
+            new Base32(0, new byte[0], true,  (byte)'=');
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -238,7 +244,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
             Mac mac = Mac.getInstance(ALGORITHM);
             mac.init(new SecretKeySpec(getReferenceKey(), ALGORITHM));
             byte[] hash = mac.doFinal(blobId.getBytes("UTF-8"));
-            return blobId + ':' + BaseEncoding.base32Hex().encode(hash);
+            return ':' + BASE32ENCODER.encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         } catch (InvalidKeyException e) {
