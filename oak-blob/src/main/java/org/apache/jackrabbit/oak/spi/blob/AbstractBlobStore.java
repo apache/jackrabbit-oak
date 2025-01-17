@@ -244,7 +244,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
             Mac mac = Mac.getInstance(ALGORITHM);
             mac.init(new SecretKeySpec(getReferenceKey(), ALGORITHM));
             byte[] hash = mac.doFinal(blobId.getBytes("UTF-8"));
-            return ':' + BASE32ENCODER.encodeToString(hash);
+            return blobId + ':' + BASE32ENCODER.encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         } catch (InvalidKeyException e) {
