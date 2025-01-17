@@ -21,8 +21,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -60,7 +60,7 @@ public class CrossMountReferenceValidator extends DefaultValidator {
     private final Map<String, String> newReferencableNodes;
 
     /** UUID -> referencing node */
-    private final Multimap<String, String> newReferences;
+    private final MultiValuedMap<String, String> newReferences;
 
     private final MountInfoProvider mip;
 
@@ -88,7 +88,7 @@ public class CrossMountReferenceValidator extends DefaultValidator {
         this.path = "/";
         this.mip = mip;
         this.newReferencableNodes = new HashMap<>();
-        this.newReferences = ArrayListMultimap.create();
+        this.newReferences = new ArrayListValuedHashMap<>();
         this.uuidDefinition = root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("uuid");
         this.uuidStores = Multiplexers.getStrategies(true, mip, uuidDefinition, INDEX_CONTENT_NODE_NAME);
         this.failOnDetection = failOnDetection;

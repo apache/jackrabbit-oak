@@ -30,8 +30,8 @@ import java.util.TreeMap;
 import javax.jcr.PropertyType;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
@@ -97,8 +97,7 @@ public class FilterImpl implements Filter {
      * restrictions must apply, for example x=1 and x=2. For this case, only
      * multi-valued properties match if it contains both the values 1 and 2.
      */
-    private final ListMultimap<String, PropertyRestriction> propertyRestrictions =
-            ArrayListMultimap.create();
+    private final ListValuedMap<String, PropertyRestriction> propertyRestrictions = new ArrayListValuedHashMap<>();
 
     /**
      * Only return distinct values.
