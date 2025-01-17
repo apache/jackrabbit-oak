@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.commons.io;
 
 import java.io.FilterInputStream;
@@ -25,21 +24,18 @@ import java.io.InputStream;
 import java.util.function.Supplier;
 
 import org.apache.commons.io.input.ClosedInputStream;
-import org.apache.jackrabbit.guava.common.io.ByteSource;
 
 /**
  * * This input stream delays accessing the {@link InputStream} until the first byte is read
  */
 public class LazyInputStream extends FilterInputStream {
 
-    private final ByteSource byteSource;
     private final Supplier<InputStream> inputStreamSupplier;
 
     private boolean opened;
 
     public LazyInputStream(Supplier<InputStream> inputStreamSupplier) {
         super(null);
-        this.byteSource = null;
         this.inputStreamSupplier = inputStreamSupplier;
     }
 
@@ -107,7 +103,7 @@ public class LazyInputStream extends FilterInputStream {
     private void ensureOpen() throws IOException {
         if (!opened) {
             opened = true;
-            in = inputStreamSupplier != null ? inputStreamSupplier.get() : byteSource.openStream();
+            in = inputStreamSupplier.get();
         }
     }
 
