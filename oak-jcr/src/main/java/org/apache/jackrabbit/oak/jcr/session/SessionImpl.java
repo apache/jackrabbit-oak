@@ -852,4 +852,16 @@ public class SessionImpl implements JackrabbitSession {
         }
         return "null";
     }
+
+    @Override
+    @NotNull
+    public String getExpandedName(@NotNull Item item) throws RepositoryException {
+        return checkItemImpl(item).sessionContext.getExpandedJcrName(item.getName());
+    }
+
+    @Override
+    @NotNull
+    public String getExpandedPath(@NotNull Item item) throws RepositoryException {
+        return checkItemImpl(item).sessionContext.getExpandedJcrPath(item.getPath());
+    }
 }
