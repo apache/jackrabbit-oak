@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -79,7 +79,7 @@ public class IndexImporter {
     private final Map<String, IndexImporterProvider> importers = new HashMap<>();
     private final IndexerInfo indexerInfo;
     private final Map<String, File> indexes;
-    private final ListMultimap<String, IndexInfo> asyncLaneToIndexMapping;
+    private final ListValuedMap<String, IndexInfo> asyncLaneToIndexMapping;
     private final NodeState indexedState;
     private final IndexEditorProvider indexEditorProvider;
     private final AsyncIndexerLock indexerLock;
@@ -378,9 +378,9 @@ public class IndexImporter {
         return requireNonNull(provider, "No IndexImporterProvider found for type [" + type + "]");
     }
 
-    private ListMultimap<String, IndexInfo> mapIndexesToLanes(Map<String, File> indexes) {
+    private ListValuedMap<String, IndexInfo> mapIndexesToLanes(Map<String, File> indexes) {
         NodeState rootState = nodeStore.getRoot();
-        ListMultimap<String, IndexInfo> map = ArrayListMultimap.create();
+        ListValuedMap<String, IndexInfo> map = new ArrayListValuedHashMap<>();
         for (Map.Entry<String, File> e : indexes.entrySet()) {
             String indexPath = e.getKey();
 

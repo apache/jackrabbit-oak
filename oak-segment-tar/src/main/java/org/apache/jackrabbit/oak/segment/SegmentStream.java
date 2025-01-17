@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static java.util.Objects.checkFromToIndex;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -140,7 +140,7 @@ public class SegmentStream extends InputStream {
     @Override
     public int read(@NotNull byte[] b, int off, int len) {
         requireNonNull(b);
-        checkPositionIndexes(off, off + len, b.length);
+        checkFromToIndex(off, off + len, b.length);
 
         if (len == 0) {
             return 0;

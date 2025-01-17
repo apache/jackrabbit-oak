@@ -27,9 +27,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -486,7 +486,7 @@ public class AggregateTest {
     }
 
     private static class TestCollector implements Aggregate.ResultCollector {
-        final ListMultimap<String, NodeIncludeResult> nodeResults = ArrayListMultimap.create();
+        final ListValuedMap<String, NodeIncludeResult> nodeResults = new ArrayListValuedHashMap<>();
         final Map<String, PropertyIncludeResult> propResults = new HashMap<>();
         @Override
         public void onResult(NodeIncludeResult result) {
