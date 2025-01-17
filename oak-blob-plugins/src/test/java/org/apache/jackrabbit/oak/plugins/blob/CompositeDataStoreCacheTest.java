@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.CountDownLatch;
@@ -570,7 +571,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         // Get a handle to the file and open stream
         File fileOnUpload = cache.getIfPresent(ID_PREFIX + 0);
         assertNotNull(fileOnUpload);
-        final InputStream fStream = Files.asByteSource(fileOnUpload).openStream();
+        final InputStream fStream = new FileInputStream(fileOnUpload);
 
         thread1Start.countDown();
 
