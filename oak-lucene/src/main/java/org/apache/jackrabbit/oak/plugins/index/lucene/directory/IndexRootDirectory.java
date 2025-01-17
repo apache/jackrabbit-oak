@@ -30,9 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -220,7 +220,7 @@ public class IndexRootDirectory {
     private Map<String, List<LocalIndexDir>> getIndexesPerPath() throws IOException {
         File[] dirs = indexRootDir.listFiles(LOCAL_DIR_FILTER);
 
-        ListMultimap<String, LocalIndexDir> pathToDirMap = ArrayListMultimap.create();
+        ListValuedMap<String, LocalIndexDir> pathToDirMap = new ArrayListValuedHashMap<>();
         for (File indexDir : dirs){
             LocalIndexDir localIndexDir = new LocalIndexDir(indexDir);
             pathToDirMap.get(localIndexDir.getJcrPath()).add(localIndexDir);

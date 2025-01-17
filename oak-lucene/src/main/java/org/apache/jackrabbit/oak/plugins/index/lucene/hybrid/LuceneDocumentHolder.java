@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -35,10 +35,10 @@ public class LuceneDocumentHolder implements JournalProperty {
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentHolder.class);
     public static final String NAME = "luceneDocs";
 
-    private final ListMultimap<String, LuceneDoc> nrtIndexedList = ArrayListMultimap.create();
-    private final ListMultimap<String, LuceneDoc> syncIndexedList = ArrayListMultimap.create();
-    private final ListMultimap<String, String> queuedNrtIndexedPath = ArrayListMultimap.create();
-    private final ListMultimap<String, LuceneDoc> queuedSyncIndexedPath = ArrayListMultimap.create();
+    private final ListValuedMap<String, LuceneDoc> nrtIndexedList = new ArrayListValuedHashMap<>();
+    private final ListValuedMap<String, LuceneDoc> syncIndexedList = new ArrayListValuedHashMap<>();
+    private final ListValuedMap<String, String> queuedNrtIndexedPath = new ArrayListValuedHashMap<>();
+    private final ListValuedMap<String, LuceneDoc> queuedSyncIndexedPath = new ArrayListValuedHashMap<>();
     private final int inMemoryDocsLimit;
     private final IndexingQueue documentQueue;
     private boolean limitWarningLogged;
@@ -114,7 +114,7 @@ public class LuceneDocumentHolder implements JournalProperty {
         return true;
     }
 
-    private static Iterable<? extends LuceneDocInfo> asLuceneDocInfo(ListMultimap<String, String> docs) {
+    private static Iterable<? extends LuceneDocInfo> asLuceneDocInfo(ListValuedMap<String, String> docs) {
         return Iterables.transform(docs.entries(), input -> {
                 return new LuceneDocInfo() {
                     @Override

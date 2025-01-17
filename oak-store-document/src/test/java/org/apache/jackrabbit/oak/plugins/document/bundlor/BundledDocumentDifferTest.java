@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -210,7 +210,7 @@ public class BundledDocumentDifferTest {
     }
 
     private static class CollectingDiff extends DefaultNodeStateDiff {
-        private ListMultimap<String, String> changes = ArrayListMultimap.create();
+        private ListValuedMap<String, String> changes = new ArrayListValuedHashMap<>();
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
