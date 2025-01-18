@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.jcr.AccessDeniedException;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -180,7 +182,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
 
     private boolean hasCacheValues(@NotNull Tree principalCache) {
         return principalCache.hasProperty(propertyName) &&
-                !Strings.isNullOrEmpty(TreeUtil.getString(principalCache, propertyName));
+                !StringUtils.isEmpty(TreeUtil.getString(principalCache, propertyName));
     }
 
     /**

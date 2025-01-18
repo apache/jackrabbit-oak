@@ -74,6 +74,7 @@ import java.util.function.Supplier;
 
 import javax.jcr.PropertyType;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -4013,7 +4014,7 @@ public final class DocumentNodeStore
     
     @Override
     public boolean isVisible(@NotNull String visibilityToken, long maxWaitMillis) throws InterruptedException {
-        if (Strings.isNullOrEmpty(visibilityToken)) {
+        if (StringUtils.isEmpty(visibilityToken)) {
             // we've asked for @Nonnull..
             // hence throwing an exception
             throw new IllegalArgumentException("visibilityToken must not be null or empty");

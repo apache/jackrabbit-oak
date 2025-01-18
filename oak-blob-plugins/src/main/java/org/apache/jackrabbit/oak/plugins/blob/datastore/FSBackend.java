@@ -24,14 +24,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -187,7 +185,7 @@ public class FSBackend extends AbstractSharedBackend {
     public void addMetadataRecord(InputStream input, String name)
         throws DataStoreException {
         checkArgument(input != null, "input should not be null");
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         try {
             File file = new File(fsPathDir, name);
@@ -208,7 +206,7 @@ public class FSBackend extends AbstractSharedBackend {
     @Override
     public void addMetadataRecord(File input, String name) throws DataStoreException {
         checkArgument(input != null, "input should not be null");
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         try {
             File file = new File(fsPathDir, name);
@@ -222,7 +220,7 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public DataRecord getMetadataRecord(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         for (File file : FileFilterUtils
             .filter(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {
@@ -250,7 +248,7 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public boolean deleteMetadataRecord(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         for (File file : FileFilterUtils
             .filterList(FileFilterUtils.nameFileFilter(name), fsPathDir.listFiles())) {

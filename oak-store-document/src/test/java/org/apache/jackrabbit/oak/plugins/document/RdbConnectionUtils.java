@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,7 +137,7 @@ public class RdbConnectionUtils {
     }
 
     private static boolean checkImageAvailability() throws TimeoutException {
-        if (Strings.isNullOrEmpty(IMG)) {
+        if (StringUtils.isEmpty(IMG)) {
             return false;
         }
         RemoteDockerImage remoteDockerImage = new RemoteDockerImage(DockerImageName.parse(IMG));

@@ -24,6 +24,7 @@ import java.net.URI;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -52,7 +53,7 @@ public class AzureDataRecordAccessProviderIT extends AbstractDataRecordAccessPro
 
     @BeforeClass
     public static void setupDataStore() throws Exception {
-        assumeTrue(isAzureConfigured() && !Strings.isNullOrEmpty(System.getProperty("test.opts.memory")));
+        assumeTrue(isAzureConfigured() && !StringUtils.isEmpty(System.getProperty("test.opts.memory")));
 
         dataStore = (AzureDataStore) getAzureDataStore(getAzureConfig(), homeDir.newFolder().getAbsolutePath());
         dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.junit.AssumptionViolatedException;
 import org.junit.Before;
@@ -39,7 +40,7 @@ public class TestS3DSWithSSEKMSwithKey extends TestS3Ds {
         public void setUp() throws Exception {
             super.setUp();
             String keyid = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
-            if (!Strings.isNullOrEmpty(keyid)) {
+            if (!StringUtils.isEmpty(keyid)) {
                 props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_KMS);
                 props.setProperty(S3Constants.S3_SSE_KMS_KEYID, keyid);
             } else {

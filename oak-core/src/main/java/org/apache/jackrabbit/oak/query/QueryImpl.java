@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -1416,7 +1417,7 @@ public class QueryImpl implements Query {
 
     @Override
     public String getStatement() {
-        return Strings.isNullOrEmpty(statement) ? toString() : statement;
+        return StringUtils.isEmpty(statement) ? toString() : statement;
     }
 
     public QueryEngineSettings getSettings() {

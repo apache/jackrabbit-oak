@@ -40,6 +40,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import joptsimple.internal.Strings;
@@ -171,7 +172,7 @@ public class DataStoreCheckTest {
     @After
     public void tearDown() {
         System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err)));
-        if (!Strings.isNullOrEmpty(container)) {
+        if (!StringUtils.isEmpty(container)) {
             try {
                 if (dsOption.equals("s3ds")) {
                     S3DataStoreUtils.deleteBucket(container, new Date());

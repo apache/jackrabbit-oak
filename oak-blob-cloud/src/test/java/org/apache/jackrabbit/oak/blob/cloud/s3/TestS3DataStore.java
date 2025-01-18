@@ -45,6 +45,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.jcr.RepositoryException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -323,7 +324,7 @@ public class TestS3DataStore {
 
         s3ds.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : Arrays.asList("invalid", "", null)) {
-            if (Strings.isNullOrEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 try {
                     s3ds.metadataRecordExists(name);
                 }
@@ -345,7 +346,7 @@ public class TestS3DataStore {
 
         s3ds.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : Arrays.asList("", null)) {
-            if (Strings.isNullOrEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 try {
                     s3ds.deleteMetadataRecord(name);
                 }

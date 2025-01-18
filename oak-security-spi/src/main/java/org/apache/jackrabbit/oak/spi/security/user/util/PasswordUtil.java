@@ -26,7 +26,7 @@ import java.security.spec.KeySpec;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
@@ -216,7 +216,7 @@ public final class PasswordUtil {
                                        @Nullable String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         StringBuilder passwordHash = new StringBuilder();
         passwordHash.append('{').append(algorithm).append('}');
-        if (!Strings.isNullOrEmpty(salt)) {
+        if (!StringUtils.isEmpty(salt)) {
             StringBuilder data = new StringBuilder();
             data.append(salt).append(pwd);
 
@@ -325,7 +325,7 @@ public final class PasswordUtil {
      */
     @Nullable
     private static String extractAlgorithm(@Nullable String hashedPwd) {
-        if (!Strings.isNullOrEmpty(hashedPwd)) {
+        if (!StringUtils.isEmpty(hashedPwd)) {
             int end = hashedPwd.indexOf('}');
             if (hashedPwd.charAt(0) == '{' && end > 0 && end < hashedPwd.length()-1) {
                 String algorithm = hashedPwd.substring(1, end);

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -93,7 +94,7 @@ public class DataStoreCommandMetadataTest {
     public void setup() throws Exception {
         if (storeFixture instanceof StoreFixture.AzureSegmentStoreFixture) {
             assumeFalse("Environment variable \"AZURE_SECRET_KEY\" must be set to run Azure Segment fixture",
-                    Strings.isNullOrEmpty(System.getenv("AZURE_SECRET_KEY")));
+                    StringUtils.isEmpty(System.getenv("AZURE_SECRET_KEY")));
         }
 
         setupDataStore = blobFixture.init(temporaryFolder);

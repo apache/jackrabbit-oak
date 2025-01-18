@@ -29,7 +29,7 @@ import java.util.Objects;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -75,7 +75,7 @@ public abstract class AbstractDataStoreService {
         int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_CACHE_SIZE), DataStoreBlobStore.DEFAULT_CACHE_SIZE);
 
         String homeDir = lookup(context, PROP_HOME);
-        if (config.containsKey(PATH) && !Strings.isNullOrEmpty((String) config.get(PATH))) {
+        if (config.containsKey(PATH) && !StringUtils.isEmpty((String) config.get(PATH))) {
             log.info("Initializing the DataStore with path [{}]", config.get(PATH));
         }
         else if (homeDir != null) {

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -301,7 +302,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         Map<String, String> updateMap = MapUtils.newHashMap(memberIds.length);
         MembershipProvider mp = getMembershipProvider();
         for (String memberId : memberIds) {
-            if (Strings.isNullOrEmpty(memberId)) {
+            if (StringUtils.isEmpty(memberId)) {
                 throw new ConstraintViolationException("MemberId must not be null or empty.");
             }
             if (isValidMemberId(memberId, importBehavior)) {

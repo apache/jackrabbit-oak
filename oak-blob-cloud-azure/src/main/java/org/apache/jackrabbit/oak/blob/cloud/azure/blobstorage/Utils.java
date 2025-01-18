@@ -102,8 +102,8 @@ public final class Utils {
         String proxyHost = properties.getProperty(AzureConstants.PROXY_HOST);
         String proxyPort = properties.getProperty(AzureConstants.PROXY_PORT);
 
-        if (!Strings.isNullOrEmpty(proxyHost) &&
-            Strings.isNullOrEmpty(proxyPort)) {
+        if (!StringUtils.isEmpty(proxyHost) &&
+            StringUtils.isEmpty(proxyPort)) {
             int port = Integer.parseInt(proxyPort);
             SocketAddress proxyAddr = new InetSocketAddress(proxyHost, port);
             Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyAddr);
@@ -162,7 +162,7 @@ public final class Utils {
         connString.append(";AccountName=").append(accountName);
         connString.append(";AccountKey=").append(accountKey);
         
-        if (!Strings.isNullOrEmpty(blobEndpoint)) {
+        if (!StringUtils.isEmpty(blobEndpoint)) {
             connString.append(";BlobEndpoint=").append(blobEndpoint);
         }
         return connString.toString();
