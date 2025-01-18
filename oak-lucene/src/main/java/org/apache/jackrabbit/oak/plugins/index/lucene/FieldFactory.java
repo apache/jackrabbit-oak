@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.document.*;
 
