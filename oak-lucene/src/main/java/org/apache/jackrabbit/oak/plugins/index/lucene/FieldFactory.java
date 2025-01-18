@@ -102,14 +102,14 @@ public final class FieldFactory {
 
     public static Collection<Field> newSimilarityFields(String name, Blob value) throws IOException {
         Collection<Field> fields = new ArrayList<>(1);
-        byte[] bytes = new BlobByteSource(value).read();
+        byte[] bytes = value.getNewStream().readAllBytes();
         fields.add(newSimilarityField(name, bytes));
         return fields;
     }
 
     public static Collection<Field> newBinSimilarityFields(String name, Blob value) throws IOException {
         Collection<Field> fields = new ArrayList<>(1);
-        byte[] bytes = new BlobByteSource(value).read();
+        byte[] bytes = value.getNewStream().readAllBytes();
         fields.add(newBinarySimilarityField(name, bytes));
         return fields;
     }

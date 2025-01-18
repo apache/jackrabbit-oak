@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -149,7 +148,7 @@ public class ElasticDocument {
     }
 
     void addSimilarityField(String name, Blob value) throws IOException {
-        byte[] bytes = new BlobByteSource(value).read();
+        byte[] bytes = value.getNewStream().readAllBytes();
         addProperty(FieldNames.createSimilarityFieldName(name), toFloats(bytes));
     }
 

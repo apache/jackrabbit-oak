@@ -16,37 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.oak.api.Blob;
 
 /**
- * {@link ByteSource} extension to work with Oak {@link Blob}s
+ * Utilities to work with Oak {@link Blob}s
  */
-public final class BlobByteSource extends ByteSource {
-    private final Blob blob;
+public final class BlobByteSource {
+//    private final Blob blob;
 
-    public BlobByteSource(Blob blob) {
-        this.blob = blob;
-    }
-
-    @Override
-    public InputStream openStream() throws IOException {
-        return blob.getNewStream();
-    }
-
-    @Override
-    public long size() throws IOException {
-        return blob.length();
-    }
-
-    @Override
-    public boolean isEmpty() throws IOException {
-        return blob.length() == 0;
-    }
+//    public BlobByteSource(Blob blob) {
+//        this.blob = blob;
+//    }
 }
