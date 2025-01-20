@@ -32,6 +32,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.UUID;
@@ -343,7 +344,10 @@ public class S3Backend extends AbstractSharedBackend {
                     objectMetaData.getLastModified().getTime());
                 CopyObjectRequest copReq = new CopyObjectRequest(bucket, key,
                     bucket, key);
-                copReq.setNewObjectMetadata(objectMetaData);
+                LOG.warn("Object MetaData before copy: {}", objectMetaData.getRawMetadata());
+                if (Objects.equals(RemoteStorageMode.S3, properties.get(S3Constants.MODE))) {
+                    copReq.setNewObjectMetadata(objectMetaData);
+                }
                 Copy copy = tmx.copy(s3ReqDecorator.decorate(copReq));
                 try {
                     copy.waitForCopyResult();
