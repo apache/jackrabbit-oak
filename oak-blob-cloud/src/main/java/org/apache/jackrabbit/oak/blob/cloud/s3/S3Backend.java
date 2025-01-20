@@ -496,6 +496,20 @@ public class S3Backend extends AbstractSharedBackend {
      */
     public void setProperties(Properties properties) {
         this.properties = properties;
+        setRemoteStorageMode();
+    }
+
+    private void setRemoteStorageMode() {
+        String s3EndPoint = properties.getProperty(S3Constants.S3_END_POINT, "");
+        if (s3EndPoint.contains("googleapis")) {
+            if (properties.get(S3Constants.MODE) == RemoteStorageMode.S3) {
+                LOG.warn("Mismatch between remote storage mode and s3EndPoint, overriding mode to GCP");
+            }
+            properties.put(S3Constants.MODE, RemoteStorageMode.GCP);
+            return;
+        }
+        // default mode is S3
+        properties.put(S3Constants.MODE, RemoteStorageMode.S3);
     }
 
     @Override
@@ -1366,5 +1380,13 @@ public class S3Backend extends AbstractSharedBackend {
         public KeyRenameThread(String oldKey) {
             this.oldKey = oldKey;
         }
+    }
+
+    /**
+     * Enum to indicate remote storage mode
+     */
+    private enum RemoteStorageMode {
+        S3,
+        GCP
     }
 }
