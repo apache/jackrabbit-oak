@@ -1404,7 +1404,7 @@ public class S3Backend extends AbstractSharedBackend {
     /**
      * Enum to indicate remote storage mode
      */
-    private enum RemoteStorageMode {
+    enum RemoteStorageMode {
         S3,
         GCP
     }
