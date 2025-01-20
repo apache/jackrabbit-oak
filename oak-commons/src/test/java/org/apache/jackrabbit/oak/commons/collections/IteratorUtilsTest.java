@@ -44,5 +44,4 @@ public class IteratorUtilsTest {
             // that's what we want
         }
     }
-
 }
