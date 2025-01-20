@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.jcr.AccessDeniedException;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;

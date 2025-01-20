@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Strings;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;

@@ -136,7 +136,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
