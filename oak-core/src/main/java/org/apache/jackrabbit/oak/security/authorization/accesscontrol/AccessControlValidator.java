@@ -25,6 +25,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
@@ -243,7 +244,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     @NotNull
     private static String checkValidPrincipal(@NotNull Tree aceNode) throws CommitFailedException {
         String principalName = TreeUtil.getString(aceNode, REP_PRINCIPAL_NAME);
-        if (Strings.isNullOrEmpty(principalName)) {
+        if (StringUtils.isEmpty(principalName)) {
             throw accessViolation(8, "Missing principal name at " + aceNode.getPath());
         }
         // validity of principal is only a JCR specific contract and will not be

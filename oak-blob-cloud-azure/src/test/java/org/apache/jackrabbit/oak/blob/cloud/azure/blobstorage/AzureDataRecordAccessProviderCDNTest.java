@@ -32,6 +32,7 @@ import java.io.File;
 import java.net.URI;
 import java.util.Properties;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
@@ -79,7 +80,7 @@ public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessP
     }
 
     private static boolean isCDNConfigured() {
-        return ! Strings.isNullOrEmpty(DOWNLOAD_URI_DOMAIN) && ! Strings.isNullOrEmpty(UPLOAD_URI_DOMAIN);
+        return ! StringUtils.isEmpty(DOWNLOAD_URI_DOMAIN) && ! StringUtils.isEmpty(UPLOAD_URI_DOMAIN);
     }
 
     private static AzureDataStore createDataStore(@NotNull Properties properties) throws Exception {

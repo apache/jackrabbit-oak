@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.commons.io.FileUtils;
@@ -313,7 +314,7 @@ public class SharedDataStoreTest {
 
         fds.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : new ArrayList<>(Arrays.asList("", null))) {
-            if (Strings.isNullOrEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 try {
                     fds.deleteMetadataRecord(name);
                 }
@@ -387,7 +388,7 @@ public class SharedDataStoreTest {
 
         fds.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : new ArrayList<>(Arrays.asList("invalid", "", null))) {
-            if (Strings.isNullOrEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 try {
                     fds.metadataRecordExists(name);
                 }

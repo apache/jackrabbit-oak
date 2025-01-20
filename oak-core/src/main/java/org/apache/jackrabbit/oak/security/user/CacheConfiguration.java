@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
 
@@ -68,7 +68,7 @@ final class CacheConfiguration {
      */
     public static CacheConfiguration fromUserConfiguration(@NotNull UserConfiguration config, @NotNull String propertyName) {
 
-        if (Strings.isNullOrEmpty(propertyName) || propertyName.trim().isEmpty()) {
+        if (StringUtils.isEmpty(propertyName) || propertyName.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid property name: " + propertyName);
         }
 

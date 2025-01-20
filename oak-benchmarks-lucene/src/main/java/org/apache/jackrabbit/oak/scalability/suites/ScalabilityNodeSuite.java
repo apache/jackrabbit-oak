@@ -33,6 +33,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
@@ -448,7 +449,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                             .with((Observer) provider)
                             .with(new LuceneIndexEditorProvider());
 
-                    if (!Strings.isNullOrEmpty(ASYNC_INDEX) && ASYNC_INDEX
+                    if (!StringUtils.isEmpty(ASYNC_INDEX) && ASYNC_INDEX
                         .equals(IndexConstants.ASYNC_PROPERTY_NAME)) {
                         oak.withAsyncIndexing();
                     }

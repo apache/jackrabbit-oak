@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -327,7 +328,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
      */
     private boolean canHandle(@Nullable Principal principal) throws AccessControlException {
         String name = (principal == null) ? null : principal.getName();
-        if (Strings.isNullOrEmpty(name)) {
+        if (StringUtils.isEmpty(name)) {
             throw new AccessControlException("Invalid principal " + name);
         }
         if (importBehavior ==  ImportBehavior.ABORT || importBehavior == ImportBehavior.IGNORE) {

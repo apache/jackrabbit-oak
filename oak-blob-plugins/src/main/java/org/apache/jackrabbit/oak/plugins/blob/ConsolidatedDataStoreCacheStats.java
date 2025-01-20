@@ -33,7 +33,7 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -132,7 +132,7 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
      */
     @Override
     public boolean isFileSynced(final String nodePathName) {
-        if (Strings.isNullOrEmpty(nodePathName)) {
+        if (StringUtils.isEmpty(nodePathName)) {
             return false;
         }
 
@@ -197,7 +197,7 @@ public class ConsolidatedDataStoreCacheStats implements ConsolidatedDataStoreCac
 
     private boolean haveRecordForBlob(final Blob blob) {
         final String fullBlobId = blob.getContentIdentity();
-        if (!Strings.isNullOrEmpty(fullBlobId)
+        if (!StringUtils.isEmpty(fullBlobId)
             && !InMemoryDataRecord.isInstance(fullBlobId)) {
             String blobId = DataStoreBlobStore.BlobId.of(fullBlobId).getBlobId();
             return cachingDataStore.exists(new DataIdentifier(blobId));

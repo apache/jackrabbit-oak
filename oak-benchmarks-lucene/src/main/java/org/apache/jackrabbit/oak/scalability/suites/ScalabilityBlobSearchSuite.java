@@ -36,6 +36,7 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.VersionException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
 
@@ -143,11 +144,11 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
         if (INDEX) {
             OakIndexUtils.propertyIndexDefinition(session, NodeTypeConstants.JCR_MIMETYPE,
                 new String[] {NodeTypeConstants.JCR_MIMETYPE}, false,
-                (Strings.isNullOrEmpty(indexType) ? new String[0] : new String[] {indexType}));
+                (StringUtils.isEmpty(indexType) ? new String[0] : new String[] {indexType}));
             OakIndexUtils
                 .orderedIndexDefinition(session, NodeTypeConstants.JCR_LASTMODIFIED, ASYNC_INDEX,
                     new String[] {NodeTypeConstants.JCR_LASTMODIFIED}, false,
-                    (Strings.isNullOrEmpty(indexType) ? new String[0] : new String[] {indexType}),
+                    (StringUtils.isEmpty(indexType) ? new String[0] : new String[] {indexType}),
                     null);
         }
     }
@@ -344,7 +345,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
 
                 file.setProperty(CUSTOM_PATH_PROP, file.getPath());
                 String reference = getRandomReadPath();
-                if (!Strings.isNullOrEmpty(reference)) {
+                if (!StringUtils.isEmpty(reference)) {
                     file.setProperty(CUSTOM_REF_PROP, reference);
                 }
             } finally {

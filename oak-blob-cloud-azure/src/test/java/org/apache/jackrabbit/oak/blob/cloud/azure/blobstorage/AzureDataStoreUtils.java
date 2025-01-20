@@ -34,6 +34,7 @@ import java.util.Properties;
 import javax.net.ssl.HttpsURLConnection;
 
 import com.azure.storage.blob.BlobContainerClient;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
@@ -89,13 +90,13 @@ public class AzureDataStoreUtils extends DataStoreUtils {
      */
     public static Properties getAzureConfig() {
         String config = System.getProperty(SYS_PROP_NAME);
-        if (Strings.isNullOrEmpty(config)) {
+        if (StringUtils.isEmpty(config)) {
             File cfgFile = new File(System.getProperty("user.home"), DEFAULT_PROPERTY_FILE);
             if (cfgFile.exists()) {
                 config = cfgFile.getAbsolutePath();
             }
         }
-        if (Strings.isNullOrEmpty(config)) {
+        if (StringUtils.isEmpty(config)) {
             config = DEFAULT_CONFIG_PATH;
         }
 
@@ -112,7 +113,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
             }
             props.putAll(getConfig());
             Map<String, String> filtered = MapUtils.filterEntries(MapUtils.fromProperties(props),
-                    input -> !Strings.isNullOrEmpty(input.getValue()));
+                    input -> !StringUtils.isEmpty(input.getValue()));
             props = new Properties();
             props.putAll(filtered);
         }
@@ -173,7 +174,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
     }
 
     public static void deleteContainer(String containerName) throws Exception {
-        if (Strings.isNullOrEmpty(containerName)) {
+        if (StringUtils.isEmpty(containerName)) {
             log.warn("Cannot delete container with null or empty name. containerName={}", containerName);
             return;
         }

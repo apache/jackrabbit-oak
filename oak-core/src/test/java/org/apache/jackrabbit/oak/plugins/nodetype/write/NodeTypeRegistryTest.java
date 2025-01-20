@@ -52,6 +52,7 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.security.auth.login.LoginException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefReader;
@@ -91,7 +92,7 @@ public class NodeTypeRegistryTest {
     private ContentSession session = null;
     
     static void registerNodeType(@NotNull Root root, @NotNull String resourceName) throws IOException {
-        checkArgument(!Strings.isNullOrEmpty(resourceName));
+        checkArgument(!StringUtils.isEmpty(resourceName));
         requireNonNull(root);
 
         InputStream stream = null;

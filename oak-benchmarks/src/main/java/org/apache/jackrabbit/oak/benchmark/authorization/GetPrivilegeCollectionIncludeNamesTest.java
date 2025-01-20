@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
 import joptsimple.internal.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -54,7 +55,7 @@ public class GetPrivilegeCollectionIncludeNamesTest extends AbstractHasItemGetIt
     
     @NotNull
     private static EvaluationType getEvalType(@Nullable String type) {
-        if (Strings.isNullOrEmpty(type)) {
+        if (StringUtils.isEmpty(type)) {
             return EvaluationType.ACCESSCONTORL_MANAGER_GET_PRIVILEGE_COLLECTION;
         }
         try {

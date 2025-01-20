@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Root;
@@ -127,7 +128,7 @@ public class FilterProviderImpl implements FilterProvider {
     }
 
     private static boolean isValidPath(@Nullable String path) {
-        return !Strings.isNullOrEmpty(path) && PathUtils.isAbsolute(path);
+        return !StringUtils.isEmpty(path) && PathUtils.isAbsolute(path);
     }
     //-------------------------------------------------------------< Filter >---
 

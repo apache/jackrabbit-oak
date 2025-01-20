@@ -32,7 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -135,7 +135,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     public void addMetadataRecord(InputStream input, String name)
             throws DataStoreException {
         checkArgument(input != null, "input should not be null");
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         try {
             File file = new File(getPath(), name);
@@ -156,7 +156,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     @Override
     public void addMetadataRecord(File input, String name) throws DataStoreException {
         checkArgument(input != null, "input should not be null");
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         try {
             File file = new File(getPath(), name);
@@ -170,7 +170,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public DataRecord getMetadataRecord(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         File root = new File(getPath());
         for (File file : FileFilterUtils.filter(FileFilterUtils.nameFileFilter(name), root.listFiles())) {
@@ -183,7 +183,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public boolean metadataRecordExists(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         File root = new File(getPath());
 
@@ -221,7 +221,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public boolean deleteMetadataRecord(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         File root = new File(getPath());
 

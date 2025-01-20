@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark.util;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -93,7 +94,7 @@ public class OakLuceneIndexUtils {
         }
 
         // Set file persistence if specified
-        if (!Strings.isNullOrEmpty(persistencePath)) {
+        if (!StringUtils.isEmpty(persistencePath)) {
             indexDef.setProperty(FulltextIndexConstants.PERSISTENCE_NAME,
                     FulltextIndexConstants.PERSISTENCE_FILE);
             indexDef.setProperty(FulltextIndexConstants.PERSISTENCE_PATH,

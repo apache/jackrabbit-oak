@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import ch.qos.logback.classic.Level;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -146,7 +147,7 @@ public class DataStoreCommandTest {
     public void setup() throws Exception {
         if (storeFixture instanceof StoreFixture.AzureSegmentStoreFixture) {
             assumeFalse("Environment variable \"AZURE_SECRET_KEY\" must be set to run Azure Segment fixture",
-                    Strings.isNullOrEmpty(System.getenv("AZURE_SECRET_KEY")));
+                    StringUtils.isEmpty(System.getenv("AZURE_SECRET_KEY")));
         }
 
         setupDataStore = blobFixture.init(temporaryFolder);
@@ -292,7 +293,7 @@ public class DataStoreCommandTest {
         List<String> argsList = new ArrayList<>(Arrays.asList("--check-consistency", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(), "--out-dir",
                 dump.getAbsolutePath(), storeFixture.getConnectionString(), "--reset-log-config", "false", "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath()));
-        if (!Strings.isNullOrEmpty(additionalParams)) {
+        if (!StringUtils.isEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
 
@@ -323,7 +324,7 @@ public class DataStoreCommandTest {
         List<String> argsList = new ArrayList<>(Arrays.asList("--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(), "--out-dir",
                 dump.getAbsolutePath(), storeFixture.getConnectionString(), "--reset-log-config", "false", "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath()));
-        if (!Strings.isNullOrEmpty(additionalParams)) {
+        if (!StringUtils.isEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
 
@@ -344,7 +345,7 @@ public class DataStoreCommandTest {
         List<String> argsList = new ArrayList<>(Arrays.asList(storeFixture.getConnectionString(),
                 "--out-dir", dump.getAbsolutePath(), "--reset-log-config", "false", "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath(), "--check-consistency"));
-        if (!Strings.isNullOrEmpty(additionalParams)) {
+        if (!StringUtils.isEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
 
@@ -679,7 +680,7 @@ public class DataStoreCommandTest {
         List<String> argsList = new ArrayList<>(Arrays.asList("--collect-garbage", "--max-age", String.valueOf(0), "--" + getOption(blobFixture.getType()),
                 blobFixture.getConfigPath(), storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(),
                 "--reset-log-config", "false", "--work-dir", temporaryFolder.newFolder().getAbsolutePath()));
-        if (!Strings.isNullOrEmpty(additionalParams)) {
+        if (!StringUtils.isEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
 
@@ -703,7 +704,7 @@ public class DataStoreCommandTest {
         List<String> argsList = new ArrayList<>(Arrays.asList("--check-consistency", "--fake-ds-path", dsPath.getAbsolutePath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath()));
-        if (!Strings.isNullOrEmpty(additionalParams)) {
+        if (!StringUtils.isEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
         DataStoreCommand cmd = new DataStoreCommand();
@@ -722,7 +723,7 @@ public class DataStoreCommandTest {
         List<String> argsList = new ArrayList<>(Arrays.asList("--check-consistency", String.valueOf(markOnly), "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath()));
-        if (!Strings.isNullOrEmpty(additionalParams)) {
+        if (!StringUtils.isEmpty(additionalParams)) {
             argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
 
@@ -763,7 +764,7 @@ public class DataStoreCommandTest {
         List<String> argsList = new ArrayList<>(Arrays.asList("--dump-ref", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                         storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                         temporaryFolder.newFolder().getAbsolutePath()));
-        if (!Strings.isNullOrEmpty(additionalParams)) {
+        if (!StringUtils.isEmpty(additionalParams)) {
             argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
 
@@ -785,7 +786,7 @@ public class DataStoreCommandTest {
         List<String> argsList = new ArrayList<>(Arrays.asList("--dump-id", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                         storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                         temporaryFolder.newFolder().getAbsolutePath()));
-        if (!Strings.isNullOrEmpty(additionalParams)) {
+        if (!StringUtils.isEmpty(additionalParams)) {
             argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
 
@@ -807,7 +808,7 @@ public class DataStoreCommandTest {
                 "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath()));
-        if (!Strings.isNullOrEmpty(additionalParams)) {
+        if (!StringUtils.isEmpty(additionalParams)) {
             argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
 

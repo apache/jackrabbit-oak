@@ -78,6 +78,34 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import com.microsoft.azure.storage.AccessCondition;
+import com.microsoft.azure.storage.LocationMode;
+import com.microsoft.azure.storage.ResultContinuation;
+import com.microsoft.azure.storage.ResultSegment;
+import com.microsoft.azure.storage.RetryPolicy;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.BlobListingDetails;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import com.microsoft.azure.storage.blob.BlockEntry;
+import com.microsoft.azure.storage.blob.BlockListingFilter;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.microsoft.azure.storage.blob.CopyStatus;
+import com.microsoft.azure.storage.blob.ListBlobItem;
+import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -458,7 +486,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
         if (null == input) {
             throw new NullPointerException("input");
         }
-        if (Strings.isNullOrEmpty(name)) {
+        if (StringUtils.isEmpty(name)) {
             throw new IllegalArgumentException("name");
         }
         long start = System.currentTimeMillis();
@@ -941,7 +969,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     protected DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
             throws DataRecordUploadException, DataStoreException {
 
-        if (Strings.isNullOrEmpty(uploadTokenStr)) {
+        if (StringUtils.isEmpty(uploadTokenStr)) {
             throw new IllegalArgumentException("uploadToken required");
         }
 
@@ -988,7 +1016,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
 
     private String getDefaultBlobStorageDomain() {
         String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        if (Strings.isNullOrEmpty(accountName)) {
+        if (StringUtils.isEmpty(accountName)) {
             LOG.warn("Can't generate presigned URI - Azure account name not found in properties");
             return null;
         }
@@ -999,7 +1027,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : downloadDomainOverride;
-        if (Strings.isNullOrEmpty(domain)) {
+        if (StringUtils.isEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1009,7 +1037,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : uploadDomainOverride;
-        if (Strings.isNullOrEmpty(domain)) {
+        if (StringUtils.isEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1028,6 +1056,16 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
                                    Map<String, String> additionalQueryParams,
                                    String domain) {
         if (Strings.isNullOrEmpty(domain)) {
+        return createPresignedURI(key, permissions, expirySeconds, additionalQueryParams, null, domain);
+    }
+
+    private URI createPresignedURI(String key,
+                                   EnumSet<SharedAccessBlobPermissions> permissions,
+                                   int expirySeconds,
+                                   Map<String, String> additionalQueryParams,
+                                   SharedAccessBlobHeaders optionalHeaders,
+                                   String domain) {
+        if (StringUtils.isEmpty(domain)) {
             LOG.warn("Can't generate presigned URI - no Azure domain provided (is Azure account name configured?)");
             return null;
         }

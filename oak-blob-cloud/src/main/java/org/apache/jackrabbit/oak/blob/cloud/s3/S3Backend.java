@@ -45,6 +45,7 @@ import java.util.function.Function;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -93,9 +94,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
-import com.amazonaws.util.StringUtils;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
@@ -175,13 +174,13 @@ public class S3Backend extends AbstractSharedBackend {
             if (bucket == null || "".equals(bucket.trim())) {
                 bucket = properties.getProperty(S3Constants.S3_BUCKET);
                 // Alternately check if the 'container' property is set
-                if (Strings.isNullOrEmpty(bucket)) {
+                if (StringUtils.isEmpty(bucket)) {
                     bucket = properties.getProperty(S3Constants.S3_CONTAINER);
                 }
             }
             String region = properties.getProperty(S3Constants.S3_REGION);
             
-            if (StringUtils.isNullOrEmpty(region)) {
+            if (StringUtils.isEmpty(region)) {
                 com.amazonaws.regions.Region ec2Region = Regions.getCurrentRegion();
                 if (ec2Region != null) {
                     region = ec2Region.getName();
@@ -513,7 +512,7 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public void addMetadataRecord(final InputStream input, final String name) throws DataStoreException {
         checkArgument(input != null, "input should not be null");
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
@@ -536,7 +535,7 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public void addMetadataRecord(File input, String name) throws DataStoreException {
         checkArgument(input != null, "input should not be null");
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -557,7 +556,7 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public DataRecord getMetadataRecord(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -604,7 +603,7 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public boolean deleteMetadataRecord(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -818,13 +817,13 @@ public class S3Backend extends AbstractSharedBackend {
             );
 
             String contentType = downloadOptions.getContentTypeHeader();
-            if (! Strings.isNullOrEmpty(contentType)) {
+            if (! StringUtils.isEmpty(contentType)) {
                 requestParams.put("response-content-type", contentType);
             }
             String contentDisposition =
                     downloadOptions.getContentDispositionHeader();
 
-            if (! Strings.isNullOrEmpty(contentDisposition)) {
+            if (! StringUtils.isEmpty(contentDisposition)) {
                 requestParams.put("response-content-disposition",
                         contentDisposition);
             }
@@ -957,7 +956,7 @@ public class S3Backend extends AbstractSharedBackend {
     DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
             throws DataRecordUploadException, DataStoreException {
 
-        if (Strings.isNullOrEmpty(uploadTokenStr)) {
+        if (StringUtils.isEmpty(uploadTokenStr)) {
             throw new IllegalArgumentException("uploadToken required");
         }
 
