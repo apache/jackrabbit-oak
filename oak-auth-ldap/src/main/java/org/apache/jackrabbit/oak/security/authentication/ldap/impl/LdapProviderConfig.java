@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.directory.api.util.Strings;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1218,12 +1217,12 @@ public class LdapProviderConfig {
     //OAK-5490
     private String[] removeEmptyStrings(@NotNull String[] params) {
         List<String> list = Arrays.asList(params);
-        if (!list.contains(Strings.EMPTY_STRING)) {
+        if (!list.contains("")) {
             return params;
         }
         List<String> resultList = new LinkedList<>(list);
-        while (resultList.contains(Strings.EMPTY_STRING)) {
-            resultList.remove(Strings.EMPTY_STRING);
+        while (resultList.contains("")) {
+            resultList.remove("");
         }
         String[] result = new String[resultList.size()];
         return resultList.toArray(result);
