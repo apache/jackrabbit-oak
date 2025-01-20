@@ -17,10 +17,8 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.directory.api.util.Strings;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -268,7 +266,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
     @Test
     public void testRemoveEmptyString() throws Exception {
-        providerConfig.setCustomAttributes(new String[] {"a", StringUtils.EMPTY, "b" });
+        providerConfig.setCustomAttributes(new String[] {"a", "", "b" });
         assertArrayEquals("Array must not contain empty strings", new String[] {"a", "b" }, providerConfig.getCustomAttributes());
     }
 
