@@ -16,8 +16,27 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.EXPIRATION_NO_CACHE;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.LongUtils;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheLoader;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachePrincipalFactory;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.jcr.AccessDeniedException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashSet;
@@ -25,28 +44,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.jcr.AccessDeniedException;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.LongUtils;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.spi.security.user.cache.CacheLoader;
-import org.apache.jackrabbit.oak.spi.security.user.cache.CachePrincipalFactory;
-import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.util.Text;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.jackrabbit.oak.security.user.CacheConfiguration.EXPIRATION_NO_CACHE;
 
 /**
  * Extension of {@code PrincipalMembershipReader} that caches the membership of a given user principal. The cache
@@ -80,12 +79,14 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
     private final long maxStale;
     private final String propertyName;
     private final int membershipThreshold;
+    private final String expirationPropertyName;
 
     CachedPrincipalMembershipReader(@NotNull CacheConfiguration cacheConfiguration, @NotNull Root root,
             @NotNull CachePrincipalFactory principalFactory) {
         this.expiration = cacheConfiguration.getExpiration();
         this.maxStale = cacheConfiguration.getMaxStale();
         this.propertyName = cacheConfiguration.getPropertyName();
+        this.expirationPropertyName = cacheConfiguration.getExpirationPropertyName();
         this.config = cacheConfiguration.getUserConfiguration();
         this.membershipThreshold = cacheConfiguration.getMembershipThreshold();
         this.root = root;
@@ -161,11 +162,11 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
         return groups;
     }
 
-    private static long readExpirationTime(@NotNull Tree principalCache) {
-        if (!principalCache.exists()) {
+    private long readExpirationTime(@NotNull Tree principalCache) {
+        if (!principalCache.exists() || !principalCache.hasProperty(expirationPropertyName)) {
             return EXPIRATION_NO_CACHE;
         }
-        return TreeUtil.getLong(principalCache, CacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
+        return TreeUtil.getLong(principalCache, expirationPropertyName, EXPIRATION_NO_CACHE);
     }
 
     private static boolean isValidCache(long expirationTime, long now) {
@@ -226,7 +227,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
                             CacheConstants.NT_REP_CACHE);
                 }
             }
-            cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
+            cache.setProperty(this.expirationPropertyName, LongUtils.calculateExpirationTime(expiration));
             String value = (groupPrincipals.isEmpty()) ? "" : String.join(",", Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
             cache.setProperty(this.propertyName, value);
 

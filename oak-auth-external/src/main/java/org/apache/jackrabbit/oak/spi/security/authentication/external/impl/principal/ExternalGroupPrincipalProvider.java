@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
@@ -102,6 +103,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
     private static final Logger log = LoggerFactory.getLogger(ExternalGroupPrincipalProvider.class);
     static final String CACHE_PRINCIPAL_NAMES = "rep:externalLocalPrincipalNames";
+    static final String CACHE_EXP_PROPERTY_NAME = CacheConstants.REP_EXPIRATION + "ExternalLocalPrincipalNames";
 
     private static final String BINDING_PRINCIPAL_NAMES = "principalNames";
 
@@ -145,14 +147,12 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, syncConfigTracker.getAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
         groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : new AutoMembershipPrincipals(userManager, syncConfigTracker.getGroupAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
 
-        cacheReaderFactory = (String idpName) -> userConfiguration.getCachedMembershipReader(root,
-                (principalName) -> new CachedGroupPrincipal(principalName, userManager),
-                CACHE_PRINCIPAL_NAMES);
+        cacheReaderFactory = (String idpName) -> userConfiguration.getCachedMembershipReader(root, (principalName) -> new CachedGroupPrincipal(principalName, userManager), CACHE_PRINCIPAL_NAMES, CACHE_EXP_PROPERTY_NAME);
     }
 
     // Tests only
     ExternalGroupPrincipalProvider(@NotNull Root root, @NotNull UserConfiguration userConfiguration,
-                                   @NotNull NamePathMapper namePathMapper, 
+                                   @NotNull NamePathMapper namePathMapper,
                                    @NotNull String idpName,
                                    @NotNull DefaultSyncConfig syncConfig,
                                    @NotNull Set<String> idpNamesWithDynamicGroups, boolean hasOnlyDynamicGroups) {
@@ -163,11 +163,11 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         this.idpNamesWithDynamicGroups = idpNamesWithDynamicGroups;
         this.hasOnlyDynamicGroups = hasOnlyDynamicGroups;
 
-        autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, 
+        autoMembershipPrincipals = new AutoMembershipPrincipals(userManager,
                 Collections.singletonMap(idpName, Iterables.toArray(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class)),
                 Collections.singletonMap(idpName, syncConfig.user().getAutoMembershipConfig()));
-        groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : 
-                new AutoMembershipPrincipals(userManager, 
+        groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null :
+                new AutoMembershipPrincipals(userManager,
                 Collections.singletonMap(idpName, syncConfig.group().getAutoMembership().toArray(new String[0])),
                 Collections.singletonMap(idpName, syncConfig.group().getAutoMembershipConfig()));
     }
@@ -348,8 +348,8 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     /**
      * Verify that the dynamic external group belongs to the same IDP as the member for which groups are being retrieved.
      * Note that {@code DynamicSyncContext#syncMembership} also asserts there are no collisions between external principal names.
-     * 
-     * @param group The authorizable matching an entry in the {@code REP_EXTERNAL_PRINCIPAL_NAMES} property of the 
+     *
+     * @param group The authorizable matching an entry in the {@code REP_EXTERNAL_PRINCIPAL_NAMES} property of the
      *              target member.
      * @param member The target member
      * @return {@code true} if the given authorizable is a valid external group that belongs to the same IDP; {@code false} otherwise.
@@ -436,7 +436,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
     /**
      * Special handling for the case where dynamic groups have been added to local groups
-     * @return set of inherited group principals 
+     * @return set of inherited group principals
      */
     private Set<Principal> getInheritedPrincipals(@NotNull Set<Principal> externalGroupPrincipals, @NotNull String idpName) {
         if (idpNamesWithDynamicGroups.contains(idpName)) {
@@ -453,7 +453,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     private Set<Principal> getAutomembershipPrincipals(@NotNull String idpName, @NotNull Authorizable authorizable) {
         if (authorizable.isGroup()) {
             // no need to check for 'groupAutoMembershipPrincipals' being null as it is created if 'idpNamesWithDynamicGroups' is not empty
-            return (idpNamesWithDynamicGroups.contains(idpName)) ? 
+            return (idpNamesWithDynamicGroups.contains(idpName)) ?
                     groupAutoMembershipPrincipals.getAutoMembership(idpName, authorizable, true).keySet() :
                     Collections.emptySet();
         } else {
@@ -547,8 +547,8 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     }
 
     /**
-     * Implementation of the {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal} interface representing 
-     * external group identities that are represented as authorizable group in the repository's user management i.e.   
+     * Implementation of the {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal} interface representing
+     * external group identities that are represented as authorizable group in the repository's user management i.e.
      * the {@code SyncHandler} configured for the IDP with the given name has dynamic-group option enabled.
      */
     private final class ExternalGroupPrincipalItemBased extends ExternalGroupPrincipal implements ItemBasedPrincipal {
@@ -703,7 +703,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      * exact name of the external group principal.
      *
      * @see ExternalGroupPrincipal#members()
-     * @see ExternalGroupPrincipalProvider#getMembers(Group, boolean) 
+     * @see ExternalGroupPrincipalProvider#getMembers(Group, boolean)
      */
     private abstract class MemberIterator<T> extends AbstractLazyIterator<T> {
 

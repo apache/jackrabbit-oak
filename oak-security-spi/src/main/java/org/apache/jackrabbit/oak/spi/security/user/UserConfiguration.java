@@ -79,11 +79,12 @@ public interface UserConfiguration extends SecurityConfiguration {
      * @param root The root used to read the principal information from.
      * @param cachePrincipalFactory The factory to create the principal from the cache.
      * @param propName The name of the property that contains the cache.
+     * @param expirationPropName The name of the property that contains cache expiration time.
      * @return An implementation of {@code CachedMembershipReader} or {@code null} if the UserConfiguration implementation
      * does not provide a cached membership reader.
      */
     @Nullable
-    default CachedMembershipReader getCachedMembershipReader(@NotNull Root root, @NotNull CachePrincipalFactory cachePrincipalFactory, @NotNull String propName) {
+    default CachedMembershipReader getCachedMembershipReader(@NotNull Root root, @NotNull CachePrincipalFactory cachePrincipalFactory, @NotNull String propName, @NotNull String expirationPropName) {
         return null;
     }
 }
