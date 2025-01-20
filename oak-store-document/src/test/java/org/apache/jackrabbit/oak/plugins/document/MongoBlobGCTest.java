@@ -36,7 +36,6 @@ import ch.qos.logback.classic.Level;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
