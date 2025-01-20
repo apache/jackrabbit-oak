@@ -33,6 +33,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import ch.qos.logback.classic.Level;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Strings;
@@ -454,7 +455,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             repoId = ClusterRepositoryInfo.getOrCreateId(store);
             ((SharedDataStore) store.getBlobStore()).setRepositoryId(repoId);
         }
-        if (Strings.isNullOrEmpty(root)) {
+        if (StringUtils.isEmpty(root)) {
             root = folder.newFolder().getAbsolutePath();
         }
 

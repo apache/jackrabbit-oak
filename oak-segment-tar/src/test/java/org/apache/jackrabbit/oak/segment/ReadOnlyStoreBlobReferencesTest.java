@@ -26,7 +26,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -138,7 +138,7 @@ public class ReadOnlyStoreBlobReferencesTest {
             Set<String> actualReferences = new HashSet<>();
             fileStore.collectBlobReferences(actualReferences::add);
             assertEquals("Read only store visible references different", count, actualReferences.size());
-            if (!Strings.isNullOrEmpty(blobId)) {
+            if (!StringUtils.isEmpty(blobId)) {
                 assertEquals("Binary reference returned should be same", blobId,
                     actualReferences.toArray(new String[0])[0]);
             }

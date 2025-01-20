@@ -32,6 +32,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 
 import org.apache.commons.io.FilenameUtils;
@@ -458,7 +459,7 @@ public class LuceneIndexProviderService {
 
     void initializeIndexDir(BundleContext bundleContext, Configuration config) {
         String indexDirPath = config.localIndexDir();
-        if (Strings.isNullOrEmpty(indexDirPath)) {
+        if (StringUtils.isEmpty(indexDirPath)) {
             String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
             if (repoHome != null){
                 indexDirPath = FilenameUtils.concat(repoHome, "index");

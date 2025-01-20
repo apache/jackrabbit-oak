@@ -35,6 +35,7 @@ import java.util.Properties;
 import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -301,7 +302,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
         assertTrue(uploadContext.getMaxPartSize() >= uploadContext.getMinPartSize());
         assertTrue(uploadContext.getMaxPartSize() <= getProviderMaxPartSize());
         assertTrue((uploadContext.getMaxPartSize() * uploadContext.getUploadURIs().size()) >= ONE_MB);
-        assertFalse(Strings.isNullOrEmpty(uploadContext.getUploadToken()));
+        assertFalse(StringUtils.isEmpty(uploadContext.getUploadToken()));
     }
 
     @Test

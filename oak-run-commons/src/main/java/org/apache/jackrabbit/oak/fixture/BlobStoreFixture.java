@@ -27,6 +27,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
@@ -254,7 +255,7 @@ public abstract class BlobStoreFixture implements Closeable{
         // try loading the props from the config file if configured
         String cfgFile = System.getProperty("ds.config");
         Map<String, Object> result = new HashMap<>();
-        if (!Strings.isNullOrEmpty(cfgFile)) {
+        if (!StringUtils.isEmpty(cfgFile)) {
             try {
                 result = loadAndTransformProps(cfgFile);
             } catch (IOException e) {

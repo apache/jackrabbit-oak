@@ -22,41 +22,43 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
- * Utility methods for {@link Stream} conversions.
+ * Utility methods for {@link Iterator} conversions.
  */
-public class StreamUtils {
+public class IteratorUtils {
 
-    private StreamUtils() {
+    private IteratorUtils() {
         // no instances for you
     }
-
     /**
-     * Generates a (non-parallel) {@linkplain Stream} for the {@linkplain Iterable}
-     * @param iterable iterable to convert
-     * @return the stream
-     */
-    @NotNull
-    public static <T> Stream<T> toStream(@NotNull Iterable<T> iterable) {
-        Objects.requireNonNull(iterable);
-        return StreamSupport.stream(iterable.spliterator(), false);
-    }
-
-    /**
-     * Generates a (non-parallel) {@linkplain Stream} for the
-     * {@linkplain Iterable}
+     * Convert an {@code Iterator} to an {@code Iterable}.
      * <p>
      * This method is not thread-safe
      *
-     * @param iterator
-     *            iterator to convert
-     * @return the stream (representing the remaining elements in the iterator)
+     * @param iterator iterator to convert
+     * @return a single-use iterable for the iterator (representing the remaining
+     * elements in the iterator)
+     * @throws IllegalStateException when {@linkplain Iterable#iterator()} is called more than
+     *                               once
      */
     @NotNull
-    public static <T> Stream<T> toStream(@NotNull Iterator<T> iterator) {
-        return StreamSupport.stream(IteratorUtils.toIterable(iterator).spliterator(), false);
+    public static <T> Iterable<T> toIterable(@NotNull final Iterator<T> iterator) {
+        Objects.requireNonNull(iterator);
+
+        return new Iterable<>() {
+
+            private boolean consumed = false;
+
+            @Override
+            public @NotNull Iterator<T> iterator() {
+                if (consumed) {
+                    throw new IllegalStateException("Iterator already returned once");
+                } else {
+                    consumed = true;
+                    return iterator;
+                }
+            }
+        };
     }
 }

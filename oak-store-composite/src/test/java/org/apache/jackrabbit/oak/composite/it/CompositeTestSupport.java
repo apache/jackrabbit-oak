@@ -96,7 +96,8 @@ public abstract class CompositeTestSupport extends TestSupport {
             mavenBundle().groupId("javax.jcr").artifactId("jcr").versionAsInProject(),
             mavenBundle().groupId("commons-codec").artifactId("commons-codec").versionAsInProject(),
             mavenBundle().groupId("commons-io").artifactId("commons-io").versionAsInProject(),
-            mavenBundle().groupId("org.apache.commons").artifactId("commons-collections4").versionAsInProject()
+            mavenBundle().groupId("org.apache.commons").artifactId("commons-collections4").versionAsInProject(),
+            mavenBundle().groupId("org.apache.commons").artifactId("commons-lang3").versionAsInProject()
         );
     }
 

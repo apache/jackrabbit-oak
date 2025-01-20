@@ -44,6 +44,7 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -117,7 +118,7 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
         alignCluster(mks);
 
         // asserting the initial state
-        assertFalse("Path to the counter node should be set", Strings.isNullOrEmpty(counterPath));
+        assertFalse("Path to the counter node should be set", StringUtils.isEmpty(counterPath));
         for (Repository r : repos) {
 
             try {

@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.commons.collections;
 
 import java.util.ArrayDeque;
-import java.util.Iterator;
 import java.util.Objects;
 
 import org.jetbrains.annotations.NotNull;
@@ -50,39 +49,6 @@ public class CollectionUtils {
         ArrayDeque<T> arrayDeque = new ArrayDeque<>();
         iterable.forEach(arrayDeque::add);
         return arrayDeque;
-    }
-
-    /**
-     * Convert an {@code Iterator} to an {@code Iterable}.
-     * <p>
-     * This method is not thread-safe
-     *
-     * @param iterator
-     *            iterator to convert
-     * @return a single-use iterable for the iterator (representing the remaining
-     *         elements in the iterator)
-     * @throws IllegalStateException
-     *             when {@linkplain Iterable#iterator()} is called more than
-     *             once
-     */
-    @NotNull
-    public static <T> Iterable<T> toIterable(@NotNull final Iterator<T> iterator) {
-        Objects.requireNonNull(iterator);
-
-        return new Iterable<>() {
-
-            private boolean consumed = false;
-
-            @Override
-            public @NotNull Iterator<T> iterator() {
-                if (consumed) {
-                    throw new IllegalStateException("Iterator already returned once");
-                } else {
-                    consumed = true;
-                    return iterator;
-                }
-            }
-        };
     }
 
     /**

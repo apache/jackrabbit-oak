@@ -28,6 +28,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -204,7 +205,7 @@ public class AtomicCounterEditor extends DefaultEditor {
                                 @Nullable Whiteboard board) {
         this.builder = requireNonNull(builder);
         this.path = path;
-        this.instanceId = Strings.isNullOrEmpty(instanceId) ? null : instanceId;
+        this.instanceId = StringUtils.isEmpty(instanceId) ? null : instanceId;
         this.executor = executor;
         this.store = store;
         this.board = board;

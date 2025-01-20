@@ -21,10 +21,9 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.base.Strings;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -77,7 +76,7 @@ public class DataRecordDownloadOptionsTest {
 
     private void verifyContentTypeHeader(DataRecordDownloadOptions options,
                                          String contentTypeHeader) {
-        if (Strings.isNullOrEmpty(contentTypeHeader)) {
+        if (StringUtils.isEmpty(contentTypeHeader)) {
             assertNull(options.getContentTypeHeader());
         }
         else {
@@ -87,7 +86,7 @@ public class DataRecordDownloadOptionsTest {
 
     private void verifyContentDispositionHeader(DataRecordDownloadOptions options,
                                                 String contentDispositionHeader) {
-        if (Strings.isNullOrEmpty(contentDispositionHeader)) {
+        if (StringUtils.isEmpty(contentDispositionHeader)) {
             assertNull(options.getContentDispositionHeader());
         }
         else {
@@ -111,23 +110,23 @@ public class DataRecordDownloadOptionsTest {
     }
 
     private String getContentTypeHeader(String mediaType, String characterEncoding) {
-        return Strings.isNullOrEmpty(mediaType) ?
+        return StringUtils.isEmpty(mediaType) ?
                 null :
-                (Strings.isNullOrEmpty(characterEncoding) ?
+                (StringUtils.isEmpty(characterEncoding) ?
                         mediaType :
                         mediaType + "; charset=" + characterEncoding
                 );
     }
 
     private String getContentDispositionHeader(String fileName, String encodedFileName, String dispositionType) {
-        if (Strings.isNullOrEmpty(fileName)) {
+        if (StringUtils.isEmpty(fileName)) {
             if (dispositionType.equals(DISPOSITION_TYPE_ATTACHMENT)) {
                 return DISPOSITION_TYPE_ATTACHMENT;
             }
             return null;
         }
 
-        if (Strings.isNullOrEmpty(dispositionType)) {
+        if (StringUtils.isEmpty(dispositionType)) {
             dispositionType = DISPOSITION_TYPE_INLINE;
         }
 

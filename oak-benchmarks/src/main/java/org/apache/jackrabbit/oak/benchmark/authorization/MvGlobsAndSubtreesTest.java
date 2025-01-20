@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
 import joptsimple.internal.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -57,7 +58,7 @@ public class MvGlobsAndSubtreesTest extends HasPermissionHasItemGetItemTest {
 
     @NotNull
     private static RestrictionType getRestrictionType(@Nullable String type) {
-        if (Strings.isNullOrEmpty(type)) {
+        if (StringUtils.isEmpty(type)) {
             return RestrictionType.REP_SUBTREES;
         }
         try {
