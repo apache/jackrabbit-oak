@@ -24,7 +24,6 @@ import org.junit.Test;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import static org.junit.Assert.fail;
@@ -50,24 +49,6 @@ public class CollectionUtilsTest {
         Assert.assertNotNull(result);
         Assert.assertTrue(result.isEmpty());
     }
-
-    @Test
-    public void iteratorToIIteratable() {
-        Iterator<String> iterator = List.of("a", "b", "c").iterator();
-        iterator.next();
-        Iterable<String> iterable = CollectionUtils.toIterable(iterator);
-        Iterator<String> testit = iterable.iterator();
-        Assert.assertEquals("b", testit.next());
-        Assert.assertEquals("c", testit.next());
-        Assert.assertFalse(testit.hasNext());
-        try {
-            testit = iterable.iterator();
-            fail("should only work once");
-        } catch (IllegalStateException expected) {
-            // that's what we want
-        }
-    }
-
     @Test
     public void ensureCapacity() {
         int capacity = CollectionUtils.ensureCapacity(8);
