@@ -29,7 +29,7 @@ import static org.junit.Assert.fail;
 public class IteratorUtilsTest {
 
     @Test
-    public void iteratorToIIteratable() {
+    public void iteratorToIIterable() {
         Iterator<String> iterator = List.of("a", "b", "c").iterator();
         iterator.next();
         Iterable<String> iterable = IteratorUtils.toIterable(iterator);
@@ -38,7 +38,7 @@ public class IteratorUtilsTest {
         Assert.assertEquals("c", testit.next());
         Assert.assertFalse(testit.hasNext());
         try {
-            testit = iterable.iterator();
+            iterable.iterator();
             fail("should only work once");
         } catch (IllegalStateException expected) {
             // that's what we want

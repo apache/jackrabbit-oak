@@ -22,7 +22,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.stream.Stream;
 
 /**
  * Utility methods for {@link Iterator} conversions.
