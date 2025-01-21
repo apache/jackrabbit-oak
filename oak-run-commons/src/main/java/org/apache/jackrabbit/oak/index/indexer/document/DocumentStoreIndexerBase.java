@@ -176,11 +176,11 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return result;
     }
 
-    private List<IndexStore> buildFlatFileStoreList(NodeState checkpointedState,
+    private List<IndexStore> buildFlatFileStoreList(List<IndexDefinition> indexDefinitions,
+                                                    NodeState checkpointedState,
                                                     Predicate<String> pathPredicate,
                                                     Set<String> preferredPathElements,
                                                     boolean splitFlatFile,
-                                                    List<IndexDefinition> indexDefinitions,
                                                     IndexingReporter reporter) throws IOException {
         List<IndexStore> storeList = new ArrayList<>();
 
@@ -218,7 +218,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     builder.addExistingDataDumpDir(dir);
                 }
                 if (splitFlatFile) {
-                    storeList = builder.buildList(indexHelper, indexerSupport, Set.copyOf(indexDefinitions));
+                    storeList = builder.buildList(indexHelper, indexerSupport, indexDefinitions);
                 } else {
                     log.info("Building index store");
                     IndexStore store = builder.build(indexHelper, indexDefinitions);
@@ -344,8 +344,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         List<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
         Set<String> preferredPathElements = indexerSupport.getPreferredPathElements(indexDefinitions);
         Predicate<String> predicate = indexerSupport.getFilterPredicate(indexDefinitions, Function.identity());
-        IndexStore indexStore = buildFlatFileStoreList(checkpointedState, predicate,
-                preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions, indexingReporter).get(0);
+        IndexStore indexStore = buildFlatFileStoreList(indexDefinitions, checkpointedState, predicate,
+                preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexingReporter).get(0);
         log.info("Store built. To use this store in a reindex step, set the system property {} to {}",
                 OAK_INDEXER_SORTED_FILE_PATH, indexStore.getStorePath());
         return indexStore;
@@ -371,11 +371,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
             Predicate<String> pathPredicate = path -> indexDefinitions.stream().anyMatch(indexer -> indexer.shouldInclude(path));
             List<IndexStore> indexStores = buildFlatFileStoreList(
-                    checkpointedState,
+                    indexDefinitions, checkpointedState,
                     pathPredicate,
                     null,
                     IndexerConfiguration.parallelIndexEnabled(),
-                    indexDefinitions,
                     indexingReporter);
 
             progressReporter.reset();

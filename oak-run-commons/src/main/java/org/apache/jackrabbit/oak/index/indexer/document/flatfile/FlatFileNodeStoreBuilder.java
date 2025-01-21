@@ -287,7 +287,7 @@ public class FlatFileNodeStoreBuilder {
     }
 
     public List<IndexStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
-                                         Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
+                                         List<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
         logFlags();
         entryWriter = new NodeStateEntryWriter(blobStore);
 

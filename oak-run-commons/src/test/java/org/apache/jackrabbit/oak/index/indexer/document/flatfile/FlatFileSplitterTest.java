@@ -339,13 +339,13 @@ public class FlatFileSplitterTest {
     }
 
     @Test
-    public void getSplitNodeTypeNames() throws IllegalAccessException {
+    public void getSplitNodeTypeNames() {
         NodeStore store = new MemoryNodeStore();
         EditorHook hook = new EditorHook(
                 new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
         OakInitializer.initialize(store, new InitialContent(), hook);
 
-        Set<IndexDefinition> defns = new HashSet<>();
+        List<IndexDefinition> defns = new ArrayList<>();
 
         IndexDefinitionBuilder defnb1 = new IndexDefinitionBuilder();
         defnb1.indexRule("testIndexRule1");
