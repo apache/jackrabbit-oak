@@ -50,7 +50,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.MoreLikeThisHelperUtil;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
@@ -258,7 +257,7 @@ public class ElasticRequestHandler {
         }
         byte[] bytes;
         try {
-          bytes = new BlobByteSource(property).read();
+          bytes = property.getNewStream().readAllBytes();
         } catch (IOException e) {
           LOG.error("Error reading bytes from property {} on {}", pd.name, text, e);
           continue;
