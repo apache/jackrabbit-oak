@@ -35,10 +35,12 @@ class TestDataSource extends BlobStoreByteSource {
         this.bytes = contents.getBytes(StandardCharsets.UTF_8);
     }
 
+    @Override
     public InputStream openStream() throws IOException {
         return new ByteArrayInputStream(bytes);
     }
 
+    @Override
     public long size() throws IOException {
         return bytes.length;
     }
