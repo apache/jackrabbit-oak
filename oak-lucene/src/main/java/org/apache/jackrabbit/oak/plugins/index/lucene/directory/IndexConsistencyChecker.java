@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -32,7 +33,6 @@ import java.util.List;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.commons.io.FileUtils;
@@ -390,7 +390,7 @@ public class IndexConsistencyChecker {
         try{
             InputStream is = blob.getNewStream();
             CountingInputStream cis = new CountingInputStream(is);
-            IOUtils.copyLarge(cis, ByteStreams.nullOutputStream());
+            IOUtils.copyLarge(cis, OutputStream.nullOutputStream());
 
             if (cis.getCount() != blob.length()){
                 String msg = String.format("Invalid blob %s. Length mismatch - expected ${%d} -> found ${%d}",
@@ -430,7 +430,7 @@ public class IndexConsistencyChecker {
         private final Logger log;
 
         public LoggingPrintStream(Logger log) {
-            super(ByteStreams.nullOutputStream());
+            super(OutputStream.nullOutputStream());
             this.log = log;
         }
 
