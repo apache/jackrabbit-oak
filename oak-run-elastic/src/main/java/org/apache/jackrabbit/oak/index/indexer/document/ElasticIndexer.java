@@ -76,7 +76,7 @@ public class ElasticIndexer implements NodeStateIndexer {
 
     @Override
     public boolean shouldInclude(String path) {
-        return definition.getFilterResult(path) != PathFilter.Result.EXCLUDE;
+        return definition.shouldInclude(path);
     }
 
     @Override

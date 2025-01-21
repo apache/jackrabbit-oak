@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 
 import com.codahale.metrics.MetricRegistry;
 import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -371,7 +370,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
             Predicate<String> pathPredicate = path -> indexDefinitions.stream().anyMatch(indexer -> indexer.shouldInclude(path));
             List<IndexStore> indexStores = buildFlatFileStoreList(
-                    indexDefinitions, checkpointedState,
+                    indexDefinitions,
+                    checkpointedState,
                     pathPredicate,
                     null,
                     IndexerConfiguration.parallelIndexEnabled(),
@@ -487,10 +487,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
     private MongoClientURI getMongoClientURI() {
         return requireNonNull(indexHelper.getService(MongoClientURI.class));
-    }
-
-    private MongoDatabase getMongoDatabase() {
-        return requireNonNull(indexHelper.getService(MongoDatabase.class));
     }
 
     private void configureEstimators(IndexingProgressReporter progressReporter) {
