@@ -26,7 +26,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
@@ -37,21 +36,27 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryT
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
 public class LuceneIndexerProvider implements NodeStateIndexerProvider {
+    private final static Logger LOG = LoggerFactory.getLogger(LuceneIndexerProvider.class);
+
     private final ExtractedTextCache textCache =
             new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
-    private final ExtendedIndexHelper extendedIndexHelper;
-    private final LuceneIndexWriterFactory indexWriterFactory;
+    private final DefaultIndexWriterFactory indexWriterFactory;
 
     public LuceneIndexerProvider(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
-        this.extendedIndexHelper = extendedIndexHelper;
         DirectoryFactory dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
         this.indexWriterFactory = new DefaultIndexWriterFactory(extendedIndexHelper.getMountInfoProvider(),
                 dirFactory, extendedIndexHelper.getLuceneIndexHelper().getWriterConfigForReindex());
+    }
+
+    private void init() {
+
     }
 
     @Override
@@ -62,7 +67,8 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
             return null;
         }
 
-        LuceneIndexDefinition idxDefinition = LuceneIndexDefinition.newBuilder(root, definition.getNodeState(), indexPath).reindex().build();
+        LOG.info("Creating LuceneIndexer for {}", indexPath);
+        LuceneIndexDefinition idxDefinition = LuceneIndexDefinition.newLuceneBuilder(root, definition.getNodeState(), indexPath).reindex().build();
 
         LuceneIndexWriter indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, null, true);
         FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);
@@ -82,6 +88,7 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
 
     @Override
     public void close() throws IOException {
-
+        LOG.info("Closing LuceneIndexerProvider");
+        indexWriterFactory.close();
     }
 }

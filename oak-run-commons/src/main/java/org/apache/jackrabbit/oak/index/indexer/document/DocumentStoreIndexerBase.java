@@ -69,6 +69,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -167,13 +168,20 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         }
     }
 
+    private Set<String> getRelativeIndexedNodeNames(List<IndexDefinition> indexDefinitions) {
+        Set<String> result = new HashSet<>();
+        for (IndexDefinition indexer : indexDefinitions) {
+            result.addAll(indexer.getRelativeNodeNames());
+        }
+        return result;
+    }
+
     private List<IndexStore> buildFlatFileStoreList(NodeState checkpointedState,
-                                                       CompositeIndexer indexer,
-                                                       Predicate<String> pathPredicate,
-                                                       Set<String> preferredPathElements,
-                                                       boolean splitFlatFile,
-                                                       Set<IndexDefinition> indexDefinitions,
-                                                       IndexingReporter reporter) throws IOException {
+                                                    Predicate<String> pathPredicate,
+                                                    Set<String> preferredPathElements,
+                                                    boolean splitFlatFile,
+                                                    List<IndexDefinition> indexDefinitions,
+                                                    IndexingReporter reporter) throws IOException {
         List<IndexStore> storeList = new ArrayList<>();
 
         Stopwatch indexStoreWatch = Stopwatch.createStarted();
@@ -190,7 +198,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             try {
                 builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
                         .withBlobStore(indexHelper.getGCBlobStore())
-                        .withPreferredPathElements((preferredPathElements != null) ? preferredPathElements : indexer.getRelativeIndexedNodeNames())
+                        .withPreferredPathElements((preferredPathElements != null) ? preferredPathElements : getRelativeIndexedNodeNames(indexDefinitions))
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
                         .withPathPredicate(pathPredicate)
                         .withIndexDefinitions(indexDefinitions)
@@ -210,10 +218,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     builder.addExistingDataDumpDir(dir);
                 }
                 if (splitFlatFile) {
-                    storeList = builder.buildList(indexHelper, indexerSupport, indexDefinitions);
+                    storeList = builder.buildList(indexHelper, indexerSupport, Set.copyOf(indexDefinitions));
                 } else {
                     log.info("Building index store");
-                    IndexStore store = builder.build(indexHelper, indexer);
+                    IndexStore store = builder.build(indexHelper, indexDefinitions);
                     int threads = IndexerConfiguration.indexThreadPoolSize();
                     if (store instanceof ParallelIndexStore && threads > 1) {
                         log.info("Indexing with {} threads", threads);
@@ -272,7 +280,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     public IndexStore buildStore(String initialCheckpoint, String finalCheckpoint, long maxDurationSeconds) throws IOException, CommitFailedException {
         IncrementalStoreBuilder builder;
         IndexStore incrementalStore;
-        Set<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
+        List<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
         Set<String> preferredPathElements = indexerSupport.getPreferredPathElements(indexDefinitions);
         Stopwatch incrementalStoreWatch = Stopwatch.createStarted();
         Predicate<String> predicate = indexerSupport.getFilterPredicate(indexDefinitions, Function.identity());
@@ -333,10 +341,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     @Deprecated
     public IndexStore buildFlatFileStore() throws IOException, CommitFailedException {
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
-        Set<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
+        List<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
         Set<String> preferredPathElements = indexerSupport.getPreferredPathElements(indexDefinitions);
         Predicate<String> predicate = indexerSupport.getFilterPredicate(indexDefinitions, Function.identity());
-        IndexStore indexStore = buildFlatFileStoreList(checkpointedState, null, predicate,
+        IndexStore indexStore = buildFlatFileStoreList(checkpointedState, predicate,
                 preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions, indexingReporter).get(0);
         log.info("Store built. To use this store in a reindex step, set the system property {} to {}",
                 OAK_INDEXER_SORTED_FILE_PATH, indexStore.getStorePath());
@@ -345,7 +353,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
     public void reindex() throws CommitFailedException, IOException {
         INDEXING_PHASE_LOGGER.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
-        List<String> indexNames = indexerSupport.getIndexDefinitions().stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+        List<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
+        List<String> indexNames = indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
         indexingReporter.setIndexNames(indexNames);
         Stopwatch indexJobWatch = Stopwatch.createStarted();
         try {
@@ -356,42 +365,41 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
             NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
             indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
-            NodeBuilder builder = copyOnWriteStore.getRoot().builder();
-            CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
-            if (indexer.isEmpty()) {
+            if (indexDefinitions.isEmpty()) {
                 return;
             }
 
-            closer.register(indexer);
-
+            Predicate<String> pathPredicate = path -> indexDefinitions.stream().anyMatch(indexer -> indexer.shouldInclude(path));
             List<IndexStore> indexStores = buildFlatFileStoreList(
                     checkpointedState,
-                    indexer,
-                    indexer::shouldInclude,
+                    pathPredicate,
                     null,
                     IndexerConfiguration.parallelIndexEnabled(),
-                    indexerSupport.getIndexDefinitions(),
+                    indexDefinitions,
                     indexingReporter);
 
             progressReporter.reset();
 
             progressReporter.reindexingTraversalStart("/");
 
-            preIndexOperations(indexer.getIndexers());
+            NodeBuilder builder = copyOnWriteStore.getRoot().builder();
+            CompositeIndexer compositeIndexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
+            closer.register(compositeIndexer);
+            preIndexOperations(compositeIndexer.getIndexers());
 
             INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:START] Starting indexing");
             Stopwatch indexerWatch = Stopwatch.createStarted();
             try {
                 if (indexStores.size() > 1) {
-                    indexParallel(indexStores, indexer, progressReporter);
+                    indexParallel(indexStores, compositeIndexer, progressReporter);
                 } else if (indexStores.size() == 1) {
                     IndexStore indexStore = indexStores.get(0);
                     TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
-                    indexer.onIndexingStarting();
+                    compositeIndexer.onIndexingStarting();
                     long entryStart = System.nanoTime();
                     for (NodeStateEntry entry : indexStore) {
                         reportDocumentRead(entry.getPath(), progressReporter);
-                        indexer.index(entry);
+                        compositeIndexer.index(entry);
                         // Avoid calling System.nanoTime() twice per each entry, by reusing the timestamp taken at the end
                         // of indexing an entry as the start time of the following entry. This is less accurate, because
                         // the measured times will also include the bookkeeping at the end of indexing each entry, but

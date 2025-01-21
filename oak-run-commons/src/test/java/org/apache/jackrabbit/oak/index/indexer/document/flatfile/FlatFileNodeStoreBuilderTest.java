@@ -83,7 +83,7 @@ public class FlatFileNodeStoreBuilderTest {
         when(mongoDocumentStore.isReadOnly()).thenReturn(true);
         FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
                 .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory)
-                .withIndexDefinitions(Set.of())
+                .withIndexDefinitions(List.of())
                 .withMongoDocumentStore(mongoDocumentStore);
         SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
         assertTrue(sortStrategy instanceof PipelinedStrategy);
