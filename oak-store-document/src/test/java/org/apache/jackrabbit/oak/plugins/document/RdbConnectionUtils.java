@@ -157,9 +157,6 @@ public class RdbConnectionUtils {
     }
 
     private static Map<String, String> parseDockerEnv(String raw) {
-        if (StringUtils.isEmpty(raw)) {
-            return Collections.emptyMap();
-        }
         Map<String, String> result = new HashMap<>();
         StringTokenizer envTokenizer = new StringTokenizer(raw, ",");
         while (envTokenizer.hasMoreTokens()) {
