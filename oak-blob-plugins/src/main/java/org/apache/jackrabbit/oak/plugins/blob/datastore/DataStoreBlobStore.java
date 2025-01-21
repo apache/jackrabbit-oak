@@ -79,7 +79,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 
 /**
@@ -368,7 +367,7 @@ public class DataStoreBlobStore
         InputStream stream = getInputStream(encodedBlobId);
         boolean threw = true;
         try {
-            ByteStreams.skipFully(stream, pos);
+            IOUtils.skipFully(stream, pos);
             int readCount = stream.read(buff, off, length);
             threw = false;
             return readCount;
