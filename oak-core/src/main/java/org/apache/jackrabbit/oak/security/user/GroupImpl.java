@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;

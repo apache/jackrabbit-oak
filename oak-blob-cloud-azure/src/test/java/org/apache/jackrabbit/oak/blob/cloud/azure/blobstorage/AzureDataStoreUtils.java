@@ -34,7 +34,6 @@ import java.util.Properties;
 import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;

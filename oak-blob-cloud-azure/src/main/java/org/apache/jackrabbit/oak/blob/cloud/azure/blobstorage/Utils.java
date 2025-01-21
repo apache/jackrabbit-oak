@@ -30,7 +30,6 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Properties;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.RetryExponentialRetry;

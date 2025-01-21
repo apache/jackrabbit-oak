@@ -38,7 +38,6 @@ import javax.jcr.version.VersionException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
 
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;

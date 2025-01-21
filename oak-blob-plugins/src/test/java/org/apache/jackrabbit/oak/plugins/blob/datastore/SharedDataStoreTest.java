@@ -34,7 +34,6 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;

@@ -28,7 +28,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainerProvider;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
