@@ -78,13 +78,13 @@ public class LazyInputStream extends FilterInputStream {
         if (in != null) {
             super.close();
         } else {
-            in = ClosedInputStream.CLOSED_INPUT_STREAM;
+            super.in = ClosedInputStream.CLOSED_INPUT_STREAM;
         }
     }
 
     @Override
     public synchronized void mark(int readlimit) {
-        ensureOpenWithUnCheckedException();
+        ensureOpen();
         super.mark(readlimit);
     }
 
@@ -96,22 +96,15 @@ public class LazyInputStream extends FilterInputStream {
 
     @Override
     public boolean markSupported() {
-        ensureOpenWithUnCheckedException();
+        ensureOpen();
         return super.markSupported();
     }
 
-    private void ensureOpen() throws IOException {
+    private void ensureOpen() {
         if (!opened) {
             opened = true;
-            in = inputStreamSupplier.get();
+            super.in = inputStreamSupplier.get();
         }
     }
 
-    private void ensureOpenWithUnCheckedException(){
-        try {
-            ensureOpen();
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-    }
 }
