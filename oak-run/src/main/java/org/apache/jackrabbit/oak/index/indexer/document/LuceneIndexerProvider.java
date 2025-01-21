@@ -79,6 +79,6 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
 
     @Override
     public void close() throws IOException {
-        indexWriterFactory.close();
+
     }
 }
