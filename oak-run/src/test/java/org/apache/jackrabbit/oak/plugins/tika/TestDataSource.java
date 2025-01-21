@@ -16,37 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.plugins.tika;
 
-package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
-
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
-import org.apache.jackrabbit.guava.common.io.ByteSource;
-import org.apache.jackrabbit.oak.api.Blob;
+import java.nio.charset.StandardCharsets;
 
 /**
- * {@link ByteSource} extension to work with Oak {@link Blob}s
+ * Unit tests only
  */
-public final class BlobByteSource extends ByteSource {
-    private final Blob blob;
+class TestDataSource extends BlobStoreByteSource {
 
-    public BlobByteSource(Blob blob) {
-        this.blob = blob;
+    private final byte[] bytes;
+
+    public TestDataSource(String contents) {
+        super(null, "");
+        this.bytes = contents.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     public InputStream openStream() throws IOException {
-        return blob.getNewStream();
+        return new ByteArrayInputStream(bytes);
     }
 
     @Override
     public long size() throws IOException {
-        return blob.length();
-    }
-
-    @Override
-    public boolean isEmpty() throws IOException {
-        return blob.length() == 0;
+        return bytes.length;
     }
 }
