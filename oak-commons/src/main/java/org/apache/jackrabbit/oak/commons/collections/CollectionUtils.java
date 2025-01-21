@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import java.util.ArrayDeque;
-import java.util.Objects;
-
-import org.jetbrains.annotations.NotNull;
-
 /**
  * Utility methods for collections conversions.
  */
@@ -34,21 +29,6 @@ public class CollectionUtils {
 
     private CollectionUtils() {
         // no instances for you
-    }
-
-    /**
-     * Convert an iterable to a {@link java.util.ArrayDeque}.
-     * The returning array deque is mutable and supports all optional operations.
-     *
-     * @param iterable the iterable to convert
-     * @param <T>      the type of the elements
-     * @return the arrayDeque
-     */
-    public static <T> ArrayDeque<T> toArrayDeque(@NotNull Iterable<? extends T> iterable) {
-        Objects.requireNonNull(iterable);
-        ArrayDeque<T> arrayDeque = new ArrayDeque<>();
-        iterable.forEach(arrayDeque::add);
-        return arrayDeque;
     }
 
     /**
