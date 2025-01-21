@@ -30,7 +30,6 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -56,6 +55,7 @@ import java.util.Map;
 
 import javax.jcr.PropertyType;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -655,7 +655,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             // store them directly as small- or medium-sized value records
                     	
             byte[] data = new byte[binariesInlineThreshold];
-            int n = read(stream, data, 0, data.length);
+            int n = IOUtils.read(stream, data, 0, data.length);
             
             if (n < binariesInlineThreshold) {
                 return writeValueRecord(n, data);
@@ -672,14 +672,14 @@ public class DefaultSegmentWriter implements SegmentWriter {
             // store the binaries as small or medium sized value records 
             
             data = Arrays.copyOf(data, Segment.MEDIUM_LIMIT);
-            n += read(stream, data, n, Segment.MEDIUM_LIMIT - n);
+            n += IOUtils.read(stream, data, n, Segment.MEDIUM_LIMIT - n);
             
             if (n < Segment.MEDIUM_LIMIT) {
                 return writeValueRecord(n, data);
             }
 
             data = Arrays.copyOf(data, Segment.MAX_SEGMENT_SIZE);
-            n += read(stream, data, n, Segment.MAX_SEGMENT_SIZE - n);
+            n += IOUtils.read(stream, data, n, Segment.MAX_SEGMENT_SIZE - n);
             long length = n;
             List<RecordId> blockIds =
                     new ArrayList<>(2 * n / SegmentStream.BLOCK_SIZE);
@@ -694,7 +694,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                     blockIds.add(new RecordId(bulkId, data.length - n + i));
                 }
 
-                n = read(stream, data, 0, data.length);
+                n = IOUtils.read(stream, data, 0, data.length);
                 length += n;
             }
 
