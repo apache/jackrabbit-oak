@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.user.DeclaredMembershipPredicate;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
@@ -299,7 +300,7 @@ public class UserQueryManager {
                     sb.append(segments[i]);
                 }
             }
-            return Strings.emptyToNull(sb.toString());
+            return StringUtils.emptyToNull(sb.toString());
         }
     }
 

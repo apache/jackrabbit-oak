@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
@@ -86,7 +87,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             if (isACE.test(ace)) {
                 boolean isAllow = isGrantACE.test(ace);
                 PrivilegeBits privilegeBits = bitsProvider.getBits(ace.getNames(REP_PRIVILEGES));
-                Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), providerCtx.getTreeProvider().createReadOnlyTree(ace));
+                Set<Restriction> restrictions = restrictionProvider.readRestrictions(StringUtils.emptyToNull(accessControlledPath), providerCtx.getTreeProvider().createReadOnlyTree(ace));
 
                 String principalName = Text.escapeIllegalJcrChars(ace.getString(REP_PRINCIPAL_NAME));
                 AcEntry entry = new AcEntry(principalName, index, isAllow, privilegeBits, restrictions);
