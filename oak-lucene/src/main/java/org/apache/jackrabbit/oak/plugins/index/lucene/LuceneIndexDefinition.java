@@ -77,17 +77,17 @@ public class LuceneIndexDefinition extends IndexDefinition {
         this.codec = createCodec();
     }
 
-    public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
-        return (Builder)new Builder()
+    public static Builder newLuceneBuilder(NodeState root, NodeState defn, String indexPath){
+        return (Builder) new Builder()
                 .root(root)
                 .defn(defn)
                 .indexPath(indexPath);
     }
 
-    public static class Builder extends IndexDefinition.Builder {
+    public static class Builder extends IndexDefinition.Builder<LuceneIndexDefinition> {
         @Override
         public LuceneIndexDefinition build() {
-            return (LuceneIndexDefinition)super.build();
+            return super.build();
         }
 
         @Override
@@ -97,7 +97,7 @@ public class LuceneIndexDefinition extends IndexDefinition {
         }
 
         @Override
-        protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
+        protected LuceneIndexDefinition createInstance(NodeState indexDefnStateToUse) {
             return new LuceneIndexDefinition(root, indexDefnStateToUse, version, uid, indexPath);
         }
     }

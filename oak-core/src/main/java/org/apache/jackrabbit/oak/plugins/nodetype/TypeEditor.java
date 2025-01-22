@@ -458,6 +458,8 @@ public class TypeEditor extends DefaultEditor {
     private void checkNodeTypeConstraints(NodeState after) throws CommitFailedException {
         EffectiveType effective = getEffective();
 
+        // check mandatory properties
+
         Set<String> properties = effective.getMandatoryProperties();
         for (PropertyState ps : after.getProperties()) {
             properties.remove(ps.getName());
@@ -465,15 +467,19 @@ public class TypeEditor extends DefaultEditor {
         }
         // verify the presence of all mandatory items
         if (!properties.isEmpty()) {
-            constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
+            constraintViolation(21, "Mandatory properties '" + properties + "' not found in a new node of type '" + effective + "'");
         }
+
+        // check mandatory child nodes
 
         List<String> names = ListUtils.toList(after.getChildNodeNames());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
-                constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");
+                constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node of type '" + effective + "'");
             }
         }
+
+        // of the child node names left after above check, verify that these are allowed by the node type
 
         for (String name : names) {
             if (!NodeStateUtils.isHidden(name)) {

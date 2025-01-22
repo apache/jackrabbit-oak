@@ -21,9 +21,11 @@ package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -207,15 +209,15 @@ public class IndexerSupport {
         return nb;
     }
 
-    public Set<IndexDefinition> getIndexDefinitions() throws IOException, CommitFailedException {
+    public List<IndexDefinition> getIndexDefinitions() throws IOException, CommitFailedException {
         NodeState checkpointedState = this.retrieveNodeStateForCheckpoint();
         NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
         NodeState root = builder.getNodeState();
         this.updateIndexDefinitions(builder);
-        IndexDefinition.Builder indexDefBuilder = new IndexDefinition.Builder();
+        IndexDefinition.BaseBuilder indexDefBuilder = new IndexDefinition.BaseBuilder();
 
-        Set<IndexDefinition> indexDefinitions = new HashSet<>();
+        ArrayList<IndexDefinition> indexDefinitions = new ArrayList<>();
 
         for (String indexPath : indexHelper.getIndexPaths()) {
             NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
@@ -226,10 +228,9 @@ public class IndexerSupport {
     }
 
     /**
-     * @param indexDefinitions
      * @return set of preferred path elements referred from the given set of index definitions.
      */
-    public Set<String> getPreferredPathElements(Set<IndexDefinition> indexDefinitions) {
+    public Set<String> getPreferredPathElements(List<IndexDefinition> indexDefinitions) {
         Set<String> preferredPathElements = new HashSet<>();
         for (IndexDefinition indexDf : indexDefinitions) {
             preferredPathElements.addAll(indexDf.getRelativeNodeNames());
@@ -240,17 +241,15 @@ public class IndexerSupport {
     /**
      * @param indexDefinitions     set of IndexDefinition to be used to calculate the Path Predicate
      * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type <String>
-     * @param <T>
      * @return filter predicate based on the include/exclude path rules of the given set of index definitions.
      */
-    public <T> Predicate<T> getFilterPredicate(Set<IndexDefinition> indexDefinitions, Function<T, String> typeToRepositoryPath) {
+    public <T> Predicate<T> getFilterPredicate(List<IndexDefinition> indexDefinitions, Function<T, String> typeToRepositoryPath) {
         return t -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(typeToRepositoryPath.apply(t)) != PathFilter.Result.EXCLUDE);
     }
 
     /**
      * @param pattern              Pattern for a custom excludes regex based on which paths would be filtered out
      * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type <String>
-     * @param <T>
      * @return Return a predicate that should test true for all paths that do not match the provided regex pattern.
      */
     public <T> Predicate<T> getFilterPredicateBasedOnCustomRegex(Pattern pattern, Function<T, String> typeToRepositoryPath) {

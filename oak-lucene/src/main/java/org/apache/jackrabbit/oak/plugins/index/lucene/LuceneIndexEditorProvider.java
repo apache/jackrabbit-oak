@@ -87,7 +87,6 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private boolean nrtIndexingEnabled;
     private LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
 
-
     /**
      * Number of indexed Lucene document that can be held in memory
      * This ensures that for very large commit memory consumption
@@ -125,6 +124,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this(indexCopier, indexTracker, extractedTextCache, augmentorFactory, mountInfoProvider,
                 ActiveDeletedBlobCollectorFactory.NOOP, null, null);
     }
+
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
                                      @Nullable IndexTracker indexTracker,
                                      ExtractedTextCache extractedTextCache,
@@ -203,7 +203,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
                 if (indexDefinition == null) {
                     indexDefinition = LuceneIndexDefinition
-                            .newBuilder(root, definition.getNodeState(), indexPath)
+                            .newLuceneBuilder(root, definition.getNodeState(), indexPath)
                             .build();
                 }
 

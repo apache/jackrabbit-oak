@@ -57,8 +57,8 @@ import static org.junit.Assert.assertTrue;
 
 public class IndexConsistencyCheckerTest {
 
-    private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
-    private NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
+    private final NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
+    private final NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
 
 
     @Rule
@@ -117,7 +117,7 @@ public class IndexConsistencyCheckerTest {
 
     @Test
     public void validIndexTest() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
 
@@ -142,7 +142,7 @@ public class IndexConsistencyCheckerTest {
 
     @Test
     public void missingFile() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
 
@@ -164,7 +164,7 @@ public class IndexConsistencyCheckerTest {
 
     @Test
     public void badFile() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
 

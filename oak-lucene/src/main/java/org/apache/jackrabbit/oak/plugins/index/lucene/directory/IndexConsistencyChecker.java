@@ -273,7 +273,7 @@ public class IndexConsistencyChecker {
 
     private void checkIndex(Result result, Closer closer) throws IOException {
         NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx, indexPath).build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(rootState, idx, indexPath).build();
         workDir = createWorkDir(workDirRoot, PathUtils.getName(indexPath));
 
         for (String dirName : idx.getChildNodeNames()){
