@@ -391,6 +391,13 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         }
     }
 
+    /*
+     * True if any permission entry defines any restrictions.
+     */
+    final boolean hasRestrictions() {
+        return entryCache.hasRestrictions();
+    }
+
     @Nullable
     private static String getEffectivePath(@NotNull Tree tree) {
         Tree principalEntry = null;

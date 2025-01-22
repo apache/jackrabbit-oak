@@ -43,6 +43,7 @@ class EntryCache implements Constants {
 
     private final RestrictionProvider restrictionProvider;
     private final PrivilegeBitsProvider bitsProvider;
+    private final boolean hasRestrictions;
 
     /**
      * Mapping effective path (empty string representing the null path) to the permission entries defined for each
@@ -56,6 +57,7 @@ class EntryCache implements Constants {
         this.restrictionProvider = restrictionProvider;
         this.bitsProvider = new PrivilegeBitsProvider(root);
 
+        boolean hasRestrictions = false;
         for (String principalPath : principalPathSet) {
             Tree policyTree = root.getTree(PathUtils.concat(principalPath, Constants.REP_PRINCIPAL_POLICY));
             if (!policyTree.exists()) {
@@ -64,18 +66,26 @@ class EntryCache implements Constants {
             for (Tree child : policyTree.getChildren()) {
                 if (Constants.NT_REP_PRINCIPAL_ENTRY.equals(TreeUtil.getPrimaryTypeName(child))) {
                     PermissionEntryImpl entry = new PermissionEntryImpl(child);
+                    //Checks if there's any entry with restrictions this will help to reduce
+                    //the number of checks in the future
+                    hasRestrictions |= Utils.hasRestrictions(child);
                     String key = Objects.toString(entry.effectivePath, "");
                     List<PermissionEntry> list = entries.computeIfAbsent(key, k -> new ArrayList<>());
                     list.add(entry);
                 }
             }
         }
+        this.hasRestrictions = hasRestrictions;
     }
 
     @NotNull
     Iterator<PermissionEntry> getEntries(@NotNull String path) {
         Iterable<PermissionEntry> list = entries.get(path);
         return (list == null) ? Collections.emptyIterator() : list.iterator();
+    }
+
+    boolean hasRestrictions() {
+        return hasRestrictions;
     }
 
     private final class PermissionEntryImpl implements PermissionEntry {

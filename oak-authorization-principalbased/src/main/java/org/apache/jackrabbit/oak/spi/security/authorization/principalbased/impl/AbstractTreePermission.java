@@ -28,6 +28,7 @@ abstract class AbstractTreePermission implements TreePermission  {
 
     private final Tree tree;
     private final TreeType type;
+    private Boolean readAll = null;
 
     AbstractTreePermission(@NotNull Tree tree, @NotNull TreeType type) {
         this.tree = tree;
@@ -53,19 +54,31 @@ abstract class AbstractTreePermission implements TreePermission  {
 
     @Override
     public boolean canRead() {
-        long permission = (type == TreeType.ACCESS_CONTROL) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ_NODE;
-        return getPermissionProvider().isGranted(tree, null, permission);
+        if (!canReadAll()) {
+            long permission = (type == TreeType.ACCESS_CONTROL) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ_NODE;
+            return getPermissionProvider().isGranted(tree, null, permission);
+        }
+        return true;
     }
 
     @Override
     public boolean canRead(@NotNull PropertyState property) {
-        long permission = (type == TreeType.ACCESS_CONTROL) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ_PROPERTY;
-        return getPermissionProvider().isGranted(tree, property, permission);
+        if (!canReadAll()) {
+            long permission = (type == TreeType.ACCESS_CONTROL) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ_PROPERTY;
+            return getPermissionProvider().isGranted(tree, property, permission);
+        }
+        return true;
     }
 
     @Override
     public boolean canReadAll() {
-        return false;
+        // As principal based permissions does not allow deny then if the read permission is given in this node
+        // it is also granted for all child nodes and properties however this is true only if no restrictions are defined.
+        if (readAll == null) {
+            long permission = (type == TreeType.ACCESS_CONTROL) ? Permissions.READ_ACCESS_CONTROL : Permissions.READ;
+            readAll = !getPermissionProvider().hasRestrictions() && getPermissionProvider().isGranted(tree, null, permission);
+        }
+        return readAll;
     }
 
     @Override
