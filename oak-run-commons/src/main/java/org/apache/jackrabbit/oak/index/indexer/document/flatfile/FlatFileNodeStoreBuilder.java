@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
@@ -106,7 +105,7 @@ public class FlatFileNodeStoreBuilder {
     private RevisionVector rootRevision = null;
     private DocumentNodeStore nodeStore = null;
     private MongoDocumentStore mongoDocumentStore = null;
-    private Set<IndexDefinition> indexDefinitions = null;
+    private List<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
     private long minModified;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
@@ -164,7 +163,7 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileNodeStoreBuilder withIndexDefinitions(Set<IndexDefinition> indexDefinitions) {
+    public FlatFileNodeStoreBuilder withIndexDefinitions(List<IndexDefinition> indexDefinitions) {
         this.indexDefinitions = indexDefinitions;
         return this;
     }
@@ -233,7 +232,7 @@ public class FlatFileNodeStoreBuilder {
         return build(null, null);
     }
 
-    public IndexStore build(IndexHelper indexHelper, CompositeIndexer indexer) throws IOException, CompositeException {
+    public IndexStore build(IndexHelper indexHelper, List<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
         logFlags();
         entryWriter = new NodeStateEntryWriter(blobStore);
         IndexStoreFiles indexStoreFiles = createdSortedStoreFiles();
@@ -250,12 +249,12 @@ public class FlatFileNodeStoreBuilder {
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
         }
-        if (indexer == null || indexHelper == null) {
+        if (indexDefinitions == null || indexHelper == null) {
             return store;
         }
         if (withAheadOfTimeBlobDownloading && store instanceof FlatFileStore) {
             FlatFileStore ffs = (FlatFileStore) store;
-            return AheadOfTimeBlobDownloadingFlatFileStore.wrap(ffs, indexer, indexHelper);
+            return AheadOfTimeBlobDownloadingFlatFileStore.wrap(ffs, indexDefinitions, indexHelper.getGCBlobStore());
         }
         return store;
     }
@@ -264,14 +263,14 @@ public class FlatFileNodeStoreBuilder {
         TreeStore indexingTreeStore = new TreeStore(
                 "indexing", file,
                 new NodeStateEntryReader(blobStore), 10);
-        indexingTreeStore.setIndexDefinitions(indexDefinitions);
+        indexingTreeStore.setIndexDefinitions(Set.copyOf(indexDefinitions));
 
         // use a separate tree store (with a smaller cache)
         // for prefetching, to avoid cache evictions
         TreeStore prefetchTreeStore = new TreeStore(
                 "prefetch", file,
                 new NodeStateEntryReader(blobStore), 3);
-        prefetchTreeStore.setIndexDefinitions(indexDefinitions);
+        prefetchTreeStore.setIndexDefinitions(Set.copyOf(indexDefinitions));
         String blobPrefetchEnableForIndexes = ConfigHelper.getSystemPropertyAsString(
                 AheadOfTimeBlobDownloadingFlatFileStore.BLOB_PREFETCH_ENABLE_FOR_INDEXES_PREFIXES, "");
         Prefetcher prefetcher = new Prefetcher(prefetchTreeStore, indexingTreeStore);
@@ -288,7 +287,7 @@ public class FlatFileNodeStoreBuilder {
     }
 
     public List<IndexStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
-                                         Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
+                                         List<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
         logFlags();
         entryWriter = new NodeStateEntryWriter(blobStore);
 

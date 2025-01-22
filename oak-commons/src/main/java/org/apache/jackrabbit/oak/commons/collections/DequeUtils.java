@@ -18,28 +18,32 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.jetbrains.annotations.NotNull;
 
-import static org.junit.Assert.fail;
+import java.util.ArrayDeque;
+import java.util.Objects;
 
-public class CollectionUtilsTest {
+/**
+ * Utility methods for {@link java.util.Deque} conversions.
+ */
+public class DequeUtils {
 
-    @Test
-    public void ensureCapacity() {
-        int capacity = CollectionUtils.ensureCapacity(8);
-        Assert.assertEquals(11, capacity);
+    private DequeUtils() {
+        // no instances for you
     }
 
-    @Test
-    public void ensureCapacityWithMaxValue() {
-        int capacity = CollectionUtils.ensureCapacity(1073741825);
-        Assert.assertEquals(1073741824, capacity);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void ensureCapacityWithNegativeValue() {
-        int capacity = CollectionUtils.ensureCapacity(-8);
-        fail("Should throw IllegalArgumentException");
+    /**
+     * Convert an iterable to a {@link java.util.ArrayDeque}.
+     * The returning array deque is mutable and supports all optional operations.
+     *
+     * @param iterable the iterable to convert
+     * @param <T>      the type of the elements
+     * @return the arrayDeque
+     */
+    public static <T> ArrayDeque<T> toArrayDeque(@NotNull Iterable<? extends T> iterable) {
+        Objects.requireNonNull(iterable);
+        ArrayDeque<T> arrayDeque = new ArrayDeque<>();
+        iterable.forEach(arrayDeque::add);
+        return arrayDeque;
     }
 }
