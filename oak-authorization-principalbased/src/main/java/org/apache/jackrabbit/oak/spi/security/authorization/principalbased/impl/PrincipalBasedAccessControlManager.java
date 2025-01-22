@@ -424,7 +424,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         if (principal == null || !filter.canHandle(Collections.singleton(principal))) {
             return null;
         }
-        String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
+        String oakPath = org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
         PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
 
         RestrictionProvider rp = mgrProvider.getRestrictionProvider();

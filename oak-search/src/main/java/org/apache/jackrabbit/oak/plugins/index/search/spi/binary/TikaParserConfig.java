@@ -27,6 +27,7 @@ import java.util.Set;
 import javax.xml.parsers.DocumentBuilder;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.ParseContext;
@@ -80,7 +81,7 @@ public class TikaParserConfig {
             Node mime = mimes.item(j);
             if (mime instanceof Element) {
                 String mimeValue = mime.getTextContent();
-                mimeValue = Strings.emptyToNull(mimeValue);
+                mimeValue = StringUtils.emptyToNull(mimeValue);
                 if (mimeValue != null) {
                     MediaType mediaType = MediaType.parse(mimeValue.trim());
                     if (mediaType != null) {

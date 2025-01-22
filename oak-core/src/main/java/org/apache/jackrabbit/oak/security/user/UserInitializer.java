@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -142,7 +143,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
                 boolean omitPw = params.getConfigValue(PARAM_OMIT_ADMIN_PW, false);
                 userManager.createUser(adminId, (omitPw) ? null : adminId);
             }
-            String anonymousId = Strings.emptyToNull(params.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID, String.class));
+            String anonymousId = StringUtils.emptyToNull(params.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID, String.class));
             if (anonymousId != null && userManager.getAuthorizable(anonymousId) == null) {
                 userManager.createUser(anonymousId, null);
             }

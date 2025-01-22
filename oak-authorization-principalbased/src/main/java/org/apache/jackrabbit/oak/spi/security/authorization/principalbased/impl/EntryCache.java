@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -85,7 +86,7 @@ class EntryCache implements Constants {
         private final RestrictionPattern pattern;
 
         private PermissionEntryImpl(@NotNull Tree entryTree) {
-            effectivePath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
+            effectivePath = StringUtils.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
             privilegeBits = bitsProvider.getBits(entryTree.getProperty(REP_PRIVILEGES).getValue(Type.NAMES));
             if (Utils.hasRestrictions(entryTree)) {
                 pattern = restrictionProvider.getPattern(effectivePath, restrictionProvider.readRestrictions(effectivePath, entryTree));

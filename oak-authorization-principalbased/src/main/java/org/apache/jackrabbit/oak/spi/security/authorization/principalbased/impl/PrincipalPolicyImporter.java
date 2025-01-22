@@ -22,6 +22,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -308,7 +309,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
                 log.error("Missing rep:effectivePath for entry {} of policy at {}", this, policy.getOakPath());
                 throw new ConstraintViolationException("Entries for PrincipalAccessControlList must specify an effective path.");
             }
-            policy.addEntry(Strings.emptyToNull(effectivePath), Iterables.toArray(privileges, Privilege.class), restrictions, mvRestrictions);
+            policy.addEntry(StringUtils.emptyToNull(effectivePath), Iterables.toArray(privileges, Privilege.class), restrictions, mvRestrictions);
         }
     }
 }

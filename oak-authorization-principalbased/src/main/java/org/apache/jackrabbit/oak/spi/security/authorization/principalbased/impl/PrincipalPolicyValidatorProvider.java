@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
@@ -199,7 +200,7 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
             Tree parent = verifyNotNull(parentAfter);
             if (NT_REP_PRINCIPAL_ENTRY.equals(TreeUtil.getPrimaryTypeName(parent))) {
                 try {
-                    String oakPath = Strings.emptyToNull(TreeUtil.getString(parent, REP_EFFECTIVE_PATH));
+                    String oakPath = StringUtils.emptyToNull(TreeUtil.getString(parent, REP_EFFECTIVE_PATH));
                     mgrProvider.getRestrictionProvider().validateRestrictions(oakPath, parent);
                 } catch (AccessControlException e) {
                     throw new CommitFailedException(ACCESS_CONTROL, 35, "Invalid restrictions", e);
