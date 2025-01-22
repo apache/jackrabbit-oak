@@ -383,7 +383,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * Class to help with {@link ElasticIndexDefinition} creation.
      * The built object represents the index definition only without the node structure.
      */
-    public static class Builder extends IndexDefinition.Builder {
+    public static class Builder extends IndexDefinition.Builder<ElasticIndexDefinition> {
 
         private final String indexPrefix;
 
@@ -393,7 +393,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         @Override
         public ElasticIndexDefinition build() {
-            return (ElasticIndexDefinition) super.build();
+            return super.build();
         }
 
         @Override
@@ -403,7 +403,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         }
 
         @Override
-        protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
+        protected ElasticIndexDefinition createInstance(NodeState indexDefnStateToUse) {
             return new ElasticIndexDefinition(root, indexDefnStateToUse, indexPath, indexPrefix);
         }
     }

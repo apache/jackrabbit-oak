@@ -57,13 +57,12 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
         this.connection = connection;
     }
 
-
     @Override
     public @Nullable NodeStateIndexer getIndexer(@NotNull String type, @NotNull String indexPath, @NotNull NodeBuilder definition, @NotNull NodeState root, IndexingProgressReporter progressReporter) {
         if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(definition.getString(TYPE_PROPERTY_NAME))) {
             return null;
         }
-        ElasticIndexDefinition idxDefinition = (ElasticIndexDefinition) new ElasticIndexDefinition.Builder(connection.getIndexPrefix()).
+        ElasticIndexDefinition idxDefinition = new ElasticIndexDefinition.Builder(connection.getIndexPrefix()).
                 root(root).indexPath(indexPath).defn(definition.getNodeState()).reindex().build();
 
         FulltextIndexWriter<ElasticDocument> indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, CommitInfo.EMPTY, true);

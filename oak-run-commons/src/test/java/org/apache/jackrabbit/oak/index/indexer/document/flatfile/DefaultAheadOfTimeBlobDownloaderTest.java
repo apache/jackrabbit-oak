@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -66,39 +66,39 @@ public class DefaultAheadOfTimeBlobDownloaderTest {
 
     @Test
     public void testSingleIndexIncludeAllPaths() throws IOException {
-        doTestSingleIndexIncludeAllPaths(List.of(new TestNodeStateIndexer(List.of("/"))), BINARY_BLOB_SUFFIX, 3);
+        doTestSingleIndexIncludeAllPaths(List.of(new TestIndexDefinition(List.of("/"))), BINARY_BLOB_SUFFIX, 3);
     }
 
     @Test
     public void testSingleIndexIncludeOnePath() throws IOException {
-        doTestSingleIndexIncludeAllPaths(List.of(new TestNodeStateIndexer(List.of("/include1"))), BINARY_BLOB_SUFFIX, 1);
+        doTestSingleIndexIncludeAllPaths(List.of(new TestIndexDefinition(List.of("/include1"))), BINARY_BLOB_SUFFIX, 1);
     }
 
     @Test
     public void testSingleIndexIncludePathDoesNotExist() throws IOException {
-        doTestSingleIndexIncludeAllPaths(List.of(new TestNodeStateIndexer(List.of("/doesnotexist"))), BINARY_BLOB_SUFFIX, 0);
+        doTestSingleIndexIncludeAllPaths(List.of(new TestIndexDefinition(List.of("/doesnotexist"))), BINARY_BLOB_SUFFIX, 0);
     }
 
     @Test
     public void testSingleIndexPathDoesNotContainMatches() throws IOException {
-        doTestSingleIndexIncludeAllPaths(List.of(new TestNodeStateIndexer(List.of("/var"))), BINARY_BLOB_SUFFIX, 0);
+        doTestSingleIndexIncludeAllPaths(List.of(new TestIndexDefinition(List.of("/var"))), BINARY_BLOB_SUFFIX, 0);
     }
 
     @Test
     public void testMultipleIndexes() throws IOException {
         doTestSingleIndexIncludeAllPaths(List.of(
-                        new TestNodeStateIndexer(List.of("/include2")),
-                        new TestNodeStateIndexer(List.of("/include1"))),
+                        new TestIndexDefinition(List.of("/include2")),
+                        new TestIndexDefinition(List.of("/include1"))),
                 BINARY_BLOB_SUFFIX, 2);
     }
 
     @Test
     public void testMultipleIncludePaths() throws IOException {
-        doTestSingleIndexIncludeAllPaths(List.of(new TestNodeStateIndexer(List.of("/include2", "/include1"))),
+        doTestSingleIndexIncludeAllPaths(List.of(new TestIndexDefinition("test-index", List.of("/include2", "/include1"))),
                 BINARY_BLOB_SUFFIX, 2);
     }
 
-    private void doTestSingleIndexIncludeAllPaths(List<NodeStateIndexer> indexers, String prefetchBinaryBlobSuffix, int expectedBlobsDownloaded) throws IOException {
+    private void doTestSingleIndexIncludeAllPaths(List<IndexDefinition> indexers, String prefetchBinaryBlobSuffix, int expectedBlobsDownloaded) throws IOException {
         Path ffsPath = folder.newFile("ffs.json").toPath();
         try (MemoryBlobStore blobStore = new MemoryBlobStore()) {
             generateTestFFS(ffsPath, FFS_PATHS, blobStore);

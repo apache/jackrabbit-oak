@@ -116,7 +116,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     }
 
     private void computeSize(NodeState idxState, LuceneIndexInfo info) throws IOException {
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(nodeStore.getRoot(), idxState, info.indexPath).build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(nodeStore.getRoot(), idxState, info.indexPath).build();
         for (String dirName : idxState.getChildNodeNames()) {
             if (NodeStateUtils.isHidden(dirName)) {
                 // This is true for both read-write index data dir (:data) and the read-only mount (:oak-libs-mount-index-data)
