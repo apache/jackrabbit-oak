@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.commons.collections;
 /**
  * Utility methods for collections conversions.
  */
-public class CollectionUtils {
+class CollectionUtils {
 
     // Maximum capacity for a hash based collection. (used internally by JDK).
     // Also, it helps to avoid overflow errors when calculating the capacity
