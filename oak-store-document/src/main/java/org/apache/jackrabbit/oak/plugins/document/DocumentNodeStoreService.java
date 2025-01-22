@@ -51,7 +51,6 @@ import java.util.function.Supplier;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
