@@ -736,7 +736,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                     LOG.trace("Trying a copy file operation");
                     try {
                         if (renamed.createNewFile()) {
-                            org.apache.jackrabbit.guava.common.io.Files.copy(processFile, renamed);
+                            Files.copy(processFile.toPath(), renamed.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             generations.add(renamed);
                             LOG.info("{} File copied to {}", processFile.getAbsolutePath(),
                                 renamed.getAbsolutePath());
