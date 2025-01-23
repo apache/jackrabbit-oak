@@ -31,7 +31,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -50,8 +50,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * Test the asynchronous reindexing ability of an synchronous index
