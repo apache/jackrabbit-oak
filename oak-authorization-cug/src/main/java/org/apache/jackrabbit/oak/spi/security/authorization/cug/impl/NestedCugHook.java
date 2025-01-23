@@ -24,6 +24,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
@@ -294,7 +295,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
             // are still present.
             Set<String> reconnect = getCugPathsToReconnect(before);
             if (isRoot) {
-                if (!Iterables.isEmpty(reconnect)) {
+                if (!IterableUtils.isEmpty(reconnect)) {
                     afterBuilder.setProperty(HIDDEN_NESTED_CUGS, reconnect, Type.STRINGS);
                     afterBuilder.setProperty(HIDDEN_TOP_CUG_CNT, reconnect.size());
                 }

@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
@@ -221,7 +222,7 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
                 throw accessControlViolation(36, "Isolated entry of principal policy at " + entryPath);
             }
             Iterable<String> privilegeNames = nodeState.getNames(REP_PRIVILEGES);
-            if (Iterables.isEmpty(privilegeNames)) {
+            if (IterableUtils.isEmpty(privilegeNames)) {
                 throw accessControlViolation(37, "Empty rep:privileges property at " + entryPath);
             }
             PrivilegeManager privilegeManager = mgrProvider.getPrivilegeManager();

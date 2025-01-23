@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -91,7 +92,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Iterable<String> privilegeNames) {
-        if (Iterables.isEmpty(privilegeNames)) {
+        if (IterableUtils.isEmpty(privilegeNames)) {
             return PrivilegeBits.EMPTY;
         }
 
@@ -116,7 +117,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         if (!validateNames) {
             return getBits(privilegeNames);
         }
-        if (Iterables.isEmpty(privilegeNames)) {
+        if (IterableUtils.isEmpty(privilegeNames)) {
             return PrivilegeBits.EMPTY;
         }
         PrivilegeBits bits = PrivilegeBits.getInstance();

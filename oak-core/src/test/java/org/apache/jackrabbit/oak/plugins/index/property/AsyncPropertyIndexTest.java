@@ -31,6 +31,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -64,7 +65,7 @@ public class AsyncPropertyIndexTest {
     @Test
     public void testAsyncPropertyLookup() throws Exception {
         NodeStore store = new MemoryNodeStore();
-        assertTrue(Iterables.isEmpty(store.checkpoints()));
+        assertTrue(IterableUtils.isEmpty(store.checkpoints()));
 
         NodeBuilder builder = store.getRoot().builder();
 
@@ -103,7 +104,7 @@ public class AsyncPropertyIndexTest {
         async.close();
         assertEquals(null, store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME)
                 .getChildNode("foo").getString(ASYNC_PROPERTY_NAME));
-        assertTrue(Iterables.isEmpty(store.checkpoints()));
+        assertTrue(IterableUtils.isEmpty(store.checkpoints()));
 
         // add content, it should be indexed synchronously
         builder = store.getRoot().builder();
@@ -131,12 +132,12 @@ public class AsyncPropertyIndexTest {
     @Test
     public void testAsyncPropertyNoChanges() throws Exception {
         NodeStore store = new MemoryNodeStore();
-        assertTrue(Iterables.isEmpty(store.checkpoints()));
+        assertTrue(IterableUtils.isEmpty(store.checkpoints()));
         AsyncIndexUpdate async = new AsyncIndexUpdate(ASYNC_REINDEX_VALUE,
                 store, provider, true);
         async.run();
         async.run();
         async.close();
-        assertTrue(Iterables.isEmpty(store.checkpoints()));
+        assertTrue(IterableUtils.isEmpty(store.checkpoints()));
     }
 }

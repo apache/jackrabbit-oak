@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.junit.Test;
@@ -157,7 +158,7 @@ public class TreeUtilTest extends AbstractTreeTest {
     @Test
     public void testGetMixinTypeNamesNewTreeLazy() {
         Tree newTree = when(rootTree.getChild("x").getStatus()).thenReturn(Tree.Status.NEW).getMock();
-        assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(newTree, new LazyValue<Tree>() {
+        assertTrue(IterableUtils.isEmpty(TreeUtil.getMixinTypeNames(newTree, new LazyValue<Tree>() {
             @Override
             protected Tree createValue() {
                 throw new RuntimeException("should not get here");

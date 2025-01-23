@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.junit.Test;
@@ -122,8 +123,8 @@ public class TreeUtilTest extends AbstractSecurityTest {
 
     @Test
     public void testGetMixinTypeNamesMissingAccessible() {
-        assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(root.getTree("/"))));
-        assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(root.getTree("/"), new LazyValue<Tree>() {
+        assertTrue(IterableUtils.isEmpty(TreeUtil.getMixinTypeNames(root.getTree("/"))));
+        assertTrue(IterableUtils.isEmpty(TreeUtil.getMixinTypeNames(root.getTree("/"), new LazyValue<Tree>() {
             @Override
             protected Tree createValue() {
                 return root.getTree("/");
@@ -134,12 +135,12 @@ public class TreeUtilTest extends AbstractSecurityTest {
     @Test
     public void testGetMixinTypeNamesMissingNotAccessible() throws Exception {
         Tree tree = root.getTree("/");
-        assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(tree)));
+        assertTrue(IterableUtils.isEmpty(TreeUtil.getMixinTypeNames(tree)));
 
         try (ContentSession cs = login(new GuestCredentials())) {
             Root guestRoot = cs.getLatestRoot();
-            assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree("/"))));
-            assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree("/"), new LazyValue<Tree>() {
+            assertTrue(IterableUtils.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree("/"))));
+            assertTrue(IterableUtils.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree("/"), new LazyValue<Tree>() {
                 @Override
                 protected Tree createValue() {
                     return tree;
@@ -177,8 +178,8 @@ public class TreeUtilTest extends AbstractSecurityTest {
 
         try (ContentSession cs = login(new GuestCredentials())) {
             Root guestRoot = cs.getLatestRoot();
-            assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree(path))));
-            assertTrue(Iterables.elementsEqual(expected, TreeUtil.getMixinTypeNames(guestRoot.getTree(path), new LazyValue<Tree>() {
+            assertTrue(IterableUtils.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree(path))));
+            assertTrue(IterableUtils.elementsEqual(expected, TreeUtil.getMixinTypeNames(guestRoot.getTree(path), new LazyValue<Tree>() {
                 @Override
                 protected Tree createValue() {
                     return testTree;
@@ -197,7 +198,7 @@ public class TreeUtilTest extends AbstractSecurityTest {
         when(t.hasProperty(JcrConstants.JCR_MIXINTYPES)).thenReturn(false);
         when(t.getStatus()).thenReturn(Tree.Status.NEW);
 
-        assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(t, new LazyValue<Tree>() {
+        assertTrue(IterableUtils.isEmpty(TreeUtil.getMixinTypeNames(t, new LazyValue<Tree>() {
             @Override
             protected Tree createValue() {
                 return testTree;
