@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
@@ -111,7 +111,7 @@ final class SyncConfigTracker extends ServiceTracker {
             String[] userAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP), new String[0]);
             String[] groupAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP), new String[0]);
 
-            populateMap(syncHandlerName, ObjectArrays.concat(userAuthMembership, groupAuthMembership, String.class), autoMembership);
+            populateMap(syncHandlerName, ArrayUtils.addAll(userAuthMembership, groupAuthMembership), autoMembership);
         }
         return autoMembership;
     }
