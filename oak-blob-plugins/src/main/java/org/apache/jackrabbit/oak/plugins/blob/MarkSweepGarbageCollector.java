@@ -41,7 +41,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -622,9 +621,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @param logPath whether to log path in the file or not
      */
     protected void iterateNodeTree(GarbageCollectorFileState fs, final boolean logPath) throws IOException {
-        final BufferedWriter writer = new BufferedWriter(new FileWriter(fs.getMarkedRefs(), StandardCharsets.UTF_8));
         final AtomicInteger count = new AtomicInteger();
-        try {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fs.getMarkedRefs(), StandardCharsets.UTF_8))) {
             marker.collectReferences(
                     new ReferenceCollector() {
                         private final boolean debugMode = LOG.isTraceEnabled();
@@ -663,21 +661,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                         }
                     }
             );
-            LOG.info("Number of valid blob references marked under mark phase of " +
-                    "Blob garbage collection [{}]", count.get());
-            // sort the marked references with the first part of the key
-            sort(fs.getMarkedRefs(),
-                new Comparator<String>() {
-                    @Override
-                    public int compare(String s1, String s2) {
-                        return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
-                    }
-                });
-        } finally {
-            closeQuietly(writer);
         }
+
+        LOG.info("Number of valid blob references marked under mark phase of " +
+                "Blob garbage collection [{}]", count.get());
+        // sort the marked references with the first part of the key
+        sort(fs.getMarkedRefs(),
+                (s1, s2) -> s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]));
     }
-    
+
     @Override
     public long checkConsistency(boolean markOnly) throws Exception {
         consistencyStatsCollector.start();
