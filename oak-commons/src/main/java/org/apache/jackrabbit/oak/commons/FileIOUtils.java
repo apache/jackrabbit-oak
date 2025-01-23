@@ -21,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.IOUtils.copyLarge;
 import static org.apache.jackrabbit.guava.common.io.Closeables.close;
-import static org.apache.jackrabbit.guava.common.io.Files.move;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
 import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.mergeSortedFiles;
@@ -38,6 +37,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -73,7 +74,7 @@ public final class FileIOUtils {
     public static void sort(File file) throws IOException {
         File sorted = createTempFile("fleioutilssort", null);
         merge(sortInBatch(file, lexComparator, true), sorted);
-        move(sorted, file);
+        Files.move(sorted.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**
@@ -86,7 +87,7 @@ public final class FileIOUtils {
     public static void sort(File file, Comparator<String> comparator) throws IOException {
         File sorted = createTempFile("fleioutilssort", null);
         merge(sortInBatch(file, comparator, true), sorted, comparator);
-        move(sorted, file);
+        Files.move(sorted.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**
