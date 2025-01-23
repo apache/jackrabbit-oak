@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipAware;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
@@ -141,7 +141,7 @@ public class SyncConfigTrackerTest {
 
         Map<String,String[]> automembership = tracker.getAutoMembership();
         assertEquals(1, automembership.size());
-        Set<String> expected = Set.of(ObjectArrays.concat(uam, gam, String.class));
+        Set<String> expected = Set.of(ArrayUtils.addAll(uam, gam));
         assertEquals(expected, Set.of(automembership.get("idp")));
     }
 
@@ -201,7 +201,7 @@ public class SyncConfigTrackerTest {
         
         Map<String,String[]> automembership = tracker.getAutoMembership();
         assertEquals(2, automembership.size());
-        Set<String> expected = Set.of(ObjectArrays.concat(uam, gam, String.class));
+        Set<String> expected = Set.of(ArrayUtils.addAll(uam, gam));
         assertEquals(expected, Set.of(automembership.get("idp")));
         assertArrayEquals(uam, automembership.get("idp2"));
     }
