@@ -17,13 +17,12 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Calendar;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 public class SmallFileReadTest extends AbstractTest {
 
@@ -57,11 +56,8 @@ public class SmallFileReadTest extends AbstractTest {
         for (int i = 0; i < FILE_COUNT; i++) {
             Node file = root.getNode("file" + i);
             Node content = file.getNode("jcr:content");
-            InputStream stream = content.getProperty("jcr:data").getStream();
-            try {
-                ByteStreams.copy(stream, ByteStreams.nullOutputStream());
-            } finally {
-                stream.close();
+            try (InputStream stream = content.getProperty("jcr:data").getStream()) {
+                stream.transferTo(OutputStream.nullOutputStream());
             }
         }
     }

@@ -24,12 +24,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.IndexHelper;
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +38,8 @@ public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final FlatFileStore ffs;
-    private final CompositeIndexer indexer;
-    private final IndexHelper indexHelper;
+    private final List<IndexDefinition> indexDefinitions;
+    private final GarbageCollectableBlobStore blobStore;
 
     public static final String BLOB_PREFETCH_ENABLE_FOR_INDEXES_PREFIXES = "oak.indexer.blobPrefetch.enableForIndexesPrefixes";
     public static final String BLOB_PREFETCH_BINARY_NODES_SUFFIX = "oak.indexer.blobPrefetch.binaryNodesSuffix";
@@ -53,33 +52,34 @@ public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
     private final int maxPrefetchWindowMB = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_MB, 32);
     private final int maxPrefetchWindowSize = ConfigHelper.getSystemPropertyAsInt(BLOB_PREFETCH_DOWNLOAD_AHEAD_WINDOW_SIZE, 4096);
 
-    public static AheadOfTimeBlobDownloadingFlatFileStore wrap(FlatFileStore ffs, CompositeIndexer indexer, IndexHelper indexHelper) {
-        return new AheadOfTimeBlobDownloadingFlatFileStore(ffs, indexer, indexHelper);
+    public static AheadOfTimeBlobDownloadingFlatFileStore wrap(FlatFileStore ffs, List<IndexDefinition> indexDefinitions, GarbageCollectableBlobStore blobStore) {
+        return new AheadOfTimeBlobDownloadingFlatFileStore(ffs, indexDefinitions, blobStore);
     }
 
-    private AheadOfTimeBlobDownloadingFlatFileStore(FlatFileStore ffs, CompositeIndexer indexer, IndexHelper indexHelper) {
+    private AheadOfTimeBlobDownloadingFlatFileStore(FlatFileStore ffs, List<IndexDefinition> indexDefinitions, GarbageCollectableBlobStore blobStore) {
         this.ffs = ffs;
-        this.indexer = indexer;
-        this.indexHelper = indexHelper;
+        this.indexDefinitions = indexDefinitions;
+        this.blobStore = blobStore;
     }
 
-    private @NotNull AheadOfTimeBlobDownloader createAheadOfTimeBlobDownloader(CompositeIndexer indexer, IndexHelper indexHelper) {
+    private @NotNull AheadOfTimeBlobDownloader createAheadOfTimeBlobDownloader() {
         if (blobPrefetchBinaryNodeSuffix == null || blobPrefetchBinaryNodeSuffix.isBlank()) {
             log.info("Ahead of time blob downloader is disabled, no binary node suffix provided");
             return AheadOfTimeBlobDownloader.NOOP;
         } else {
             List<String> enableIndexesPrefix = splitAndTrim(blobPrefetchEnableForIndexes);
-            List<NodeStateIndexer> enabledIndexers = filterEnabledIndexes(enableIndexesPrefix, indexer.getIndexers());
+            List<IndexDefinition> enabledIndexers = filterEnabledIndexes(enableIndexesPrefix, indexDefinitions);
             if (enabledIndexers.isEmpty()) {
-                log.info("Ahead of time blob downloader is disabled, not enabled for any indexes: {}", indexHelper.getIndexPaths());
+                log.info("Ahead of time blob downloader is disabled, not enabled for any indexes: {}",
+                        indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList()));
                 return AheadOfTimeBlobDownloader.NOOP;
             } else {
                 return new DefaultAheadOfTimeBlobDownloader(
                         blobPrefetchBinaryNodeSuffix,
                         ffs.getStoreFile(),
                         ffs.getAlgorithm(),
-                        indexHelper.getGCBlobStore(),
-                        enabledIndexers,
+                        blobStore,
+                        indexDefinitions,
                         nDownloadThreads,
                         maxPrefetchWindowSize,
                         maxPrefetchWindowMB);
@@ -92,12 +92,12 @@ public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
      * for which the index name starts with any of the prefixes in the enabledForIndexes list.
      *
      * @param enabledIndexesPrefixes list of prefixes of the index definitions that benefit from the download
-     * @param indexers          the index paths
+     * @param indexDefinitions       the index definitions
      * @return the indexers for which AOT blob download is enabled, or empty list if it is not enabled for any
      */
-    public static <T extends NodeStateIndexer> List<T> filterEnabledIndexes(List<String> enabledIndexesPrefixes, List<T> indexers) {
-        return indexers.stream()
-                .filter(indexer -> enabledIndexesPrefixes.stream().anyMatch(prefix -> indexer.getIndexName().startsWith(prefix)))
+    public static List<IndexDefinition> filterEnabledIndexes(List<String> enabledIndexesPrefixes, List<IndexDefinition> indexDefinitions) {
+        return indexDefinitions.stream()
+                .filter(indexDef -> enabledIndexesPrefixes.stream().anyMatch(prefix -> indexDef.getIndexName().startsWith(prefix)))
                 .collect(Collectors.toList());
     }
 
@@ -105,7 +105,7 @@ public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
      * Whether blob downloading is needed for any the given indexes.
      *
      * @param enableIndexesPrefix list of prefixes of the index definitions that benefit from the download
-     * @param indexPaths       the index paths
+     * @param indexPaths          the index paths
      * @return true if any of the indexes start with any of the prefixes
      */
     public static boolean isEnabledForAnyOfIndexes(List<String> enableIndexesPrefix, List<String> indexPaths) {
@@ -127,7 +127,7 @@ public class AheadOfTimeBlobDownloadingFlatFileStore implements IndexStore {
 
     @Override
     public @NotNull Iterator<NodeStateEntry> iterator() {
-        final AheadOfTimeBlobDownloader aheadOfTimeBlobDownloader = createAheadOfTimeBlobDownloader(indexer, indexHelper);
+        final AheadOfTimeBlobDownloader aheadOfTimeBlobDownloader = createAheadOfTimeBlobDownloader();
         aheadOfTimeBlobDownloader.start();
         return new Iterator<>() {
 

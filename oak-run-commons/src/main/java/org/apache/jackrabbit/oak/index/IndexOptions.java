@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.run.cli.OptionsBean;
 import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
 
@@ -254,7 +254,7 @@ public class IndexOptions implements OptionsBean {
     private static List<String> trim(List<String> values) {
         Set<String> paths = new HashSet<>();
         for (String v : values) {
-            v = Strings.emptyToNull(v);
+            v = StringUtils.emptyToNull(v);
             if (v != null) {
                 paths.add(v.trim());
             }

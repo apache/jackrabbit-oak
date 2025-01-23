@@ -51,7 +51,6 @@ import java.util.function.Supplier;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
@@ -603,7 +602,7 @@ public class DocumentNodeStoreService {
 
         Set<Path> paths = new HashSet<>();
         for (String p : config.persistentCacheIncludes()) {
-            p = p != null ? Strings.emptyToNull(p.trim()) : null;
+            p = p != null ? org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(p.trim()) : null;
             if (p != null) {
                 paths.add(Path.fromString(p));
             }

@@ -68,7 +68,8 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
 
     @Override
     public boolean shouldInclude(String path) {
-        return getFilterResult(path) != PathFilter.Result.EXCLUDE;
+        return definition.shouldInclude(path);
+
     }
 
     @Override
@@ -79,7 +80,7 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
 
     @Override
     public boolean index(NodeStateEntry entry) throws IOException, CommitFailedException {
-        if (getFilterResult(entry.getPath()) != PathFilter.Result.INCLUDE) {
+        if (definition.getFilterResult(entry.getPath()) != PathFilter.Result.INCLUDE) {
             return false;
         }
 
@@ -124,10 +125,6 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
         LOG.info("[{}] Statistics: {}", definition.getIndexName(), indexerStatisticsTracker.formatStats());
         binaryTextExtractor.logStats();
         indexWriter.close(System.currentTimeMillis());
-    }
-
-    private PathFilter.Result getFilterResult(String path) {
-        return definition.getPathFilter().filter(path);
     }
 
     private void writeToIndex(Document doc, String path) throws IOException {

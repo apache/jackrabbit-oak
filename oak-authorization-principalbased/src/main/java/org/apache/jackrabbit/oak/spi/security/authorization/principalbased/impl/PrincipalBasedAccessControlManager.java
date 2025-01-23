@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -424,7 +423,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         if (principal == null || !filter.canHandle(Collections.singleton(principal))) {
             return null;
         }
-        String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
+        String oakPath = org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
         PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
 
         RestrictionProvider rp = mgrProvider.getRestrictionProvider();

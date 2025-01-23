@@ -46,11 +46,11 @@ import static org.junit.Assert.assertTrue;
 public class LuceneDocumentMakerLargeStringPropertiesLogTest {
 
     ListAppender<ILoggingEvent> listAppender = null;
-    private final String nodeImplLogger = LuceneDocumentMaker.class.getName();
-    private final String warnMessage = "String length: {} for property: {} at Node: {} is greater than configured value {}";
-    private String customStringPropertyThresholdLimit = "9";
-    private String smallStringProperty = "1234567";
-    private String largeStringPropertyAsPerCustomThreshold = "1234567890";
+    private static final String nodeImplLogger = LuceneDocumentMaker.class.getName();
+    private static final String warnMessage = "String length: {} for property: {} at Node: {} is greater than configured value {}";
+    private static final String customStringPropertyThresholdLimit = "9";
+    private static final String smallStringProperty = "1234567";
+    private static final String largeStringPropertyAsPerCustomThreshold = "1234567890";
 
     @Rule
     public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
@@ -81,7 +81,7 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
                 .analyzed()
                 .valueExcludedPrefixes("/jobs");
 
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, builder.build(), "/foo").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, builder.build(), "/foo").build();
         LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn,
                 defn.getApplicableIndexingRule("nt:base"), "/x");
 

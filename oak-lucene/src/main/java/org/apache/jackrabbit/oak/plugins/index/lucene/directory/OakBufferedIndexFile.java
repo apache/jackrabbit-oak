@@ -23,10 +23,10 @@ import java.io.SequenceInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
@@ -164,12 +164,11 @@ class OakBufferedIndexFile implements OakIndexFile {
             Validate.checkState(!blobModified);
 
             int n = (int) Math.min(blobSize, length - (long)i * blobSize);
-            InputStream stream = data.get(i).getNewStream();
-            try {
-                ByteStreams.readFully(stream, blob, 0, n);
-            } finally {
-                stream.close();
+
+            try (InputStream stream = data.get(i).getNewStream()) {
+                IOUtils.readFully(stream, blob, 0, n);
             }
+
             index = i;
         }
     }

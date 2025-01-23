@@ -26,7 +26,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
@@ -44,11 +43,9 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 public class LuceneIndexerProvider implements NodeStateIndexerProvider {
     private final ExtractedTextCache textCache =
             new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
-    private final ExtendedIndexHelper extendedIndexHelper;
-    private final LuceneIndexWriterFactory indexWriterFactory;
+    private final DefaultIndexWriterFactory indexWriterFactory;
 
     public LuceneIndexerProvider(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
-        this.extendedIndexHelper = extendedIndexHelper;
         DirectoryFactory dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
         this.indexWriterFactory = new DefaultIndexWriterFactory(extendedIndexHelper.getMountInfoProvider(),
                 dirFactory, extendedIndexHelper.getLuceneIndexHelper().getWriterConfigForReindex());
@@ -62,7 +59,7 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
             return null;
         }
 
-        LuceneIndexDefinition idxDefinition = LuceneIndexDefinition.newBuilder(root, definition.getNodeState(), indexPath).reindex().build();
+        LuceneIndexDefinition idxDefinition = LuceneIndexDefinition.newLuceneBuilder(root, definition.getNodeState(), indexPath).reindex().build();
 
         LuceneIndexWriter indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, null, true);
         FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);

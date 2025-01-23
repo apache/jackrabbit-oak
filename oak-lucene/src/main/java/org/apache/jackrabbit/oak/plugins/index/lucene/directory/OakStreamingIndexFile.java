@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -232,7 +231,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
         }
 
         setupInputStream();
-        int readCnt = ByteStreams.read(blobInputStream, b, offset, len);
+        int readCnt = IOUtils.read(blobInputStream, b, offset, len);
         if (readCnt < len) {
             String msg = String.format("Couldn't read byte range request for [%s][%s], " +
                     "position: %d, file length: %d, len: %d. Actual read bytes %d",
