@@ -25,6 +25,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -35,7 +37,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -49,7 +50,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.io.Files.move;
 import static java.io.File.createTempFile;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.emptyIterator;
@@ -449,7 +449,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                     }
                 }
 
-                move(removed, delFile);
+                Files.move(removed.toPath(), delFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 LOG.trace("removed active delete records");
             } finally {
                 lock.unlock();
@@ -652,7 +652,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 }
 
                 File blobRecs = getBlobRecordsFile();
-                move(temp, blobRecs);
+                Files.move(temp.toPath(), blobRecs.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 LOG.trace("removed records");
             } finally {
                 refLock.unlock();
@@ -736,7 +736,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                     LOG.trace("Trying a copy file operation");
                     try {
                         if (renamed.createNewFile()) {
-                            Files.copy(processFile, renamed);
+                            org.apache.jackrabbit.guava.common.io.Files.copy(processFile, renamed);
                             generations.add(renamed);
                             LOG.info("{} File copied to {}", processFile.getAbsolutePath(),
                                 renamed.getAbsolutePath());
