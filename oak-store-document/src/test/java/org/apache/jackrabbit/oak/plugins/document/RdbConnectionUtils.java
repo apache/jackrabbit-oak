@@ -31,6 +31,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
@@ -44,6 +47,7 @@ public class RdbConnectionUtils {
     public static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
     public static final String PASSWD = System.getProperty("rdb.jdbc-passwd", "");
     public static final String IMG = System.getProperty("rdb.docker-image", "");
+    public static final Map<String, String> ENV = parseDockerEnv(System.getProperty("rdb.docker-env", ""));
 
     private static final boolean RDB_AVAILABLE;
     private static GenericContainer<?> rdbContainer;
@@ -67,6 +71,7 @@ public class RdbConnectionUtils {
         if (RDB_AVAILABLE) {
             rdbContainer = new GenericContainer<>(DockerImageName.parse(IMG))
                     .withPrivilegedMode(true)
+                    .withEnv(ENV)
                     .withExposedPorts(exposedPort)
                     .withStartupTimeout(Duration.ofMinutes(15));
             try {
@@ -147,5 +152,20 @@ public class RdbConnectionUtils {
 
     private static boolean checkDockerAvailability() {
         return DockerClientFactory.instance().isDockerAvailable();
+    }
+
+    private static Map<String, String> parseDockerEnv(String raw) {
+        Map<String, String> result = new HashMap<>();
+        StringTokenizer envTokenizer = new StringTokenizer(raw, ",");
+        while (envTokenizer.hasMoreTokens()) {
+            String token = envTokenizer.nextToken().trim();
+            StringTokenizer varTokenizer = new StringTokenizer(token, "=");
+            if (varTokenizer.countTokens() == 2) {
+                result.put(varTokenizer.nextToken(), varTokenizer.nextToken());
+            } else {
+                LOG.warn("Ignoring unexpected format of docker container environment variable: {}.", token);
+            }
+        }
+        return result;
     }
 }
