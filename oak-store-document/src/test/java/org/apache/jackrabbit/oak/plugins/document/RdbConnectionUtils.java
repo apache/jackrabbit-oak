@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,11 +44,11 @@ public class RdbConnectionUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(RdbConnectionUtils.class);
 
-    public static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest;DB_CLOSE_ON_EXIT=FALSE");
-    public static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
-    public static final String PASSWD = System.getProperty("rdb.jdbc-passwd", "");
-    public static final String IMG = System.getProperty("rdb.docker-image", "");
-    public static final Map<String, String> ENV = parseDockerEnv(System.getProperty("rdb.docker-env", ""));
+    public static final String URL = SystemPropertySupplier.create("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest;DB_CLOSE_ON_EXIT=FALSE").get();
+    public static final String USERNAME = SystemPropertySupplier.create("rdb.jdbc-user", "sa").get();
+    public static final String PASSWD = SystemPropertySupplier.create("rdb.jdbc-passwd", "").get();
+    public static final String IMG = SystemPropertySupplier.create("rdb.docker-image", "").get();
+    public static final Map<String, String> ENV = parseDockerEnv(SystemPropertySupplier.create("rdb.docker-env", "").get());
 
     private static final boolean RDB_AVAILABLE;
     private static GenericContainer<?> rdbContainer;
