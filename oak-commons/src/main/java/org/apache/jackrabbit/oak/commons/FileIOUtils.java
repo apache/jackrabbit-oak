@@ -87,7 +87,6 @@ public final class FileIOUtils {
     public static void sort(File file, Comparator<String> comparator) throws IOException {
         File sorted = createTempFile("fleioutilssort", null);
         merge(sortInBatch(file, comparator, true), sorted, comparator);
-        System.err.println("XXX: " + sorted + " " + file);
         Files.move(sorted.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 
