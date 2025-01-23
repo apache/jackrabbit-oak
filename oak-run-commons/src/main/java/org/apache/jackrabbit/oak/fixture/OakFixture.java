@@ -29,7 +29,6 @@ import java.util.function.Predicate;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.StringUtils;

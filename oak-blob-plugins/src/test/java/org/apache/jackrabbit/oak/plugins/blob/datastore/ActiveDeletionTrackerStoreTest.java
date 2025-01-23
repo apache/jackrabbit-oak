@@ -29,7 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
@@ -225,7 +225,7 @@ public class ActiveDeletionTrackerStoreTest {
     private static List<String> range(int min, int max) {
         List<String> list = new ArrayList<>();
         for (int i = min; i <= max; i++) {
-            list.add(Strings.padStart(valueOf(i), 2, '0'));
+            list.add(StringUtils.leftPad(valueOf(i), 2, '0'));
         }
         return list;
     }
