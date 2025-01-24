@@ -83,11 +83,12 @@ public class RdbConnectionUtils {
                 LOG.info("Mapped JDBC URL is {}.", url);
                 boolean containerReady = false;
                 LOG.info("Trying to connect to {}", url);
+                DataSource dataSource = RDBDataSourceFactory.forJdbcUrl(url, RdbConnectionUtils.USERNAME, RdbConnectionUtils.PASSWD);
+                LOG.info("DataSource initialized");
                 for (int k = 0; k < 30 && !containerReady; k++) {
                     Thread.sleep(10000);
                     Connection connection = null;
                     try {
-                        DataSource dataSource = RDBDataSourceFactory.forJdbcUrl(url, RdbConnectionUtils.USERNAME, RdbConnectionUtils.PASSWD);
                         connection = dataSource.getConnection();
                         containerReady = true;
                     } catch (SQLException expected) {
