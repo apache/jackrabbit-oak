@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -368,12 +369,12 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Test
     public void testGetAggregatedPrivilegeNamesEmpty() {
-        assertTrue(Iterables.isEmpty(bitsProvider.getAggregatedPrivilegeNames()));
+        assertTrue(IterableUtils.isEmpty(bitsProvider.getAggregatedPrivilegeNames()));
     }
 
     @Test
     public void testGetAggregatedPrivilegeNamesEmptyArray() {
-        assertTrue(Iterables.isEmpty(bitsProvider.getAggregatedPrivilegeNames()));
+        assertTrue(IterableUtils.isEmpty(bitsProvider.getAggregatedPrivilegeNames()));
     }
 
     @Test
@@ -454,7 +455,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
         when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
 
         Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(KNOWN_PRIV_NAME);
-        assertTrue(Iterables.isEmpty(result));
+        assertTrue(IterableUtils.isEmpty(result));
     }
 
     @Test

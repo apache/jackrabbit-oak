@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -35,6 +34,7 @@ import java.util.StringJoiner;
 import javax.jcr.Value;
 import javax.jcr.observation.Event;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -221,7 +221,7 @@ public class EventFactory {
     }
 
     private Map<String, ?> createInfoMap(String primaryType, Iterable<String> mixinTypes) {
-        if (isEmpty(mixinTypes)) {
+        if (IterableUtils.isEmpty(mixinTypes)) {
             return Map.of(
                     JCR_PRIMARYTYPE, mapper.getJcrName(primaryType));
         } else {

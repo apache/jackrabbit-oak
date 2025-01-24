@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
 import org.junit.Before;
@@ -49,21 +49,21 @@ public class SyncHandlerMappingTrackerTest {
     @Test
     public void testAddingServiceWithoutProperties() {
         tracker.addingService(ref);
-        assertTrue(Iterables.isEmpty(tracker.getIdpNames("testSH")));
+        assertTrue(IterableUtils.isEmpty(tracker.getIdpNames("testSH")));
     }
 
     @Test
     public void testAddingServiceWithIdpProp() {
         when(ref.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP");
         tracker.addingService(ref);
-        assertTrue(Iterables.isEmpty(tracker.getIdpNames("testSH")));
+        assertTrue(IterableUtils.isEmpty(tracker.getIdpNames("testSH")));
     }
 
     @Test
     public void testAddingServiceWithSyncHandlerProp() {
         when(ref.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("testSH");
         tracker.addingService(ref);
-        assertTrue(Iterables.isEmpty(tracker.getIdpNames("testSH")));
+        assertTrue(IterableUtils.isEmpty(tracker.getIdpNames("testSH")));
     }
 
     @Test
@@ -94,21 +94,21 @@ public class SyncHandlerMappingTrackerTest {
     @Test
     public void testModifiedServiceWithoutProperties() {
         tracker.modifiedService(ref, service);
-        assertTrue(Iterables.isEmpty(tracker.getIdpNames("testSH")));
+        assertTrue(IterableUtils.isEmpty(tracker.getIdpNames("testSH")));
     }
 
     @Test
     public void testModifiedServiceWithIdpProp() {
         when(ref.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP");
         tracker.modifiedService(ref, service);
-        assertTrue(Iterables.isEmpty(tracker.getIdpNames("testSH")));
+        assertTrue(IterableUtils.isEmpty(tracker.getIdpNames("testSH")));
     }
 
     @Test
     public void testModifiedServiceWithSyncHandlerProp() {
         when(ref.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("testSH");
         tracker.modifiedService(ref, service);
-        assertTrue(Iterables.isEmpty(tracker.getIdpNames("testSH")));
+        assertTrue(IterableUtils.isEmpty(tracker.getIdpNames("testSH")));
     }
 
     @Test
@@ -126,7 +126,7 @@ public class SyncHandlerMappingTrackerTest {
         when(ref.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("testSH-3");
         when(ref.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP-3");
         tracker.modifiedService(ref, service);
-        assertTrue(Iterables.isEmpty(tracker.getIdpNames("testSH")));
+        assertTrue(IterableUtils.isEmpty(tracker.getIdpNames("testSH")));
         assertEquals(Set.of("testIDP-3"), SetUtils.toSet(tracker.getIdpNames("testSH-3")));
     }
 
@@ -138,6 +138,6 @@ public class SyncHandlerMappingTrackerTest {
         tracker.addingService(ref);
         tracker.removedService(ref, service);
 
-        assertTrue(Iterables.isEmpty(tracker.getIdpNames("testSH")));
+        assertTrue(IterableUtils.isEmpty(tracker.getIdpNames("testSH")));
     }
 }

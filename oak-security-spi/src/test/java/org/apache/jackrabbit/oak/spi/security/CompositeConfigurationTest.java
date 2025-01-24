@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -391,10 +392,10 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
     @Test
     public void testGetMonitors() {
         StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
-        assertTrue(Iterables.isEmpty(compositeConfiguration.getMonitors(statisticsProvider)));
+        assertTrue(IterableUtils.isEmpty(compositeConfiguration.getMonitors(statisticsProvider)));
 
         addConfiguration(new SecurityConfiguration.Default());
-        assertTrue(Iterables.isEmpty(compositeConfiguration.getMonitors(statisticsProvider)));
+        assertTrue(IterableUtils.isEmpty(compositeConfiguration.getMonitors(statisticsProvider)));
 
         Monitor<LoginModuleMonitor> monitor = mock(LoginModuleMonitor.class);
         SecurityConfiguration withMonitors = new SecurityConfiguration.Default() {

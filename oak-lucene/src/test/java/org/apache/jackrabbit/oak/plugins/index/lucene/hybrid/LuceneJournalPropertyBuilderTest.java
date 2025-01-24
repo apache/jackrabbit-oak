@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.HashMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Multimap;
@@ -40,7 +41,7 @@ public class LuceneJournalPropertyBuilderTest {
     public void nullProperty() throws Exception{
         builder.addProperty(null);
         assertEquals("{}", builder.buildAsString());
-        assertTrue(Iterables.isEmpty(((IndexedPaths)builder.build())));
+        assertTrue(IterableUtils.isEmpty(((IndexedPaths)builder.build())));
     }
 
     @Test
@@ -51,7 +52,7 @@ public class LuceneJournalPropertyBuilderTest {
         builder2.addSerializedProperty(null);
         builder2.addSerializedProperty(builder.buildAsString());
 
-        assertTrue(Iterables.isEmpty(((IndexedPaths)builder2.build())));
+        assertTrue(IterableUtils.isEmpty(((IndexedPaths)builder2.build())));
     }
     @Test
     public void addJsonLessThanMaxBuilderSize() throws Exception {

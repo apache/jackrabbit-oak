@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
@@ -1617,7 +1618,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         //Also include all immediate leaf propNode names
         for (ChildNodeEntry cne : propNodeState.getChildNodeEntries()) {
             if (!propNamesSet.contains(cne.getName())
-                    && Iterables.isEmpty(cne.getNodeState().getChildNodeNames())) {
+                    && IterableUtils.isEmpty(cne.getNodeState().getChildNodeNames())) {
                 propNamesSet.add(cne.getName());
             }
         }
