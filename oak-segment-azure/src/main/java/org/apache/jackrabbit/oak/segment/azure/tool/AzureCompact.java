@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
@@ -27,7 +26,6 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentN
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.CloudBlob;
@@ -53,6 +51,7 @@ import org.apache.jackrabbit.oak.segment.tool.Compact;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -372,7 +371,9 @@ public class AzureCompact {
         GCGeneration gcGeneration = null;
         String root = null;
 
-        try (FileStore store = newFileStore(splitPersistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
+        try (FileStore store =newFileStore(splitPersistence,
+                Files.createTempDirectory(getClass().getSimpleName() + "-").toFile(),
+                strictVersionCheck, segmentCacheSize,
                 gcLogInterval, compactorType, concurrency)) {
             if (garbageThresholdGb > 0 && garbageThresholdPercentage > 0) {
                 System.out.printf("    -> minimum garbage threshold set to %d GB or %d%%\n", garbageThresholdGb, garbageThresholdPercentage);
