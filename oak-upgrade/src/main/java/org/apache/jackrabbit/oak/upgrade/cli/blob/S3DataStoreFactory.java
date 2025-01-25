@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -39,7 +40,6 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
@@ -65,7 +65,7 @@ public class S3DataStoreFactory implements BlobStoreFactory {
         }
 
         this.directory = directory;
-        this.tempHomeDir = Files.createTempDir();
+        this.tempHomeDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         this.ignoreMissingBlobs = ignoreMissingBlobs;
     }
 
