@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
@@ -56,7 +57,7 @@ public class RevisionVectorTest {
     public void update() {
         Revision rev1 = new Revision(1, 0, 1);
         RevisionVector rv = new RevisionVector(rev1);
-        assertEquals(1, Iterables.size(rv));
+        assertEquals(1, IterableUtils.size(rv));
         assertSame(rv, rv.update(rev1));
 
         Revision rev2 = new Revision(2, 0, 1);

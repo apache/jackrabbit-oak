@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
@@ -281,9 +282,9 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         RevisionVector sweepRevs = ds1.getSweepRevisions();
         Iterable<NodeDocument> garbage = gcSupport1.identifyGarbage(GC_TYPES, sweepRevs, oldestRevTimeStamp);
         assertNotNull(garbage);
-        assertEquals(totalSplits, Iterables.size(garbage));
-        assertEquals(numSplit1, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(1)::test)));
-        assertEquals(numSplit2, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(2)::test)));
+        assertEquals(totalSplits, IterableUtils.size(garbage));
+        assertEquals(numSplit1, IterableUtils.size(Iterables.filter(garbage, splitDocsWithClusterId(1)::test)));
+        assertEquals(numSplit2, IterableUtils.size(Iterables.filter(garbage, splitDocsWithClusterId(2)::test)));
 
         Stats stats = deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
         assertNotNull(stats);

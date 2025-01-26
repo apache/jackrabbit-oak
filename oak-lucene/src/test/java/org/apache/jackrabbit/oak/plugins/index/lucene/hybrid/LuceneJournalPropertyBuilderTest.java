@@ -122,7 +122,7 @@ public class LuceneJournalPropertyBuilderTest {
         }
 
         IndexedPaths indexedPaths = (IndexedPaths) builder.build();
-        assertEquals(maxSize, Iterables.size(indexedPaths));
+        assertEquals(maxSize, IterableUtils.size(indexedPaths));
     }
 
     private Multimap<String, String> createdIndexPathMap(Iterable<IndexedPathInfo> itr){

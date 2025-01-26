@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -240,7 +241,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractUserTest {
         assertTrue(testGroup.isDeclaredMember(memberGroup));
 
         Iterable<String> memberIds = getMemberIds(testGroup);
-        assertEquals(1, Iterables.size(memberIds));
+        assertEquals(1, IterableUtils.size(memberIds));
         verifyMonitor(2, 0);
     }
 

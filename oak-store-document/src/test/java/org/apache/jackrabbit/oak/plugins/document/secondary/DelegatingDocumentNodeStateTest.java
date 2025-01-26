@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
@@ -63,7 +64,7 @@ public class DelegatingDocumentNodeStateTest {
         builder.setProperty("foo", "bar");
 
         AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
-        assertEquals(1, Iterables.size(state.getProperties()));
+        assertEquals(1, IterableUtils.size(state.getProperties()));
         assertEquals(1, state.getPropertyCount());
     }
 
