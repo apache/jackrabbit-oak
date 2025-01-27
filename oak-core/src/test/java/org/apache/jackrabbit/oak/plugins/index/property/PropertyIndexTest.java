@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -1039,7 +1040,7 @@ public class PropertyIndexTest {
         NodeState indexedState = getNode(indexed, "/oak:index/foo/" + getNodeForMount(defMount) + "/abc");
         assertTrue(indexedState.exists());
         Iterable<String> values = indexedState.getStrings("entry");
-        assertEquals(1, Iterables.size(values));
+        assertEquals(1, IterableUtils.size(values));
         assertEquals("/content", Iterables.getFirst(values, null));
 
         Mount roMount = mip.getMountByName("foo");
@@ -1087,7 +1088,7 @@ public class PropertyIndexTest {
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         Iterable<String> result = lookup.query(f, name, PropertyValues.newString(value));
-        return Iterables.size(result);
+        return IterableUtils.size(result);
     }
 
     private NodeState createTestData(int entryCount) throws CommitFailedException {

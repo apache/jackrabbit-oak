@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -657,7 +658,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
 
-        assertEquals(Iterables.size(sameIdpGroups), extPrincipalNames.length);
+        assertEquals(IterableUtils.size(sameIdpGroups), extPrincipalNames.length);
         for (Value v : extPrincipalNames) {
             assertNotEquals(foreignGroup.getPrincipalName(), v.getString());
         }
@@ -681,7 +682,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
 
-        assertEquals(Iterables.size(groupRefs), extPrincipalNames.length);
+        assertEquals(IterableUtils.size(groupRefs), extPrincipalNames.length);
         for (Value v : extPrincipalNames) {
             assertNotEquals(second.getPrincipalName(), v.getString());
         }
@@ -703,7 +704,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
 
-        assertEquals(Iterables.size(groupRefs), extPrincipalNames.length);
+        assertEquals(IterableUtils.size(groupRefs), extPrincipalNames.length);
         for (Value v : extPrincipalNames) {
             assertNotEquals(previouslySyncedUser.getPrincipalName(), v.getString());
         }

@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -50,7 +51,7 @@ public class LuceneIndexPropertyQueryTest {
         defnb.noAsync();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
 
-        assertEquals(0,Iterables.size(query.getIndexedPaths("foo", "bar")));
+        assertEquals(0, IterableUtils.size(query.getIndexedPaths("foo", "bar")));
 
         NodeState before = builder.getNodeState();
         builder.child("a").setProperty("foo", "bar");

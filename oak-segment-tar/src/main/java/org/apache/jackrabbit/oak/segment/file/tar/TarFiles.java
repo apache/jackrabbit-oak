@@ -43,6 +43,7 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
@@ -520,7 +521,7 @@ public class TarFiles implements Closeable {
     }
 
     private static int getSize(Node head) {
-        return Iterables.size(iterable(head));
+        return IterableUtils.size(iterable(head));
     }
 
     public int readerCount() {

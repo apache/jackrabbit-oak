@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
@@ -124,7 +125,7 @@ public class IndexAugmentorFactoryTest {
             ids.add(f.stringValue());
         }
 
-        assertEquals(expected.length, Iterables.size(ids));
+        assertEquals(expected.length, IterableUtils.size(ids));
         assertThat(ids, CoreMatchers.hasItems(expected));
     }
 
@@ -156,7 +157,7 @@ public class IndexAugmentorFactoryTest {
                 ids.add(subQueryStr.substring(0, subQueryStr.indexOf(":1")));
             }
 
-            assertEquals(expected.length, Iterables.size(ids));
+            assertEquals(expected.length, IterableUtils.size(ids));
             assertThat(ids, CoreMatchers.hasItems(expected));
         }
     }

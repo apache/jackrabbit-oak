@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import com.mongodb.MongoClient;
 
@@ -76,7 +77,7 @@ public class DocumentMKBuilderTest extends AbstractMongoConnectionTest {
     public void lazyInit() throws Exception {
         Iterable<CacheStats> cacheStats = mk.getDocumentStore().getCacheStats();
         assertNotNull(cacheStats);
-        assertEquals(2, Iterables.size(cacheStats));
+        assertEquals(2, IterableUtils.size(cacheStats));
         CacheStats docCacheStats = Iterables.get(cacheStats, 0);
         CacheStats prevDocCacheStats = Iterables.get(cacheStats, 1);
         assertEquals("Document-Documents", docCacheStats.getName());

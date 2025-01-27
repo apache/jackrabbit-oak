@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -41,7 +42,7 @@ class SubtreePattern implements RestrictionPattern {
     SubtreePattern(@NotNull String oakPath, @NotNull Iterable<String> subtrees) {
         this.oakPath = oakPath;
         this.oakPathLength = oakPath.length();
-        int size = Iterables.size(subtrees);
+        int size = IterableUtils.size(subtrees);
         List<String> tl = new ArrayList<>(size);
         List<String> sl = new ArrayList<>(size);
         subtrees.forEach(s -> {

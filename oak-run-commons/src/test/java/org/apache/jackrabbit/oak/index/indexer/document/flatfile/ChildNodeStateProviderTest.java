@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -48,8 +49,8 @@ public class ChildNodeStateProviderTest {
         Set<String> preferred = Set.of("u", "v", "x", "y", "z");
         ChildNodeStateProvider p = new ChildNodeStateProvider(emptyList(), "/a", preferred);
         assertEquals(0, p.getChildNodeCount(1));
-        assertEquals(0, Iterables.size(p.getChildNodeNames()));
-        assertEquals(0, Iterables.size(p.getChildNodeEntries()));
+        assertEquals(0, IterableUtils.size(p.getChildNodeNames()));
+        assertEquals(0, IterableUtils.size(p.getChildNodeEntries()));
         assertFalse(p.hasChildNode("foo"));
         assertFalse(p.getChildNode("foo").exists());
     }

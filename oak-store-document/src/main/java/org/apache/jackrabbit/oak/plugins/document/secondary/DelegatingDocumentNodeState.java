@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
@@ -193,7 +194,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     @Override
     public long getPropertyCount() {
-        return Iterables.size(getProperties());
+        return IterableUtils.size(getProperties());
     }
 
     @Override

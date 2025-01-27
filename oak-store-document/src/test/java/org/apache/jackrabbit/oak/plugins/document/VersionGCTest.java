@@ -29,6 +29,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -458,7 +459,7 @@ public class VersionGCTest {
             @Override
             public long getDeletedOnceCount() {
                 deletedOnceCountCalls.incrementAndGet();
-                return Iterables.size(Utils.getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1));
+                return IterableUtils.size(Utils.getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1));
             }
         }, false, false, false);
 

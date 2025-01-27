@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
@@ -246,20 +247,20 @@ public class SecureNodeBuilderTest {
 
     @Test
     public void testGetProperties() {
-        assertEquals(1, Iterables.size(secureNodeBuilder.getProperties()));
-        assertEquals(1, Iterables.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
-        assertEquals(1, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
-        assertEquals(0, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
+        assertEquals(1, IterableUtils.size(secureNodeBuilder.getProperties()));
+        assertEquals(1, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
+        assertEquals(1, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
     }
 
     @Test
     public void testGetPropertiesCanReadProperties() {
         try {
             permissionProvider.canReadProperties = true;
-            assertEquals(2, Iterables.size(secureNodeBuilder.getProperties()));
-            assertEquals(2, Iterables.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
-            assertEquals(2, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
-            assertEquals(0, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
+            assertEquals(2, IterableUtils.size(secureNodeBuilder.getProperties()));
+            assertEquals(2, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
+            assertEquals(2, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
+            assertEquals(0, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
         } finally {
             permissionProvider.canReadProperties = false;
         }
@@ -268,13 +269,13 @@ public class SecureNodeBuilderTest {
     @Test
     public void testGetPropertiesAfterSet() {
         secureNodeBuilder.setProperty(PropertyStates.createProperty("another", List.of("v", "v2"), Type.STRINGS));
-        assertEquals(2, Iterables.size(secureNodeBuilder.getProperties()));
+        assertEquals(2, IterableUtils.size(secureNodeBuilder.getProperties()));
     }
 
     @Test
     public void testGetPropertiesAfterRemoval() {
         secureNodeBuilder.removeProperty("prop");
-        assertEquals(0, Iterables.size(secureNodeBuilder.getProperties()));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getProperties()));
     }
 
     @Test
@@ -336,9 +337,9 @@ public class SecureNodeBuilderTest {
 
     @Test
     public void testGetNames() {
-        assertEquals(0, Iterables.size(secureNodeBuilder.getNames("prop")));
-        assertEquals(0, Iterables.size(secureNodeBuilder.getNames(NAME_NON_EXISTING)));
-        assertEquals(0, Iterables.size(secureNodeBuilder.getNames(NAME_NON_ACCESSIBLE)));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getNames("prop")));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getNames(NAME_NON_EXISTING)));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getNames(NAME_NON_ACCESSIBLE)));
     }
 
     @Test
@@ -351,7 +352,7 @@ public class SecureNodeBuilderTest {
     @Test
     public void testGetNamesTypeName() {
         secureNodeBuilder.setProperty("name", "value", Type.NAME);
-        assertEquals(0, Iterables.size(secureNodeBuilder.getNames("name")));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getNames("name")));
     }
 
     @Test

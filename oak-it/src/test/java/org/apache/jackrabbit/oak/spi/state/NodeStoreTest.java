@@ -40,6 +40,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -578,7 +579,7 @@ public class NodeStoreTest extends OakBaseTest {
             String cp = cps.iterator().next();
             cps.remove(cp);
             store.release(cp);
-            assertEquals(cps.size(), Iterables.size(store.checkpoints()));
+            assertEquals(cps.size(), IterableUtils.size(store.checkpoints()));
         }
     }
 
