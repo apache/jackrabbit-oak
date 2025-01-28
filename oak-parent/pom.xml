@@ -1060,6 +1060,8 @@
           <groupId>org.apache.derby</groupId>
           <artifactId>derby</artifactId>
           <version>${derby.version}</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1070,6 +1072,8 @@
           <groupId>com.mysql</groupId>
           <artifactId>mysql-connector-j</artifactId>
           <version>9.1.0</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1080,6 +1084,8 @@
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
           <version>42.7.4</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1090,6 +1096,8 @@
           <groupId>com.h2database</groupId>
           <artifactId>h2</artifactId>
           <version>${h2.version}</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1100,6 +1108,8 @@
           <groupId>com.microsoft.sqlserver</groupId>
           <artifactId>mssql-jdbc</artifactId>
           <version>8.2.2.jre8</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1116,6 +1126,8 @@
           <groupId>com.oracle.jdbc</groupId>
           <artifactId>ojdbc8</artifactId>
           <version>12.2.0.1</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1126,7 +1138,8 @@
           <groupId>com.ibm.db2</groupId>
           <artifactId>jcc</artifactId>
           <version>11.5.9.0</version>
-          <scope>test</scope>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
