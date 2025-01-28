@@ -449,7 +449,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                     }
                 }
 
-                org.apache.jackrabbit.guava.common.io.Files.move(removed, delFile);
+                Files.move(removed.toPath(), delFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 LOG.trace("removed active delete records");
             } finally {
                 lock.unlock();
