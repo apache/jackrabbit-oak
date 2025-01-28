@@ -59,7 +59,9 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
             return null;
         }
 
-        LuceneIndexDefinition idxDefinition = LuceneIndexDefinition.newLuceneBuilder(root, definition.getNodeState(), indexPath).reindex().build();
+        LuceneIndexDefinition idxDefinition = LuceneIndexDefinition.newLuceneBuilder(root, definition.getNodeState(), indexPath)
+                .reindex()
+                .build();
 
         LuceneIndexWriter indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, null, true);
         FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);
@@ -79,6 +81,6 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
 
     @Override
     public void close() throws IOException {
-
+        indexWriterFactory.close();
     }
 }

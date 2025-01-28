@@ -41,25 +41,45 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.StringField;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.*;
 
+@RunWith(Parameterized.class)
 public class DefaultIndexReaderFactoryTest {
+    private final String parallelIndexing;
+
+    @Parameterized.Parameters(name="Parallel Indexing: ({0})")
+    public static List<String> parallelIndexingEnabled() {
+        return List.of("true", "false");
+    }
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private NodeState root = INITIAL_CONTENT;
-    private NodeBuilder builder = EMPTY_NODE.builder();
+    private final NodeState root = INITIAL_CONTENT;
+    private final NodeBuilder builder = EMPTY_NODE.builder();
     private LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
-    private MountInfoProvider mip = Mounts.newBuilder()
+    private final MountInfoProvider mip = Mounts.newBuilder()
             .mount("foo", "/libs", "/apps").build();
-    private LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
+    private final LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
+
+    public DefaultIndexReaderFactoryTest(String parallelIndexing) {
+        this.parallelIndexing = parallelIndexing;
+    }
+
+    @Before
+    public void setUp() throws Exception {
+            System.setProperty(DefaultIndexWriterFactory.OAK_INDEXER_PARALLEL_WRITER_ENABLED, parallelIndexing);
+    }
 
     @Test
     public void emptyDir() throws Exception{
