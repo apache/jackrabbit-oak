@@ -81,7 +81,7 @@ final class CacheConfiguration {
             throw new IllegalArgumentException("Invalid property name: " + propertyName);
         }
 
-        if (StringUtils.isBlank(expirationPropertyName)  || !expirationPropertyName.startsWith(CacheConstants.REP_EXPIRATION)) {
+        if (StringUtils.isBlank(expirationPropertyName) || !expirationPropertyName.startsWith(CacheConstants.REP_EXPIRATION)) {
             throw new IllegalArgumentException("Invalid expiration property name: " + expirationPropertyName);
         }
 
