@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -162,7 +163,7 @@ public class JournalGCTest {
         entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
         assertNotNull(entry);
         // referenced branch commits must also be available
-        assertThat(Iterables.size(entry.getBranchCommits()), greaterThan(0));
+        assertThat(IterableUtils.size(entry.getBranchCommits()), greaterThan(0));
     }
 
     @Test

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.util.Iterator;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -942,7 +943,7 @@ public class LuceneIndexDefinitionBuilderTest {
         builder.tags("foo");
         state = builder.build();
         Iterable<String> tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
-        assertEquals("Unexpected number of tags", 1, Iterables.size(tags));
+        assertEquals("Unexpected number of tags", 1, IterableUtils.size(tags));
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo"));
 
@@ -950,7 +951,7 @@ public class LuceneIndexDefinitionBuilderTest {
         builder.addTags("foo");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
-        assertEquals("Unexpected number of tags", 1, Iterables.size(tags));
+        assertEquals("Unexpected number of tags", 1, IterableUtils.size(tags));
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo"));
 
@@ -958,7 +959,7 @@ public class LuceneIndexDefinitionBuilderTest {
         builder.addTags("foo", "foo1");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
-        assertEquals("Unexpected number of tags", 2, Iterables.size(tags));
+        assertEquals("Unexpected number of tags", 2, IterableUtils.size(tags));
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo", "foo1"));
 
@@ -966,7 +967,7 @@ public class LuceneIndexDefinitionBuilderTest {
         builder.addTags("foo2");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
-        assertEquals("Unexpected number of tags", 3, Iterables.size(tags));
+        assertEquals("Unexpected number of tags", 3, IterableUtils.size(tags));
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo", "foo1", "foo2"));
 
@@ -974,7 +975,7 @@ public class LuceneIndexDefinitionBuilderTest {
         builder.addTags("foo2", "foo3");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
-        assertEquals("Unexpected number of tags", 4, Iterables.size(tags));
+        assertEquals("Unexpected number of tags", 4, IterableUtils.size(tags));
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo", "foo1", "foo2", "foo3"));
 
@@ -982,7 +983,7 @@ public class LuceneIndexDefinitionBuilderTest {
         builder.tags("foo4");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
-        assertEquals("Unexpected number of tags", 1, Iterables.size(tags));
+        assertEquals("Unexpected number of tags", 1, IterableUtils.size(tags));
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo4"));
 
@@ -990,7 +991,7 @@ public class LuceneIndexDefinitionBuilderTest {
         builder.addTags("foo5");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
-        assertEquals("Unexpected number of tags", 1, Iterables.size(tags));
+        assertEquals("Unexpected number of tags", 1, IterableUtils.size(tags));
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo5"));
     }

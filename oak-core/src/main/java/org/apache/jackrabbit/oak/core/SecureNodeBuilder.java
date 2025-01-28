@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Predicate;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -37,7 +38,6 @@ import org.jetbrains.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -194,7 +194,7 @@ class SecureNodeBuilder implements NodeBuilder {
         if (getTreePermission().canReadProperties() || isNew()) {
             return builder.getPropertyCount();
         } else {
-            return size(filter(
+            return IterableUtils.size(filter(
                     builder.getProperties(),
                     new ReadablePropertyPredicate()::test));
         }
@@ -334,7 +334,7 @@ class SecureNodeBuilder implements NodeBuilder {
         if (getTreePermission().canReadAll()) {
             return builder.getChildNodeCount(max);
         } else {
-            return size(getChildNodeNames());
+            return IterableUtils.size(getChildNodeNames());
         }
     }
 

@@ -54,7 +54,6 @@ import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -100,6 +99,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -3482,7 +3482,7 @@ public class VersionGarbageCollectorIT {
         }
         NodeDocument doc = store1.getDocumentStore().find(NODES, id);
         assertNotNull(doc);
-        int numRevs = size(doc.getValueMap("prop").entrySet());
+        int numRevs = IterableUtils.size(doc.getValueMap("prop").entrySet());
         assertTrue("too many revisions: " + numRevs, numRevs < 6000);
     }
 

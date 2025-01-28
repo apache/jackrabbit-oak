@@ -44,6 +44,7 @@ import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -810,7 +811,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 1024, -1);
         assertNotNull(upload);
-        assertTrue(Iterables.size(upload.getUploadURIs()) > 50);
+        assertTrue(IterableUtils.size(upload.getUploadURIs()) > 50);
         // 50 is our default expected client max -
         // this is to make sure we will give as many as needed
         // if the client doesn't specify their own limit
@@ -822,7 +823,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 100, 1);
         assertNotNull(upload);
-        assertEquals(1, Iterables.size(upload.getUploadURIs()));
+        assertEquals(1, IterableUtils.size(upload.getUploadURIs()));
     }
 
     @Test

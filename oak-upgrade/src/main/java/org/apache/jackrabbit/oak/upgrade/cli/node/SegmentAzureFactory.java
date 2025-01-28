@@ -22,7 +22,6 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.NodeStoreWithFi
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.security.InvalidKeyException;
 
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
@@ -125,7 +125,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             throw new IllegalStateException(e);
         }
 
-        File tmpDir = Files.createTempDir();
+        File tmpDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         closer.register(() -> tmpDir.delete());
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
@@ -189,7 +189,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             throw new IllegalStateException(e);
         }
 
-        File tmpDir = Files.createTempDir();
+        File tmpDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
 

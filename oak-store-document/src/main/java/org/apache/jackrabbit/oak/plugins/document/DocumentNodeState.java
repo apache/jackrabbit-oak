@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -339,7 +340,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     @Override
     public long getPropertyCount() {
         if (bundlingContext.isBundled()){
-            return Iterables.size(getProperties());
+            return IterableUtils.size(getProperties());
         }
         return properties.size();
     }

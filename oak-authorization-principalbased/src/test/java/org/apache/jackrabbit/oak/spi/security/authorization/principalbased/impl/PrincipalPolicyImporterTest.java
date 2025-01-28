@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -474,7 +474,7 @@ public class PrincipalPolicyImporterTest extends AbstractPrincipalBasedTest {
         policyTree = root.getTree(policyTree.getPath());
         assertTrue(policyTree.exists());
         assertTrue(policyTree.hasProperty(REP_PRINCIPAL_NAME));
-        assertTrue(Iterables.isEmpty(policyTree.getChildren()));
+        assertTrue(IterableUtils.isEmpty(policyTree.getChildren()));
     }
 
     @Test(expected = IllegalStateException.class)

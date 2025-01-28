@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -210,7 +211,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
         SecurityProvider service = context.getService(SecurityProvider.class);
         assertNotNull(service);
-        assertEquals(6, Iterables.size(Iterables.filter(service.getConfigurations(), x -> x != null)));
+        assertEquals(6, IterableUtils.size(Iterables.filter(service.getConfigurations(), x -> x != null)));
     }
 
 

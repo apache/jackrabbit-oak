@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -143,7 +143,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     @NotNull
     PrincipalPolicyImpl getPrincipalPolicyImpl(@NotNull Principal testPrincipal, @NotNull JackrabbitAccessControlManager acMgr) throws Exception {
-        for (JackrabbitAccessControlPolicy policy : ObjectArrays.concat(acMgr.getApplicablePolicies(testPrincipal), acMgr.getPolicies(testPrincipal), JackrabbitAccessControlPolicy.class)) {
+        for (JackrabbitAccessControlPolicy policy : ArrayUtils.addAll(acMgr.getApplicablePolicies(testPrincipal), acMgr.getPolicies(testPrincipal))) {
             if (policy instanceof PrincipalPolicyImpl) {
                 return (PrincipalPolicyImpl) policy;
             }

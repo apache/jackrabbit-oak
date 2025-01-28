@@ -25,6 +25,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
@@ -270,7 +271,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     @NotNull
     private static Iterable<String> getPrivilegeNames(@NotNull Tree aceNode) throws CommitFailedException {
         Iterable<String> privilegeNames = TreeUtil.getNames(aceNode, REP_PRIVILEGES);
-        if (Iterables.isEmpty(privilegeNames)) {
+        if (IterableUtils.isEmpty(privilegeNames)) {
             throw accessViolation(9, "Missing privileges at " + aceNode.getPath());
         }
         return privilegeNames;

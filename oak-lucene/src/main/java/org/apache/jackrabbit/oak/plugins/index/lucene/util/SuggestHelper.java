@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.analysis.Analyzer;
@@ -67,7 +67,7 @@ public class SuggestHelper {
             //create a placeholder non-existing-sub-child which would mark the location when we want to return
             //our internal suggestion OakDirectory. After build is done, we'd delete the temp directory
             //thereby removing any temp stuff that suggester created in the interim.
-            tempDir = Files.createTempDir();
+            tempDir = Files.createTempDirectory(SuggestHelper.class.getSimpleName() + "-").toFile();
             File tempSubChild = new File(tempDir, "non-existing-sub-child");
 
             if (reader.getDocCount(FieldNames.SUGGEST) > 0) {

@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -153,7 +154,7 @@ public class DocumentBundlingTest {
         assertEquals("jcr:content", getBundlingPath(contentNode));
 
         assertEquals(1, contentNode.getPropertyCount());
-        assertEquals(1, Iterables.size(contentNode.getProperties()));
+        assertEquals(1, IterableUtils.size(contentNode.getProperties()));
 
         assertNull(getNodeDocument("/test/book.jpg/jcr:content"));
         assertNotNull(getNodeDocument("/test/book.jpg"));
@@ -306,7 +307,7 @@ public class DocumentBundlingTest {
 
         ds.reset();
 
-        int childCount = Iterables.size(appNode.getChildNodeEntries());
+        int childCount = IterableUtils.size(appNode.getChildNodeEntries());
         assertEquals(1, childCount);
         assertEquals(0, ds.queryPaths.size());
 
@@ -339,7 +340,7 @@ public class DocumentBundlingTest {
 
         ds.reset();
 
-        assertEquals(0, Iterables.size(getLatestNode("test/book.jpg/jcr:content/metadata").getChildNodeNames()));
+        assertEquals(0, IterableUtils.size(getLatestNode("test/book.jpg/jcr:content/metadata").getChildNodeNames()));
         assertEquals(0, ds.queryPaths.size());
 
         //Case 1 - Bundled root but no bundled child
@@ -356,7 +357,7 @@ public class DocumentBundlingTest {
 
         ds.reset();
 
-        assertEquals(0, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertEquals(0, IterableUtils.size(getLatestNode("test/book.jpg").getChildNodeNames()));
         assertEquals(0, getLatestNode("test/book.jpg").getChildNodeCount(100));
         assertEquals(0, ds.queryPaths.size());
 
@@ -365,7 +366,7 @@ public class DocumentBundlingTest {
         merge(builder);
 
         ds.reset();
-        assertEquals(1, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertEquals(1, IterableUtils.size(getLatestNode("test/book.jpg").getChildNodeNames()));
         assertEquals(1, getLatestNode("test/book.jpg").getChildNodeCount(100));
         assertEquals(0, ds.queryPaths.size());
         assertTrue(hasNodeProperty("/test/book.jpg", META_PROP_BUNDLED_CHILD));
@@ -378,7 +379,7 @@ public class DocumentBundlingTest {
 
         ds.reset();
 
-        assertEquals(1, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertEquals(1, IterableUtils.size(getLatestNode("test/book.jpg").getChildNodeNames()));
         assertEquals(0, ds.queryPaths.size());
 
         NodeBuilder builder = store.getRoot().builder();
@@ -386,7 +387,7 @@ public class DocumentBundlingTest {
         merge(builder);
 
         ds.reset();
-        assertEquals(2, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertEquals(2, IterableUtils.size(getLatestNode("test/book.jpg").getChildNodeNames()));
         assertEquals(1, ds.queryPaths.size());
 
         assertTrue(hasNodeProperty("/test/book.jpg", META_PROP_BUNDLED_CHILD));
@@ -399,7 +400,7 @@ public class DocumentBundlingTest {
 
         ds.reset();
 
-        assertEquals(1, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertEquals(1, IterableUtils.size(getLatestNode("test/book.jpg").getChildNodeNames()));
         assertEquals(0, ds.queryPaths.size());
 
         NodeBuilder builder = store.getRoot().builder();
@@ -407,7 +408,7 @@ public class DocumentBundlingTest {
         merge(builder);
 
         ds.reset();
-        assertEquals(0, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertEquals(0, IterableUtils.size(getLatestNode("test/book.jpg").getChildNodeNames()));
         assertFalse(getLatestNode("test/book.jpg").hasChildNode("jcr:content"));
         assertEquals(0, ds.queryPaths.size());
 
@@ -420,7 +421,7 @@ public class DocumentBundlingTest {
 
         ds.reset();
 
-        assertEquals(1, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertEquals(1, IterableUtils.size(getLatestNode("test/book.jpg").getChildNodeNames()));
         assertEquals(1, ds.queryPaths.size());
 
         assertFalse(hasNodeProperty("/test/book.jpg", META_PROP_BUNDLED_CHILD));
@@ -435,7 +436,7 @@ public class DocumentBundlingTest {
 
         ds.reset();
 
-        assertEquals(0, Iterables.size(getLatestNode("test/book.jpg/jcr:content").getChildNodeNames()));
+        assertEquals(0, IterableUtils.size(getLatestNode("test/book.jpg/jcr:content").getChildNodeNames()));
         assertEquals(0, ds.queryPaths.size());
 
         NodeBuilder builder = store.getRoot().builder();
@@ -443,7 +444,7 @@ public class DocumentBundlingTest {
         merge(builder);
 
         ds.reset();
-        assertEquals(1, Iterables.size(getLatestNode("test/book.jpg/jcr:content").getChildNodeNames()));
+        assertEquals(1, IterableUtils.size(getLatestNode("test/book.jpg/jcr:content").getChildNodeNames()));
         assertEquals(0, ds.queryPaths.size());
     }
 
@@ -455,7 +456,7 @@ public class DocumentBundlingTest {
 
         ds.reset();
 
-        assertEquals(0, Iterables.size(getLatestNode("test/book.jpg/jcr:content/metadata").getChildNodeNames()));
+        assertEquals(0, IterableUtils.size(getLatestNode("test/book.jpg/jcr:content/metadata").getChildNodeNames()));
         assertEquals(0, ds.queryPaths.size());
 
         NodeBuilder builder = store.getRoot().builder();
@@ -463,7 +464,7 @@ public class DocumentBundlingTest {
         merge(builder);
 
         ds.reset();
-        assertEquals(1, Iterables.size(getLatestNode("test/book.jpg/jcr:content/metadata").getChildNodeNames()));
+        assertEquals(1, IterableUtils.size(getLatestNode("test/book.jpg/jcr:content/metadata").getChildNodeNames()));
         assertEquals(1, ds.queryPaths.size());
     }
 
@@ -473,7 +474,7 @@ public class DocumentBundlingTest {
 
         ds.reset();
         NodeState book = getLatestNode("test/book.jpg");
-        assertEquals(0, Iterables.size(book.getChildNodeNames()));
+        assertEquals(0, IterableUtils.size(book.getChildNodeNames()));
         assertEquals(0, book.getChildNodeCount(100));
         assertThat(ds.queryPaths, is(empty()));
 
@@ -487,7 +488,7 @@ public class DocumentBundlingTest {
 
         book = getLatestNode("test/book.jpg");
         ds.reset();
-        assertEquals(1, Iterables.size(book.getChildNodeNames()));
+        assertEquals(1, IterableUtils.size(book.getChildNodeNames()));
         assertEquals(1, book.getChildNodeCount(100));
         assertThat(ds.queryPaths, is(empty()));
 

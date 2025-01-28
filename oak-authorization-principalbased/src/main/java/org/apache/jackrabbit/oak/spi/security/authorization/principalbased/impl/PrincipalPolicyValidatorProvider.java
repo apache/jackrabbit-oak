@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -221,7 +221,7 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
                 throw accessControlViolation(36, "Isolated entry of principal policy at " + entryPath);
             }
             Iterable<String> privilegeNames = nodeState.getNames(REP_PRIVILEGES);
-            if (Iterables.isEmpty(privilegeNames)) {
+            if (IterableUtils.isEmpty(privilegeNames)) {
                 throw accessControlViolation(37, "Empty rep:privileges property at " + entryPath);
             }
             PrivilegeManager privilegeManager = mgrProvider.getPrivilegeManager();

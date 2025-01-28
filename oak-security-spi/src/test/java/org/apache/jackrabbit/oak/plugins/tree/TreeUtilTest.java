@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -157,7 +158,7 @@ public class TreeUtilTest extends AbstractTreeTest {
     @Test
     public void testGetMixinTypeNamesNewTreeLazy() {
         Tree newTree = when(rootTree.getChild("x").getStatus()).thenReturn(Tree.Status.NEW).getMock();
-        assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(newTree, new LazyValue<Tree>() {
+        assertTrue(IterableUtils.isEmpty(TreeUtil.getMixinTypeNames(newTree, new LazyValue<Tree>() {
             @Override
             protected Tree createValue() {
                 throw new RuntimeException("should not get here");

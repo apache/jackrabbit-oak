@@ -307,10 +307,6 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
-          <plugin>
-            <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.5.0</version>
-          </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
@@ -951,19 +947,6 @@
                </executions>
             </plugin>
             <plugin>
-               <artifactId>maven-checkstyle-plugin</artifactId>
-               <configuration>
-                  <failOnViolation>false</failOnViolation>
-               </configuration>
-               <executions>
-                  <execution>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
-            <plugin>
                <groupId>com.github.spotbugs</groupId>
                <artifactId>spotbugs-maven-plugin</artifactId>
                <configuration>
@@ -1048,19 +1031,6 @@
       <build>
         <plugins>
           <plugin>
-            <artifactId>maven-checkstyle-plugin</artifactId>
-            <configuration>
-              <failOnViolation>false</failOnViolation>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs-maven-plugin</artifactId>
             <configuration>
@@ -1099,9 +1069,9 @@
       <id>rdb-mysql</id>
       <dependencies>
         <dependency>
-          <groupId>mysql</groupId>
-          <artifactId>mysql-connector-java</artifactId>
-          <version>8.0.19</version>
+          <groupId>com.mysql</groupId>
+          <artifactId>mysql-connector-j</artifactId>
+          <version>9.1.0</version>
           <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
           <scope>compile</scope>
         </dependency>

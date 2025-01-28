@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -173,7 +174,7 @@ public class NodeDocumentTest {
             previous = r;
         }
         // NUM_CHANGES + one revision when node was created
-        assertEquals(NUM_CHANGES + 1, Iterables.size(root.getAllChanges()));
+        assertEquals(NUM_CHANGES + 1, IterableUtils.size(root.getAllChanges()));
         ns.dispose();
     }
 
@@ -187,7 +188,7 @@ public class NodeDocumentTest {
         int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
                 Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
-        numChanges -= Iterables.size(toRemove.getAllChanges());
+        numChanges -= IterableUtils.size(toRemove.getAllChanges());
 
         root = getRootDocument(ns.getDocumentStore());
         Revision previous = ns.newRevision();
@@ -196,7 +197,7 @@ public class NodeDocumentTest {
             previous = r;
         }
         // numChanges + one revision when node was created
-        assertEquals(numChanges + 1, Iterables.size(root.getAllChanges()));
+        assertEquals(numChanges + 1, IterableUtils.size(root.getAllChanges()));
         ns.dispose();
     }
 
@@ -210,7 +211,7 @@ public class NodeDocumentTest {
         int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
                 Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
-        numChanges -= Iterables.size(toRemove.getAllChanges());
+        numChanges -= IterableUtils.size(toRemove.getAllChanges());
 
         root = getRootDocument(ns.getDocumentStore());
         Revision previous = ns.newRevision();
@@ -219,7 +220,7 @@ public class NodeDocumentTest {
             previous = r;
         }
         // numChanges + one revision when node was created
-        assertEquals(numChanges + 1, Iterables.size(root.getAllChanges()));
+        assertEquals(numChanges + 1, IterableUtils.size(root.getAllChanges()));
         ns.dispose();
     }
 
@@ -260,7 +261,7 @@ public class NodeDocumentTest {
             previous = rev;
         }
         // numChanges + one revision when node was created
-        assertEquals(NUM_CHANGES + 1, Iterables.size(root.getAllChanges()));
+        assertEquals(NUM_CHANGES + 1, IterableUtils.size(root.getAllChanges()));
 
         for (DocumentNodeStore dns : docStores) {
             dns.dispose();
@@ -782,7 +783,7 @@ public class NodeDocumentTest {
             int idx = random.nextInt(numChanges);
             Revision r = Iterables.get(doc.getValueMap("p").keySet(), idx);
             Iterable<Revision> revs = doc.getChanges("p", new RevisionVector(r));
-            assertEquals(idx, Iterables.size(revs));
+            assertEquals(idx, IterableUtils.size(revs));
         }
         ns.dispose();
     }
@@ -803,8 +804,8 @@ public class NodeDocumentTest {
             RevisionVector r = headRevisions.get(idx);
             Iterable<Revision> revs1 = doc.getChanges("p", r);
             Iterable<Revision> revs2 = doc.getChanges("p", r);
-            assertEquals(Iterables.size(revs1), Iterables.size(revs2));
-            assertEquals(idx, Iterables.size(revs1));
+            assertEquals(IterableUtils.size(revs1), IterableUtils.size(revs2));
+            assertEquals(idx, IterableUtils.size(revs1));
         }
 
         ns1.dispose();
@@ -1170,7 +1171,7 @@ public class NodeDocumentTest {
             int idx = random.nextInt(numChanges);
             Revision r = Iterables.get(doc.getValueMap("p").keySet(), idx);
             Iterable<Map.Entry<Revision, String>> revs = doc.getVisibleChanges("p", new RevisionVector(r), null);
-            assertEquals(idx, numChanges - Iterables.size(revs));
+            assertEquals(idx, numChanges - IterableUtils.size(revs));
         }
         ns.dispose();
     }
@@ -1191,8 +1192,8 @@ public class NodeDocumentTest {
             RevisionVector r = headRevisions.get(idx);
             Iterable<Map.Entry<Revision, String>> revs1 = doc.getVisibleChanges("p", r, null);
             Iterable<Map.Entry<Revision, String>> revs2 = doc.getVisibleChanges("p", r, null);
-            assertEquals(Iterables.size(revs1), Iterables.size(revs2));
-            assertEquals(idx, numChanges - Iterables.size(revs1));
+            assertEquals(IterableUtils.size(revs1), IterableUtils.size(revs2));
+            assertEquals(idx, numChanges - IterableUtils.size(revs1));
         }
 
         ns1.dispose();

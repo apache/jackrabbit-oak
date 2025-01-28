@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -66,6 +65,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -253,7 +253,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
         // This is a primary node type.
         // Make sure jcr:supertypes contains nt:base when needed.
         Iterable<String> supertypes = getNames(type, JCR_SUPERTYPES);
-        if (isEmpty(supertypes)) {
+        if (IterableUtils.isEmpty(supertypes)) {
             addNameToList(type, JCR_SUPERTYPES, NT_BASE);
         } else {
             // is any of the supertypes a primary node type?
