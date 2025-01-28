@@ -223,6 +223,8 @@
                   <filter>!org.apache.jackrabbit.oak.segment.spi.persistence</filter>
                   <!-- OAK-10838: we can't control the package version for the EOLd copy of lucene-core -->
                   <filter>!org.apache.lucene.*</filter>
+                  <!-- OAK-11286: blob-cloud, segment: update netty version to 4.1.115 -->
+                  <filter>!io.netty.*</filter>
                   <filter>*</filter>
                 </filters>
               </configuration>
