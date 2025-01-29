@@ -321,8 +321,10 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     @Override
     public CachedMembershipReader getCachedMembershipReader(@NotNull Root root,
-            @NotNull CachePrincipalFactory cachePrincipalFactory, @NotNull String propName) {
-        CacheConfiguration cacheConfig = CacheConfiguration.fromUserConfiguration(this, propName);
+            @NotNull CachePrincipalFactory cachePrincipalFactory,
+            @NotNull String propName,
+            @NotNull String expirationPropName) {
+        CacheConfiguration cacheConfig = CacheConfiguration.fromUserConfiguration(this, propName, expirationPropName);
         if (cacheConfig.isCacheEnabled()) {
             return new CachedPrincipalMembershipReader(cacheConfig, root, cachePrincipalFactory);
         } else {

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -39,23 +40,29 @@ final class CacheConfiguration {
     private final long maxStale;
     private final String propertyName;
     private final int membershipThreshold;
+    private final String expirationPropertyName;
 
-    private CacheConfiguration(UserConfiguration userConfig, long expiration, long maxStale, @NotNull String propertyName) {
+    private CacheConfiguration(UserConfiguration userConfig, long expiration, long maxStale,
+           @NotNull String propertyName,
+           @NotNull String expirationPropertyName) {
         this.userConfig = userConfig;
         this.expiration = expiration;
         this.maxStale = maxStale;
         this.propertyName = propertyName;
+        this.expirationPropertyName = expirationPropertyName;
         this.membershipThreshold = 0;
     }
 
     // Only for testing
     CacheConfiguration(UserConfiguration userConfig, long expiration, long maxStale,
             @NotNull String propertyName,
+            @NotNull String expirationPropertyName,
             int membershipThreshold) {
         this.userConfig = userConfig;
         this.expiration = expiration;
         this.maxStale = maxStale;
         this.propertyName = propertyName;
+        this.expirationPropertyName = expirationPropertyName;
         this.membershipThreshold = Math.max(membershipThreshold, MEMBERSHIP_THRESHOLD);
     }
 
@@ -66,15 +73,33 @@ final class CacheConfiguration {
      * @param propertyName Property name used to store the cached principal names
      * @return CacheConfiguration based on the user configuration
      */
-    public static CacheConfiguration fromUserConfiguration(@NotNull UserConfiguration config, @NotNull String propertyName) {
+    public static CacheConfiguration fromUserConfiguration(@NotNull UserConfiguration config,
+            @NotNull String propertyName,
+            @NotNull String expirationPropertyName) {
 
-        if (StringUtils.isEmpty(propertyName) || propertyName.trim().isEmpty()) {
+        if (StringUtils.isBlank(propertyName)) {
             throw new IllegalArgumentException("Invalid property name: " + propertyName);
+        }
+
+        if (StringUtils.isBlank(expirationPropertyName) || !expirationPropertyName.startsWith(CacheConstants.REP_EXPIRATION)) {
+            throw new IllegalArgumentException("Invalid expiration property name: " + expirationPropertyName);
         }
 
         long maxStale = config.getParameters().getConfigValue(PARAM_CACHE_MAX_STALE, NO_STALE_CACHE);
         long expiration  = config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
-        return new CacheConfiguration(config, expiration, maxStale, propertyName);
+
+        return new CacheConfiguration(config, expiration, maxStale, propertyName, expirationPropertyName);
+    }
+
+    /**
+     * Default visibility builder method that uses REP_EXPIRATION as the default expiration property name.
+     * @param config UserConfiguration to create the cache configuration from
+     * @param propertyName Property name used to store the cached principal names
+     * @return CacheConfiguration based on the user configuration
+     */
+    static CacheConfiguration fromUserConfiguration(@NotNull UserConfiguration config,
+            @NotNull String propertyName) {
+        return fromUserConfiguration(config, propertyName, CacheConstants.REP_EXPIRATION);
     }
 
     public boolean isCacheEnabled() {
@@ -91,6 +116,10 @@ final class CacheConfiguration {
 
     String getPropertyName() {
         return propertyName;
+    }
+
+    String getExpirationPropertyName() {
+        return expirationPropertyName;
     }
 
     UserConfiguration getUserConfiguration() {
