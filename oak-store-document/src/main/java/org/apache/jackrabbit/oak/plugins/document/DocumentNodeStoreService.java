@@ -165,6 +165,11 @@ public class DocumentNodeStoreService {
      */
     static final long DEFAULT_VER_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
 
+    /**
+     * Nodes older than this time would be garbage collected by Full GC
+     */
+    static final long DEFAULT_FULL_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
+
 
     /**
      * Blob modified before this time duration would be considered for Blob GC
@@ -523,6 +528,7 @@ public class DocumentNodeStoreService {
                 setFullGCExcludePaths(config.fullGCExcludePaths()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
                 setFullGCMode(config.fullGCMode()).
+                setFullGcMaxAgeMillis(TimeUnit.SECONDS.toMillis(config.fullGcMaxAgeInSecs())).
                 setFullGCBatchSize(config.fullGCBatchSize()).
                 setFullGCProgressSize(config.fullGCProgressSize()).
                 setFullGCDelayFactor(config.fullGCDelayFactor()).
@@ -947,6 +953,7 @@ public class DocumentNodeStoreService {
         Map<String, Object> props = jobPropertiesFor(RevisionGCJob.class);
         props.put("scheduler.expression", expr);
         long versionGcMaxAgeInSecs = config.versionGcMaxAgeInSecs();
+        long fullGcMaxAgeInSecs = config.fullGcMaxAgeInSecs();
         long versionGCTimeLimitInSecs = config.versionGCTimeLimitInSecs();
         double versionGCDelayFactor = config.versionGCDelayFactor();
         addRegistration(scheduleWithFixedDelay(whiteboard,

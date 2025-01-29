@@ -74,7 +74,7 @@ public class DocumentNodeStoreHelper {
                                                           boolean isFullGCDryRun, final DocumentNodeStoreBuilder<?> builder) {
         return new VersionGarbageCollector(nodeStore, gcSupport, isFullGCEnabled(builder), isFullGCDryRun,
                 isEmbeddedVerificationEnabled(builder), builder.getFullGCMode(), builder.getFullGCDelayFactor(),
-                builder.getFullGCBatchSize(), builder.getFullGCProgressSize());
+                builder.getFullGCBatchSize(), builder.getFullGCProgressSize(), builder.getFullGcMaxAgeMillis());
     }
 
     public static DocumentNodeState readNode(DocumentNodeStore documentNodeStore, Path path, RevisionVector rootRevision) {

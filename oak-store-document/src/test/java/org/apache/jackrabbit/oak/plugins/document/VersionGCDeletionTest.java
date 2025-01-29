@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.gc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -109,14 +110,14 @@ public class VersionGCDeletionTest {
         //sorted again by VersionGC and then /x would always come after /x/y
         try {
             ts.throwException = true;
-            gc.gc(maxAge * 2, HOURS);
+            gc(gc, maxAge * 2, HOURS);
             fail("Exception should be thrown");
         } catch (AssertionError ignore) {
 
         }
 
         ts.throwException = false;
-        gc.gc(maxAge * 2, HOURS);
+        gc(gc, maxAge * 2, HOURS);
         assertNull(ts.find(Collection.NODES, "2:/x/y"));
         assertNull(ts.find(Collection.NODES, "1:/x"));
     }
@@ -162,7 +163,7 @@ public class VersionGCDeletionTest {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
 
-        VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
+        VersionGCStats stats = gc(gc, maxAge * 2, HOURS);
         assertEquals(1, stats.updateResurrectedGCCount);
         NodeDocument d4 = ts.find(Collection.NODES, id, 0);
         assertNotNull(d4);
@@ -202,7 +203,7 @@ public class VersionGCDeletionTest {
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
         gc.setOptions(gc.getOptions().withOverflowToDiskThreshold(100));
 
-        VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
+        VersionGCStats stats = gc(gc, maxAge * 2, HOURS);
         assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
         assertEquals(noOfDocsToDelete, stats.deletedLeafDocGCCount);
 
@@ -249,7 +250,7 @@ public class VersionGCDeletionTest {
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
         gc.setOptions(gc.getOptions().withOverflowToDiskThreshold(100));
 
-        VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
+        VersionGCStats stats = gc(gc, maxAge * 2, HOURS);
         assertEquals(noOfDocsToDelete * 2 + 1, stats.deletedDocGCCount);
         assertEquals(noOfDocsToDelete, stats.deletedLeafDocGCCount);
     }
@@ -297,7 +298,7 @@ public class VersionGCDeletionTest {
         //Pass some time and run GC
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
-        VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
+        VersionGCStats stats = gc(gc, maxAge * 2, HOURS);
 
         //Asset GC stats
         assertEquals(2, stats.deletedDocGCCount);
@@ -382,7 +383,7 @@ public class VersionGCDeletionTest {
         // run GC once the reader thread is collecting documents
         ready.await();
         VersionGarbageCollector gc = store.getVersionGarbageCollector();
-        VersionGCStats stats = gc.gc(30, MINUTES);
+        VersionGCStats stats = gc(gc, 30, MINUTES);
         assertEquals(90, stats.deletedDocGCCount);
         assertEquals(90, stats.deletedLeafDocGCCount);
 

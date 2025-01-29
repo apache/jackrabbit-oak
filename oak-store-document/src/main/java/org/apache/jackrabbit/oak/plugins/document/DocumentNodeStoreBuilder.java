@@ -181,6 +181,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Set<String> fullGCExcludePaths = Set.of();
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
     private int fullGCMode = DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
+    private long fullGcMaxAgeMillis = TimeUnit.SECONDS.toMillis(DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE);
     private int fullGCBatchSize = DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
     private int fullGCProgressSize = DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
     private double fullGCDelayFactor = DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
@@ -358,6 +359,26 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public int getFullGCMode() {
         return this.fullGCMode;
+    }
+
+    /**
+     * The maximum age for nodes in milliseconds. Older entries are candidates for full gc
+     * @param v max age in millis
+     * @return builder object
+     */
+    public T setFullGcMaxAgeMillis(long v) {
+        this.fullGcMaxAgeMillis = v;
+        return thisBuilder();
+    }
+
+    /**
+     * The maximum age for nodes in milliseconds. Older entries
+     * are candidates for Full GC.
+     *
+     * @return maximum age for nodes entries in milliseconds.
+     */
+    public long getFullGcMaxAgeMillis() {
+        return this.fullGcMaxAgeMillis;
     }
 
     public T setFullGCBatchSize(int v) {
