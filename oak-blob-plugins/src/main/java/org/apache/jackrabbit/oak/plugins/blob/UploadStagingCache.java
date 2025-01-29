@@ -22,7 +22,9 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -40,7 +42,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.cache.Weigher;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
@@ -384,7 +385,7 @@ public class UploadStagingCache implements Closeable {
                         // Add the uploaded file to the download cache if available
                         if (downloadCache != null) {
                             // Touch the file to update timestamp and record length
-                            Files.touch(upload);
+                            Files.setLastModifiedTime(upload.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
                             downloadCache.put(id, upload);
 
                             LOG.debug("[{}] added to cache", id);
