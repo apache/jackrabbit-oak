@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.azure.fixture;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.security.InvalidKeyException;
 import java.util.HashMap;
 import java.util.Map;
@@ -73,7 +72,9 @@ public class SegmentAzureFixture extends NodeStoreFixture {
         }
 
         try {
-            FileStore fileStore = FileStoreBuilder.fileStoreBuilder(Files.createTempDir()).withCustomPersistence(persistence).build();
+            FileStore fileStore = FileStoreBuilder.fileStoreBuilder(
+                    Files.createTempDirectory(getClass().getSimpleName() + "-").toFile()).
+                    withCustomPersistence(persistence).build();
             NodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             fileStoreMap.put(nodeStore, fileStore);
             containerMap.put(nodeStore, container);

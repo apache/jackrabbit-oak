@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
@@ -33,6 +32,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStoreContainer {
     private static final Environment ENVIRONMENT = new Environment();
@@ -64,7 +64,7 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
             throw new IllegalStateException(e);
         }
 
-        tmpDir = Files.createTempDir();
+        tmpDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azurePersistence).withMemoryMapping(false);
         if (blobStore != null) {

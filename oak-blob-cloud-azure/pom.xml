@@ -30,10 +30,6 @@
     <name>Oak Azure Cloud Blob Store</name>
     <packaging>bundle</packaging>
 
-    <properties>
-        <netty.version>4.1.111.Final</netty.version>
-    </properties>
-
     <build>
         <plugins>
             <plugin>

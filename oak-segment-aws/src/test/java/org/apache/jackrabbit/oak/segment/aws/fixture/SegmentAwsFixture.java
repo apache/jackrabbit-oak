@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.aws.fixture;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
@@ -35,6 +33,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -89,7 +88,7 @@ public class SegmentAwsFixture extends NodeStoreFixture {
         }
 
         try {
-            FileStore fileStore = FileStoreBuilder.fileStoreBuilder(Files.createTempDir())
+            FileStore fileStore = FileStoreBuilder.fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile())
                     .withCustomPersistence(persistence).build();
             NodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             fileStoreMap.put(nodeStore, fileStore);

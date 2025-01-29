@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import com.google.common.io.Files;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
@@ -29,7 +28,9 @@ import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.apache.jackrabbit.oak.segment.tool.check.CheckHelper;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.text.MessageFormat;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -388,7 +389,13 @@ public class AzureCheck {
             persistence = ToolUtils.decorateWithCache(persistence, persistentCachePath, persistentCacheSizeGb);
         }
 
-        FileStoreBuilder builder = fileStoreBuilder(Files.createTempDir()).withCustomPersistence(persistence);
+        FileStoreBuilder builder = null;
+        try {
+            builder = fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile()).withCustomPersistence(persistence);
+        } catch (IOException e) {
+            e.printStackTrace(err);
+            return 1;
+        }
 
         if (ioStatistics) {
             builder.withIOMonitor(ioMonitor);
