@@ -48,7 +48,6 @@ import java.util.stream.IntStream;
 
 public class IndexWriterPool {
     private final static Logger LOG = LoggerFactory.getLogger(IndexWriterPool.class);
-    private final static ThreadMonitor threadMonitor = new ThreadMonitor();
 
     public static final String OAK_INDEXER_PARALLEL_WRITER_MAX_BATCH_SIZE = "oak.indexer.parallelWriter.maxBatchSize";
     public static final int DEFAULT_OAK_INDEXER_PARALLEL_WRITER_MAX_BATCH_SIZE = 256;
@@ -63,22 +62,24 @@ public class IndexWriterPool {
     private final int queueSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PARALLEL_WRITER_QUEUE_SIZE, DEFAULT_OAK_INDEXER_PARALLEL_WRITER_QUEUE_SIZE);
     private final int numberOfThreads = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PARALLEL_WRITER_NUMBER_THREADS, DEFAULT_OAK_INDEXER_PARALLEL_WRITER_NUMBER_THREADS);
 
+    private final ThreadMonitor threadMonitor = new ThreadMonitor();
     private final ArrayList<Operation> batch = new ArrayList<>(maxBatchSize);
     private final BlockingQueue<OperationBatch> queue = new ArrayBlockingQueue<>(queueSize);
-    private final List<Future<?>> futures;
-    private final ExecutorService writerPool;
+    private final List<Future<?>> workerFutures;
+    private final ExecutorService writersPool;
     private final ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
+    // Used to keep track of the sequence number of the batches that are currently being processed.
+    // This is used to wait until all operations for a writer are processed before closing it.
+    private final Object pendingBatchesLock = new Object();
+    private final HashSet<Long> pendingBatches = new HashSet<>();
+    private long batchSequenceNumber = 0;
+
+    // Statistics
     private long updateCount = 0;
     private long deleteCount = 0;
     private long totalEnqueueTimeNanos = 0;
-
-    private final Object lock = new Object();
-    // Used to keep track of the sequence number of the batches that are currently being processed.
-    // This is used to wait until all operations for a writer are processed before closing it.
-    private final HashSet<Long> pendingBatches = new HashSet<>();
-    private long batchSequenceNumber = 0;
 
     private static class OperationBatch {
         final long sequenceNumber;
@@ -181,9 +182,9 @@ public class IndexWriterPool {
                         }
                     }
                     LOG.info("Batch processed: {}", op.sequenceNumber);
-                    synchronized (lock) {
+                    synchronized (pendingBatchesLock) {
                         pendingBatches.remove(op.sequenceNumber);
-                        lock.notifyAll();
+                        pendingBatchesLock.notifyAll();
                     }
 //                    maxSize = Math.max(maxSize, sumSize);
 //                    LOG.info("Executed batch of size: {}. Total size: {}, Max: {}", op.length, sumSize, maxSize);
@@ -209,9 +210,9 @@ public class IndexWriterPool {
                 .setNameFormat("index-writer-%d")
                 .build();
 
-        this.writerPool = Executors.newFixedThreadPool(numberOfThreads, delegateThreadFactory);
-        this.futures = IntStream.range(0, numberOfThreads)
-                .mapToObj(i -> writerPool.submit(new Worker()))
+        this.writersPool = Executors.newFixedThreadPool(numberOfThreads, delegateThreadFactory);
+        this.workerFutures = IntStream.range(0, numberOfThreads)
+                .mapToObj(i -> writersPool.submit(new Worker()))
                 .collect(Collectors.toList());
         threadMonitor.start();
         scheduledExecutor.scheduleAtFixedRate(this::printStatistics, 0, 30, TimeUnit.SECONDS);
@@ -240,14 +241,14 @@ public class IndexWriterPool {
             // operations are for which writer.
             long seqNumber = flushBatch();
             LOG.info("All operations for writer: {} enqueued (highest batch sequence number: {}). Waiting for them to be processed", writer, seqNumber);
-            synchronized (lock) {
+            synchronized (pendingBatchesLock) {
                 while (true) {
                     Long earliestPending = pendingBatches.isEmpty() ? null : pendingBatches.stream().min(Long::compareTo).get();
                     LOG.info("Earliest pending batch: {}. Waiting for seqNumber: {}", earliestPending, seqNumber);
                     if (earliestPending == null || earliestPending > seqNumber) {
                         break;
                     }
-                    lock.wait();
+                    pendingBatchesLock.wait();
                 }
             }
             LOG.info("All operations for writer: {} processed. Enqueuing close operation", writer);
@@ -268,7 +269,7 @@ public class IndexWriterPool {
             flushBatch();
             queue.add(SHUTDOWN);
             LOG.info("Shutting down PipelinedIndexWriter. Total enqueue time: {} ms", totalEnqueueTimeNanos / 1_000_000);
-            for (Future<?> f : futures) {
+            for (Future<?> f : workerFutures) {
                 LOG.info("Waiting for future: {}", f);
                 try {
                     f.get();
@@ -276,7 +277,7 @@ public class IndexWriterPool {
                     LOG.info("Error while waiting for future", e);
                 }
             }
-            new ExecutorCloser(writerPool, 1, TimeUnit.SECONDS).close();
+            new ExecutorCloser(writersPool, 1, TimeUnit.SECONDS).close();
             new ExecutorCloser(scheduledExecutor, 1, TimeUnit.SECONDS).close();
             threadMonitor.printStatistics();
         } else {
@@ -301,7 +302,7 @@ public class IndexWriterPool {
         // Batches may be empty. This is necessary
         try {
             long seqNumber;
-            synchronized (lock) {
+            synchronized (pendingBatchesLock) {
                 // Shared between producer and workers
                 seqNumber = batchSequenceNumber;
                 batchSequenceNumber++;
