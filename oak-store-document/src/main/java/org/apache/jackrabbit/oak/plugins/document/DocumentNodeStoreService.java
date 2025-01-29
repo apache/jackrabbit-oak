@@ -953,7 +953,6 @@ public class DocumentNodeStoreService {
         Map<String, Object> props = jobPropertiesFor(RevisionGCJob.class);
         props.put("scheduler.expression", expr);
         long versionGcMaxAgeInSecs = config.versionGcMaxAgeInSecs();
-        long fullGcMaxAgeInSecs = config.fullGcMaxAgeInSecs();
         long versionGCTimeLimitInSecs = config.versionGCTimeLimitInSecs();
         double versionGCDelayFactor = config.versionGCDelayFactor();
         addRegistration(scheduleWithFixedDelay(whiteboard,
