@@ -20,7 +20,9 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
@@ -44,6 +46,8 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
     private final ExtractedTextCache textCache =
             new ExtractedTextCache(FileUtils.ONE_MB * 5, TimeUnit.HOURS.toSeconds(5));
     private final DefaultIndexWriterFactory indexWriterFactory;
+    private final ArrayList<LuceneIndexer> indexWriters = new ArrayList<>();
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public LuceneIndexerProvider(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
         DirectoryFactory dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
@@ -65,13 +69,15 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
 
         LuceneIndexWriter indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, null, true);
         FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);
-        return new LuceneIndexer(
+        LuceneIndexer indexer = new LuceneIndexer(
                 idxDefinition,
                 indexWriter,
                 definition,
                 textExtractor,
                 progressReporter
         );
+        indexWriters.add(indexer);
+        return indexer;
     }
 
     @Override
@@ -81,6 +87,11 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
 
     @Override
     public void close() throws IOException {
-        indexWriterFactory.close();
+        if (closed.compareAndSet(false, true)) {
+            for (LuceneIndexer indexer : indexWriters) {
+                indexer.close();
+            }
+            indexWriterFactory.close();
+        }
     }
 }

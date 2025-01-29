@@ -39,7 +39,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -63,11 +62,15 @@ public class IndexWriterPool {
     private final int numberOfThreads = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PARALLEL_WRITER_NUMBER_THREADS, DEFAULT_OAK_INDEXER_PARALLEL_WRITER_NUMBER_THREADS);
 
     private final ThreadMonitor threadMonitor = new ThreadMonitor();
+    // The batch of operations that will be sent to the workers.
+    // Batching individual operations reduces the overhead of synchronization and context switching.
     private final ArrayList<Operation> batch = new ArrayList<>(maxBatchSize);
+    // Shared queue between producer and workers
     private final BlockingQueue<OperationBatch> queue = new ArrayBlockingQueue<>(queueSize);
     private final List<Future<?>> workerFutures;
     private final ExecutorService writersPool;
-    private final ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+    // Used to schedule a task that periodically prints statistics
+    private final ScheduledExecutorService scheduledExecutor;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     // Used to keep track of the sequence number of the batches that are currently being processed.
@@ -134,19 +137,52 @@ public class IndexWriterPool {
 
     private static class CloseWriterOperation extends Operation {
         private final long timestamp;
-        private final SynchronousQueue<Boolean> sync;
+        private final SynchronousQueue<CloseResult> sync;
 
-        CloseWriterOperation(LuceneIndexWriter delegate, long timestamp, SynchronousQueue<Boolean> sync) {
+        static class CloseResult {
+            final Boolean result;
+            final Throwable error;
+
+            CloseResult(boolean result) {
+                this.result = result;
+                this.error = null;
+            }
+
+            CloseResult(Throwable error) {
+                this.result = null;
+                this.error = error;
+            }
+
+            @Override
+            public String toString() {
+                return "CloseResult{" +
+                        "result=" + result +
+                        ", error=" + error +
+                        '}';
+            }
+        }
+
+        /**
+         * The close operation should be synchronous and applied only after all the write operations for this writer
+         * are processed.
+         *
+         * @param sync A synchronous queue used to wait for the result of the close operation.
+         */
+        CloseWriterOperation(LuceneIndexWriter delegate, long timestamp, SynchronousQueue<CloseResult> sync) {
             super(delegate);
             this.timestamp = timestamp;
             this.sync = sync;
         }
 
         @Override
-        public void execute() throws IOException {
-            boolean closeResult = delegate.close(timestamp);
+        public void execute() {
             try {
-                sync.put(closeResult);
+                try {
+                    boolean closeResult = delegate.close(timestamp);
+                    sync.put(new CloseResult(closeResult));
+                } catch (IOException e) {
+                    sync.put(new CloseResult(e));
+                }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -157,6 +193,8 @@ public class IndexWriterPool {
 
     private class Worker implements Runnable {
         private long opCount = 0;
+        private long batchesProcessed = 0;
+        private long totalBusyTime = 0;
 
         public Worker() {
         }
@@ -173,21 +211,27 @@ public class IndexWriterPool {
                         LOG.info("Shutting down worker");
                         return;
                     }
-                    long sumSize = 0;
+                    long start = System.nanoTime();
                     for (Operation operation : op.operations) {
                         operation.execute();
                         opCount++;
                         if (opCount % 100_000 == 0) {
-                            LOG.info("Operations: {}. Queue size: {}, maxBatchSize: {}", opCount, queue.size(), -1);
+                            LOG.info("Total operations processed: {}, total batches processed: {}, total busy time: {} ms",
+                                    opCount, batchesProcessed, totalBusyTime / 1_000_000);
                         }
                     }
-                    LOG.info("Batch processed: {}", op.sequenceNumber);
+                    batchesProcessed++;
+                    long durationNanos = System.nanoTime() - start;
+                    totalBusyTime += durationNanos;
+                    long durationMillis = durationNanos / 1_000_000;
+                    if (durationMillis > 100) {
+                        LOG.info("Processing batch {} of size {} took {} millis.",
+                                op.sequenceNumber, op.operations.length, durationMillis);
+                    }
                     synchronized (pendingBatchesLock) {
                         pendingBatches.remove(op.sequenceNumber);
                         pendingBatchesLock.notifyAll();
                     }
-//                    maxSize = Math.max(maxSize, sumSize);
-//                    LOG.info("Executed batch of size: {}. Total size: {}, Max: {}", op.length, sumSize, maxSize);
                 }
             } catch (InterruptedException | IOException e) {
                 LOG.warn("Interrupted while waiting to take an update operation from the queue", e);
@@ -205,15 +249,18 @@ public class IndexWriterPool {
      * WARN: This is not thread safe.
      */
     public IndexWriterPool() {
-        ThreadFactory delegateThreadFactory = new ThreadFactoryBuilder()
+        this.writersPool = Executors.newFixedThreadPool(numberOfThreads, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("index-writer-%d")
-                .build();
-
-        this.writersPool = Executors.newFixedThreadPool(numberOfThreads, delegateThreadFactory);
+                .build());
+        this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("index-writer-monitor")
+                .build());
         this.workerFutures = IntStream.range(0, numberOfThreads)
                 .mapToObj(i -> writersPool.submit(new Worker()))
                 .collect(Collectors.toList());
+        threadMonitor.registerThread(Thread.currentThread());
         threadMonitor.start();
         scheduledExecutor.scheduleAtFixedRate(this::printStatistics, 0, 30, TimeUnit.SECONDS);
         LOG.info("Writing thread started");
@@ -231,7 +278,7 @@ public class IndexWriterPool {
         enqueueOperation(new DeleteOperation(writer, path));
     }
 
-    public boolean closeWriter(LuceneIndexWriter writer, long timestamp) {
+    public boolean closeWriter(LuceneIndexWriter writer, long timestamp) throws IOException {
         checkOpen();
         try {
             LOG.info("Closing writer: {}", writer);
@@ -240,24 +287,28 @@ public class IndexWriterPool {
             // in the queue are processed, because otherwise it would be more complex to distinguish which
             // operations are for which writer.
             long seqNumber = flushBatch();
-            LOG.info("All operations for writer: {} enqueued (highest batch sequence number: {}). Waiting for them to be processed", writer, seqNumber);
+            LOG.info("All pending operations enqueued (highest batch sequence number: {}). Waiting for them to be processed", seqNumber);
             synchronized (pendingBatchesLock) {
                 while (true) {
                     Long earliestPending = pendingBatches.isEmpty() ? null : pendingBatches.stream().min(Long::compareTo).get();
-                    LOG.info("Earliest pending batch: {}. Waiting for seqNumber: {}", earliestPending, seqNumber);
+                    LOG.debug("Earliest pending batch: {}. Waiting for all batches {} and earlier to be processed", earliestPending, seqNumber);
                     if (earliestPending == null || earliestPending > seqNumber) {
                         break;
                     }
                     pendingBatchesLock.wait();
                 }
             }
-            LOG.info("All operations for writer: {} processed. Enqueuing close operation", writer);
-            SynchronousQueue<Boolean> syncClosed = new SynchronousQueue<>();
-            batch.add(new CloseWriterOperation(writer, timestamp, syncClosed));
+            LOG.info("All operations pending operations processed. Enqueuing close operation");
+            SynchronousQueue<CloseWriterOperation.CloseResult> closeOpSync = new SynchronousQueue<>();
+            batch.add(new CloseWriterOperation(writer, timestamp, closeOpSync));
             flushBatch();
-            Boolean res = syncClosed.take();
-            LOG.info("Writer closed: {}. Result: {}", writer, res);
-            return res;
+            CloseWriterOperation.CloseResult res = closeOpSync.take();
+            LOG.info("Writer {} closed. Result: {}", writer, res);
+            if (res.error == null) {
+                return res.result;
+            } else {
+                throw new IOException("Error while closing writer", res.error);
+            }
         } catch (InterruptedException e) {
             LOG.warn("Interrupted while waiting for the worker to finish", e);
             throw new RuntimeException(e);
@@ -277,9 +328,9 @@ public class IndexWriterPool {
                     LOG.info("Error while waiting for future", e);
                 }
             }
+            printStatistics();
             new ExecutorCloser(writersPool, 1, TimeUnit.SECONDS).close();
             new ExecutorCloser(scheduledExecutor, 1, TimeUnit.SECONDS).close();
-            threadMonitor.printStatistics();
         } else {
             LOG.warn("PipelinedIndexWriter already closed");
         }
@@ -308,14 +359,17 @@ public class IndexWriterPool {
                 batchSequenceNumber++;
                 pendingBatches.add(seqNumber);
             }
-            LOG.info("Enqueuing batch {}, size: {}", seqNumber, batch.size());
+            if (seqNumber % 256 == 0) {
+                LOG.info("Enqueuing batch {}, size: {}", seqNumber, batch.size());
+            }
             long start = System.nanoTime();
             queue.put(new OperationBatch(seqNumber, batch.toArray(new Operation[0])));
             long durationNanos = System.nanoTime() - start;
-            long durationMS = durationNanos / 1_000_000;
+            long durationMillis = durationNanos / 1_000_000;
             totalEnqueueTimeNanos += durationNanos;
-            if (durationMS > 0) {
-                LOG.info("Enqueued batch {}, size: {}. Duration: {} ms", seqNumber, batch.size(), durationMS);
+            if (durationMillis > 0) {
+                LOG.info("Enqueuing batch delayed. Seq number: {}, size: {}. Delay: {} ms",
+                        seqNumber, batch.size(), durationMillis);
             }
             batch.clear();
             return seqNumber;
@@ -326,7 +380,7 @@ public class IndexWriterPool {
     }
 
     private void printStatistics() {
-        LOG.info("updateCount: {}, deleteCount: {}, batchesEnqueued: {}, pendingBatchesCount: {},  totalEnqueueTimeMillis: {}",
+        LOG.info("updateCount: {}, deleteCount: {}, totalBatchesEnqueued: {}, pendingBatchesCount: {},  totalEnqueueTimeMillis: {}",
                 updateCount, deleteCount, batchSequenceNumber, pendingBatches.size(), totalEnqueueTimeNanos / 1_000_000);
         threadMonitor.printStatistics();
     }

@@ -296,4 +296,11 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         }
         log.trace("Directory overall size: {}, files: {}", IOUtils.humanReadableByteCount(overallSize), sb);
     }
+
+    @Override
+    public String toString() {
+        return "DefaultIndexWriter{" +
+                "index=" + definition.getIndexName() +
+                '}';
+    }
 }
