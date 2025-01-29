@@ -436,7 +436,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
     /**
      * Special handling for the case where dynamic groups have been added to local groups
-     * @return set of inherited group principals
+     * @return set of inherited group principals 
      */
     private Set<Principal> getInheritedPrincipals(@NotNull Set<Principal> externalGroupPrincipals, @NotNull String idpName) {
         if (idpNamesWithDynamicGroups.contains(idpName)) {
