@@ -72,9 +72,7 @@ public final class FileIOUtils {
      * @param file file whose contents needs to be sorted
      */
     public static void sort(File file) throws IOException {
-        File sorted = createTempFile("fleioutilssort", null);
-        merge(sortInBatch(file, lexComparator, true), sorted);
-        org.apache.jackrabbit.guava.common.io.Files.move(sorted, file);
+        sort(file, lexComparator);
     }
 
     /**
@@ -85,9 +83,9 @@ public final class FileIOUtils {
      * @throws IOException
      */
     public static void sort(File file, Comparator<String> comparator) throws IOException {
-        File sorted = createTempFile("fleioutilssort", null);
+        File sorted = createTempFile("file-io-utils-sort-", null);
         merge(sortInBatch(file, comparator, true), sorted, comparator);
-        org.apache.jackrabbit.guava.common.io.Files.move(sorted, file);
+        Files.move(sorted.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**
