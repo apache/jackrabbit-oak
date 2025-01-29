@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
-import org.apache.jackrabbit.oak.plugins.index.ThreadMonitor;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.lucene.index.IndexableField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,12 +61,12 @@ public class IndexWriterPool {
     private final int queueSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PARALLEL_WRITER_QUEUE_SIZE, DEFAULT_OAK_INDEXER_PARALLEL_WRITER_QUEUE_SIZE);
     private final int numberOfThreads = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PARALLEL_WRITER_NUMBER_THREADS, DEFAULT_OAK_INDEXER_PARALLEL_WRITER_NUMBER_THREADS);
 
-    private final ThreadMonitor threadMonitor = new ThreadMonitor();
     // The batch of operations that will be sent to the workers.
     // Batching individual operations reduces the overhead of synchronization and context switching.
     private final ArrayList<Operation> batch = new ArrayList<>(maxBatchSize);
     // Shared queue between producer and workers
     private final BlockingQueue<OperationBatch> queue = new ArrayBlockingQueue<>(queueSize);
+    private final List<Worker> workers;
     private final List<Future<?>> workerFutures;
     private final ExecutorService writersPool;
     // Used to schedule a task that periodically prints statistics
@@ -80,6 +80,7 @@ public class IndexWriterPool {
     private long batchSequenceNumber = 0;
 
     // Statistics
+    private final long startTimeNanos = System.nanoTime();
     private long updateCount = 0;
     private long deleteCount = 0;
     private long totalEnqueueTimeNanos = 0;
@@ -192,41 +193,42 @@ public class IndexWriterPool {
     final static OperationBatch SHUTDOWN = new OperationBatch(-1, new Operation[0]);
 
     private class Worker implements Runnable {
+        private final long startTime = System.nanoTime();
+        private final int id;
         private long opCount = 0;
         private long batchesProcessed = 0;
         private long totalBusyTime = 0;
 
-        public Worker() {
+        public Worker(int id) {
+            this.id = id;
         }
 
         @Override
         public void run() {
-            LOG.info("Worker started");
-            threadMonitor.registerThread(Thread.currentThread());
+            String oldName = Thread.currentThread().getName();
+            Thread.currentThread().setName("index-writer-" + id);
             try {
+                LOG.info("[{}] Worker started", id);
                 while (true) {
                     OperationBatch op = queue.take();
                     if (op == SHUTDOWN) {
                         queue.add(SHUTDOWN);
-                        LOG.info("Shutting down worker");
+                        LOG.info("[{}] Shutting down worker", id);
+                        printStatistics();
                         return;
                     }
                     long start = System.nanoTime();
                     for (Operation operation : op.operations) {
                         operation.execute();
                         opCount++;
-                        if (opCount % 100_000 == 0) {
-                            LOG.info("Total operations processed: {}, total batches processed: {}, total busy time: {} ms",
-                                    opCount, batchesProcessed, totalBusyTime / 1_000_000);
-                        }
                     }
                     batchesProcessed++;
                     long durationNanos = System.nanoTime() - start;
                     totalBusyTime += durationNanos;
                     long durationMillis = durationNanos / 1_000_000;
                     if (durationMillis > 100) {
-                        LOG.info("Processing batch {} of size {} took {} millis.",
-                                op.sequenceNumber, op.operations.length, durationMillis);
+                        LOG.info("[{}] Processing batch {} of size {} took {} millis.",
+                                id, op.sequenceNumber, op.operations.length, durationMillis);
                     }
                     synchronized (pendingBatchesLock) {
                         pendingBatches.remove(op.sequenceNumber);
@@ -234,12 +236,21 @@ public class IndexWriterPool {
                     }
                 }
             } catch (InterruptedException | IOException e) {
-                LOG.warn("Interrupted while waiting to take an update operation from the queue", e);
+                LOG.warn("[{}] Interrupted while waiting to take an update operation from the queue", id, e);
                 throw new RuntimeException(e);
             } catch (Throwable t) {
-                LOG.error("Error while processing update operation", t);
+                LOG.error("[{}] Error while processing update operation", id, t);
                 throw new RuntimeException(t);
+            } finally {
+                Thread.currentThread().setName(oldName);
             }
+        }
+
+        void printStatistics() {
+            double busyTimePercentage = FormattingUtils.safeComputePercentage(totalBusyTime, System.nanoTime() - startTime);
+            String busyTimePercentageStr = String.format("%.2f", busyTimePercentage);
+            LOG.info("[{}] operationsProcessed: {}, batchesProcessed: {}, busyTime: {} ms ({}%)",
+                    id, opCount, batchesProcessed, totalBusyTime / 1_000_000, busyTimePercentageStr);
         }
     }
 
@@ -251,17 +262,17 @@ public class IndexWriterPool {
     public IndexWriterPool() {
         this.writersPool = Executors.newFixedThreadPool(numberOfThreads, new ThreadFactoryBuilder()
                 .setDaemon(true)
-                .setNameFormat("index-writer-%d")
                 .build());
         this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("index-writer-monitor")
                 .build());
-        this.workerFutures = IntStream.range(0, numberOfThreads)
-                .mapToObj(i -> writersPool.submit(new Worker()))
+        this.workers = IntStream.range(0, numberOfThreads)
+                .mapToObj(Worker::new)
                 .collect(Collectors.toList());
-        threadMonitor.registerThread(Thread.currentThread());
-        threadMonitor.start();
+        this.workerFutures = workers.stream()
+                .map(writersPool::submit)
+                .collect(Collectors.toList());
         scheduledExecutor.scheduleAtFixedRate(this::printStatistics, 0, 30, TimeUnit.SECONDS);
         LOG.info("Writing thread started");
     }
@@ -380,8 +391,10 @@ public class IndexWriterPool {
     }
 
     private void printStatistics() {
-        LOG.info("updateCount: {}, deleteCount: {}, totalBatchesEnqueued: {}, pendingBatchesCount: {},  totalEnqueueTimeMillis: {}",
-                updateCount, deleteCount, batchSequenceNumber, pendingBatches.size(), totalEnqueueTimeNanos / 1_000_000);
-        threadMonitor.printStatistics();
+        double percentageEnqueueTime = FormattingUtils.safeComputePercentage(totalEnqueueTimeNanos, System.nanoTime() - startTimeNanos);
+        String percentageEnqueueTimeStr = String.format("%.2f", percentageEnqueueTime);
+        LOG.info("updateCount: {}, deleteCount: {}, batchesEnqueuedCount: {}, pendingBatchesCount: {},  enqueueTime: {} ms ({}%)",
+                updateCount, deleteCount, batchSequenceNumber, pendingBatches.size(), totalEnqueueTimeNanos / 1_000_000, percentageEnqueueTimeStr);
+        workers.forEach(Worker::printStatistics);
     }
 }

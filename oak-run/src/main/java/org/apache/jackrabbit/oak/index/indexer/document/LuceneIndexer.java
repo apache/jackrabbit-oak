@@ -129,7 +129,7 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
             LOG.info("[{}] Statistics: {}", definition.getIndexName(), indexerStatisticsTracker.formatStats());
             binaryTextExtractor.logStats();
         } else {
-            LOG.warn("Indexer already closed: {}", definition.getIndexName());
+            LOG.debug("Indexer already closed: {}", definition.getIndexName());
         }
     }
 
