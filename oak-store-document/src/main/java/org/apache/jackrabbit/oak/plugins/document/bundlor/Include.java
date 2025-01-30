@@ -22,10 +22,10 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
+import static java.util.Objects.checkIndex;
 
 /**
  * Include represents a single path pattern which captures the path which
@@ -53,7 +53,7 @@ public class Include {
     private final String pattern;
 
     public Include(String pattern){
-        List<String> pathElements = ImmutableList.copyOf(PathUtils.elements(pattern));
+        List<String> pathElements = ListUtils.toList(PathUtils.elements(pattern));
         List<String> elementList = new ArrayList<>(pathElements.size());
         Directive directive = Directive.NONE;
         for (int i = 0; i < pathElements.size(); i++) {
@@ -116,14 +116,14 @@ public class Include {
      */
     public boolean match(String nodeName, int depth) {
         int elementIndex = depth - 1;
-        checkElementIndex(elementIndex, elements.length);
+        checkIndex(elementIndex, elements.length);
         String e = elements[elementIndex];
         return STAR.equals(e) || nodeName.equals(e);
     }
 
     public boolean matchAny(int depth){
         int elementIndex = depth - 1;
-        checkElementIndex(elementIndex, elements.length);
+        checkIndex(elementIndex, elements.length);
         return STAR.equals(elements[elementIndex]);
     }
 

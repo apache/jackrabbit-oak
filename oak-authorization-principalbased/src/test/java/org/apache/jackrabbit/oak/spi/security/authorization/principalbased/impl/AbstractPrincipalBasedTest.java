@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -112,7 +112,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     @Override
     @NotNull
     protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        Iterable<String> pn = Iterables.transform(CollectionUtils.toLinkedSet(privilegeNames), privName -> getNamePathMapper().getJcrName(privName));
+        Iterable<String> pn = Iterables.transform(SetUtils.toLinkedSet(privilegeNames), privName -> getNamePathMapper().getJcrName(privName));
         return super.privilegesFromNames(pn);
     }
 
@@ -143,7 +143,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     @NotNull
     PrincipalPolicyImpl getPrincipalPolicyImpl(@NotNull Principal testPrincipal, @NotNull JackrabbitAccessControlManager acMgr) throws Exception {
-        for (JackrabbitAccessControlPolicy policy : ObjectArrays.concat(acMgr.getApplicablePolicies(testPrincipal), acMgr.getPolicies(testPrincipal), JackrabbitAccessControlPolicy.class)) {
+        for (JackrabbitAccessControlPolicy policy : ArrayUtils.addAll(acMgr.getApplicablePolicies(testPrincipal), acMgr.getPolicies(testPrincipal))) {
             if (policy instanceof PrincipalPolicyImpl) {
                 return (PrincipalPolicyImpl) policy;
             }

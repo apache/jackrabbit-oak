@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -64,7 +64,7 @@ public final class MountInfo implements Mount {
         this.readOnly = readOnly;
         this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
-        this.pathsSupportingFragments = CollectionUtils.toSet(pathsSupportingFragments);
+        this.pathsSupportingFragments = SetUtils.toSet(pathsSupportingFragments);
     }
 
     @Override
@@ -139,7 +139,7 @@ public final class MountInfo implements Mount {
 
     private static TreeSet<String> cleanCopy(Collection<String> includedPaths) {
         // ensure that paths don't have trailing slashes - this triggers an assertion in PathUtils isAncestor
-        return CollectionUtils.toTreeSet(transform(includedPaths, SANITIZE_PATH::apply));
+        return SetUtils.toTreeSet(transform(includedPaths, SANITIZE_PATH::apply));
     }
 
     public Set<String> getPathsSupportingFragments() {

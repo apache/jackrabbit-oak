@@ -40,12 +40,11 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -66,7 +65,7 @@ public class S3DataStoreUtils extends DataStoreUtils {
     protected static Class S3 = S3DataStore.class;
 
     public static List<String> getFixtures() {
-        return ImmutableList.of(S3.getName());
+        return List.of(S3.getName());
     }
 
     public static boolean isS3DataStore() {
@@ -102,13 +101,13 @@ public class S3DataStoreUtils extends DataStoreUtils {
      */
     public static Properties getS3Config() {
         String config = System.getProperty(SYS_PROP_NAME);
-        if (Strings.isNullOrEmpty(config)) {
+        if (StringUtils.isEmpty(config)) {
             File cfgFile = new File(System.getProperty("user.home"), DEFAULT_PROPERTY_FILE);
             if (cfgFile.exists()) {
                 config = cfgFile.getAbsolutePath();
             }
         }
-        if (Strings.isNullOrEmpty(config)) {
+        if (StringUtils.isEmpty(config)) {
             config = DEFAULT_CONFIG_PATH;
         }
         Properties props = new Properties();
@@ -123,8 +122,8 @@ public class S3DataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map filtered = Maps.filterEntries(Maps.fromProperties(props),
-                    input ->!Strings.isNullOrEmpty((String) input.getValue()));
+            Map<String, String> filtered = MapUtils.filterEntries(MapUtils.fromProperties(props),
+                    input ->!StringUtils.isEmpty(input.getValue()));
             props = new Properties();
             props.putAll(filtered);
         }

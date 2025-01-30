@@ -33,7 +33,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.junit.Test;
 
@@ -78,7 +78,7 @@ public class ReclaimersTest {
     };
 
     private static void assertReclaim(Predicate<GCGeneration> reclaimer, String... reclaims) {
-        Set<String> toReclaim = CollectionUtils.toSet(reclaims);
+        Set<String> toReclaim = SetUtils.toSet(reclaims);
         for (Entry<String, GCGeneration> generation : gcHistory.entrySet()) {
             if (reclaimer.test(generation.getValue())) {
                 assertTrue(

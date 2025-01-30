@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -251,7 +251,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
             @NotNull
             @Override
             public List<ProtectedItemImporter> getProtectedItemImporters() {
-                return ImmutableList.of(mock(ProtectedItemImporter.class));
+                return List.of(mock(ProtectedItemImporter.class));
             }
         };
         addConfiguration(withImporter);
@@ -270,7 +270,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
             @NotNull
             @Override
             public List<ThreeWayConflictHandler> getConflictHandlers() {
-                return ImmutableList.of(mock(ThreeWayConflictHandler.class));
+                return List.of(mock(ThreeWayConflictHandler.class));
             }
         };
         addConfiguration(withConflictHandler);
@@ -289,7 +289,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
             @NotNull
             @Override
             public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
-                return ImmutableList.of(mock(CommitHook.class));
+                return List.of(mock(CommitHook.class));
             }
         };
         addConfiguration(withCommitHook);
@@ -308,7 +308,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
             @NotNull
             @Override
             public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-                return ImmutableList.of(mock(ValidatorProvider.class));
+                return List.of(mock(ValidatorProvider.class));
             }
         };
         addConfiguration(withValidator);
@@ -392,23 +392,23 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
     @Test
     public void testGetMonitors() {
         StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
-        assertTrue(Iterables.isEmpty(compositeConfiguration.getMonitors(statisticsProvider)));
+        assertTrue(IterableUtils.isEmpty(compositeConfiguration.getMonitors(statisticsProvider)));
 
         addConfiguration(new SecurityConfiguration.Default());
-        assertTrue(Iterables.isEmpty(compositeConfiguration.getMonitors(statisticsProvider)));
+        assertTrue(IterableUtils.isEmpty(compositeConfiguration.getMonitors(statisticsProvider)));
 
         Monitor<LoginModuleMonitor> monitor = mock(LoginModuleMonitor.class);
         SecurityConfiguration withMonitors = new SecurityConfiguration.Default() {
             @NotNull
             @Override
             public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
-                return ImmutableList.of(monitor);
+                return List.of(monitor);
             }
         };
         addConfiguration(withMonitors);
 
         Iterable<Monitor<?>> monitors = compositeConfiguration.getMonitors(statisticsProvider);
-        assertEquals(1, Iterables.size(monitors));
+        assertEquals(1, IterableUtils.size(monitors));
         assertSame(monitor, monitors.iterator().next());
     }
 }

@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -294,7 +296,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
             // are still present.
             Set<String> reconnect = getCugPathsToReconnect(before);
             if (isRoot) {
-                if (!Iterables.isEmpty(reconnect)) {
+                if (!IterableUtils.isEmpty(reconnect)) {
                     afterBuilder.setProperty(HIDDEN_NESTED_CUGS, reconnect, Type.STRINGS);
                     afterBuilder.setProperty(HIDDEN_TOP_CUG_CNT, reconnect.size());
                 }

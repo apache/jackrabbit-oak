@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.junit.Test;
 
@@ -53,7 +52,7 @@ public class ReferenceChangeTrackerTest {
 
         assertTrue(Iterators.elementsEqual(List.of("ref", "ref2").iterator(), rct.getProcessedReferences()));
 
-        rct.removeReferences(ImmutableList.of("ref"));
+        rct.removeReferences(List.of("ref"));
 
         assertTrue(Iterators.elementsEqual(List.of("ref2").iterator(), rct.getProcessedReferences()));
     }

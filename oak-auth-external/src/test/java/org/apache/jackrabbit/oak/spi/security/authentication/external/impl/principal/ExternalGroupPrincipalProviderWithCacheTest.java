@@ -38,7 +38,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -120,7 +120,7 @@ public class ExternalGroupPrincipalProviderWithCacheTest extends AbstractPrincip
     @NotNull
     Set<Principal> getExternalGroupPrincipals(@NotNull String userId) throws Exception {
         if (syncConfig.user().getMembershipNestingDepth() == 1) {
-            return CollectionUtils.toSet(idp.getUser(userId).getDeclaredGroups()).stream().map(externalIdentityRef -> {
+            return SetUtils.toSet(idp.getUser(userId).getDeclaredGroups()).stream().map(externalIdentityRef -> {
                 try {
                     return new PrincipalImpl(idp.getIdentity(externalIdentityRef).getPrincipalName());
                 } catch (ExternalIdentityException e) {
@@ -153,7 +153,6 @@ public class ExternalGroupPrincipalProviderWithCacheTest extends AbstractPrincip
         Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
         assertNotNull(user);
 
-        // same as in test before even if the principal is not a tree-based-principal
         Set<Principal> expected = getExternalGroupPrincipals(USER_ID);
         expected.add(testGroup.getPrincipal());
         Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(user.getPrincipal());
@@ -169,42 +168,4 @@ public class ExternalGroupPrincipalProviderWithCacheTest extends AbstractPrincip
         Set<Principal> readFromCache = principalProvider.getMembershipPrincipals(user.getPrincipal());
         assertEquals(expected, readFromCache);
     }
-
-//    @Test
-//    public void testCachedGroupPrincipalIsMember() throws Exception {
-//        Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
-//        assertNotNull(user);
-//        Set<? extends Principal> principals = principalProvider.getMembershipPrincipals(user.getPrincipal());
-//        assertTrue(principals.contains(testGroup.getPrincipal()));
-//
-//        root.refresh(); //Refreshing root to make sure changes in cache are reflected
-//        Tree cacheTree = root.getTree(user.getPath()).getChild(REP_CACHE);
-//        assertNotNull(cacheTree);
-//        assertTrue(cacheTree.hasProperty(CACHE_PRINCIPAL_NAMES));
-//        assertFalse(cacheTree.getProperty(CACHE_PRINCIPAL_NAMES).getValue(Type.STRING).isEmpty());
-//
-//        Set<Principal> externalPrincipals = getExternalGroupPrincipals(USER_ID);
-//        Set<Principal> cachedPrincipals = principalProvider.getMembershipPrincipals(user.getPrincipal());
-//        cachedPrincipals.forEach(principal -> {
-//            try {
-//                assertTrue(principal instanceof ItemBasedPrincipal);
-//                assertTrue(principal instanceof GroupPrincipal);
-//                GroupPrincipal groupPrincipal = (GroupPrincipal) principal;
-//                ItemBasedPrincipal itemBasedPrincipal = (ItemBasedPrincipal) principal;
-//                assertNotNull(itemBasedPrincipal.getPath());
-//                if (principal.getName().equals(testGroup.getPrincipal().getName())) {
-//                    //Check if external group is a member of the cached group
-//                    externalPrincipals.forEach(externalPrincipal -> {
-//                        assertTrue(groupPrincipal.isMember(externalPrincipal));
-//                    });
-//
-//                    var members = groupPrincipal.members();
-//                    assertTrue(members.hasMoreElements());
-//
-//                }
-//            } catch (RepositoryException e) {
-//                throw new RuntimeException(e);
-//            }
-//        });
-//    }
 }

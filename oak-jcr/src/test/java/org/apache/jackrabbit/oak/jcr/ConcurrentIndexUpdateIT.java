@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.jcr.Node;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.BeforeClass;

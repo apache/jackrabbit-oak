@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.cow;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -96,7 +96,7 @@ public class COWNodeStoreTest {
         info = cowNodeStore.checkpointInfo(checkpoint2);
         assertEquals("The new checkpoint is not available", Map.of("k", "v2"), info);
         assertTrue("The retrieve() doesn't work for the new checkpoint", cowNodeStore.retrieve(checkpoint2).hasChildNode("foo"));
-        assertEquals(ImmutableList.of(checkpoint1, checkpoint2), cowNodeStore.checkpoints());
+        assertEquals(List.of(checkpoint1, checkpoint2), cowNodeStore.checkpoints());
 
         assertTrue("The new checkpoint shouldn't be stored in the main store", store.checkpointInfo(checkpoint2).isEmpty());
 

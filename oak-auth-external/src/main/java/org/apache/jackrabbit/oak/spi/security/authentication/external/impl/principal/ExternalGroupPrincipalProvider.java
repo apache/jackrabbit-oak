@@ -55,7 +55,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
@@ -102,6 +103,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
     private static final Logger log = LoggerFactory.getLogger(ExternalGroupPrincipalProvider.class);
     static final String CACHE_PRINCIPAL_NAMES = "rep:externalLocalPrincipalNames";
+    static final String CACHE_EXP_PROPERTY_NAME = CacheConstants.REP_EXPIRATION + "ExternalLocalPrincipalNames";
 
     private static final String BINDING_PRINCIPAL_NAMES = "principalNames";
 
@@ -145,9 +147,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, syncConfigTracker.getAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
         groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : new AutoMembershipPrincipals(userManager, syncConfigTracker.getGroupAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
 
-        cacheReaderFactory = (String idpName) -> userConfiguration.getCachedMembershipReader(root,
-                (principalName) -> new CachedGroupPrincipal(principalName, userManager),
-                CACHE_PRINCIPAL_NAMES);
+        cacheReaderFactory = (String idpName) -> userConfiguration.getCachedMembershipReader(root, (principalName) -> new CachedGroupPrincipal(principalName, userManager), CACHE_PRINCIPAL_NAMES, CACHE_EXP_PROPERTY_NAME);
     }
 
     // Tests only
@@ -326,7 +326,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 return Collections.emptyIterator();
             }
 
-            Set<Value> valueSet = CollectionUtils.toSet(vs);
+            Set<Value> valueSet = SetUtils.toSet(vs);
             Iterator<Group> declared = Iterators.filter(Iterators.transform(valueSet.iterator(), value -> {
                 try {
                     String groupPrincipalName = value.getString();

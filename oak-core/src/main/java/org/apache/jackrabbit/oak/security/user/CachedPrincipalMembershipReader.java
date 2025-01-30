@@ -26,7 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.jcr.AccessDeniedException;
-import org.apache.jackrabbit.guava.common.base.Strings;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -78,12 +79,14 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
     private final long maxStale;
     private final String propertyName;
     private final int membershipThreshold;
+    private final String expirationPropertyName;
 
     CachedPrincipalMembershipReader(@NotNull CacheConfiguration cacheConfiguration, @NotNull Root root,
             @NotNull CachePrincipalFactory principalFactory) {
         this.expiration = cacheConfiguration.getExpiration();
         this.maxStale = cacheConfiguration.getMaxStale();
         this.propertyName = cacheConfiguration.getPropertyName();
+        this.expirationPropertyName = cacheConfiguration.getExpirationPropertyName();
         this.config = cacheConfiguration.getUserConfiguration();
         this.membershipThreshold = cacheConfiguration.getMembershipThreshold();
         this.root = root;
@@ -159,11 +162,11 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
         return groups;
     }
 
-    private static long readExpirationTime(@NotNull Tree principalCache) {
-        if (!principalCache.exists()) {
+    private long readExpirationTime(@NotNull Tree principalCache) {
+        if (!principalCache.exists() || !principalCache.hasProperty(expirationPropertyName)) {
             return EXPIRATION_NO_CACHE;
         }
-        return TreeUtil.getLong(principalCache, CacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
+        return TreeUtil.getLong(principalCache, expirationPropertyName, EXPIRATION_NO_CACHE);
     }
 
     private static boolean isValidCache(long expirationTime, long now) {
@@ -180,7 +183,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
 
     private boolean hasCacheValues(@NotNull Tree principalCache) {
         return principalCache.hasProperty(propertyName) &&
-                !Strings.isNullOrEmpty(TreeUtil.getString(principalCache, propertyName));
+                !StringUtils.isEmpty(TreeUtil.getString(principalCache, propertyName));
     }
 
     /**
@@ -224,7 +227,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
                             CacheConstants.NT_REP_CACHE);
                 }
             }
-            cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
+            cache.setProperty(this.expirationPropertyName, LongUtils.calculateExpirationTime(expiration));
             String value = (groupPrincipals.isEmpty()) ? "" : String.join(",", Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
             cache.setProperty(this.propertyName, value);
 

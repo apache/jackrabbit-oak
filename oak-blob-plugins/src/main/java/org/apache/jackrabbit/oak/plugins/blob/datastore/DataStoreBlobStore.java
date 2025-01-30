@@ -78,9 +78,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 
 /**
@@ -307,7 +305,7 @@ public class DataStoreBlobStore
     public void close() throws DataStoreException {
         // If marked as shared transient then delete the repository marker in close
         if (SHARED_TRANSIENT) {
-            if (!Strings.isNullOrEmpty(getRepositoryId())) {
+            if (!org.apache.commons.lang3.StringUtils.isEmpty(getRepositoryId())) {
                 deleteMetadataRecord(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(getRepositoryId()));
             }
         }
@@ -369,7 +367,7 @@ public class DataStoreBlobStore
         InputStream stream = getInputStream(encodedBlobId);
         boolean threw = true;
         try {
-            ByteStreams.skipFully(stream, pos);
+            IOUtils.skipFully(stream, pos);
             int readCount = stream.read(buff, off, length);
             threw = false;
             return readCount;

@@ -28,7 +28,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
@@ -263,7 +263,7 @@ public class PropertyBuilder<T> {
 
     @NotNull
     public PropertyBuilder<T> setValues(Iterable<T> values) {
-        this.values = CollectionUtils.toList(values);
+        this.values = ListUtils.toList(values);
         return this;
     }
 

@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -501,7 +503,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // Get a handle to the file and open stream
         File file = stagingCache.getIfPresent(ID_PREFIX + 0);
-        final InputStream fStream = Files.asByteSource(file).openStream();
+        final InputStream fStream = new FileInputStream(file);
 
         // task to copy the steam to a file simulating read from the stream
         File temp = folder.newFile();
@@ -719,7 +721,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     private void createGibberishLoad(File home, File pendingUploadFile) throws IOException {
         BufferedWriter writer = null;
         try {
-            writer = Files.newWriter(pendingUploadFile, StandardCharsets.UTF_8);
+            writer = new BufferedWriter(new FileWriter(pendingUploadFile, StandardCharsets.UTF_8));
             FileIOUtils.writeAsLine(writer, "jerhgiuheirghoeoorqehgsjlwjpfkkwpkf", false);
         } finally {
             Closeables.close(writer, true);

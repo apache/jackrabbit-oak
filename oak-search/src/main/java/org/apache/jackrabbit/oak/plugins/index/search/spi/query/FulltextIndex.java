@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
-import org.apache.jackrabbit.guava.common.primitives.Chars;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
@@ -280,7 +279,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     /**
      * Following chars are used as operators in Lucene Query and should be escaped
      */
-    private static final char[] QUERY_OPERATORS = {':' , '/', '!', '&', '|', '='};
+    private static final String QUERY_OPERATORS =
+            new String(new char[] {':', '/', '!', '&', '|', '='});
 
     /**
      * Following logic is taken from org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
@@ -307,7 +307,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                     escaped = false;
                 }
                 rewritten.append(c);
-            } else if (Chars.contains(QUERY_OPERATORS, c)) {
+            } else if (QUERY_OPERATORS.indexOf(c) >= 0) {
                 rewritten.append('\\').append(c);
             } else {
                 if (escaped) {

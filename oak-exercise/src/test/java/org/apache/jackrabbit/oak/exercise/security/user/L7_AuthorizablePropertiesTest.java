@@ -22,7 +22,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -125,7 +124,7 @@ public class L7_AuthorizablePropertiesTest extends AbstractJCRTest {
         Node node = getAuthorizableNode(testUser);
 
         // EXERCISE: build the list of existing user properties rel paths
-        List<String> userPropertiesPath = ImmutableList.of();
+        List<String> userPropertiesPath = List.of();
         for (String relPath : userPropertiesPath) {
             assertTrue(testUser.hasProperty(relPath));
         }
@@ -139,13 +138,13 @@ public class L7_AuthorizablePropertiesTest extends AbstractJCRTest {
         assertArrayEquals(petsExpected, node.getProperty(expectedRelPath).getValues());
 
         // EXERCISE: build a list of protected JCR properties that cannot be accessed using the Authorizable interface
-        List<String> protectedJcrPropertyNames = ImmutableList.of();
+        List<String> protectedJcrPropertyNames = List.of();
         for (String relPath : protectedJcrPropertyNames) {
             assertFalse(testUser.hasProperty(relPath));
         }
 
         // EXERCISE: build a list of protected properties defined by the authorizable or user node type definitions that cannot be accessed using the Authorizable interface
-        List<String> protectedAuthorizablePropertyNames = ImmutableList.of();
+        List<String> protectedAuthorizablePropertyNames = List.of();
         for (String relPath : protectedAuthorizablePropertyNames) {
             assertFalse(testUser.hasProperty(relPath));
         }

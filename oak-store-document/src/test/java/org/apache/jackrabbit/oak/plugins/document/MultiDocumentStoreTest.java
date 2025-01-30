@@ -40,8 +40,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
     public MultiDocumentStoreTest(DocumentStoreFixture dsf) {

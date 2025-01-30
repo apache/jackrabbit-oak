@@ -33,12 +33,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import ch.qos.logback.classic.Level;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
@@ -47,7 +44,8 @@ import com.mongodb.client.MongoCollection;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectorFileState;
@@ -190,7 +188,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             Iterator<String> idIter =
                 ((GarbageCollectableBlobStore) ds.getBlobStore())
                     .resolveChunks(b.toString());
-            set.addAll(CollectionUtils.toList(idIter));
+            set.addAll(ListUtils.toList(idIter));
         }
         ds.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return set;
@@ -208,7 +206,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void gcDirectMongoDelete() throws Exception {
         DataStoreState state = setUp(true);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
 
@@ -239,7 +237,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         state.blobsAdded.addAll(specialCharNodeBlobs);
         state.blobsPresent.addAll(specialCharNodeBlobs);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
     
@@ -247,14 +245,14 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void noGc() throws Exception {
         DataStoreState state = setUp(true);
         Set<String> existingAfterGC = gc(86400);
-        assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
     }    
 
     @Test
     public void gcVersionDelete() throws Exception {
         DataStoreState state = setUp(false);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
     @Test
@@ -262,7 +260,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         DataStoreState state = setUp(true);
         addInlined();
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
     
     @Test
@@ -270,7 +268,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         DataStoreState state = setUp(false);
         addInlined();
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
     
     @Test
@@ -301,7 +299,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         assertTrue("blobsAdded: " + state.blobsAdded +
                         ", blobsPresent: " + state.blobsPresent +
                         ", existingAfterGC: " + existingAfterGC,
-                Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+                SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
         
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gcObj = init(86400, executor);
@@ -320,8 +318,8 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
         GarbageCollectableBlobStore store = (GarbageCollectableBlobStore)
                                                 mk.getNodeStore().getBlobStore();
-        long count = store.countDeleteChunks(ImmutableList.of(existing.get(rand.nextInt(existing.size()))), 0);
-    
+        long count = store.countDeleteChunks(List.of(existing.get(rand.nextInt(existing.size()))), 0);
+
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gcObj = init(86400, executor);
         long candidates = gcObj.checkConsistency();
@@ -357,8 +355,8 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         Set<String> existingAfterGC = iterate();
         log.info("{} Blobs existing after gc {}", existingAfterGC.size(), existingAfterGC);
     
-        assertTrue(Sets.difference(state.blobsPresent, existingAfterGC).isEmpty());
-        assertEquals(gc.additionalBlobs, Sets.symmetricDifference(state.blobsPresent, existingAfterGC));
+        assertTrue(SetUtils.difference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertEquals(gc.additionalBlobs, SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC));
     }
 
     @Test
@@ -456,7 +454,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             repoId = ClusterRepositoryInfo.getOrCreateId(store);
             ((SharedDataStore) store.getBlobStore()).setRepositoryId(repoId);
         }
-        if (Strings.isNullOrEmpty(root)) {
+        if (StringUtils.isEmpty(root)) {
             root = folder.newFolder().getAbsolutePath();
         }
 

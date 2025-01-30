@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -51,6 +50,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -69,8 +70,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
     static final String TEST_PATH_2 = "/test2";
 
-    static final List<String> NODE_PATHS = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_PATH_2, TEST_CHILD_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B2_PATH);
-    static final List<String> TP_PATHS = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B_C_PATH + "/nonexisting");
+    static final List<String> NODE_PATHS = List.of(ROOT_PATH, TEST_PATH, TEST_PATH_2, TEST_CHILD_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B2_PATH);
+    static final List<String> TP_PATHS = List.of(ROOT_PATH, TEST_PATH, TEST_A_PATH, TEST_A_B_PATH, TEST_A_B_C_PATH, TEST_A_B_C_PATH + "/nonexisting");
 
     static final PropertyState PROPERTY_STATE = PropertyStates.createProperty("propName", "val");
 
@@ -238,14 +239,13 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     List<AggregatedPermissionProvider> getAggregatedProviders(@NotNull String workspaceName,
                                                               @NotNull AuthorizationConfiguration config,
                                                               @NotNull Set<Principal> principals) {
-        ImmutableList<AggregatedPermissionProvider> l = ImmutableList.of(
+        List<AggregatedPermissionProvider> l = Stream.of(
                     (AggregatedPermissionProvider) config.getPermissionProvider(root, workspaceName, principals),
-                    getTestPermissionProvider());
+                    getTestPermissionProvider()).collect(Collectors.toList());
         if (reverseOrder()) {
-            return l.reverse();
-        } else {
-            return l;
+            Collections.reverse(l);
         }
+        return l;
     }
 
     CompositePermissionProvider createPermissionProvider(Principal... principals) {
@@ -572,7 +572,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
     @Test
     public void testTreePermissionGetChild() throws Exception {
-        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+        List<String> childNames = List.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(rootTree);
@@ -587,7 +587,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
 
     @Test
     public void testTreePermissionGetChildOR() throws Exception {
-        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+        List<String> childNames = List.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(rootTree);

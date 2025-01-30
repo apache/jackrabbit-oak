@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
@@ -55,8 +56,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import org.apache.jackrabbit.guava.common.io.BaseEncoding;
 
 @RunWith(Parameterized.class)
 public class ReferenceBinaryIT {
@@ -179,7 +178,7 @@ public class ReferenceBinaryIT {
         OakFileDataStore fds = new OakFileDataStore();
         byte[] key = new byte[256];
         new Random().nextBytes(key);
-        fds.setReferenceKeyEncoded(BaseEncoding.base64().encode(key));
+        fds.setReferenceKeyEncoded(Base64.getEncoder().encodeToString(key));
         fds.setMinRecordLength(4092);
         fds.init(file.getAbsolutePath());
         return new DataStoreBlobStore(fds);

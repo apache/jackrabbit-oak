@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Set;
 import javax.jcr.NamespaceRegistry;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -55,7 +54,7 @@ public class PrefixPatternTest extends AbstractSecurityTest {
             testTree.remove();
         }
 
-        List<String> notMatching = ImmutableList.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_MIX, "any");
+        List<String> notMatching = List.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_MIX, "any");
         for (String prefix : notMatching) {
             String name = (prefix.isEmpty()) ? "name" : prefix + ":name";
             Tree testTree = TreeUtil.addChild(rootTree, name, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -71,7 +70,7 @@ public class PrefixPatternTest extends AbstractSecurityTest {
 
     @Test
     public void testMatchesPath() {
-        List<String> notMatching = ImmutableList.of("/", "/a", "/d/jcr:e/a");
+        List<String> notMatching = List.of("/", "/a", "/d/jcr:e/a");
         for (String p : notMatching) {
             assertFalse(p, pattern.matches(p));
         }

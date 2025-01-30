@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -93,7 +93,7 @@ public class ChunkedOakDirectoryTest extends OakDirectoryTestBase {
 
     @Override
     void assertBlobSizeInWrite(PropertyState jcrData, int blobSize, int fileSize) {
-        List<Blob> blobs = CollectionUtils.toList(jcrData.getValue(BINARIES));
+        List<Blob> blobs = ListUtils.toList(jcrData.getValue(BINARIES));
         assertEquals(blobSize + UNIQUE_KEY_SIZE, blobs.get(0).length());
     }
 

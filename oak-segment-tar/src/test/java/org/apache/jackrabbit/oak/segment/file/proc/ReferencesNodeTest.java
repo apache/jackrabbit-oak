@@ -30,7 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.junit.Test;
 
@@ -53,7 +53,7 @@ public class ReferencesNodeTest {
         Backend backend = mock(Backend.class);
         when(backend.getSegmentReferences("s")).thenReturn(Optional.of(references));
 
-        assertEquals(new HashSet<>(references), CollectionUtils.toSet(new ReferencesNode(backend, "s").getChildNodeNames()));
+        assertEquals(new HashSet<>(references), SetUtils.toSet(new ReferencesNode(backend, "s").getChildNodeNames()));
     }
 
 }

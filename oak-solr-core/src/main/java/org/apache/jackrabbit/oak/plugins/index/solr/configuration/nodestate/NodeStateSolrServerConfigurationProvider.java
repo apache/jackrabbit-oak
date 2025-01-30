@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
+@Deprecated(forRemoval=true, since="1.74.0")
 public class NodeStateSolrServerConfigurationProvider implements SolrServerConfigurationProvider {
 
     private final NodeState nodeState;

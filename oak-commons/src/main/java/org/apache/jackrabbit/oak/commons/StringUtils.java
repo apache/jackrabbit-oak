@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,5 +108,25 @@ public class StringUtils {
             size = Integer.MAX_VALUE;
         }
         return (int) size;
+    }
+
+    /**
+     * Returns the string if it is not empty, or {@code null} otherwise.
+     *
+     * @param string the string to test and possibly return, may be {@code null}
+     * @return the input string if it is not empty, or {@code null} if the input string is {@code null} or empty
+     */
+    public static String emptyToNull(@Nullable String string) {
+        return isNullOrEmpty(string) ? null : string;
+    }
+
+    /**
+     * Checks if a string is null or empty.
+     *
+     * @param string the string to check, may be {@code null}
+     * @return {@code true} if the string is null or empty, {@code false} otherwise
+     */
+    static boolean isNullOrEmpty(@Nullable String string) {
+        return string == null || string.isEmpty();
     }
 }

@@ -20,10 +20,9 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Maps.immutableEntry;
-
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.COMMITROOT_OR_REVISIONS;
 
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -158,7 +157,7 @@ final class MissingBcSweeper2 {
                     lastYield = context.getClock().getTime();
                     yieldCnt = 0;
                 }
-                return immutableEntry(doc.getPath(), sweepOne(doc));
+                return new SimpleImmutableEntry<>(doc.getPath(), sweepOne(doc));
             }
         }::apply), input -> input.getValue() != null);
     }

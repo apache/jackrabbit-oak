@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -274,13 +273,13 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()), new CacheValidatorProvider(principals, getTreeProvider()));
+        return List.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()), new CacheValidatorProvider(principals, getTreeProvider()));
     }
 
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
-        return ImmutableList.of(new RepMembersConflictHandler(), new CacheConflictHandler());
+        return List.of(new RepMembersConflictHandler(), new CacheConflictHandler());
     }
 
     @NotNull
@@ -322,8 +321,10 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     @Override
     public CachedMembershipReader getCachedMembershipReader(@NotNull Root root,
-            @NotNull CachePrincipalFactory cachePrincipalFactory, @NotNull String propName) {
-        CacheConfiguration cacheConfig = CacheConfiguration.fromUserConfiguration(this, propName);
+            @NotNull CachePrincipalFactory cachePrincipalFactory,
+            @NotNull String propName,
+            @NotNull String expirationPropName) {
+        CacheConfiguration cacheConfig = CacheConfiguration.fromUserConfiguration(this, propName, expirationPropName);
         if (cacheConfig.isCacheEnabled()) {
             return new CachedPrincipalMembershipReader(cacheConfig, root, cachePrincipalFactory);
         } else {

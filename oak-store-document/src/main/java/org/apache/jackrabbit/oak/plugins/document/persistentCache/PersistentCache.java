@@ -35,8 +35,6 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Dyna
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheActionDispatcher;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Broadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.InMemoryBroadcaster;
-import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.TCPBroadcaster;
-import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.UDPBroadcaster;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.h2.mvstore.FileStore;
 import org.h2.mvstore.MVMap;
@@ -228,12 +226,6 @@ public class PersistentCache implements Broadcaster.Listener {
             return;
         } else if (broadcast.equals("inMemory")) {
             broadcaster = InMemoryBroadcaster.INSTANCE;
-        } else if (broadcast.startsWith("udp:")) {
-            String config = broadcast.substring("udp:".length(), broadcast.length());
-            broadcaster = new UDPBroadcaster(config);
-        } else if (broadcast.startsWith("tcp:")) {
-            String config = broadcast.substring("tcp:".length(), broadcast.length());
-            broadcaster = new TCPBroadcaster(config);
         } else {
             throw new IllegalArgumentException("Unknown broadcaster type " + broadcast);
         }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -25,7 +24,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -44,6 +43,7 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
@@ -100,7 +100,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
 
     @NotNull
     private CompositeAccessControlManager createComposite(@NotNull AggregationFilter aggregationFilter, @NotNull AccessControlManager... acMgrs) {
-        return new CompositeAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableList.copyOf(acMgrs), aggregationFilter);
+        return new CompositeAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), Arrays.asList(acMgrs), aggregationFilter);
     }
 
     @Test
@@ -109,7 +109,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         Set<Privilege> result = Set.of(acMgr.getSupportedPrivileges("/"));
         assertEquals(expected, result);
 
-        result = CollectionUtils.toSet(acMgr.getSupportedPrivileges(TEST_PATH));
+        result = SetUtils.toSet(acMgr.getSupportedPrivileges(TEST_PATH));
         assertTrue(result.containsAll(expected));
         assertTrue(result.contains(TestPrivilege.INSTANCE));
     }
@@ -123,7 +123,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
             }
         }
 
-        Set<AccessControlPolicy> applicable = CollectionUtils.toSet(acMgr.getApplicablePolicies(TEST_PATH));
+        Set<AccessControlPolicy> applicable = SetUtils.toSet(acMgr.getApplicablePolicies(TEST_PATH));
         assertEquals(2, applicable.size());
         assertTrue(applicable.contains(TestPolicy.INSTANCE));
     }

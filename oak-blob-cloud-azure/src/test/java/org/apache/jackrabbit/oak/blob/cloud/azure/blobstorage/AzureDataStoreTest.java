@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import com.microsoft.azure.storage.StorageException;
 
@@ -631,7 +631,7 @@ public class AzureDataStoreTest {
     public void testBackendDeleteMetadataRecord() throws DataStoreException {
         backend.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : Arrays.asList("invalid", "", null)) {
-            if (Strings.isNullOrEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 try {
                     backend.deleteMetadataRecord(name);
                 }
@@ -649,7 +649,7 @@ public class AzureDataStoreTest {
     public void testBackendMetadataRecordExists() throws DataStoreException {
         backend.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : Arrays.asList("invalid", "", null)) {
-            if (Strings.isNullOrEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 try {
                     backend.metadataRecordExists(name);
                 }

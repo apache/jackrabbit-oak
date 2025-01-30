@@ -25,7 +25,7 @@ import java.util.Random;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -189,7 +189,7 @@ public class LastRevRecoveryRandomizedIT {
 
     private void addNode() {
         String p = choosePath();
-        List<String> elements = CollectionUtils.toList(PathUtils.elements(p));
+        List<String> elements = ListUtils.toList(PathUtils.elements(p));
         if (elements.size() > 2) {
             elements = elements.subList(1, elements.size() - 1);
             elements = elements.subList(0, random.nextInt(elements.size() + 1));

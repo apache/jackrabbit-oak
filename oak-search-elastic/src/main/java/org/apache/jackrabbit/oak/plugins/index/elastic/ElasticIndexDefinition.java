@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -187,7 +187,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final InferenceDefinition inferenceDefinition;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
-    private final List<PropertyDefinition> dynamicBoostProperties;
+    private final List<ElasticPropertyDefinition> dynamicBoostProperties;
     private final List<PropertyDefinition> similarityProperties;
     private final List<PropertyDefinition> similarityTagsProperties;
     private final String[] similarityTagsFields;
@@ -223,7 +223,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         this.propertiesByName = getDefinedRules()
                 .stream()
-                .flatMap(rule -> Stream.concat(CollectionUtils.toStream(rule.getProperties()),
+                .flatMap(rule -> Stream.concat(StreamUtils.toStream(rule.getProperties()),
                         rule.getFunctionRestrictions().stream()))
                 .filter(pd -> pd.index) // keep only properties that can be indexed
                 .collect(Collectors.groupingBy(pd -> {
@@ -238,6 +238,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .stream()
                 .flatMap(IndexingRule::getNamePatternsProperties)
                 .filter(pd -> pd.dynamicBoost)
+                .map(pd -> (ElasticPropertyDefinition) pd)
                 .collect(Collectors.toList());
 
         this.similarityProperties = getDefinedRules()
@@ -278,7 +279,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         return propertiesByName;
     }
 
-    public List<PropertyDefinition> getDynamicBoostProperties() {
+    public List<ElasticPropertyDefinition> getDynamicBoostProperties() {
         return dynamicBoostProperties;
     }
 
@@ -382,7 +383,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * Class to help with {@link ElasticIndexDefinition} creation.
      * The built object represents the index definition only without the node structure.
      */
-    public static class Builder extends IndexDefinition.Builder {
+    public static class Builder extends IndexDefinition.Builder<ElasticIndexDefinition> {
 
         private final String indexPrefix;
 
@@ -392,7 +393,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         @Override
         public ElasticIndexDefinition build() {
-            return (ElasticIndexDefinition) super.build();
+            return super.build();
         }
 
         @Override
@@ -402,7 +403,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         }
 
         @Override
-        protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
+        protected ElasticIndexDefinition createInstance(NodeState indexDefnStateToUse) {
             return new ElasticIndexDefinition(root, indexDefnStateToUse, indexPath, indexPrefix);
         }
     }
@@ -432,12 +433,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
          */
         public InferenceDefinition(NodeState inferenceNode) {
             if (inferenceNode.hasChildNode("properties")) {
-                this.properties = CollectionUtils.toStream(inferenceNode.getChildNode("properties").getChildNodeEntries())
+                this.properties = StreamUtils.toStream(inferenceNode.getChildNode("properties").getChildNodeEntries())
                         .map(cne -> new Property(cne.getName(), cne.getNodeState()))
                         .collect(Collectors.toList());
             }
             if (inferenceNode.hasChildNode("queries")) {
-                this.queries = CollectionUtils.toStream(inferenceNode.getChildNode("queries").getChildNodeEntries())
+                this.queries = StreamUtils.toStream(inferenceNode.getChildNode("queries").getChildNodeEntries())
                         .map(cne -> new Query(cne.getName(), cne.getNodeState()))
                         .collect(Collectors.toList());
             }

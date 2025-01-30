@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgumen
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -75,6 +74,7 @@ import java.util.function.Supplier;
 
 import javax.jcr.PropertyType;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -82,7 +82,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -135,10 +136,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
-
 import org.apache.jackrabbit.guava.common.base.Suppliers;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
@@ -164,7 +162,7 @@ public final class DocumentNodeStore
      * List of meta properties which are created by DocumentNodeStore and which needs to be
      * retained in any cloned copy of DocumentNodeState.
      */
-    public static final List<String> META_PROP_NAMES = ImmutableList.of(
+    public static final List<String> META_PROP_NAMES = List.of(
             DocumentBundlor.META_PROP_PATTERN,
             DocumentBundlor.META_PROP_BUNDLING_PATH,
             DocumentBundlor.META_PROP_NON_BUNDLED_CHILD,
@@ -551,7 +549,7 @@ public final class DocumentNodeStore
      * reverts changes done by commits in the set that are older than the
      * current head revision.
      */
-    private final Set<Revision> inDoubtTrunkCommits = CollectionUtils.newConcurrentHashSet();
+    private final Set<Revision> inDoubtTrunkCommits = SetUtils.newConcurrentHashSet();
 
     /**
      * Contains journal entry revisions (branch commit style) that were created
@@ -560,7 +558,7 @@ public final class DocumentNodeStore
      * upon each backgroundWrite. It is used to avoid duplicate journal entries
      * that would otherwise be created as a result of merge (normal plus exclusive) retries
      */
-    private final Set<String> pendingRollbackInvalidations = CollectionUtils.newConcurrentHashSet();
+    private final Set<String> pendingRollbackInvalidations = SetUtils.newConcurrentHashSet();
 
     private final Predicate<Path> nodeCachePredicate;
 
@@ -1962,7 +1960,7 @@ public final class DocumentNodeStore
         // reset each branch commit in reverse order
         Map<Path, UpdateOp> operations = new HashMap<>();
         AtomicReference<Revision> currentRev = new AtomicReference<>();
-        for (Revision r : reverse(revs)) {
+        for (Revision r : ListUtils.reverse(revs)) {
             operations.clear();
             Revision previous = currentRev.getAndSet(r);
             if (previous == null) {
@@ -2247,7 +2245,7 @@ public final class DocumentNodeStore
             return null;
         }
         // make sure all changes up to checkpoint are visible
-        suspendUntilAll(CollectionUtils.toSet(rv));
+        suspendUntilAll(SetUtils.toSet(rv));
         return getRoot(rv);
     }
 
@@ -4015,7 +4013,7 @@ public final class DocumentNodeStore
     
     @Override
     public boolean isVisible(@NotNull String visibilityToken, long maxWaitMillis) throws InterruptedException {
-        if (Strings.isNullOrEmpty(visibilityToken)) {
+        if (StringUtils.isEmpty(visibilityToken)) {
             // we've asked for @Nonnull..
             // hence throwing an exception
             throw new IllegalArgumentException("visibilityToken must not be null or empty");
@@ -4031,7 +4029,7 @@ public final class DocumentNodeStore
         
         // otherwise wait until the visibility token's revisions all become visible
         // (or maxWaitMillis has passed)
-        commitQueue.suspendUntilAll(CollectionUtils.toSet(visibilityTokenRv), maxWaitMillis);
+        commitQueue.suspendUntilAll(SetUtils.toSet(visibilityTokenRv), maxWaitMillis);
         
         // if we got interrupted above would throw InterruptedException
         // otherwise, we don't know why suspendUntilAll returned, so

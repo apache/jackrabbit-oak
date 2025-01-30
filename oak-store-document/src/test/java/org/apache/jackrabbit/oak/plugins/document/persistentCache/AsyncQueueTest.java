@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
@@ -155,7 +155,7 @@ public class AsyncQueueTest {
         }
 
         public boolean addInvalidate(Iterable<PathRev> keys) {
-            invalidateActions.addAll(CollectionUtils.toList(keys));
+            invalidateActions.addAll(ListUtils.toList(keys));
             return wrapped.addInvalidate(keys);
         }
     }

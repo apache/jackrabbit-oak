@@ -36,8 +36,6 @@ import java.util.Map;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;

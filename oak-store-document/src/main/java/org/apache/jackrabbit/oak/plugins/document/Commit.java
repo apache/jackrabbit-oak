@@ -31,7 +31,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -408,7 +408,7 @@ public class Commit {
                 success = true;
             } else {
                 int batchSize = nodeStore.getCreateOrUpdateBatchSize();
-                for (List<UpdateOp> updates : CollectionUtils.partitionList(changedNodes, batchSize)) {
+                for (List<UpdateOp> updates : ListUtils.partitionList(changedNodes, batchSize)) {
                     List<NodeDocument> oldDocs = store.createOrUpdate(NODES, updates);
                     checkConflicts(oldDocs, updates);
                     checkSplitCandidate(oldDocs);

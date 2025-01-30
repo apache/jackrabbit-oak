@@ -146,7 +146,7 @@ default config files depending on options provided (like --mongo ) and then
 construct the Oak Repository instance via `OakOSGiRepositoryFactory`
 
     private Repository createRepository(List<String> repoConfigs, File repoHomeDir) throws RepositoryException {
-        Map<String,Object> config = Maps.newHashMap();
+        Map<String,Object> config = new HashMap<>();
         config.put(OakOSGiRepositoryFactory.REPOSITORY_HOME, repoHomeDir.getAbsolutePath());
         config.put(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE, commaSepFilePaths(repoConfigs));
         config.put(OakOSGiRepositoryFactory.REPOSITORY_SHUTDOWN_ON_TIMEOUT, false);

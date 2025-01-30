@@ -401,7 +401,7 @@ public class IncrementalStoreTest {
         readOnlyNodeStore.retrieve(finalCheckpoint);
         return new IncrementalFlatFileStoreStrategy(
                 readOnlyNodeStore, initialCheckpoint, finalCheckpoint, sortFolder.getRoot(), preferredPathElements,
-                algorithm, pathPredicate, new IncrementalFlatFileStoreNodeStateEntryWriter(fileBlobStore));
+                algorithm, pathPredicate, new IncrementalFlatFileStoreNodeStateEntryWriter(fileBlobStore), Long.MAX_VALUE);
     }
 
     private void createBaseContent(NodeStore rwNodeStore) throws CommitFailedException {
@@ -709,6 +709,9 @@ public class IncrementalStoreTest {
 
     private Backend createNodeStore(boolean readOnly) {
         MongoConnection c = connectionFactory.getConnection();
+        if (!readOnly) {
+            MongoUtils.dropCollections(c.getDatabase());
+        }
         DocumentMK.Builder builder = builderProvider.newBuilder();
         builder.setMongoDB(c.getMongoClient(), c.getDBName());
         if (readOnly) {

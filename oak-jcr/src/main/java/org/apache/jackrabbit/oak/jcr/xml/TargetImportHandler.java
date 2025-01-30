@@ -25,6 +25,8 @@ import java.util.Set;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
@@ -35,9 +37,6 @@ import org.apache.jackrabbit.oak.spi.xml.Importer;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-
 /**
  * {@code TargetImportHandler} serves as the base class for the concrete
  * classes {@code {@link DocViewImportHandler}} and
@@ -47,7 +46,7 @@ public abstract class TargetImportHandler extends DefaultHandler {
 
     protected final Importer importer;
     protected final SessionContext sessionContext;
-    private final ListMultimap<String, String> documentContext = ArrayListMultimap.create();
+    private final ListValuedMap<String, String> documentContext = new ArrayListValuedHashMap<>();
     private Map<String, String> documentPrefixMap = Collections.emptyMap();
 
     protected TargetImportHandler(Importer importer, SessionContext sessionContext) {

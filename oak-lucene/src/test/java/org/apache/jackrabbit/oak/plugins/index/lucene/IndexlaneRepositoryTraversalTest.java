@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -131,8 +130,8 @@ public class IndexlaneRepositoryTraversalTest {
         Tree test1 = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild("mynodetype");
         test1.setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
         test1.setProperty("type", "property");
-        test1.setProperty("propertyNames", ImmutableList.of("jcr:primaryType", "jcr:mixinTypes"), Type.NAMES);
-        test1.setProperty("declaringNodeTypes", ImmutableList.of("oak:QueryIndexDefinition"), Type.NAMES);
+        test1.setProperty("propertyNames", List.of("jcr:primaryType", "jcr:mixinTypes"), Type.NAMES);
+        test1.setProperty("declaringNodeTypes", List.of("oak:QueryIndexDefinition"), Type.NAMES);
         test1.setProperty("nodeTypeListDefined", true);
         test1.setProperty("reindex", true);
         root.commit();

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization.principalbased;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,7 +37,7 @@ public class PermissionEvaluationTest extends PrinicipalBasedReadTest {
             logout = true;
         }
         try {
-            List<String> permissionNames = ImmutableList.copyOf(Permissions.PERMISSION_NAMES.values());
+            List<String> permissionNames = List.copyOf(Permissions.PERMISSION_NAMES.values());
             int access = 0;
             int noAccess = 0;
             long start = System.currentTimeMillis();

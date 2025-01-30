@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.security.InvalidKeyException;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
@@ -83,7 +83,7 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
             throw new IllegalStateException(e);
         }
 
-        tmpDir = Files.createTempDir();
+        tmpDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
 

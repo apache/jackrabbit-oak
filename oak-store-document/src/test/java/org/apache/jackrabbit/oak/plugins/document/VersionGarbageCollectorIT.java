@@ -54,7 +54,6 @@ import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -64,7 +63,6 @@ import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionNotRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionRemovedFromAllDocuments;
@@ -101,11 +99,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Queues;
 import com.mongodb.ReadPreference;
 
@@ -113,7 +110,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.FailingDocumentStore.FailedUpdateOpListener;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode;
@@ -3070,11 +3067,11 @@ public class VersionGarbageCollectorIT {
         store1.runBackgroundOperations();
 
         List<NodeDocument> previousDocTestFoo =
-                ImmutableList.copyOf(getDoc("/test/" + subNodeName).getAllPreviousDocs());
+                ListUtils.toList(getDoc("/test/" + subNodeName).getAllPreviousDocs());
         List<NodeDocument> previousDocTestFoo2 =
-                ImmutableList.copyOf(getDoc("/test2/" + subNodeName).getAllPreviousDocs());
+                ListUtils.toList(getDoc("/test2/" + subNodeName).getAllPreviousDocs());
         List<NodeDocument> previousDocRoot =
-                ImmutableList.copyOf(getDoc("/").getAllPreviousDocs());
+                ListUtils.toList(getDoc("/").getAllPreviousDocs());
 
         assertEquals(1, previousDocTestFoo.size());
         assertEquals(1, previousDocTestFoo2.size());
@@ -3096,7 +3093,7 @@ public class VersionGarbageCollectorIT {
 
         //Following would not work for Mongo as the delete happened on the server side
         //And entries from cache are not evicted
-        //assertTrue(ImmutableList.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
+        //assertTrue(List.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
     }
 
     /**
@@ -3485,7 +3482,7 @@ public class VersionGarbageCollectorIT {
         }
         NodeDocument doc = store1.getDocumentStore().find(NODES, id);
         assertNotNull(doc);
-        int numRevs = size(doc.getValueMap("prop").entrySet());
+        int numRevs = IterableUtils.size(doc.getValueMap("prop").entrySet());
         assertTrue("too many revisions: " + numRevs, numRevs < 6000);
     }
 
@@ -3626,7 +3623,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(foo);
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
-        List<String> prevIds = CollectionUtils.toList(Iterators.transform(
+        List<String> prevIds = ListUtils.toList(Iterators.transform(
                 foo.getPreviousDocLeaves(), input -> input.getId()));
 
         // run gc on another document node store
@@ -3813,7 +3810,7 @@ public class VersionGarbageCollectorIT {
 
         NodeDocument doc = getDoc("/foo");
         assertNotNull(doc);
-        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
 
@@ -3824,7 +3821,7 @@ public class VersionGarbageCollectorIT {
 
         doc = getDoc("/foo");
         assertNotNull(doc);
-        prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(0, prevDocs.size());
 
         assertEquals(value, store1.getRoot().getChildNode("foo").getString("prop"));
@@ -3851,7 +3848,7 @@ public class VersionGarbageCollectorIT {
 
         // now /foo must have previous docs
         NodeDocument doc = getDoc("/foo");
-        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
 
@@ -3877,7 +3874,7 @@ public class VersionGarbageCollectorIT {
 
         doc = getDoc("/foo");
         assertNotNull(doc);
-        prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(0, prevDocs.size());
         // check value
         assertEquals(value, store1.getRoot().getChildNode("foo").getString("prop"));

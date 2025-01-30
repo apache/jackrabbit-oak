@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -204,15 +205,15 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
 
     @Test
     public void getAllClusterNodes() {
-        assertEquals(0, Iterables.size(seeker.getAllClusters()));
+        assertEquals(0, IterableUtils.size(seeker.getAllClusters()));
 
         ClusterNodeInfo.getInstance(store, NOOP, null, null, 1);
 
-        assertEquals(1, Iterables.size(seeker.getAllClusters()));
+        assertEquals(1, IterableUtils.size(seeker.getAllClusters()));
 
         ClusterNodeInfo.getInstance(store, NOOP, null, null, 2);
 
-        assertEquals(2, Iterables.size(seeker.getAllClusters()));
+        assertEquals(2, IterableUtils.size(seeker.getAllClusters()));
     }
 
     @Test
@@ -249,7 +250,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         }
         dns.runBackgroundOperations();
         //seeker should return only non split documents
-        int docs = Iterables.size(seeker.getCandidates(0));
+        int docs = IterableUtils.size(seeker.getCandidates(0));
         assertEquals(2, docs);
         markDocumentsForCleanup();
         dns.dispose();

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableTypeException;
@@ -170,7 +169,7 @@ public class UserUtilTest {
 
     @Test
     public void testGetTypeFromTree2() {
-        List<String> test = ImmutableList.of(
+        List<String> test = List.of(
                 UserConstants.NT_REP_AUTHORIZABLE,
                 JcrConstants.NT_FILE
         );
@@ -252,7 +251,7 @@ public class UserUtilTest {
 
     @Test
     public void testGetAuthorizableId() {
-        List<String> test = ImmutableList.of(UserConstants.NT_REP_GROUP, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_USER);
+        List<String> test = List.of(UserConstants.NT_REP_GROUP, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_USER);
         for (String ntName : test) {
             assertEquals("id", UserUtil.getAuthorizableId(createTree(ntName, "id")));
         }
@@ -260,7 +259,7 @@ public class UserUtilTest {
 
     @Test
     public void testGetAuthorizableIdFallback() {
-        List<String> test = ImmutableList.of(UserConstants.NT_REP_GROUP, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_USER);
+        List<String> test = List.of(UserConstants.NT_REP_GROUP, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_USER);
         for (String ntName : test) {
             assertEquals("nName", UserUtil.getAuthorizableId(createTree(ntName, null, "nName")));
         }
@@ -268,7 +267,7 @@ public class UserUtilTest {
 
     @Test
     public void testGetAuthorizableIdNoAuthorizableType() {
-        List<String> test = ImmutableList.of(UserConstants.NT_REP_AUTHORIZABLE, JcrConstants.NT_UNSTRUCTURED);
+        List<String> test = List.of(UserConstants.NT_REP_AUTHORIZABLE, JcrConstants.NT_UNSTRUCTURED);
         for (String ntName : test) {
             assertNull(UserUtil.getAuthorizableId(createTree(ntName, "id")));
         }

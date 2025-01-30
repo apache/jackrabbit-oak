@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -26,6 +24,7 @@ import org.junit.Test;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertFalse;
@@ -58,7 +57,7 @@ public class CompositeTokenProviderTest {
     public void testNullProvider() {
         TokenProvider tp = CompositeTokenProvider.newInstance();
 
-        assertSame(tp, CompositeTokenProvider.newInstance(ImmutableList.<TokenProvider>of()));
+        assertSame(tp, CompositeTokenProvider.newInstance(List.of()));
 
         Credentials creds = new Credentials() {};
 
@@ -82,7 +81,7 @@ public class CompositeTokenProviderTest {
         TokenProvider tp = CompositeTokenProvider.newInstance(base);
 
         assertSame(base, tp);
-        assertSame(base, CompositeTokenProvider.newInstance(ImmutableList.of(base)));
+        assertSame(base, CompositeTokenProvider.newInstance(List.of(base)));
     }
 
     @Test
@@ -93,7 +92,7 @@ public class CompositeTokenProviderTest {
     @Test
     public void testCreateCompositeProviderFromList() {
         TokenProvider base = mock(TokenProvider.class);
-        TokenProvider tp = CompositeTokenProvider.newInstance(ImmutableList.of(base, base));
+        TokenProvider tp = CompositeTokenProvider.newInstance(List.of(base, base));
         assertTrue(tp instanceof CompositeTokenProvider);
     }
 

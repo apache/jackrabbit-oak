@@ -50,7 +50,7 @@ import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
@@ -565,10 +565,10 @@ public class DocumentNodeStoreService {
                 setJournalGCMaxAge(config.journalGCMaxAge()).
                 setNodeCachePathPredicate(createCachePredicate());
 
-        if (!Strings.isNullOrEmpty(persistentCache)) {
+        if (!StringUtils.isEmpty(persistentCache)) {
             builder.setPersistentCache(persistentCache);
         }
-        if (!Strings.isNullOrEmpty(journalCache)) {
+        if (!StringUtils.isEmpty(journalCache)) {
             builder.setJournalCache(journalCache);
         }
 
@@ -602,7 +602,7 @@ public class DocumentNodeStoreService {
 
         Set<Path> paths = new HashSet<>();
         for (String p : config.persistentCacheIncludes()) {
-            p = p != null ? Strings.emptyToNull(p.trim()) : null;
+            p = p != null ? org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(p.trim()) : null;
             if (p != null) {
                 paths.add(Path.fromString(p));
             }
@@ -621,7 +621,7 @@ public class DocumentNodeStoreService {
     }
 
     private boolean isNodeStoreProvider() {
-        return !Strings.isNullOrEmpty(config.role());
+        return !StringUtils.isEmpty(config.role());
     }
 
     private boolean isContinuousRevisionGC() {
@@ -634,7 +634,7 @@ public class DocumentNodeStoreService {
     private String getVersionGCExpression() {
         String defaultExpr = CONTINUOUS_RGC_EXPR;
         String expr = config.versionGCExpression();
-        if (Strings.isNullOrEmpty(expr)) {
+        if (StringUtils.isEmpty(expr)) {
             expr = defaultExpr;
         }
         // validate expression
@@ -966,7 +966,7 @@ public class DocumentNodeStoreService {
 
     private String resolvePath(String value, String defaultValue) {
         String path = value;
-        if (Strings.isNullOrEmpty(value)) {
+        if (StringUtils.isEmpty(value)) {
             path = defaultValue;
         }
         if ("-".equals(path)) {
@@ -979,7 +979,7 @@ public class DocumentNodeStoreService {
 
     private String getRepositoryHome() {
         String repoHome = config.repository_home();
-        if (Strings.isNullOrEmpty(repoHome)) {
+        if (StringUtils.isEmpty(repoHome)) {
             repoHome = DEFAULT_PROP_HOME;
         }
         return repoHome;

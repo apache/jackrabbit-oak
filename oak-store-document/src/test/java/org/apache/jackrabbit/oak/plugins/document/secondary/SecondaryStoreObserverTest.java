@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
 import java.io.IOException;
@@ -40,7 +39,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -61,7 +59,7 @@ public class SecondaryStoreObserverTest {
 
     @Test
     public void basicSetup() throws Exception{
-        PathFilter pathFilter = new PathFilter(of("/a"), empty);
+        PathFilter pathFilter = new PathFilter(List.of("/a"), empty);
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
 
@@ -77,7 +75,7 @@ public class SecondaryStoreObserverTest {
 
     @Test
     public void childNodeAdded() throws Exception{
-        PathFilter pathFilter = new PathFilter(of("/a"), empty);
+        PathFilter pathFilter = new PathFilter(List.of("/a"), empty);
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
 
@@ -95,7 +93,7 @@ public class SecondaryStoreObserverTest {
 
     @Test
     public void childNodeChangedAndExclude() throws Exception{
-        PathFilter pathFilter = new PathFilter(of("/a"), of("/a/b"));
+        PathFilter pathFilter = new PathFilter(List.of("/a"), List.of("/a/b"));
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
 
@@ -112,7 +110,7 @@ public class SecondaryStoreObserverTest {
 
     @Test
     public void childNodeDeleted() throws Exception{
-        PathFilter pathFilter = new PathFilter(of("/a"), empty);
+        PathFilter pathFilter = new PathFilter(List.of("/a"), empty);
         SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
         primary.addObserver(observer);
 

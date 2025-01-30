@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.util.ISO8601;
@@ -366,7 +366,7 @@ public final class TreeUtil {
             return;
         }
 
-        Set<String> subMixins = CollectionUtils.toSet(getNames(type, NodeTypeConstants.REP_MIXIN_SUBTYPES));
+        Set<String> subMixins = SetUtils.toSet(getNames(type, NodeTypeConstants.REP_MIXIN_SUBTYPES));
 
         for (String mixin : existingMixins.apply(tree)) {
             if (mixinName.equals(mixin) || subMixins.contains(mixin)) {

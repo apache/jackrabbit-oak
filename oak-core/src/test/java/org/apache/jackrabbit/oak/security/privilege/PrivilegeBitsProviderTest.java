@@ -22,7 +22,7 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -106,12 +106,12 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
 
     @Test
     public void testGetAggregatedNamesJcrAll() throws Exception {
-        assertEquals(NON_AGGREGATE_PRIVILEGES, CollectionUtils.toSet(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
+        assertEquals(NON_AGGREGATE_PRIVILEGES, SetUtils.toSet(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
     }
 
     @Test
     public void testGetAggregatedNamesIncludingJcrAll() throws Exception {
-        assertEquals(NON_AGGREGATE_PRIVILEGES, CollectionUtils.toSet(bitsProvider.getAggregatedPrivilegeNames(JCR_READ, JCR_WRITE, JCR_ALL)));
+        assertEquals(NON_AGGREGATE_PRIVILEGES, SetUtils.toSet(bitsProvider.getAggregatedPrivilegeNames(JCR_READ, JCR_WRITE, JCR_ALL)));
     }
 
     @Test
@@ -119,12 +119,12 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
         PrivilegeManager pMgr = getPrivilegeManager(root);
         pMgr.registerPrivilege("test1", true, null);
 
-        assertEquals(Set.of("test1"), CollectionUtils.toSet(bitsProvider.getAggregatedPrivilegeNames("test1")));
+        assertEquals(Set.of("test1"), SetUtils.toSet(bitsProvider.getAggregatedPrivilegeNames("test1")));
 
         Set<String> expected = new HashSet<>(NON_AGGREGATE_PRIVILEGES);
         expected.add("test1");
-        assertEquals(expected, CollectionUtils.toSet(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
-        assertEquals(expected, CollectionUtils.toSet(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
+        assertEquals(expected, SetUtils.toSet(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
+        assertEquals(expected, SetUtils.toSet(bitsProvider.getAggregatedPrivilegeNames(JCR_ALL)));
 
     }
 }

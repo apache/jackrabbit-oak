@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.blob.split;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -30,12 +30,9 @@ import java.util.Random;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
-import org.apache.jackrabbit.oak.spi.blob.split.DefaultSplitBlobStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.io.Files;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -61,7 +58,7 @@ public class SplitBlobStoreTest {
 
     @Before
     public void setup() throws IOException {
-        repository = Files.createTempDir();
+        repository = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         oldBlobStore = new FileBlobStore(repository.getPath() + "/old");
         newBlobStore = new FileBlobStore(repository.getPath() + "/new");
         splitBlobStore = new DefaultSplitBlobStore(repository.getPath(), oldBlobStore, newBlobStore);

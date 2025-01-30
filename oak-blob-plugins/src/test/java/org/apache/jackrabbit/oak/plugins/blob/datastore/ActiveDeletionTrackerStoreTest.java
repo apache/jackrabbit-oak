@@ -29,10 +29,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.ActiveDeletionTracker;
 import org.junit.After;
@@ -109,7 +109,7 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilter = create(range(7, 10), folder);
         Iterator<String> filtered = tracker.filter(toFilter);
 
-        assertEquals("incorrect elements after filtering", CollectionUtils.toSet(range(7, 10)), CollectionUtils.toSet(filtered));
+        assertEquals("incorrect elements after filtering", SetUtils.toSet(range(7, 10)), SetUtils.toSet(filtered));
     }
 
     @Test
@@ -118,7 +118,7 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilter = create(range(7, 10), folder);
         Iterator<String> filtered = tracker.filter(toFilter);
 
-        assertTrue("More elements after filtering", CollectionUtils.toList(filtered).isEmpty());
+        assertTrue("More elements after filtering", ListUtils.toList(filtered).isEmpty());
     }
 
     @Test
@@ -128,7 +128,7 @@ public class ActiveDeletionTrackerStoreTest {
         File toFilterFile = create(toFilter, folder);
         Iterator<String> filtered = tracker.filter(toFilterFile);
 
-        assertEquals("Incorrect elements after filtering", range(0, 4), CollectionUtils.toList(filtered));
+        assertEquals("Incorrect elements after filtering", range(0, 4), ListUtils.toList(filtered));
     }
 
     @Test
@@ -139,7 +139,7 @@ public class ActiveDeletionTrackerStoreTest {
         Iterator<String> filtered = tracker.filter(toFilterFile);
 
         assertEquals("Incorrect elements after filtering",
-            range(0, 4), CollectionUtils.toList(filtered));
+            range(0, 4), ListUtils.toList(filtered));
     }
 
     @Test
@@ -225,7 +225,7 @@ public class ActiveDeletionTrackerStoreTest {
     private static List<String> range(int min, int max) {
         List<String> list = new ArrayList<>();
         for (int i = min; i <= max; i++) {
-            list.add(Strings.padStart(valueOf(i), 2, '0'));
+            list.add(StringUtils.leftPad(valueOf(i), 2, '0'));
         }
         return list;
     }

@@ -35,7 +35,6 @@ import java.io.InputStream;
 import java.util.Objects;
 import java.util.StringJoiner;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -538,7 +537,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
         try {
-            return new ArrayBasedBlob(ByteStreams.toByteArray(stream));
+            return new ArrayBasedBlob(stream.readAllBytes());
         } finally {
             stream.close();
         }

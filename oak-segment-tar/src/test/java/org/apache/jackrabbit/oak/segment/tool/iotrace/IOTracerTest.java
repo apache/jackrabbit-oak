@@ -39,7 +39,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -176,7 +175,7 @@ public class IOTracerTest extends IOMonitorAdapter {
             Function<IOMonitor, FileStore> factory = this::createFileStore;
 
             IOTracer ioTracer = newIOTracer(factory, out, RandomAccessTrace.CONTEXT_SPEC);
-            ImmutableList<String> paths = ImmutableList.of("/1a", "/1b", "/foo");
+            List<String> paths = List.of("/1a", "/1b", "/foo");
             ioTracer.collectTrace(
                     new RandomAccessTrace(paths, 0, 10, ioTracer::setContext));
 

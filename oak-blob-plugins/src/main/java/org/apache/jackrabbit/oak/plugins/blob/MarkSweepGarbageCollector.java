@@ -31,6 +31,7 @@ import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
@@ -40,8 +41,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -59,10 +58,7 @@ import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -276,8 +272,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             // Get all the markers available
             List<DataRecord> markerFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
-            Map<String, DataRecord> markers = Maps.uniqueIndex(markerFiles,
-                    input -> input.getIdentifier().toString().substring(SharedStoreRecordType.MARKED_START_MARKER.getType().length() + 1));
+            Map<String, DataRecord> markers = markerFiles.stream().collect(Collectors.toUnmodifiableMap(
+                input -> input.getIdentifier().toString().substring(SharedStoreRecordType.MARKED_START_MARKER.getType().length() + 1),
+                    Function.identity()));
 
             // Get all the repositories registered
             List<DataRecord> repoFiles =
@@ -295,8 +292,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
 
                 if (references.containsKey(id)) {
-                    List<DataRecord> refRecs = references.get(id);
-                    for(DataRecord refRec : refRecs) {
+                    for(DataRecord refRec : references.get(id)) {
                         String uniqueSessionId = refRec.getIdentifier().toString()
                             .substring(SharedStoreRecordType.REFERENCES.getType().length() + 1);
 
@@ -517,7 +513,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         long deletedSize = 0;
         int numDeletedSizeAvailable = 0;
         try {
-            removesWriter = Files.newWriter(fs.getGarbage(), StandardCharsets.UTF_8);
+            removesWriter = new BufferedWriter(new FileWriter(fs.getGarbage(), StandardCharsets.UTF_8));
             ArrayDeque<String> removesQueue = new ArrayDeque<String>();
             iterator =
                     FileUtils.lineIterator(fs.getGcCandidates(), StandardCharsets.UTF_8.name());
@@ -625,9 +621,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @param logPath whether to log path in the file or not
      */
     protected void iterateNodeTree(GarbageCollectorFileState fs, final boolean logPath) throws IOException {
-        final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), StandardCharsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
-        try {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fs.getMarkedRefs(), StandardCharsets.UTF_8))) {
             marker.collectReferences(
                     new ReferenceCollector() {
                         private final boolean debugMode = LOG.isTraceEnabled();
@@ -642,13 +637,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                                 Iterator<String> idIter = blobStore.resolveChunks(blobId);
                                 Iterator<List<String>> partitions = Iterators.partition(idIter, getBatchCount());
                                 while (partitions.hasNext()) {
-                                    List<String> idBatch = Lists.transform(partitions.next(), id -> {
-                                            if (logPath && nodeId != null) {
-                                                return id + DELIM + nodeId;
-                                            } else {
-                                                return id;
-                                            }
-                                        });
+                                    List<String> idBatch = partitions.next().stream()
+                                            .map(id -> {
+                                                if (logPath && nodeId != null) {
+                                                    return id + DELIM + nodeId;
+                                                } else {
+                                                    return id;
+                                                }
+                                            }).collect(Collectors.toList());
                                     if (debugMode) {
                                         LOG.trace("chunkIds : {}", idBatch);
                                     }
@@ -665,21 +661,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                         }
                     }
             );
-            LOG.info("Number of valid blob references marked under mark phase of " +
-                    "Blob garbage collection [{}]", count.get());
-            // sort the marked references with the first part of the key
-            sort(fs.getMarkedRefs(),
-                new Comparator<String>() {
-                    @Override
-                    public int compare(String s1, String s2) {
-                        return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
-                    }
-                });
-        } finally {
-            closeQuietly(writer);
         }
+
+        LOG.info("Number of valid blob references marked under mark phase of " +
+                "Blob garbage collection [{}]", count.get());
+        // sort the marked references with the first part of the key
+        sort(fs.getMarkedRefs(),
+                (s1, s2) -> s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]));
     }
-    
+
     @Override
     public long checkConsistency(boolean markOnly) throws Exception {
         consistencyStatsCollector.start();

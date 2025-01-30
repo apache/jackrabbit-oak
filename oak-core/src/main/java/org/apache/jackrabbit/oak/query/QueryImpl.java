@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -103,7 +104,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 
@@ -1416,7 +1416,7 @@ public class QueryImpl implements Query {
 
     @Override
     public String getStatement() {
-        return Strings.isNullOrEmpty(statement) ? toString() : statement;
+        return StringUtils.isEmpty(statement) ? toString() : statement;
     }
 
     public QueryEngineSettings getSettings() {

@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.util.StringUtils;
 
 /**
  * Amazon S3 utilities.
@@ -89,8 +89,8 @@ public final class Utils {
         String accessKey = prop.getProperty(S3Constants.ACCESS_KEY);
         String secretKey = prop.getProperty(S3Constants.SECRET_KEY);
         AmazonS3Client s3service = null;
-        if (StringUtils.isNullOrEmpty(accessKey)
-                || StringUtils.isNullOrEmpty(secretKey)) {
+        if (StringUtils.isEmpty(accessKey)
+                || StringUtils.isEmpty(secretKey)) {
             LOG.info("Configuring Amazon Client from environment");
             s3service = new AmazonS3Client(getClientConfiguration(prop));
         } else {
@@ -106,7 +106,7 @@ public final class Utils {
         if ((propEndPoint != null) & !"".equals(propEndPoint)) {
             endpoint = propEndPoint;
         } else {
-            if (StringUtils.isNullOrEmpty(region)) {
+            if (StringUtils.isEmpty(region)) {
                 com.amazonaws.regions.Region s3Region = Regions.getCurrentRegion();
                 if (s3Region != null) {
                     region = s3Region.getName();

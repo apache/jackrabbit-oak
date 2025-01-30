@@ -29,8 +29,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 /**
  * A document corresponds to a node stored in the DocumentNodeStore. A document
  * contains all the revisions of a node stored in the {@link DocumentStore}.
@@ -210,7 +208,7 @@ public class Document implements CacheValue {
             }
         }
         if (map instanceof NavigableMap) {
-            return Maps.unmodifiableNavigableMap((NavigableMap<Object, Object>) map);
+            return Collections.unmodifiableNavigableMap((NavigableMap<Object, Object>) map);
         } else {
             return Collections.unmodifiableMap(map);
         }

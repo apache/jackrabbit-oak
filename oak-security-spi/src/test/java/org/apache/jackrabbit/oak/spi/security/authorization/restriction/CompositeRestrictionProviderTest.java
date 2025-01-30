@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -66,9 +65,9 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     private static final String NAME_BOOLEAN = "boolean";
 
     private static final Restriction GLOB_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(REP_GLOB, "*"), false);
-    private static final Restriction NT_PREFIXES_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(REP_PREFIXES, ImmutableList.of(), Type.STRINGS), false);
+    private static final Restriction NT_PREFIXES_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(REP_PREFIXES, List.of(), Type.STRINGS), false);
     private static final Restriction MANDATORY_BOOLEAN_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(NAME_BOOLEAN, true, Type.BOOLEAN), true);
-    private static final Restriction LONGS_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(NAME_LONGS, ImmutableList.of(Long.MAX_VALUE), Type.LONGS), false);
+    private static final Restriction LONGS_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(NAME_LONGS, List.of(Long.MAX_VALUE), Type.LONGS), false);
     private static final Restriction UNKNOWN_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty("unknown", "string"), false);
 
     private final AbstractRestrictionProvider rp1 = spy(createRestrictionProvider(GLOB_RESTRICTION.getDefinition(), NT_PREFIXES_RESTRICTION.getDefinition()));
@@ -300,7 +299,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test(expected = AccessControlException.class)
     public void testValidateRestrictionsInvalidDefinition() throws Exception {
-        Restriction rWithInvalidDefinition = new RestrictionImpl(PropertyStates.createProperty(REP_GLOB, ImmutableList.of("str", "str2"), Type.STRINGS), false);
+        Restriction rWithInvalidDefinition = new RestrictionImpl(PropertyStates.createProperty(REP_GLOB, List.of("str", "str2"), Type.STRINGS), false);
         Tree aceTree = getAceTree(rWithInvalidDefinition, MANDATORY_BOOLEAN_RESTRICTION);
 
         RestrictionProvider rp = createRestrictionProvider(null, rWithInvalidDefinition, GLOB_RESTRICTION.getDefinition());

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.privilege;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.RepositoryException;
@@ -23,7 +24,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -133,7 +133,7 @@ public class L3_BuiltInPrivilegesTest extends AbstractSecurityTest {
         );
 
         Iterable<Privilege> aggregated = Iterables.<Privilege>filter(
-                ImmutableList.<Privilege>copyOf(privilegeManager.getRegisteredPrivileges()),
+                Arrays.asList(privilegeManager.getRegisteredPrivileges()),
                 input -> input != null && input.isAggregate());
 
         for (Privilege aggrPrivilege : aggregated) {

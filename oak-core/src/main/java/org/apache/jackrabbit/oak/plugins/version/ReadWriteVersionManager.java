@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -35,7 +34,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
@@ -436,7 +436,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
         Validate.checkState(versionable.hasProperty(JCR_PREDECESSORS));
         PropertyState state = versionable.getProperty(JCR_PREDECESSORS);
-        List<String> predecessors = ImmutableList.copyOf(state.getValue(Type.REFERENCES));
+        List<String> predecessors = ListUtils.toList(state.getValue(Type.REFERENCES));
         NodeBuilder version = vHistory.child(calculateVersion(vHistory, versionable));
 
         String versionUUID = UUIDUtils.generateUUID();
@@ -455,7 +455,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 throw new IllegalStateException("Missing " + JCR_SUCCESSORS +
                         " property on " + predecessor);
             }
-            Set<String> refs = CollectionUtils.toSet(state.getValue(Type.REFERENCES));
+            Set<String> refs = SetUtils.toSet(state.getValue(Type.REFERENCES));
             refs.add(versionUUID);
             predecessor.setProperty(JCR_SUCCESSORS, refs, Type.REFERENCES);
         }

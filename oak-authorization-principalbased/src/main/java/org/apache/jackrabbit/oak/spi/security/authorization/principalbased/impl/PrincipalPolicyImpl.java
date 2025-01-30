@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlList;
@@ -75,7 +75,7 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     }
 
     boolean addEntry(@NotNull Tree entryTree, @NotNull Collection<String> oakPathToFilter) throws AccessControlException {
-        String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
+        String oakPath = StringUtils.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
         if (Utils.hasValidRestrictions(oakPath, entryTree, restrictionProvider)) {
             PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
             Set<Restriction> restrictions = Utils.readRestrictions(restrictionProvider, oakPath, entryTree);
@@ -153,7 +153,7 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
 
         String jcrNodePathName = getNamePathMapper().getJcrName(AccessControlConstants.REP_NODE_PATH);
         String path = extractPathFromRestrictions(restrictions, jcrNodePathName);
-        Map<String, Value> filteredRestrictions = Maps.filterEntries(restrictions, entry -> !jcrNodePathName.equals(entry.getKey()));
+        Map<String, Value> filteredRestrictions = MapUtils.filterEntries(restrictions, entry -> !jcrNodePathName.equals(entry.getKey()));
 
         return addEntry(path, privileges, filteredRestrictions, (mvRestrictions == null) ? Collections.emptyMap() : mvRestrictions);
     }
@@ -246,7 +246,7 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
         }
 
         // retrieve path from restrictions and filter that restriction entry for further processing
-        return Strings.emptyToNull(restrictions.get(jcrName).getString());
+        return StringUtils.emptyToNull(restrictions.get(jcrName).getString());
     }
 
     @NotNull

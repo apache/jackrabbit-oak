@@ -44,7 +44,7 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
@@ -411,7 +411,7 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Test
     public void verifySNS() throws RepositoryException {
-        Set<String> nodeNames = CollectionUtils.toSet("sibling", "sibling[2]", "sibling[3]");
+        Set<String> nodeNames = SetUtils.toSet("sibling", "sibling[2]", "sibling[3]");
         Session session = createAdminSession();
         try {
             Node sns = session.getNode("/sns");

@@ -23,21 +23,20 @@ import java.io.SequenceInputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
+import static java.util.Objects.checkFromToIndex;
+import static java.util.Objects.checkIndex;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
@@ -128,7 +127,7 @@ class OakBufferedIndexFile implements OakIndexFile {
 
         PropertyState property = file.getProperty(JCR_DATA);
         if (property != null && property.getType() == BINARIES) {
-            this.data = CollectionUtils.toList(property.getValue(BINARIES));
+            this.data = ListUtils.toList(property.getValue(BINARIES));
         } else {
             this.data = new ArrayList<>();
         }
@@ -159,18 +158,17 @@ class OakBufferedIndexFile implements OakIndexFile {
     }
 
     private void loadBlob(int i) throws IOException {
-        checkElementIndex(i, data.size());
+        checkIndex(i, data.size());
         if (index != i) {
             flushBlob();
             Validate.checkState(!blobModified);
 
             int n = (int) Math.min(blobSize, length - (long)i * blobSize);
-            InputStream stream = data.get(i).getNewStream();
-            try {
-                ByteStreams.readFully(stream, blob, 0, n);
-            } finally {
-                stream.close();
+
+            try (InputStream stream = data.get(i).getNewStream()) {
+                IOUtils.readFully(stream, blob, 0, n);
             }
+
             index = i;
         }
     }
@@ -238,7 +236,7 @@ class OakBufferedIndexFile implements OakIndexFile {
     @Override
     public void readBytes(byte[] b, int offset, int len)
             throws IOException {
-        checkPositionIndexes(offset, offset + len, requireNonNull(b).length);
+        checkFromToIndex(offset, offset + len, requireNonNull(b).length);
 
         if (len < 0 || position + len > length) {
             String msg = String.format("Invalid byte range request for [%s][%s], " +
@@ -312,7 +310,7 @@ class OakBufferedIndexFile implements OakIndexFile {
 
     private static int determineBlobSize(NodeBuilder file){
         if (file.hasProperty(OakDirectory.PROP_BLOB_SIZE)){
-            return Ints.checkedCast(file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
+            return Math.toIntExact(file.getProperty(OakDirectory.PROP_BLOB_SIZE).getValue(Type.LONG));
         }
         return DEFAULT_BLOB_SIZE;
     }

@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.junit.Test;
 
@@ -102,7 +100,7 @@ public class FormatVersionTest {
         // must not write dummy version
         assertFalse(V0.writeTo(store));
         // upgrade
-        for (FormatVersion v : ImmutableList.of(V1_0, V1_2, V1_4, V1_6, V1_8)) {
+        for (FormatVersion v : List.of(V1_0, V1_2, V1_4, V1_6, V1_8)) {
             assertTrue(v.writeTo(store));
             assertSame(v, FormatVersion.versionOf(store));
         }

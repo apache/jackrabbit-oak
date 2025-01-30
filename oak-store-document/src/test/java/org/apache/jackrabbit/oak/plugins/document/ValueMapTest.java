@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
@@ -124,7 +123,7 @@ public class ValueMapTest {
 
         NodeDocument doc = store.find(NODES, rootId);
         assertNotNull(doc);
-        List<NodeDocument> prevDocs = CollectionUtils.toList(
+        List<NodeDocument> prevDocs = ListUtils.toList(
                 doc.getPreviousDocs("p1", null));
         assertEquals(2, prevDocs.size());
         assertEquals(Utils.getPreviousIdFor(ROOT, r31, 0), prevDocs.get(0).getId());

@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -202,10 +202,10 @@ public class IndexCopierCleanupTest {
         Directory cor1 = copier.getCoRDir(remoteSnapshowCow1);
         // local listing
         assertEquals(Set.of("a", "b", "c", "d"),
-                CollectionUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
+                SetUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
         // reader listing
         assertEquals(Set.of("a", "b"),
-                CollectionUtils.toSet(cor1.listAll()));
+                SetUtils.toSet(cor1.listAll()));
 
         // Step 4
         cow2.close();
@@ -223,17 +223,17 @@ public class IndexCopierCleanupTest {
         Directory cor2 = copier.getCoRDir(remoteSnapshotCow2);
         // local listing
         assertEquals(Set.of("a", "b", "c", "d", "e", "f"),
-                CollectionUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
+                SetUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
         // reader listing
         assertEquals(Set.of("c", "d"),
-                CollectionUtils.toSet(cor2.listAll()));
+                SetUtils.toSet(cor2.listAll()));
 
         // Step 7
         cor1.close();
 
         // nothing should get deleted as CoR1 sees "a", "b" and everything else is newer
         assertEquals(Set.of("a", "b", "c", "d", "e", "f"),
-                CollectionUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
+                SetUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
     }
 
     @Test
@@ -350,7 +350,7 @@ public class IndexCopierCleanupTest {
         copier.getCoRDir().close();
 
         assertEquals(Set.of("within-margin", "a"),
-                CollectionUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
+                SetUtils.toSet(new SimpleFSDirectory(localFSDir).listAll()));
     }
 
     @Test

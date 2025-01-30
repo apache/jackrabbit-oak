@@ -30,11 +30,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -91,7 +90,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
 
     @Test
     public void verifyPrivileges() throws RepositoryException {
-        Set<String> nonAggregatePrivileges = CollectionUtils.toSet(
+        Set<String> nonAggregatePrivileges = SetUtils.toSet(
             REP_READ_NODES, REP_READ_PROPERTIES, REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES,
             REP_REMOVE_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
             JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
@@ -141,7 +140,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
                         assertTrue("Miss match in aggregate privilege " + privilege.getName() +
                                 " expected " + expected +
                                 " actual " + Arrays.toString(actual),
-                            new HashSet<>(expected).equals(CollectionUtils.toSet(actual)));
+                            new HashSet<>(expected).equals(SetUtils.toSet(actual)));
                     }
                 } else {
                     nonAggregatePrivileges.remove(privilege.getName());
@@ -187,7 +186,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertNotNull(aggregate);
             assertFalse(aggregate.isAbstract());
             assertTrue(aggregate.isAggregate());
-            List<Privilege> agg = ImmutableList.copyOf(aggregate.getDeclaredAggregatePrivileges());
+            List<Privilege> agg = List.of(aggregate.getDeclaredAggregatePrivileges());
             assertEquals(2, agg.size());
             assertTrue(agg.contains(privilege));
             assertTrue(agg.contains(manager.getPrivilege(JCR_READ)));
@@ -196,7 +195,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertNotNull(aggregate2);
             assertTrue(aggregate2.isAbstract());
             assertTrue(aggregate2.isAggregate());
-            List<Privilege> agg2 = ImmutableList.copyOf(aggregate2.getDeclaredAggregatePrivileges());
+            List<Privilege> agg2 = List.of(aggregate2.getDeclaredAggregatePrivileges());
             assertEquals(2, agg2.size());
             assertTrue(agg2.contains(aggregate));
             assertTrue(agg2.contains(privilege2));

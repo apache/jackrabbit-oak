@@ -24,6 +24,7 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
@@ -36,7 +37,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -129,7 +129,7 @@ public class AzureJournalFileTest {
         }
 
         List<String> entries = readEntriesFromJournal();
-        assertEquals(lines, reverse(entries));
+        assertEquals(lines, ListUtils.reverse(entries));
     }
 
     @Test
@@ -191,7 +191,7 @@ public class AzureJournalFileTest {
 
     private void assertJournalEntriesCount(int index) throws IOException {
         List<String> entries = readEntriesFromJournal();
-        assertEquals(buildLines(0, index), reverse(entries));
+        assertEquals(buildLines(0, index), ListUtils.reverse(entries));
     }
 
     @NotNull

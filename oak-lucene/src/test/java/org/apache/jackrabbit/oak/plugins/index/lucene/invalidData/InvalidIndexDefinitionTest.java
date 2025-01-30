@@ -121,7 +121,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         root.commit();
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = RuntimeException.class)
     public void invalidBlobSize() throws CommitFailedException {
         Tree def = createIndexNodeAndData();
         // 1L + Integer.MAX_VALUE results in IllegalArgumentException: Out of range: 2147483648
@@ -140,7 +140,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         assertQuery(query, List.of("/tmp/testNode"));
     }    
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = RuntimeException.class)
     public void invalidMaxFieldLength() throws CommitFailedException {
         Tree def = createIndexNodeAndData();
         // 1L + Integer.MAX_VALUE results in IllegalArgumentException: Out of range: 2147483648

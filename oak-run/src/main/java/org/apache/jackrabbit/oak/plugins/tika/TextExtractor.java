@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
@@ -243,7 +241,7 @@ class TextExtractor implements Closeable {
 
     //~--------------------------------------< Tika >
 
-    private String parseStringValue(ByteSource byteSource, Metadata metadata, String path) {
+    private String parseStringValue(BlobStoreByteSource byteSource, Metadata metadata, String path) {
         WriteOutContentHandler handler = new WriteOutContentHandler(maxExtractedLength);
         long start = System.currentTimeMillis();
         long size = 0;

@@ -31,7 +31,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.commons.collections4.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -50,8 +51,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 /**
  * Test the asynchronous reindexing ability of an synchronous index
  */
@@ -64,7 +63,7 @@ public class AsyncPropertyIndexTest {
     @Test
     public void testAsyncPropertyLookup() throws Exception {
         NodeStore store = new MemoryNodeStore();
-        assertTrue(Iterables.isEmpty(store.checkpoints()));
+        assertTrue(IterableUtils.isEmpty(store.checkpoints()));
 
         NodeBuilder builder = store.getRoot().builder();
 
@@ -103,7 +102,7 @@ public class AsyncPropertyIndexTest {
         async.close();
         assertEquals(null, store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME)
                 .getChildNode("foo").getString(ASYNC_PROPERTY_NAME));
-        assertTrue(Iterables.isEmpty(store.checkpoints()));
+        assertTrue(IterableUtils.isEmpty(store.checkpoints()));
 
         // add content, it should be indexed synchronously
         builder = store.getRoot().builder();
@@ -124,19 +123,19 @@ public class AsyncPropertyIndexTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value, Filter filter) {
-        return CollectionUtils.toSet(lookup.query(filter, name, value == null ? null
+        return SetUtils.toSet(lookup.query(filter, name, value == null ? null
                 : PropertyValues.newString(value)));
     }
 
     @Test
     public void testAsyncPropertyNoChanges() throws Exception {
         NodeStore store = new MemoryNodeStore();
-        assertTrue(Iterables.isEmpty(store.checkpoints()));
+        assertTrue(IterableUtils.isEmpty(store.checkpoints()));
         AsyncIndexUpdate async = new AsyncIndexUpdate(ASYNC_REINDEX_VALUE,
                 store, provider, true);
         async.run();
         async.run();
         async.close();
-        assertTrue(Iterables.isEmpty(store.checkpoints()));
+        assertTrue(IterableUtils.isEmpty(store.checkpoints()));
     }
 }

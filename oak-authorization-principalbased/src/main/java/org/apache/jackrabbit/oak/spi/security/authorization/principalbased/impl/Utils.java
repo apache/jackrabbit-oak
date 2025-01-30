@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -75,7 +75,7 @@ final class Utils implements Constants {
      */
     public static boolean canHandle(@NotNull Principal principal, @NotNull Filter filter, int importBehavior) throws AccessControlException {
         String name = principal.getName();
-        if (Strings.isNullOrEmpty(name)) {
+        if (StringUtils.isEmpty(name)) {
             throw new AccessControlException("Invalid principal " + name);
         }
 

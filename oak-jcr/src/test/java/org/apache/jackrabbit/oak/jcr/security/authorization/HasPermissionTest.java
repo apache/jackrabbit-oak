@@ -22,7 +22,6 @@ import java.util.Map;
 
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 
@@ -32,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 public class HasPermissionTest extends AbstractEvaluationTest {
 
     public void testEmpty() throws Exception {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "/", path, childPPath, path + "/rep:policy",
                 "/nonExisting", path + "/nonExisting");
 
@@ -82,7 +81,7 @@ public class HasPermissionTest extends AbstractEvaluationTest {
     }
 
     public void testMultiple() throws Exception {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "/", path, childPPath, path + "/rep:policy",
                 "/nonExisting", path + "/nonExisting");
 

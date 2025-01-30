@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -34,27 +33,31 @@ import java.util.List;
  */
 public class CompositeEditor implements Editor {
 
-    @Nullable
     public static Editor compose(@NotNull Collection<? extends Editor> editors) {
+        return compose(new ArrayList<>(editors));
+    }
+
+    @Nullable
+    public static Editor compose(@NotNull List<? extends Editor> editors) {
         requireNonNull(editors);
         switch (editors.size()) {
-        case 0:
-            return null;
-        case 1:
-            return editors.iterator().next();
-        default:
-            return new CompositeEditor(editors);
+            case 0:
+                return null;
+            case 1:
+                return editors.get(0);
+            default:
+                return new CompositeEditor(editors);
         }
     }
 
-    private final Collection<? extends Editor> editors;
+    private final List<? extends Editor> editors;
 
-    public CompositeEditor(Collection<? extends Editor> editors) {
+    public CompositeEditor(List<? extends Editor> editors) {
         this.editors = editors;
     }
 
     public CompositeEditor(Editor... editors) {
-        this(asList(editors));
+        this(List.of(editors));
     }
 
     @Override
@@ -72,7 +75,6 @@ public class CompositeEditor implements Editor {
             editor.leave(before, after);
         }
     }
-
 
     @Override
     public void propertyAdded(PropertyState after)
@@ -137,5 +139,4 @@ public class CompositeEditor implements Editor {
         }
         return compose(list);
     }
-
 }

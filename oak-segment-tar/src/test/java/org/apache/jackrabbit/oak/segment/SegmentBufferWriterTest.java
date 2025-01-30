@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -55,7 +55,7 @@ public class SegmentBufferWriterTest {
             // init
         }
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            before = CollectionUtils.toList(store.getSegmentIds());
+            before = ListUtils.toList(store.getSegmentIds());
         }
 
         try (FileStore store = openFileStore()) {
@@ -65,7 +65,7 @@ public class SegmentBufferWriterTest {
         List<SegmentId> after;
 
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            after = CollectionUtils.toList(store.getSegmentIds());
+            after = ListUtils.toList(store.getSegmentIds());
         }
 
         assertEquals(before, after);
@@ -79,7 +79,7 @@ public class SegmentBufferWriterTest {
             // init
         }
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            before = CollectionUtils.toList(store.getSegmentIds());
+            before = ListUtils.toList(store.getSegmentIds());
         }
 
         try (FileStore store = openFileStore()) {
@@ -91,7 +91,7 @@ public class SegmentBufferWriterTest {
         List<SegmentId> after;
 
         try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
-            after = CollectionUtils.toList(store.getSegmentIds());
+            after = ListUtils.toList(store.getSegmentIds());
         }
 
         assertNotEquals(before, after);

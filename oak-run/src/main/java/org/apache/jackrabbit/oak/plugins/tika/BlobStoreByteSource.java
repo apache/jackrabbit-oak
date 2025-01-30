@@ -16,25 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Avoiding use of BlobByteSource to avoid concurrent access to NodeState
  */
-class BlobStoreByteSource extends ByteSource {
+class BlobStoreByteSource {
     private final BlobStore blobStore;
     private final String blobId;
     private final Long size;
 
-    BlobStoreByteSource(BlobStore blobStore, String blobId,@Nullable Long size) {
+    BlobStoreByteSource(BlobStore blobStore, String blobId, @Nullable Long size) {
         this.blobStore = blobStore;
         this.blobId = blobId;
         this.size = size;
@@ -44,12 +42,10 @@ class BlobStoreByteSource extends ByteSource {
         this(blobStore, blobId, null);
     }
 
-    @Override
     public InputStream openStream() throws IOException {
         return blobStore.getInputStream(blobId);
     }
 
-    @Override
     public long size() throws IOException {
         if (size != null) {
             return size;

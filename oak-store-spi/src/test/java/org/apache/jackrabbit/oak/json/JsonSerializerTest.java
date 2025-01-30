@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Type;
@@ -41,8 +40,11 @@ public class JsonSerializerTest {
         builder.child("a");
         builder.child("b");
         builder.child("c");
-        List<String> expectedOrder = Arrays.asList("a", "c", "b");
-        builder.setProperty(":childOrder", expectedOrder, Type.NAMES);
+        builder.child("d");
+        builder.setProperty(":childOrder", List.of("a", "c", "b", "d"), Type.NAMES);
+
+        // A removed child should not be included in the output
+        builder.getChildNode("c").remove();
 
         NodeState state = builder.getNodeState();
         String json = serialize(state);
@@ -60,7 +62,7 @@ public class JsonSerializerTest {
 
         } while (reader.matches(','));
 
-        assertEquals(expectedOrder, childNames);
+        assertEquals(List.of("a", "b", "d"), childNames);
     }
 
     private String serialize(NodeState nodeState){

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -47,6 +46,7 @@ import org.junit.Test;
 
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
+import java.util.List;
 import java.util.Set;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -276,7 +276,7 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
             Root testRoot = testSession.getLatestRoot();
 
             Tree testChild = testRoot.getTree(TEST_CHILD_PATH);
-            testChild.setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.of(AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES));
+            testChild.setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, List.of(AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES));
 
             Tree testPolicy = testChild.getChild(AccessControlConstants.REP_POLICY);
             testPolicy.setOrderableChildren(true);

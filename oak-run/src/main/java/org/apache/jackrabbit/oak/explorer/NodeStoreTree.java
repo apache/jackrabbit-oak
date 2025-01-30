@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.intersection;
 import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
 import static javax.jcr.PropertyType.BINARY;
@@ -56,7 +55,8 @@ import javax.swing.tree.DefaultTreeModel;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -413,7 +413,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             }
         }
 
-        Set<UUID> inMem = intersection(backend.getReferencedSegmentIds(), uuids);
+        Set<UUID> inMem = SetUtils.intersection(backend.getReferencedSegmentIds(), uuids);
         if (!inMem.isEmpty()) {
             sb.append("In Memory segment references: ");
             sb.append(newline);
@@ -708,7 +708,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
         }
         Long[] s = {0L, 0L};
 
-        List<String> names = CollectionUtils.toList(ns.getChildNodeNames());
+        List<String> names = ListUtils.toList(ns.getChildNodeNames());
 
         if (names.contains("root")) {
             List<String> temp = new ArrayList<>();

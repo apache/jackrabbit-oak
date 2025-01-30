@@ -21,13 +21,13 @@ import java.util.List;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
@@ -68,13 +68,13 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testInvalidMemberContentId() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, "memberId")));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, "memberId")));
         importer.processReferences();
     }
 
     @Test
     public void testUnknownMember() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, unknownContentId)));
         importer.processReferences();
 
         // default importbehavior == IGNORE
@@ -83,7 +83,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
     @Test
     public void testKnownMemberThresholdNotReached() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, knownMemberContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, knownMemberContentId)));
         importer.processReferences();
 
         assertTrue(groupTree.hasProperty(REP_MEMBERS));
@@ -97,7 +97,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
         }
         groupTree.setProperty(REP_MEMBERS, memberIds, Type.STRINGS);
 
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, knownMemberContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, knownMemberContentId)));
         importer.processReferences();
 
         assertEquals(1, memberRefList.getChildrenCount(100));
@@ -106,7 +106,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
     @Test
     public void testMixedMembers() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId, knownMemberContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, unknownContentId, knownMemberContentId)));
         importer.processReferences();
 
         assertFalse(memberRefList.hasChild("memberRef"));
@@ -114,7 +114,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
     @Test(expected = RepositoryException.class)
     public void testGroupRemovedBeforeProcessing() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, knownMemberContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, knownMemberContentId)));
 
         groupTree.remove();
         importer.processReferences();
@@ -122,21 +122,21 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
     @Test(expected = RepositoryException.class)
     public void testUserConvertedGroupBeforeProcessing() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, knownMemberContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, knownMemberContentId)));
         groupTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_USER);
         importer.processReferences();
     }
 
     @Test
     public void testAddMemberToNonExistingMember() throws Exception {
-        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(unknownContentId), Type.STRINGS);
+        groupTree.setProperty(REP_MEMBERS, List.of(unknownContentId), Type.STRINGS);
 
         assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, knownMemberContentId), mockPropertyDefinition(NT_REP_GROUP, true)));
         importer.processReferences();
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(Set.of(unknownContentId, knownMemberContentId), CollectionUtils.toSet(members.getValue(Type.STRINGS)));
+        assertEquals(Set.of(unknownContentId, knownMemberContentId), SetUtils.toSet(members.getValue(Type.STRINGS)));
     }
 
     @Test
@@ -145,13 +145,13 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
         String contentId = userProvider.getContentID(userTree);
         assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
 
-        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(knownMemberContentId), Type.STRINGS);
+        groupTree.setProperty(REP_MEMBERS, List.of(knownMemberContentId), Type.STRINGS);
         assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_GROUP, true)));
         importer.processReferences();
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(Set.of(contentId), CollectionUtils.toSet(members.getValue(Type.STRINGS)));
+        assertEquals(Set.of(contentId), SetUtils.toSet(members.getValue(Type.STRINGS)));
     }
 
     @Test
@@ -165,7 +165,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(ImmutableList.of(contentId), ImmutableList.copyOf(members.getValue(Type.STRINGS)));
+        assertEquals(List.of(contentId), ListUtils.toList(members.getValue(Type.STRINGS)));
     }
 
     @Test
@@ -180,7 +180,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(ImmutableList.of(contentId), ImmutableList.copyOf(members.getValue(Type.STRINGS)));
+        assertEquals(List.of(contentId), ListUtils.toList((members.getValue(Type.STRINGS))));
     }
 
     @Test
@@ -197,7 +197,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
     @Test
     public void testNewMembersToEveryone() throws Exception {
-        groupTree.setProperty(REP_MEMBERS, ImmutableList.of(knownMemberContentId), Type.STRINGS);
+        groupTree.setProperty(REP_MEMBERS, List.of(knownMemberContentId), Type.STRINGS);
         groupTree.setProperty(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
 
         Tree userTree = createUserTree();
@@ -209,7 +209,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(ImmutableList.of(knownMemberContentId), ImmutableList.copyOf(members.getValue(Type.STRINGS)));
+        assertEquals(List.of(knownMemberContentId), ListUtils.toList((members.getValue(Type.STRINGS))));
     }
 
     @Test
@@ -227,6 +227,6 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
-        assertEquals(ImmutableList.of(contentId), ImmutableList.copyOf(members.getValue(Type.STRINGS)));
+        assertEquals(List.of(contentId), ListUtils.toList((members.getValue(Type.STRINGS))));
     }
 }

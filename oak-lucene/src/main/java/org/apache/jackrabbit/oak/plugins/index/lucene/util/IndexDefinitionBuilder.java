@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -47,7 +47,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -154,9 +153,9 @@ public final class IndexDefinitionBuilder {
     public IndexDefinitionBuilder addTags(String ... additionalTagVals) {
         Set<String> currTags = Collections.emptySet();
         if (tree.hasProperty(INDEX_TAGS)) {
-            currTags = CollectionUtils.toSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
+            currTags = SetUtils.toSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
         }
-        Set<String> tagVals = CollectionUtils.toSet(Iterables.concat(currTags, asList(additionalTagVals)));
+        Set<String> tagVals = SetUtils.toSet(Iterables.concat(currTags, asList(additionalTagVals)));
         boolean noAdditionalTags = currTags.containsAll(tagVals);
         if (!noAdditionalTags) {
             tree.removeProperty(INDEX_TAGS);
@@ -616,7 +615,7 @@ public final class IndexDefinitionBuilder {
 
     static class SelectiveEqualsDiff extends EqualsDiff {
         // Properties for which changes shouldn't auto set the reindex flag
-        static final List<String> ignorablePropertiesList = of(
+        static final List<String> ignorablePropertiesList = List.of(
                 FulltextIndexConstants.PROP_WEIGHT,
                 FIELD_BOOST,
                 IndexConstants.USE_IF_EXISTS,
@@ -626,7 +625,7 @@ public final class IndexDefinitionBuilder {
                 FulltextIndexConstants.BLOB_SIZE,
                 FulltextIndexConstants.COST_PER_ENTRY,
                 FulltextIndexConstants.COST_PER_EXECUTION);
-        static final List<String> ignorableFacetConfigProps = of(
+        static final List<String> ignorableFacetConfigProps = List.of(
                 FulltextIndexConstants.PROP_SECURE_FACETS,
                 FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE,
                 FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN);
@@ -695,7 +694,7 @@ public final class IndexDefinitionBuilder {
         }
 
         private Set<String> getAsyncValuesWithoutNRT(PropertyState state){
-            Set<String> async = CollectionUtils.toSet(state.getValue(Type.STRINGS));
+            Set<String> async = SetUtils.toSet(state.getValue(Type.STRINGS));
             async.remove(IndexConstants.INDEXING_MODE_NRT);
             async.remove(IndexConstants.INDEXING_MODE_SYNC);
             return async;

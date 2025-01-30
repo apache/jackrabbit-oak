@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
@@ -25,7 +24,6 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -312,7 +310,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void indexRuleInheritanceOrdering() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
-        rules.setProperty(OAK_CHILD_ORDER, ImmutableList.of("nt:hierarchyNode", "nt:base"),NAMES);
+        rules.setProperty(OAK_CHILD_ORDER, List.of("nt:hierarchyNode", "nt:base"),NAMES);
         rules.child("nt:hierarchyNode").setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
         rules.child("nt:base").setProperty(FulltextIndexConstants.FIELD_BOOST, 3.0);
 
@@ -325,7 +323,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void indexRuleInheritanceOrdering2() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
-        rules.setProperty(OAK_CHILD_ORDER, ImmutableList.of("nt:base", "nt:hierarchyNode"),NAMES);
+        rules.setProperty(OAK_CHILD_ORDER, List.of("nt:base", "nt:hierarchyNode"),NAMES);
         rules.child("nt:hierarchyNode").setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
         rules.child("nt:base").setProperty(FulltextIndexConstants.FIELD_BOOST, 3.0);
 
@@ -400,7 +398,7 @@ public class LuceneIndexDefinitionTest {
                 .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true)
                 .setProperty(FulltextIndexConstants.FIELD_BOOST, 4.0);
 
-        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop2", "prop1"), NAMES);
+        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, List.of("prop2", "prop1"), NAMES);
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
 
@@ -416,7 +414,7 @@ public class LuceneIndexDefinitionTest {
         assertEquals(4.0f, rule1.getConfig("fooProp").boost, 0);
 
         //Order it correctly to get expected result
-        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop1", "prop2"), NAMES);
+        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, List.of("prop1", "prop2"), NAMES);
         defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertEquals(3.0f, rule1.getConfig("fooProp").boost, 0);

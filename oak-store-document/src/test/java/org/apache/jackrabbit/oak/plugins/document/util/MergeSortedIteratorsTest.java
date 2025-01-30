@@ -25,8 +25,6 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import static org.junit.Assert.assertEquals;
 
 /**

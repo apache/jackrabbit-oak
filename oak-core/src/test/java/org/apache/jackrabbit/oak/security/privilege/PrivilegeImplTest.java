@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import java.util.List;
 import java.util.Set;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
@@ -65,8 +65,8 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
     private static void assertAggregation(@NotNull Privilege[] aggr, @NotNull String... expectedNames) {
         assertEquals(expectedNames.length, aggr.length);
 
-        Set<String> expected = CollectionUtils.toSet(expectedNames);
-        Set<String> result = CollectionUtils.toSet(Iterables.transform(Set.of(aggr), Privilege::getName));
+        Set<String> expected = SetUtils.toSet(expectedNames);
+        Set<String> result = SetUtils.toSet(Iterables.transform(Set.of(aggr), Privilege::getName));
 
         assertEquals(expected, result);
     }
@@ -163,7 +163,7 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
     public void testInvalidDeclaredAggregate() throws Exception {
         Tree privilegeDefs = root.getTree(PRIVILEGES_PATH);
         Tree privDef = TreeUtil.addChild(privilegeDefs, "test", NT_REP_PRIVILEGE);
-        privDef.setProperty(REP_AGGREGATES, ImmutableList.of(JCR_READ, "invalid"), Type.NAMES);
+        privDef.setProperty(REP_AGGREGATES, List.of(JCR_READ, "invalid"), Type.NAMES);
 
         Privilege p = getPrivilegeManager(root).getPrivilege("test");
         assertAggregation(p.getDeclaredAggregatePrivileges(), JCR_READ);
@@ -173,7 +173,7 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
     public void testCyclicDeclaredAggregate() throws Exception {
         Tree privilegeDefs = root.getTree(PRIVILEGES_PATH);
         Tree privDef = TreeUtil.addChild(privilegeDefs, "test", NT_REP_PRIVILEGE);
-        privDef.setProperty(REP_AGGREGATES, ImmutableList.of(JCR_READ, "test"), Type.NAMES);
+        privDef.setProperty(REP_AGGREGATES, List.of(JCR_READ, "test"), Type.NAMES);
 
         Privilege p = getPrivilegeManager(root).getPrivilege("test");
         assertAggregation(p.getDeclaredAggregatePrivileges(), JCR_READ);

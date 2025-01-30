@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
+import java.nio.file.Files;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -76,7 +76,9 @@ public class SegmentAzureFixture extends NodeStoreFixture {
         }
 
         try {
-            FileStore fileStore = FileStoreBuilder.fileStoreBuilder(Files.createTempDir()).withCustomPersistence(persistence).build();
+            FileStore fileStore = FileStoreBuilder.fileStoreBuilder(
+                    Files.createTempDirectory(getClass().getSimpleName() + "-").toFile()).
+                    withCustomPersistence(persistence).build();
             NodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
             fileStoreMap.put(nodeStore, fileStore);
             containerMap.put(nodeStore, writeBlobContainerClient);

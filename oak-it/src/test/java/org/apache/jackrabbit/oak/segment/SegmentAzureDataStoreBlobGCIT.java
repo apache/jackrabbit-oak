@@ -23,7 +23,7 @@ import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.SEGMENT_T
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.getFixtures;
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils;
@@ -57,7 +57,7 @@ public class SegmentAzureDataStoreBlobGCIT extends SegmentDataStoreBlobGCIT {
 
     @After
     public void close() throws Exception {
-        if (!Strings.isNullOrEmpty(containerName)) {
+        if (!StringUtils.isEmpty(containerName)) {
             AzureDataStoreUtils.deleteContainer(containerName);
         }
     }

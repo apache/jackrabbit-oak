@@ -29,7 +29,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -60,7 +61,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
 
     @Test
     public void noErrorIfQueryDefinitionsNotIndexed() throws Exception{
-        Set<String> paths = CollectionUtils.toSet(indexPathService.getIndexPaths());
+        Set<String> paths = SetUtils.toSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/oak:index/uuid"));
     }
 
@@ -75,7 +76,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
     @Test
     public void nodeTypeIndexed() throws Exception{
         enableIndexDefinitionIndex();
-        Set<String> paths = CollectionUtils.toSet(indexPathService.getIndexPaths());
+        Set<String> paths = SetUtils.toSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/oak:index/uuid"));
         assertThat(paths, hasItem("/oak:index/nodetype"));
         assertThat(paths, hasItem("/oak:index/reference"));
@@ -90,7 +91,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
         fooIndex.setProperty("type", "disabled");
         root.commit();
 
-        Set<String> paths = CollectionUtils.toSet(indexPathService.getIndexPaths());
+        Set<String> paths = SetUtils.toSet(indexPathService.getIndexPaths());
         assertThat(paths, hasItem("/a/b/oak:index/fooIndex"));
     }
 
@@ -100,7 +101,7 @@ public class IndexPathServiceImplTest extends AbstractQueryTest {
 
         List<String> nodetypes = new ArrayList<>();
         if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
-            nodetypes = CollectionUtils.toList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
+            nodetypes = ListUtils.toList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
         }
 
         nodetypes.add(INDEX_DEFINITIONS_NODE_TYPE);

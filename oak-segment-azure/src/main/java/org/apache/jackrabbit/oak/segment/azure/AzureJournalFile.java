@@ -23,7 +23,7 @@ import com.azure.storage.blob.models.BlobType;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.segment.azure.util.CaseInsensitiveKeysMapAccess;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
@@ -34,11 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -198,7 +194,7 @@ public class AzureJournalFile implements JournalFile {
 
         @Override
         public void writeLine(String line) throws IOException {
-            batchWriteLines(ImmutableList.of(line));
+            batchWriteLines(List.of(line));
         }
 
         @Override
@@ -210,11 +206,10 @@ public class AzureJournalFile implements JournalFile {
             }
             int firstBlockSize = Math.min(lineLimit - lineCount, lines.size());
             List<String> firstBlock = lines.subList(0, firstBlockSize);
-            List<List<String>> remainingBlocks = CollectionUtils.partitionList(lines.subList(firstBlockSize, lines.size()), lineLimit);
-            List<List<String>> allBlocks = ImmutableList.<List<String>>builder()
-                    .addAll(firstBlock.isEmpty() ? ImmutableList.of() : ImmutableList.of(firstBlock))
-                    .addAll(remainingBlocks)
-                    .build();
+            List<List<String>> remainingBlocks = ListUtils.partitionList(lines.subList(firstBlockSize, lines.size()), lineLimit);
+            List<List<String>> allBlocks = new ArrayList<>();
+            allBlocks.addAll(firstBlock.isEmpty() ? List.of() : List.of(firstBlock));
+            allBlocks.addAll(remainingBlocks);
 
             for (List<String> entries : allBlocks) {
                 if (lineCount >= lineLimit) {

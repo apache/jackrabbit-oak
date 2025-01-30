@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -42,6 +40,7 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -525,7 +524,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         try {
             NodeState entry = mockNodeState(NT_REP_PRINCIPAL_ENTRY);
             when(entry.getProperty(REP_EFFECTIVE_PATH)).thenReturn(PropertyStates.createProperty(REP_EFFECTIVE_PATH,"/path", Type.PATH));
-            when(entry.getNames(REP_PRIVILEGES)).thenReturn(ImmutableList.of("privName"));
+            when(entry.getNames(REP_PRIVILEGES)).thenReturn(List.of("privName"));
 
             v.childNodeChanged("entryName", entry, entry);
             fail("CommitFailedException type OAK code 13 expected.");
@@ -554,7 +553,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         try {
             NodeState entry = mockNodeState(NT_REP_PRINCIPAL_ENTRY);
             when(entry.getProperty(REP_EFFECTIVE_PATH)).thenReturn(null);
-            when(entry.getNames(REP_PRIVILEGES)).thenReturn(ImmutableList.of(JCR_READ));
+            when(entry.getNames(REP_PRIVILEGES)).thenReturn(List.of(JCR_READ));
 
             v.childNodeChanged("entryName", entry, entry);
             fail("CommitFailedException type CONSTRAINT code 21 expected.");

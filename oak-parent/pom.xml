@@ -30,13 +30,13 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.73-SNAPSHOT</version>
+  <version>1.75-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <project.build.outputTimestamp>1731270308</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1736675351</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -69,6 +69,7 @@
     <testcontainers.version>1.20.3</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <groovy.version>3.0.22</groovy.version>
+    <netty.version>4.1.115.Final</netty.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>11</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -222,6 +223,8 @@
                   <filter>!org.apache.jackrabbit.oak.segment.spi.persistence</filter>
                   <!-- OAK-10838: we can't control the package version for the EOLd copy of lucene-core -->
                   <filter>!org.apache.lucene.*</filter>
+                  <!-- OAK-11286: blob-cloud, segment: update netty version to 4.1.115 -->
+                  <filter>!io.netty.*</filter>
                   <filter>*</filter>
                 </filters>
               </configuration>
@@ -245,6 +248,8 @@
         </plugin>
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
+          <!-- at least 3.1.0 for https://issues.apache.org/jira/browse/MDEPLOY-200 -->
+          <version>3.1.3</version>
           <configuration>
             <skip>${skip.deployment}</skip>
           </configuration>
@@ -305,10 +310,6 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
-          <plugin>
-            <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.5.0</version>
-          </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
@@ -450,6 +451,18 @@
                 <exclude>logback-test.xml</exclude>
               </excludes>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>
@@ -607,17 +620,17 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.14.0</version>
+        <version>3.17.0</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.17.0</version>
+        <version>2.18.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.17.1</version>
+        <version>1.17.2</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -627,12 +640,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>9.0.87</version>
+        <version>9.0.98</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>9.0.87</version>
+        <version>9.0.98</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -942,31 +955,6 @@
                </executions>
             </plugin>
             <plugin>
-               <groupId>org.apache.rat</groupId>
-               <artifactId>apache-rat-plugin</artifactId>
-               <executions>
-                  <execution>
-                     <phase>verify</phase>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
-            <plugin>
-               <artifactId>maven-checkstyle-plugin</artifactId>
-               <configuration>
-                  <failOnViolation>false</failOnViolation>
-               </configuration>
-               <executions>
-                  <execution>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
-            <plugin>
                <groupId>com.github.spotbugs</groupId>
                <artifactId>spotbugs-maven-plugin</artifactId>
                <configuration>
@@ -1029,33 +1017,6 @@
    </profile>
     
     <profile>
-      <id>rat</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.rat</groupId>
-            <artifactId>apache-rat-plugin</artifactId>
-            <executions>
-              <execution>
-                <phase>verify</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-           <plugin>
-             <artifactId>maven-surefire-plugin</artifactId>
-             <configuration>
-               <!-- run a test to prevent Jenkins from failing because no test ran -->
-               <test>PathUtilsTest</test>
-               <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
-             </configuration>
-           </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
       <id>javadoc</id>
       <build>
         <plugins>
@@ -1070,14 +1031,6 @@
               </execution>
             </executions>
           </plugin>
-          <plugin>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <configuration>
-              <!-- run a test to prevent Jenkins from failing because no test ran -->
-              <test>PathUtilsTest</test>
-              <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
-            </configuration>
-          </plugin>
         </plugins>
       </build>
     </profile>
@@ -1085,31 +1038,6 @@
       <id>pedantic</id>
       <build>
         <plugins>
-          <plugin>
-            <groupId>org.apache.rat</groupId>
-            <artifactId>apache-rat-plugin</artifactId>
-            <executions>
-              <execution>
-                <phase>verify</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <artifactId>maven-checkstyle-plugin</artifactId>
-            <configuration>
-              <failOnViolation>false</failOnViolation>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
           <plugin>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs-maven-plugin</artifactId>
@@ -1140,6 +1068,8 @@
           <groupId>org.apache.derby</groupId>
           <artifactId>derby</artifactId>
           <version>${derby.version}</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1147,9 +1077,11 @@
       <id>rdb-mysql</id>
       <dependencies>
         <dependency>
-          <groupId>mysql</groupId>
-          <artifactId>mysql-connector-java</artifactId>
-          <version>8.0.19</version>
+          <groupId>com.mysql</groupId>
+          <artifactId>mysql-connector-j</artifactId>
+          <version>9.1.0</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1160,6 +1092,8 @@
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
           <version>42.7.4</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1170,6 +1104,8 @@
           <groupId>com.h2database</groupId>
           <artifactId>h2</artifactId>
           <version>${h2.version}</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1180,6 +1116,8 @@
           <groupId>com.microsoft.sqlserver</groupId>
           <artifactId>mssql-jdbc</artifactId>
           <version>8.2.2.jre8</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1196,6 +1134,8 @@
           <groupId>com.oracle.jdbc</groupId>
           <artifactId>ojdbc8</artifactId>
           <version>12.2.0.1</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1206,7 +1146,8 @@
           <groupId>com.ibm.db2</groupId>
           <artifactId>jcc</artifactId>
           <version>11.5.9.0</version>
-          <scope>test</scope>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>

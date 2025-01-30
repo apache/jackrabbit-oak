@@ -46,12 +46,13 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -650,13 +651,13 @@ public class CompositeNodeStoreTest {
         deepMountBuilder.child("new").setProperty("store", "deepMounted", Type.STRING);
         deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        List<ChildNodeEntry> children = CollectionUtils.toList(filter(store.getRoot().getChildNodeEntries(),
+        List<ChildNodeEntry> children = ListUtils.toList(filter(store.getRoot().getChildNodeEntries(),
                 x -> Objects.equals(x == null ? null : x.getName(), "new")));
         assertEquals(1, children.size());
         assertEquals("global", children.get(0).getNodeState().getString("store"));
 
         NodeBuilder rootBuilder = store.getRoot().builder();
-        List<String> childNames = CollectionUtils.toList(filter(rootBuilder.getChildNodeNames(),
+        List<String> childNames = ListUtils.toList(filter(rootBuilder.getChildNodeNames(),
                 x -> Objects.equals(x, "new")));
         assertEquals(1, childNames.size());
         assertEquals("global", rootBuilder.getChildNode("new").getString("store"));
@@ -852,7 +853,7 @@ public class CompositeNodeStoreTest {
         Iterable<String> childNodeNames = builder.getChildNodeNames();
 
         assertNotNull("childNodeNames must not be empty", childNodeNames);
-        assertThat("Incorrect number of elements", Iterables.size(childNodeNames), equalTo(names.length));
+        assertThat("Incorrect number of elements", IterableUtils.size(childNodeNames), equalTo(names.length));
         assertThat("Mismatched elements", childNodeNames, hasItems(names));
     }
 
@@ -860,7 +861,7 @@ public class CompositeNodeStoreTest {
         Iterable<String> childNodeNames = state.getChildNodeNames();
 
         assertNotNull("childNodeNames must not be empty", childNodeNames);
-        assertThat("Incorrect number of elements", Iterables.size(childNodeNames), equalTo(names.length));
+        assertThat("Incorrect number of elements", IterableUtils.size(childNodeNames), equalTo(names.length));
         assertThat("Mismatched elements", childNodeNames, hasItems(names));
     }
 }

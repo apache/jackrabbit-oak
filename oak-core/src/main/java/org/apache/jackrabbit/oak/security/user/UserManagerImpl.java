@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -122,7 +122,7 @@ public class UserManagerImpl implements UserManager {
     @Nullable
     @Override
     public Authorizable getAuthorizable(@NotNull String id) throws RepositoryException {
-        Tree tree = (Strings.isNullOrEmpty(id)) ? null : userProvider.getAuthorizable(id);
+        Tree tree = (StringUtils.isEmpty(id)) ? null : userProvider.getAuthorizable(id);
         return getAuthorizable(tree);
     }
 
@@ -487,7 +487,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     void checkValidPrincipal(@Nullable Principal principal, boolean isGroup) throws RepositoryException {
-        if (principal == null || Strings.isNullOrEmpty(principal.getName())) {
+        if (principal == null || StringUtils.isEmpty(principal.getName())) {
             throw new IllegalArgumentException("Principal may not be null and must have a valid name.");
         }
         if (!isGroup && EveryonePrincipal.NAME.equals(principal.getName())) {

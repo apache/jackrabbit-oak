@@ -18,17 +18,15 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.document.*;
 
@@ -49,12 +47,12 @@ public final class FieldFactory {
 
     private static final FieldType OAK_TYPE_NOT_STORED = new FieldType();
 
-    private static final int[] TYPABLE_TAGS = {
+    private static final Set<Integer> TYPABLE_TAGS = Set.of(
             Type.DATE.tag(),
             Type.BOOLEAN.tag(),
             Type.DOUBLE.tag(),
-            Type.LONG.tag(),
-    };
+            Type.LONG.tag()
+        );
 
     static {
         OAK_TYPE.setIndexed(true);
@@ -70,12 +68,10 @@ public final class FieldFactory {
         OAK_TYPE_NOT_STORED.setIndexOptions(DOCS_AND_FREQS_AND_POSITIONS);
         OAK_TYPE_NOT_STORED.setTokenized(true);
         OAK_TYPE_NOT_STORED.freeze();
-
-        Arrays.sort(TYPABLE_TAGS);
     }
 
     public static boolean canCreateTypedField(Type<?> type) {
-        return Ints.contains(TYPABLE_TAGS, type.tag());
+        return TYPABLE_TAGS.contains(type.tag());
     }
 
     private final static class OakTextField extends Field {
@@ -105,14 +101,14 @@ public final class FieldFactory {
 
     public static Collection<Field> newSimilarityFields(String name, Blob value) throws IOException {
         Collection<Field> fields = new ArrayList<>(1);
-        byte[] bytes = new BlobByteSource(value).read();
+        byte[] bytes = value.getNewStream().readAllBytes();
         fields.add(newSimilarityField(name, bytes));
         return fields;
     }
 
     public static Collection<Field> newBinSimilarityFields(String name, Blob value) throws IOException {
         Collection<Field> fields = new ArrayList<>(1);
-        byte[] bytes = new BlobByteSource(value).read();
+        byte[] bytes = value.getNewStream().readAllBytes();
         fields.add(newBinarySimilarityField(name, bytes));
         return fields;
     }

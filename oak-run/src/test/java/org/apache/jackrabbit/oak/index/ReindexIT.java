@@ -23,7 +23,7 @@ import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
@@ -361,7 +361,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         assertThat(explain, containsString("/oak:index/barIndex"));
 
         IndexPathService idxPathService = new IndexPathServiceImpl(fixture2.getNodeStore());
-        List<String> indexPaths = CollectionUtils.toList(idxPathService.getIndexPaths());
+        List<String> indexPaths = ListUtils.toList(idxPathService.getIndexPaths());
 
         assertThat(indexPaths, hasItem("/oak:index/nodetype"));
         assertThat(indexPaths, hasItem("/oak:index/barIndex"));

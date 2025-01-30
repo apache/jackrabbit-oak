@@ -59,7 +59,7 @@ public class LuceneIndexDumper {
     public void dump() throws IOException {
         try (Closer closer = Closer.create()) {
             NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
-            LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx, indexPath).build();
+            LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(rootState, idx, indexPath).build();
             indexDir = DirectoryUtils.createIndexDir(baseDir, indexPath);
             IndexMeta meta = new IndexMeta(indexPath);
 

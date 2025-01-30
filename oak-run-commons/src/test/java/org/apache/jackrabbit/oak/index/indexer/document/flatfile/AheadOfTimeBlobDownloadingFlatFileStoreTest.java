@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.junit.Test;
 
 import java.util.List;
@@ -82,17 +82,17 @@ public class AheadOfTimeBlobDownloadingFlatFileStoreTest {
     }
 
     private void doFilterEnabledIndexesTest(List<String> expectedIndexes, List<String> enabledForIndexes, List<String> indexNames) {
-        List<TestNodeStateIndexer> indexers = createIndexersWithName(indexNames);
-        List<TestNodeStateIndexer> enabledIndexers = filterEnabledIndexes(enabledForIndexes, indexers);
+        List<IndexDefinition> indexers = createIndexersWithName(indexNames);
+        List<IndexDefinition> enabledIndexers = filterEnabledIndexes(enabledForIndexes, indexers);
         assertEquals(
                 Set.copyOf(expectedIndexes),
-                enabledIndexers.stream().map(NodeStateIndexer::getIndexName).collect(Collectors.toSet())
+                enabledIndexers.stream().map(IndexDefinition::getIndexName).collect(Collectors.toSet())
         );
     }
 
-    private List<TestNodeStateIndexer> createIndexersWithName(List<String> indexNames) {
+    private List<IndexDefinition> createIndexersWithName(List<String> indexNames) {
         return indexNames.stream()
-                .map(name -> new TestNodeStateIndexer(name, List.of()))
+                .map(name -> new TestIndexDefinition(name, List.of()))
                 .collect(Collectors.toList());
     }
 }

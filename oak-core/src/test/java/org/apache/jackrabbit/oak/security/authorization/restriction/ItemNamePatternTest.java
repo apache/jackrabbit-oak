@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -53,7 +52,7 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
     public void testMatchesItem() throws Exception {
 
         Tree rootTree = root.getTree("/");
-        List<String> matching = ImmutableList.of("a", "b", "c", "d/e/a", "a/b/c/d/b", "test/c");
+        List<String> matching = List.of("a", "b", "c", "d/e/a", "a/b/c/d/b", "test/c");
         for (String relPath : matching) {
             Tree testTree = addTree(rootTree, relPath);
 
@@ -64,7 +63,7 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
             testTree.remove();
         }
 
-        List<String> notMatching = ImmutableList.of("d", "b/d", "d/e/f", "c/b/abc");
+        List<String> notMatching = List.of("d", "b/d", "d/e/f", "c/b/abc");
         for (String relPath : notMatching) {
             Tree testTree = addTree(rootTree, relPath);
 
@@ -78,12 +77,12 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
 
     @Test
     public void testMatchesPath() {
-        List<String> matching = ImmutableList.of("/a", "/b", "/c", "/d/e/a", "/a/b/c/d/b", "/test/c");
+        List<String> matching = List.of("/a", "/b", "/c", "/d/e/a", "/a/b/c/d/b", "/test/c");
         for (String p : matching) {
             assertTrue(pattern.matches(p));
         }
 
-        List<String> notMatching = ImmutableList.of("/", "/d", "/b/d", "/d/e/f", "/c/b/abc");
+        List<String> notMatching = List.of("/", "/d", "/b/d", "/d/e/f", "/c/b/abc");
         for (String p : notMatching) {
             assertFalse(pattern.matches(p));
         }

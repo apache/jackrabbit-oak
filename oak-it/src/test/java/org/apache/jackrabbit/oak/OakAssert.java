@@ -23,8 +23,6 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Tree;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 public final class OakAssert {
 
     private OakAssert() {

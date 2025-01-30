@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment.tool;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
 import static java.util.Collections.emptySet;
 import static org.apache.commons.io.FileUtils.sizeOfDirectory;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -36,7 +35,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
@@ -250,7 +249,7 @@ public class Compact {
         if (files == null) {
             return emptySet();
         }
-        return CollectionUtils.toSet(files);
+        return SetUtils.toSet(files);
     }
 
     private static void printFiles(PrintStream s, Set<File> files) {
@@ -359,8 +358,8 @@ public class Compact {
         Set<File> afterFiles = listFiles(path);
         printFiles(System.out, afterFiles);
         System.out.printf("    size %s\n", printableSize(sizeOfDirectory(path)));
-        System.out.printf("    removed files %s\n", fileNames(difference(beforeFiles, afterFiles)));
-        System.out.printf("    added files %s\n", fileNames(difference(afterFiles, beforeFiles)));
+        System.out.printf("    removed files %s\n", fileNames(SetUtils.difference(beforeFiles, afterFiles)));
+        System.out.printf("    added files %s\n", fileNames(SetUtils.difference(afterFiles, beforeFiles)));
         System.out.printf("Compaction succeeded in %s.\n", printableStopwatch(watch));
         return 0;
     }
