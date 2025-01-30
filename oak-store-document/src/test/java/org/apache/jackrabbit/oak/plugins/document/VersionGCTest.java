@@ -561,7 +561,7 @@ public class VersionGCTest {
 
     @Test
     public void testVersionGCLoadGCModeConfigurationNotApplicable() {
-        int fullGcModeNotAllowedValue = 5;
+        int fullGcModeNotAllowedValue = 15;
         int fullGcModeGapOrphans = 2;
 
         // set fullGcMode to allowed value that is different than NONE
@@ -573,7 +573,7 @@ public class VersionGCTest {
                 fullGcModeNotAllowedValue, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
         assertEquals("Starting VersionGarbageCollector with not applicable / not allowed value" +
-                "will set fullGcMode to default NONE", VersionGarbageCollector.FullGCMode.NONE, VersionGarbageCollector.getFullGcMode());
+                "will set fullGcMode to default NONE", FullGCMode.NONE, VersionGarbageCollector.getFullGcMode());
     }
 
     @Test
@@ -583,7 +583,7 @@ public class VersionGCTest {
                 ns, new VersionGCSupport(store), true, false, false,
                 fullGcModeNone, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
-        assertEquals(VersionGarbageCollector.FullGCMode.NONE, VersionGarbageCollector.getFullGcMode());
+        assertEquals(FullGCMode.NONE, VersionGarbageCollector.getFullGcMode());
     }
 
     @Test
@@ -593,7 +593,7 @@ public class VersionGCTest {
                 ns, new VersionGCSupport(store), true, false, false,
                 fullGcModeGapOrphans, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
-        assertEquals(VersionGarbageCollector.FullGCMode.GAP_ORPHANS, VersionGarbageCollector.getFullGcMode());
+        assertEquals(FullGCMode.GAP_ORPHANS, VersionGarbageCollector.getFullGcMode());
     }
 
     @Test
@@ -603,10 +603,54 @@ public class VersionGCTest {
                 ns, new VersionGCSupport(store), true, false, false,
                 fullGcModeGapOrphansEmptyProperties, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
 
-        assertEquals(VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS, VersionGarbageCollector.getFullGcMode());
+        assertEquals(FullGCMode.GAP_ORPHANS_EMPTYPROPS, VersionGarbageCollector.getFullGcMode());
     }
 
     // OAK-10896 END
+
+    // OAK-11439
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationAllOrphansEmptyProps() {
+        int fullGcModeAllOrphansEmptyProperties = 4;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeAllOrphansEmptyProperties, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+
+        assertEquals(FullGCMode.ALL_ORPHANS_EMPTYPROPS, VersionGarbageCollector.getFullGcMode());
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationAllOrphansEmptyPropsKeepOneUserProps() {
+        int fullGcModeAllOrphansEmptyPropertiesKeepOneUserProps = 5;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeAllOrphansEmptyPropertiesKeepOneUserProps, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+
+        assertEquals(FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS, VersionGarbageCollector.getFullGcMode());
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationAllOrphansEmptyPropsKeepOneAllProps() {
+        int fullGcModeAllOrphansEmptyPropertiesKeepOneAllProps = 6;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeAllOrphansEmptyPropertiesKeepOneAllProps, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+
+        assertEquals(FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS, VersionGarbageCollector.getFullGcMode());
+    }
+
+    @Test
+    public void testVersionGCLoadGCModeConfigurationAllOrphansEmptyPropsUnmergedBC() {
+        int fullGcModeAllOrphansEmptyPropertiesUnmergedBC = 7;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeAllOrphansEmptyPropertiesUnmergedBC, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+
+        assertEquals(FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC, VersionGarbageCollector.getFullGcMode());
+    }
+
+    // OAK-11439 END
 
     private Future<VersionGCStats> gc() {
         // run gc in a separate thread
