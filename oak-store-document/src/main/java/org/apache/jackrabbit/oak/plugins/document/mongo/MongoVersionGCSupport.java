@@ -241,9 +241,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
                                                   @NotNull final String fromId, @NotNull Set<String> includedPathPrefixes,
                                                   @NotNull Set<String> excludedPathPrefixes) {
-        LOG.info("getModifiedDocs fromModified: {}, toModified: {}, limit: {}, fromId: {}, includedPathPrefixes: {}, excludedPathPrefixes: {}",
-                fromModified, toModified, limit, fromId, includedPathPrefixes, excludedPathPrefixes);
-
+        LOG.info("getModifiedDocs fromModified: {} ({}), toModified: {} ({}), limit: {}, fromId: {}, includedPathPrefixes: {}, excludedPathPrefixes: {}",
+                fromModified, Utils.timestampToString(fromModified), toModified, Utils.timestampToString(toModified), limit, fromId, includedPathPrefixes, excludedPathPrefixes);
         final long fromModifiedQuery;
         if (MIN_ID_VALUE.equals(fromId)) {
             // If fromId is MIN_ID_VALUE, round fromModified to 5 second resolution
