@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -29,7 +30,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
@@ -262,7 +262,7 @@ class EffectiveType {
         Set<String> names = new HashSet<>();
         for (NodeState type : types) {
             names.add(type.getName(JCR_NODETYPENAME));
-            addAll(names, type.getNames(REP_SUPERTYPES));
+            IterableUtils.addAll(names, type.getNames(REP_SUPERTYPES));
         }
         return names;
     }
@@ -308,7 +308,7 @@ class EffectiveType {
     private Set<String> getNameSet(@NotNull String set) {
         Set<String> names = new HashSet<>();
         for (NodeState type : types) {
-            addAll(names, type.getNames(set));
+            IterableUtils.addAll(names, type.getNames(set));
         }
         return names;
     }

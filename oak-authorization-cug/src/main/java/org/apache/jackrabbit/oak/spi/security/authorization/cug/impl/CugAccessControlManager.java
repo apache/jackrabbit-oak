@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -367,7 +368,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             String path = eval.remove();
             Tree t = immutableRoot.getTree(path);
             if (PathUtils.denotesRoot(path)) {
-                Iterables.addAll(eval, nestedCugPaths(t));
+                IterableUtils.addAll(eval, nestedCugPaths(t));
             }
             if (CugUtil.isSupportedPath(path, supportedPaths)) {
                 Tree cug = CugUtil.getCug(t);
@@ -376,7 +377,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                     if (!Collections.disjoint(SetUtils.toSet(principalNames), SetUtils.toSet(pNames.getValue(Type.STRINGS)))) {
                         candidates.add(path);
                     }
-                    Iterables.addAll(eval, nestedCugPaths(cug));
+                    IterableUtils.addAll(eval, nestedCugPaths(cug));
                 }
             }
         }

@@ -29,7 +29,6 @@ import static java.util.Objects.requireNonNull;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -61,6 +60,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
@@ -433,7 +433,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 List<MapEntry> list = new ArrayList<>();
                 for (MapRecord bucket : buckets) {
                     if (bucket != null) {
-                        addAll(list, bucket.getEntries());
+                        IterableUtils.addAll(list, bucket.getEntries());
                     }
                 }
                 return writeMapLeaf(level, list);

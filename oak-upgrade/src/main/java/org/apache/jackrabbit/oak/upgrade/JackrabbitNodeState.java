@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
@@ -70,6 +69,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -447,7 +447,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             }
             property = properties.get(JCR_FROZENMIXINTYPES);
             if (property != null && property.getType() == NAMES) {
-                addAll(frozenMixins, property.getValue(NAMES));
+                IterableUtils.addAll(frozenMixins, property.getValue(NAMES));
             }
 
             if (!isReferenceable.test(frozenPrimary, frozenMixins)) {

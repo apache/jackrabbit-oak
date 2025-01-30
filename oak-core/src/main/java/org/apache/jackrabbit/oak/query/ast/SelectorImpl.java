@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.metric.util.StatsProviderUtil;
@@ -739,7 +740,7 @@ public class SelectorImpl extends SourceImpl {
             if (type == Type.STRING) {
                 ArrayList<String> strings = new ArrayList<String>();
                 for (PropertyValue p : list) {
-                    Iterables.addAll(strings, p.getValue(Type.STRINGS));
+                    IterableUtils.addAll(strings, p.getValue(Type.STRINGS));
                 }
                 return PropertyValues.newString(strings);
             }

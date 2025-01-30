@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.migration;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -96,7 +97,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     protected static PropertyState fixChildOrderPropertyState(NodeState nodeState, PropertyState propertyState) {
         if (propertyState != null && OAK_CHILD_ORDER.equals(propertyState.getName())) {
             final Collection<String> childNodeNames = new ArrayList<String>();
-            Iterables.addAll(childNodeNames, nodeState.getChildNodeNames());
+            IterableUtils.addAll(childNodeNames, nodeState.getChildNodeNames());
             final Iterable<String> values = Iterables.filter(
                     propertyState.getValue(Type.NAMES), x -> childNodeNames.contains(x));
             return PropertyStates.createProperty(OAK_CHILD_ORDER, values, Type.NAMES);
