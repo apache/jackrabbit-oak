@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.junit.Test;
 
 public class CacheConfigurationTest extends AbstractSecurityTest {
@@ -61,6 +62,10 @@ public class CacheConfigurationTest extends AbstractSecurityTest {
         assertThrows(IllegalArgumentException.class, () -> CacheConfiguration.fromUserConfiguration(getUserConfiguration(), null));
         assertThrows(IllegalArgumentException.class, () -> CacheConfiguration.fromUserConfiguration(getUserConfiguration(), ""));
         assertThrows(IllegalArgumentException.class, () -> CacheConfiguration.fromUserConfiguration(getUserConfiguration(), " "));
+        assertThrows(IllegalArgumentException.class, () -> CacheConfiguration.fromUserConfiguration(getUserConfiguration(), "property", null));
+        assertThrows(IllegalArgumentException.class, () -> CacheConfiguration.fromUserConfiguration(getUserConfiguration(), "property", " "));
+        assertThrows(IllegalArgumentException.class, () -> CacheConfiguration.fromUserConfiguration(getUserConfiguration(), "property", "wrongExpiration"));
+
     }
 
     @Test
@@ -94,7 +99,7 @@ public class CacheConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testConfigurationWithMembershipThreshold() {
-        CacheConfiguration cacheConfiguration = new CacheConfiguration(getUserConfiguration(), 10000, 100, UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES, 10);
+        CacheConfiguration cacheConfiguration = new CacheConfiguration(getUserConfiguration(), 10000, 100, UserPrincipalProvider.REP_GROUP_PRINCIPAL_NAMES, CacheConstants.REP_EXPIRATION, 10);
 
         assertNotNull(cacheConfiguration);
         assertTrue(cacheConfiguration.isCacheEnabled());

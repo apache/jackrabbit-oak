@@ -17,12 +17,15 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -37,7 +40,10 @@ import java.util.List;
 
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_DEFAULT_DEPTH;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class UserConfigurationImplTest extends AbstractSecurityTest {
 
@@ -56,7 +62,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(UserConfiguration.NAME, getParams());
+        return ConfigurationParameters.of(UserConfiguration.NAME, getParams(false));
     }
 
     @Test
@@ -65,7 +71,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
         configuration.setRootProvider(getRootProvider());
         configuration.setTreeProvider(getTreeProvider());
 
-        List<? extends ValidatorProvider> validators = configuration.getValidators(adminSession.getWorkspaceName(), Collections.<Principal>emptySet(), new MoveTracker());
+        List<? extends ValidatorProvider> validators = configuration.getValidators(adminSession.getWorkspaceName(), Collections.emptySet(), new MoveTracker());
         assertEquals(2, validators.size());
 
         List<String> clNames = new ArrayList<>(Arrays.asList(
@@ -106,10 +112,26 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
     @Test
     public void testUserConfigurationWithSetParameters() {
         UserConfigurationImpl userConfiguration = new UserConfigurationImpl();
-        userConfiguration.setParameters(getParams());
+        userConfiguration.setParameters(getParams(false));
         testConfigurationParameters(userConfiguration.getParameters());
     }
-    
+
+    @Test
+    public void testUserConfigurationCacheDisabled() {
+        UserConfigurationImpl userConfiguration = new UserConfigurationImpl(getSecurityProvider());
+        userConfiguration.setParameters(getParams(false));
+        CachedMembershipReader cachedMembershipReader = userConfiguration.getCachedMembershipReader(mock(Root.class), (name) -> mock(Principal.class), "propName", CacheConstants.REP_EXPIRATION);
+        assertNull(cachedMembershipReader);
+    }
+
+    @Test
+    public void testUserConfigurationCacheEnabled() {
+        UserConfigurationImpl userConfiguration = new UserConfigurationImpl(getSecurityProvider());
+        userConfiguration.setParameters(getParams(true));
+        CachedMembershipReader cachedMembershipReader = userConfiguration.getCachedMembershipReader(mock(Root.class), (name) -> mock(Principal.class), "propName", CacheConstants.REP_EXPIRATION);
+        assertNotNull(cachedMembershipReader);
+    }
+
     private void testConfigurationParameters(ConfigurationParameters parameters) {
         assertEquals(USER_PATH, parameters.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH));
         assertEquals(GROUP_PATH, parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH));
@@ -125,8 +147,8 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
         assertEquals(ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, parameters.getConfigValue(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, UserConstants.DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE));
     }
 
-    private ConfigurationParameters getParams() {
-        ConfigurationParameters params = ConfigurationParameters.of(new HashMap<String, Object>() {{
+    private ConfigurationParameters getParams(boolean cacheEnabled) {
+        return ConfigurationParameters.of(new HashMap<String, Object>() {{
             put(UserConstants.PARAM_USER_PATH, USER_PATH);
             put(UserConstants.PARAM_GROUP_PATH, GROUP_PATH);
             put(PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
@@ -139,7 +161,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
             put(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, INITIAL_PASSWORD_CHANGE);
             put(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, PASSWORD_HISTORY_SIZE);
             put(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, ENABLE_RFC7613_USERCASE_MAPPED_PROFILE);
+            put(CacheConstants.PARAM_CACHE_EXPIRATION, cacheEnabled ? 10L : 0L);
         }});
-        return params;
     }
 }

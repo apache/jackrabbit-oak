@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CachePrincipalFactory;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
 import org.jetbrains.annotations.NotNull;
@@ -84,6 +85,27 @@ public interface UserConfiguration extends SecurityConfiguration {
      */
     @Nullable
     default CachedMembershipReader getCachedMembershipReader(@NotNull Root root, @NotNull CachePrincipalFactory cachePrincipalFactory, @NotNull String propName) {
+        return getCachedMembershipReader(root, cachePrincipalFactory, propName, CacheConstants.REP_EXPIRATION);
+    }
+
+    /**
+     * Optional method that allows a given user management implementation to
+     * provide a specific and optimized implementation of the {@link CachedMembershipReader}
+     * interface for the principals represented by the user/groups known to
+     * this implementation.
+     *
+     * If this method returns {@code null} the security setup won't, by default, use
+     * a cached membership reader.
+     *
+     * @param root The root used to read the principal information from.
+     * @param cachePrincipalFactory The factory to create the principal from the cache.
+     * @param propName The name of the property that contains the cache.
+     * @param expirationPropName The name of the property that contains cache expiration time.
+     * @return An implementation of {@code CachedMembershipReader} or {@code null} if the UserConfiguration implementation
+     * does not provide a cached membership reader.
+     */
+    @Nullable
+    default CachedMembershipReader getCachedMembershipReader(@NotNull Root root, @NotNull CachePrincipalFactory cachePrincipalFactory, @NotNull String propName, @NotNull String expirationPropName) {
         return null;
     }
 }
