@@ -93,10 +93,10 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.EMPTYPROPS;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.GAP_ORPHANS;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.NONE;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCMode.EMPTYPROPS;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCMode.GAP_ORPHANS;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCMode.GAP_ORPHANS_EMPTYPROPS;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCMode.NONE;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
 import static org.apache.jackrabbit.oak.stats.StatisticsProvider.NOOP;
@@ -157,48 +157,6 @@ public class VersionGarbageCollector {
      */
     static final String SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP = "fullGCDryRunId";
 
-    /**
-     * During hardening of FullGC one can choose level type of garbage should be cleaned up.
-     * Ultimately the goal is to clean up all possible garbage. After hardening these modes
-     * might no longer be supported.
-     */
-    enum FullGCMode {
-        /** no full GC is done at all */
-        NONE,
-        /** GC only empty properties */
-        EMPTYPROPS,
-        /** GC only orphaned nodes with gaps in ancestor docs */
-        GAP_ORPHANS,
-        /** GC orphaned nodes with gaps in ancestor docs, plus empty properties */
-        GAP_ORPHANS_EMPTYPROPS,
-        /** GC any kind of orphaned nodes, plus empty properties */
-        ALL_ORPHANS_EMPTYPROPS,
-        /**
-         * GC any kind of orphaned nodes, empty properties plus keep 1 (== keep
-         * traversed) revision, applied to user properties only
-         */
-        ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS,
-        /**
-         * GC any kind of orphaned nodes, empty properties plus keep 1 (== keep
-         * traversed) revision, applied to all properties
-         */
-        ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS,
-        /**
-         * GC any kind of orphaned nodes, empty properties plus cleanup unmerged BCs
-         */
-        ORPHANS_EMPTYPROPS_UNMERGED_BC,
-        /**
-         * GC any kind of orphaned nodes, empty properties plus cleanup revisions, also
-         * between checkpoints
-         */
-        ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC,
-        /**
-         * GC any kind of orphaned nodes, empty properties, cleanup revisions, also
-         * between checkpoints, plus cleanup unmerged BCs
-         */
-        ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC
-    }
-
     private static FullGCMode fullGcMode = GAP_ORPHANS_EMPTYPROPS;
 
     static FullGCMode getFullGcMode() {
@@ -212,23 +170,7 @@ public class VersionGarbageCollector {
      * @param fullGcMode configuration value for full GC mode
      */
     static void setFullGcMode(int fullGcMode) {
-        switch (fullGcMode) {
-            case 0:
-                VersionGarbageCollector.fullGcMode = NONE;
-                break;
-            case 1:
-                VersionGarbageCollector.fullGcMode = EMPTYPROPS;
-                break;
-            case 2:
-                VersionGarbageCollector.fullGcMode = GAP_ORPHANS;
-                break;
-            case 3:
-                VersionGarbageCollector.fullGcMode = GAP_ORPHANS_EMPTYPROPS;
-                break;
-            default:
-                log.warn("Unsupported full GC mode configuration value: {}. Resetting to NONE", fullGcMode);
-                VersionGarbageCollector.fullGcMode = NONE;
-        }
+        VersionGarbageCollector.fullGcMode = FullGCMode.getMode(fullGcMode);
     }
 
     private final DocumentNodeStore nodeStore;
