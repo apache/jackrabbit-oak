@@ -51,7 +51,6 @@ import java.util.SortedMap;
 import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.GCCounts;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
