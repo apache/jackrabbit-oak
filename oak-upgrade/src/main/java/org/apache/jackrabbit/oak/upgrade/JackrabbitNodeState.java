@@ -69,7 +69,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -447,7 +446,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             }
             property = properties.get(JCR_FROZENMIXINTYPES);
             if (property != null && property.getType() == NAMES) {
-                IterableUtils.addAll(frozenMixins, property.getValue(NAMES));
+                property.getValue(NAMES).forEach(frozenMixins::add);
             }
 
             if (!isReferenceable.test(frozenPrimary, frozenMixins)) {

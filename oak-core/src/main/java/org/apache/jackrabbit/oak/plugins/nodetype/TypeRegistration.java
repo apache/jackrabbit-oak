@@ -126,8 +126,8 @@ class TypeRegistration extends DefaultNodeStateDiff {
         for (String name : SetUtils.union(changedTypes, removedTypes)) {
             types.add(name);
             NodeState type = beforeTypes.getChildNode(name);
-            org.apache.jackrabbit.oak.commons.collections.IterableUtils.addAll(types, type.getNames(REP_PRIMARY_SUBTYPES));
-            org.apache.jackrabbit.oak.commons.collections.IterableUtils.addAll(types, type.getNames(REP_MIXIN_SUBTYPES));
+            type.getNames(REP_PRIMARY_SUBTYPES).forEach(types::add);
+            type.getNames(REP_MIXIN_SUBTYPES).forEach(types::add);
         }
         return types;
     }
@@ -313,7 +313,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
     private void mergeNameList(
             NodeBuilder builder, NodeState state, String listName) {
         Set<String> nameList = SetUtils.toLinkedSet(getNames(builder, listName));
-        org.apache.jackrabbit.oak.commons.collections.IterableUtils.addAll(nameList, state.getProperty(listName).getValue(NAMES));
+        state.getProperty(listName).getValue(NAMES).forEach(nameList::add);
         builder.setProperty(listName, nameList, NAMES);
     }
 

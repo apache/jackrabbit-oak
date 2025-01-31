@@ -78,7 +78,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
@@ -172,7 +171,7 @@ public class NodeDelegate extends ItemDelegate {
             Set<String> typeNames = new HashSet<>();
             for (Tree type : TreeUtil.getEffectiveType(tree, typeRoot)) {
                 typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
-                IterableUtils.addAll(typeNames, TreeUtil.getNames(type, REP_SUPERTYPES));
+                TreeUtil.getNames(type, REP_SUPERTYPES).forEach(typeNames::add);
             }
 
             for (Tree type : types) {
@@ -450,7 +449,7 @@ public class NodeDelegate extends ItemDelegate {
                 Set<String> typeNames = new LinkedHashSet<>();
                 for (Tree type : getNodeTypes(child, typeRoot)) {
                     typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
-                    IterableUtils.addAll(typeNames, getNames(type, REP_SUPERTYPES));
+                    getNames(type, REP_SUPERTYPES).forEach(typeNames::add);
                 }
 
                 Tree oldDefinition = findMatchingChildNodeDefinition(removed, name, typeNames);
