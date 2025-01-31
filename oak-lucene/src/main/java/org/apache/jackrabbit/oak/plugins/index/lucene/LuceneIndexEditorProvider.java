@@ -68,7 +68,6 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
  *
  * @see LuceneIndexEditor
  * @see IndexEditorProvider
- *
  */
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final static Logger LOG = LoggerFactory.getLogger(LuceneIndexEditorProvider.class);
@@ -94,6 +93,9 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
      */
     private int inMemoryDocsLimit = Integer.getInteger("oak.lucene.inMemoryDocsLimit", 500);
     private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
+
+    private DefaultIndexWriterFactory defaultIndexWriterFactory;
+    private COWDirectoryCleanupCallback cowDirectoryCleanupCallback;
 
     public LuceneIndexEditorProvider() {
         this(null);
@@ -150,13 +152,13 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-        @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
-        @NotNull IndexUpdateCallback callback)
+            @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
+            @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
             checkArgument(callback instanceof ContextAwareCallback,
                     "callback instance not of type ContextAwareCallback [%s]", callback);
-            IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
+            IndexingContext indexingContext = ((ContextAwareCallback) callback).getIndexingContext();
             BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
             indexingContext.registerIndexCommitCallback(blobDeletionCallback);
             FulltextIndexWriterFactory writerFactory = null;
@@ -170,12 +172,12 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
                 //Would not participate in reindexing. Only interested in
                 //incremental indexing
-                if (indexingContext.isReindexing()){
+                if (indexingContext.isReindexing()) {
                     return null;
                 }
 
                 CommitContext commitContext = getCommitContext(indexingContext);
-                if (commitContext == null){
+                if (commitContext == null) {
                     //Logically there should not be any commit without commit context. But
                     //some initializer code does the commit with out it. So ignore such calls with
                     //warning now
@@ -192,9 +194,9 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 //IndexDefinition from tracker might differ from one passed here for reindexing
                 //case which should be fine. However reusing existing definition would avoid
                 //creating definition instance for each commit as this gets executed for each commit
-                if (indexTracker != null){
+                if (indexTracker != null) {
                     indexDefinition = indexTracker.getIndexDefinition(indexPath);
-                    if (indexDefinition != null && !indexDefinition.hasMatchingNodeTypeReg(root)){
+                    if (indexDefinition != null && !indexDefinition.hasMatchingNodeTypeReg(root)) {
                         LOG.debug("Detected change in NodeType registry for index {}. Would not use " +
                                 "existing index definition", indexDefinition.getIndexPath());
                         indexDefinition = null;
@@ -226,12 +228,11 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             }
 
             if (writerFactory == null) {
-                COWDirectoryCleanupCallback cowDirectoryCleanupCallback = new COWDirectoryCleanupCallback();
+                // Also initializes cowDirectoryCleanupCallback
+                initDefaultWriterFactory();
+                LOG.info("Registering COWDirectoryCleanupCallback for {}", indexPath);
                 indexingContext.registerIndexCommitCallback(cowDirectoryCleanupCallback);
-
-                writerFactory = new DefaultIndexWriterFactory(mountInfoProvider,
-                        newDirectoryFactory(blobDeletionCallback, cowDirectoryCleanupCallback),
-                        writerConfig);
+                writerFactory = defaultIndexWriterFactory;
             }
 
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
@@ -257,6 +258,17 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         return null;
     }
 
+    private synchronized void initDefaultWriterFactory() {
+        if (defaultIndexWriterFactory == null) {
+            LOG.info("Initializing DefaultIndexWriterFactory");
+            cowDirectoryCleanupCallback = new COWDirectoryCleanupCallback();
+            BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
+            defaultIndexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider,
+                    newDirectoryFactory(blobDeletionCallback, cowDirectoryCleanupCallback),
+                    writerConfig);
+        }
+    }
+
     IndexCopier getIndexCopier() {
         return indexCopier;
     }
@@ -278,7 +290,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         return new DefaultDirectoryFactory(indexCopier, blobStore, blobDeletionCallback, cowDirectoryTracker);
     }
 
-    private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext){
+    private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext) {
         LuceneDocumentHolder holder = (LuceneDocumentHolder) commitContext.get(LuceneDocumentHolder.NAME);
         if (holder == null) {
             holder = new LuceneDocumentHolder(indexingQueue, inMemoryDocsLimit);
@@ -331,7 +343,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 }
 
                 for (File f : reindexingLocalDirectories) {
-                    if ( ! FileUtils.deleteQuietly(f)) {
+                    if (!FileUtils.deleteQuietly(f)) {
                         LOG.warn("Failed to delete {}", f);
                     }
                 }
