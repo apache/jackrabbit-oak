@@ -457,7 +457,7 @@ public class ExternalSortTest {
                                                                              File compressedFile) throws IOException {
         try (BufferedWriter bufferedWriter = new BufferedWriter(
                 new OutputStreamWriter(algorithm.getOutputStream(new FileOutputStream(compressedFile)),
-                        Charset.defaultCharset()));) {
+                        Charset.defaultCharset()))) {
             Files.lines(uncompressedInputFile.toPath(), Charset.defaultCharset()).forEach(n -> {
                 try {
                     bufferedWriter.write(n + "\n");
