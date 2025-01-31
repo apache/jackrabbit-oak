@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Rule;
@@ -150,7 +149,7 @@ public class DataStoreCacheUpgradeUtilsTest extends AbstractDataStoreCacheTest {
             assertFalse(file.exists());
             file = getFile(id, new File(path, moveFolder));
             assertTrue(file.exists());
-            assertTrue(Files.equal(file,
+            assertTrue(FileUtils.contentEquals(file,
                 copyToFile(randomStream(Integer.parseInt(id), 4 * 1024), folder.newFile())));
         }
     }
@@ -159,7 +158,7 @@ public class DataStoreCacheUpgradeUtilsTest extends AbstractDataStoreCacheTest {
         for (String id : ids) {
             File file = getFile(id, path);
             assertTrue(file.exists());
-            assertTrue(Files.equal(file,
+            assertTrue(FileUtils.contentEquals(file,
                 copyToFile(randomStream(Integer.parseInt(id), 4 * 1024), folder.newFile())));
             file = getFile(id, new File(path, moveFolder));
             assertFalse(file.exists());

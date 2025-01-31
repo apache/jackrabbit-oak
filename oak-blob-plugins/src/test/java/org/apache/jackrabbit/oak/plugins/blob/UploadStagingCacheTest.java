@@ -44,7 +44,6 @@ import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
@@ -213,7 +212,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // assert file retrieved from staging cache
         File ret = stagingCache.getIfPresent(ID_PREFIX + 0);
-        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()), ret));
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(0, 4 * 1024), folder.newFile()), ret));
 
         assertEquals(1, stagingCache.getStats().getLoadCount());
         assertEquals(1, stagingCache.getStats().getLoadSuccessCount());
@@ -229,7 +228,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         // Now uploaded
         ret = stagingCache.getIfPresent(ID_PREFIX + 0);
         assertNull(ret);
-        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
             secondTimeUploader.read(ID_PREFIX + 0)));
     }
 
@@ -521,7 +520,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         copyThreadLatch.countDown();
         future1.get();
 
-        assertTrue(Files.equal(temp, uploader.read(ID_PREFIX + 0)));
+        assertTrue(FileUtils.contentEquals(temp, uploader.read(ID_PREFIX + 0)));
     }
 
     /**
@@ -577,9 +576,9 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
             e.printStackTrace();
         }
 
-        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 0)));
-        assertTrue(Files.equal(copyToFile(randomStream(diff, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(diff, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + diff)));
     }
 
@@ -603,7 +602,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         waitFinish(futures);
 
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
-        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 0)));
         assertCacheStats(stagingCache, 0, 0, 1, 1);
     }
@@ -643,11 +642,11 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 3));
 
         // Initial files should have been uploaded
-        assertTrue(Files.equal(copyToFile(randomStream(1, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(1, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 1)));
-        assertTrue(Files.equal(copyToFile(randomStream(2, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(2, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 2)));
-        assertTrue(Files.equal(copyToFile(randomStream(3, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(3, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 3)));
         assertCacheStats(stagingCache, 0, 0, 3, 4);
     }
@@ -678,7 +677,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         waitFinish(futures);
 
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
-        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 0)));
 
         assertUpgrade(pendingUploadsFile);
@@ -730,7 +729,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
     private void assertUpgrade(File pendingUploadFile) throws IOException {
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 1));
-        assertTrue(Files.equal(copyToFile(randomStream(1, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(1, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 1)));
         assertFalse(pendingUploadFile.exists());
     }
