@@ -158,4 +158,9 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
         return facetsConfig;
     }
 
+
+    @Override
+    public String toString() {
+        return definition.toString();
+    }
 }
