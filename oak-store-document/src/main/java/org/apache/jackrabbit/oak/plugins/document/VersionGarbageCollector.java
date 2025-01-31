@@ -83,6 +83,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.BRANCH_COMMITS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
@@ -179,6 +180,7 @@ public class VersionGarbageCollector {
     private final boolean isFullGCDryRun;
     private final boolean embeddedVerification;
     private final double fullGCDelayFactor;
+    private long fullGcMaxAgeInMillis;
     private final int fullGCBatchSize;
     private final int fullGCProgressSize;
     private Set<String> fullGCIncludePaths = Collections.emptySet();
@@ -196,7 +198,7 @@ public class VersionGarbageCollector {
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification) {
         this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification, DEFAULT_FULL_GC_MODE,
-                0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
     }
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
@@ -207,7 +209,8 @@ public class VersionGarbageCollector {
                             final int fullGCMode,
                             final double fullGCDelayFactor,
                             final int fullGCBatchSize,
-                            final int fullGCProgressSize) {
+                            final int fullGCProgressSize,
+                            final long fullGcMaxAgeInMillis) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
@@ -215,13 +218,14 @@ public class VersionGarbageCollector {
         this.isFullGCDryRun = isFullGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.fullGCDelayFactor = fullGCDelayFactor;
+        this.fullGcMaxAgeInMillis = fullGcMaxAgeInMillis;
         this.fullGCBatchSize = Math.min(fullGCBatchSize, fullGCProgressSize);
         this.fullGCProgressSize = fullGCProgressSize;
         this.options = new VersionGCOptions();
 
         setFullGcMode(fullGCMode);
-        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode: {}, batchSize: {}, progressSize: {}, delayFactor: {}",
-                fullGcMode, fullGCBatchSize, fullGCProgressSize, fullGCDelayFactor);
+        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode: {}, maxFullGcAgeInMillis: {}, batchSize: {}, progressSize: {}, delayFactor: {}",
+                fullGcMode, fullGcMaxAgeInMillis, fullGCBatchSize, fullGCProgressSize, fullGCDelayFactor);
     }
 
     /**
@@ -237,6 +241,10 @@ public class VersionGarbageCollector {
         this.fullGCIncludePaths = requireNonNull(includes);
         this.fullGCExcludePaths = requireNonNull(excludes);
         AUDIT_LOG.info("Full GC paths set to include: {} and exclude: {} in mode {}", includes, excludes, fullGcMode);
+    }
+
+    void setFullGcMaxAge(final long fullGcMaxAge, final TimeUnit unit) {
+        this.fullGcMaxAgeInMillis = unit.toMillis(fullGcMaxAge);
     }
 
     public void setStatisticsProvider(StatisticsProvider provider) {
@@ -353,7 +361,7 @@ public class VersionGarbageCollector {
         long now = nodeStore.getClock().getTime();
         VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
                 !nodeStore.isReadOnlyMode(), nodeStore.getClock(), versionStore, options, gcMonitor, fullGCEnabled,
-                isFullGCDryRun);
+                isFullGCDryRun, fullGcMaxAgeInMillis);
         int estimatedIterations = -1;
         if (rec.suggestedIntervalMs > 0) {
             estimatedIterations = (int)Math.ceil((double) (now - rec.scope.toMs) / rec.suggestedIntervalMs);
@@ -734,7 +742,7 @@ public class VersionGarbageCollector {
             stats.active.start();
             VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
                     !nodeStore.isReadOnlyMode(), nodeStore.getClock(), versionStore, options, gcMonitor, fullGCEnabled,
-                    isFullGCDryRun);
+                    isFullGCDryRun, fullGcMaxAgeInMillis);
             GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
             try {
                 if (!isFullGCDryRun) {

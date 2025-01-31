@@ -55,6 +55,7 @@ import static org.apache.commons.lang3.reflect.FieldUtils.readDeclaredField;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.disableFullGC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.disableFullGCDryRun;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGC;
@@ -136,7 +137,7 @@ public class VersionGCTest {
         assertTrue(gcBlocked);
         // now try to trigger another GC
         try {
-            gc.gc(30, TimeUnit.MINUTES);
+            FullGCHelper.gc(gc, 30, TimeUnit.MINUTES);
             fail("must throw an IOException");
         } catch (IOException e) {
             assertTrue(e.getMessage().contains("already running"));
@@ -209,7 +210,7 @@ public class VersionGCTest {
         String versionGCId = SETTINGS_COLLECTION_ID;
         String fullGCTimestamp = SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP;
         enableFullGC(gc);
-        gc.gc(30, SECONDS);
+        FullGCHelper.gc(gc, 30, SECONDS);
         Document statusBefore = store.find(SETTINGS, versionGCId);
         // block gc call
         store.semaphore.acquireUninterruptibly();
@@ -247,7 +248,7 @@ public class VersionGCTest {
         String versionGCId = SETTINGS_COLLECTION_ID;
         String oldestModifiedDocId = SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
         enableFullGC(gc);
-        gc.gc(30, SECONDS);
+        FullGCHelper.gc(gc, 30, SECONDS);
         Document statusBefore = store.find(SETTINGS, versionGCId);
         // block gc call
         store.semaphore.acquireUninterruptibly();
@@ -288,12 +289,12 @@ public class VersionGCTest {
         String versionGCId = SETTINGS_COLLECTION_ID;
         String fullGCTimestamp = SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP;
         enableFullGC(gc);
-        gc.gc(30, SECONDS);
+        FullGCHelper.gc(gc, 30, SECONDS);
         Document statusBefore = store.find(SETTINGS, versionGCId);
         // now run GC in dryRun mode
         enableFullGCDryRun(gc);
 
-        gc.gc(30, SECONDS);
+        FullGCHelper.gc(gc, 30, SECONDS);
 
         // ensure a dryRun GC doesn't update that versionGC SETTINGS entries
         Document statusAfter = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
@@ -309,11 +310,11 @@ public class VersionGCTest {
         String versionGCId = SETTINGS_COLLECTION_ID;
         String oldestModifiedDocId = SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
         enableFullGC(gc);
-        gc.gc(30, SECONDS);
+        FullGCHelper.gc(gc, 30, SECONDS);
         final Document statusBefore = store.find(SETTINGS, versionGCId);
         // now run GC in dryRun mode
         enableFullGCDryRun(gc);
-        gc.gc(30, SECONDS);
+        FullGCHelper.gc(gc, 30, SECONDS);
         // ensure a dryRun GC doesn't update that versionGC SETTINGS entry
         final Document statusAfter = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(statusAfter);
@@ -326,7 +327,7 @@ public class VersionGCTest {
 
     @Test
     public void getInfo() throws Exception {
-        gc.gc(1, TimeUnit.HOURS);
+        FullGCHelper.gc(gc, 1, TimeUnit.HOURS);
 
         gc.getInfo(1, TimeUnit.HOURS);
     }
@@ -336,7 +337,7 @@ public class VersionGCTest {
         TestGCMonitor monitor = new TestGCMonitor();
         gc.setGCMonitor(monitor);
 
-        gc.gc(30, TimeUnit.MINUTES);
+        FullGCHelper.gc(gc, 30, TimeUnit.MINUTES);
 
         List<String> expected = List.of("INITIALIZING",
                 "COLLECTING", "CHECKING", "COLLECTING", "DELETING", "SORTING",
@@ -349,7 +350,7 @@ public class VersionGCTest {
         TestGCMonitor monitor = new TestGCMonitor();
         gc.setGCMonitor(monitor);
 
-        gc.gc(2, TimeUnit.HOURS);
+        FullGCHelper.gc(gc, 2, TimeUnit.HOURS);
 
         List<String> infoMessages = monitor.getInfoMessages();
         assertEquals(3, infoMessages.size());
@@ -361,7 +362,7 @@ public class VersionGCTest {
     @Test
     public void findVersionGC() throws Exception {
         store.findVersionGC.set(0);
-        gc.gc(1, TimeUnit.HOURS);
+        FullGCHelper.gc(gc, 1, TimeUnit.HOURS);
         // must only read once
         assertEquals(1, store.findVersionGC.get());
     }
@@ -377,7 +378,7 @@ public class VersionGCTest {
         VersionGCSupport localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oneYearAgo, twelveTimesTheLimit);
 
         VersionGCRecommendations rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), true, ns.getClock(),
-                localgcsupport, options, new TestGCMonitor(), false, false);
+                localgcsupport, options, new TestGCMonitor(), false, false, SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         // should select a duration of roughly one month
         long duration= rec.scope.getDurationMs();
@@ -391,7 +392,7 @@ public class VersionGCTest {
         assertTrue(stats.needRepeat);
 
         rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), true, ns.getClock(), localgcsupport,
-                options, new TestGCMonitor(), false, false);
+                options, new TestGCMonitor(), false, false, SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         // new duration should be half
         long nduration = rec.scope.getDurationMs();
@@ -420,7 +421,7 @@ public class VersionGCTest {
         // loop until the recommended interval is at 60s (precisionMS)
         do {
             rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), true, ns.getClock(), localgcsupport,
-                    options, testmonitor, false, false);
+                    options, testmonitor, false, false, SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
             stats = new VersionGCStats();
             stats.limitExceeded = true;
             rec.evaluate(stats);
@@ -437,7 +438,7 @@ public class VersionGCTest {
             deletedCount -= deleted;
             localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oldestDeleted, deletedCount);
             rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), true, ns.getClock(), localgcsupport,
-                    options, testmonitor, false, false);
+                    options, testmonitor, false, false, SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
             stats = new VersionGCStats();
             stats.limitExceeded = false;
             stats.deletedDocGCCount = deleted;
@@ -464,7 +465,7 @@ public class VersionGCTest {
         }, false, false, false);
 
         // run first RGC
-        gc.gc(1, TimeUnit.HOURS);
+        FullGCHelper.gc(gc, 1, TimeUnit.HOURS);
 
         // afterwards there should be no more calls to getDeletedOnceCount()
         deletedOnceCountCalls.set(0);
@@ -472,7 +473,7 @@ public class VersionGCTest {
         for (int i = 0; i < 10; i++) {
             advanceClock(5, SECONDS);
 
-            gc.gc(1, TimeUnit.HOURS);
+            FullGCHelper.gc(gc, 1, TimeUnit.HOURS);
             assertEquals(0, deletedOnceCountCalls.get());
         }
     }
@@ -481,7 +482,7 @@ public class VersionGCTest {
     @Test
     public void testFullGCDocumentRead_disabled() throws Exception {
         disableFullGC(gc);
-        VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
+        VersionGCStats stats = FullGCHelper.gc(gc, 30, TimeUnit.MINUTES);
         assertNotNull(stats);
         assertEquals(0, stats.fullGCDocsElapsed);
     }
@@ -489,7 +490,8 @@ public class VersionGCTest {
     @Test
     public void testFullGCDocumentRead_enabled() throws Exception {
         enableFullGC(gc);
-        VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
+        gc.setFullGcMaxAge(30, MINUTES);
+        VersionGCStats stats = FullGCHelper.gc(gc, 30, TimeUnit.MINUTES);
         assertNotNull(stats);
         assertNotEquals(0, stats.fullGCDocsElapsed);
     }
@@ -501,7 +503,7 @@ public class VersionGCTest {
     public void testFullGCDryRunModeEnabled() throws Exception {
         enableFullGC(gc);
         enableFullGCDryRun(gc);
-        VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
+        VersionGCStats stats = FullGCHelper.gc(gc, 30, TimeUnit.MINUTES);
         assertNotNull(stats);
         assertTrue(stats.fullGCDryRunMode);
     }
@@ -510,7 +512,7 @@ public class VersionGCTest {
     public void testResetFullGCDryRunMode() throws Exception {
         enableFullGC(gc);
         enableFullGCDryRun(gc);
-        VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
+        VersionGCStats stats = FullGCHelper.gc(gc, 30, TimeUnit.MINUTES);
         assertNotNull(stats);
 
         // add dryRun fields data
@@ -539,7 +541,7 @@ public class VersionGCTest {
     public void testVGCWithBatchSizeSmallerThanProgressSize() throws IllegalAccessException {
         VersionGarbageCollector vgc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                0, 0, 1000, 5000);
+                0, 0, 1000, 5000, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         assertEquals(1000, readDeclaredField(vgc, "fullGCBatchSize", true));
         assertEquals(5000, readDeclaredField(vgc, "fullGCProgressSize", true));
@@ -549,7 +551,7 @@ public class VersionGCTest {
     public void testVGCWithBatchSizeGreaterThanProgressSize() throws IllegalAccessException {
         VersionGarbageCollector vgc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                0, 0, 20000, 15000);
+                0, 0, 20000, 15000, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         assertEquals(15000, readDeclaredField(vgc, "fullGCBatchSize", true));
         assertEquals(15000, readDeclaredField(vgc, "fullGCProgressSize", true));
@@ -570,7 +572,7 @@ public class VersionGCTest {
         // reinitialize VersionGarbageCollector with not allowed value
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeNotAllowedValue, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                fullGcModeNotAllowedValue, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         assertEquals("Starting VersionGarbageCollector with not applicable / not allowed value" +
                 "will set fullGcMode to default NONE", FullGCMode.NONE, VersionGarbageCollector.getFullGcMode());
@@ -581,7 +583,7 @@ public class VersionGCTest {
         int fullGcModeNone = 0;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeNone, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                fullGcModeNone, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         assertEquals(FullGCMode.NONE, VersionGarbageCollector.getFullGcMode());
     }
@@ -591,7 +593,7 @@ public class VersionGCTest {
         int fullGcModeGapOrphans = 2;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeGapOrphans, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                fullGcModeGapOrphans, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         assertEquals(FullGCMode.GAP_ORPHANS, VersionGarbageCollector.getFullGcMode());
     }
@@ -601,7 +603,7 @@ public class VersionGCTest {
         int fullGcModeGapOrphansEmptyProperties = 3;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeGapOrphansEmptyProperties, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                fullGcModeGapOrphansEmptyProperties, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         assertEquals(FullGCMode.GAP_ORPHANS_EMPTYPROPS, VersionGarbageCollector.getFullGcMode());
     }
@@ -657,7 +659,7 @@ public class VersionGCTest {
         return execService.submit(new Callable<VersionGCStats>() {
             @Override
             public VersionGCStats call() throws Exception {
-                return gc.gc(30, TimeUnit.MINUTES);
+                return FullGCHelper.gc(gc, 30, TimeUnit.MINUTES);
             }
         });
     }
