@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.exporter;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collections;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.json.BlobDeserializer;
 import org.apache.jackrabbit.oak.json.JsonDeserializer;
@@ -66,7 +65,7 @@ public class NodeStateSerializerTest {
         File json = new File(folder.getRoot(), serializer.getFileName());
         assertTrue(json.exists());
 
-        String text = Files.toString(json, StandardCharsets.UTF_8);
+        String text = new String(Files.readAllBytes(json.toPath()), StandardCharsets.UTF_8);
         NodeState nodeState2 = deserialize(text);
         assertTrue(EqualsDiff.equals(builder.getNodeState(), nodeState2));
     }
