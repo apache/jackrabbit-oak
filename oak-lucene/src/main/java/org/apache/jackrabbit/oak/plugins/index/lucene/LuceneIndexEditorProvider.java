@@ -48,16 +48,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
@@ -94,6 +95,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private int inMemoryDocsLimit = Integer.getInteger("oak.lucene.inMemoryDocsLimit", 500);
     private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
 
+    private final ReentrantLock defaultWriterFactoryInitLock = new ReentrantLock();
     private DefaultIndexWriterFactory defaultIndexWriterFactory;
     private COWDirectoryCleanupCallback cowDirectoryCleanupCallback;
 
@@ -161,7 +163,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             IndexingContext indexingContext = ((ContextAwareCallback) callback).getIndexingContext();
             BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
             indexingContext.registerIndexCommitCallback(blobDeletionCallback);
-            FulltextIndexWriterFactory writerFactory = null;
+            FulltextIndexWriterFactory<Iterable<? extends IndexableField>> writerFactory = null;
             LuceneIndexDefinition indexDefinition = null;
             boolean asyncIndexing = true;
             String indexPath = indexingContext.getIndexPath();
@@ -228,7 +230,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             }
 
             if (writerFactory == null) {
-                // Also initializes cowDirectoryCleanupCallback
+                // The default writer factory is generic, it does not depend on the details of the index definition
+                // We can create it once and reuse it for all indexes
                 initDefaultWriterFactory();
                 LOG.info("Registering COWDirectoryCleanupCallback for {}", indexPath);
                 indexingContext.registerIndexCommitCallback(cowDirectoryCleanupCallback);
@@ -258,14 +261,19 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         return null;
     }
 
-    private synchronized void initDefaultWriterFactory() {
-        if (defaultIndexWriterFactory == null) {
-            LOG.info("Initializing DefaultIndexWriterFactory");
-            cowDirectoryCleanupCallback = new COWDirectoryCleanupCallback();
-            BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
-            defaultIndexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider,
-                    newDirectoryFactory(blobDeletionCallback, cowDirectoryCleanupCallback),
-                    writerConfig);
+    private void initDefaultWriterFactory() {
+        defaultWriterFactoryInitLock.lock();
+        try {
+            if (defaultIndexWriterFactory == null) {
+                LOG.info("Initializing DefaultIndexWriterFactory");
+                cowDirectoryCleanupCallback = new COWDirectoryCleanupCallback();
+                BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
+                defaultIndexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider,
+                        newDirectoryFactory(blobDeletionCallback, cowDirectoryCleanupCallback),
+                        writerConfig);
+            }
+        } finally {
+            defaultWriterFactoryInitLock.unlock();
         }
     }
 
@@ -327,8 +335,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private static class COWDirectoryCleanupCallback implements IndexCommitCallback, COWDirectoryTracker {
         private static final Logger LOG = LoggerFactory.getLogger(COWDirectoryCleanupCallback.class);
 
-        private final List<CopyOnWriteDirectory> openedCoWDirectories = new ArrayList<>();
-        private final List<File> reindexingLocalDirectories = new ArrayList<>();
+        private final CopyOnWriteArrayList<CopyOnWriteDirectory> openedCoWDirectories = new CopyOnWriteArrayList<>();
+        private final CopyOnWriteArrayList<File> reindexingLocalDirectories = new CopyOnWriteArrayList<>();
 
         @Override
         public void commitProgress(IndexProgress indexProgress) {

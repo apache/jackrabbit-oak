@@ -100,7 +100,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     private final Map<String, String> indexPathVersionMapping = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = new ConcurrentHashMap<>();
-    private final Set<LocalIndexFile> copyInProgressFiles = Collections.newSetFromMap(new ConcurrentHashMap<LocalIndexFile, Boolean>());
+    private final Set<LocalIndexFile> copyInProgressFiles = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final boolean prefetchEnabled;
     private volatile boolean closed;
     private final IndexRootDirectory indexRootDirectory;
@@ -528,9 +528,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                         IndexMappingData.FIELD_NAMES,
                         new String[]{indexDir.getJcrPath(), indexDir.getFSPath(), size}));
             }
-        } catch (OpenDataException e){
-            throw new IllegalStateException(e);
-        } catch (IOException e) {
+        } catch (OpenDataException | IOException e){
             throw new IllegalStateException(e);
         }
         return tds;
@@ -608,7 +606,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     @Override
     public String[] getGarbageDetails() {
         return toArray(transform(failedToDeleteFiles.values(),
-                input -> input.deleteLog()), String.class);
+                LocalIndexFile::deleteLog), String.class);
     }
 
     @Override
@@ -652,7 +650,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     @Override
     public String[] getCopyInProgressDetails() {
         return toArray(transform(copyInProgressFiles,
-                input -> input.copyLog()), String.class);
+                LocalIndexFile::copyLog), String.class);
     }
 
     @Override
@@ -706,10 +704,10 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
         COWDirectoryTracker NOOP = new COWDirectoryTracker() {
             @Override
-            public void registerOpenedDirectory(CopyOnWriteDirectory directory) {}
+            public void registerOpenedDirectory(@NotNull CopyOnWriteDirectory directory) {}
 
             @Override
-            public void registerReindexingLocalDirectory(File dir) {}
+            public void registerReindexingLocalDirectory(@NotNull File dir) {}
         };
     }
 }
