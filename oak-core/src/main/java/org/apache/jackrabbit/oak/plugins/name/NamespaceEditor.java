@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
 import java.util.Locale;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -96,7 +97,7 @@ class NamespaceEditor extends DefaultEditor {
     }
 
     private static boolean containsValue(NodeState namespaces, String value) {
-        return Iterables.contains(namespaces.getChildNode(REP_NSDATA).getStrings(REP_URIS), value);
+        return IterableUtils.contains(namespaces.getChildNode(REP_NSDATA).getStrings(REP_URIS), value);
     }
 
     @Override

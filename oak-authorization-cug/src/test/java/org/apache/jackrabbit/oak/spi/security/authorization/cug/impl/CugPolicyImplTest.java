@@ -266,14 +266,14 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
         Principal excluded = getExcludedPrincipal();
         assertTrue(cug.addPrincipals(EveryonePrincipal.getInstance(), excluded));
-        assertFalse(Iterables.contains(cug.getPrincipalNames(), excluded.getName()));
+        assertFalse(IterableUtils.contains(cug.getPrincipalNames(), excluded.getName()));
     }
 
     @Test
     public void testExcludedPrincipalAddedBefore() {
         Principal excluded = getExcludedPrincipal();
         CugPolicyImpl cug = createCugPolicy(ImportBehavior.ABORT, Collections.singleton(excluded));
-        assertTrue(Iterables.contains(cug.getPrincipalNames(), excluded.getName()));
+        assertTrue(IterableUtils.contains(cug.getPrincipalNames(), excluded.getName()));
     }
 
     @Test

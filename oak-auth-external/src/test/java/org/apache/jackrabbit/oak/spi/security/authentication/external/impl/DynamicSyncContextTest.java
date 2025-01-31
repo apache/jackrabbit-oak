@@ -164,7 +164,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
             List<String> ids = getIds(a.memberOf());
             assertTrue("Expected "+ids+ " to contain "+gr.getID(), ids.contains(gr.getID()));
             
-            if (Iterables.contains(declaredGroupRefs, ref)) {
+            if (IterableUtils.contains(declaredGroupRefs, ref)) {
                 assertTrue(gr.isDeclaredMember(a));
                 assertTrue(Iterators.contains(a.declaredMemberOf(), gr));
             }
@@ -203,7 +203,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
     private static boolean containsMemberRef(@NotNull Tree tree, @NotNull String ref) {
         Iterable<String> memberRefs = TreeUtil.getStrings(tree, REP_MEMBERS);
-        return memberRefs != null && Iterables.contains(memberRefs, ref);
+        return memberRefs != null && IterableUtils.contains(memberRefs, ref);
     }
 
     @Test(expected = IllegalArgumentException.class)
