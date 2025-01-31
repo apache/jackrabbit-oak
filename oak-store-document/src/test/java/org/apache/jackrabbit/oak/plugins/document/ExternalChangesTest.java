@@ -26,7 +26,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyBuilder;
@@ -306,7 +305,7 @@ public class ExternalChangesTest {
         @Override
         public void addSerializedProperty(@Nullable String s) {
             if (s != null){
-                Iterables.addAll(allProps.values, Splitter.on(',').split(s));
+                Splitter.on(',').split(s).forEach(allProps.values::add);
             }
         }
 

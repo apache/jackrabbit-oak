@@ -67,8 +67,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 /**
  * A selector within a query.
  */
@@ -739,7 +737,7 @@ public class SelectorImpl extends SourceImpl {
             if (type == Type.STRING) {
                 ArrayList<String> strings = new ArrayList<String>();
                 for (PropertyValue p : list) {
-                    Iterables.addAll(strings, p.getValue(Type.STRINGS));
+                    p.getValue(Type.STRINGS).forEach(strings::add);
                 }
                 return PropertyValues.newString(strings);
             }

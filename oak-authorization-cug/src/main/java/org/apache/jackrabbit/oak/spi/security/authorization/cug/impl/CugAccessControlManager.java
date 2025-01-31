@@ -367,7 +367,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             String path = eval.remove();
             Tree t = immutableRoot.getTree(path);
             if (PathUtils.denotesRoot(path)) {
-                Iterables.addAll(eval, nestedCugPaths(t));
+                nestedCugPaths(t).forEach(eval::add);
             }
             if (CugUtil.isSupportedPath(path, supportedPaths)) {
                 Tree cug = CugUtil.getCug(t);
@@ -376,7 +376,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                     if (!Collections.disjoint(SetUtils.toSet(principalNames), SetUtils.toSet(pNames.getValue(Type.STRINGS)))) {
                         candidates.add(path);
                     }
-                    Iterables.addAll(eval, nestedCugPaths(cug));
+                    nestedCugPaths(cug).forEach(eval::add);
                 }
             }
         }

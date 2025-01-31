@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
@@ -172,7 +171,7 @@ public class NodeDelegate extends ItemDelegate {
             Set<String> typeNames = new HashSet<>();
             for (Tree type : TreeUtil.getEffectiveType(tree, typeRoot)) {
                 typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
-                addAll(typeNames, TreeUtil.getNames(type, REP_SUPERTYPES));
+                TreeUtil.getNames(type, REP_SUPERTYPES).forEach(typeNames::add);
             }
 
             for (Tree type : types) {
@@ -450,7 +449,7 @@ public class NodeDelegate extends ItemDelegate {
                 Set<String> typeNames = new LinkedHashSet<>();
                 for (Tree type : getNodeTypes(child, typeRoot)) {
                     typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
-                    addAll(typeNames, getNames(type, REP_SUPERTYPES));
+                    getNames(type, REP_SUPERTYPES).forEach(typeNames::add);
                 }
 
                 Tree oldDefinition = findMatchingChildNodeDefinition(removed, name, typeNames);

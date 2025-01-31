@@ -888,7 +888,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             }
             Set<Revision> revs = new HashSet<>();
             for (RevisionVector rv : revisions) {
-                Iterables.addAll(revs, rv);
+                rv.forEach(revs::add);
             }
             revs.removeAll(doc.getValueMap("_deleted").keySet());
             assertTrue("Missing _deleted entries on " + doc.getId() + ": " + revs, revs.isEmpty());

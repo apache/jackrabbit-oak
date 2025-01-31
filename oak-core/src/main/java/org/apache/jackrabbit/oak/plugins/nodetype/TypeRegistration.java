@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
@@ -127,8 +126,8 @@ class TypeRegistration extends DefaultNodeStateDiff {
         for (String name : SetUtils.union(changedTypes, removedTypes)) {
             types.add(name);
             NodeState type = beforeTypes.getChildNode(name);
-            addAll(types, type.getNames(REP_PRIMARY_SUBTYPES));
-            addAll(types, type.getNames(REP_MIXIN_SUBTYPES));
+            type.getNames(REP_PRIMARY_SUBTYPES).forEach(types::add);
+            type.getNames(REP_MIXIN_SUBTYPES).forEach(types::add);
         }
         return types;
     }
@@ -314,7 +313,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
     private void mergeNameList(
             NodeBuilder builder, NodeState state, String listName) {
         Set<String> nameList = SetUtils.toLinkedSet(getNames(builder, listName));
-        Iterables.addAll(nameList, state.getProperty(listName).getValue(NAMES));
+        state.getProperty(listName).getValue(NAMES).forEach(nameList::add);
         builder.setProperty(listName, nameList, NAMES);
     }
 

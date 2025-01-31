@@ -24,7 +24,6 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -251,7 +250,7 @@ public class PropertyBuilder<T> {
 
     @NotNull
     public PropertyBuilder<T> addValues(Iterable<T> values) {
-        Iterables.addAll(this.values, values);
+        values.forEach(this.values::add);
         return this;
     }
 
