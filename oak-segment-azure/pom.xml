@@ -339,6 +339,10 @@
             <groupId>net.minidev</groupId>
             <artifactId>accessors-smart</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+        </dependency>
 
 
         <!-- Azure Guava dependency -->

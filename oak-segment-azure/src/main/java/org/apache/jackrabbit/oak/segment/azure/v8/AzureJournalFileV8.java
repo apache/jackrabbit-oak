@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.v8;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlob;
@@ -207,7 +206,7 @@ public class AzureJournalFileV8 implements JournalFile {
 
         @Override
         public void writeLine(String line) throws IOException {
-            batchWriteLines(ImmutableList.of(line));
+            batchWriteLines(List.of(line));
         }
 
         @Override
@@ -219,11 +218,10 @@ public class AzureJournalFileV8 implements JournalFile {
             }
             int firstBlockSize = Math.min(lineLimit - lineCount, lines.size());
             List<String> firstBlock = lines.subList(0, firstBlockSize);
-            List<List<String>> remainingBlocks = CollectionUtils.partitionList(lines.subList(firstBlockSize, lines.size()), lineLimit);
-            List<List<String>> allBlocks = ImmutableList.<List<String>>builder()
-                .addAll(firstBlock.isEmpty() ? ImmutableList.of() : ImmutableList.of(firstBlock))
-                .addAll(remainingBlocks)
-                .build();
+            List<List<String>> remainingBlocks = ListUtils.partitionList(lines.subList(firstBlockSize, lines.size()), lineLimit);
+            List<List<String>> allBlocks = new ArrayList<>();
+            allBlocks.addAll(firstBlock.isEmpty() ? List.of() : List.of(firstBlock));
+            allBlocks.addAll(remainingBlocks);
 
             for (List<String> entries : allBlocks) {
                 if (lineCount >= lineLimit) {

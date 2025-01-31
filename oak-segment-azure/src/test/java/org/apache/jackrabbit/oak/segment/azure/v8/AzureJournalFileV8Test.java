@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -37,7 +38,6 @@ import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -129,7 +129,7 @@ public class AzureJournalFileV8Test {
         }
 
         List<String> entries = readEntriesFromJournal();
-        assertEquals(lines, reverse(entries));
+        assertEquals(lines, ListUtils.reverse(entries));
     }
 
     @Test
@@ -191,7 +191,7 @@ public class AzureJournalFileV8Test {
 
     private void assertJournalEntriesCount(int index) throws IOException {
         List<String> entries = readEntriesFromJournal();
-        assertEquals(buildLines(0, index), reverse(entries));
+        assertEquals(buildLines(0, index), ListUtils.reverse(entries));
     }
 
     @NotNull
