@@ -25,12 +25,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -57,6 +60,16 @@ public class FullGCHelper {
         if (vgc != null) {
             writeField(vgc, "isFullGCDryRun", false, true);
         }
+    }
+
+    public static VersionGarbageCollector.VersionGCStats gc(final VersionGarbageCollector gc, final long maxRevisionAge, final TimeUnit unit) throws IOException {
+        gc.setFullGcMaxAge(maxRevisionAge, unit); // set full gc max age
+        final VersionGarbageCollector.VersionGCStats stats = gc.gc(maxRevisionAge, unit);
+        if (stats.skippedFullGCDocsCount != 0) {
+            (new Exception("here: " + stats.skippedFullGCDocsCount)).printStackTrace(System.out);
+        }
+        assertEquals(0, stats.skippedFullGCDocsCount);
+        return stats;
     }
 
     public static RevisionVector mergedBranchCommit(final NodeStore store, final Consumer<NodeBuilder> buildFunction) throws Exception {

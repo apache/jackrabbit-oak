@@ -170,6 +170,19 @@ public class RDBDocumentNodeStoreBuilder
         // fullGC modes are not supported for RDB
         return 0;
     }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setFullGcMaxAgeMillis(long v) {
+        // fullGC modes are not supported for RDB
+        log.warn("FullGC Max Age is not supported for RDB");
+        return thisBuilder();
+    }
+
+    @Override
+    public long getFullGcMaxAgeMillis() {
+        // fullGC max age is not supported for RDB
+        return 0;
+    }
   
     @Override
     public RDBDocumentNodeStoreBuilder setDocStoreFullGCFeature(@Nullable Feature docStoreFullGC) {
