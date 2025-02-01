@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.math.BigDecimal;
 import javax.jcr.PropertyType;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -28,7 +29,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 
 /**
  * Utility class for creating {@link PropertyValue} instances.
@@ -155,21 +155,21 @@ public final class PropertyValues {
         switch (p1.getType().tag()) {
         case PropertyType.BINARY:
             if (p1.isArray() && !p2.isArray()) {
-                return contains(p1.getValue(Type.BINARIES),
+                return IterableUtils.contains(p1.getValue(Type.BINARIES),
                         p2.getValue(Type.BINARY));
             }
             if (!p1.isArray() && p2.isArray()) {
-                return contains(p2.getValue(Type.BINARIES),
+                return IterableUtils.contains(p2.getValue(Type.BINARIES),
                         p1.getValue(Type.BINARY));
             }
             break;
         default:
             if (p1.isArray() && !p2.isArray()) {
-                return contains(p1.getValue(Type.STRINGS),
+                return IterableUtils.contains(p1.getValue(Type.STRINGS),
                         p2.getValue(Type.STRING));
             }
             if (!p1.isArray() && p2.isArray()) {
-                return contains(p2.getValue(Type.STRINGS),
+                return IterableUtils.contains(p2.getValue(Type.STRINGS),
                         p1.getValue(Type.STRING));
             }
         }
@@ -190,7 +190,7 @@ public final class PropertyValues {
                     // a value can not possibly match multiple distinct values
                     return true;
                 }
-                return !contains(p1.getValue(Type.BINARIES),
+                return !IterableUtils.contains(p1.getValue(Type.BINARIES),
                         p2.getValue(Type.BINARY));
             }
             if (!p1.isArray() && p2.isArray()) {
@@ -198,7 +198,7 @@ public final class PropertyValues {
                     // a value can not possibly match multiple distinct values
                     return true;
                 }
-                return !contains(p2.getValue(Type.BINARIES),
+                return !IterableUtils.contains(p2.getValue(Type.BINARIES),
                         p1.getValue(Type.BINARY));
             }
             break;
@@ -208,7 +208,7 @@ public final class PropertyValues {
                     // a value can not possibly match multiple distinct values
                     return true;
                 }
-                return !contains(p1.getValue(Type.STRINGS),
+                return !IterableUtils.contains(p1.getValue(Type.STRINGS),
                         p2.getValue(Type.STRING));
             }
             if (!p1.isArray() && p2.isArray()) {
@@ -216,7 +216,7 @@ public final class PropertyValues {
                     // a value can not possibly match multiple distinct values
                     return true;
                 }
-                return !contains(p2.getValue(Type.STRINGS),
+                return !IterableUtils.contains(p2.getValue(Type.STRINGS),
                         p1.getValue(Type.STRING));
             }
         }

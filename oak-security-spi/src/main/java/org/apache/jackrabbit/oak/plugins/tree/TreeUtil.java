@@ -28,6 +28,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -44,7 +45,6 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -362,7 +362,7 @@ public final class TreeUtil {
 
         List<String> mixins = new ArrayList<>();
         String primary = getName(tree, JCR_PRIMARYTYPE);
-        if (primary != null && Iterables.contains(getNames(type, NodeTypeConstants.REP_PRIMARY_SUBTYPES), primary)) {
+        if (primary != null && IterableUtils.contains(getNames(type, NodeTypeConstants.REP_PRIMARY_SUBTYPES), primary)) {
             return;
         }
 
@@ -541,7 +541,7 @@ public final class TreeUtil {
             return true;
         } else if (primaryName != null) {
             Tree type = typeRoot.getChild(primaryName);
-            if (contains(getNames(type, REP_SUPERTYPES), typeName)) {
+            if (IterableUtils.contains(getNames(type, REP_SUPERTYPES), typeName)) {
                 return true;
             }
         }
@@ -551,7 +551,7 @@ public final class TreeUtil {
                 return true;
             } else {
                 Tree type = typeRoot.getChild(mixinName);
-                if (contains(getNames(type, REP_SUPERTYPES), typeName)) {
+                if (IterableUtils.contains(getNames(type, REP_SUPERTYPES), typeName)) {
                     return true;
                 }
             }

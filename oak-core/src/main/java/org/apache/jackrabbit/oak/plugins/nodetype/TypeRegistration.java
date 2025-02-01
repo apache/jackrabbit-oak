@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -221,7 +220,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
             }
 
             if (!isMixin(type)
-                    && !contains(getNames(type, REP_SUPERTYPES), NT_BASE)
+                    && !IterableUtils.contains(getNames(type, REP_SUPERTYPES), NT_BASE)
                     && !NT_BASE.equals(type.getProperty(JCR_NODETYPENAME).getValue(NAME))) {
                 if (types.hasChildNode(NT_BASE)) {
                     NodeBuilder supertype = types.child(NT_BASE);
