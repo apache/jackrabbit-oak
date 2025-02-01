@@ -1068,7 +1068,7 @@ public class NodeDocumentTest {
         // do not yet merge, but create more test data
         int numMoreChanges = 50;
         List<RevisionVector> moreRevs = ListUtils.reverse(createTestData(nodeStores, random, numMoreChanges, numChanges));
-        headRevisions = ListUtils.toList(Iterables.concat(moreRevs, headRevisions));
+        headRevisions = ListUtils.toList(IterableUtils.chainedIterable(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
         // now merge the branch and update 'q'. this will split
@@ -1081,7 +1081,7 @@ public class NodeDocumentTest {
         // and create yet more test data
         numMoreChanges = 50;
         moreRevs = ListUtils.reverse(createTestData(nodeStores, random, numMoreChanges, numChanges));
-        headRevisions = ListUtils.toList(Iterables.concat(moreRevs, headRevisions));
+        headRevisions = ListUtils.toList(IterableUtils.chainedIterable(moreRevs, headRevisions));
         numChanges += numMoreChanges;
 
         NodeDocument doc = getRootDocument(store);

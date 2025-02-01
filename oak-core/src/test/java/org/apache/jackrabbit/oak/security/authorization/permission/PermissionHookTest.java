@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -816,7 +817,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
         NodeState child = mock(NodeState.class);
         Iterable newCnes = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
-        Iterable cnes = Iterables.concat(newCnes, before.getChildNodeEntries());
+        Iterable cnes = IterableUtils.chainedIterable(newCnes, before.getChildNodeEntries());
         when(after.getChildNodeEntries()).thenReturn(cnes);
         when(after.getChildNode(":hidden")).thenReturn(child);
 
@@ -836,13 +837,13 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
         NodeState child = mock(NodeState.class);
         Iterable hidden = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
-        Iterable cnes = Iterables.concat(hidden, nodeState.getChildNodeEntries());
+        Iterable cnes = IterableUtils.chainedIterable(hidden, nodeState.getChildNodeEntries());
         when(before.getChildNodeEntries()).thenReturn(cnes);
         when(before.getChildNode(":hidden")).thenReturn(child);
 
         NodeState child2 = when(mock(NodeState.class).exists()).thenReturn(true).getMock();
         hidden = Collections.singleton(new MemoryChildNodeEntry(":hidden", child2));
-        cnes = Iterables.concat(hidden, nodeState.getChildNodeEntries());
+        cnes = IterableUtils.chainedIterable(hidden, nodeState.getChildNodeEntries());
         when(after.getChildNodeEntries()).thenReturn(cnes);
         when(after.getChildNode(":hidden")).thenReturn(child2);
 
@@ -861,7 +862,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
         NodeState child = mock(NodeState.class);
         Iterable deletedCnes = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
-        Iterable cnes = Iterables.concat(deletedCnes, after.getChildNodeEntries());
+        Iterable cnes = IterableUtils.chainedIterable(deletedCnes, after.getChildNodeEntries());
         when(before.getChildNodeEntries()).thenReturn(cnes);
         when(before.getChildNode(":hidden")).thenReturn(child);
 

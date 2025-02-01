@@ -40,6 +40,7 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -125,14 +126,14 @@ public class ObservationQueueTest extends AbstractClusterTest {
             Session s = loginUser(repos.next());
             observers.add(new Thread(new Observer(s, queueLength)));
         }
-        for (Thread t : Iterables.concat(writers, readers, observers, loggers)) {
+        for (Thread t : IterableUtils.chainedIterable(writers, readers, observers, loggers)) {
             t.start();
         }
-        for (Thread t : Iterables.concat(writers, readers)) {
+        for (Thread t : IterableUtils.chainedIterable(writers, readers)) {
             t.join();
         }
         LOG.info("Writes stopped. Waiting for observers...");
-        for (Thread t : Iterables.concat(observers, loggers)) {
+        for (Thread t : IterableUtils.chainedIterable(observers, loggers)) {
             t.join();
         }
         for (Throwable t : exceptions) {

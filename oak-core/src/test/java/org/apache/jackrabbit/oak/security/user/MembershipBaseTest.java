@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -72,7 +73,7 @@ public abstract class MembershipBaseTest extends AbstractUserTest implements Use
         try {
             clearInvocations(monitor);
             root.refresh();
-            for (String path : Iterables.concat(testUsers, testGroups)) {
+            for (String path : IterableUtils.chainedIterable(testUsers, testGroups)) {
                 Authorizable auth = userMgr.getAuthorizableByPath(path);
                 if (auth != null) {
                     auth.remove();
