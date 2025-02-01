@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -71,6 +69,7 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.security.AccessControlException;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -157,7 +156,7 @@ public class NodeDelegate extends ItemDelegate {
 
         boolean protectedResidual = false;
         for (Tree type : types) {
-            if (contains(TreeUtil.getNames(type, REP_PROTECTED_CHILD_NODES), name)) {
+            if (IterableUtils.contains(TreeUtil.getNames(type, REP_PROTECTED_CHILD_NODES), name)) {
                 return true;
             } else if (!protectedResidual) {
                 protectedResidual = TreeUtil.getBoolean(
@@ -172,7 +171,7 @@ public class NodeDelegate extends ItemDelegate {
             Set<String> typeNames = new HashSet<>();
             for (Tree type : TreeUtil.getEffectiveType(tree, typeRoot)) {
                 typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
-                addAll(typeNames, TreeUtil.getNames(type, REP_SUPERTYPES));
+                TreeUtil.getNames(type, REP_SUPERTYPES).forEach(typeNames::add);
             }
 
             for (Tree type : types) {
@@ -198,7 +197,7 @@ public class NodeDelegate extends ItemDelegate {
 
         boolean protectedResidual = false;
         for (Tree type : types) {
-            if (contains(TreeUtil.getNames(type, REP_PROTECTED_PROPERTIES), propertyName)) {
+            if (IterableUtils.contains(TreeUtil.getNames(type, REP_PROTECTED_PROPERTIES), propertyName)) {
                 return true;
             } else if (!protectedResidual) {
                 protectedResidual = TreeUtil.getBoolean(
@@ -450,7 +449,7 @@ public class NodeDelegate extends ItemDelegate {
                 Set<String> typeNames = new LinkedHashSet<>();
                 for (Tree type : getNodeTypes(child, typeRoot)) {
                     typeNames.add(TreeUtil.getName(type, JCR_NODETYPENAME));
-                    addAll(typeNames, getNames(type, REP_SUPERTYPES));
+                    getNames(type, REP_SUPERTYPES).forEach(typeNames::add);
                 }
 
                 Tree oldDefinition = findMatchingChildNodeDefinition(removed, name, typeNames);

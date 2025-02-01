@@ -325,7 +325,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
                 // parent CUG got removed -> no removal/reconnect required if current path is listed.
                 NodeState cugNode = diff.beforeState.getChildNode(REP_CUG_POLICY);
                 PropertyState ps = cugNode.getProperty(HIDDEN_NESTED_CUGS);
-                if (ps != null && Iterables.contains(ps.getValue(Type.STRINGS), path)) {
+                if (ps != null && IterableUtils.contains(ps.getValue(Type.STRINGS), path)) {
                     log.debug("Nested cug property containing {} has also been removed; no reconnect required.", path);
                     return true;
                 }

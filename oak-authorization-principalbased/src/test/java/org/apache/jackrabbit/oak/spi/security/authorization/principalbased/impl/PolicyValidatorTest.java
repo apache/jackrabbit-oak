@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -265,7 +266,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
     @Test
     public void tetPolicyChildAddedMissingMixinOnParent() {
         NodeState rootState = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
-        assertFalse(Iterables.contains(rootState.getNames(JcrConstants.JCR_MIXINTYPES), MIX_REP_PRINCIPAL_BASED_MIXIN));
+        assertFalse(IterableUtils.contains(rootState.getNames(JcrConstants.JCR_MIXINTYPES), MIX_REP_PRINCIPAL_BASED_MIXIN));
 
         NodeState child = mockNodeState(NT_REP_PRINCIPAL_POLICY);
         try {

@@ -96,7 +96,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     protected static PropertyState fixChildOrderPropertyState(NodeState nodeState, PropertyState propertyState) {
         if (propertyState != null && OAK_CHILD_ORDER.equals(propertyState.getName())) {
             final Collection<String> childNodeNames = new ArrayList<String>();
-            Iterables.addAll(childNodeNames, nodeState.getChildNodeNames());
+            nodeState.getChildNodeNames().forEach(childNodeNames::add);
             final Iterable<String> values = Iterables.filter(
                     propertyState.getValue(Type.NAMES), x -> childNodeNames.contains(x));
             return PropertyStates.createProperty(OAK_CHILD_ORDER, values, Type.NAMES);

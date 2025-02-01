@@ -156,7 +156,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         assertNotNull(upload);
 
         List<URI> uris = new ArrayList<>();
-        Iterables.addAll(uris, upload.getUploadURIs());
+        upload.getUploadURIs().forEach(uris::add);
 
         // this follows the upload algorithm from BinaryUpload
         if (content.size() / upload.getMaxPartSize() > uris.size()) {

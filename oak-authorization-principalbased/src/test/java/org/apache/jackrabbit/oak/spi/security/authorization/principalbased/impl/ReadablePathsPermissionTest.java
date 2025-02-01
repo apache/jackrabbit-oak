@@ -64,7 +64,7 @@ public class ReadablePathsPermissionTest extends AbstractPrincipalBasedTest {
         readablePaths = Iterators.cycle(paths);
         Set<String> childPaths = new HashSet<>();
         for (String path : paths) {
-            Iterables.addAll(childPaths, Iterables.transform(root.getTree(path).getChildren(), Tree::getPath));
+            Iterables.transform(root.getTree(path).getChildren(), Tree::getPath).forEach(childPaths::add);
         }
         readableChildPaths = Iterators.cycle(childPaths);
 
