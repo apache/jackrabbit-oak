@@ -136,26 +136,6 @@ public class NamePathMapperImplTest {
     }
 
     @Test
-    public void testOakToExpandedJcr() {
-        assertEquals("/{http://www.example.com/foo}bar", npMapper.getExpandedJcrPath("/oak-foo:bar"));
-        assertEquals("/{http://www.example.com/foo}bar/{http://www.example.com/quu}qux", npMapper.getExpandedJcrPath("/oak-foo:bar/oak-quu:qux"));
-        assertEquals("{http://www.example.com/foo}bar", npMapper.getExpandedJcrPath("oak-foo:bar"));
-        assertEquals(".", npMapper.getExpandedJcrPath(""));
-
-        try {
-            npMapper.getExpandedJcrPath("{http://www.jcp.org/jcr/nt/1.0}unstructured");
-            fail("expanded name should not be accepted");
-        } catch (IllegalArgumentException expected) {
-        }
-
-        try {
-            npMapper.getExpandedJcrPath("foobar/{http://www.jcp.org/jcr/1.0}content");
-            fail("expanded name should not be accepted");
-        } catch (IllegalArgumentException expected) {
-        }
-    }
-
-    @Test
     public void testInvalidJcrPaths() {
         String[] paths = {
                 "//",

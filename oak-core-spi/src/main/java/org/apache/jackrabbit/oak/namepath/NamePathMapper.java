@@ -62,12 +62,6 @@ public interface NamePathMapper extends NameMapper, PathMapper {
             return oakName;
         }
 
-        @NotNull
-        @Override
-        public String getExpandedJcrName(@NotNull String oakName) {
-            throw new UnsupportedOperationException("Cannot create expanded JCR name as no namespace mappings are available");
-        }
-
         @Override
         public String getOakPath(String jcrPath) {
             return jcrPath;
@@ -77,12 +71,6 @@ public interface NamePathMapper extends NameMapper, PathMapper {
         @Override
         public String getJcrPath(String oakPath) {
             return oakPath;
-        }
-
-        @NotNull
-        @Override
-        public String getExpandedJcrPath(@NotNull String oakPath) {
-            throw new UnsupportedOperationException("Cannot create expanded JCR path as no namespace mappings are available");
         }
     }
 }

@@ -63,35 +63,16 @@ public interface NameMapper {
     Map<String, String> getSessionLocalMappings();
 
     /**
-     * Returns the JCR name in qualified form for the given Oak name. The given name is
+     * Returns the JCR name for the given Oak name. The given name is
      * expected to have come from a valid Oak repository that contains
      * only valid names with proper namespace mappings. If that's not
      * the case, either a programming error or a repository corruption
      * has occurred and an appropriate unchecked exception gets thrown.
      *
      * @param oakName Oak name
-     * @return JCR name in qualified form
-     * 
-     * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.2%20Qualified%20Form">JCR 2.0, 3.2.5.2 Qualifed Form</a>
+     * @return JCR name
      */
     @NotNull
     String getJcrName(@NotNull String oakName);
-
-    /**
-     * Returns the JCR name in expanded form for the given Oak name. The given name is
-     * expected to have come from a valid Oak repository that contains
-     * only valid names with proper namespace mappings. If that's not
-     * the case, either a programming error or a repository corruption
-     * has occurred and an appropriate unchecked exception gets thrown.
-     *
-     * @param oakName Oak name
-     * @return JCR name in expanded form
-     * @since Oak 1.76.0
-     * @throws IllegalStateException in case the namespace URI for the given Oak name cannot be resolved
-     * 
-     * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form">JCR 2.0, 3.2.5.1 Expanded Form</a>
-     */
-    @NotNull
-    String getExpandedJcrName(@NotNull String oakName);
 
 }

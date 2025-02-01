@@ -67,15 +67,10 @@ public class GlobalNameMapper implements NameMapper {
     protected static boolean isExpandedName(String name) {
         if (name.startsWith("{")) {
             int brace = name.indexOf('}', 1);
-            if (brace != -1) {
-                String namespace = name.substring(1, brace);
-                // the empty namespace is valid as well, otherwise it always contains a colon (as it is a URI)
-                if (namespace.isEmpty() || namespace.indexOf(':') != -1) {
-                    return true;
-                }
-            }
+            return brace != -1 && name.substring(1, brace).indexOf(':') != -1;
+        } else {
+            return false;
         }
-        return false;
     }
 
     private final Root root;
@@ -126,33 +121,6 @@ public class GlobalNameMapper implements NameMapper {
         checkArgument(!isExpandedName(oakName), oakName);
 
         return oakName;
-    }
-
-    @Override
-    @NotNull
-    public String getExpandedJcrName(@NotNull String oakName) {
-        String qualifiedName = getJcrName(oakName); // sanity check
-        String uri;
-        final String localName;
-        int colon = qualifiedName.indexOf(':');
-        if (colon > 0) {
-            String oakPrefix = qualifiedName.substring(0, colon);
-            // local mapping must take precedence...
-            uri = getSessionLocalMappings().get(oakPrefix);
-            if (uri == null) {
-                // ...over global mappings
-                uri = getNamespacesProperty(oakPrefix);
-            }
-            if (uri == null) {
-                throw new IllegalStateException(
-                        "No namespace mapping found for " + oakName);
-            }
-            localName = qualifiedName.substring(colon + 1);
-        } else {
-            uri = "";
-            localName = qualifiedName;
-        }
-        return "{" + uri + "}" + localName;
     }
 
     @Override @Nullable

@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.namepath.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BooleanSupplier;
-import java.util.function.UnaryOperator;
 
 import javax.jcr.RepositoryException;
 
@@ -73,12 +71,6 @@ public class NamePathMapperImpl implements NamePathMapper {
     @Override
     public String getJcrName(@NotNull String oakName) {
         return nameMapper.getJcrName(oakName);
-    }
-
-    @NotNull
-    @Override
-    public String getExpandedJcrName(@NotNull String oakName) {
-        return nameMapper.getExpandedJcrName(oakName);
     }
 
     @Override @NotNull
@@ -168,23 +160,14 @@ public class NamePathMapperImpl implements NamePathMapper {
     @Override
     @NotNull
     public String getJcrPath(final String oakPath) {
-        return getJcrPath(oakPath, nameMapper::getJcrName, () -> nameMapper.getSessionLocalMappings().isEmpty());
-    }
-
-    @Override
-    @NotNull
-    public String getExpandedJcrPath(@NotNull String oakPath) {
-        return getJcrPath(oakPath, nameMapper::getExpandedJcrName, () -> false);
-    }
-
-    public String getJcrPath(final String oakPath, final UnaryOperator<String> mapFunction, final BooleanSupplier shouldSkipMappingFunction) {
         if ("/".equals(oakPath)) {
             // avoid the need to special case the root path later on
             return "/";
         } else if (oakPath.isEmpty()) {
             // empty path: map to "."
             return ".";
-        } else if (shouldSkipMappingFunction.getAsBoolean()) {
+        } else if (nameMapper.getSessionLocalMappings().isEmpty()) {
+            // no local namespace mappings
             return oakPath;
         }
 
@@ -202,7 +185,7 @@ public class NamePathMapperImpl implements NamePathMapper {
 
             @Override
             public boolean name(String name, int index) {
-                String p = mapFunction.apply(name);
+                String p = nameMapper.getJcrName(name);
                 if (index == 0) {
                     elements.add(p);
                 } else {
