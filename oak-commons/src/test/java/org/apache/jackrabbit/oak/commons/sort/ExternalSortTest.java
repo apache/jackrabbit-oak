@@ -458,7 +458,7 @@ public class ExternalSortTest {
         try (BufferedWriter bufferedWriter = new BufferedWriter(
                 new OutputStreamWriter(algorithm.getOutputStream(new FileOutputStream(compressedFile)),
                         Charset.defaultCharset()))) {
-            Files.lines(uncompressedInputFile.toPath(), Charset.defaultCharset()).forEach(n -> {
+            Files.lines(uncompressedInputFile.toPath()).forEach(n -> {
                 try {
                     bufferedWriter.write(n + "\n");
                 } catch (IOException e) {
@@ -511,7 +511,7 @@ public class ExternalSortTest {
         Collections.sort(testLines);
 
         List<TestLine> linesFromSortedFile = new ArrayList<>();
-        Files.lines(out.toPath(), charset).forEach(line -> linesFromSortedFile.add(new TestLine(line)));
+        Files.lines(out.toPath()).forEach(line -> linesFromSortedFile.add(new TestLine(line)));
 
         assertEquals(testLines, linesFromSortedFile);
 
