@@ -371,12 +371,6 @@ public class SessionContext implements NamePathMapper {
         return namePathMapper.getJcrPath(oakPath);
     }
 
-    @Override
-    @NotNull
-    public String getExpandedJcrPath(@NotNull String oakPath) {
-        return namePathMapper.getExpandedJcrPath(oakPath);
-    }
-
     /**
      * Returns the Oak path for the given JCR path, or throws a
      * {@link javax.jcr.RepositoryException} if the path can not be mapped.
