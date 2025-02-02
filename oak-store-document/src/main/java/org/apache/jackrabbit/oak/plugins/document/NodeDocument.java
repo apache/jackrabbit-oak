@@ -51,7 +51,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -59,6 +62,7 @@ import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.DequeUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -1816,7 +1820,8 @@ public final class NodeDocument extends Document {
                 }
             };
         } else {
-            changes = Iterables.concat(transform(List.copyOf(ranges), rangeToChanges::apply));
+            changes = StreamUtils.toStream(transform(List.copyOf(ranges), rangeToChanges::apply))
+                    .flatMap(StreamUtils::toStream).collect(Collectors.toList());
         }
         return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
     }

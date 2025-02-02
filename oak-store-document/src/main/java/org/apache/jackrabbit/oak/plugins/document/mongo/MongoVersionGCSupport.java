@@ -26,7 +26,6 @@ import static com.mongodb.client.model.Projections.include;
 import static com.mongodb.client.model.Sorts.ascending;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static com.mongodb.client.model.Filters.and;
@@ -56,6 +55,7 @@ import java.util.regex.Pattern;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCursor;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -352,7 +352,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                     .maxTime(15, TimeUnit.MINUTES).hint(hint),
                     input -> store.convertFromDBObject(NODES, input)),
                     input -> !isDefaultNoBranchSplitNewerThan(input, sweepRevs));
-            allResults = concat(allResults, iterable);
+            allResults = IterableUtils.chainedIterable(allResults, iterable);
         }
         return allResults;
     }

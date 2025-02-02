@@ -32,9 +32,12 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -279,7 +282,7 @@ class Branch {
                         && input.getKey().compareRevisionTime(r) <= 0;
             }
         }::test), input -> input.getValue().getModifiedPaths());
-        return Iterables.concat(paths);
+        return StreamUtils.toStream(paths).flatMap(StreamUtils::toStream).collect(Collectors.toSet());
     }
 
     @Override
@@ -405,9 +408,8 @@ class Branch {
 
         @Override
         Iterable<Path> getModifiedPaths() {
-            Iterable<Iterable<Path>> paths = transform(previous.values(),
-                    branchCommit -> branchCommit.getModifiedPaths());
-            return Iterables.concat(paths);
+            Iterable<Iterable<Path>> paths = transform(previous.values(), BranchCommit::getModifiedPaths);
+            return StreamUtils.toStream(paths).flatMap(StreamUtils::toStream).collect(Collectors.toSet());
         }
 
         /**

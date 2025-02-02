@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -457,7 +458,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (creds != null) {
             attributes.putAll(credentialsSupport.getAttributes(creds));
         }
-        return new AuthInfoImpl(userId, attributes, Iterables.concat(principals, subject.getPrincipals()));
+        return new AuthInfoImpl(userId, attributes, IterableUtils.chainedIterable(principals, subject.getPrincipals()));
     }
 
     @NotNull

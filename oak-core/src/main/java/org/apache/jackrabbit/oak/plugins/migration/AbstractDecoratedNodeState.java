@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
@@ -171,7 +173,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
         final Iterable<PropertyState> propertyStates = Iterables.transform(
                 delegate.getProperties(),
                 propertyState -> decorate(propertyState));
-        return Iterables.filter(Iterables.concat(propertyStates, getNewPropertyStates()), x -> x != null);
+        return Iterables.filter(IterableUtils.chainedIterable(propertyStates, getNewPropertyStates()), Objects::nonNull);
     }
 
     /**

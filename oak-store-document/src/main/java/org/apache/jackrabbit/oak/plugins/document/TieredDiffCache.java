@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -95,7 +96,7 @@ class TieredDiffCache extends DiffCache {
     @NotNull
     @Override
     public Iterable<CacheStats> getStats() {
-        return Iterables.concat(localCache.getStats(), memoryCache.getStats());
+        return IterableUtils.chainedIterable(localCache.getStats(), memoryCache.getStats());
     }
 
     @Override

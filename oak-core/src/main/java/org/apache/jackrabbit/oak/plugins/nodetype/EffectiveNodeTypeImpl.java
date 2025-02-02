@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -35,8 +36,10 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
 import org.jetbrains.annotations.NotNull;
@@ -204,8 +207,9 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getNamedNodeDefinitions(@NotNull final String oakName) {
-        return Iterables.concat(Iterables.transform(nodeTypes.values(),
-                input -> input.getDeclaredNamedNodeDefinitions(oakName)));
+        return StreamUtils.toStream(Iterables.transform(nodeTypes.values(), input -> input.getDeclaredNamedNodeDefinitions(oakName)))
+                .flatMap(StreamUtils::toStream)
+                .collect(Collectors.toList());
     }
 
     /**

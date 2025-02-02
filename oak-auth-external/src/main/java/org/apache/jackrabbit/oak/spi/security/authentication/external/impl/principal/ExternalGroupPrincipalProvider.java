@@ -166,7 +166,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         this.hasOnlyDynamicGroups = hasOnlyDynamicGroups;
 
         autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, 
-                Collections.singletonMap(idpName, Iterables.toArray(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class)),
+                Collections.singletonMap(idpName, Iterables.toArray(IterableUtils.chainedIterable(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class)),
                 Collections.singletonMap(idpName, syncConfig.user().getAutoMembershipConfig()));
         groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : 
                 new AutoMembershipPrincipals(userManager, 

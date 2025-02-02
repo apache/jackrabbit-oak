@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -1607,7 +1608,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         } else {
             Validate.checkState(pr.evaluateSyncNodeTypeRestriction()); //Either of property or nodetype should not be null
             Filter filter = plan.getFilter();
-            paths = FluentIterable.from(Iterables.concat(
+            paths = FluentIterable.from(IterableUtils.chainedIterable(
                     lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
                     lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()))));
         }

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -168,7 +169,7 @@ public class IndexDefinitionBuilder {
         if (tree.hasProperty(INDEX_TAGS)) {
             currTags = SetUtils.toSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
         }
-        Set<String> tagVals = SetUtils.toSet(Iterables.concat(currTags, asList(additionalTagVals)));
+        Set<String> tagVals = SetUtils.toSet(IterableUtils.chainedIterable(currTags, asList(additionalTagVals)));
         boolean noAdditionalTags = currTags.containsAll(tagVals);
         if (!noAdditionalTags) {
             tree.removeProperty(INDEX_TAGS);

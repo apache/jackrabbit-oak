@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -70,7 +71,7 @@ public class Options {
      * @return optionSet returned from OptionParser
      */
     public OptionSet parseAndConfigure(OptionParser parser, String[] args, boolean checkNonOptions) throws IOException {
-        for (OptionsBeanFactory o : Iterables.concat(oakRunOptions, beanFactories)){
+        for (OptionsBeanFactory o : IterableUtils.chainedIterable(oakRunOptions, beanFactories)){
             OptionsBean bean = o.newInstance(parser);
             optionBeans.put(bean.getClass(), bean);
         }
