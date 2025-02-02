@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -230,11 +231,11 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
     private Set<String> loadFromFile(File file) throws IOException {
-        Set<String> result = new HashSet<>();
         if (file.exists()) {
-            result.addAll(org.apache.jackrabbit.guava.common.io.Files.readLines(file, StandardCharsets.UTF_8));
+            return Files.lines(file.toPath()).collect(Collectors.toSet());
+        } else {
+            return new HashSet<>();
         }
-        return result;
     }
 
     private void writeToFile(String fileName, Set<String> blobIds) throws IOException {

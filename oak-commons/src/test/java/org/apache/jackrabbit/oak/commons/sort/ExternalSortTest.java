@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.commons.sort;
 
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.junit.After;
 import org.junit.Before;
@@ -41,6 +40,7 @@ import java.io.OutputStreamWriter;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -457,8 +457,8 @@ public class ExternalSortTest {
                                                                              File compressedFile) throws IOException {
         try (BufferedWriter bufferedWriter = new BufferedWriter(
                 new OutputStreamWriter(algorithm.getOutputStream(new FileOutputStream(compressedFile)),
-                        Charset.defaultCharset()));) {
-            Files.readLines(uncompressedInputFile, Charset.defaultCharset()).forEach(n -> {
+                        Charset.defaultCharset()))) {
+            Files.lines(uncompressedInputFile.toPath()).forEach(n -> {
                 try {
                     bufferedWriter.write(n + "\n");
                 } catch (IOException e) {
@@ -511,7 +511,7 @@ public class ExternalSortTest {
         Collections.sort(testLines);
 
         List<TestLine> linesFromSortedFile = new ArrayList<>();
-        Files.readLines(out, charset).forEach(line -> linesFromSortedFile.add(new TestLine(line)));
+        Files.lines(out.toPath()).forEach(line -> linesFromSortedFile.add(new TestLine(line)));
 
         assertEquals(testLines, linesFromSortedFile);
 
