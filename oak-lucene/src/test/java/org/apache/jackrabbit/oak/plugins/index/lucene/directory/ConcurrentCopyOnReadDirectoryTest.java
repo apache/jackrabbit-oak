@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -124,7 +125,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
 
         waitForLeechingCoRsToFinish();
 
-        for (Directory d : Iterables.concat(Collections.singleton(firstCoR), leechingCoRs)) {
+        for (Directory d : IterableUtils.chainedIterable(Collections.singleton(firstCoR), leechingCoRs)) {
             IndexInput input = d.openInput("file", IOContext.READ);
             assertFalse(d + " must not be reading from remote",
                     input.toString().startsWith(REMOTE_INPUT_PREFIX));

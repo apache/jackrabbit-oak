@@ -43,6 +43,7 @@ import java.util.concurrent.Executors;
 
 import javax.jcr.PropertyType;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.io.CountingInputStream;
@@ -1107,9 +1108,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", ListUtils
-                .toList(Iterables.concat(List.of("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
+                .toList(IterableUtils.chainedIterable(List.of("/test/a"), getSortedPaths(tuples, OrderDirection.ASC))));
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", ListUtils
-                .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), List.of("/test/a"))));
+                .toList(IterableUtils.chainedIterable(getSortedPaths(tuples, OrderDirection.DESC), List.of("/test/a"))));
     }
 
     void assertSortedString() throws CommitFailedException {
@@ -1197,10 +1198,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // Add the path of property added as timestamp string in the sorted list
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", ListUtils
-                .toList(Iterables.concat(List.of("/test/n0"), getSortedPaths(tuples, OrderDirection.ASC))));
+                .toList(IterableUtils.chainedIterable(List.of("/test/n0"), getSortedPaths(tuples, OrderDirection.ASC))));
         // Append the path of property added as timestamp string to the sorted list
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", ListUtils
-                .toList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC), List.of("/test/n0"))));
+                .toList(IterableUtils.chainedIterable(getSortedPaths(tuples, OrderDirection.DESC), List.of("/test/n0"))));
     }
 
     @Test

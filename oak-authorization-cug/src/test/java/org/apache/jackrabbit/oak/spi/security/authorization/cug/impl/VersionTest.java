@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -87,7 +88,7 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
                 "/content/aa/bb"   /* granted by ace, denied by cug */
         );
 
-        for (String path : Iterables.concat(readAccess, noReadAccess)) {
+        for (String path : IterableUtils.chainedIterable(readAccess, noReadAccess)) {
             addVersionContent(path);
         }
 
