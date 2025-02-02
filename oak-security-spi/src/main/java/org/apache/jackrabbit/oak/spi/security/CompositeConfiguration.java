@@ -22,6 +22,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -263,9 +264,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     @Override
     public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
-        return StreamUtils.toStream(Iterables.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)))
-                .flatMap(StreamUtils::toStream)
-                .collect(Collectors.toSet());
+        return IteratorUtils.toIterable(StreamUtils.toStream(Iterables.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)))
+                .flatMap(StreamUtils::toStream).iterator());
     }
 
     private static final class Ranking {

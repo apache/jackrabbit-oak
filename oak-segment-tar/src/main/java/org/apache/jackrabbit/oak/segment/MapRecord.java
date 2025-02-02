@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -337,9 +338,7 @@ public class MapRecord extends Record {
                     }
                 });
             }
-            return keys.stream()
-                    .flatMap(StreamUtils::toStream)
-                    .collect(Collectors.toList());
+            return IteratorUtils.toIterable(keys.stream().flatMap(StreamUtils::toStream).iterator());
         }
 
         RecordId[] ids = new RecordId[size];
@@ -389,7 +388,7 @@ public class MapRecord extends Record {
                     }
                 });
             }
-            return entries.stream().flatMap(StreamUtils::toStream).collect(Collectors.toList());
+            return IteratorUtils.toIterable(entries.stream().flatMap(StreamUtils::toStream).iterator());
         }
 
         MapEntry[] entries = new MapEntry[size];

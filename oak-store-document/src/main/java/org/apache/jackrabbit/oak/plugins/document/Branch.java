@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -282,7 +283,7 @@ class Branch {
                         && input.getKey().compareRevisionTime(r) <= 0;
             }
         }::test), input -> input.getValue().getModifiedPaths());
-        return StreamUtils.toStream(paths).flatMap(StreamUtils::toStream).collect(Collectors.toSet());
+        return IteratorUtils.toIterable(StreamUtils.toStream(paths).flatMap(StreamUtils::toStream).iterator());
     }
 
     @Override
