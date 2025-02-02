@@ -264,8 +264,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     @Override
     public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
-        return IteratorUtils.toIterable(StreamUtils.toStream(Iterables.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)))
-                .flatMap(StreamUtils::toStream).iterator());
+        return StreamUtils.toStream(Iterables.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)))
+                .flatMap(StreamUtils::toStream).collect(Collectors.toList());
     }
 
     private static final class Ranking {
