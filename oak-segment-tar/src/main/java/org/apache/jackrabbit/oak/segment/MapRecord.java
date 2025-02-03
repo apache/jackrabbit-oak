@@ -33,8 +33,6 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
-import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
-import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
