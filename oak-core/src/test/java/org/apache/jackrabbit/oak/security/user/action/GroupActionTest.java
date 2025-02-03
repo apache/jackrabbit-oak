@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user.action;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -120,7 +121,7 @@ public class GroupActionTest extends AbstractSecurityTest {
 
         Set<String> memberIds = Set.of(testUser01.getID());
         Set<String> failedIds = Set.of(testUser02.getID(), testGroup.getID());
-        Iterable<String> ids = Iterables.concat(memberIds, failedIds);
+        Iterable<String> ids = IterableUtils.chainedIterable(memberIds, failedIds);
 
         testGroup.addMembers(Iterables.toArray(ids, String.class));
 
@@ -143,7 +144,7 @@ public class GroupActionTest extends AbstractSecurityTest {
 
         Set<String> memberIds = Set.of(testUser01.getID());
         Set<String> failedIds = Set.of(testUser02.getID(), testGroup.getID());
-        Iterable<String> ids = Iterables.concat(memberIds, failedIds);
+        Iterable<String> ids = IterableUtils.chainedIterable(memberIds, failedIds);
 
         testGroup.removeMembers(Iterables.toArray(ids, String.class));
         verify(groupAction, times(1)).onMembersRemoved(testGroup, memberIds, failedIds, root, getNamePathMapper());

@@ -43,7 +43,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
@@ -77,7 +76,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         Set<String> orderedChildNames = SetUtils.toLinkedSet(node.getNames(OAK_CHILD_ORDER));
         long n = orderedChildNames.size();
         if (node.getChildNodeCount(n + 1) > n) {
-            addAll(orderedChildNames, node.getChildNodeNames());
+            node.getChildNodeNames().forEach(orderedChildNames::add);
         }
 
         int index = 0;

@@ -38,6 +38,8 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.Query;
+
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -608,7 +610,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 Tree tree = root.getTree(((ItemBasedPrincipal) member).getPath());
                 if (UserUtil.isType(tree, AuthorizableType.USER)) {
                     PropertyState ps = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
-                    return (ps != null && Iterables.contains(ps.getValue(Type.STRINGS), name));
+                    return (ps != null && IterableUtils.contains(ps.getValue(Type.STRINGS), name));
                 }
             } else {
                 Authorizable a = userManager.getAuthorizable(member);

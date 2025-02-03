@@ -617,7 +617,7 @@ public class VersionGCTest {
         int fullGcModeAllOrphansEmptyProperties = 4;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeAllOrphansEmptyProperties, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                fullGcModeAllOrphansEmptyProperties, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         assertEquals(FullGCMode.ALL_ORPHANS_EMPTYPROPS, VersionGarbageCollector.getFullGcMode());
     }
@@ -627,7 +627,7 @@ public class VersionGCTest {
         int fullGcModeAllOrphansEmptyPropertiesKeepOneUserProps = 5;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeAllOrphansEmptyPropertiesKeepOneUserProps, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                fullGcModeAllOrphansEmptyPropertiesKeepOneUserProps, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         assertEquals(FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS, VersionGarbageCollector.getFullGcMode());
     }
@@ -637,7 +637,7 @@ public class VersionGCTest {
         int fullGcModeAllOrphansEmptyPropertiesKeepOneAllProps = 6;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeAllOrphansEmptyPropertiesKeepOneAllProps, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                fullGcModeAllOrphansEmptyPropertiesKeepOneAllProps, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         assertEquals(FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS, VersionGarbageCollector.getFullGcMode());
     }
@@ -647,7 +647,7 @@ public class VersionGCTest {
         int fullGcModeAllOrphansEmptyPropertiesUnmergedBC = 7;
         VersionGarbageCollector gc = new VersionGarbageCollector(
                 ns, new VersionGCSupport(store), true, false, false,
-                fullGcModeAllOrphansEmptyPropertiesUnmergedBC, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE);
+                fullGcModeAllOrphansEmptyPropertiesUnmergedBC, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
 
         assertEquals(FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC, VersionGarbageCollector.getFullGcMode());
     }

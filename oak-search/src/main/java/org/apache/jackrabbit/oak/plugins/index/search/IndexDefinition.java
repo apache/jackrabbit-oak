@@ -1931,7 +1931,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         if (async == null) {
             return false;
         }
-        return Iterables.contains(async.getValue(Type.STRINGS), mode);
+        return IterableUtils.contains(async.getValue(Type.STRINGS), mode);
     }
 
     protected static NodeState getIndexDefinitionState(NodeState defn) {

@@ -417,7 +417,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Test
     public void testGetAggregatedPrivilegeNamesMultipleBuiltIn() {
-        Iterable<String> expected = SetUtils.toSet(Iterables.concat(
+        Iterable<String> expected = SetUtils.toSet(IterableUtils.chainedIterable(
                 bitsProvider.getAggregatedPrivilegeNames(JCR_READ),
                 bitsProvider.getAggregatedPrivilegeNames(JCR_WRITE)));
 
@@ -429,7 +429,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Test
     public void testGetAggregatedPrivilegeNamesMultipleBuiltIn2() {
-        Iterable<String> expected = SetUtils.toSet(Iterables.concat(
+        Iterable<String> expected = SetUtils.toSet(IterableUtils.chainedIterable(
                 bitsProvider.getAggregatedPrivilegeNames(JCR_READ),
                 bitsProvider.getAggregatedPrivilegeNames(JCR_WRITE)));
 
@@ -440,7 +440,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Test
     public void testGetAggregatedPrivilegeNamesMixedBuiltIn() {
-        Iterable<String> expected = SetUtils.toSet(Iterables.concat(
+        Iterable<String> expected = SetUtils.toSet(IterableUtils.chainedIterable(
                 Set.of(JCR_LOCK_MANAGEMENT),
                 bitsProvider.getAggregatedPrivilegeNames(JCR_WRITE)));
 
@@ -498,7 +498,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
         when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
 
         Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(KNOWN_PRIV_NAME);
-        Set<String> expected = SetUtils.toSet(Iterables.concat(
+        Set<String> expected = SetUtils.toSet(IterableUtils.chainedIterable(
                 Set.of(JCR_ADD_CHILD_NODES),
                 bitsProvider.getAggregatedPrivilegeNames(JCR_READ)));
 

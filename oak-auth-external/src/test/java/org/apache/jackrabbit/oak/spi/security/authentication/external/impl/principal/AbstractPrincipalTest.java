@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -81,7 +82,7 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
     }
 
     @NotNull String[] getAutoMembership() {
-        return Iterables.toArray(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class);
+        return Iterables.toArray(IterableUtils.chainedIterable(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class);
     }
     
     @NotNull AutoMembershipConfig getAutoMembershipConfig() {

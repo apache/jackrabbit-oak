@@ -19,38 +19,17 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import java.io.IOException;
 
-class CleanupFirstGarbageCollectionStrategy extends AbstractGarbageCollectionStrategy {
+class CleanupFirstGarbageCollectionStrategy extends DefaultGarbageCollectionStrategy {
 
-    @Override
-    EstimationStrategy getFullEstimationStrategy() {
-        return new FullSizeDeltaEstimationStrategy();
+  @Override
+    CompactionStrategy getFullCompactionStrategy(Context context) {
+        return new CleanupFirstCompactionStrategy(context, super.getFullCompactionStrategy(context));
     }
 
     @Override
-    EstimationStrategy getTailEstimationStrategy() {
-        return new TailSizeDeltaEstimationStrategy();
-    }
-
-    @Override
-    CompactionStrategy getFullCompactionStrategy() {
-        return new FullCompactionStrategy();
-    }
-
-    @Override
-    CompactionStrategy getTailCompactionStrategy() {
-        return new FallbackCompactionStrategy(new TailCompactionStrategy(), new FullCompactionStrategy());
-    }
-
-    @Override
-    CleanupStrategy getCleanupStrategy() {
-        return new DefaultCleanupStrategy();
-    }
-
-    @Override
-    void run(Context context, EstimationStrategy estimationStrategy, CompactionStrategy compactionStrategy) throws IOException {
-        super.run(context, estimationStrategy, new CleanupFirstCompactionStrategy(context, compactionStrategy));
+    CompactionStrategy getTailCompactionStrategy(Context context) {
+        return new CleanupFirstCompactionStrategy(context, super.getTailCompactionStrategy(context));
     }
 
 }

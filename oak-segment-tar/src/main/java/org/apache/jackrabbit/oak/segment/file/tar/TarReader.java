@@ -429,9 +429,9 @@ public class TarReader implements Closeable {
         Map<UUID, List<UUID>> graph = getGraph();
         SegmentArchiveEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
-            // A bulk segments is *always* written before any data segment referencing it.
+            // A bulk segment is *always* written before any data segment referencing it.
             // Backward iteration ensures we see all references to bulk segments before
-            // we see the bulk segment itself. Therefore we can remove a bulk reference
+            // we see the bulk segment itself. Therefore, we can remove a bulk reference
             // from the bulkRefs set once we encounter it, which save us some memory and
             // CPU on subsequent look-ups.
             SegmentArchiveEntry entry = entries[i];

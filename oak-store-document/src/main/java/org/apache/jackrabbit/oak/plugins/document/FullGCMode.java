@@ -78,6 +78,8 @@ enum FullGCMode {
     public static FullGCMode getMode(final int mode) {
 
         switch (mode) {
+            case 0:
+                return NONE;
             case 1:
                 return EMPTYPROPS;
             case 2:

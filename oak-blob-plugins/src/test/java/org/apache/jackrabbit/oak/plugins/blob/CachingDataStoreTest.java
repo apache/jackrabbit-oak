@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -322,7 +321,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
         // Trigger load from backend
         File cacheDownloaded = dataStore.getCache().get(id);
-        assertTrue(Files.equal(f, cacheDownloaded));
+        assertTrue(FileUtils.contentEquals(f, cacheDownloaded));
 
         assertEquals(1, Iterators.size(dataStore.getAllIdentifiers()));
 
@@ -404,7 +403,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         // Now should be available in the cache
         cached = dataStore.getCache().getIfPresent(id);
         assertNotNull(cached);
-        assertTrue(Files.equal(f, cached));
+        assertTrue(FileUtils.contentEquals(f, cached));
 
         dataStore.deleteRecord(new DataIdentifier(id));
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
@@ -601,7 +600,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         try {
             File ret = folder.newFile();
             copyToFile(is, ret);
-            assertTrue(Files.equal(org, ret));
+            assertTrue(FileUtils.contentEquals(org, ret));
         } finally {
             if (close) {
                 IOUtils.closeQuietly(is);

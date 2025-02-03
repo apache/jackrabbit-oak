@@ -40,16 +40,15 @@ class DefaultCleanupContext implements CleanupContext {
     private final @Nullable UUID rootSegmentUUID;
     private boolean aheadOfRoot;
 
-    DefaultCleanupContext(@NotNull SegmentTracker tracker, @NotNull Predicate<GCGeneration> old, @NotNull String compactedRoot) {
+    DefaultCleanupContext(@NotNull SegmentTracker tracker, @NotNull Predicate<GCGeneration> old, @NotNull RecordId compactedRoot) {
         this.segmentTracker = tracker;
         this.old = old;
 
-        RecordId rootId =  RecordId.fromString(tracker, compactedRoot);
-        if (rootId.equals(RecordId.NULL)) {
+        if (compactedRoot.equals(RecordId.NULL)) {
             rootSegmentUUID = null;
             aheadOfRoot = false;
         } else {
-            rootSegmentUUID = rootId.getSegmentId().asUUID();
+            rootSegmentUUID = compactedRoot.getSegmentId().asUUID();
             aheadOfRoot = true;
         }
     }

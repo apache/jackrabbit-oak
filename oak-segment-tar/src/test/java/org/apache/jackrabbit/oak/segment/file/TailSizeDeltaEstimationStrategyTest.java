@@ -25,6 +25,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
+import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.EstimationStrategy.Context;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.junit.Before;
@@ -56,17 +58,17 @@ public class TailSizeDeltaEstimationStrategyTest {
 
     @Test
     public void testTailGCNeeded() {
-        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
-        journal.persist(110, 1100, newGCGeneration(2, 1, true), 1000, "id");
-        journal.persist(120, 1200, newGCGeneration(3, 1, true), 1000, "id");
+        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, new RecordId(SegmentId.NULL, 1));
+        journal.persist(110, 1100, newGCGeneration(2, 1, true), 1000, new RecordId(SegmentId.NULL, 2));
+        journal.persist(120, 1200, newGCGeneration(3, 1, true), 1000, new RecordId(SegmentId.NULL, 3));
         assertTrue(isGarbageCollectionNeeded(50, 1300));
     }
 
     @Test
     public void testTailGCSkipped() {
-        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
-        journal.persist(110, 1100, newGCGeneration(2, 1, true), 1000, "id");
-        journal.persist(120, 1200, newGCGeneration(3, 1, true), 1000, "id");
+        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, new RecordId(SegmentId.NULL, 1));
+        journal.persist(110, 1100, newGCGeneration(2, 1, true), 1000, new RecordId(SegmentId.NULL, 2));
+        journal.persist(120, 1200, newGCGeneration(3, 1, true), 1000, new RecordId(SegmentId.NULL, 3));
         assertFalse(isGarbageCollectionNeeded(200, 1300));
     }
 

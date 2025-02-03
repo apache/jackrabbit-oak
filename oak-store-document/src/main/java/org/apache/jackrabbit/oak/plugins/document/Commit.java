@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -683,7 +682,7 @@ public class Commit {
                 checkConflicts(op, doc);
             } catch (ConflictException e) {
                 exceptions.add(e);
-                Iterables.addAll(revisions, e.getConflictRevisions());
+                e.getConflictRevisions().forEach(revisions::add);
             }
         }
         if (!exceptions.isEmpty()) {

@@ -27,6 +27,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
@@ -55,7 +56,7 @@ public class CompositePrincipalProviderTest {
     private final PrincipalProvider cpp = CompositePrincipalProvider.of(List.<PrincipalProvider>of(pp1, pp2));
 
     private Iterable<Principal> testPrincipals() {
-        return Iterables.concat(pp1.getTestPrincipals(), pp2.getTestPrincipals());
+        return IterableUtils.chainedIterable(pp1.getTestPrincipals(), pp2.getTestPrincipals());
     }
 
     private static void assertIterator(@NotNull Iterable<? extends Principal> expected, @NotNull Iterator<? extends Principal> result) {
@@ -136,7 +137,7 @@ public class CompositePrincipalProviderTest {
 
     @Test
     public void findPrincipalsByTypeGroup() {
-        Iterable<? extends Principal> expected = Iterables.concat(Set.of(EveryonePrincipal.getInstance()), Iterables.filter(testPrincipals(),
+        Iterable<? extends Principal> expected = IterableUtils.chainedIterable(Set.of(EveryonePrincipal.getInstance()), Iterables.filter(testPrincipals(),
             input -> input instanceof GroupPrincipal));
 
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
@@ -154,7 +155,7 @@ public class CompositePrincipalProviderTest {
     @Test
     public void findPrincipalsByTypeAll() {
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
-        assertIterator(Iterables.concat(Set.of(EveryonePrincipal.getInstance()), testPrincipals()), result);
+        assertIterator(IterableUtils.chainedIterable(Set.of(EveryonePrincipal.getInstance()), testPrincipals()), result);
     }
 
     /**
