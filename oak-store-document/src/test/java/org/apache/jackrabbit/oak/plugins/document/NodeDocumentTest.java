@@ -967,7 +967,6 @@ public class NodeDocumentTest {
             public <T extends Document> T find(Collection<T> collection,
                                                String key) {
                 if (Utils.getPathFromId(key).startsWith("p")) {
-                    System.out.println("find " + key);
                     prevDocCalls.add(key);
                 }
                 return super.find(collection, key);
@@ -984,7 +983,6 @@ public class NodeDocumentTest {
         for (int i = 0; i < 20; i++) {
             prevDocCalls.clear();
             String value = doc.getVisibleChanges("p", headRevisions.get(i), null).iterator().next().getValue();
-            System.out.println(value);
             assertEquals(String.valueOf(numChanges - (i + 1)), value);
             assertTrue("too many calls for previous documents: " + prevDocCalls + " : " + prevDocCalls.size(),
                     prevDocCalls.size() <= 3);

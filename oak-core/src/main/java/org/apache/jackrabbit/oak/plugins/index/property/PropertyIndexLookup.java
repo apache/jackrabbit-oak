@@ -28,14 +28,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -128,7 +126,7 @@ public class PropertyIndexLookup {
             iterables.add(s.query(filter, propertyName, indexMeta,
                     encode(value, pattern)));
         }
-        return StreamUtils.toStream(iterables).flatMap(StreamUtils::toStream).collect(Collectors.toList());
+        return Iterables.concat(iterables);
     }
 
     Set<IndexStoreStrategy> getStrategies(NodeState definition) {

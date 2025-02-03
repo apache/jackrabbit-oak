@@ -24,9 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NA
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
@@ -218,7 +216,7 @@ public class PropertyIndexPlan {
         for (IndexStoreStrategy s : strategies) {
             iterables.add(s.query(filter, name, definition, values));
         }
-        Cursor cursor = Cursors.newPathCursor(StreamUtils.toStream(iterables).flatMap(StreamUtils::toStream).collect(Collectors.toList()),
+        Cursor cursor = Cursors.newPathCursor(Iterables.concat(iterables),
                 settings);
         if (depth > 1) {
             cursor = Cursors.newAncestorCursor(cursor, depth - 1, settings);

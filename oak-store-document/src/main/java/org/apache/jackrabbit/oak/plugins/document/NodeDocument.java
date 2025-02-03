@@ -59,8 +59,6 @@ import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.DequeUtils;
-import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
-import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -1818,8 +1816,7 @@ public final class NodeDocument extends Document {
                 }
             };
         } else {
-            changes = IteratorUtils.toIterable(StreamUtils.toStream(transform(List.copyOf(ranges), rangeToChanges::apply))
-                    .flatMap(StreamUtils::toStream).iterator());
+            changes = Iterables.concat(transform(List.copyOf(ranges), rangeToChanges::apply));
         }
         return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
     }
