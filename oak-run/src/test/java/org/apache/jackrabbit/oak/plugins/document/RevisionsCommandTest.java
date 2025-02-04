@@ -209,7 +209,7 @@ public class RevisionsCommandTest {
     public void fullGCWithMaxAgeInSecs() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcMaxAgeInSecs", "10000", "--entireRepo"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcMaxAge", "10000", "--entireRepo"));
         assertTrue(output.contains("FullGcMaxAgeInSecs is : 10000"));
         assertTrue(output.contains("FullGcMaxAgeMillis is : 10000000"));
         assertTrue(output.contains("starting gc collect"));
