@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterPool;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -41,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.StringField;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,11 +57,12 @@ import static org.junit.Assert.*;
 
 @RunWith(Parameterized.class)
 public class DefaultIndexReaderFactoryTest {
-    private final String parallelIndexing;
+    private final boolean parallelIndexing;
+    private IndexWriterPool indexWriterPool;
 
-    @Parameterized.Parameters(name="Parallel Indexing: ({0})")
-    public static List<String> parallelIndexingEnabled() {
-        return List.of("true", "false");
+    @Parameterized.Parameters(name = "Parallel Indexing: ({0})")
+    public static List<Boolean> parallelIndexingEnabled() {
+        return List.of(true, false);
     }
 
     @Rule
@@ -72,13 +75,20 @@ public class DefaultIndexReaderFactoryTest {
             .mount("foo", "/libs", "/apps").build();
     private final LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
 
-    public DefaultIndexReaderFactoryTest(String parallelIndexing) {
+    public DefaultIndexReaderFactoryTest(boolean parallelIndexing) {
         this.parallelIndexing = parallelIndexing;
     }
 
     @Before
     public void setUp() throws Exception {
-            System.setProperty(DefaultIndexWriterFactory.OAK_INDEXER_PARALLEL_WRITER_ENABLED, parallelIndexing);
+        indexWriterPool = parallelIndexing ? new IndexWriterPool() : null;
+    }
+
+    @After
+    public void tearDown() {
+        if (indexWriterPool != null) {
+            indexWriterPool.close();
+        }
     }
 
     @Test
@@ -216,6 +226,6 @@ public class DefaultIndexReaderFactoryTest {
 
     private LuceneIndexWriterFactory newDirectoryFactory(){
         DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, null);
-        return new DefaultIndexWriterFactory(mip, directoryFactory, writerConfig);
+        return new DefaultIndexWriterFactory(mip, directoryFactory, writerConfig, indexWriterPool);
     }
 }

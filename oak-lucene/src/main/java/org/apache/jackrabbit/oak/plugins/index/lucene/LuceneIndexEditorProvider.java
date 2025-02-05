@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.property.LuceneIndexProper
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyQuery;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterPool;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
 import org.apache.jackrabbit.oak.plugins.index.search.CompositePropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -72,6 +73,9 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final static Logger LOG = LoggerFactory.getLogger(LuceneIndexEditorProvider.class);
 
+    public static final String OAK_INDEXER_EDITOR_PARALLEL_WRITER_ENABLED = "oak.indexer.editor.parallelWriter.enabled";
+
+
     private final IndexCopier indexCopier;
     private final ExtractedTextCache extractedTextCache;
     private final IndexAugmentorFactory augmentorFactory;
@@ -80,6 +84,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
     private final LuceneIndexMBean mbean;
     private final StatisticsProvider statisticsProvider;
+    private final IndexWriterPool indexWriterPool;
 
     private GarbageCollectableBlobStore blobStore;
     private IndexingQueue indexingQueue;
@@ -93,9 +98,6 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
      */
     private int inMemoryDocsLimit = Integer.getInteger("oak.lucene.inMemoryDocsLimit", 500);
     private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
-
-    private DefaultIndexWriterFactory defaultIndexWriterFactory;
-    private COWDirectoryCleanupCallback cowDirectoryCleanupCallback;
 
     public LuceneIndexEditorProvider() {
         this(null);
@@ -143,6 +145,10 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this.activeDeletedBlobCollector = activeDeletedBlobCollector;
         this.mbean = mbean;
         this.statisticsProvider = statisticsProvider;
+
+        boolean parallelIndexingEnabled = ConfigHelper.getSystemPropertyAsBoolean(
+                OAK_INDEXER_EDITOR_PARALLEL_WRITER_ENABLED, false);
+        this.indexWriterPool = parallelIndexingEnabled ? new IndexWriterPool() : null;
     }
 
     public LuceneIndexEditorProvider withAsyncIndexesSizeStatsUpdate(AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate) {
@@ -228,11 +234,13 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             }
 
             if (writerFactory == null) {
-                // Also initializes cowDirectoryCleanupCallback
-                initDefaultWriterFactory();
-                LOG.info("Registering COWDirectoryCleanupCallback for {}", indexPath);
+                COWDirectoryCleanupCallback cowDirectoryCleanupCallback = new COWDirectoryCleanupCallback();
                 indexingContext.registerIndexCommitCallback(cowDirectoryCleanupCallback);
-                writerFactory = defaultIndexWriterFactory;
+
+                writerFactory = new DefaultIndexWriterFactory(mountInfoProvider,
+                        newDirectoryFactory(blobDeletionCallback, cowDirectoryCleanupCallback),
+                        writerConfig,
+                        indexWriterPool);
             }
 
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
@@ -256,17 +264,6 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             return new LuceneIndexEditor(context);
         }
         return null;
-    }
-
-    private synchronized void initDefaultWriterFactory() {
-        if (defaultIndexWriterFactory == null) {
-            LOG.info("Initializing DefaultIndexWriterFactory");
-            cowDirectoryCleanupCallback = new COWDirectoryCleanupCallback();
-            BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
-            defaultIndexWriterFactory = new DefaultIndexWriterFactory(mountInfoProvider,
-                    newDirectoryFactory(blobDeletionCallback, cowDirectoryCleanupCallback),
-                    writerConfig);
-        }
     }
 
     IndexCopier getIndexCopier() {

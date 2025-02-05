@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
-import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
@@ -37,25 +36,25 @@ import static java.util.Objects.requireNonNull;
 public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultIndexWriterFactory.class);
 
-    public static final String OAK_INDEXER_PARALLEL_WRITER_ENABLED = "oak.indexer.parallelWriter.enabled";
-    public static final boolean DEFAULT_OAK_INDEXER_PARALLEL_WRITER_ENABLED = false;
-
-    private final boolean parallelIndexingEnabled = ConfigHelper.getSystemPropertyAsBoolean(
-            OAK_INDEXER_PARALLEL_WRITER_ENABLED, DEFAULT_OAK_INDEXER_PARALLEL_WRITER_ENABLED);
-
-    private final Object pipelinedIndexWriterInitLock = new Object();
-    private IndexWriterPool indexWriterPool = null;
-
     private final MountInfoProvider mountInfoProvider;
     private final DirectoryFactory directoryFactory;
     private final LuceneIndexWriterConfig writerConfig;
+    private final IndexWriterPool indexWriterPool;
 
     public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
                                      DirectoryFactory directoryFactory,
                                      LuceneIndexWriterConfig writerConfig) {
+        this(mountInfoProvider, directoryFactory, writerConfig, null);
+    }
+
+    public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
+                                     DirectoryFactory directoryFactory,
+                                     LuceneIndexWriterConfig writerConfig,
+                                     IndexWriterPool indexWriterPool) {
         this.mountInfoProvider = requireNonNull(mountInfoProvider);
         this.directoryFactory = requireNonNull(directoryFactory);
         this.writerConfig = requireNonNull(writerConfig);
+        this.indexWriterPool = indexWriterPool;
     }
 
     @Override
@@ -81,35 +80,20 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
 
     public void close() {
         LOG.info("Closing LuceneIndexWriterFactory");
-        if (parallelIndexingEnabled) {
-            synchronized (pipelinedIndexWriterInitLock) {
-                if (indexWriterPool == null) {
-                    LOG.info("Index writer pool not open");
-                } else {
-                    indexWriterPool.close();
-                    indexWriterPool = null;
-                }
-            }
+        if (indexWriterPool == null) {
+            LOG.info("Not using an Index writer pool");
+        } else {
+            indexWriterPool.close();
         }
     }
 
     private LuceneIndexWriter wrapWithPipelinedIndexWriter(LuceneIndexWriter writer, String indexName) {
-        if (parallelIndexingEnabled) {
-            initWriter();
+        if (indexWriterPool != null) {
             LOG.info("[{}] Using parallel index writer", indexName);
             return new PooledLuceneIndexWriter(indexWriterPool, writer, indexName);
         } else {
             LOG.info("[{}] Using synchronous index writer", indexName);
             return writer;
-        }
-    }
-
-    private void initWriter() {
-        synchronized (pipelinedIndexWriterInitLock) {
-            if (indexWriterPool == null) {
-                LOG.info("Pipelined indexing enabled");
-                indexWriterPool = new IndexWriterPool();
-            }
         }
     }
 }
