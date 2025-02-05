@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -203,6 +201,18 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("FullGcDelayFactory is : 2.0"));
         assertTrue(output.contains("FullGcBatchSize is : 1000"));
         assertTrue(output.contains("FullGcProgressSize is : 10000"));
+        assertTrue(output.contains("FullGcMaxAgeInSecs is : 86400"));
+        assertTrue(output.contains("FullGcMaxAgeMillis is : 86400000"));
+    }
+
+    @Test
+    public void fullGCWithMaxAgeInSecs() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcMaxAge", "10000", "--entireRepo"));
+        assertTrue(output.contains("FullGcMaxAgeInSecs is : 10000"));
+        assertTrue(output.contains("FullGcMaxAgeMillis is : 10000000"));
+        assertTrue(output.contains("starting gc collect"));
     }
 
     @Test

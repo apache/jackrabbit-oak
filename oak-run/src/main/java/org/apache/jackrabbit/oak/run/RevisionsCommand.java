@@ -121,6 +121,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Long> olderThan;
         final OptionSpec<Double> delay;
         final OptionSpec<Double> fullGcDelayFactor;
+        final OptionSpec<Long> fullGcMaxAge;
         final OptionSpec<?> continuous;
         final OptionSpec<?> fullGCOnly;
         final OptionSpec<Boolean> resetFullGC;
@@ -190,6 +191,10 @@ public class RevisionsCommand implements Command {
             fullGcProgressSize = parser.accepts("fullGcProgressSize", "The number of documents to check for " +
                             "garbage in each Full GC cycle")
                     .withRequiredArg().ofType(Integer.class).defaultsTo(10000);
+            fullGcMaxAge = parser.accepts("fullGcMaxAge", "The maximum age of the document in seconds " +
+                            "to be considered for Full GC i.e. Version Garbage Collector (Full GC) logic will only consider those " +
+                            "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge)")
+                    .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toMillis(1));
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -231,6 +236,10 @@ public class RevisionsCommand implements Command {
 
         int getFullGcProgressSize() {
             return fullGcProgressSize.value(options);
+        }
+
+        long getFullGcMaxAge() {
+            return fullGcMaxAge.value(options);
         }
 
         double getFullGcDelayFactor() {
@@ -348,6 +357,7 @@ public class RevisionsCommand implements Command {
         builder.setFullGCDelayFactor(options.getFullGcDelayFactor());
         builder.setFullGCBatchSize(options.getFullGcBatchSize());
         builder.setFullGCProgressSize(options.getFullGcProgressSize());
+        builder.setFullGcMaxAgeMillis(SECONDS.toMillis(options.getFullGcMaxAge()));
 
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
@@ -379,6 +389,8 @@ public class RevisionsCommand implements Command {
         System.out.println("FullGcDelayFactory is : " + options.getFullGcDelayFactor());
         System.out.println("FullGcBatchSize is : " + options.getFullGcBatchSize());
         System.out.println("FullGcProgressSize is : " + options.getFullGcProgressSize());
+        System.out.println("FullGcMaxAgeInSecs is : " + options.getFullGcMaxAge());
+        System.out.println("FullGcMaxAgeMillis is : " + builder.getFullGcMaxAgeMillis());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
 
         VersionGCOptions gcOptions = gc.getOptions();
