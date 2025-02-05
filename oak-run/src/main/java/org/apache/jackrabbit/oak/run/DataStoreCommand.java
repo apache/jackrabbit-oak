@@ -227,6 +227,7 @@ public class DataStoreCommand implements Command {
                     });
 
                     writer.flush();
+                    writer.close();
                     threw = false;
 
                     sort(referencesTemp, idComparator);

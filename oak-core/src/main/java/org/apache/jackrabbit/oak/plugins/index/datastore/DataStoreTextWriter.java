@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.datastore;
 
 import java.io.BufferedWriter;
@@ -26,11 +25,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
@@ -110,7 +110,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
         } else {
             File textFile = getFile(blobId);
             if (textFile.exists()) {
-                String text = Files.toString(textFile, StandardCharsets.UTF_8);
+                String text = new String(Files.readAllBytes(textFile.toPath()), StandardCharsets.UTF_8);
                 result = new ExtractedText(ExtractionResult.SUCCESS, text);
             }
         }
@@ -131,7 +131,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
         File textFile = getFile(stripLength(blobId));
         ensureParentExists(textFile);
         //TODO should we compress
-        Files.write(text, textFile, StandardCharsets.UTF_8);
+        org.apache.jackrabbit.guava.common.io.Files.write(text, textFile, StandardCharsets.UTF_8);
     }
 
     @Override
@@ -231,11 +231,11 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     }
 
     private Set<String> loadFromFile(File file) throws IOException {
-        Set<String> result = new HashSet<>();
         if (file.exists()) {
-            result.addAll(Files.readLines(file, StandardCharsets.UTF_8));
+            return Files.lines(file.toPath()).collect(Collectors.toSet());
+        } else {
+            return new HashSet<>();
         }
-        return result;
     }
 
     private void writeToFile(String fileName, Set<String> blobIds) throws IOException {

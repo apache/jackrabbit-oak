@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
@@ -27,7 +26,6 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentN
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.CloudBlob;
@@ -35,6 +33,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 
+import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
@@ -53,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.tool.Compact;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -369,10 +369,12 @@ public class AzureCompact {
             targetContainer = destinationCloudBlobDirectory.getContainer();
         }
 
-        GCGeneration gcGeneration = null;
-        String root = null;
+        GCGeneration gcGeneration;
+        RecordId root;
 
-        try (FileStore store = newFileStore(splitPersistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
+        try (FileStore store =newFileStore(splitPersistence,
+                Files.createTempDirectory(getClass().getSimpleName() + "-").toFile(),
+                strictVersionCheck, segmentCacheSize,
                 gcLogInterval, compactorType, concurrency)) {
             if (garbageThresholdGb > 0 && garbageThresholdPercentage > 0) {
                 System.out.printf("    -> minimum garbage threshold set to %d GB or %d%%\n", garbageThresholdGb, garbageThresholdPercentage);
@@ -401,7 +403,7 @@ public class AzureCompact {
 
             System.out.printf("    -> [skipping] cleaning up\n");
             gcGeneration = store.getHead().getGcGeneration();
-            root = store.getHead().getRecordId().toString10();
+            root = store.getHead().getRecordId();
         } catch (Exception e) {
             watch.stop();
             e.printStackTrace(System.err);
@@ -428,7 +430,7 @@ public class AzureCompact {
         return 0;
     }
 
-    private void persistGCJournal(SegmentNodeStorePersistence rwPersistence, long newSize, GCGeneration gcGeneration, String root) throws IOException {
+    private void persistGCJournal(SegmentNodeStorePersistence rwPersistence, long newSize, GCGeneration gcGeneration, RecordId root) throws IOException {
         GCJournalFile gcJournalFile = rwPersistence.getGCJournalFile();
         if (gcJournalFile != null) {
             GCJournal gcJournal = new GCJournal(gcJournalFile);

@@ -26,6 +26,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -460,7 +461,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                 continue;
             }
             Iterable<NodeDocument> prev = doc.getPreviousDocs("prop", r);
-            assertEquals(1, Iterables.size(prev));
+            assertEquals(1, IterableUtils.size(prev));
             for (NodeDocument d : prev) {
                 assertTrue(d.containsRevision(r));
             }
@@ -887,7 +888,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             }
             Set<Revision> revs = new HashSet<>();
             for (RevisionVector rv : revisions) {
-                Iterables.addAll(revs, rv);
+                rv.forEach(revs::add);
             }
             revs.removeAll(doc.getValueMap("_deleted").keySet());
             assertTrue("Missing _deleted entries on " + doc.getId() + ": " + revs, revs.isEmpty());
@@ -997,7 +998,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         Iterable<UpdateOp> splitOps = store.find(NODES, id)
                 .split(ns, ns.getHeadRevision(), NO_BINARY);
-        assertEquals(0, Iterables.size(splitOps));
+        assertEquals(0, IterableUtils.size(splitOps));
     }
 
     @Test

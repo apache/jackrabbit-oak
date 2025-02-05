@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.namepath.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -107,5 +109,15 @@ public class GlobalNameMapperTest {
             assertEquals(name, mapper.getOakName(name));
             assertEquals(name, mapper.getJcrName(name));
         }
+    }
+
+    @Test
+    public void testIsExpandedName() {
+        assertTrue(GlobalNameMapper.isExpandedName("{}something"));
+        assertTrue(GlobalNameMapper.isExpandedName("{internal}something"));
+        assertTrue(GlobalNameMapper.isExpandedName("{http://www.jcp.org/jcr/nt/1.0}something"));
+        assertFalse(GlobalNameMapper.isExpandedName("{something not a namespace}something"));
+        assertFalse(GlobalNameMapper.isExpandedName("rep:something"));
+        assertFalse(GlobalNameMapper.isExpandedName("something"));
     }
 }

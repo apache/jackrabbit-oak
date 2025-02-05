@@ -27,8 +27,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.google.gson.stream.JsonWriter;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -127,7 +127,9 @@ public class NodeStateSerializer {
     }
 
     private String getFilter() throws IOException {
-        return filterFile != null ? Files.toString(filterFile, StandardCharsets.UTF_8) : filter;
+        return filterFile != null
+                ? new String(Files.readAllBytes(filterFile.toPath()), StandardCharsets.UTF_8)
+                : filter;
     }
 
     public String getFileName() {

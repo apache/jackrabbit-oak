@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -904,7 +905,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
             for (ExternalIdentityRef inheritedGrRef : extGr.getDeclaredGroups()) {
                 Group g = userManager.getAuthorizable(inheritedGrRef.getId(), Group.class);
                 assertNotNull(g);
-                if (Iterables.contains(externalUser.getDeclaredGroups(), inheritedGrRef)) {
+                if (IterableUtils.contains(externalUser.getDeclaredGroups(), inheritedGrRef)) {
                     assertTrue(g.isDeclaredMember(a));
                 } else {
                     assertFalse(g.isDeclaredMember(a));

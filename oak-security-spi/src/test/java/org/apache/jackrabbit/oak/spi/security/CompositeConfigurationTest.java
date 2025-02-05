@@ -408,7 +408,7 @@ public class CompositeConfigurationTest extends AbstractCompositeConfigurationTe
         addConfiguration(withMonitors);
 
         Iterable<Monitor<?>> monitors = compositeConfiguration.getMonitors(statisticsProvider);
-        assertEquals(1, Iterables.size(monitors));
+        assertEquals(1, IterableUtils.size(monitors));
         assertSame(monitor, monitors.iterator().next());
     }
 }

@@ -24,6 +24,8 @@ import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintable
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
@@ -102,11 +104,23 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
 
     private static CleanupContext newCleanupContext(Context context) {
         GCGeneration currentGeneration = context.getRevisions().getHead().getSegmentId().getGcGeneration();
-        String compactedRoot = context.getGCJournal().read().getRoot();
+        SegmentTracker segmentTracker = context.getSegmentTracker();
+
+        RecordId compactedRoot;
+        GCJournal.GCJournalEntry lastGCJournalEntry = context.getGCJournal().read();
+        if (lastGCJournalEntry.getGcGeneration().compareWith(currentGeneration) == 0) {
+            // if the generation doesn't match, there must be a missing entry in the GC journal
+            // this may still fail to detect a missing entry if partial compaction is used as
+            // the generation is not updated until the full repository is compacted
+            compactedRoot = RecordId.fromString(segmentTracker, lastGCJournalEntry.getRoot());
+        } else {
+            context.getGCListener().warn("gc journal entry does not match generation of repository head, skipping root-based reclamation");
+            compactedRoot = RecordId.NULL;
+        }
 
         switch (context.getGCOptions().getGCType()) {
             case FULL:
-                return new DefaultCleanupContext(context.getSegmentTracker(), generation -> {
+                return new DefaultCleanupContext(segmentTracker, generation -> {
                     if (generation == null) {
                         return false;
                     }
@@ -116,7 +130,7 @@ class CleanupFirstCompactionStrategy implements CompactionStrategy {
                     return generation.getGeneration() < currentGeneration.getGeneration() && !generation.isCompacted();
                 }, compactedRoot);
             case TAIL:
-                return new DefaultCleanupContext(context.getSegmentTracker(), generation -> {
+                return new DefaultCleanupContext(segmentTracker, generation -> {
                     if (generation == null) {
                         return false;
                     }

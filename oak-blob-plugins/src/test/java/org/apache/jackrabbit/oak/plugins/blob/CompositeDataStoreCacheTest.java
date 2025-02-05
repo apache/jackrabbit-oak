@@ -30,7 +30,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
@@ -376,7 +375,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         // present after loading
         cached = cache.get(ID_PREFIX + 0);
         assertNotNull(cached);
-        assertTrue(Files.equal(f, cached));
+        assertTrue(FileUtils.contentEquals(f, cached));
 
         assertCacheStats(cache.getStagingCacheStats(), 0, 0, 0, 0);
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
@@ -403,7 +402,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         // present after loading
         File cached = cache.get(ID_PREFIX + 0);
         assertNotNull(cached);
-        assertTrue(Files.equal(f, cached));
+        assertTrue(FileUtils.contentEquals(f, cached));
 
         cache.invalidate(ID_PREFIX + 0);
 
@@ -462,8 +461,8 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         File cached2 = future2.get();
         LOG.info("Async tasks finished");
 
-        assertTrue(Files.equal(f, cached));
-        assertTrue(Files.equal(f2, cached2));
+        assertTrue(FileUtils.contentEquals(f, cached));
+        assertTrue(FileUtils.contentEquals(f2, cached2));
 
         assertCacheStats(cache.getStagingCacheStats(), 0, 0, 0, 0);
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
@@ -522,7 +521,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         LOG.info("Async tasks finished");
 
         assertFile(cached, 0, folder);
-        assertTrue(Files.equal(f2, cached2));
+        assertTrue(FileUtils.contentEquals(f2, cached2));
 
         //start the original upload
         taskLatch.countDown();
@@ -585,7 +584,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         File gold = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         File fromUploadStream = copyToFile(fStream, folder.newFile());
-        assertTrue(Files.equal(gold, fromUploadStream));
+        assertTrue(FileUtils.contentEquals(gold, fromUploadStream));
 
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
         assertEquals(0, cache.getCacheStats().getLoadCount());

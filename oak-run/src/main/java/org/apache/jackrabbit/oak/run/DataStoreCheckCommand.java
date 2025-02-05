@@ -459,6 +459,7 @@ public class DataStoreCheckCommand implements Command {
                 }
             );
             writer.flush();
+            writer.close();
             sort(marked, idComparator);
 
             System.out.println(count.get() + " blob references found");
@@ -564,6 +565,7 @@ public class DataStoreCheckCommand implements Command {
                 }
 
                 writer.flush();
+                writer.close();
                 sort(references, idComparator);
 
                 System.out.println(count.get() + " blob references found");

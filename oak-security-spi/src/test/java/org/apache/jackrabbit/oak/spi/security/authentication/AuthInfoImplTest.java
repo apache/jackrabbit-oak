@@ -25,6 +25,7 @@ import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -128,7 +129,7 @@ public class AuthInfoImplTest {
 
     @Test
     public void testCreateFromPrincipalIterables() {
-        AuthInfo info = new AuthInfoImpl(USER_ID, ATTRIBUTES, Iterables.concat(PRINCIPALS, Collections.emptyList()));
+        AuthInfo info = new AuthInfoImpl(USER_ID, ATTRIBUTES, IterableUtils.chainedIterable(PRINCIPALS, Collections.emptyList()));
         assertEquals(authInfo.toString(), info.toString());
     }
 

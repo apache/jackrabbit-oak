@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -137,7 +138,7 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent()
                 .getRecoveryCandidateNodes();
-        assertEquals(1, Iterables.size(cids));
+        assertEquals(1, IterableUtils.size(cids));
         assertEquals(c2Id, Iterables.get(cids, 0).intValue());
 
         assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
@@ -220,7 +221,7 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent()
                 .getRecoveryCandidateNodes();
-        assertEquals(1, Iterables.size(cids));
+        assertEquals(1, IterableUtils.size(cids));
         assertEquals(c2Id, Iterables.get(cids, 0).intValue());
 
         assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));

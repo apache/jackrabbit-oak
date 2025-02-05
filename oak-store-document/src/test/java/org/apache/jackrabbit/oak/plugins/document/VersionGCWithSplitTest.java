@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -39,7 +40,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -191,7 +191,7 @@ public class VersionGCWithSplitTest {
         // split document with 100 revisions created after the GC was triggered
         assertEquals(NUM_REVS_THRESHOLD + 1, valueMap.size());
         // also count them individually
-        assertEquals(NUM_REVS_THRESHOLD + 1, size(valueMap.entrySet()));
+        assertEquals(NUM_REVS_THRESHOLD + 1, IterableUtils.size(valueMap.entrySet()));
     }
 
     private void merge(DocumentNodeStore store, NodeBuilder builder)

@@ -114,4 +114,11 @@ public class RDBDocumentNodeStoreBuilderTest {
         builder.setFullGCMode(3);
         assertEquals(0, builder.getFullGCMode());
     }
+
+    @Test
+    public void fullGcMaxAgeInSecsHasDefaultValue() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGcMaxAgeMillis(30 * 24 * 60 * 60 * 1000L);
+        assertEquals(0, builder.getFullGcMaxAgeMillis());
+    }
 }

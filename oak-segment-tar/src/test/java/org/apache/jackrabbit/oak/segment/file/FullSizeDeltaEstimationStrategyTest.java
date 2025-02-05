@@ -25,6 +25,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
+import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.EstimationStrategy.Context;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.junit.Before;
@@ -56,46 +58,46 @@ public class FullSizeDeltaEstimationStrategyTest {
 
     @Test
     public void testFullGCNeededBecauseOfSize1() {
-        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
-        journal.persist(110, 1100, newGCGeneration(2, 2, true), 1000, "id");
-        journal.persist(120, 1200, newGCGeneration(3, 3, true), 1000, "id");
-        journal.persist(130, 1000, newGCGeneration(4, 4, true), 1000, "id");
-        journal.persist(100, 1010, newGCGeneration(5, 5, true), 1000, "id");
-        journal.persist(110, 1020, newGCGeneration(6, 6, true), 1000, "id");
+        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, new RecordId(SegmentId.NULL, 1));
+        journal.persist(110, 1100, newGCGeneration(2, 2, true), 1000, new RecordId(SegmentId.NULL, 2));
+        journal.persist(120, 1200, newGCGeneration(3, 3, true), 1000, new RecordId(SegmentId.NULL, 3));
+        journal.persist(130, 1000, newGCGeneration(4, 4, true), 1000, new RecordId(SegmentId.NULL, 4));
+        journal.persist(100, 1010, newGCGeneration(5, 5, true), 1000, new RecordId(SegmentId.NULL, 5));
+        journal.persist(110, 1020, newGCGeneration(6, 6, true), 1000, new RecordId(SegmentId.NULL, 6));
         assertTrue(isGarbageCollectionNeeded(100, 1300));
     }
 
     @Test
     public void testFullGCNeededBecauseOfSize2() {
-        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
+        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, new RecordId(SegmentId.NULL, 1));
         assertTrue(isGarbageCollectionNeeded(10, 1030));
     }
 
     @Test
     public void testFullGCSkippedBecauseOfSize1() {
-        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
-        journal.persist(110, 1100, newGCGeneration(2, 2, true), 1000, "id");
-        journal.persist(120, 1200, newGCGeneration(3, 3, true), 1000, "id");
-        journal.persist(130, 1000, newGCGeneration(4, 4, true), 1000, "id");
-        journal.persist(100, 1010, newGCGeneration(5, 5, true), 1000, "id");
-        journal.persist(110, 1020, newGCGeneration(6, 6, true), 1000, "id");
+        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, new RecordId(SegmentId.NULL, 1));
+        journal.persist(110, 1100, newGCGeneration(2, 2, true), 1000, new RecordId(SegmentId.NULL, 2));
+        journal.persist(120, 1200, newGCGeneration(3, 3, true), 1000, new RecordId(SegmentId.NULL, 3));
+        journal.persist(130, 1000, newGCGeneration(4, 4, true), 1000, new RecordId(SegmentId.NULL, 4));
+        journal.persist(100, 1010, newGCGeneration(5, 5, true), 1000, new RecordId(SegmentId.NULL, 5));
+        journal.persist(110, 1020, newGCGeneration(6, 6, true), 1000, new RecordId(SegmentId.NULL, 6));
         assertFalse(isGarbageCollectionNeeded(100, 1030));
     }
 
     @Test
     public void testFullGCSkippedBecauseOfSize2() {
-        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
+        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, new RecordId(SegmentId.NULL, 1));
         assertFalse(isGarbageCollectionNeeded(100, 1030));
     }
 
     @Test
     public void testFullGCNeededBecauseOfPreviousTail() {
-        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, "id");
-        journal.persist(110, 1100, newGCGeneration(2, 1, true), 1000, "id");
-        journal.persist(120, 1200, newGCGeneration(3, 1, true), 1000, "id");
-        journal.persist(130, 1000, newGCGeneration(4, 2, true), 1000, "id");
-        journal.persist(100, 1010, newGCGeneration(5, 2, true), 1000, "id");
-        journal.persist(110, 1020, newGCGeneration(6, 2, true), 1000, "id");
+        journal.persist(100, 1000, newGCGeneration(1, 1, true), 1000, new RecordId(SegmentId.NULL, 1));
+        journal.persist(110, 1100, newGCGeneration(2, 1, true), 1000, new RecordId(SegmentId.NULL, 2));
+        journal.persist(120, 1200, newGCGeneration(3, 1, true), 1000, new RecordId(SegmentId.NULL, 3));
+        journal.persist(130, 1000, newGCGeneration(4, 2, true), 1000, new RecordId(SegmentId.NULL, 4));
+        journal.persist(100, 1010, newGCGeneration(5, 2, true), 1000, new RecordId(SegmentId.NULL, 5));
+        journal.persist(110, 1020, newGCGeneration(6, 2, true), 1000, new RecordId(SegmentId.NULL, 6));
         assertTrue(isGarbageCollectionNeeded(100, 1030));
     }
 

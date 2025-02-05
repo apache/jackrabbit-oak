@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -406,9 +407,9 @@ public class IndexUpdate implements Editor, PathSource {
             Iterable<String> opt = p.getValue(Type.STRINGS);
             if (asyncRef == null) {
                 // sync index job, accept synonyms
-                return Iterables.contains(opt, INDEXING_MODE_NRT) || Iterables.contains(opt, INDEXING_MODE_SYNC);
+                return IterableUtils.contains(opt, INDEXING_MODE_NRT) || IterableUtils.contains(opt, INDEXING_MODE_SYNC);
             } else {
-                return Iterables.contains(opt, asyncRef);
+                return IterableUtils.contains(opt, asyncRef);
             }
         } else {
             return asyncRef == null;

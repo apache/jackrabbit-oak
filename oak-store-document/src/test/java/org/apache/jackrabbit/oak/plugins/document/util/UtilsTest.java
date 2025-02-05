@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.commons.codec.binary.Hex;
@@ -432,7 +433,7 @@ public class UtilsTest {
             }
             store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-            assertEquals(1001 /* root + 1000 children */, Iterables.size(
+            assertEquals(1001 /* root + 1000 children */, IterableUtils.size(
                     Utils.getAllDocuments(store.getDocumentStore())));
         } finally {
             store.dispose();

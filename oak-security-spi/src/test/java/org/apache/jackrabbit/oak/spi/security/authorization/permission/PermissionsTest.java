@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.Session;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
@@ -241,7 +242,7 @@ public class PermissionsTest {
     public void testAggregatesAllPermission() {
         Iterable<Long> aggregates = Permissions.aggregates(Permissions.ALL);
 
-        assertFalse(Iterables.contains(aggregates, Permissions.ALL));
+        assertFalse(IterableUtils.contains(aggregates, Permissions.ALL));
 
         Set<Long> expected = new HashSet<>(Permissions.PERMISSION_NAMES.keySet());
         expected.removeAll(List.of(Permissions.ALL, Permissions.WRITE, Permissions.READ, Permissions.SET_PROPERTY, Permissions.REMOVE));

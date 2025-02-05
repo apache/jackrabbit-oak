@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
@@ -30,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
@@ -174,7 +174,7 @@ public class PropertyIndexLookup {
             if (type == null || type.isArray() || !getType().equals(type.getValue(Type.STRING))) {
                 continue;
             }
-            if (contains(getNames(index, PROPERTY_NAMES), propertyName)) {
+            if (IterableUtils.contains(getNames(index, PROPERTY_NAMES), propertyName)) {
                 NodeState indexContent = index.getChildNode(INDEX_CONTENT_NODE_NAME);
                 if (!indexContent.exists()) {
                     continue;

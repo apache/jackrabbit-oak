@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -74,7 +75,7 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
         assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
-        assertEquals(1, Iterables.size(cids));
+        assertEquals(1, IterableUtils.size(cids));
         assertEquals(c2Id, Iterables.get(cids, 0).intValue());
 
         ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
@@ -112,11 +113,11 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
         //.. but, it won't be returned while we iterate candidate nodes from self
-        assertEquals(0, Iterables.size(cids));
+        assertEquals(0, IterableUtils.size(cids));
 
         cids = ds2.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
         //... checking that from other node still reports
-        assertEquals(1, Iterables.size(cids));
+        assertEquals(1, IterableUtils.size(cids));
         assertEquals(c1Id, Iterables.get(cids, 0).intValue());
 
         ds2.runBackgroundOperations();
@@ -236,7 +237,7 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
         assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
-        assertEquals(1, Iterables.size(cids));
+        assertEquals(1, IterableUtils.size(cids));
         assertEquals(c2Id, Iterables.get(cids, 0).intValue());
 
         int updates = ds1.getLastRevRecoveryAgent().recover(

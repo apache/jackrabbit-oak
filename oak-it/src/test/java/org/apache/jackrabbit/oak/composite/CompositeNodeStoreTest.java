@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -852,7 +853,7 @@ public class CompositeNodeStoreTest {
         Iterable<String> childNodeNames = builder.getChildNodeNames();
 
         assertNotNull("childNodeNames must not be empty", childNodeNames);
-        assertThat("Incorrect number of elements", Iterables.size(childNodeNames), equalTo(names.length));
+        assertThat("Incorrect number of elements", IterableUtils.size(childNodeNames), equalTo(names.length));
         assertThat("Mismatched elements", childNodeNames, hasItems(names));
     }
 
@@ -860,7 +861,7 @@ public class CompositeNodeStoreTest {
         Iterable<String> childNodeNames = state.getChildNodeNames();
 
         assertNotNull("childNodeNames must not be empty", childNodeNames);
-        assertThat("Incorrect number of elements", Iterables.size(childNodeNames), equalTo(names.length));
+        assertThat("Incorrect number of elements", IterableUtils.size(childNodeNames), equalTo(names.length));
         assertThat("Mismatched elements", childNodeNames, hasItems(names));
     }
 }

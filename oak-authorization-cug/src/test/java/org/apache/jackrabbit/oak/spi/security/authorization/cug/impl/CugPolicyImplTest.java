@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrincipalSetPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -109,7 +110,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
         CugPolicyImpl cugPolicy = createCugPolicy(duplication);
         assertEquals(1, cugPolicy.getPrincipals().size());
-        assertEquals(1, Iterables.size(cugPolicy.getPrincipalNames()));
+        assertEquals(1, IterableUtils.size(cugPolicy.getPrincipalNames()));
     }
 
     @Test
@@ -265,14 +266,14 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
         Principal excluded = getExcludedPrincipal();
         assertTrue(cug.addPrincipals(EveryonePrincipal.getInstance(), excluded));
-        assertFalse(Iterables.contains(cug.getPrincipalNames(), excluded.getName()));
+        assertFalse(IterableUtils.contains(cug.getPrincipalNames(), excluded.getName()));
     }
 
     @Test
     public void testExcludedPrincipalAddedBefore() {
         Principal excluded = getExcludedPrincipal();
         CugPolicyImpl cug = createCugPolicy(ImportBehavior.ABORT, Collections.singleton(excluded));
-        assertTrue(Iterables.contains(cug.getPrincipalNames(), excluded.getName()));
+        assertTrue(IterableUtils.contains(cug.getPrincipalNames(), excluded.getName()));
     }
 
     @Test

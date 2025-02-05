@@ -75,10 +75,6 @@ abstract class CompactionResult {
                 return compactedRootId;
             }
 
-            @Override
-            boolean requiresGCJournalEntry() {
-                return true;
-            }
         };
     }
 
@@ -210,10 +206,6 @@ abstract class CompactionResult {
     }
 
     boolean isNotApplicable() {
-        return false;
-    }
-
-    boolean requiresGCJournalEntry() {
         return false;
     }
 

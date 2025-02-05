@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -330,11 +331,11 @@ public class FilteringNodeStateTest {
 
     private void assertExistingChildNodeName(NodeState decorated, String name) {
         final Iterable<String> childNodeNames = decorated.getChildNodeNames();
-        assertTrue("should list child \"" + name + "\"", Iterables.contains(childNodeNames, name));
+        assertTrue("should list child \"" + name + "\"", IterableUtils.contains(childNodeNames, name));
     }
 
     private void assertMissingChildNodeName(NodeState decorated, String name) {
         final Iterable<String> childNodeNames = decorated.getChildNodeNames();
-        assertFalse("should not list child \"" + name + "\"", Iterables.contains(childNodeNames, name));
+        assertFalse("should not list child \"" + name + "\"", IterableUtils.contains(childNodeNames, name));
     }
 }

@@ -54,7 +54,6 @@ import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -65,10 +64,12 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionNotRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGCDryRun;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.gc;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.mergedBranchCommit;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.unmergedBranchCommit;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
@@ -100,6 +101,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -113,7 +115,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.FailingDocumentStore.FailedUpdateOpListener;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
@@ -461,15 +462,6 @@ public class VersionGarbageCollectorIT {
         gcSplitDocsInternal("sub".repeat(120));
     }
 
-    private VersionGCStats gc(VersionGarbageCollector gc, long maxRevisionAge, TimeUnit unit) throws IOException {
-        final VersionGCStats stats = gc.gc(maxRevisionAge, unit);
-        if (stats.skippedFullGCDocsCount != 0) {
-            (new Exception("here: " + stats.skippedFullGCDocsCount)).printStackTrace(System.out);
-        }
-        assertEquals(0, stats.skippedFullGCDocsCount);
-        return stats;
-    }
-
     // OAK-10199
     @Test
     public void testFullGCNeedRepeat() throws Exception {
@@ -587,6 +579,43 @@ public class VersionGarbageCollectorIT {
         assertTrue(stats.ignoredFullGCDueToCheckPoint);
         assertTrue(stats.canceled);
     }
+
+    // OAK-11433
+    @Test
+    public void testFullGCNotIgnoredButRevisionGCIgnoredForCheckpoint() throws Exception {
+        long expiryTime = 100, maxRevisionGCAge = 20;
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
+
+        // create a bunch of garbage
+        NodeBuilder b1 = store1.getRoot().builder();
+        for (int i = 0; i < 100; i++) {
+            b1.child("c" + i).setProperty("test", "t", STRING);
+        }
+        store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        for (int i = 0; i < 100; i++) {
+            b1.child("c" + i).removeProperty("test");
+        }
+        store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // create a checkpoint 1 hour in the past
+        String checkpoint = store1.checkpoint(TimeUnit.HOURS.toMillis(1));
+
+        // Fast forward time to future such that we are past the checkpoint
+        clock.waitUntil(clock.getTime() + expiryTime);
+        gc.setFullGcMaxAge(2, HOURS);
+        VersionGCStats stats = gc.gc(maxRevisionGCAge, TimeUnit.MILLISECONDS);
+
+        // FullGC should not be ignored
+        assertFalse("Full GC should be performed", stats.ignoredFullGCDueToCheckPoint);
+        // RevisionGC should be ignored
+        assertTrue("Revision GC should be ignored due to checkpoint", stats.ignoredGCDueToCheckPoint);
+        assertFalse(stats.canceled);
+        assertFalse(stats.needRepeat);
+    }
+
+    // OAK-11433 - END
 
     @Test
     public void testGCDeletedLongPathPropsInclExcl_excludes() throws Exception {
@@ -1691,7 +1720,7 @@ public class VersionGarbageCollectorIT {
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
-        stats = gcRef.get().gc(maxAge*2, HOURS);
+        stats = gc(gcRef.get(), maxAge*2, HOURS);
         assertTrue(stats.canceled);
         assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedPropsCount);
@@ -1759,7 +1788,7 @@ public class VersionGarbageCollectorIT {
             }
         };
 
-        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE));
+        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE)));
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -1769,7 +1798,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(document.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
         assertNotNull(document.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
 
-        stats = gcRef.get().gc(maxAge*2, HOURS);
+        stats = gc(gcRef.get(), maxAge*2, HOURS);
 
         document = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertEquals(5, stats.updatedFullGCDocsCount);
@@ -3482,7 +3511,7 @@ public class VersionGarbageCollectorIT {
         }
         NodeDocument doc = store1.getDocumentStore().find(NODES, id);
         assertNotNull(doc);
-        int numRevs = size(doc.getValueMap("prop").entrySet());
+        int numRevs = IterableUtils.size(doc.getValueMap("prop").entrySet());
         assertTrue("too many revisions: " + numRevs, numRevs < 6000);
     }
 
@@ -4183,11 +4212,10 @@ public class VersionGarbageCollectorIT {
      *                                each one in a separate merge
      * @param orphans                 the nodes that should be created inproperly -
      *                                each one in a separate late-write way
-     * @param expectedNumOrphanedDocs the expected number of orphan documents that
-     *                                FullGC should cleanup
      * @param unrelatedPath           an unrelated path that should be merged after
      *                                late-write - ensures lastRev is updated on
      *                                root to allow detecting late-writes as such
+     * @param counts                  the expected counts of deleted documents array
      */
     private void doLateWriteCreateChildrenGC(Collection<String> parents,
             Collection<String> orphans, String unrelatedPath, GCCounts... counts)

@@ -51,15 +51,14 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
 
     protected CacheConflictHandler() {
         super(Resolution.IGNORED);
-
     }
 
     private Resolution resolveRepExpirationConflict(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
                                          PropertyState base) {
-        if (CacheConstants.REP_EXPIRATION.equals(ours.getName()) && CacheConstants.REP_EXPIRATION.equals(theirs.getName())){
+        if (ours.getName() != null && ours.getName().equals(theirs.getName()) && ours.getName().startsWith(CacheConstants.REP_EXPIRATION)) {
 
             PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
-            merged.setName(CacheConstants.REP_EXPIRATION);
+            merged.setName(ours.getName());
 
             //if base is bigger than ours and theirs, then use base. This should never happens
             if (base.getValue(Type.LONG) > ours.getValue(Type.LONG)  &&
@@ -77,7 +76,7 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
                 merged.setValue(theirs.getValue(Type.LONG));
             }
             parent.setProperty(merged.getPropertyState());
-            LOG.debug("Resolved conflict for property {} our value: {}, their value {}, merged value: {}", CacheConstants.REP_EXPIRATION, ours.getValue(Type.LONG), theirs.getValue(Type.LONG), merged.getValue(0));
+            LOG.debug("Resolved conflict for property {} our value: {}, their value {}, merged value: {}", ours.getName(), ours.getValue(Type.LONG), theirs.getValue(Type.LONG), merged.getValue(0));
             return Resolution.MERGED;
         }
         return Resolution.IGNORED;
@@ -88,9 +87,6 @@ class CacheConflictHandler extends DefaultThreeWayConflictHandler {
     @NotNull
     public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
                                             @NotNull PropertyState base) {
-
         return resolveRepExpirationConflict(parent, ours, theirs, base);
     }
-
-
 }

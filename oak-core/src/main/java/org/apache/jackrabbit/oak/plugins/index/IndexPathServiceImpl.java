@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Iterator;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
@@ -85,7 +86,7 @@ public class IndexPathServiceImpl implements IndexPathService {
                 "/oak:index/nodetype is found to be disabled. Cannot determine the paths of all indexes");
 
         //Check if oak:QueryIndexDefinition is indexed as part of nodetype index
-        boolean indxDefnTypeIndexed = Iterables.contains(nodeType.getNames(DECLARING_NODE_TYPES), INDEX_DEFINITIONS_NODE_TYPE);
+        boolean indxDefnTypeIndexed = IterableUtils.contains(nodeType.getNames(DECLARING_NODE_TYPES), INDEX_DEFINITIONS_NODE_TYPE);
 
         if (!indxDefnTypeIndexed) {
             log.warn("{} is not found to be indexed as part of nodetype index. Non root indexes would " +

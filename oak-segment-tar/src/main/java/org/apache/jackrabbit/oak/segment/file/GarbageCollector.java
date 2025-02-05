@@ -102,7 +102,7 @@ class GarbageCollector {
      * Timestamp of the last time full or tail compaction was successfully
      * invoked. 0 if never.
      */
-    private long lastSuccessfullGC;
+    private long lastSuccessfulGC;
 
     /**
      * Last compaction type used to determine which predicate to use during
@@ -209,7 +209,7 @@ class GarbageCollector {
 
             @Override
             public long getLastSuccessfulGC() {
-                return lastSuccessfullGC;
+                return lastSuccessfulGC;
             }
 
             @Override
@@ -229,7 +229,7 @@ class GarbageCollector {
 
             @Override
             public SuccessfulGarbageCollectionListener getSuccessfulGarbageCollectionListener() {
-                return () -> lastSuccessfullGC = System.currentTimeMillis();
+                return () -> lastSuccessfulGC = System.currentTimeMillis();
             }
 
             @Override

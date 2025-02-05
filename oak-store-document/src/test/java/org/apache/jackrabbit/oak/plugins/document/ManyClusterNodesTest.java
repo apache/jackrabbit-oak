@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -72,7 +70,7 @@ public class ManyClusterNodesTest {
             PropertyState p = test.getProperty("p");
             List<String> values = new ArrayList<>();
             if (p != null) {
-                Iterables.addAll(values, p.getValue(Type.STRINGS));
+                p.getValue(Type.STRINGS).forEach(values::add);
             }
             values.add(value);
             test.setProperty("p", values, Type.STRINGS);

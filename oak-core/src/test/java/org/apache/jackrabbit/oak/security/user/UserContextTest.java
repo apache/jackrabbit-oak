@@ -21,6 +21,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -145,7 +147,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testParentNotDefinesProperty() {
-        for (String propName : Iterables.concat(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
+        for (String propName : IterableUtils.chainedIterable(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
             PropertyState property = PropertyStates.createProperty(propName, "value");
 
             for (String ntName : new String[] {NodeTypeConstants.NT_OAK_UNSTRUCTURED, NT_REP_AUTHORIZABLE_FOLDER}) {
@@ -262,7 +264,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testNonExistingTreeDefinesLocation2() {
-        for (String name : Iterables.concat(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
+        for (String name : IterableUtils.chainedIterable(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
             String path = "/some/path/endingWith/reservedName/" + name;
 
             for (String ntName : NT_NAMES) {
@@ -279,7 +281,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testNoTreeDefinesLocationReservedEnding() {
-        for (String name : Iterables.concat(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
+        for (String name : IterableUtils.chainedIterable(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
             String path = "/some/path/endingWith/reservedName/" + name;
             TreeLocation location = Mockito.mock(TreeLocation.class);
             when(location.getPath()).thenReturn(path);

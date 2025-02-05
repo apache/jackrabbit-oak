@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
@@ -113,7 +114,7 @@ public class VersionGCQueryTest {
         assertEquals(11, stats.deletedDocGCCount);
         assertEquals(10, stats.splitDocGCCount);
         assertEquals(0, prevDocIds.size());
-        assertEquals(1, Iterables.size(Utils.getAllDocuments(store)));
+        assertEquals(1, IterableUtils.size(Utils.getAllDocuments(store)));
     }
 
     @Test
@@ -149,7 +150,7 @@ public class VersionGCQueryTest {
         // but only does find calls for previous docs of /test
         assertEquals(numPrevDocs, prevDocIds.size());
         // at the end only the root document remains
-        assertEquals(1, Iterables.size(Utils.getAllDocuments(store)));
+        assertEquals(1, IterableUtils.size(Utils.getAllDocuments(store)));
     }
 
     private NodeState merge(NodeBuilder builder) throws CommitFailedException {

@@ -25,6 +25,7 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Session;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -519,7 +520,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testHasNonReadPrivileges() {
-        for (String p : Iterables.concat(READABLE_PATHS, NOT_READABLE_PATHS)) {
+        for (String p : IterableUtils.chainedIterable(READABLE_PATHS, NOT_READABLE_PATHS)) {
             Tree tree = root.getTree(p);
             if (tree.exists()) {
                 assertFalse(cugPermProvider.hasPrivileges(tree, PrivilegeConstants.JCR_WRITE));
@@ -646,7 +647,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testIsGrantedNonRead() {
-        for (String p : Iterables.concat(READABLE_PATHS, NOT_READABLE_PATHS)) {
+        for (String p : IterableUtils.chainedIterable(READABLE_PATHS, NOT_READABLE_PATHS)) {
             Tree tree = root.getTree(p);
             if (tree.exists()) {
                 assertFalse(cugPermProvider.isGranted(tree, null, Permissions.ALL));

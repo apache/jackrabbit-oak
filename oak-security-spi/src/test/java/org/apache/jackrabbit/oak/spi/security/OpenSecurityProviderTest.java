@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenAuthenticationConfiguration;
@@ -62,6 +63,6 @@ public class OpenSecurityProviderTest {
     @Test
     public void testGetConfigurations() {
         Iterable<? extends SecurityConfiguration> configurations = securityProvider.getConfigurations();
-        assertEquals(2, Iterables.size(configurations));
+        assertEquals(2, IterableUtils.size(configurations));
     }
 }

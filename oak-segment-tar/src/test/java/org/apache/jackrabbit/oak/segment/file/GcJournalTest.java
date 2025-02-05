@@ -31,6 +31,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.file.GCJournal.GCJournalEntry;
@@ -52,47 +53,50 @@ public class GcJournalTest {
     public void tarGcJournal() throws Exception {
         GCJournal gc = new GCJournal(getPersistence().getGCJournalFile());
 
-        gc.persist(0, 100, newGCGeneration(1, 0, false), 50, RecordId.NULL.toString10());
+        RecordId root = new RecordId(SegmentId.NULL, 1);
+        gc.persist(0, 100, newGCGeneration(1, 0, false), 50, root);
         GCJournalEntry e0 = gc.read();
         assertEquals(100, e0.getRepoSize());
         assertEquals(0, e0.getReclaimedSize());
         assertEquals(50, e0.getNodes());
-        assertEquals(RecordId.NULL.toString10(), e0.getRoot());
+        assertEquals(root.toString10(), e0.getRoot());
 
-        gc.persist(0, 250, newGCGeneration(2, 0, false), 75, RecordId.NULL.toString());
+        root = new RecordId(SegmentId.NULL, 2);
+        gc.persist(0, 250, newGCGeneration(2, 0, false), 75, root);
         GCJournalEntry e1 = gc.read();
         assertEquals(250, e1.getRepoSize());
         assertEquals(0, e1.getReclaimedSize());
         assertEquals(75, e1.getNodes());
-        assertEquals(RecordId.NULL.toString(), e1.getRoot());
+        assertEquals(root.toString10(), e1.getRoot());
 
-        gc.persist(50, 200, newGCGeneration(3, 0, false), 90, "foo");
+        root = new RecordId(SegmentId.NULL, 3);
+        gc.persist(50, 200, newGCGeneration(3, 0, false), 90, root);
         GCJournalEntry e2 = gc.read();
         assertEquals(200, e2.getRepoSize());
         assertEquals(50, e2.getReclaimedSize());
         assertEquals(90, e2.getNodes());
-        assertEquals("foo", e2.getRoot());
+        assertEquals(root.toString10(), e2.getRoot());
 
-        // same gen
-        gc.persist(75, 300, newGCGeneration(3, 0, false), 125, "bar");
+        // same root
+        gc.persist(75, 300, newGCGeneration(3, 0, false), 125, root);
         GCJournalEntry e3 = gc.read();
         assertEquals(200, e3.getRepoSize());
         assertEquals(50, e3.getReclaimedSize());
         assertEquals(90, e3.getNodes());
-        assertEquals("foo", e2.getRoot());
+        assertEquals(root.toString10(), e2.getRoot());
 
         Collection<GCJournalEntry> all = gc.readAll();
-        assertEquals(all.size(), 3);
+        assertEquals(3, all.size());
 
         GCJournalFile gcFile = getPersistence().getGCJournalFile();
         List<String> allLines = gcFile.readLines();
-        assertEquals(allLines.size(), 3);
+        assertEquals(3, allLines.size());
     }
 
     @Test
     public void testGCGeneration() throws Exception {
         GCJournal out = new GCJournal(getPersistence().getGCJournalFile());
-        out.persist(1, 100, newGCGeneration(1, 2, false), 50, RecordId.NULL.toString());
+        out.persist(1, 100, newGCGeneration(1, 2, false), 50, new RecordId(SegmentId.NULL, 1));
         GCJournal in = new GCJournal(getPersistence().getGCJournalFile());
         assertEquals(newGCGeneration(1, 2, false), in.read().getGcGeneration());
     }
@@ -100,7 +104,7 @@ public class GcJournalTest {
     @Test
     public void testGCGenerationCompactedFlagCleared() throws Exception {
         GCJournal out = new GCJournal(getPersistence().getGCJournalFile());
-        out.persist(1, 100, newGCGeneration(1, 2, true), 50, RecordId.NULL.toString());
+        out.persist(1, 100, newGCGeneration(1, 2, true), 50, new RecordId(SegmentId.NULL, 1));
         GCJournal in = new GCJournal(getPersistence().getGCJournalFile());
         assertEquals(newGCGeneration(1, 2, false), in.read().getGcGeneration());
     }
@@ -122,7 +126,8 @@ public class GcJournalTest {
     public void testUpdateOak16GCLog() throws Exception {
         createOak16GCLog();
         GCJournal gcJournal = new GCJournal(getPersistence().getGCJournalFile());
-        gcJournal.persist(75, 300, newGCGeneration(3, 0, false), 125, "bar");
+        RecordId root = new RecordId(SegmentId.NULL, 1);
+        gcJournal.persist(75, 300, newGCGeneration(3, 0, false), 125, root);
 
         List<GCJournalEntry> entries = new ArrayList<>(gcJournal.readAll());
         assertEquals(2, entries.size());
@@ -140,7 +145,7 @@ public class GcJournalTest {
         assertEquals(75, entry.getReclaimedSize());
         assertEquals(newGCGeneration(3, 0, false), entry.getGcGeneration());
         assertEquals(125, entry.getNodes());
-        assertEquals("bar", entry.getRoot());
+        assertEquals(root.toString10(), entry.getRoot());
     }
 
     private void createOak16GCLog() throws IOException {

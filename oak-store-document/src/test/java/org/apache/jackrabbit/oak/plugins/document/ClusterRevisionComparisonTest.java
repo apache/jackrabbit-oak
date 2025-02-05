@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -82,7 +83,7 @@ public class ClusterRevisionComparisonTest {
         runBgOps(c1);
 
         DocumentNodeState c1ns1 = c1.getRoot();
-        Iterables.size(c1ns1.getChildNode("a").getChildNodeEntries());
+        IterableUtils.size(c1ns1.getChildNode("a").getChildNodeEntries());
 
         createNode(c1, "/a/c1");
 

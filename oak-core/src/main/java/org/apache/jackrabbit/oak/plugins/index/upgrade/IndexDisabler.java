@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -79,7 +80,7 @@ public class IndexDisabler {
                 NodeState idxSate = NodeStateUtils.getNode(rootBuilder.getBaseState(), nodeTypeIndexPath);
                 PropertyState declaredNodeTypes = idxSate.getProperty(DECLARING_NODE_TYPES);
                 if (idxSate.exists() && declaredNodeTypes != null){
-                    if (Iterables.contains(declaredNodeTypes.getValue(Type.NAMES), nodeTypeName)) {
+                    if (IterableUtils.contains(declaredNodeTypes.getValue(Type.NAMES), nodeTypeName)) {
                         return true;
                     }
                 }

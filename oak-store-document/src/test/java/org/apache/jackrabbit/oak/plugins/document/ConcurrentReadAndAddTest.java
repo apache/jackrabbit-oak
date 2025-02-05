@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -101,7 +102,7 @@ public class ConcurrentReadAndAddTest {
             throw exceptions.get(0);
         }
         NodeState test = ns.getRoot().getChildNode("test");
-        assertEquals(100, Iterables.size(test.getChildNodeEntries()));
+        assertEquals(100, IterableUtils.size(test.getChildNodeEntries()));
     }
 
     private void readNodes() {
