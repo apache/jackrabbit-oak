@@ -19,14 +19,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.Closeable;
-import java.util.Map;
 
 /**
  * Exporter interface for setting dependency for VersionGarbageCollector that allows
  * for export of fullGC metrics to Prometheus via pushgateway.
  * @param <T>
  */
-public interface FullGCMetricsExporter<T> extends Closeable {
+public interface FullGCMetricsExporter extends Closeable {
 
     /**
      * Called from VersionGarbageCollector when a fullGC iteration completes.

@@ -24,5 +24,5 @@ import org.apache.jackrabbit.oak.plugins.document.FullGCMetricsExporter;
  * Fixture encapsulating FullGC metrics exporter instance of T
  * @param <T>
  */
-public interface FullGCMetricsExporterFixture<T> extends FullGCMetricsExporter<T>, MetricsExporterFixture<T> {
+public interface FullGCMetricsExporterFixture<T> extends FullGCMetricsExporter, MetricsExporterFixture<T> {
 }

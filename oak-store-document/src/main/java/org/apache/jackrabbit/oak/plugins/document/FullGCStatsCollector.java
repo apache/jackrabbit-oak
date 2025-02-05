@@ -101,4 +101,65 @@ public interface FullGCStatsCollector {
      * @param stats {@link VersionGCStats} containing FullGC phases timer
      */
     void finished(VersionGCStats stats);
+
+    // FullGC OSGi config stats
+    /**
+     * Indicates that the FullGC process is enabled.
+     * <p>
+     * This method is called to signal that the FullGC process is active and ready to perform garbage collection.
+     */
+    void enabled();
+
+    /**
+     * Sets the mode for the FullGC process.
+     * <p>
+     * This method is called to specify the mode in which the FullGC process should operate.
+     *
+     * @param mode the mode to set for the FullGC process
+     */
+    void mode(int mode);
+
+    /**
+     * Indicates that the embedded verification process is enabled for FullGC.
+     * <p>
+     * This method is called to signal that the verification process is active and ready to perform embedded verification
+     * during the FullGC process.
+     */
+    void verificationEnabled();
+
+    /**
+     * Sets the delay factor for the FullGC process.
+     * <p>
+     * This method is called to specify the delay factor that should be used during the FullGC process.
+     *
+     * @param delayFactor the delay factor to set for the FullGC process
+     */
+    void delayFactor(double delayFactor);
+
+    /**
+     * Sets the batch size for the FullGC process.
+     * <p>
+     * This method is called to specify the batch size that should be used during the FullGC process.
+     *
+     * @param batchSize the batch size to set for the FullGC process
+     */
+    void batchSize(long batchSize);
+
+    /**
+     * Sets the progress size for the FullGC process.
+     * <p>
+     * This method is called to specify the progress size that should be used during the FullGC process.
+     *
+     * @param progressSize the progress size to set for the FullGC process
+     */
+    void progressSize(long progressSize);
+
+    /**
+     * Sets the maximum age for the FullGC process (in millis).
+     * <p>
+     * This method is called to specify the maximum age that should be used during the FullGC process.
+     *
+     * @param maxAge the maximum age to set for the FullGC process
+     */
+    void maxAge(long maxAge);
 }

@@ -59,6 +59,14 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     static final String COUNTER = "COUNTER";
     static final String FAILURE_COUNTER = "FAILURE";
 
+    static final String ENABLED = "ENABLED";
+    static final String MODE = "MODE";
+    static final String DELAY_FACTOR = "DELAY_FACTOR";
+    static final String BATCH_SIZE = "BATCH_SIZE";
+    static final String PROGRESS_SIZE = "PROGRESS_SIZE";
+    static final String EMBEDDED_VERIFICATION_ENABLED = "EMBEDDED_VERIFICATION_ENABLED";
+    static final String MAX_AGE = "MAX_AGE";
+
     private final StatisticsProvider provider;
 
     private final MeterStats readDoc;
@@ -85,6 +93,15 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     private final CounterStats counter;
     private final CounterStats failureCounter;
     private static String METRICS_QUALIFIED_NAME_PREFIX;
+
+    // FullGC OSGi config stats
+    private final CounterStats enabled;
+    private final CounterStats mode;
+    private final CounterStats delayFactor;
+    private final CounterStats batchSize;
+    private final CounterStats progressSize;
+    private final CounterStats embeddedVerificationEnabled;
+    private final CounterStats maxAge;
 
     FullGCStatsCollectorImpl(StatisticsProvider provider) {
         this(provider, false);
@@ -117,6 +134,15 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
 
         counter = counter(provider, COUNTER);
         failureCounter = counter(provider, FAILURE_COUNTER);
+
+        // FullGC OSGi config stats
+        enabled = counter(provider, ENABLED);
+        mode = counter(provider, MODE);
+        delayFactor = counter(provider, DELAY_FACTOR);
+        batchSize = counter(provider, BATCH_SIZE);
+        progressSize = counter(provider, PROGRESS_SIZE);
+        embeddedVerificationEnabled = counter(provider, EMBEDDED_VERIFICATION_ENABLED);
+        maxAge = counter(provider, MAX_AGE);
     }
 
     //---------------------< FullGCStatsCollector >-------------------------
@@ -192,10 +218,52 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     }
 
     @Override
+    public void enabled() {
+        enabled.inc();
+    }
+
+    @Override
+    public void mode(int mode) {
+        this.mode.inc(mode);
+    }
+
+    @Override
+    public void verificationEnabled() {
+        embeddedVerificationEnabled.inc();
+    }
+
+    @Override
+    public void delayFactor(double delayFactor) {
+        this.delayFactor.inc((long) delayFactor);
+    }
+
+    @Override
+    public void batchSize(long batchSize) {
+        this.batchSize.inc(batchSize);
+    }
+
+    @Override
+    public void progressSize(long progressSize) {
+        this.progressSize.inc(progressSize);
+    }
+
+    @Override
+    public void maxAge(long maxAge) {
+        this.maxAge.inc(maxAge);
+    }
+
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("FullGCStatsCollectorImpl{");
-        sb.append("readDoc=").append(readDoc.getCount());
+        sb.append("enabled=").append(enabled.getCount());
+        sb.append(", mode=").append(mode.getCount());
+        sb.append(", delayFactor=").append(delayFactor.getCount());
+        sb.append(", batchSize=").append(batchSize.getCount());
+        sb.append(", progressSize=").append(progressSize.getCount());
+        sb.append(", embeddedVerificationEnabled=").append(embeddedVerificationEnabled.getCount());
+        sb.append(", maxAge=").append(maxAge.getCount());
+        sb.append(", readDoc=").append(readDoc.getCount());
         sb.append(", candidateRevisions=").append(mapToString(candidateRevisions));
         sb.append(", candidateInternalRevisions=").append(mapToString(candidateInternalRevisions));
         sb.append(", candidateProperties=").append(mapToString(candidateProperties));

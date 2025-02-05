@@ -23,6 +23,7 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.junit.After;
 import org.junit.Test;
@@ -34,20 +35,27 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.commons.lang3.reflect.FieldUtils.readField;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.BATCH_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.COLLECT_DELETED_OLD_REVS_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.COLLECT_DELETED_PROPS_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.COLLECT_FULL_GC_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.COLLECT_ORPHAN_NODES_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.COLLECT_UNMERGED_BC_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.COUNTER;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.DELAY_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.DELETED_ORPHAN_NODE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.DELETED_PROPERTY;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.DELETED_UNMERGED_BC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.DELETE_FULL_GC_DOCS_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.EMBEDDED_VERIFICATION_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.FULL_GC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.FULL_GC_ACTIVE_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.FULL_GC_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.FAILURE_COUNTER;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.MAX_AGE;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.MODE;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.READ_DOC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.SKIPPED_DOC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.UPDATED_DOC;
@@ -163,6 +171,71 @@ public class FullGCStatsCollectorImplTest {
         assertEquals(2, counter.getCount());
         assertEquals(1, failureCounter.getCount());
     }
+
+    @Test
+    public void getEnabled() throws IllegalAccessException {
+        final Counter c = getCounter(ENABLED);
+        long count = c.getCount();
+        stats.enabled();
+        assertEquals(count + 1, c.getCount());
+        assertEquals(count + 1, ((CounterStats) readField(stats, "enabled", true)).getCount());
+    }
+
+    @Test
+    public void getMode() throws IllegalAccessException {
+        final Counter c = getCounter(MODE);
+        long count = c.getCount();
+        stats.mode(4);
+        assertEquals(count + 4, c.getCount());
+        assertEquals(count + 4, ((CounterStats) readField(stats, "mode", true)).getCount());
+    }
+
+    @Test
+    public void getDelayFactor() throws IllegalAccessException {
+        final Counter c = getCounter(DELAY_FACTOR);
+        long count = c.getCount();
+        stats.delayFactor(4.0);
+        assertEquals(count + 4, c.getCount());
+        assertEquals(count + 4, ((CounterStats) readField(stats, "delayFactor", true)).getCount());
+    }
+
+    @Test
+    public void getBatchSize() throws IllegalAccessException {
+        final Counter c = getCounter(BATCH_SIZE);
+        long count = c.getCount();
+        stats.batchSize(400);
+        assertEquals(count + 400, c.getCount());
+        assertEquals(count + 400, ((CounterStats) readField(stats, "batchSize", true)).getCount());
+    }
+
+    @Test
+    public void getProgressSize() throws IllegalAccessException {
+        final Counter c = getCounter(PROGRESS_SIZE);
+        long count = c.getCount();
+        stats.progressSize(4000);
+        assertEquals(count + 4000, c.getCount());
+        assertEquals(count + 4000, ((CounterStats) readField(stats, "progressSize", true)).getCount());
+    }
+
+    @Test
+    public void getEmbeddedVerificationEnabled() throws IllegalAccessException {
+        final Counter c = getCounter(EMBEDDED_VERIFICATION_ENABLED);
+        long count = c.getCount();
+        stats.verificationEnabled();
+        assertEquals(count + 1, c.getCount());
+        assertEquals(count + 1, ((CounterStats) readField(stats, "embeddedVerificationEnabled", true)).getCount());
+    }
+
+    @Test
+    public void getMaxAge() throws IllegalAccessException {
+        final Counter c = getCounter(MAX_AGE);
+        long count = c.getCount();
+        stats.maxAge(86400);
+        assertEquals(count + 86400, c.getCount());
+        assertEquals(count + 86400, ((CounterStats) readField(stats, "maxAge", true)).getCount());
+    }
+
+    // helper methods
 
     private void assertTimer(long expected, String name) {
         assertEquals(expected, NANOSECONDS.toMillis(getTimer(name).getSnapshot().getMax()));

@@ -337,6 +337,18 @@ public class VersionGarbageCollector {
     public void setStatisticsProvider(StatisticsProvider provider, boolean pushMetrics) {
         this.gcStats = new RevisionGCStats(provider);
         this.fullGCStats = new FullGCStatsCollectorImpl(provider, pushMetrics);
+        // save OSGi configuration metrics
+        if (fullGCEnabled) {
+            this.fullGCStats.enabled();
+            this.fullGCStats.mode(fullGcMode.ordinal());
+            this.fullGCStats.delayFactor(fullGCDelayFactor);
+            this.fullGCStats.batchSize(fullGCBatchSize);
+            this.fullGCStats.progressSize(fullGCProgressSize);
+            this.fullGCStats.maxAge(fullGcMaxAgeInMillis);
+            if (embeddedVerification) {
+                this.fullGCStats.verificationEnabled();
+            }
+        }
     }
 
     public void setFullGCMetricsExporter(FullGCMetricsExporter exporter) {
