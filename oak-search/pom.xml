@@ -45,23 +45,6 @@
                         </Export-Package>
                     </instructions>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>baseline</id>
-                        <goals>
-                            <goal>baseline</goal>
-                        </goals>
-                        <phase>pre-integration-test</phase>
-                        <configuration>
-                            <!--
-                              This is required as classes present in this module
-                              were part of oak-lucene. This should be removed
-                              post 1.10 release
-                            -->
-                            <comparisonArtifactId>oak-lucene</comparisonArtifactId>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.rat</groupId>
