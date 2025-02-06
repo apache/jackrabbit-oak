@@ -130,6 +130,7 @@ import org.slf4j.LoggerFactory;
         configurationPid = {Configuration.PID})
 public class DocumentNodeStoreService {
 
+    public static final boolean DEFAULT_INVISIBLE_FOR_DISCOVERY = false;
     private static final long MB = 1024 * 1024;
     static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     static final int DEFAULT_CACHE = (int) (DEFAULT_MEMORY_CACHE_SIZE / MB);
@@ -510,6 +511,7 @@ public class DocumentNodeStoreService {
                         config.childrenCachePercentage(),
                         config.diffCachePercentage(),
                         config.prevNoPropCachePercentage()).
+                setClusterInvisible(config.invisibleForDiscovery()).
                 setCacheSegmentCount(config.cacheSegmentCount()).
                 setCacheStackMoveDistance(config.cacheStackMoveDistance()).
                 setBundlingDisabled(config.bundlingDisabled()).
