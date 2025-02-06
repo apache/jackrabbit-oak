@@ -52,7 +52,7 @@ public class ElasticIndexHelperTest {
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
         CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
         assertEquals(1234L, request.settings().index().mapping().totalFields().limit().longValue());
-        assertEquals(true, request.settings().index().mapping().ignoreMalformed().booleanValue());
+        assertEquals(true, request.settings().index().mapping().ignoreMalformed());
     }
 
     @Test
