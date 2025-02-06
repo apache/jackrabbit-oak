@@ -39,10 +39,10 @@ public class LuceneIndexWriterConfig {
     public final static String RAM_PER_THREAD_HARD_LIMIT_MB_KEY = "oak.index.lucene.ramPerThreadHardLimitMB";
 
     private final int maxBufferedDeleteTerms = SystemPropertySupplier.create(
-            MAX_BUFFERED_DELETE_TERMS_KEY, IndexWriterConfig.DISABLE_AUTO_FLUSH)
+                    MAX_BUFFERED_DELETE_TERMS_KEY, IndexWriterConfig.DISABLE_AUTO_FLUSH)
             .loggingTo(LOG).get();
     private final int ramPerThreadHardLimitMB = SystemPropertySupplier.create(
-            RAM_PER_THREAD_HARD_LIMIT_MB_KEY, IndexWriterConfig.DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB)
+                    RAM_PER_THREAD_HARD_LIMIT_MB_KEY, IndexWriterConfig.DEFAULT_RAM_PER_THREAD_HARD_LIMIT_MB)
             .loggingTo(LOG).get();
 
     private final double ramBufferSizeMB;
