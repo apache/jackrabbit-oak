@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iter
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -166,7 +165,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                     x -> !keys.contains(x == null ? null : x.getName());
             return concat(
                     filter(base.getProperties(), predicate::test),
-                    filter(properties.values(), Objects::nonNull));
+                    filter(properties.values(), x -> x != null));
         }
     }
 
