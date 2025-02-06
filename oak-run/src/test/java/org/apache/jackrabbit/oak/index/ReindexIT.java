@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.index;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -51,7 +50,7 @@ import javax.jcr.query.RowIterator;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -339,7 +338,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
                 "}";
 
         File jsonFile = temporaryFolder.newFile();
-        Files.write(json, jsonFile, StandardCharsets.UTF_8);
+        Files.writeString(jsonFile.toPath(), json);
 
         File outDir = temporaryFolder.newFolder();
         File storeDir = fixture.getDir();
