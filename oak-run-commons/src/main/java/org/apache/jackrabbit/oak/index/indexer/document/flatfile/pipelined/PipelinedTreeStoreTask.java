@@ -257,7 +257,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
             // ok it did not: it was a false positive
             return value;
         } catch (Exception e) {
-            LOG.warn("Path {} value {}", path, value);
+            LOG.warn("Unable to de-serialize due to presence of bundled properties: {} = {}", path, value);
             JsopReader reader = new JsopTokenizer(value);
             JsopBuilder writer = new JsopBuilder();
             reader.read('{');
@@ -296,7 +296,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
             reader.read('}');
             writer.endObject();
             String result = writer.toString();
-            LOG.warn("Cleaned {} : {}", path, result);
+            LOG.warn("Cleaned bundled properties: {} = {}", path, result);
             return result;
         }
     }
