@@ -131,7 +131,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
         File textFile = getFile(stripLength(blobId));
         ensureParentExists(textFile);
         //TODO should we compress
-        org.apache.jackrabbit.guava.common.io.Files.write(text, textFile, StandardCharsets.UTF_8);
+        Files.writeString(textFile.toPath(), text);
     }
 
     @Override
