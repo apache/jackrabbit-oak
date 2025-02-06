@@ -50,10 +50,10 @@ public class RdbConnectionUtils {
     public static final String IMG = SystemPropertySupplier.create("rdb.docker-image", "").get();
     public static final Map<String, String> ENV = parseDockerEnv(SystemPropertySupplier.create("rdb.docker-env", "").get());
 
-    private static final boolean RDB_AVAILABLE;
+    private static boolean RDB_AVAILABLE;
     private static GenericContainer<?> rdbContainer;
 
-    private static int exposedPort = getPortFromJdbcURL(URL);
+    private static final int exposedPort = getPortFromJdbcURL(URL);
 
     static {
         boolean dockerAvailable = false;
@@ -68,8 +68,7 @@ public class RdbConnectionUtils {
         } catch (Throwable t) {
             LOG.error("not able to pull specified docker image: {}, error: ", IMG, t);
         }
-        RDB_AVAILABLE = dockerAvailable && imageAvailable;
-        if (RDB_AVAILABLE) {
+        if (dockerAvailable && imageAvailable) {
             rdbContainer = new GenericContainer<>(DockerImageName.parse(IMG))
                     .withPrivilegedMode(true)
                     .withEnv(ENV)
@@ -87,18 +86,12 @@ public class RdbConnectionUtils {
                 LOG.info("DataSource initialized");
                 for (int k = 0; k < 30 && !containerReady; k++) {
                     Thread.sleep(10000);
-                    Connection connection = null;
-                    try {
-                        connection = dataSource.getConnection();
-                        containerReady = true;
+                    try (Connection connection = dataSource.getConnection()) {
+                        if (!connection.isClosed()) {
+                            containerReady = true;
+                        }
                     } catch (SQLException expected) {
                         LOG.info("Failed to connect to {}, will retry", url);
-                    } finally {
-                        if (connection != null) {
-                            try {
-                                connection.close();
-                            } catch (SQLException expected) {}
-                        }
                     }
                     if (containerReady) {
                         LOG.info("Container ready");
@@ -106,8 +99,11 @@ public class RdbConnectionUtils {
                         LOG.error("Failed to connect to {} within timeout", url);
                     }
                 }
+                RDB_AVAILABLE = true;
             } catch (Exception e) {
                 LOG.error("error while starting RDB container, error: ", e);
+                RDB_AVAILABLE = false;
+                rdbContainer.close();
             }
         }
     }
