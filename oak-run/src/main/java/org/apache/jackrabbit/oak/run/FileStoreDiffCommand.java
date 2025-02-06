@@ -28,7 +28,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -87,8 +87,8 @@ class FileStoreDiffCommand implements Command {
             }
         } else {
             if (pathOrURI.startsWith("az:")) {
-                try (AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager()) {
-                    SegmentNodeStorePersistence azurePersistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, pathOrURI, azureStorageCredentialManager);
+                try (AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8()) {
+                    SegmentNodeStorePersistence azurePersistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, pathOrURI, azureStorageCredentialManagerV8);
                     ReadOnlyFileStore store = fileStoreBuilder(Files.createTempDir()).withCustomPersistence(azurePersistence).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
                     statusCode = Diff.builder()
                             .withPath(pathOrURI)
