@@ -136,34 +136,36 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
     private void preformIndexUpdate(NodeState baseState) throws IOException, CommitFailedException {
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
 
-        IndexUpdate indexUpdate = new IndexUpdate(
-                createIndexEditorProvider(),
-                REINDEX_LANE,
-                copyOnWriteStore.getRoot(),
-                builder,
-                this,
-                this,
-                CommitInfo.EMPTY,
-                CorruptIndexHandler.NOOP
-        );
+        try (IndexEditorProvider provider = createIndexEditorProvider()) {
+            IndexUpdate indexUpdate = new IndexUpdate(
+                    provider,
+                    REINDEX_LANE,
+                    copyOnWriteStore.getRoot(),
+                    builder,
+                    this,
+                    this,
+                    CommitInfo.EMPTY,
+                    CorruptIndexHandler.NOOP
+            );
 
-        configureEstimators(indexUpdate);
+            configureEstimators(indexUpdate);
 
-        //Do not use EmptyState as before otherwise the IndexUpdate would
-        //unnecessary traverse the whole repo post reindexing. With use of baseState
-        //It would only traverse the diff i.e. those index definitions paths
-        //whose lane has been changed
-        NodeState before = baseState;
-        NodeState after = copyOnWriteStore.getRoot();
+            //Do not use EmptyState as before otherwise the IndexUpdate would
+            //unnecessary traverse the whole repo post reindexing. With use of baseState
+            //It would only traverse the diff i.e. those index definitions paths
+            //whose lane has been changed
+            NodeState before = baseState;
+            NodeState after = copyOnWriteStore.getRoot();
 
-        CommitFailedException exception =
-                EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
+            CommitFailedException exception =
+                    EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
 
-        if (exception != null) {
-            throw exception;
+            if (exception != null) {
+                throw exception;
+            }
+
+            copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
-
-        copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     protected abstract IndexEditorProvider createIndexEditorProvider() throws IOException;

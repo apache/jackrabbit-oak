@@ -148,7 +148,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
         boolean parallelIndexingEnabled = ConfigHelper.getSystemPropertyAsBoolean(
                 OAK_INDEXER_EDITOR_PARALLEL_WRITER_ENABLED, false);
-        this.indexWriterPool = parallelIndexingEnabled ? new IndexWriterPool() : null;
+            this.indexWriterPool = parallelIndexingEnabled ? new IndexWriterPool() : null;
     }
 
     public LuceneIndexEditorProvider withAsyncIndexesSizeStatsUpdate(AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate) {
@@ -315,6 +315,14 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     private boolean nrtIndexingEnabled() {
         return nrtIndexingEnabled;
+    }
+
+    @Override
+    public void close() {
+        LOG.info("Closing LuceneIndexEditorProvider");
+        if (indexWriterPool != null) {
+            indexWriterPool.close();
+        }
     }
 
     private static CommitContext getCommitContext(IndexingContext indexingContext) {

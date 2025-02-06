@@ -59,11 +59,7 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
         DirectoryFactory dirFactory = new FSDirectoryFactory(indexerSupport.getLocalIndexDir());
         boolean parallelIndexingEnabled = ConfigHelper.getSystemPropertyAsBoolean(
                 OAK_INDEXER_DOCUMENT_PARALLEL_WRITER_ENABLED, false);
-        if (parallelIndexingEnabled) {
-            indexWriterPool = new IndexWriterPool();
-        } else {
-            indexWriterPool = null;
-        }
+        this.indexWriterPool = parallelIndexingEnabled? new IndexWriterPool() : null;
         this.indexWriterFactory = new DefaultIndexWriterFactory(
                 extendedIndexHelper.getMountInfoProvider(),
                 dirFactory,
@@ -108,7 +104,9 @@ public class LuceneIndexerProvider implements NodeStateIndexerProvider {
                 indexer.close();
             }
             indexWriterFactory.close();
-            indexWriterPool.close();
+            if (indexWriterPool != null) {
+                indexWriterPool.close();
+            }
         }
     }
 }
