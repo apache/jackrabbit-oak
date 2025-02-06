@@ -87,7 +87,7 @@ public class RdbConnectionUtils {
                 for (int k = 0; k < 30 && !containerReady; k++) {
                     Thread.sleep(10000);
                     try (Connection connection = dataSource.getConnection()) {
-                        if (!connection.isClosed()) {
+                        if (connection.isValid(10)) {
                             containerReady = true;
                         }
                     } catch (SQLException expected) {
