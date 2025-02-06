@@ -16,33 +16,38 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.UUID;
-
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.models.ListBlobsOptions;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
+
 public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader {
 
-    private final CloudBlobDirectory archiveDirectory;
+    private final BlobContainerClient blobContainerClient;
 
     private final long length;
 
-    AzureSegmentArchiveReader(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor) throws IOException {
+    private final String archiveName;
+
+    private final String archivePath;
+
+    AzureSegmentArchiveReader(BlobContainerClient blobContainerClient, String rootPrefix, String archiveName, IOMonitor ioMonitor) throws IOException {
         super(ioMonitor);
-        this.archiveDirectory = archiveDirectory;
+        this.blobContainerClient = blobContainerClient;
+        this.archiveName = archiveName;
+        this.archivePath = String.format("%s/%s", rootPrefix, archiveName);
         this.length = computeArchiveIndexAndLength();
     }
 
@@ -53,19 +58,21 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
 
     @Override
     public String getName() {
-        return AzureUtilities.getName(archiveDirectory);
+        return archiveName;
     }
 
     @Override
     protected long computeArchiveIndexAndLength() throws IOException {
         long length = 0;
-        for (CloudBlob blob : AzureUtilities.getBlobs(archiveDirectory)) {
+        ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
+        listBlobsOptions.setPrefix(archivePath + "/");
+        for (BlobItem blob : AzureUtilities.getBlobs(blobContainerClient, listBlobsOptions)) {
             Map<String, String> metadata = blob.getMetadata();
             if (AzureBlobMetadata.isSegment(metadata)) {
-                RemoteSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata, (int) blob.getProperties().getLength());
+                RemoteSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata, blob.getProperties().getContentLength().intValue());
                 index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
             }
-            length += blob.getProperties().getLength();
+            length += blob.getProperties().getContentLength();
         }
 
         return length;
@@ -73,7 +80,7 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
 
     @Override
     protected void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException {
-        readBufferFully(getBlob(segmentFileName), buffer);
+        readBufferFully(getBlobClient(segmentFileName), buffer);
     }
 
     @Override
@@ -83,28 +90,29 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
 
     @Override
     protected File archivePathAsFile() {
-        return new File(archiveDirectory.getUri().getPath());
+        return new File(archivePath);
     }
 
-    private CloudBlockBlob getBlob(String name) throws IOException {
+    private BlockBlobClient getBlobClient(String name) throws IOException {
         try {
-            return archiveDirectory.getBlockBlobReference(name);
-        } catch (URISyntaxException | StorageException e) {
+            String fullName = String.format("%s/%s", archivePath, name);
+            return blobContainerClient.getBlobClient(fullName).getBlockBlobClient();
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }
 
     private Buffer readBlob(String name) throws IOException {
         try {
-            CloudBlockBlob blob = getBlob(name);
+            BlockBlobClient blob = getBlobClient(name);
             if (!blob.exists()) {
                 return null;
             }
-            long length = blob.getProperties().getLength();
+            long length = blob.getProperties().getBlobSize();
             Buffer buffer = Buffer.allocate((int) length);
             AzureUtilities.readBufferFully(blob, buffer);
             return buffer;
-        } catch (StorageException e) {
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }
