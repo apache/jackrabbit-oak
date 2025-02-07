@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
-import java.util.Set;
+import java.security.Principal;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.OpenPermissionProvider;
@@ -42,6 +43,6 @@ public class OpenAuthorizationConfigurationTest {
 
     @Test
     public void testGetPermissionProvider() {
-        assertSame(OpenPermissionProvider.getInstance(), config.getPermissionProvider(Mockito.mock(Root.class), "default", Set.of()));
+        assertSame(OpenPermissionProvider.getInstance(), config.getPermissionProvider(Mockito.mock(Root.class), "default", ImmutableSet.<Principal>of()));
     }
 }

@@ -24,6 +24,7 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -636,7 +637,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
         result = syncMBean.listOrphanedUsers();
         assertEquals(2, result.length);
-        assertEquals(Set.of("thirdUser", "g"), Set.of(result));
+        assertEquals(Set.of("thirdUser", "g"), ImmutableSet.copyOf(result));
     }
 
     @Test
@@ -668,7 +669,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
 
         result = createThrowingSyncMBean(true).listOrphanedUsers();
         assertEquals(2, result.length);
-        assertEquals(Set.of("thirdUser", "g"), Set.of(result));
+        assertEquals(Set.of("thirdUser", "g"), ImmutableSet.copyOf(result));
     }
 
     @Test

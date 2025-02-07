@@ -16,18 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
@@ -342,7 +343,12 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     //~--------------------------------------------------------< Builder >
 
-    abstract public static class Builder<D extends IndexDefinition> {
+    // TODO - this method should be removed after tests don't use it anymore
+    public static Builder newBuilder(NodeState root, NodeState defn, String indexPath) {
+        return new Builder().root(root).defn(defn).indexPath(indexPath);
+    }
+
+    public static class Builder {
         /**
          * Default unique id used when no existing uid is defined
          * and index is not populated
@@ -355,38 +361,38 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         private boolean reindexMode;
         protected IndexFormatVersion version;
 
-        public Builder<D> root(NodeState root) {
+        public Builder root(NodeState root) {
             this.root = requireNonNull(root);
             return this;
         }
 
-        public Builder<D> defn(NodeState defn) {
+        public Builder defn(NodeState defn) {
             this.defn = requireNonNull(defn);
             return this;
         }
 
-        public Builder<D> indexPath(String indexPath) {
+        public Builder indexPath(String indexPath) {
             this.indexPath = requireNonNull(indexPath);
             return this;
         }
 
-        public Builder<D> uid(String uid) {
+        public Builder uid(String uid) {
             this.uid = uid;
             return this;
         }
 
-        public Builder<D> version(IndexFormatVersion version) {
+        public Builder version(IndexFormatVersion version) {
             this.version = version;
             return this;
         }
 
 
-        public Builder<D> reindex() {
+        public Builder reindex() {
             this.reindexMode = true;
             return this;
         }
 
-        public D build() {
+        public IndexDefinition build() {
             if (version == null) {
                 version = determineIndexFormatVersion(defn);
             }
@@ -404,18 +410,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             return createInstance(indexDefnStateToUse);
         }
 
-        abstract protected D createInstance(NodeState indexDefnStateToUse);
-    }
-
-    public static class BaseBuilder extends Builder<IndexDefinition> {
-        @Override
+        // TODO: This method should be abstract... to be done later after tests are updated so that they compile
         protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
             return new IndexDefinition(root, indexDefnStateToUse, version, uid, indexPath);
         }
-    }
-
-    public static IndexDefinition.Builder<IndexDefinition> newBuilder(NodeState root, NodeState defn, String indexPath) {
-        return new BaseBuilder().root(root).defn(defn).indexPath(indexPath);
     }
 
     public IndexDefinition(NodeState root, NodeState defn, String indexPath) {
@@ -720,14 +718,6 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     public boolean isPureNodeTypeIndex() {
         return nodeTypeIndex;
-    }
-
-    public boolean shouldInclude(String path) {
-        return pathFilter.filter(path) != PathFilter.Result.EXCLUDE;
-    }
-
-    public PathFilter.Result getFilterResult(String path) {
-        return pathFilter.filter(path);
     }
 
     /**
@@ -1618,7 +1608,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         //Also include all immediate leaf propNode names
         for (ChildNodeEntry cne : propNodeState.getChildNodeEntries()) {
             if (!propNamesSet.contains(cne.getName())
-                    && IterableUtils.isEmpty(cne.getNodeState().getChildNodeNames())) {
+                    && Iterables.isEmpty(cne.getNodeState().getChildNodeNames())) {
                 propNamesSet.add(cne.getName());
             }
         }
@@ -1733,7 +1723,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static Set<String> getMultiProperty(NodeState definition, String propName) {
         PropertyState pse = definition.getProperty(propName);
-        return pse != null ? SetUtils.toSet(pse.getValue(Type.STRINGS)) : Set.of();
+        return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Set.of();
     }
 
     private static Set<String> toLowerCase(Set<String> values) {
@@ -1902,7 +1892,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     private static IndexFormatVersion versionFrom(PropertyState ps) {
-        return IndexFormatVersion.getVersion(Math.toIntExact(ps.getValue(Type.LONG)));
+        return IndexFormatVersion.getVersion(Ints.checkedCast(ps.getValue(Type.LONG)));
     }
 
     private static boolean hasIndexingRules(NodeState defn) {
@@ -1931,7 +1921,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         if (async == null) {
             return false;
         }
-        return IterableUtils.contains(async.getValue(Type.STRINGS), mode);
+        return Iterables.contains(async.getValue(Type.STRINGS), mode);
     }
 
     protected static NodeState getIndexDefinitionState(NodeState defn) {
