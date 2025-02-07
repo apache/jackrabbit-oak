@@ -148,7 +148,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
         boolean parallelIndexingEnabled = ConfigHelper.getSystemPropertyAsBoolean(
                 OAK_INDEXER_EDITOR_PARALLEL_WRITER_ENABLED, false);
-            this.indexWriterPool = parallelIndexingEnabled ? new IndexWriterPool() : null;
+        this.indexWriterPool = parallelIndexingEnabled ? new IndexWriterPool() : null;
     }
 
     public LuceneIndexEditorProvider withAsyncIndexesSizeStatsUpdate(AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate) {

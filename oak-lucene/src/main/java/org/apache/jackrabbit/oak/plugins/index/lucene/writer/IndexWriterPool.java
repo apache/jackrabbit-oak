@@ -273,7 +273,7 @@ public class IndexWriterPool {
         this.workerFutures = workers.stream()
                 .map(writersPool::submit)
                 .collect(Collectors.toList());
-        scheduledExecutor.scheduleAtFixedRate(this::printStatistics, 0, 30, TimeUnit.SECONDS);
+        scheduledExecutor.scheduleAtFixedRate(this::printStatistics, 30, 30, TimeUnit.SECONDS);
         LOG.info("Writing thread started");
     }
 
@@ -298,18 +298,18 @@ public class IndexWriterPool {
             // in the queue are processed, because otherwise it would be more complex to distinguish which
             // operations are for which writer.
             long seqNumber = flushBatch();
-            LOG.info("All pending operations enqueued (highest batch sequence number: {}). Waiting for them to be processed", seqNumber);
+            LOG.info("All pending operations enqueued. Waiting until all batches up to {} are processed", seqNumber);
             synchronized (pendingBatchesLock) {
                 while (true) {
                     Long earliestPending = pendingBatches.isEmpty() ? null : pendingBatches.stream().min(Long::compareTo).get();
-                    LOG.debug("Earliest pending batch: {}. Waiting for all batches {} and earlier to be processed", earliestPending, seqNumber);
+                    LOG.debug("Earliest pending batch: {}. Waiting until all batches up to {} are processed", earliestPending, seqNumber);
                     if (earliestPending == null || earliestPending > seqNumber) {
                         break;
                     }
                     pendingBatchesLock.wait();
                 }
             }
-            LOG.info("All operations pending operations processed. Enqueuing close operation");
+            LOG.info("All batches up to {} processed. Enqueuing close operation for writer {}", seqNumber, writer);
             SynchronousQueue<CloseWriterOperation.CloseResult> closeOpSync = new SynchronousQueue<>();
             batch.add(new CloseWriterOperation(writer, timestamp, closeOpSync));
             flushBatch();
@@ -370,7 +370,7 @@ public class IndexWriterPool {
                 batchSequenceNumber++;
                 pendingBatches.add(seqNumber);
             }
-            if (seqNumber % 256 == 0) {
+            if (seqNumber % 1000 == 0) {
                 LOG.info("Enqueuing batch {}, size: {}", seqNumber, batch.size());
             }
             long start = System.nanoTime();

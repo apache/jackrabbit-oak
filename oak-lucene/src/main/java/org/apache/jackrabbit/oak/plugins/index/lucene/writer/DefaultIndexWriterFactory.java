@@ -88,12 +88,6 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     }
 
     private LuceneIndexWriter wrapWithPipelinedIndexWriter(LuceneIndexWriter writer, String indexName) {
-        if (indexWriterPool != null) {
-            LOG.info("[{}] Using parallel index writer", indexName);
-            return new PooledLuceneIndexWriter(indexWriterPool, writer, indexName);
-        } else {
-            LOG.info("[{}] Using synchronous index writer", indexName);
-            return writer;
-        }
+        return indexWriterPool == null ? writer : new PooledLuceneIndexWriter(indexWriterPool, writer, indexName);
     }
 }

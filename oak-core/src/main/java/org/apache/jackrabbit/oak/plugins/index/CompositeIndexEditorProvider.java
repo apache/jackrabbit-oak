@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -66,5 +67,12 @@ public class CompositeIndexEditorProvider implements IndexEditorProvider {
             }
         }
         return CompositeEditor.compose(indexes);
+    }
+
+    @Override
+    public void close() throws IOException {
+        for (IndexEditorProvider provider : providers) {
+            provider.close();
+        }
     }
 }
