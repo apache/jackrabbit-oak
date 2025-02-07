@@ -398,6 +398,6 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
 
     @AttributeDefinition(
             name = "Invisible for discovery",
-            description = "Boolean value indicating that the instance should not be discoverable for the cluster. The default value is " + DocumentNodeStoreService.DEFAULT_INVISIBLE_FOR_DISCOVERY)
+            description = "Boolean value indicating whether the instance should be discoverable by the cluster. The default value is " + DocumentNodeStoreService.DEFAULT_INVISIBLE_FOR_DISCOVERY)
     boolean invisibleForDiscovery() default DocumentNodeStoreService.DEFAULT_INVISIBLE_FOR_DISCOVERY;
 }
