@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -343,12 +341,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     //~--------------------------------------------------------< Builder >
 
-    // TODO - this method should be removed after tests don't use it anymore
-    public static Builder newBuilder(NodeState root, NodeState defn, String indexPath) {
-        return new Builder().root(root).defn(defn).indexPath(indexPath);
-    }
-
-    public static class Builder {
+    abstract public static class Builder<D extends IndexDefinition> {
         /**
          * Default unique id used when no existing uid is defined
          * and index is not populated
@@ -361,38 +354,38 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         private boolean reindexMode;
         protected IndexFormatVersion version;
 
-        public Builder root(NodeState root) {
+        public Builder<D> root(NodeState root) {
             this.root = requireNonNull(root);
             return this;
         }
 
-        public Builder defn(NodeState defn) {
+        public Builder<D> defn(NodeState defn) {
             this.defn = requireNonNull(defn);
             return this;
         }
 
-        public Builder indexPath(String indexPath) {
+        public Builder<D> indexPath(String indexPath) {
             this.indexPath = requireNonNull(indexPath);
             return this;
         }
 
-        public Builder uid(String uid) {
+        public Builder<D> uid(String uid) {
             this.uid = uid;
             return this;
         }
 
-        public Builder version(IndexFormatVersion version) {
+        public Builder<D> version(IndexFormatVersion version) {
             this.version = version;
             return this;
         }
 
 
-        public Builder reindex() {
+        public Builder<D> reindex() {
             this.reindexMode = true;
             return this;
         }
 
-        public IndexDefinition build() {
+        public D build() {
             if (version == null) {
                 version = determineIndexFormatVersion(defn);
             }
@@ -410,10 +403,18 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             return createInstance(indexDefnStateToUse);
         }
 
-        // TODO: This method should be abstract... to be done later after tests are updated so that they compile
+        abstract protected D createInstance(NodeState indexDefnStateToUse);
+    }
+
+    public static class BaseBuilder extends Builder<IndexDefinition> {
+        @Override
         protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
             return new IndexDefinition(root, indexDefnStateToUse, version, uid, indexPath);
         }
+    }
+
+    public static IndexDefinition.Builder<IndexDefinition> newBuilder(NodeState root, NodeState defn, String indexPath) {
+        return new BaseBuilder().root(root).defn(defn).indexPath(indexPath);
     }
 
     public IndexDefinition(NodeState root, NodeState defn, String indexPath) {
@@ -718,6 +719,14 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     public boolean isPureNodeTypeIndex() {
         return nodeTypeIndex;
+    }
+
+    public boolean shouldInclude(String path) {
+        return pathFilter.filter(path) != PathFilter.Result.EXCLUDE;
+    }
+
+    public PathFilter.Result getFilterResult(String path) {
+        return pathFilter.filter(path);
     }
 
     /**
@@ -1608,7 +1617,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         //Also include all immediate leaf propNode names
         for (ChildNodeEntry cne : propNodeState.getChildNodeEntries()) {
             if (!propNamesSet.contains(cne.getName())
-                    && Iterables.isEmpty(cne.getNodeState().getChildNodeNames())) {
+                    && IterableUtils.isEmpty(cne.getNodeState().getChildNodeNames())) {
                 propNamesSet.add(cne.getName());
             }
         }
@@ -1892,7 +1901,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     private static IndexFormatVersion versionFrom(PropertyState ps) {
-        return IndexFormatVersion.getVersion(Ints.checkedCast(ps.getValue(Type.LONG)));
+        return IndexFormatVersion.getVersion(Math.toIntExact(ps.getValue(Type.LONG)));
     }
 
     private static boolean hasIndexingRules(NodeState defn) {
@@ -1921,7 +1930,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         if (async == null) {
             return false;
         }
-        return Iterables.contains(async.getValue(Type.STRINGS), mode);
+        return IterableUtils.contains(async.getValue(Type.STRINGS), mode);
     }
 
     protected static NodeState getIndexDefinitionState(NodeState defn) {
