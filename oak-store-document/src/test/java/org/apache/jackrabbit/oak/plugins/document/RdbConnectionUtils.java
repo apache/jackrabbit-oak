@@ -73,22 +73,24 @@ public class RdbConnectionUtils {
                     boolean containerReady = false;
                     LOG.info("Trying to connect to {}", url);
                     for (int k = 0; k < 60 && !containerReady; k++) {
-                        dataSource = RDBDataSourceFactory.forJdbcUrl(url, RdbConnectionUtils.USERNAME, RdbConnectionUtils.PASSWD);
-                        try (Connection connection = dataSource.getConnection()) {
-                            containerReady = connection.isValid(10);
-                        } catch (SQLException expected) {}
-                        if (containerReady) {
-                            LOG.info("Container ready");
-                        } else {
-                            LOG.info("Failed to connect to {}, will retry", url);
-                            Thread.sleep(10000);
+                        try {
+                            dataSource = RDBDataSourceFactory.forJdbcUrl(url, RdbConnectionUtils.USERNAME, RdbConnectionUtils.PASSWD);
+                            try (Connection connection = dataSource.getConnection()) {
+                                containerReady = connection.isValid(10);
+                            } catch (SQLException expected) {}
+                            if (containerReady) {
+                                LOG.info("Container ready");
+                            } else {
+                                LOG.info("Failed to connect to {}, will retry", url);
+                                Thread.sleep(10000);
+                            }
+                        } finally {
+                            RDBDataSourceFactory.closeDataSourceBestEffort(dataSource);
                         }
                     }
                 } catch (Exception e) {
                     LOG.error("error while starting RDB container, error: ", e);
                     rdbContainer.close();
-                } finally {
-                    RDBDataSourceFactory.closeDataSourceBestEffort(dataSource);
                 }
             } else {
                 LOG.info("docker image {} not available", IMG);
