@@ -39,6 +39,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.Query;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -148,9 +149,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         autoMembershipPrincipals = new AutoMembershipPrincipals(userManager, syncConfigTracker.getAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
         groupAutoMembershipPrincipals = (idpNamesWithDynamicGroups.isEmpty()) ? null : new AutoMembershipPrincipals(userManager, syncConfigTracker.getGroupAutoMembership(), syncConfigTracker.getAutoMembershipConfig());
 
-        cacheReaderFactory = (String idpName) -> userConfiguration.getCachedMembershipReader(root,
-                (principalName) -> new CachedGroupPrincipal(principalName, userManager),
-                CACHE_PRINCIPAL_NAMES);
+        cacheReaderFactory = (String idpName) -> userConfiguration.getCachedMembershipReader(root, (principalName) -> new CachedGroupPrincipal(principalName, userManager), CACHE_PRINCIPAL_NAMES, CACHE_EXP_PROPERTY_NAME);
     }
 
     // Tests only
@@ -611,7 +610,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 Tree tree = root.getTree(((ItemBasedPrincipal) member).getPath());
                 if (UserUtil.isType(tree, AuthorizableType.USER)) {
                     PropertyState ps = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
-                    return (ps != null && Iterables.contains(ps.getValue(Type.STRINGS), name));
+                    return (ps != null && IterableUtils.contains(ps.getValue(Type.STRINGS), name));
                 }
             } else {
                 Authorizable a = userManager.getAuthorizable(member);
