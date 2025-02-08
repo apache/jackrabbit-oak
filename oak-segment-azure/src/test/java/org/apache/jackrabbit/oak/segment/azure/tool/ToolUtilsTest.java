@@ -37,8 +37,8 @@ import java.util.stream.Collectors;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -48,11 +48,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_ACCOUNT_NAME;
-import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_CLIENT_ID;
-import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_CLIENT_SECRET;
-import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_SECRET_KEY;
-import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.AZURE_TENANT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_SECRET_KEY;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -76,16 +76,16 @@ public class ToolUtilsTest {
     public static final String AZURE_SECRET_KEY_WARNING = "AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables empty or missing. Switching to authentication with AZURE_SECRET_KEY.";
 
     private final TestEnvironment environment = new TestEnvironment();
-    private AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8;
+    private AzureStorageCredentialManager azureStorageCredentialManager;
 
     @Before
     public void init() {
-        this.azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8();
+        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
     }
 
     @After
     public void clear() {
-        this.azureStorageCredentialManagerV8.close();
+        this.azureStorageCredentialManager.close();
     }
 
     @Test
@@ -96,7 +96,7 @@ public class ToolUtilsTest {
 
         StorageCredentialsAccountAndKey credentials = expectCredentials(
             StorageCredentialsAccountAndKey.class, 
-            () -> ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment, azureStorageCredentialManagerV8),
+            () -> ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment, azureStorageCredentialManager),
             DEFAULT_CONTAINER_URL
         );
 
@@ -112,7 +112,7 @@ public class ToolUtilsTest {
     public void createCloudBlobDirectoryFailsWhenAccessKeyNotPresent() {
         environment.setVariable(AZURE_SECRET_KEY, null);
         assertThrows(IllegalArgumentException.class, () ->
-            ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment, azureStorageCredentialManagerV8)
+            ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment, azureStorageCredentialManager)
         );
     }
 
@@ -120,7 +120,7 @@ public class ToolUtilsTest {
     public void createCloudBlobDirectoryFailsWhenAccessKeyIsInvalid() {
         environment.setVariable(AZURE_SECRET_KEY, "invalid");
         assertThrows(IllegalArgumentException.class, () ->
-            ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment, azureStorageCredentialManagerV8)
+            ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment, azureStorageCredentialManager)
         );
     }
 
@@ -130,7 +130,7 @@ public class ToolUtilsTest {
 
         StorageCredentialsSharedAccessSignature credentials = expectCredentials(
             StorageCredentialsSharedAccessSignature.class, 
-            () -> ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH + '?' + sasToken, azureStorageCredentialManagerV8),
+            () -> ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH + '?' + sasToken, azureStorageCredentialManager),
             DEFAULT_CONTAINER_URL
         );
 
@@ -149,17 +149,17 @@ public class ToolUtilsTest {
         String containerName = "oak";
         String segmentStorePath = String.format(SEGMENT_STORE_PATH_FORMAT, accountName, containerName, DEFAULT_REPO_DIR);
 
-        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(segmentStorePath, ENVIRONMENT, azureStorageCredentialManagerV8);
+        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(segmentStorePath, ENVIRONMENT, azureStorageCredentialManager);
         assertNotNull(cloudBlobDirectory);
         assertEquals(containerName, cloudBlobDirectory.getContainer().getName());
     }
 
     private static <T extends StorageCredentials> T expectCredentials(Class<T> clazz, Runnable body, String containerUrl) {
         ArgumentCaptor<T> credentialsCaptor = ArgumentCaptor.forClass(clazz);
-        try (MockedStatic<AzureUtilitiesV8> mockedAzureUtilities = mockStatic(AzureUtilitiesV8.class)) {
+        try (MockedStatic<AzureUtilities> mockedAzureUtilities = mockStatic(AzureUtilities.class)) {
             body.run();
 
-            mockedAzureUtilities.verify(() -> AzureUtilitiesV8.cloudBlobDirectoryFrom(
+            mockedAzureUtilities.verify(() -> AzureUtilities.cloudBlobDirectoryFrom(
                     credentialsCaptor.capture(),
                     eq(containerUrl),
                     eq(DEFAULT_REPO_DIR)

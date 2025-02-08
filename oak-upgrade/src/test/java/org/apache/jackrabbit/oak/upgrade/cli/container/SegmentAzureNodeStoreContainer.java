@@ -24,8 +24,8 @@ import java.security.InvalidKeyException;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -76,9 +76,9 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public NodeStore open() throws IOException {
-        AzurePersistenceV8 azPersistence = null;
+        AzurePersistence azPersistence = null;
         try {
-            azPersistence = new AzurePersistenceV8(container.getDirectoryReference(dir));
+            azPersistence = new AzurePersistence(container.getDirectoryReference(dir));
         } catch (URISyntaxException e) {
             throw new IllegalStateException(e);
         }
@@ -113,7 +113,7 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
     @Override
     public void clean() throws IOException {
         try {
-            AzureUtilitiesV8.deleteAllEntries(container.getDirectoryReference(dir));
+            AzureUtilities.deleteAllEntries(container.getDirectoryReference(dir));
         } catch (URISyntaxException e) {
             throw new IOException(e);
         }
