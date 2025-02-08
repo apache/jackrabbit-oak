@@ -92,6 +92,7 @@ Task
     [OAK-11412] - indexing job: delay creation of index writers backend until the start of the indexing phase
     [OAK-11415] - TypeEditor: constraint exception for node type violations should contain that node's effective type
     [OAK-11419] - oak-store-document - persistent cache: remove unused UDP/TCP broadcasters
+    [OAK-11470] - Undo changes to remove usage of Guava ImmutableSet
 
 
 In addition to the above-mentioned changes, this release contains all
