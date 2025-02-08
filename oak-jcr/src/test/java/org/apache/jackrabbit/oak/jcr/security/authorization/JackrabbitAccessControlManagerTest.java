@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -94,8 +95,8 @@ public class JackrabbitAccessControlManagerTest extends AbstractEvaluationTest {
         PrivilegeCollection pc = jrAcMgr.privilegeCollectionFromNames(Privilege.JCR_READ, Privilege.JCR_WRITE);
         
         assertFalse(pc instanceof PrivilegeCollection.Default);
-        Set<Privilege> expected = Set.of(privilegesFromNames(new String[] {Privilege.JCR_READ, Privilege.JCR_WRITE}));
-        assertEquals(expected, Set.of(pc.getPrivileges()));
+        Set<Privilege> expected = ImmutableSet.copyOf(privilegesFromNames(new String[] {Privilege.JCR_READ, Privilege.JCR_WRITE}));
+        assertEquals(expected, ImmutableSet.copyOf(pc.getPrivileges()));
     }
 
     public void testPrivilegeCollectionFromInvalidNames() throws Exception {

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -61,7 +62,7 @@ public abstract class AbstractAccessControlTest {
 
     ACE createEntry(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Restriction... restrictions)
             throws RepositoryException {
-        return new TestACE(principal, privilegeBits, isAllow, Set.of(restrictions));
+        return new TestACE(principal, privilegeBits, isAllow, ImmutableSet.copyOf(restrictions));
     }
 
     private final class TestACE extends ACE {
