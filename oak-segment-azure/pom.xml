@@ -44,12 +44,10 @@
                             org.apache.jackrabbit.oak.segment.remote*,
                             com.fasterxml.jackson.annotation;resolution:=optional,
                             com.fasterxml.jackson.databind*;resolution:=optional,
-                            com.fasterxml.jackson.dataformat.*;resolution:=optional,
+                            com.fasterxml.jackson.dataformat.xml;resolution:=optional,
                             com.fasterxml.jackson.datatype*;resolution:=optional,
                             com.azure.identity.broker.implementation;resolution:=optional,
-                            com.azure.storage.blob*;resolution:=optional,
-                            com.azure.storage.common*;resolution:=optional,
-                            com.azure.storage.internal*;resolution:=optional,
+                            com.azure.xml;resolution:=optional,
                             com.microsoft.aad.msal4jextensions*;resolution:=optional,
                             com.nimbusds.langtag;resolution:=optional,
                             com.sun.jna*;resolution:=optional,
@@ -59,7 +57,6 @@
                             io.netty.channel.epoll;resolution:=optional,
                             io.netty.handler.codec.*;resolution:=optional,
                             org.objectweb.asm;resolution:=optional,
-                            org.codehaus.stax2;resolution:=optional,
                             !org.apache.jackrabbit.oak.segment*,
                             !com.google.*,
                             !android.os,
@@ -70,16 +67,11 @@
                             org.apache.jackrabbit.oak.segment.azure,
                             org.apache.jackrabbit.oak.segment.azure.queue,
                             org.apache.jackrabbit.oak.segment.azure.util,
-                            com.fasterxml.jackson.dataformat.xml,
-                            com.fasterxml.jackson.dataformat.xml.deser,
                             com.microsoft.azure.storage,
                             com.microsoft.azure.storage.core,
                             com.microsoft.azure.storage.blob,
                             com.azure.core.credential,
-                            com.azure.identity,
-                            com.azure.blob,
-                            com.azure.storage.common,
-                            com.azure.storage.internal.avro.implementation
+                            com.azure.identity
                         </Export-Package>
                         <Embed-Dependency>
                             azure-storage,
@@ -87,11 +79,6 @@
                             azure-core,
                             azure-identity,
                             azure-json,
-                            azure-xml,
-                            azure-storage-blob,
-                            azure-storage-common,
-                            azure-storage-internal-avro,
-                            jackson-dataformat-xml,
                             guava,
                             jsr305,
                             reactive-streams,
@@ -105,8 +92,7 @@
                             json-smart,
                             content-type,
                             accessors-smart,
-                            nimbus-jose-jwt,
-                            stax2-api
+                            nimbus-jose-jwt
                         </Embed-Dependency>
                         <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
                         <_plugin />
@@ -196,33 +182,6 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.woodstox</groupId>
-            <artifactId>stax2-api</artifactId>
-            <version>4.2.2</version>
-        </dependency>
-
-        <!-- Azure Blob Storage v12 dependencies -->
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-storage-blob</artifactId>
-            <version>12.25.3</version>
-        </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-storage-common</artifactId>
-            <version>12.24.3</version>
-        </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-storage-internal-avro</artifactId>
-            <version>12.10.3</version>
-        </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-xml</artifactId>
-            <version>1.0.0</version>
         </dependency>
 
         <!-- Azure Identity Client for Microsoft Entra ID dependency -->
@@ -339,10 +298,6 @@
             <groupId>net.minidev</groupId>
             <artifactId>accessors-smart</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-xml</artifactId>
-        </dependency>
 
 
         <!-- Azure Guava dependency -->
@@ -404,12 +359,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-test</artifactId>
-            <version>3.6.10</version>
             <scope>test</scope>
         </dependency>
         <dependency>

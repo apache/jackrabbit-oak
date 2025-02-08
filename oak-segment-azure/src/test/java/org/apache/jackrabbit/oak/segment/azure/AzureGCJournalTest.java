@@ -18,8 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.models.BlobStorageException;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.file.GcJournalTest;
 import org.junit.Before;
@@ -27,26 +29,24 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
 
 public class AzureGCJournalTest extends GcJournalTest {
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
-    private BlobContainerClient readBlobContainerClient;
-    private BlobContainerClient writeBlobContainerClient;
-    private BlobContainerClient noRetryBlobContainerClient;
+    private CloudBlobContainer container;
 
     @Before
-    public void setup() throws BlobStorageException {
-        readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
-        writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
-        noRetryBlobContainerClient = azurite.getNoRetryBlobContainerClient("oak-test");
+    public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
+        container = azurite.getContainer("oak-test");
     }
 
     @Override
     protected SegmentNodeStorePersistence getPersistence() throws Exception {
-        return new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, "oak");
+        return new AzurePersistence(container.getDirectoryReference("oak"));
     }
 
     @Test

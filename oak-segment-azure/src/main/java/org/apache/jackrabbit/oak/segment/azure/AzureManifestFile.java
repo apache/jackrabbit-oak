@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.core.util.BinaryData;
-import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.blob.specialized.BlockBlobClient;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +31,9 @@ public class AzureManifestFile implements ManifestFile {
 
     private static final Logger log = LoggerFactory.getLogger(AzureManifestFile.class);
 
-    private final BlockBlobClient manifestBlob;
+    private final CloudBlockBlob manifestBlob;
 
-    public AzureManifestFile(BlockBlobClient manifestBlob) {
+    public AzureManifestFile(CloudBlockBlob manifestBlob) {
         this.manifestBlob = manifestBlob;
     }
 
@@ -42,7 +41,7 @@ public class AzureManifestFile implements ManifestFile {
     public boolean exists() {
         try {
             return manifestBlob.exists();
-        } catch (BlobStorageException e) {
+        } catch (StorageException e) {
             log.error("Can't check if the manifest exists", e);
             return false;
         }
@@ -52,12 +51,14 @@ public class AzureManifestFile implements ManifestFile {
     public Properties load() throws IOException {
         Properties properties = new Properties();
         if (exists()) {
+            long length = manifestBlob.getProperties().getLength();
+            byte[] data = new byte[(int) length];
             try {
-                byte[] data = manifestBlob.downloadContent().toBytes();
-                properties.load(new ByteArrayInputStream(data));
-            } catch (BlobStorageException e) {
+                manifestBlob.downloadToByteArray(data, 0);
+            } catch (StorageException e) {
                 throw new IOException(e);
             }
+            properties.load(new ByteArrayInputStream(data));
         }
         return properties;
     }
@@ -69,8 +70,8 @@ public class AzureManifestFile implements ManifestFile {
 
         byte[] data = bos.toByteArray();
         try {
-            manifestBlob.upload(BinaryData.fromBytes(data), true);
-        } catch (BlobStorageException e) {
+            manifestBlob.uploadFromByteArray(data, 0, data.length);
+        } catch (StorageException e) {
             throw new IOException(e);
         }
     }
