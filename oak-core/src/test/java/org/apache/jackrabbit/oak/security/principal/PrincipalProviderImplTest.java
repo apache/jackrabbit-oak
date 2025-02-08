@@ -23,10 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -79,7 +76,7 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
             root.commit();
 
             Principal ep = principalProvider.getPrincipal(EveryonePrincipal.NAME);
-            Set<? extends Principal> everyoneMembers = ImmutableSet.copyOf(Collections.list(((GroupPrincipal) ep).members()));
+            Set<? extends Principal> everyoneMembers = Set.copyOf(Collections.list(((GroupPrincipal) ep).members()));
 
             Iterator<? extends Principal> all = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
             while (all.hasNext()) {

@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.*;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
+import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -27,6 +28,7 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
@@ -243,7 +245,7 @@ public class AzureSegmentStoreServiceTest {
     }
     
     private static Set<String> concat(Set<String> blobs, String element) {
-        return ImmutableSet.<String>builder().addAll(blobs).add(element).build();
+        return Stream.concat(blobs.stream(), Stream.of(element)).collect(toSet());
     }
 
     private static Configuration getConfigurationWithSharedAccessSignature(String sasToken) {
