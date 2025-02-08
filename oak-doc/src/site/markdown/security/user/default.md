@@ -326,7 +326,7 @@ implementation.
         //------------------------------------------------< SCR Integration >---
         @Activate
         private void activate(Map<String, Object> properties) {
-             ids = CollectionUtils.toSet(PropertiesUtil.toStringArray(properties.get("ids"), new String[0]));
+             ids = ImmutableSet.copyOf(PropertiesUtil.toStringArray(properties.get("ids"), new String[0]));
         }
     }
 

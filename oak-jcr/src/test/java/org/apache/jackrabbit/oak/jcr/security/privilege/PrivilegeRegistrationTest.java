@@ -34,6 +34,7 @@ import javax.jcr.Workspace;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -430,7 +431,7 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
 
         JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) session.getAccessControlManager();
         Privilege[] allPrivileges = AccessControlUtils.privilegesFromNames(session, Privilege.JCR_ALL);
-        Set<Principal> principalSet = Set.of(EveryonePrincipal.getInstance());
+        Set<Principal> principalSet = ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
 
         assertTrue(acMgr.hasPrivileges(testPath, principalSet, allPrivileges));
 

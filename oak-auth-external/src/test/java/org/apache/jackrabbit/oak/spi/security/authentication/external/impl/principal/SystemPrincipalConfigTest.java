@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -59,7 +61,7 @@ public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
     private SystemPrincipalConfig systemPrincipalConfig;
 
     public SystemPrincipalConfigTest(String[] systemUserNames, String name) {
-        this.systemUserNames = (systemUserNames == null) ? null : Set.of(systemUserNames);
+        this.systemUserNames = (systemUserNames == null) ? null : ImmutableSet.copyOf(systemUserNames);
     }
 
     @Parameterized.Parameters(name = "name={1}")

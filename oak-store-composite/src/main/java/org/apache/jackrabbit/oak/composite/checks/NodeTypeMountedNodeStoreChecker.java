@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ComponentPropertyType;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
@@ -37,6 +36,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 @Component(configurationPolicy = ConfigurationPolicy.REQUIRE, service = {MountedNodeStoreChecker.class})
 public class NodeTypeMountedNodeStoreChecker implements 
@@ -80,13 +81,13 @@ public class NodeTypeMountedNodeStoreChecker implements
     public NodeTypeMountedNodeStoreChecker(String invalidNodeType, String errorLabel, String... excludedNodeTypes) {
         this.invalidNodeType = invalidNodeType;
         this.errorLabel = errorLabel;
-        this.excludedNodeTypes = SetUtils.toSet(excludedNodeTypes);
+        this.excludedNodeTypes = ImmutableSet.copyOf(excludedNodeTypes);
     }
 
     protected void activate(ComponentContext ctx) {
         invalidNodeType = requireNonNull(PropertiesUtil.toString(ctx.getProperties().get(INVALID_NODE_TYPE), null), INVALID_NODE_TYPE);
         errorLabel = requireNonNull(PropertiesUtil.toString(ctx.getProperties().get(ERROR_LABEL), null), ERROR_LABEL);
-        excludedNodeTypes = SetUtils.toSet(PropertiesUtil.toStringArray(ctx.getProperties().get(EXCLUDED_NODE_TYPES), new String[0]));
+        excludedNodeTypes = ImmutableSet.copyOf(PropertiesUtil.toStringArray(ctx.getProperties().get(EXCLUDED_NODE_TYPES), new String[0]));
     }
 
     @Override
