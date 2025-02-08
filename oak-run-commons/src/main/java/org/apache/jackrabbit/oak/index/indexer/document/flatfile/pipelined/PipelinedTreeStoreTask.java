@@ -34,17 +34,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.commons.json.JsopReader;
-import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedSortBatchTask.Result;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
-import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -212,9 +207,7 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                 int valueLength = buffer.getInt();
                 String value = new String(buffer.array(), buffer.arrayOffset() + buffer.position(), valueLength, StandardCharsets.UTF_8);
                 textSize += entry.getPath().length() + value.length() + 2;
-                String path = entry.getPath();
-                value = removePropertiesOfBundledNodes(path, value);
-                treeStore.putNode(path, value);
+                treeStore.putNode(entry.getPath(), value);
             }
             session.checkpoint();
             unmergedRoots++;
@@ -234,70 +227,6 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                     saveClock,
                     PipelinedUtils.formatAsTransferSpeedMBs(textSize, saveClock.elapsed().toMillis())
             );
-        }
-    }
-
-    /**
-     * If there are any, remove properties of bundled nodes (jcr:content/...) from the JSON-encoded node.
-     *
-     * @param path the path
-     * @param value the JSON-encoded node
-     * @return the cleaned JSON
-     */
-    public static String removePropertiesOfBundledNodes(String path, String value) {
-        if (value.indexOf("\"jcr:content/") < 0) {
-            return value;
-        }
-        // possibly the node contains a bundled property, but we are not sure
-        // try to de-serialize
-        NodeStateEntryReader nodeReader = new NodeStateEntryReader(new MemoryBlobStore());
-        try {
-            // the following line will throw an exception if de-serialization fails
-            nodeReader.read(path + "|" + value);
-            // ok it did not: it was a false positive
-            return value;
-        } catch (Exception e) {
-            LOG.warn("Unable to de-serialize due to presence of bundled properties: {} = {}", path, value);
-            JsopReader reader = new JsopTokenizer(value);
-            JsopBuilder writer = new JsopBuilder();
-            reader.read('{');
-            writer.object();
-            if (!reader.matches('}')) {
-                do {
-                    String key = reader.readString();
-                    reader.read(':');
-                    // skip properties that contain "/"
-                    boolean skip = key.indexOf('/') >= 0;
-                    if (!skip) {
-                        writer.key(key);
-                    }
-                    if (reader.matches('[')) {
-                        if (!skip) {
-                            writer.array();
-                        }
-                        do {
-                            String raw = reader.readRawValue();
-                            if (!skip) {
-                                writer.encodedValue(raw);
-                            }
-                        } while (reader.matches(','));
-                        reader.read(']');
-                        if (!skip) {
-                            writer.endArray();
-                        }
-                    } else {
-                        String raw = reader.readRawValue();
-                        if (!skip) {
-                            writer.encodedValue(raw);
-                        }
-                    }
-                } while (reader.matches(','));
-            }
-            reader.read('}');
-            writer.endObject();
-            String result = writer.toString();
-            LOG.warn("Cleaned bundled properties: {} = {}", path, result);
-            return result;
         }
     }
 
