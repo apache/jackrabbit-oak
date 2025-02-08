@@ -24,7 +24,6 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -38,6 +37,8 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.ADD;
@@ -99,7 +100,8 @@ public class AzureBlobStoreBackendTest {
         azureBlobStoreBackend.init();
 
         assertWriteAccessGranted(azureBlobStoreBackend, "file");
-        assertReadAccessGranted(azureBlobStoreBackend, concat(BLOBS, "file"));
+        assertReadAccessGranted(azureBlobStoreBackend,
+                concat(BLOBS, "file"));
     }
 
     @Test
@@ -290,7 +292,7 @@ public class AzureBlobStoreBackendTest {
     }
 
     private static Set<String> concat(Set<String> set, String element) {
-        return ImmutableSet.<String>builder().addAll(set).add(element).build();
+        return Stream.concat(set.stream(), Stream.of(element)).collect(Collectors.toSet());
     }
 
     private static String getConnectionString() {

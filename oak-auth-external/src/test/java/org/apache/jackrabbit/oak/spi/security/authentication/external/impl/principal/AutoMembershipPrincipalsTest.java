@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -117,7 +116,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
     public void testGetPrincipalsMixed() throws Exception {
         Collection<Principal> principals = getAutoMembership(IDP_MIXED_AM, authorizable, false);
         assertFalse(principals.isEmpty());
-        assertEquals(Set.of(automembershipGroup1.getPrincipal()), ImmutableSet.copyOf(principals));
+        assertEquals(Set.of(automembershipGroup1.getPrincipal()), Set.copyOf(principals));
         verifyNoInteractions(authorizable, amConfig);
     }
 
