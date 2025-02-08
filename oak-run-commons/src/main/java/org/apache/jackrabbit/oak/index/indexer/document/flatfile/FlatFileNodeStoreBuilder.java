@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedTreeStoreStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;

@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.Flat
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.NodeStateEntryList;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.PersistedLinkedList;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.PersistedLinkedListV2;
-import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
