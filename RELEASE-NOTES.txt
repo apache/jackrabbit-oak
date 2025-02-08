@@ -60,6 +60,7 @@ Technical task
 
 Bug
 
+    [OAK-11287] - Cleanup May Delete Referenced Segments
     [OAK-11401] - Increase Log levels for FullGC deletion logs to INFO
     [OAK-11409] - Membership cache fails to update changes on cached properties
     [OAK-11423] - Jdbc driver dependencies need to have scope compile in order to be included in oak-run.
@@ -75,6 +76,7 @@ Improvement
     [OAK-9500] - Automatically deploy snapshot artifacts to Maven repo through GHA
     [OAK-11312] - Refactor CollectionUtils
     [OAK-11364] - For oak-jcr tests, support automatic starting/stopping of docker containers used as RDB servers for RDBDocumentStore
+    [OAK-11365] - Incremental index store: ability to set a timeout
     [OAK-11383] - Improve performance of DefaultStatisticsProvider
     [OAK-11389] - Disable Checkstyle
     [OAK-11416] - Docker support for oak-jcr tests with RdbDocumentStore needs a way to specify environment variables for the container
