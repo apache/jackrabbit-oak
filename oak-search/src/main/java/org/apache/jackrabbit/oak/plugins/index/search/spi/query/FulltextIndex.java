@@ -184,7 +184,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         PlanResult pr = getPlanResult(plan);
         if (pr.hasPropertyIndexResult()) {
             FulltextIndexPlanner.PropertyIndexResult pres = pr.getPropertyIndexResult();
-            sb.append("    propertyCondition: ").append(pres.propertyName);
+            sb.append("    synchronousPropertyCondition: ").append(pres.propertyName);
             if (!pres.propertyName.equals(pres.pr.propertyName)) {
                 sb.append("[").append(pres.pr.propertyName).append("]");
             }
