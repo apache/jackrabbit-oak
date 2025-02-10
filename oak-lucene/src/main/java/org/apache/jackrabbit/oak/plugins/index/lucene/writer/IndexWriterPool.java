@@ -70,7 +70,7 @@ public class IndexWriterPool {
     private final List<Future<?>> workerFutures;
     private final ExecutorService writersPool;
     // Used to schedule a task that periodically prints statistics
-    private final ScheduledExecutorService scheduledExecutor;
+    private final ScheduledExecutorService monitorTaskExecutor;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     // Used to keep track of the sequence number of the batches that are currently being processed.
@@ -191,6 +191,7 @@ public class IndexWriterPool {
         }
     }
 
+    // Sentinel used to terminate worker threads
     final static OperationBatch SHUTDOWN = new OperationBatch(-1, new Operation[0]);
 
     private class Worker implements Runnable {
@@ -264,7 +265,7 @@ public class IndexWriterPool {
         this.writersPool = Executors.newFixedThreadPool(numberOfThreads, new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .build());
-        this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
+        this.monitorTaskExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat("index-writer-monitor")
                 .build());
@@ -274,7 +275,7 @@ public class IndexWriterPool {
         this.workerFutures = workers.stream()
                 .map(writersPool::submit)
                 .collect(Collectors.toList());
-        scheduledExecutor.scheduleAtFixedRate(this::printStatistics, 30, 30, TimeUnit.SECONDS);
+        monitorTaskExecutor.scheduleAtFixedRate(this::printStatistics, 30, 30, TimeUnit.SECONDS);
         LOG.info("Writing thread started");
     }
 
@@ -342,7 +343,7 @@ public class IndexWriterPool {
             }
             printStatistics();
             new ExecutorCloser(writersPool, 1, TimeUnit.SECONDS).close();
-            new ExecutorCloser(scheduledExecutor, 1, TimeUnit.SECONDS).close();
+            new ExecutorCloser(monitorTaskExecutor, 1, TimeUnit.SECONDS).close();
         } else {
             LOG.warn("PipelinedIndexWriter already closed");
         }
@@ -362,7 +363,12 @@ public class IndexWriterPool {
     }
 
     private long flushBatch() {
-        // Batches may be empty. This is necessary
+        // Empty batches are also enqueued. This is necessary for the close writer operation, which requires all previous
+        // operations for the writer to be processed before the writer is closed. This means that all enqueued batches
+        // must be processed and the current partially built batch must also be enqueued and processed. To ensure that,
+        // the close operation will always enqueue the current batch and wait for all the batches older or equal to the
+        // newly enqueued batch to be processed. If there are no operations in the currently pending batch, we enqueue
+        // it anyway just to generate a new sequence number.
         try {
             long seqNumber;
             synchronized (pendingBatchesLock) {
@@ -379,7 +385,7 @@ public class IndexWriterPool {
             long durationNanos = System.nanoTime() - start;
             long durationMillis = durationNanos / 1_000_000;
             totalEnqueueTimeNanos += durationNanos;
-            if (durationMillis > 0) {
+            if (durationMillis > 1) {
                 LOG.info("Enqueuing batch delayed. Seq number: {}, size: {}. Delay: {} ms",
                         seqNumber, batch.size(), durationMillis);
             }
