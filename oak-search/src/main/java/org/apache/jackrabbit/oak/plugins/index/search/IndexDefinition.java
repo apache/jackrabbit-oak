@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.search;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -668,7 +669,14 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     public InputStream getTikaConfig() {
-        return ConfigUtil.getBlob(getTikaConfigNode(), TIKA_CONFIG).getNewStream();
+        NodeState tikaConfigNode = getTikaConfigNode();
+        Blob tikaConfig = ConfigUtil.getBlob(tikaConfigNode, TIKA_CONFIG);
+        if (tikaConfig == null) {
+            throw new IllegalStateException("Tika configuration missing in index definition. " +
+                    "Node " + indexName + "/" + TIKA + "/" + TIKA_CONFIG + "/" + JcrConstants.JCR_CONTENT +
+                    " is missing property " + JcrConstants.JCR_DATA);
+        }
+        return tikaConfig.getNewStream();
     }
 
     public String getTikaMappedMimeType(String type) {
@@ -1259,7 +1267,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             PropertyDefinition config = propConfigs.get(propertyName.toLowerCase(Locale.ENGLISH));
             if (config != null) {
                 return config;
-            } else if (namePatterns.size() > 0) {
+            } else if (!namePatterns.isEmpty()) {
                 // check patterns
                 for (NamePattern np : namePatterns) {
                     if (np.matches(propertyName)) {
