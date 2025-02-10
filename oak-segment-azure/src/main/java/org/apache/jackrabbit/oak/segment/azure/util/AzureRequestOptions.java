@@ -27,13 +27,20 @@ public class AzureRequestOptions {
     static final String RETRY_ATTEMPTS_PROP = "segment.azure.retry.attempts";
     static final int DEFAULT_RETRY_ATTEMPTS = 5;
 
-    static final String RETRY_BACKOFF_PROP = "segment.azure.retry.backoff";
-    static final int DEFAULT_RETRY_BACKOFF_SECONDS = 5;
+    static final String TIMEOUT_EXECUTION_PROP = "segment.timeout.execution";
+    static final int DEFAULT_TIMEOUT_EXECUTION = 30;
 
-    static final String TIMEOUT_INTERVAL_PROP = "segment.timeout.interval";
-    static final int DEFAULT_TIMEOUT_INTERVAL = 1;
+    static final String TIMEOUT_INTERVAL_MIN_PROP = "segment.timeout.interval.min";
+    static final int DEFAULT_TIMEOUT_INTERVAL_MIN = 100;
 
-    static final String WRITE_TIMEOUT_INTERVAL_PROP = "segment.write.timeout.interval";
+    static final String TIMEOUT_INTERVAL_MAX_PROP = "segment.timeout.interval.max";
+    static final int DEFAULT_TIMEOUT_INTERVAL_MAX = 5000;
+
+    static final String WRITE_TIMEOUT_EXECUTION_PROP = "segment.write.timeout.execution";
+
+    static final String WRITE_TIMEOUT_INTERVAL_MIN_PROP = "segment.write.timeout.interval.min";
+
+    static final String WRITE_TIMEOUT_INTERVAL_MAX_PROP = "segment.write.timeout.interval.max";
 
     private AzureRequestOptions() {
     }
@@ -46,10 +53,10 @@ public class AzureRequestOptions {
     public static RequestRetryOptions getRetryOptionsDefault(String secondaryHost) {
         int maxTries = Integer.getInteger(RETRY_ATTEMPTS_PROP, DEFAULT_RETRY_ATTEMPTS);
         int tryTimeoutInSeconds = getReadTryTimeoutInSeconds();
-        long retryDelayInMs = Integer.getInteger(RETRY_BACKOFF_PROP, DEFAULT_RETRY_BACKOFF_SECONDS) * 1_000L;
-        long maxRetryDelayInMs = retryDelayInMs;
+        long retryDelayInMs = getRetryDelayInMs();
+        long maxRetryDelayInMs = getMaxRetryDelayInMs();
 
-        return new RequestRetryOptions(RetryPolicyType.FIXED,
+        return new RequestRetryOptions(RetryPolicyType.EXPONENTIAL,
                 maxTries,
                 tryTimeoutInSeconds,
                 retryDelayInMs,
@@ -63,12 +70,12 @@ public class AzureRequestOptions {
      */
     public static RequestRetryOptions getRetryOperationsOptimiseForWriteOperations() {
         int maxTries = Integer.getInteger(RETRY_ATTEMPTS_PROP, DEFAULT_RETRY_ATTEMPTS);
-        // if the value for write is not set use the read value
-        int tryTimeoutInSeconds = Integer.getInteger(WRITE_TIMEOUT_INTERVAL_PROP, getReadTryTimeoutInSeconds());
-        long retryDelayInMs = Integer.getInteger(WRITE_TIMEOUT_INTERVAL_PROP, DEFAULT_RETRY_BACKOFF_SECONDS) * 1_000L;
-        long maxRetryDelayInMs = retryDelayInMs;
+        // if the value for write are not set use the read value
+        int tryTimeoutInSeconds = Integer.getInteger(WRITE_TIMEOUT_EXECUTION_PROP, getReadTryTimeoutInSeconds());
+        long retryDelayInMs = Integer.getInteger(WRITE_TIMEOUT_INTERVAL_MIN_PROP, getRetryDelayInMs());
+        long maxRetryDelayInMs = Integer.getInteger(WRITE_TIMEOUT_INTERVAL_MAX_PROP, getMaxRetryDelayInMs());
 
-        return new RequestRetryOptions(RetryPolicyType.FIXED,
+        return new RequestRetryOptions(RetryPolicyType.EXPONENTIAL,
                 maxTries,
                 tryTimeoutInSeconds,
                 retryDelayInMs,
@@ -77,7 +84,15 @@ public class AzureRequestOptions {
     }
 
     private static int getReadTryTimeoutInSeconds() {
-        return Integer.getInteger(TIMEOUT_INTERVAL_PROP, DEFAULT_TIMEOUT_INTERVAL);
+        return Integer.getInteger(TIMEOUT_EXECUTION_PROP, DEFAULT_TIMEOUT_EXECUTION);
+    }
+
+    private static int getRetryDelayInMs() {
+        return Integer.getInteger(TIMEOUT_INTERVAL_MIN_PROP, DEFAULT_TIMEOUT_INTERVAL_MIN);
+    }
+
+    private static int getMaxRetryDelayInMs() {
+        return Integer.getInteger(TIMEOUT_INTERVAL_MAX_PROP, DEFAULT_TIMEOUT_INTERVAL_MAX);
     }
 
 }
