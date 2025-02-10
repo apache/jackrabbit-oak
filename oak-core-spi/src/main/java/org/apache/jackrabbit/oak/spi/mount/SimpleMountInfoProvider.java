@@ -31,14 +31,14 @@ import java.util.stream.Collectors;
  */
 final class SimpleMountInfoProvider implements MountInfoProvider {
 
-    private final Map<String, Mount> nameToMounts;
+    private final Map<String, Mount> nameToMount;
     private final Mount defMount;
     private final boolean hasMounts;
     private final List<Mount> mounts;
 
     SimpleMountInfoProvider(List<Mount> mountInfos) {
         this.mounts = List.copyOf(mountInfos);
-        this.nameToMounts = mountInfos.stream().collect(Collectors.toMap(Mount::getName, mi -> mi));
+        this.nameToMount = mountInfos.stream().collect(Collectors.toMap(Mount::getName, mi -> mi));
         this.hasMounts = !this.mounts.isEmpty();
         this.defMount = new Mounts.DefaultMount(mounts);
         //TODO add validation of mountpoints
@@ -61,7 +61,7 @@ final class SimpleMountInfoProvider implements MountInfoProvider {
 
     @Override
     public Mount getMountByName(String name) {
-        return nameToMounts.get(name);
+        return nameToMount.get(name);
     }
 
     @Override
@@ -71,9 +71,9 @@ final class SimpleMountInfoProvider implements MountInfoProvider {
 
     @Override
     public @NotNull Collection<Mount> getMountsPlacedUnder(String path) {
-        Collection<Mount> mounts = new ArrayList<>(this.mounts.size());
-        for ( Mount mount : this.mounts) {
-            if ( mount.isUnder(path) ) {
+        Collection<Mount> mounts = new ArrayList<>(1);
+        for (Mount mount : this.mounts) {
+            if (mount.isUnder(path)) {
                 mounts.add(mount);
             }
         }
@@ -82,9 +82,9 @@ final class SimpleMountInfoProvider implements MountInfoProvider {
 
     @Override
     public @NotNull Collection<Mount> getMountsPlacedDirectlyUnder(String path) {
-        Collection<Mount> mounts = new ArrayList<>(this.mounts.size());
-        for ( Mount mount : this.mounts) {
-            if ( mount.isDirectlyUnder(path) ) {
+        Collection<Mount> mounts = new ArrayList<>(1);
+        for (Mount mount : this.mounts) {
+            if (mount.isDirectlyUnder(path)) {
                 mounts.add(mount);
             }
         }
