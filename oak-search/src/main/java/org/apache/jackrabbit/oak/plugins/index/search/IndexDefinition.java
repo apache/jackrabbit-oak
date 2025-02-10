@@ -669,8 +669,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     public InputStream getTikaConfig() {
-        NodeState tikaConfigNode = getTikaConfigNode();
-        Blob tikaConfig = ConfigUtil.getBlob(tikaConfigNode, TIKA_CONFIG);
+        Blob tikaConfig = ConfigUtil.getBlob(getTikaConfigNode(), TIKA_CONFIG);
         if (tikaConfig == null) {
             throw new IllegalStateException("Tika configuration missing in index definition. " +
                     "Node " + indexName + "/" + TIKA + "/" + TIKA_CONFIG + "/" + JcrConstants.JCR_CONTENT +
