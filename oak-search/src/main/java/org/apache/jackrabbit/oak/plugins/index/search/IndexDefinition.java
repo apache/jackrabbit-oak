@@ -1266,7 +1266,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             PropertyDefinition config = propConfigs.get(propertyName.toLowerCase(Locale.ENGLISH));
             if (config != null) {
                 return config;
-            } else if (!namePatterns.isEmpty()) {
+            } else if (namePatterns.size() > 0) {
                 // check patterns
                 for (NamePattern np : namePatterns) {
                     if (np.matches(propertyName)) {
