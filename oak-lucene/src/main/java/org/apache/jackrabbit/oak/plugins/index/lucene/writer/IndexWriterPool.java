@@ -136,32 +136,33 @@ public class IndexWriterPool {
         }
     }
 
+    private static class CloseResult {
+        // Either result or error is non-null. The two constructors enforce this invariant.
+        final Boolean result;
+        final Throwable error;
+
+        CloseResult(boolean result) {
+            this.result = result;
+            this.error = null;
+        }
+
+        CloseResult(Throwable error) {
+            this.result = null;
+            this.error = error;
+        }
+
+        @Override
+        public String toString() {
+            return "CloseResult{" +
+                    "result=" + result +
+                    ", error=" + error +
+                    '}';
+        }
+    }
+
     private static class CloseWriterOperation extends Operation {
         private final long timestamp;
         private final SynchronousQueue<CloseResult> sync;
-
-        static class CloseResult {
-            final Boolean result;
-            final Throwable error;
-
-            CloseResult(boolean result) {
-                this.result = result;
-                this.error = null;
-            }
-
-            CloseResult(Throwable error) {
-                this.result = null;
-                this.error = error;
-            }
-
-            @Override
-            public String toString() {
-                return "CloseResult{" +
-                        "result=" + result +
-                        ", error=" + error +
-                        '}';
-            }
-        }
 
         /**
          * The close operation should be synchronous and applied only after all the write operations for this writer
@@ -226,7 +227,7 @@ public class IndexWriterPool {
                     long durationNanos = System.nanoTime() - start;
                     totalBusyTime += durationNanos;
                     long durationMillis = durationNanos / 1_000_000;
-                    if (durationMillis > 100) {
+                    if (durationMillis > 1000) {
                         LOG.info("[{}] Processing batch {} of size {} took {} millis.",
                                 id, op.sequenceNumber, op.operations.length, durationMillis);
                     }
@@ -310,10 +311,10 @@ public class IndexWriterPool {
                 }
             }
             LOG.info("All batches up to {} processed. Enqueuing close operation for writer {}", seqNumber, writer);
-            SynchronousQueue<CloseWriterOperation.CloseResult> closeOpSync = new SynchronousQueue<>();
+            SynchronousQueue<CloseResult> closeOpSync = new SynchronousQueue<>();
             batch.add(new CloseWriterOperation(writer, timestamp, closeOpSync));
             flushBatch();
-            CloseWriterOperation.CloseResult res = closeOpSync.take();
+            CloseResult res = closeOpSync.take();
             LOG.info("Writer {} closed. Result: {}", writer, res);
             if (res.error == null) {
                 return res.result;
