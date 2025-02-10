@@ -42,13 +42,13 @@ public class OutOfBandIndexer extends OutOfBandIndexerBase {
     }
 
     protected IndexEditorProvider createIndexEditorProvider() throws IOException {
-        LuceneIndexEditorProvider lucene = createLuceneEditorProvider();
-        SegmentPropertyIndexEditorProvider property = createPropertyEditorProvider();
+        IndexEditorProvider lucene = createLuceneEditorProvider();
+        IndexEditorProvider property = createPropertyEditorProvider();
 
         return CompositeIndexEditorProvider.compose(List.of(lucene, property));
     }
 
-    private SegmentPropertyIndexEditorProvider createPropertyEditorProvider() throws IOException {
+    private IndexEditorProvider createPropertyEditorProvider() throws IOException {
         SegmentPropertyIndexEditorProvider provider =
                 new SegmentPropertyIndexEditorProvider(new File(getLocalIndexDir(), "propertyIndexStore"));
         provider.with(extendedIndexHelper.getMountInfoProvider());
@@ -56,7 +56,7 @@ public class OutOfBandIndexer extends OutOfBandIndexerBase {
         return provider;
     }
 
-    private LuceneIndexEditorProvider createLuceneEditorProvider() throws IOException {
+    private IndexEditorProvider createLuceneEditorProvider() throws IOException {
         LuceneIndexHelper luceneIndexHelper = extendedIndexHelper.getLuceneIndexHelper();
         DirectoryFactory dirFactory = new FSDirectoryFactory(getLocalIndexDir());
         luceneIndexHelper.setDirectoryFactory(dirFactory);

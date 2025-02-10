@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import java.util.stream.Collectors;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudAppendBlob;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.ListBlobItem;
 import java.util.stream.IntStream;
-
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.models.BlobItem;
-import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.blob.models.ListBlobsOptions;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
@@ -34,6 +33,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,23 +48,20 @@ public class AzureJournalFileTest {
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
-    private BlobContainerClient readBlobContainerClient;
-
-    private BlobContainerClient writeBlobContainerClient;
+    private CloudBlobContainer container;
 
     private AzureJournalFile journal;
 
     @Before
-    public void setup() throws BlobStorageException {
-        readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
-        writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
+    public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
+        container = azurite.getContainer("oak-test");
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
-        journal = new AzureJournalFile(readBlobContainerClient, writeBlobContainerClient, "journal.log", writeAccessController, 50);
+        journal = new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log", writeAccessController, 50);
     }
 
     @Test
-    public void testSplitJournalFiles() throws IOException {
+    public void testSplitJournalFiles() throws IOException, URISyntaxException, StorageException {
         assertFalse(journal.exists());
 
         int index = 0;
@@ -83,11 +81,13 @@ public class AzureJournalFileTest {
         assertJournalEntriesCount(index);
     }
 
-    private int countJournalBlobs() {
-        ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-        listBlobsOptions.setPrefix("journal.log");
-
-        List<BlobItem> result  = readBlobContainerClient.listBlobs(listBlobsOptions, null).stream().collect(Collectors.toList());
+    private int countJournalBlobs() throws URISyntaxException, StorageException {
+        List<CloudAppendBlob> result = new ArrayList<>();
+        for (ListBlobItem b : container.getDirectoryReference("journal").listBlobs("journal.log")) {
+            if (b instanceof CloudAppendBlob) {
+                result.add((CloudAppendBlob) b);
+            }
+        }
         return result.size();
     }
 

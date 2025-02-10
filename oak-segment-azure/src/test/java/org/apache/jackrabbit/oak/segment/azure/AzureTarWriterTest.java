@@ -16,10 +16,12 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.BlobContainerClient;
-import org.apache.jackrabbit.oak.segment.file.tar.TarWriterTest;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.file.tar.TarWriterTest;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.jetbrains.annotations.NotNull;
@@ -33,13 +35,11 @@ public class AzureTarWriterTest extends TarWriterTest {
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
-    private BlobContainerClient readBlobContainerClient;
-    private BlobContainerClient writeBlobContainerClient;
+    private CloudBlobContainer container;
 
     @Before
     public void setUp() throws Exception {
-        readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
-        writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
+        container = azurite.getContainer("oak-test");
     }
 
     @NotNull
@@ -47,7 +47,7 @@ public class AzureTarWriterTest extends TarWriterTest {
     protected SegmentArchiveManager getSegmentArchiveManager() throws Exception {
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
-        AzureArchiveManager azureArchiveManager = new AzureArchiveManager(readBlobContainerClient, writeBlobContainerClient, "oak", new IOMonitorAdapter(), monitor, writeAccessController);
+        AzureArchiveManager azureArchiveManager = new AzureArchiveManager(container.getDirectoryReference("oak"), new IOMonitorAdapter(), monitor, writeAccessController);
         return azureArchiveManager;
     }
 
@@ -56,10 +56,10 @@ public class AzureTarWriterTest extends TarWriterTest {
     protected SegmentArchiveManager getFailingSegmentArchiveManager() throws Exception {
         final WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
-        return new AzureArchiveManager(readBlobContainerClient, writeBlobContainerClient, "oak", new IOMonitorAdapter(), monitor, writeAccessController) {
+        return new AzureArchiveManager(container.getDirectoryReference("oak"), new IOMonitorAdapter(), monitor, writeAccessController) {
             @Override
             public SegmentArchiveWriter create(String archiveName) throws IOException {
-                return new AzureSegmentArchiveWriter(writeBlobContainerClient, "oak", archiveName, ioMonitor, monitor, writeAccessController) {
+                return new AzureSegmentArchiveWriter(getDirectory(archiveName), ioMonitor, monitor, writeAccessController) {
                     @Override
                     public void writeGraph(@NotNull byte[] data) throws IOException {
                         throw new IOException("test");

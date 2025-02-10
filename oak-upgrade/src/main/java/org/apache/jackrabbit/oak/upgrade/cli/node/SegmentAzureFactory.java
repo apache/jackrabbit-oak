@@ -23,9 +23,9 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -56,7 +56,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
     private int segmentCacheSize;
     private final boolean readOnly;
     private static final Environment environment = new Environment();
-    private AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8;
+    private AzureStorageCredentialManager azureStorageCredentialManager;
 
     public static class Builder {
         private final String dir;
@@ -118,7 +118,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
-        AzurePersistenceV8 azPersistence = null;
+        AzurePersistence azPersistence = null;
         try {
             azPersistence = createAzurePersistence(closer);
         } catch (StorageException | URISyntaxException | InvalidKeyException e) {
@@ -152,34 +152,34 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         }
     }
 
-    private AzurePersistenceV8 createAzurePersistence(Closer closer) throws StorageException, URISyntaxException, InvalidKeyException {
+    private AzurePersistence createAzurePersistence(Closer closer) throws StorageException, URISyntaxException, InvalidKeyException {
         CloudBlobDirectory cloudBlobDirectory = null;
 
         // connection string will take precedence over accountkey / sas / service principal
         if (StringUtils.isNoneBlank(connectionString, containerName)) {
-            cloudBlobDirectory = AzureUtilitiesV8.cloudBlobDirectoryFrom(connectionString, containerName, dir);
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(connectionString, containerName, dir);
         } else if (StringUtils.isNoneBlank(accountName, uri)) {
             StorageCredentials credentials = null;
             if (StringUtils.isNotBlank(sasToken)) {
                 credentials = new StorageCredentialsSharedAccessSignature(sasToken);
             } else {
-                this.azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8();
-                credentials = azureStorageCredentialManagerV8.getStorageCredentialsFromEnvironment(accountName, environment);
-                closer.register(azureStorageCredentialManagerV8);
+                this.azureStorageCredentialManager = new AzureStorageCredentialManager();
+                credentials = azureStorageCredentialManager.getStorageCredentialsFromEnvironment(accountName, environment);
+                closer.register(azureStorageCredentialManager);
             }
-            cloudBlobDirectory = AzureUtilitiesV8.cloudBlobDirectoryFrom(credentials, uri, dir);
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credentials, uri, dir);
         }
 
         if (cloudBlobDirectory == null) {
             throw new IllegalArgumentException("Could not connect to Azure storage. Too few connection parameters specified!");
         }
 
-        return new AzurePersistenceV8(cloudBlobDirectory);
+        return new AzurePersistence(cloudBlobDirectory);
     }
 
     @Override
     public boolean hasExternalBlobReferences() throws IOException {
-        AzurePersistenceV8 azPersistence = null;
+        AzurePersistence azPersistence = null;
         Closer closer = Closer.create();
         CliUtils.handleSigInt(closer);
         try {
