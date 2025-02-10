@@ -216,7 +216,6 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * Checks if last suggestion build time was done sufficiently in the past AND that there were non-zero indexedNodes
      * stored in the last run. Note, if index is updated only to rebuild suggestions, even then we update indexedNodes,
      * which would be zero in case it was a forced update of suggestions.
-     *
      * @return is suggest dict should be updated
      */
     private boolean shouldUpdateSuggestions(Calendar currentTime) {
@@ -296,12 +295,5 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             sb.append(", ");
         }
         log.trace("Directory overall size: {}, files: {}", IOUtils.humanReadableByteCount(overallSize), sb);
-    }
-
-    @Override
-    public String toString() {
-        return "DefaultIndexWriter{" +
-                "index=" + definition.getIndexName() +
-                '}';
     }
 }

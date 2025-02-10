@@ -82,9 +82,9 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
         // This essentially ensures we respect DefaultIndexWriters#close's intent to
         // create empty index even if nothing has been written during re-index.
         StreamSupport.stream(concat(singleton(mountInfoProvider.getDefaultMount()), mountInfoProvider.getNonDefaultMounts())
-                        .spliterator(), false)
-                .filter(m -> reindex && !m.isReadOnly()) // only needed when re-indexing for read-write mounts.
-                // reindex for ro-mount doesn't make sense in this case anyway.
+                .spliterator(), false)
+                .filter(m ->  reindex && !m.isReadOnly()) // only needed when re-indexing for read-write mounts.
+                                                         // reindex for ro-mount doesn't make sense in this case anyway.
                 .forEach(this::getWriter); // open default writers for mounts that passed all our tests
 
         boolean indexUpdated = false;
@@ -100,20 +100,15 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
     }
 
     private DefaultIndexWriter getWriter(Mount mount) {
-        return writers.computeIfAbsent(mount, w -> createWriter(mount));
+        DefaultIndexWriter writer = writers.computeIfAbsent(mount, w -> createWriter(mount));
+        return writer;
     }
 
     private DefaultIndexWriter createWriter(Mount m) {
         String dirName = MultiplexersLucene.getIndexDirName(m);
         String suggestDirName = MultiplexersLucene.getSuggestDirName(m);
         return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory, dirName,
-                suggestDirName, reindex, writerConfig);
+            suggestDirName, reindex, writerConfig);
     }
 
-    @Override
-    public String toString() {
-        return "MultiplexingIndexWriter{" +
-                "writers=" + writers.values() +
-                '}';
-    }
 }

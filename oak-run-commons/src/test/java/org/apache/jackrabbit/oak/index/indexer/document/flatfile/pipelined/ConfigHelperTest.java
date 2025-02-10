@@ -16,15 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
 public class ConfigHelperTest {
+
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     @Test
     public void getSystemPropertyAsStringList() {

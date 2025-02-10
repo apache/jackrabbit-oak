@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;

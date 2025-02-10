@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -32,12 +30,13 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
@@ -72,32 +71,34 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     @NotNull
     @Override
     public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
-        Set<Privilege> privs = new HashSet<>();
+        ImmutableSet.Builder<Privilege> privs = ImmutableSet.builder();
         for (AccessControlManager acMgr : acMgrs) {
-            privs.addAll(SetUtils.toSet(acMgr.getSupportedPrivileges(absPath)));
+            privs.add(acMgr.getSupportedPrivileges(absPath));
         }
-        return privs.toArray(new Privilege[0]);
+        Set<Privilege> s = privs.build();
+        return s.toArray(new Privilege[0]);
     }
 
     @Override
     public AccessControlPolicy[] getPolicies(String absPath) throws RepositoryException {
-        List<AccessControlPolicy> policies = new ArrayList<>();
+        ImmutableList.Builder<AccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
-            policies.addAll(Arrays.asList(acMgr.getPolicies(absPath)));
+            policies.add(acMgr.getPolicies(absPath));
         }
-        return policies.toArray(new AccessControlPolicy[0]);
+        List<AccessControlPolicy> l = policies.build();
+        return l.toArray(new AccessControlPolicy[0]);
     }
 
     @Override
     public AccessControlPolicy[] getEffectivePolicies(String absPath) throws RepositoryException {
-        List<AccessControlPolicy> policies = new ArrayList<>();
+        ImmutableList.Builder<AccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
-            policies.addAll(Arrays.asList(acMgr.getEffectivePolicies(absPath)));
+            policies.add(acMgr.getEffectivePolicies(absPath));
             if (aggregationFilter.stop(acMgr, absPath)) {
                 break;
             }
         }
-        return policies.stream().distinct().toArray(AccessControlPolicy[]::new);
+        return policies.build().stream().distinct().toArray(AccessControlPolicy[]::new);
     }
 
     @Override
@@ -137,46 +138,49 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     @NotNull
     @Override
     public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) throws RepositoryException {
-        List<JackrabbitAccessControlPolicy> policies = new ArrayList<>();
+        ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager && acMgr instanceof PolicyOwner) {
-                policies.addAll(Arrays.asList(((JackrabbitAccessControlManager) acMgr).getApplicablePolicies(principal)));
+                policies.add(((JackrabbitAccessControlManager) acMgr).getApplicablePolicies(principal));
             }
         }
-        return policies.toArray(new JackrabbitAccessControlPolicy[0]);
+        List<JackrabbitAccessControlPolicy> l = policies.build();
+        return l.toArray(new JackrabbitAccessControlPolicy[0]);
     }
 
     @NotNull
     @Override
     public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) throws RepositoryException {
-        List<JackrabbitAccessControlPolicy> policies = new ArrayList<>();
+        ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
-                policies.addAll(Arrays.asList(((JackrabbitAccessControlManager) acMgr).getPolicies(principal)));
+                policies.add(((JackrabbitAccessControlManager) acMgr).getPolicies(principal));
             }
         }
-        return policies.toArray(new JackrabbitAccessControlPolicy[0]);
+        List<JackrabbitAccessControlPolicy> l = policies.build();
+        return l.toArray(new JackrabbitAccessControlPolicy[0]);
     }
 
     @NotNull
     @Override
     public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) throws RepositoryException {
-        List<AccessControlPolicy> policies = new ArrayList<>();
+        ImmutableList.Builder<AccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
                 JackrabbitAccessControlManager jAcMgr = (JackrabbitAccessControlManager) acMgr;
-                policies.addAll(Arrays.asList(jAcMgr.getEffectivePolicies(principals)));
+                policies.add(jAcMgr.getEffectivePolicies(principals));
                 if (aggregationFilter.stop(jAcMgr, principals)) {
                     break;
                 }
             }
         }
-        return policies.toArray(new AccessControlPolicy[0]);
+        List<AccessControlPolicy> l = policies.build();
+        return l.toArray(new AccessControlPolicy[0]);
     }
 
     @Override
     public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(@NotNull Set<Principal> principals, @Nullable String... absPaths) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
-        List<Iterator<AccessControlPolicy>> iterators = new ArrayList<>();
+        ImmutableList.Builder<Iterator<AccessControlPolicy>> iterators = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
                 JackrabbitAccessControlManager jAcMgr = (JackrabbitAccessControlManager) acMgr;
@@ -186,6 +190,6 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
                 }
             }
         }
-        return Iterators.concat(iterators.toArray(new Iterator[0]));
+        return Iterators.concat(iterators.build().toArray(new Iterator[0]));
     }
 }

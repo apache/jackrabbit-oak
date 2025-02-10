@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,10 +30,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -70,7 +70,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         if (isUnsupportedPath(oakPath)) {
             return Collections.emptySet();
         } else {
-            return SetUtils.toLinkedSet(supported.values());
+            return ImmutableSet.copyOf(supported.values());
         }
     }
 
@@ -85,7 +85,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         }
         PropertyState propertyState;
         if (requiredType.isArray()) {
-            propertyState = PropertyStates.createProperty(oakName, List.of(value), tag);
+            propertyState = PropertyStates.createProperty(oakName, ImmutableList.of(value), tag);
         } else {
             propertyState = PropertyStates.createProperty(oakName, value);
         }

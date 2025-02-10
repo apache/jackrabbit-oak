@@ -24,13 +24,15 @@ import java.util.Set;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * The {@code RepMembersConflictHandler} takes care of merging the {@code rep:members} property
@@ -79,7 +81,7 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
     public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
             @NotNull PropertyState theirs, @NotNull PropertyState base) {
         if (isRepMembersProperty(theirs)) {
-            Set<String> baseMembers = SetUtils.toSet(base.getValue(Type.STRINGS));
+            Set<String> baseMembers = ImmutableSet.copyOf(base.getValue(Type.STRINGS));
             mergeChange(parent, ours, theirs, baseMembers);
             return Resolution.MERGED;
         } else {
@@ -155,17 +157,17 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
         PropertyBuilder<String> merged = PropertyBuilder.array(Type.WEAKREFERENCE);
         merged.setName(UserConstants.REP_MEMBERS);
 
-        Set<String> theirMembers = SetUtils.toSet(theirs.getValue(Type.STRINGS));
-        Set<String> ourMembers = SetUtils.toSet(ours.getValue(Type.STRINGS));
+        Set<String> theirMembers = ImmutableSet.copyOf(theirs.getValue(Type.STRINGS));
+        Set<String> ourMembers = ImmutableSet.copyOf(ours.getValue(Type.STRINGS));
 
         // merge ours and theirs to a de-duplicated set
-        Set<String> combined = new LinkedHashSet<>(SetUtils.intersection(ourMembers, theirMembers));
-        for (String m : SetUtils.difference(ourMembers, theirMembers)) {
+        Set<String> combined = new LinkedHashSet<>(Sets.intersection(ourMembers, theirMembers));
+        for (String m : Sets.difference(ourMembers, theirMembers)) {
             if (!base.contains(m)) {
                 combined.add(m);
             }
         }
-        for (String m : SetUtils.difference(theirMembers, ourMembers)) {
+        for (String m : Sets.difference(theirMembers, ourMembers)) {
             if (!base.contains(m)) {
                 combined.add(m);
             }

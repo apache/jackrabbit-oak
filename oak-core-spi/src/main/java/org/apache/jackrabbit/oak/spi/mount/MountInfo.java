@@ -29,6 +29,7 @@ import java.util.TreeSet;
 import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -64,7 +65,7 @@ public final class MountInfo implements Mount {
         this.readOnly = readOnly;
         this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
-        this.pathsSupportingFragments = SetUtils.toSet(pathsSupportingFragments);
+        this.pathsSupportingFragments = ImmutableSet.copyOf(pathsSupportingFragments);
     }
 
     @Override

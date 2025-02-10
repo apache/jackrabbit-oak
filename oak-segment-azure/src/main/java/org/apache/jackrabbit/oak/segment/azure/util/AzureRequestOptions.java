@@ -19,8 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment.azure.util;
 
-import com.azure.storage.common.policy.RequestRetryOptions;
-import com.azure.storage.common.policy.RetryPolicyType;
+import com.microsoft.azure.storage.RetryLinearRetry;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
+
+import java.util.concurrent.TimeUnit;
 
 public class AzureRequestOptions {
 
@@ -30,54 +32,65 @@ public class AzureRequestOptions {
     static final String RETRY_BACKOFF_PROP = "segment.azure.retry.backoff";
     static final int DEFAULT_RETRY_BACKOFF_SECONDS = 5;
 
+    static final String TIMEOUT_EXECUTION_PROP = "segment.timeout.execution";
+    static final int DEFAULT_TIMEOUT_EXECUTION = 30;
+
     static final String TIMEOUT_INTERVAL_PROP = "segment.timeout.interval";
     static final int DEFAULT_TIMEOUT_INTERVAL = 1;
+
+    static final String WRITE_TIMEOUT_EXECUTION_PROP = "segment.write.timeout.execution";
 
     static final String WRITE_TIMEOUT_INTERVAL_PROP = "segment.write.timeout.interval";
 
     private AzureRequestOptions() {
     }
 
-
-    public static RequestRetryOptions getRetryOptionsDefault() {
-        return getRetryOptionsDefault(null);
-    }
-
-    public static RequestRetryOptions getRetryOptionsDefault(String secondaryHost) {
-        int maxTries = Integer.getInteger(RETRY_ATTEMPTS_PROP, DEFAULT_RETRY_ATTEMPTS);
-        int tryTimeoutInSeconds = getReadTryTimeoutInSeconds();
-        long retryDelayInMs = Integer.getInteger(RETRY_BACKOFF_PROP, DEFAULT_RETRY_BACKOFF_SECONDS) * 1_000L;
-        long maxRetryDelayInMs = retryDelayInMs;
-
-        return new RequestRetryOptions(RetryPolicyType.FIXED,
-                maxTries,
-                tryTimeoutInSeconds,
-                retryDelayInMs,
-                maxRetryDelayInMs,
-                secondaryHost);
+    /**
+     * Apply default request options to the blobRequestOptions if they are not already set.
+     * @param blobRequestOptions
+     */
+    public static void applyDefaultRequestOptions(BlobRequestOptions blobRequestOptions) {
+        if (blobRequestOptions.getRetryPolicyFactory() == null) {
+            int retryAttempts = Integer.getInteger(RETRY_ATTEMPTS_PROP, DEFAULT_RETRY_ATTEMPTS);
+            if (retryAttempts > 0) {
+                Integer retryBackoffSeconds = Integer.getInteger(RETRY_BACKOFF_PROP, DEFAULT_RETRY_BACKOFF_SECONDS);
+                blobRequestOptions.setRetryPolicyFactory(new RetryLinearRetry((int) TimeUnit.SECONDS.toMillis(retryBackoffSeconds), retryAttempts));
+            }
+        }
+        if (blobRequestOptions.getMaximumExecutionTimeInMs() == null) {
+            int timeoutExecution = Integer.getInteger(TIMEOUT_EXECUTION_PROP, DEFAULT_TIMEOUT_EXECUTION);
+            if (timeoutExecution > 0) {
+                blobRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(timeoutExecution));
+            }
+        }
+        if (blobRequestOptions.getTimeoutIntervalInMs() == null) {
+            int timeoutInterval = Integer.getInteger(TIMEOUT_INTERVAL_PROP, DEFAULT_TIMEOUT_INTERVAL);
+            if (timeoutInterval > 0) {
+                blobRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(timeoutInterval));
+            }
+        }
     }
 
     /**
-     * secondaryHost is null because there is no writer in secondary
-     * @return
+     * Optimise the blob request options for write operations. This method does not change the original blobRequestOptions.
+     * This method also applies the default request options if they are not already set, by calling {@link #applyDefaultRequestOptions(BlobRequestOptions)}
+     * @param blobRequestOptions
+     * @return write optimised blobRequestOptions
      */
-    public static RequestRetryOptions getRetryOperationsOptimiseForWriteOperations() {
-        int maxTries = Integer.getInteger(RETRY_ATTEMPTS_PROP, DEFAULT_RETRY_ATTEMPTS);
-        // if the value for write is not set use the read value
-        int tryTimeoutInSeconds = Integer.getInteger(WRITE_TIMEOUT_INTERVAL_PROP, getReadTryTimeoutInSeconds());
-        long retryDelayInMs = Integer.getInteger(WRITE_TIMEOUT_INTERVAL_PROP, DEFAULT_RETRY_BACKOFF_SECONDS) * 1_000L;
-        long maxRetryDelayInMs = retryDelayInMs;
+    public static BlobRequestOptions optimiseForWriteOperations(BlobRequestOptions blobRequestOptions) {
+        BlobRequestOptions writeOptimisedBlobRequestOptions = new BlobRequestOptions(blobRequestOptions);
+        applyDefaultRequestOptions(writeOptimisedBlobRequestOptions);
 
-        return new RequestRetryOptions(RetryPolicyType.FIXED,
-                maxTries,
-                tryTimeoutInSeconds,
-                retryDelayInMs,
-                maxRetryDelayInMs,
-                null);
+        Integer writeTimeoutExecution = Integer.getInteger(WRITE_TIMEOUT_EXECUTION_PROP);
+        if (writeTimeoutExecution != null) {
+            writeOptimisedBlobRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(writeTimeoutExecution));
+        }
+
+        Integer writeTimeoutInterval = Integer.getInteger(WRITE_TIMEOUT_INTERVAL_PROP);
+        if (writeTimeoutInterval != null) {
+            writeOptimisedBlobRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(writeTimeoutInterval));
+        }
+
+        return writeOptimisedBlobRequestOptions;
     }
-
-    private static int getReadTryTimeoutInSeconds() {
-        return Integer.getInteger(TIMEOUT_INTERVAL_PROP, DEFAULT_TIMEOUT_INTERVAL);
-    }
-
 }

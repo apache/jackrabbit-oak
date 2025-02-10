@@ -16,52 +16,51 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.core.util.BinaryData;
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.blob.specialized.BlockBlobClient;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
-import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveWriter;
-import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
-import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
-import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
+import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentFileName;
+import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
-import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
-import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentFileName;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
+
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptions;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
+import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
+import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveWriter;
+import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 
 public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWriter {
 
-    private final BlobContainerClient blobContainerClient;
-
-    private final String rootPrefix;
-
-    private final String archiveName;
+    private final CloudBlobDirectory archiveDirectory;
 
     private final Retrier retrier = Retrier.withParams(
             Integer.getInteger("azure.segment.archive.writer.retries.max", 16),
             Integer.getInteger("azure.segment.archive.writer.retries.intervalMs", 5000)
     );
 
-    public AzureSegmentArchiveWriter(BlobContainerClient blobContainerClient, String rootPrefix, String archiveName, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) {
+    private final BlobRequestOptions writeOptimisedBlobRequestOptions;
+
+    public AzureSegmentArchiveWriter(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) {
         super(ioMonitor, monitor);
-        this.blobContainerClient = blobContainerClient;
-        this.rootPrefix = rootPrefix;
-        this.archiveName = archiveName;
+        this.archiveDirectory = archiveDirectory;
         this.writeAccessController = writeAccessController;
+        this.writeOptimisedBlobRequestOptions = AzureRequestOptions.optimiseForWriteOperations(archiveDirectory.getServiceClient().getDefaultRequestOptions());
     }
 
     @Override
     public String getName() {
-        return archiveName;
+        return AzureUtilities.getName(archiveDirectory);
     }
 
     @Override
@@ -72,16 +71,17 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
         long msb = indexEntry.getMsb();
         long lsb = indexEntry.getLsb();
         String segmentName = getSegmentFileName(indexEntry);
-        BlockBlobClient blob = getBlockBlobClient(segmentName);
-        ioMonitor.beforeSegmentWrite(new File(blob.getBlobName()), msb, lsb, size);
+        CloudBlockBlob blob = getBlob(segmentName);
+        ioMonitor.beforeSegmentWrite(new File(blob.getName()), msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
-            blob.upload(BinaryData.fromBytes(Arrays.copyOfRange(data, offset, offset + size)), true);
             blob.setMetadata(AzureBlobMetadata.toSegmentMetadata(indexEntry));
-        } catch (BlobStorageException e) {
+            blob.uploadFromByteArray(data, offset, size, null, writeOptimisedBlobRequestOptions, null);
+            blob.uploadMetadata(null, writeOptimisedBlobRequestOptions, null);
+        } catch (StorageException e) {
             throw new IOException(e);
         }
-        ioMonitor.afterSegmentWrite(new File(blob.getBlobName()), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
+        ioMonitor.afterSegmentWrite(new File(blob.getName()), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
     }
 
     @Override
@@ -92,7 +92,7 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
         } else {
             buffer = Buffer.allocate(indexEntry.getLength());
         }
-        readBufferFully(getBlockBlobClient(getSegmentFileName(indexEntry)), buffer);
+        readBufferFully(getBlob(getSegmentFileName(indexEntry)), buffer);
         return buffer;
     }
 
@@ -102,8 +102,8 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
             try {
                 writeAccessController.checkWritingAllowed();
 
-                getBlockBlobClient(getName() + extension).upload(BinaryData.fromBytes(data), true);
-            } catch (BlobStorageException e) {
+                getBlob(getName() + extension).uploadFromByteArray(data, 0, data.length, null, writeOptimisedBlobRequestOptions, null);
+            } catch (StorageException e) {
                 throw new IOException(e);
             }
         });
@@ -115,8 +115,8 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
             try {
                 writeAccessController.checkWritingAllowed();
 
-                getBlockBlobClient("closed").upload(BinaryData.fromBytes(new byte[0]), true);
-            } catch (BlobStorageException e) {
+                getBlob("closed").uploadFromByteArray(new byte[0], 0, 0, null, writeOptimisedBlobRequestOptions, null);
+            } catch (StorageException e) {
                 throw new IOException(e);
             }
         });
@@ -127,11 +127,10 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
         // do nothing
     }
 
-    private BlockBlobClient getBlockBlobClient(String name) throws IOException {
-        String blobFullName = String.format("%s/%s/%s", rootPrefix, archiveName, name);
+    private CloudBlockBlob getBlob(String name) throws IOException {
         try {
-            return blobContainerClient.getBlobClient(blobFullName).getBlockBlobClient();
-        } catch (BlobStorageException e) {
+            return archiveDirectory.getBlockBlobReference(name);
+        } catch (URISyntaxException | StorageException e) {
             throw new IOException(e);
         }
     }
