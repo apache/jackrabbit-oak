@@ -561,6 +561,39 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void fulltextSearchWithWordDelimiterFilter() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Keyword");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            addFilter(filters, "LowerCase");
+            addFilter(filters, "ASCIIFolding");
+            Tree wordDelimiter = addFilter(filters, "WordDelimiter");
+            wordDelimiter.setProperty("preserveOriginal", "1");
+            wordDelimiter.setProperty("splitOnCaseChange", "0");
+            wordDelimiter.setProperty("splitOnNumerics", "0");
+            wordDelimiter.setProperty("types", "types.txt");
+            wordDelimiter.addChild("types.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "_ => ALPHANUM\n- => ALPHANUM\n");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "10022025|01.jpg");
+        content.addChild("baz").setProperty("foo", "10022025_01.jpg");
+        content.addChild("bat").setProperty("foo", "10022025-01.jpg");
+        content.addChild("bax").setProperty("foo", "10022025_0101.jpg");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, '10022025')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, '01')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, '10022025_01*.jpg')", List.of("/content/baz", "/content/bax"));
+        });
+    }
+
+    @Test
     public void fulltextSearchWithStemmingAndAsciiFilter() throws Exception {
         setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
