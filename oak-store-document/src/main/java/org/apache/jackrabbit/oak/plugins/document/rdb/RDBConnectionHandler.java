@@ -26,8 +26,8 @@ import java.util.concurrent.ConcurrentMap;
 
 import javax.sql.DataSource;
 
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
