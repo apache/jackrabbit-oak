@@ -49,7 +49,7 @@ public class IterableUtils {
      */
     public static <E> Iterable<E> chainedIterable(final Iterable<? extends E> a,
                                                   final Iterable<? extends E> b) {
-        return chainedIterable(new Iterable[] {a, b});
+        return org.apache.commons.collections4.IterableUtils.chainedIterable(a, b);
     }
 
     /**
@@ -72,7 +72,7 @@ public class IterableUtils {
     public static <E> Iterable<E> chainedIterable(final Iterable<? extends E> a,
                                                   final Iterable<? extends E> b,
                                                   final Iterable<? extends E> c) {
-        return chainedIterable(new Iterable[] {a, b, c});
+        return org.apache.commons.collections4.IterableUtils.chainedIterable(a, b, c);
     }
 
     /**
@@ -97,7 +97,7 @@ public class IterableUtils {
                                                   final Iterable<? extends E> b,
                                                   final Iterable<? extends E> c,
                                                   final Iterable<? extends E> d) {
-        return chainedIterable(new Iterable[] {a, b, c, d});
+        return org.apache.commons.collections4.IterableUtils.chainedIterable(a, b, c, d);
     }
 
     /**
