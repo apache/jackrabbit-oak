@@ -45,6 +45,7 @@ import java.util.UUID;
 import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NT_NAMES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ_ACCESS_CONTROL;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_REMOVE_CHILD_NODES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_VERSION_MANAGEMENT;
 import static org.junit.Assert.assertFalse;
@@ -117,7 +118,7 @@ public class PrincipalBasedPermissionProviderRegularTreePermissionTest extends A
 
     private void createPrincipalPolicy(Principal testPrincipal) throws Exception {
         // setup permissions on childPath + TEST_OAK_PATH
-        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal, getNamePathMapper().getJcrPath(childPath), JCR_READ, JCR_REMOVE_CHILD_NODES);
+        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal, getNamePathMapper().getJcrPath(childPath), JCR_READ, JCR_REMOVE_CHILD_NODES, JCR_READ_ACCESS_CONTROL);
         addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(TEST_OAK_PATH), JCR_VERSION_MANAGEMENT);
     }
 

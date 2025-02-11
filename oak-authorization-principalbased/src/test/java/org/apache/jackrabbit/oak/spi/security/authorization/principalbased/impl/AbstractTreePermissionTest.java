@@ -88,7 +88,10 @@ public class AbstractTreePermissionTest {
         AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.ACCESS_CONTROL, pp);
         atp.canRead();
 
-        verify(pp, times(2)).isGranted(tree, null, Permissions.READ_ACCESS_CONTROL);
+        //Check for can read all
+        verify(pp, times(1)).isGranted(tree, null, Permissions.READ_ACCESS_CONTROL | Permissions.READ );
+        //Check for read access control permissions
+        verify(pp, times(1)).isGranted(tree, null, Permissions.READ_ACCESS_CONTROL);
     }
 
     @Test
