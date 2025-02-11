@@ -75,6 +75,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     // possible values are: true, false, runtime, strict. See https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic.html
     public static final String DYNAMIC_MAPPING_DEFAULT = "true";
 
+    // https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-settings-limit.html
+    // index.mapping.total_fields.limit
+    public static final String LIMIT_TOTAL_FIELDS = "limitTotalFields";
+    public static final long LIMIT_TOTAL_FIELDS_DEFAULT = 1000L;
+
     // when true, fails indexing in case of bulk failures
     public static final String FAIL_ON_ERROR = "failOnError";
     public static final boolean FAIL_ON_ERROR_DEFAULT = true;
@@ -185,6 +190,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final boolean failOnError;
     public final long indexNameSeed;
     public final InferenceDefinition inferenceDefinition;
+    public final long limitTotalFields;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
     private final List<ElasticPropertyDefinition> dynamicBoostProperties;
@@ -220,6 +226,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         );
         this.indexNameSeed = getOptionalValue(defn, INDEX_NAME_SEED, INDEX_NAME_SEED_DEFAULT);
         this.similarityTagsFields = getOptionalValues(defn, SIMILARITY_TAGS_FIELDS, Type.STRINGS, String.class, SIMILARITY_TAGS_FIELDS_DEFAULT);
+        this.limitTotalFields = getOptionalValue(defn, LIMIT_TOTAL_FIELDS, LIMIT_TOTAL_FIELDS_DEFAULT);
 
         this.propertiesByName = getDefinedRules()
                 .stream()
