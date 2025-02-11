@@ -257,6 +257,29 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
+    public void invisibleForDiscoveryTrueFalse() {
+        Map<String, Object> config = newConfig(repoHome);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        // false is the default
+        assertFalse(dns.getClusterInfo().isInvisible());
+    }
+
+    @Test
+    public void invisibleForDiscoveryTrue() {
+        Map<String, Object> config = newConfig(repoHome);
+        config.put("invisibleForDiscovery", true);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        assertTrue(dns.getClusterInfo().isInvisible());
+    }
+
+
+    @Test
     public void lenientLeaseCheckMode() {
         Map<String, Object> config = newConfig(repoHome);
         config.put("leaseCheckMode", LeaseCheckMode.LENIENT.name());
