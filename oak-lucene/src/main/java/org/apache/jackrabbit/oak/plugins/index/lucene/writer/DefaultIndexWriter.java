@@ -146,6 +146,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
                 PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
             }
 
+            writer.forceMergeDeletes();
             writer.close();
             PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
 
