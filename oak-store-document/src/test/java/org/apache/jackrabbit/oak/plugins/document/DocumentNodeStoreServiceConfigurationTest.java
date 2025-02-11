@@ -45,6 +45,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 public class DocumentNodeStoreServiceConfigurationTest {
 
@@ -167,6 +168,28 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "fullGCBatchSize", batchSize);
         Configuration config = createConfiguration();
         assertEquals(batchSize, config.fullGCBatchSize());
+    }
+
+    @Test
+    public void invisibleForDiscoveryFalse() throws Exception {
+        boolean batchSize = false;
+        addConfigurationEntry(preset, "invisibleForDiscovery", batchSize);
+        Configuration config = createConfiguration();
+        assertFalse(config.invisibleForDiscovery());
+    }
+
+    @Test
+    public void invisibleForDiscoveryTrue() throws Exception {
+        boolean batchSize = true;
+        addConfigurationEntry(preset, "invisibleForDiscovery", batchSize);
+        Configuration config = createConfiguration();
+        assertTrue(config.invisibleForDiscovery());
+    }
+
+    @Test
+    public void invisibleForDiscoveryFalseByDefault() throws Exception {
+        Configuration config = createConfiguration();
+        assertFalse(config.invisibleForDiscovery());
     }
 
     @Test
