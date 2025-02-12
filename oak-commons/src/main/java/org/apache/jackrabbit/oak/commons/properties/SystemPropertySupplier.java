@@ -100,7 +100,7 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
      * Specify {@link Level} to use for "success" message.
      * @deprecated use {@link #logSuccessAs(String) instead
      */
-    @Deprecated(forRemoval = true)
+    @Deprecated
     public SystemPropertySupplier<T> logSuccessAs(Level successLogLevel) {
         this.successLogLevel = Objects.requireNonNull(successLogLevel);
         LOG.error("Use of deprecated method logSuccessAs(Level)", new Exception("call stack"));
