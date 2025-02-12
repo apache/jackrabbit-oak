@@ -251,8 +251,16 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
                                                   @NotNull final String fromId, @NotNull Set<String> includedPathPrefixes,
                                                   @NotNull Set<String> excludedPathPrefixes) {
+        long toModifiedRestricted = toModified;
+        // Query a maximum of 24h of data to speed up the query on Mongo side
+        if (toModified - fromModified > TimeUnit.DAYS.toMillis(1)) {
+            LOG.debug("getModifiedDocs() <- fromModified: {}, toModified: {} - too large range, limiting to 24h",
+                    fromModified, toModified);
+            toModifiedRestricted = fromModified + TimeUnit.DAYS.toMillis(1);
+        }
+
         LOG.info("getModifiedDocs fromModified: {}, toModified: {}, limit: {}, fromId: {}, includedPathPrefixes: {}, excludedPathPrefixes: {}",
-                fromModified, toModified, limit, fromId, includedPathPrefixes, excludedPathPrefixes);
+                fromModified, toModifiedRestricted, limit, fromId, includedPathPrefixes, excludedPathPrefixes);
 
         final long fromModifiedQuery;
         if (MIN_ID_VALUE.equals(fromId)) {
@@ -268,7 +276,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
                         and(eq(MODIFIED_IN_SECS, fromModifiedQuery), gt(ID, fromId))),
                 withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
-                        and(gt(MODIFIED_IN_SECS, fromModifiedQuery), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
+                        and(gt(MODIFIED_IN_SECS, fromModifiedQuery), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModifiedRestricted)))));
 
         // first sort by _modified and then by _id
         final Bson sort = ascending(MODIFIED_IN_SECS, ID);
