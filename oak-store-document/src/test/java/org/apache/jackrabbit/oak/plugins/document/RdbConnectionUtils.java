@@ -50,64 +50,53 @@ public class RdbConnectionUtils {
     public static final String IMG = SystemPropertySupplier.create("rdb.docker-image", "").get();
     public static final Map<String, String> ENV = parseDockerEnv(SystemPropertySupplier.create("rdb.docker-env", "").get());
 
-    private static final boolean RDB_AVAILABLE;
     private static GenericContainer<?> rdbContainer;
 
-    private static int exposedPort = getPortFromJdbcURL(URL);
+    private static final int exposedPort = getPortFromJdbcURL(URL);
 
     static {
-        boolean dockerAvailable = false;
-        boolean imageAvailable = false;
         try {
-            dockerAvailable = checkDockerAvailability();
-            if (dockerAvailable) {
-                imageAvailable = checkImageAvailability();
+            if (checkDockerAvailability() && checkImageAvailability()) {
+                rdbContainer = new GenericContainer<>(DockerImageName.parse(IMG))
+                        .withPrivilegedMode(true)
+                        .withEnv(ENV)
+                        .withExposedPorts(exposedPort)
+                        .withStartupTimeout(Duration.ofMinutes(10));
+                DataSource dataSource = null;
+                try {
+                    LOG.info("Starting RDB container from image {}", IMG);
+                    long startTime = Instant.now().toEpochMilli();
+                    rdbContainer.start();
+                    LOG.info("RDB container started in: " + (Instant.now().toEpochMilli() - startTime) + " ms");
+                    String url = mapJdbcURL();
+                    LOG.info("Mapped JDBC URL is {}.", url);
+                    boolean containerReady = false;
+                    LOG.info("Trying to connect to {}", url);
+                    for (int k = 0; k < 60 && !containerReady; k++) {
+                        try {
+                            dataSource = RDBDataSourceFactory.forJdbcUrl(url, RdbConnectionUtils.USERNAME, RdbConnectionUtils.PASSWD);
+                            try (Connection connection = dataSource.getConnection()) {
+                                containerReady = connection.isValid(10);
+                            } catch (SQLException expected) {}
+                            if (containerReady) {
+                                LOG.info("Container ready");
+                            } else {
+                                LOG.info("Failed to connect to {}, will retry", url);
+                                Thread.sleep(10000);
+                            }
+                        } finally {
+                            RDBDataSourceFactory.closeDataSourceBestEffort(dataSource);
+                        }
+                    }
+                } catch (Exception e) {
+                    LOG.error("error while starting RDB container, error: ", e);
+                    rdbContainer.close();
+                }
             } else {
-                LOG.info("docker not available");
+                LOG.info("docker image {} not available", IMG);
             }
         } catch (Throwable t) {
             LOG.error("not able to pull specified docker image: {}, error: ", IMG, t);
-        }
-        RDB_AVAILABLE = dockerAvailable && imageAvailable;
-        if (RDB_AVAILABLE) {
-            rdbContainer = new GenericContainer<>(DockerImageName.parse(IMG))
-                    .withPrivilegedMode(true)
-                    .withEnv(ENV)
-                    .withExposedPorts(exposedPort)
-                    .withStartupTimeout(Duration.ofMinutes(15));
-            try {
-                long startTime = Instant.now().toEpochMilli();
-                rdbContainer.start();
-                LOG.info("RDB container started in: " + (Instant.now().toEpochMilli() - startTime) + " ms");
-                String url = RdbConnectionUtils.mapJdbcURL();
-                LOG.info("Mapped JDBC URL is {}.", url);
-                boolean containerReady = false;
-                LOG.info("Trying to connect to {}", url);
-                for (int k = 0; k < 30 && !containerReady; k++) {
-                    Thread.sleep(10000);
-                    Connection connection = null;
-                    try {
-                        DataSource dataSource = RDBDataSourceFactory.forJdbcUrl(url, RdbConnectionUtils.USERNAME, RdbConnectionUtils.PASSWD);
-                        connection = dataSource.getConnection();
-                        containerReady = true;
-                    } catch (SQLException expected) {
-                        LOG.info("Failed to connect to {}, will retry", url);
-                    } finally {
-                        if (connection != null) {
-                            try {
-                                connection.close();
-                            } catch (SQLException expected) {}
-                        }
-                    }
-                    if (containerReady) {
-                        LOG.info("Container ready");
-                    } else {
-                        LOG.error("Failed to connect to {} within timeout", url);
-                    }
-                }
-            } catch (Exception e) {
-                LOG.error("error while starting RDB container, error: ", e);
-            }
         }
     }
 
@@ -129,7 +118,7 @@ public class RdbConnectionUtils {
 
     public static String mapJdbcURL() {
         String jdbcUrl = URL;
-        if (RDB_AVAILABLE) {
+        if (rdbContainer != null && rdbContainer.isRunning()) {
             String normalizedJdbcUri = URL.replaceFirst("@//", "//").replaceFirst("@", "//");
             Pattern pattern = Pattern.compile("//[^:/]+(:(\\d+))?");
             Matcher matcher = pattern.matcher(normalizedJdbcUri);

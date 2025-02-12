@@ -103,6 +103,14 @@ public class RDBDataSourceFactory {
         return forJdbcUrl(url, username, passwd, null);
     }
 
+    public static void closeDataSourceBestEffort(DataSource ds) {
+        if (ds instanceof CloseableDataSource) {
+            try {
+                ((CloseableDataSource) ds).close();
+            } catch (IOException ignored) {}
+        }
+    }
+
     /**
      * A {@link Closeable} {@link DataSource} based on a generic {@link Source}
      * .
