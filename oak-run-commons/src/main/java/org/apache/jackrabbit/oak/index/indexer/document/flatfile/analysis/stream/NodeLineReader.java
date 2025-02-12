@@ -101,7 +101,7 @@ public class NodeLineReader implements NodeDataReader, Closeable {
         return new NodeData(pathElements, parse(nodeJson));
     }
 
-    private static List<NodeProperty> parse(String nodeData) {
+    static List<NodeProperty> parse(String nodeData) {
         ArrayList<NodeProperty> properties = new ArrayList<>();
         JsonObject json = JsonObject.fromJson(nodeData, true);
         for(Entry<String, String> e : json.getProperties().entrySet()) {
