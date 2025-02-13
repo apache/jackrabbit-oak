@@ -49,7 +49,7 @@ public class LengthCachingDataStoreTest {
         File root = tempFolder.getRoot();
         File mappingFile = new File(root, "mapping.txt");
         String text = "1000|foo\n2000|bar";
-        Files.writeString(mappingFile.toPath(),text);
+        Files.writeString(mappingFile.toPath(), text);
 
         LengthCachingDataStore fds = new LengthCachingDataStore();
         fds.setDelegateClass(FileDataStore.class.getName());
