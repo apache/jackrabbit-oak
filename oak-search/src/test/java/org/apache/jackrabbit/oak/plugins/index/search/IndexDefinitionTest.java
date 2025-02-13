@@ -64,6 +64,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class IndexDefinitionTest {
 
@@ -473,6 +474,25 @@ public class IndexDefinitionTest {
                 .setProperty(JcrConstants.JCR_DATA, "hello".getBytes());
         defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
         assertTrue(defn.hasCustomTikaConfig());
+    }
+
+    @Test
+    public void missingTikaConfig() {
+        NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                "lucene", Set.of(TYPENAME_STRING));
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        assertFalse(defn.hasCustomTikaConfig());
+
+        defnb.child(FulltextIndexConstants.TIKA)
+                .child(FulltextIndexConstants.TIKA_CONFIG)
+                .child(JcrConstants.JCR_CONTENT);
+        defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+        try {
+            defn.getTikaConfig();
+            fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("Tika configuration missing"));
+        }
     }
 
     @Test
