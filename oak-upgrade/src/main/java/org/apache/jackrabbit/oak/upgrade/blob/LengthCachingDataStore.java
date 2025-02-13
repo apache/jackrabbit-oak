@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.upgrade.blob;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -45,7 +45,6 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.slf4j.Logger;
@@ -263,7 +262,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
         if (mappingFile.exists()) {
             try {
                 existingMappings = loadMappingData(mappingFile);
-            } catch (FileNotFoundException e) {
+            } catch (IOException e) {
                 throw new RuntimeException("Failed to read mapping data from " + mappingFile, e);
             }
         } else {
@@ -323,10 +322,10 @@ public class LengthCachingDataStore extends AbstractDataStore {
         }
     }
 
-    private static Map<String, Long> loadMappingData(File mappingFile) throws FileNotFoundException {
+    private static Map<String, Long> loadMappingData(File mappingFile) throws IOException {
         Map<String, Long> mapping = new HashMap<String, Long>();
         log.info("Reading mapping data from {}", mappingFile.getAbsolutePath());
-        LineIterator itr = new LineIterator(Files.newReader(mappingFile, StandardCharsets.UTF_8));
+        LineIterator itr = new LineIterator(Files.newBufferedReader(mappingFile.toPath()));
         try {
             while (itr.hasNext()) {
                 String line = itr.nextLine();
