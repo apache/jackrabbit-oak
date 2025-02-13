@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli;
 
-import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentAzureServicePrincipalNodeStoreContainer;
@@ -34,8 +34,8 @@ public class SegmentTarToSegmentAzureServicePrincipalTest extends AbstractOak2Oa
 
     @Override
     public void prepare() throws Exception {
-        assumeNotNull(ENVIRONMENT.getVariable(AzureUtilities.AZURE_ACCOUNT_NAME), ENVIRONMENT.getVariable(AzureUtilities.AZURE_TENANT_ID),
-                ENVIRONMENT.getVariable(AzureUtilities.AZURE_CLIENT_ID), ENVIRONMENT.getVariable(AzureUtilities.AZURE_CLIENT_SECRET));
+        assumeNotNull(ENVIRONMENT.getVariable(AzureUtilitiesV8.AZURE_ACCOUNT_NAME), ENVIRONMENT.getVariable(AzureUtilitiesV8.AZURE_TENANT_ID),
+                ENVIRONMENT.getVariable(AzureUtilitiesV8.AZURE_CLIENT_ID), ENVIRONMENT.getVariable(AzureUtilitiesV8.AZURE_CLIENT_SECRET));
         skipTest = false;
         super.prepare();
     }
