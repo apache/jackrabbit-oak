@@ -73,7 +73,7 @@ public class IndexDiff {
 
     private static void writeFile(Path p, JsonObject json) {
         try {
-            Files.write(p, json.toString().getBytes());
+            Files.writeString(p, json.toString());
         } catch (IOException e) {
             throw new IllegalStateException("Error writing file: " + p, e);
         }
