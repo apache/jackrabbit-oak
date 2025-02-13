@@ -38,7 +38,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class IndexWriterPoolTest {
     private final static Logger LOG = LoggerFactory.getLogger(IndexWriterPoolTest.class);
