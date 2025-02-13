@@ -28,6 +28,7 @@ import org.apache.lucene.analysis.miscellaneous.KeepWordFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.KeywordMarkerFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.LengthFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilterFactory;
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilterFactory;
 import org.apache.lucene.analysis.ngram.EdgeNGramFilterFactory;
 import org.apache.lucene.analysis.ngram.NGramFilterFactory;
 import org.apache.lucene.analysis.pattern.PatternCaptureGroupFilterFactory;
@@ -112,7 +113,7 @@ public class ElasticCustomAnalyzerMappings {
 
         LUCENE_ELASTIC_TRANSFORMERS = new LinkedHashMap<>();
 
-        LUCENE_ELASTIC_TRANSFORMERS.put(WordDelimiterFilterFactory.class, luceneParams -> {
+        ParameterTransformer wordDelimiterParamTransformer = luceneParams -> {
             Consumer<String> transformFlag = flag -> luceneParams.computeIfPresent(flag, (k, v) -> Integer.parseInt(v.toString()) == 1);
 
             transformFlag.accept("generateWordParts");
@@ -126,9 +127,12 @@ public class ElasticCustomAnalyzerMappings {
             transformFlag.accept("stemEnglishPossessive");
 
             return reKey.apply(luceneParams, Map.of(
-                    "protectedTokens", "protected_words"
+                    "protectedTokens", "protected_words",
+                    "types", "type_table"
             ));
-        });
+        };
+        LUCENE_ELASTIC_TRANSFORMERS.put(WordDelimiterFilterFactory.class, wordDelimiterParamTransformer);
+        LUCENE_ELASTIC_TRANSFORMERS.put(WordDelimiterGraphFilterFactory.class, wordDelimiterParamTransformer);
 
         LUCENE_ELASTIC_TRANSFORMERS.put(TypeTokenFilterFactory.class, luceneParams -> {
             Object useWhitelist = luceneParams.remove("useWhitelist");
