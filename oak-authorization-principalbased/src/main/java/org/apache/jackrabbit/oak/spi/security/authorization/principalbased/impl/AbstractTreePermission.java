@@ -72,8 +72,8 @@ abstract class AbstractTreePermission implements TreePermission  {
 
     @Override
     public boolean canReadAll() {
-        // As principal based permissions does not allow to deny then if the read permission is given in this node
-        // it is also granted for all child nodes and properties however this is true only if no restrictions are defined.
+        // As principal based permissions does not allow deny entries then if the read permission is given in this node
+        // it is also granted for all child nodes and properties however this couldn't be true depending on the restrictions
         if (readAll == null) {
             long permission = Permissions.READ_ACCESS_CONTROL | Permissions.READ;
             readAll = !getPermissionProvider().hasRestrictions() && getPermissionProvider().isGranted(tree, null, permission);
@@ -83,7 +83,7 @@ abstract class AbstractTreePermission implements TreePermission  {
 
     @Override
     public boolean canReadProperties() {
-        return false;
+        return canReadAll();
     }
 
     @Override
