@@ -71,6 +71,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static final String LOG_KEY_UNABLE_TO_PARSE = "Unable to parse the provided date field";
     private static final String LOG_KEY_FOR_INPUT_STRING = "For input string";
     private static final String LOG_KEY_IGNORING_FACET_PROPERTY = "Ignoring facet property";
+    private static final String LOG_KEY_UNKNOWN = "Unknown";
 
     public LuceneDocumentMaker(IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
@@ -148,7 +149,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     private String constructAnalyzedPropertyName(String pname) {
-        if (definition.getVersion().isAtLeast(IndexFormatVersion.V2)){
+        if (definition.getVersion().isAtLeast(IndexFormatVersion.V2)) {
             return FieldNames.createAnalyzedFieldName(pname);
         }
         return pname;
@@ -208,7 +209,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     @Override
     protected void indexAggregateValue(Document doc, Aggregate.NodeIncludeResult result, String value, PropertyDefinition pd) {
         Field field = result.isRelativeNode() ?
-                newFulltextField(result.rootIncludePath, value) : newFulltextField(value) ;
+                newFulltextField(result.rootIncludePath, value) : newFulltextField(value);
         if (pd != null) {
             field.setBoost(pd.boost);
         }
@@ -318,7 +319,6 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             // - NumberFormatException: For input string
             // For these we do not log a stack trace, and we only log once every 10 seconds
             // (the location of the code can be found if needed, as it's in Oak)
-            boolean logStackTrace = false;
             if (message.startsWith("Not a date string")) {
                 key = LOG_KEY_NOT_A_DATE_STRING;
             } else if (message.startsWith("Unable to parse the provided date field")) {
@@ -326,25 +326,25 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             } else if (message.startsWith("For input string")) {
                 key = LOG_KEY_FOR_INPUT_STRING;
             } else {
-                key = message.substring(0, Math.min(20, message.length()));
-                logStackTrace = true;
+                key = LOG_KEY_UNKNOWN;
             }
-            if (!logStackTrace) {
-                if (!LOG_SILENCER.silence(key)) {
+            if (!LOG_SILENCER.silence(key)) {
+                if (key.equals(LOG_KEY_UNKNOWN)) {
+                    // unknown error, log with stack trace
+                    LOG.warn(
+                            "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
+                            getIndexName(), pname,
+                            Type.fromTag(property.getType().tag(), false),
+                            Type.fromTag(tag, false), path, e);
+                } else {
                     // log without stack trace (as it is known)
                     LOG.warn(
                             "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}, message {}",
                             getIndexName(), pname,
                             Type.fromTag(property.getType().tag(), false),
                             Type.fromTag(tag, false), path, e.getMessage());
-                }
-            } else {
-                if (!LOG_SILENCER.silence(key)) {
-                    LOG.warn(
-                            "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
-                            getIndexName(), pname,
-                            Type.fromTag(property.getType().tag(), false),
-                            Type.fromTag(tag, false), path, e);
+
+
                 }
             }
         }
@@ -377,7 +377,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
 
         LOG.trace("Property {} at path:[{}] has value {}", prop, path, value);
         LOG.info("Truncating property {} at path:[{}] as length after encoding {} is > {} ",
-            prop, path, ref.length, maxLength);
+                prop, path, ref.length, maxLength);
 
         int end = maxLength - 1;
         // skip over tails of utf-8 multi-byte sequences (up to 3 bytes)
@@ -484,6 +484,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
 
     private static class AugmentedField extends Field {
         private static final FieldType ft = new FieldType();
+
         static {
             ft.setIndexed(true);
             ft.setStored(false);
