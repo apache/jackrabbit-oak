@@ -244,6 +244,9 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
                 }
             case ACCESS_CONTROL:
             default:
+                if (parentPermission != null && parentPermission.canReadAll()) {
+                    return new AllowReadTreePermission(readOnly, type);
+                }
                 return new RegularTreePermission(readOnly, type);
         }
     }
@@ -456,6 +459,23 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         @Override
         PrincipalBasedPermissionProvider getPermissionProvider() {
             return PrincipalBasedPermissionProvider.this;
+        }
+    }
+
+    private final class AllowReadTreePermission extends AbstractTreePermission {
+        
+        public AllowReadTreePermission(@NotNull Tree tree, @NotNull TreeType type) {
+            super(tree, type);
+        }
+
+        @Override
+        PrincipalBasedPermissionProvider getPermissionProvider() {
+            return PrincipalBasedPermissionProvider.this;
+        }
+        
+        @Override
+        public boolean canReadAll() {
+            return true;
         }
     }
 
