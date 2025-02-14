@@ -283,17 +283,17 @@ public interface JackrabbitSession extends Session {
      * @param item the item for which to retrieve the name
      * @return the name of the item in expanded form.
      * @throws RepositoryException if another error occurs.
-     * @since 1.76.0
+     * @since 1.78.0
      * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form">JCR 2.0, 3.2.5.1 Expanded Form</a>
      */
     @NotNull String getExpandedName(@NotNull Item item) throws RepositoryException;
-    
+
     /**
      * Returns the expanded path of the given {@code Item}.
      * @param item the item for which to retrieve the name
      * @return the path of the item in expanded form.
      * @throws RepositoryException if another error occurs.
-     * @since 1.76.0
+     * @since 1.78.0
      * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form">JCR 2.0, 3.2.5.1 Expanded Form</a>
      */
     @NotNull String getExpandedPath(@NotNull Item item) throws RepositoryException;
