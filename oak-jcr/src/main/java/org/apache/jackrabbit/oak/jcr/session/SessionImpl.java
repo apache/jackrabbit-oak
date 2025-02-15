@@ -857,7 +857,8 @@ public class SessionImpl implements JackrabbitSession {
     @NotNull
     public String getExpandedName(@NotNull Item item) throws RepositoryException {
         try {
-            return checkItemImpl(item).sessionContext.getExpandedJcrName(item.getName());
+            ItemImpl<?> itemImpl = checkItemImpl(item);
+            return itemImpl.sessionContext.getExpandedJcrName(itemImpl.getOakName());
         } catch (IllegalStateException e) {
             throw new RepositoryException("Namespace exception " + e.getMessage());
         }
@@ -867,7 +868,8 @@ public class SessionImpl implements JackrabbitSession {
     @NotNull
     public String getExpandedPath(@NotNull Item item) throws RepositoryException {
         try {
-            return checkItemImpl(item).sessionContext.getExpandedJcrPath(item.getPath());
+            ItemImpl<?> itemImpl = checkItemImpl(item);
+            return itemImpl.sessionContext.getExpandedJcrPath(itemImpl.getOakPath());
         } catch (IllegalStateException e) {
             throw new RepositoryException("Namespace exception " + e.getMessage());
         }

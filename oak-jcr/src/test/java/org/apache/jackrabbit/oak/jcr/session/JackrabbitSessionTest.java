@@ -83,21 +83,28 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
     }
 
     public void testGetExpandedName() throws RepositoryException {
+        // empty namespace uri
         assertEquals("{}testroot", s.getExpandedName(testRootNode));
-        Node n = testRootNode.addNode("foo:bar"); // a save() would fail due to unmapped namespace
-//        try {
-//            s.getExpandedName(n);
-//            fail("expanded name for unmapped namespace prefix should fail");
-//        } catch (RepositoryException unexpected) {
-//            // success
-//        }
-        s.setNamespacePrefix("foo", "urn:foo");
-        n.getName();
-        // s.getWorkspace().getNamespaceRegistry().registerNamespace("foo", "urn:foo");
-        //assertEquals("{urn:foo}bar", s.getExpandedName(n));
+        // global namespace uri
+        s.getWorkspace().getNamespaceRegistry().registerNamespace("foo", "urn:foo");
+        Node n = testRootNode.addNode("foo:bar");
+        assertEquals("{urn:foo}bar", s.getExpandedName(n));
+        // now remap namespace uri
+        s.setNamespacePrefix("foo", "http://www.foo.com");
+        assertEquals("{http://www.foo.com}bar", s.getExpandedName(n));
+        // use special namespace uri
+        n = testRootNode.addNode("rep:bar");
+        assertEquals("{internal}bar", s.getExpandedName(n));
     }
 
     public void testGetExpandedPath() throws RepositoryException {
         assertEquals("/{}testroot", s.getExpandedPath(testRootNode));
+        // global namespace url
+        s.getWorkspace().getNamespaceRegistry().registerNamespace("foo", "urn:foo");
+        Node n = testRootNode.addNode("foo:bar").addNode("rep:bar");
+        assertEquals("/{}testroot/{urn:foo}bar/{internal}bar", s.getExpandedPath(n));
+        // now remap namespace uri
+        s.setNamespacePrefix("foo", "http://www.foo.com");
+        assertEquals("/{}testroot/{http://www.foo.com}bar/{internal}bar", s.getExpandedPath(n));
     }
 }
