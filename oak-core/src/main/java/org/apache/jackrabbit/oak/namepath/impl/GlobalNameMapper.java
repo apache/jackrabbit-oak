@@ -133,6 +133,11 @@ public class GlobalNameMapper implements NameMapper {
     @Override
     @NotNull
     public String getExpandedJcrName(@NotNull String oakName) {
+        // Sanity checks, can be turned to assertions if needed for performance
+        requireNonNull(oakName);
+        checkArgument(!isHiddenName(oakName), oakName);
+        checkArgument(!isExpandedName(oakName), oakName);
+
         String uri;
         final String localName;
         int colon = oakName.indexOf(':');
