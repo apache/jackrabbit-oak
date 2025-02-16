@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -133,6 +134,7 @@ public class AzureJournalFileTest {
     }
 
     @Test
+    @Ignore("This is flaky, it very much depends on the performance of the machine running the test")
     public void testEnsureBatchWriteLinesIsFasterThanNaiveImplementation() throws IOException {
         List<String> lines = buildLines(0, 100);
 

@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -86,6 +87,11 @@ public class AzureSegmentStoreServiceTest {
         for (String blob : BLOBS) {
             container.getBlobClient(blob + ".txt").getBlockBlobClient().upload(new ByteArrayInputStream(blob.getBytes()), blob.length());
         }
+    }
+
+    @AfterClass
+    public static void tearDownClass() {
+        System.clearProperty("segment.azure.v12.enabled");
     }
 
     @Test
