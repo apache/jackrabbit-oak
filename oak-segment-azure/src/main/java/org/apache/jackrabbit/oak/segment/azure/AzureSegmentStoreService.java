@@ -51,7 +51,9 @@ public class AzureSegmentStoreService {
 
     private ServiceRegistration registration;
 
-    private final boolean useAzureSdkV12 = Boolean.getBoolean("segment.azure.v12.enabled");
+    public static final String SEGMENT_AZURE_V_12_ENABLED = "segment.azure.v12.enabled";
+
+    private final boolean useAzureSdkV12 = Boolean.getBoolean(SEGMENT_AZURE_V_12_ENABLED);
 
 
     @Activate
