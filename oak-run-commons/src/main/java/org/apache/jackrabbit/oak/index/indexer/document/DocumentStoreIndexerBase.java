@@ -416,10 +416,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 }
 
                 for (NodeStateIndexerProvider indexerProvider : indexerProviders) {
-                    indexerProvider.close();
                     ExtractedTextCache extractedTextCache = indexerProvider.getTextCache();
                     CacheStats cacheStats = extractedTextCache == null ? null : extractedTextCache.getCacheStats();
                     log.info("Text extraction cache statistics: {}", cacheStats == null ? "N/A" : cacheStats.cacheInfoAsString());
+                    indexerProvider.close();
                 }
 
                 progressReporter.reindexingTraversalEnd();

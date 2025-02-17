@@ -237,11 +237,11 @@ public class IndexWriterPool {
                         pendingBatchesLock.notifyAll();
                     }
                 }
-            } catch (InterruptedException | IOException e) {
-                LOG.warn("[{}] Interrupted while waiting to take an update operation from the queue", id, e);
+            } catch (InterruptedException e) {
+                LOG.warn("[{}] Interrupted while waiting for an index write operation", id, e);
                 throw new RuntimeException(e);
             } catch (Throwable t) {
-                LOG.error("[{}] Error while processing update operation", id, t);
+                LOG.error("[{}] Error while processing an index write operation", id, t);
                 throw new RuntimeException(t);
             } finally {
                 Thread.currentThread().setName(oldName);
