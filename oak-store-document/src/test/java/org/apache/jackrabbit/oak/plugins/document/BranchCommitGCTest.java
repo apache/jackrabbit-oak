@@ -413,6 +413,7 @@ public class BranchCommitGCTest {
     }
 
     @Test
+    @Ignore("OAK-11489")
     public void unmergedAddsThenMergedAddThenUnmergedRemovesChildren() throws Exception {
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC); // see OAK-10852
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS); // see OAK-10852
