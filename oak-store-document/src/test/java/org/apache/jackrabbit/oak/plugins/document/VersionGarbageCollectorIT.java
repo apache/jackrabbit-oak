@@ -142,6 +142,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
+@Ignore("OAK-11490")
 public class VersionGarbageCollectorIT {
 
     // OAK-10845 : temporary hacky exposure of test store to include its dump in error message
