@@ -79,9 +79,9 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     }
 
     public void close() {
-        LOG.info("Closing LuceneIndexWriterFactory");
+        LOG.debug("Closing LuceneIndexWriterFactory");
         if (indexWriterPool == null) {
-            LOG.info("Not using an Index writer pool");
+            LOG.debug("Not using an Index writer pool");
         } else {
             indexWriterPool.close();
         }
