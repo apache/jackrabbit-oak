@@ -60,6 +60,7 @@
               !com.sun.management.*,
               !jakarta.json.bind.*,
               !java.net.http.*,
+              !com.oracle.bmc.*,
               *
             </Import-Package>
             <Embed-Dependency>

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.jackrabbit.guava.common.io.CountingInputStream;
+import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.io.LazyInputStream;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
@@ -261,7 +261,7 @@ class TextExtractor implements Closeable {
             try {
                 tika.getParser().parse(stream, handler, metadata, new ParseContext());
             } finally {
-                size = stream.getCount();
+                size = stream.getByteCount();
                 stream.close();
             }
         } catch (LinkageError e) {
