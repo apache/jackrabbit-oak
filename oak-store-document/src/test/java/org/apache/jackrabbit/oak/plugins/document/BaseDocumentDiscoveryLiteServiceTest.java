@@ -284,7 +284,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
             boolean renewed = setLeaseTime(1000 /* 1 sec */, 10 /*10ms*/);
             logger.info("renewed : {}", renewed);
-            // OAK-11477: lease could have been update by lease update thread while we wanted to do that
+            // OAK-11477: lease could have been updated by lease update thread while we wanted to do that
             // in which case testing for !renewed is not very useful here
             //if (!renewed) {
             //    logger.info("halt");
