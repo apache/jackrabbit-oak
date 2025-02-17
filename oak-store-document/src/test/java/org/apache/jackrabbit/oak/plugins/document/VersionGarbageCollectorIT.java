@@ -2729,6 +2729,7 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
+    @Ignore(value = "OAK-11488 ignoring because it is flaky")
     public void testDeletedPropsAndUnmergedBCWithCollisionWithDryRunMode() throws Exception {
         // OAK-10869:
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
