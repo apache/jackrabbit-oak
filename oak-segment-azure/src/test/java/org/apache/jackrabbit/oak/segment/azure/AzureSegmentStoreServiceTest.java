@@ -55,7 +55,7 @@ public class AzureSegmentStoreServiceTest {
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
-    private static String oldAzureV12SysProperty;
+    private static String oldAzureV12SysPropertyValue;
 
     @Rule
     public final OsgiContext context = new OsgiContext();
@@ -78,7 +78,7 @@ public class AzureSegmentStoreServiceTest {
         READ_WRITE.setCreatePermission(true);
         READ_WRITE.setWritePermission(true);
         READ_WRITE.setAddPermission(true);
-        oldAzureV12SysProperty = System.getProperty(AzureSegmentStoreService.SEGMENT_AZURE_V_12_ENABLED);
+        oldAzureV12SysPropertyValue = System.getProperty(AzureSegmentStoreService.SEGMENT_AZURE_V_12_ENABLED);
         System.setProperty(AzureSegmentStoreService.SEGMENT_AZURE_V_12_ENABLED, "true");
     }
 
@@ -92,8 +92,8 @@ public class AzureSegmentStoreServiceTest {
 
     @AfterClass
     public static void tearDown() {
-        if (oldAzureV12SysProperty != null) {
-            System.setProperty(AzureSegmentStoreService.SEGMENT_AZURE_V_12_ENABLED, oldAzureV12SysProperty);
+        if (oldAzureV12SysPropertyValue != null) {
+            System.setProperty(AzureSegmentStoreService.SEGMENT_AZURE_V_12_ENABLED, oldAzureV12SysPropertyValue);
         } else {
             System.clearProperty(AzureSegmentStoreService.SEGMENT_AZURE_V_12_ENABLED);
         }
