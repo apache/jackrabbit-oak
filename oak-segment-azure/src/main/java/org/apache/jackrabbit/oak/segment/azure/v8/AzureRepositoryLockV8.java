@@ -155,10 +155,12 @@ public class AzureRepositoryLockV8 implements RepositoryLock {
 
                     if (e instanceof StorageException) {
                         StorageException storageException = (StorageException) e;
-                        if (Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT
+                        String errorCode = storageException.getErrorCode();
+                        if (errorCode != null &&
+                                Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT
                                 , StorageErrorCode.SERVICE_INTERNAL_ERROR
                                 , StorageErrorCodeStrings.SERVER_BUSY
-                                , StorageErrorCodeStrings.INTERNAL_ERROR).contains(storageException.getErrorCode())) {
+                                , StorageErrorCodeStrings.INTERNAL_ERROR).contains(errorCode)) {
                             log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
                         } else if (storageException.getHttpStatusCode() == Constants.HeaderConstants.HTTP_UNUSED_306) {
                             log.warn("Client side error. Retry in progress ...", e);
