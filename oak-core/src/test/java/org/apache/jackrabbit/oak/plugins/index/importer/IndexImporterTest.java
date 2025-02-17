@@ -16,19 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -314,7 +313,7 @@ public class IndexImporterTest {
         info.save();
 
         //Create index definitions json
-        Files.write(json, new File(indexFolder, INDEX_DEFINITIONS_JSON), StandardCharsets.UTF_8);
+        Files.writeString(indexFolder.toPath().resolve(INDEX_DEFINITIONS_JSON), json);
 
         createIndexFolder(indexFolder, "/oak:index/fooIndex");
 
@@ -554,11 +553,11 @@ public class IndexImporterTest {
     private void dumpIndexDefinitions(String... indexPaths) throws IOException {
         IndexDefinitionPrinter printer = new IndexDefinitionPrinter(store, () -> asList(indexPaths));
         printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\"]}");
-        File file = new File(temporaryFolder.getRoot(), INDEX_DEFINITIONS_JSON);
+        Path file = temporaryFolder.getRoot().toPath().resolve(INDEX_DEFINITIONS_JSON);
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         printer.print(pw, Format.JSON, false);
-        Files.write(sw.toString(), file, StandardCharsets.UTF_8);
+        Files.writeString(file, sw.toString());
     }
 
     private String importDataIncrementalUpdateBeforeSetupMethod() throws IOException, CommitFailedException {

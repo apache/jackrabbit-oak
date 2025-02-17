@@ -27,11 +27,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -50,7 +49,7 @@ public class LengthCachingDataStoreTest {
         File root = tempFolder.getRoot();
         File mappingFile = new File(root, "mapping.txt");
         String text = "1000|foo\n2000|bar";
-        Files.write(text, mappingFile, Charset.defaultCharset());
+        Files.writeString(mappingFile.toPath(), text);
 
         LengthCachingDataStore fds = new LengthCachingDataStore();
         fds.setDelegateClass(FileDataStore.class.getName());
@@ -92,7 +91,7 @@ public class LengthCachingDataStoreTest {
 
         File mappingFile = new File(tempFolder.getRoot(), "mapping.txt");
         String text = String.format("%s|%s", data.length, dr.getIdentifier().toString());
-        Files.write(text, mappingFile, Charset.defaultCharset());
+        Files.writeString(mappingFile.toPath(), text);
 
         LengthCachingDataStore fds = new LengthCachingDataStore();
         fds.setDelegateClass(FileDataStore.class.getName());
