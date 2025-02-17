@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -76,8 +77,7 @@ public class AzureSegmentStoreServiceTest {
         READ_WRITE.setCreatePermission(true);
         READ_WRITE.setWritePermission(true);
         READ_WRITE.setAddPermission(true);
-        System.setProperty("segment.azure.v12.enabled", "true");
-
+        System.setProperty(AzureSegmentStoreService.SEGMENT_AZURE_V_12_ENABLED, "true");
     }
 
     @Before
@@ -86,6 +86,11 @@ public class AzureSegmentStoreServiceTest {
         for (String blob : BLOBS) {
             container.getBlobClient(blob + ".txt").getBlockBlobClient().upload(new ByteArrayInputStream(blob.getBytes()), blob.length());
         }
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        System.clearProperty(AzureSegmentStoreService.SEGMENT_AZURE_V_12_ENABLED);
     }
 
     @Test
