@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
@@ -32,9 +31,9 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
+import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -394,13 +393,13 @@ public class IndexConsistencyChecker {
 
             if (cis.getCount() != blob.length()){
                 String msg = String.format("Invalid blob %s. Length mismatch - expected ${%d} -> found ${%d}",
-                        blobPath, blob.length(), cis.getCount());
-                result.invalidBlobIds.add(new FileSizeStatus(blobPath, cis.getCount(), blob.length()));
+                        blobPath, blob.length(), cis.getByteCount());
+                result.invalidBlobIds.add(new FileSizeStatus(blobPath, cis.getByteCount(), blob.length()));
                 log.warn("[{}] {}", indexPath, msg);
                 result.clean = false;
                 result.blobSizeMismatch = true;
             }
-            result.binaryPropSize += cis.getCount();
+            result.binaryPropSize += cis.getByteCount();
         } catch (Exception e) {
             log.warn("[{}] Error occurred reading blob at {}", indexPath, blobPath, e);
             result.missingBlobIds.add(id);
