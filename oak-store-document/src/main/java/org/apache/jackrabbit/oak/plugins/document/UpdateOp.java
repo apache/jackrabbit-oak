@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -216,6 +217,21 @@ public final class UpdateOp {
      *             if an attempt is made to set {@link Document#ID}.
      */
     public void set(String property, String value) {
+        internalSet(property, value);
+    }
+
+    /**
+     * Set the property to the given Date value.
+     * <p>
+     * Note that {@link Document#ID} must not be set using this method;
+     * it is sufficiently specified by the id parameter set in the constructor.
+     *
+     * @param property the property name
+     * @param value the value
+     * @throws IllegalArgumentException
+     *             if an attempt is made to set {@link Document#ID}.
+     */
+    public void setDate(String property, Date value) {
         internalSet(property, value);
     }
 
