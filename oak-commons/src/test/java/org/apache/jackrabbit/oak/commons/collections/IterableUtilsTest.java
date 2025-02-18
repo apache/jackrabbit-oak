@@ -166,4 +166,33 @@ public class IterableUtilsTest {
         // now next iterator should be null
         Assert.assertThrows(NullPointerException.class, iterator::hasNext);
     }
+
+    @Test
+    public void testContainsWithNonNullElement() {
+        Iterable<String> iterable = List.of("a", "b", "c");
+        Assert.assertTrue(IterableUtils.contains(iterable, "b"));
+    }
+
+    @Test
+    public void testContainsWithNullElement() {
+        Iterable<String> iterable = Arrays.asList("a", "b", "c", null);
+        Assert.assertTrue(IterableUtils.contains(iterable, null));
+    }
+
+    @Test
+    public void testContainsWithEmptyIterable() {
+        Iterable<String> iterable = List.of();
+        Assert.assertFalse(IterableUtils.contains(iterable, "a"));
+    }
+
+    @Test
+    public void testContainsWithElementNotPresent() {
+        Iterable<String> iterable = List.of("a", "b", "c");
+        Assert.assertFalse(IterableUtils.contains(iterable, "d"));
+    }
+
+    @Test
+    public void testContainsWithNullIterable() {
+        Assert.assertFalse(IterableUtils.contains(null, "a"));
+    }
 }

@@ -142,4 +142,17 @@ public class IterableUtils {
             }
         };
     }
+
+    /**
+     * Checks if the specified object is present in the given iterable.
+     *
+     * @param <E> the type of elements in the iterable
+     * @param iterable the iterable to search, may not be null
+     * @param object the object to find, may be null
+     * @return true if the iterable contains the object, false otherwise
+     * @throws NullPointerException if the iterable is null
+     */
+    public static <E> boolean contains(final Iterable<E> iterable, final Object object) {
+        return org.apache.commons.collections4.IterableUtils.contains(iterable, object);
+    }
 }
