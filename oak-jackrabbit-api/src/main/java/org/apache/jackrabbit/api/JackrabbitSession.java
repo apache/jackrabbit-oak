@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.api;
 
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import java.security.Principal;
+import java.util.Set;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
@@ -27,8 +28,11 @@ import javax.jcr.Session;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -304,4 +308,14 @@ public interface JackrabbitSession extends Session {
      * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form">JCR 2.0, 3.2.5.1 Expanded Form</a>
      */
     @NotNull String getExpandedPath(@NotNull Item item) throws RepositoryException;
+
+    /**
+     * Returns the set of principals associated with this session.
+     * @return the set of principals associated with this session.
+     * @throws RepositoryException in case principal information cannot be retrieved.
+     * @since 1.82
+     */
+    @NotNull Set<Principal> getPrincipals() throws RepositoryException;
+
 }
+

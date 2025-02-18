@@ -33,6 +33,9 @@ import java.util.UUID;
 
 import static org.mockito.Mockito.mock;
 
+import java.security.Principal;
+import java.util.Set;
+
 public class JackrabbitSessionTest extends AbstractJCRTest {
     
     private JackrabbitSession s;
@@ -84,6 +87,7 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         }
     }
 
+<<<<<<< Upstream, based on trunk
     public void testGetExpandedName() throws RepositoryException {
         // empty namespace uri
         assertEquals("{}testroot", s.getExpandedName(testRootNode));
@@ -130,5 +134,24 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         // now remap namespace uri - should not affect expanded name
         s.setNamespacePrefix("test", "urn:foo");
         assertEquals("/{}testroot/{http://www.apache.org/jackrabbit/test}bar/{internal}bar", s.getExpandedPath(n));
+=======
+    public void testGetPrincipalsForAdminSession() throws RepositoryException {
+        Set<Principal> principals = s.getPrincipals();
+        assertNotNull(principals);
+        assertTrue("Admin principal expected", principals.contains(s.getPrincipalManager().getPrincipal("admin")));
+        assertTrue("Everyone principal expected", principals.contains(s.getPrincipalManager().getEveryone()));
+    }
+
+    public void testGetPrincipalsForGuestSession() throws RepositoryException {
+        JackrabbitSession guest = (JackrabbitSession) getHelper().getRepository().login(new GuestCredentials());
+        try {
+            Set<Principal> principals = guest.getPrincipals();
+            assertNotNull(principals);
+            assertFalse("Admin principal not expected", principals.contains(s.getPrincipalManager().getPrincipal("admin")));
+            assertTrue("Everyone principal expected", principals.contains(s.getPrincipalManager().getEveryone()));
+        } finally {
+            guest.logout();
+        }
+>>>>>>> fc756c5 OAK-11498: Expose Session-bound principals via JackrabbitSession
     }
 }
