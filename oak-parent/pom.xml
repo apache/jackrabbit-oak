@@ -127,7 +127,6 @@
           <configuration>
             <doclint>none</doclint>
             <detectJavaApiLink>true</detectJavaApiLink>
-            <aggregate>true</aggregate>
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
