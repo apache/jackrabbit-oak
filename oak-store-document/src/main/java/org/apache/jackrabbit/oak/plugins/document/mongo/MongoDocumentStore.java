@@ -70,6 +70,7 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
+import org.apache.jackrabbit.oak.plugins.document.FullGcBin;
 import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -86,6 +87,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.ModificationStamp;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createTTLIndex;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -463,6 +465,10 @@ public class MongoDocumentStore implements DocumentStore {
 
         // index on _modified for journal entries
         createIndex(journal, JournalEntry.MODIFIED, true, false, false);
+
+        //TTL index for full GC bin documents to expire after 90 days
+        //see https://issues.apache.org/jira/browse/OAK-11444
+        createTTLIndex(settings, FullGcBin.GC_COLLECTED_AT, TimeUnit.DAYS.toSeconds(90));
     }
 
     private void createCollection(MongoDatabase db, String collectionName, MongoStatus mongoStatus) {

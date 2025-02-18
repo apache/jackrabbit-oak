@@ -26,8 +26,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ *  This class is as a wrapper around DocumentStore that expose two methods used to clean garbage from NODES collection
+ *  public int remove(Map<String, Long> orphanOrDeletedRemovalMap)
+ *  public List<NodeDocument> findAndUpdate(List<UpdateOp> updateOpList)
+ *  When enabled
+ *  Each method saves the document ID or empty properties names (that will be deleted) to a separate _bin collection as a BinDocument then delegates deletion to DocumentStore
+ *
+ *  When disabled (default)
+ *  Each method delegates directly to DocumentStore
+ */
 public class FullGcBin {
     private static final Logger LOG = getLogger(FullGcBin.class);
+    public static final String GC_COLLECTED_AT = "_gcCollectedAt";
     private final DocumentStore documentStore;
     private boolean enabled;
 
@@ -35,6 +46,16 @@ public class FullGcBin {
         documentStore = ds;
     }
 
+    /**
+     * Remove orphaned or deleted documents from the NODES collection
+     * If bin is enabled, the document IDs are saved to the SETTINGS collection with ID prefixed with '/bin/'
+     * If document ID cannot be saved then the removal of the document fails
+     * If the bin is disabled, the document IDs are directly removed from the NODES collection
+     *
+     * @param orphanOrDeletedRemovalMap the keys of the documents to remove with the corresponding timestamps
+     * @return the number of documents removed
+     * @see DocumentStore#remove(Collection, Map)
+     */
     public int remove(Map<String, Long> orphanOrDeletedRemovalMap) {
         if (orphanOrDeletedRemovalMap.isEmpty() || !addToBin(orphanOrDeletedRemovalMap)) {
             return 0;
@@ -49,6 +70,17 @@ public class FullGcBin {
         return documentStore.remove(Collection.NODES, orphanOrDeletedRemovalMap);
     }
 
+
+    /**
+     * Performs a conditional update
+     * If the bin is enabled, the removed properties are saved to the SETTINGS collection with ID prefixed with '/bin/' and empty value
+     * If the document ID and properties  cannot be saved then the removal of the property fails
+     * If bin is disabled, the removed properties are directly removed from the NODES collection
+     *
+     * @param updateOpList the update operation List
+     * @return the list containing old documents
+     * @see DocumentStore#findAndUpdate(Collection, List)
+     */
     public List<NodeDocument> findAndUpdate(List<UpdateOp> updateOpList) {
         LOG.info("Updating {} documents", updateOpList.size());
         if (updateOpList.isEmpty() || !addToBin(updateOpList)) {
@@ -70,7 +102,7 @@ public class FullGcBin {
         try {
             return documentStore.create(Collection.SETTINGS, docs);
         } catch (Exception e) {
-            LOG.error("Error while adding delete candidate documents to bin", e);
+            LOG.error("Error while adding delete candidate documents to bin: {}", docs, e);
         }
         return false;
     }
@@ -86,7 +118,7 @@ public class FullGcBin {
             documentStore.createOrUpdate(Collection.SETTINGS, binOpList);
             return true;
         } catch (Exception e) {
-            LOG.error("Error while adding removed properties to bin", e);
+            LOG.error("Error while adding removed properties to bin: {}", binOpList, e);
         }
         return false;
     }
@@ -108,7 +140,7 @@ public class FullGcBin {
         //this property is used to track the time when the document was added to the bin
         //it can be used as a TTL index property to automatically remove the document after a certain time
         //see https://www.mongodb.com/docs/manual/core/index-ttl/#std-label-index-feature-ttl
-        insertOp.set("_gcCollectedAt", Instant.now().toEpochMilli());
+        insertOp.set(GC_COLLECTED_AT, Instant.now().toEpochMilli());
         return insertOp;
     }
 
