@@ -413,12 +413,13 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         }
                     }
                     log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
+                }
 
-                    indexerProviders.forEach(indexProvider -> {
-                        ExtractedTextCache extractedTextCache = indexProvider.getTextCache();
-                        CacheStats cacheStats = extractedTextCache == null ? null : extractedTextCache.getCacheStats();
-                        log.info("Text extraction cache statistics: {}", cacheStats == null ? "N/A" : cacheStats.cacheInfoAsString());
-                    });
+                for (NodeStateIndexerProvider indexerProvider : indexerProviders) {
+                    ExtractedTextCache extractedTextCache = indexerProvider.getTextCache();
+                    CacheStats cacheStats = extractedTextCache == null ? null : extractedTextCache.getCacheStats();
+                    log.info("Text extraction cache statistics: {}", cacheStats == null ? "N/A" : cacheStats.cacheInfoAsString());
+                    indexerProvider.close();
                 }
 
                 progressReporter.reindexingTraversalEnd();

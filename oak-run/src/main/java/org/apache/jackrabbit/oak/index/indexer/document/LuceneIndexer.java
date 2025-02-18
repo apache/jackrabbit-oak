@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -49,6 +50,7 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     private FacetsConfig facetsConfig;
 
     private final IndexerStatisticsTracker indexerStatisticsTracker = new IndexerStatisticsTracker(LOG);
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public LuceneIndexer(IndexDefinition definition, LuceneIndexWriter indexWriter,
                          NodeBuilder builder, FulltextBinaryTextExtractor binaryTextExtractor,
@@ -122,9 +124,13 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
 
     @Override
     public void close() throws IOException {
-        LOG.info("[{}] Statistics: {}", definition.getIndexName(), indexerStatisticsTracker.formatStats());
-        binaryTextExtractor.logStats();
-        indexWriter.close(System.currentTimeMillis());
+        if (closed.compareAndSet(false, true)) {
+            indexWriter.close(System.currentTimeMillis());
+            LOG.info("[{}] Statistics: {}", definition.getIndexName(), indexerStatisticsTracker.formatStats());
+            binaryTextExtractor.logStats();
+        } else {
+            LOG.debug("Indexer already closed: {}", definition.getIndexName());
+        }
     }
 
     private void writeToIndex(Document doc, String path) throws IOException {
@@ -152,4 +158,9 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
         return facetsConfig;
     }
 
+
+    @Override
+    public String toString() {
+        return definition.toString();
+    }
 }
