@@ -16,18 +16,20 @@
  */
 package org.apache.jackrabbit.api;
 
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import java.security.Principal;
+import java.util.Set;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.Property;
-import javax.jcr.Session;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -277,4 +279,12 @@ public interface JackrabbitSession extends Session {
             return null;
         }
     }
+    
+    /**
+     * Returns the set of principals associated with this session.
+     * @return the set of principals associated with this session.
+     * @throws RepositoryException in case principal information cannot be retrieved.
+     * @since 1.78
+     */
+    @NotNull Set<Principal> getPrincipals() throws RepositoryException;
 }

@@ -30,6 +30,9 @@ import javax.jcr.RepositoryException;
 
 import static org.mockito.Mockito.mock;
 
+import java.security.Principal;
+import java.util.Set;
+
 public class JackrabbitSessionTest extends AbstractJCRTest {
     
     private JackrabbitSession s;
@@ -81,6 +84,23 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
             // success
         }
     }
-    
-    
+
+    public void testGetPrincipalsForAdminSession() throws RepositoryException {
+        Set<Principal> principals = s.getPrincipals();
+        assertNotNull(principals);
+        assertTrue("Admin principal expected", principals.contains(s.getPrincipalManager().getPrincipal("admin")));
+        assertTrue("Everyone principal expected", principals.contains(s.getPrincipalManager().getEveryone()));
+    }
+
+    public void testGetPrincipalsForGuestSession() throws RepositoryException {
+        JackrabbitSession guest = (JackrabbitSession) getHelper().getRepository().login(new GuestCredentials());
+        try {
+            Set<Principal> principals = guest.getPrincipals();
+            assertNotNull(principals);
+            assertFalse("Admin principal not expected", principals.contains(s.getPrincipalManager().getPrincipal("admin")));
+            assertTrue("Everyone principal expected", principals.contains(s.getPrincipalManager().getEveryone()));
+        } finally {
+            guest.logout();
+        }
+    }
 }
