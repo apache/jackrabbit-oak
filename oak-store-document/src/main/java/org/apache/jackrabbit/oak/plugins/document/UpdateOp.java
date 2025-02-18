@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -218,6 +219,12 @@ public final class UpdateOp {
     public void set(String property, String value) {
         internalSet(property, value);
     }
+
+    public void setDate(String property, Date value) {
+        internalSet(property, value);
+    }
+
+
 
     /**
      * Set the property to the given value if the new value is higher than the

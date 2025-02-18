@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
@@ -44,6 +46,7 @@ public class FullGcBin {
 
     public FullGcBin(DocumentStore ds) {
         documentStore = ds;
+        enabled = System.getProperty("oak.document.fullGcBin.enabled", "false").equals("true");
     }
 
     /**
@@ -140,7 +143,7 @@ public class FullGcBin {
         //this property is used to track the time when the document was added to the bin
         //it can be used as a TTL index property to automatically remove the document after a certain time
         //see https://www.mongodb.com/docs/manual/core/index-ttl/#std-label-index-feature-ttl
-        insertOp.set(GC_COLLECTED_AT, Instant.now().toEpochMilli());
+        insertOp.setDate(GC_COLLECTED_AT, new Date());
         return insertOp;
     }
 
