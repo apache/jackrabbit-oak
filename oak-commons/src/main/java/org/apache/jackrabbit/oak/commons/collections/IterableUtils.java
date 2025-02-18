@@ -155,4 +155,15 @@ public class IterableUtils {
     public static <E> boolean contains(final Iterable<E> iterable, final Object object) {
         return org.apache.commons.collections4.IterableUtils.contains(iterable, object);
     }
+
+    /**
+     * Returns the number of elements in the specified iterable.
+     *
+     * @param itr the iterable to count elements in, may not be null
+     * @return the number of elements in the iterable
+     * @throws NullPointerException if the iterable is null
+     */
+    public static int size(final Iterable<?> itr) {
+        return org.apache.commons.collections4.IterableUtils.size(itr);
+    }
 }
