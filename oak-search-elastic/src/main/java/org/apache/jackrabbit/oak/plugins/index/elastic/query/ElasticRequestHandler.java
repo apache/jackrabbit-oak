@@ -911,7 +911,6 @@ public class ElasticRequestHandler {
         }
 
         final String field = elasticIndexDefinition.getElasticKeyword(propertyName);
-
         Query in;
         switch (propType) {
             case PropertyType.DATE: {
@@ -932,18 +931,16 @@ public class ElasticRequestHandler {
             }
             default: {
                 if (pr.isLike) {
-                    return like(propertyName, pr.first.getValue(Type.STRING));
+                    in = like(propertyName, pr.first.getValue(Type.STRING));
+                } else {
+                    // TODO Confirm that all other types can be treated as string
+                    in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.STRING));
                 }
-
-                //TODO Confirm that all other types can be treated as string
-                in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.STRING));
             }
         }
-
         if (in != null) {
             return in;
         }
-
         throw new IllegalStateException("PropertyRestriction not handled " + pr + " for index " + defn);
     }
 

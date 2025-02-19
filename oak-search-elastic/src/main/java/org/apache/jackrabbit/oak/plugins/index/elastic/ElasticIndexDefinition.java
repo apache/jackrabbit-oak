@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -320,6 +321,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
         if (propertyDefinitions == null) {
             // if there are no property definitions we return the default keyword name
             // this can happen for properties that were not explicitly defined (eg: created with a regex)
+            ElasticPropertyDefinition pd = getMatchingRegexPropertyDefinition(propertyName);
+            if (pd != null) {
+                if (pd.isFlattened()) {
+                    return FieldNames.FLATTENED_FIELD_PREFIX + pd.nodeName + "." + propertyName;
+                }
+            }
             return propertyName + ".keyword";
         }
 
@@ -330,6 +337,22 @@ public class ElasticIndexDefinition extends IndexDefinition {
             field += ".keyword";
         }
         return field;
+    }
+
+    /**
+     * Try to get the matching regular expression property definition, if any
+     *
+     * @param propertyName the property name (may not be null)
+     * @return the property definition, or null if not found
+     */
+    private ElasticPropertyDefinition getMatchingRegexPropertyDefinition(String propertyName) {
+        for (IndexingRule rule : getDefinedRules()) {
+            PropertyDefinition pd = rule.getConfig(propertyName);
+            if (pd != null && pd.isRegexp) {
+                return (ElasticPropertyDefinition) pd;
+            }
+        }
+        return null;
     }
 
     public boolean isAnalyzed(List<PropertyDefinition> propertyDefinitions) {

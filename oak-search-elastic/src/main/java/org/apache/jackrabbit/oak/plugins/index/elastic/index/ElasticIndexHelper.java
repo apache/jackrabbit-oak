@@ -241,6 +241,14 @@ class ElasticIndexHelper {
             Type<?> type = null;
             for (PropertyDefinition pd : propertyDefinitions) {
                 type = Type.fromTag(pd.getType(), false);
+                if (pd.isRegexp) {
+                    ElasticPropertyDefinition epd = (ElasticPropertyDefinition) pd;
+                    if (epd.isFlattened()) {
+                        Property.Builder pBuilder = new Property.Builder();
+                        pBuilder.flattened(b2 -> b2.index(true));
+                        builder.properties(FieldNames.FLATTENED_FIELD_PREFIX + pd.nodeName, pBuilder.build());
+                    }
+                }
             }
 
             Property.Builder pBuilder = new Property.Builder();

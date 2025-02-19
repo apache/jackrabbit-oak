@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -169,6 +170,13 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         // If the actual property value is different from the property type defined in the index definition/mapping - this will try to convert the property if possible,
         // otherwise will log a warning and not try and add the property to index. If we try and index incompatible data types (like String to Date),
         // we would get an exception while indexing the node on elastic search and other properties for the node will also don't get indexed. (See OAK-9665).
+        String fieldName = pname;
+        if (pd.isRegexp) {
+            ElasticPropertyDefinition epd = (ElasticPropertyDefinition) pd;
+            if (epd.isFlattened()) {
+                fieldName = FieldNames.FLATTENED_FIELD_PREFIX + epd.nodeName + "." + pname;
+            }
+        }
         int tag = pd.getType();
         Object f;
         try {
@@ -184,12 +192,12 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
                 f = property.getValue(Type.STRING, i);
             }
 
-            doc.addProperty(pname, f);
+            doc.addProperty(fieldName, f);
         } catch (Exception e) {
             if (!LOG_SILENCER.silence(LOG_KEY_COULD_NOT_CONVERT_PROPERTY)) {
                 LOG.warn(
-                        "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}. Error: {}",
-                        getIndexName(), pname,
+                        "[{}] Ignoring property. Could not convert property {} (field {}) of type {} to type {} for path {}. Error: {}",
+                        getIndexName(), pname, fieldName,
                         Type.fromTag(property.getType().tag(), false),
                         Type.fromTag(tag, false), path, e.toString());
             }

@@ -195,4 +195,20 @@ public class ElasticDocument {
         return propertiesToRemove;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("path:").append(path).append('\n');
+        if (!fulltext.isEmpty()) {
+            buff.append("fulltext:").append(fulltext).append('\n');
+        }
+        if (!properties.isEmpty()) {
+            buff.append("properties:").append(properties).append('\n');
+        }
+        if (!dynamicProperties.isEmpty()) {
+            buff.append("dynamicProperties:").append(dynamicProperties).append('\n');
+        }
+        return buff.toString();
+    }
+
 }
