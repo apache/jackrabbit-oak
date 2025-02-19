@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.jetbrains.annotations.NotNull;
 
@@ -235,22 +236,21 @@ class ElasticIndexHelper {
     private static void mapIndexRules(@NotNull TypeMapping.Builder builder,
                                       @NotNull ElasticIndexDefinition indexDefinition) {
         checkIndexRules(indexDefinition);
+        for (IndexingRule rule : indexDefinition.getDefinedRules()) {
+            Iterable<PropertyDefinition> iterable = rule.getNamePatternsProperties()::iterator;
+            for (PropertyDefinition pd : iterable) {
+                ElasticPropertyDefinition epd = (ElasticPropertyDefinition) pd;
+                if (epd.isFlattened()) {
+                    Property.Builder pBuilder = new Property.Builder();
+                    pBuilder.flattened(b2 -> b2.index(true));
+                    builder.properties(FieldNames.FLATTENED_FIELD_PREFIX + pd.nodeName, pBuilder.build());
+                }
+            }
+        }
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
             final String name = entry.getKey();
             final List<PropertyDefinition> propertyDefinitions = entry.getValue();
             Type<?> type = null;
-            for (PropertyDefinition pd : propertyDefinitions) {
-                type = Type.fromTag(pd.getType(), false);
-                if (pd.isRegexp) {
-                    ElasticPropertyDefinition epd = (ElasticPropertyDefinition) pd;
-                    if (epd.isFlattened()) {
-                        Property.Builder pBuilder = new Property.Builder();
-                        pBuilder.flattened(b2 -> b2.index(true));
-                        builder.properties(FieldNames.FLATTENED_FIELD_PREFIX + pd.nodeName, pBuilder.build());
-                    }
-                }
-            }
-
             Property.Builder pBuilder = new Property.Builder();
             // https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
             if (Type.BINARY.equals(type)) {
