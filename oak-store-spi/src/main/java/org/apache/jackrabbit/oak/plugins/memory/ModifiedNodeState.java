@@ -166,7 +166,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                     x -> !keys.contains(x == null ? null : x.getName());
             return IterableUtils.chainedIterable(
                     filter(base.getProperties(), predicate::test),
-                    filter(properties.values(), Objects::nonNull));
+                    filter(properties.values(), x -> x != null));
         }
     }
 

@@ -126,7 +126,7 @@ public class PropertyIndexLookup {
             iterables.add(s.query(filter, propertyName, indexMeta,
                     encode(value, pattern)));
         }
-        return Iterables.concat(iterables);
+        return org.apache.jackrabbit.oak.commons.collections.IterableUtils.chainedIterable(iterables);
     }
 
     Set<IndexStoreStrategy> getStrategies(NodeState definition) {

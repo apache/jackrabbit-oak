@@ -984,7 +984,7 @@ public class NodeDocumentTest {
             prevDocCalls.clear();
             String value = doc.getVisibleChanges("p", headRevisions.get(i), null).iterator().next().getValue();
             assertEquals(String.valueOf(numChanges - (i + 1)), value);
-            assertTrue("too many calls for previous documents: " + prevDocCalls + " : " + prevDocCalls.size(),
+            assertTrue("too many calls for previous documents: " + prevDocCalls,
                     prevDocCalls.size() <= 3);
         }
 
