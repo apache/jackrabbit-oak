@@ -195,4 +195,27 @@ public class IterableUtilsTest {
     public void testContainsWithNullIterable() {
         Assert.assertFalse(IterableUtils.contains(null, "a"));
     }
+
+    @Test
+    public void testSizeWithNonEmptyIterable() {
+        Iterable<String> iterable = Arrays.asList("a", "b", "c");
+        Assert.assertEquals(3, IterableUtils.size(iterable));
+    }
+
+    @Test
+    public void testSizeWithEmptyIterable() {
+        Iterable<String> iterable = Collections.emptyList();
+        Assert.assertEquals(0, IterableUtils.size(iterable));
+    }
+
+    @Test
+    public void testSizeWithSingleElement() {
+        Iterable<String> iterable = Collections.singletonList("a");
+        Assert.assertEquals(1, IterableUtils.size(iterable));
+    }
+
+    @Test
+    public void testSizeWithNullIterable() {
+        Assert.assertEquals(0, IterableUtils.size(null));
+    }
 }
