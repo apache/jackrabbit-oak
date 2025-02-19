@@ -64,8 +64,8 @@ public class LocalNameMapper extends GlobalNameMapper {
                 String oakPrefix = oakName.substring(0, colon);
                 String uri = getNamespacesProperty(oakPrefix);
                 if (uri == null) {
-                    throw new IllegalStateException(
-                            "No namespace mapping found for " + oakName);
+                    //the namespace has a local mapping, but no global mapping, which is fine
+                    return oakName;
                 }
 
                 for (Map.Entry<String, String> entry : local.entrySet()) {
