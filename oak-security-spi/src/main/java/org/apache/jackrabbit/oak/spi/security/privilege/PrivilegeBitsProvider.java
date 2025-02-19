@@ -29,6 +29,7 @@ import javax.jcr.security.Privilege;
 
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -202,7 +203,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 privilegeNames = bitsToNames.get(pb);
             } else {
                 privilegeNames = collectPrivilegeNames(privilegesTree, pb);
-                bitsToNames.put(pb, Set.copyOf(privilegeNames));
+                bitsToNames.put(pb, ImmutableSet.copyOf(privilegeNames));
             }
             return privilegeNames;
         }
@@ -251,7 +252,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 return extractAggregatedPrivileges(Collections.singleton(privName));
             }
         } else {
-            Set<String> pNames = Set.of(privilegeNames);
+            Set<String> pNames = ImmutableSet.copyOf(privilegeNames);
             if (NON_AGGREGATE_PRIVILEGES.containsAll(pNames)) {
                 return pNames;
             } else {
@@ -267,14 +268,15 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
     @NotNull
     private Set<String> resolveBuiltInAggregation(@NotNull String privilegeName) {
-        Set<String> set = new HashSet<>();
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
         for (String name : AGGREGATE_PRIVILEGES.get(privilegeName)) {
             if (!AGGREGATE_PRIVILEGES.containsKey(name)) {
-                set.add(name);
+                builder.add(name);
             } else {
-                set.addAll(resolveBuiltInAggregation(name));
+                builder.addAll(resolveBuiltInAggregation(name));
             }
         }
+        Set<String> set = builder.build();
         aggregation.put(privilegeName, set);
         return set;
     }
@@ -293,18 +295,19 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 } else if (AGGREGATE_PRIVILEGES.containsKey(privName)) {
                     return resolveBuiltInAggregation(privName);
                 } else {
-                    Set<String> aggregates = new HashSet<>();
-                    fillAggregation(getPrivilegesTree().getChild(privName), aggregates);
+                    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+                    fillAggregation(getPrivilegesTree().getChild(privName), builder);
 
+                    Set<String> aggregates = builder.build();
                     if (!JCR_ALL.equals(privName) && !aggregates.isEmpty()) {
                         aggregation.put(privName, aggregates);
                     }
-                    return Set.copyOf(aggregates);
+                    return aggregates;
                 }
             }
         }
 
-        private void fillAggregation(@NotNull Tree privTree, @NotNull Set<String> set) {
+        private void fillAggregation(@NotNull Tree privTree, @NotNull ImmutableSet.Builder<String> builder) {
             if (!privTree.exists()) {
                 return;
             }
@@ -312,17 +315,17 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             if (aggregates != null) {
                 for (String name : aggregates.getValue(Type.NAMES)) {
                     if (NON_AGGREGATE_PRIVILEGES.contains(name)) {
-                        set.add(name);
+                        builder.add(name);
                     } else if (aggregation.containsKey(name)) {
-                        set.addAll(aggregation.get(name));
+                        builder.addAll(aggregation.get(name));
                     } else if (AGGREGATE_PRIVILEGES.containsKey(name)) {
-                        set.addAll(resolveBuiltInAggregation(name));
+                        builder.addAll(resolveBuiltInAggregation(name));
                     } else {
-                        fillAggregation(privTree.getParent().getChild(name), set);
+                        fillAggregation(privTree.getParent().getChild(name), builder);
                     }
                 }
             } else {
-                set.add(privTree.getName());
+                builder.add(privTree.getName());
             }
         }
     }

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -35,12 +36,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 
 public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticDocumentMaker.class);
     private static final int BLOB_LENGTH_DIVISOR = 4;
+
+    private static final LogSilencer LOG_SILENCER = new LogSilencer(Duration.ofSeconds(10).toMillis(), 10);
+    private static final String LOG_KEY_COULD_NOT_CONVERT_PROPERTY = "Could not convert property";
+    private static final String LOG_KEY_SIMILARITY_BINARIES_WRONG_DIMENSION = "Similarity binaries wrong dimension";
 
     public ElasticDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                 @NotNull IndexDefinition definition,
@@ -180,11 +186,13 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
             doc.addProperty(pname, f);
         } catch (Exception e) {
-            LOG.warn(
-                    "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+            if (!LOG_SILENCER.silence(LOG_KEY_COULD_NOT_CONVERT_PROPERTY)) {
+                LOG.warn(
+                        "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}. Error: {}",
+                        getIndexName(), pname,
+                        Type.fromTag(property.getType().tag(), false),
+                        Type.fromTag(tag, false), path, e.toString());
+            }
         }
     }
 
@@ -238,8 +246,10 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
             // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
             doc.addSimilarityField(pd.name, blob);
         } else {
-            LOG.warn("[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
-                    getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(), blob.length() / BLOB_LENGTH_DIVISOR);
+            if (!LOG_SILENCER.silence(LOG_KEY_SIMILARITY_BINARIES_WRONG_DIMENSION)) {
+                LOG.warn("[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
+                        getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(), blob.length() / BLOB_LENGTH_DIVISOR);
+            }
         }
     }
 

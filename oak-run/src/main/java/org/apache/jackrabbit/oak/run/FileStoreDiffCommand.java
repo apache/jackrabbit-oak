@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.run;
 
 import static java.util.Arrays.asList;
@@ -22,8 +21,8 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import static org.apache.jackrabbit.oak.segment.tool.Utils.newBasicReadOnlyBlobStore;
 
 import java.io.File;
+import java.nio.file.Files;
 
-import com.google.common.io.Files;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -89,7 +88,8 @@ class FileStoreDiffCommand implements Command {
             if (pathOrURI.startsWith("az:")) {
                 try (AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8()) {
                     SegmentNodeStorePersistence azurePersistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, pathOrURI, azureStorageCredentialManagerV8);
-                    ReadOnlyFileStore store = fileStoreBuilder(Files.createTempDir()).withCustomPersistence(azurePersistence).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
+                    ReadOnlyFileStore store = fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile())
+                            .withCustomPersistence(azurePersistence).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
                     statusCode = Diff.builder()
                             .withPath(pathOrURI)
                             .withReadOnlyFileStore(store)

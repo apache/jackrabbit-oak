@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -35,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static java.util.Collections.singletonList;
@@ -67,7 +67,10 @@ class CompositionContext {
         this.prefetchNodeStore = globalStore instanceof PrefetchNodeStore ? (PrefetchNodeStore) globalStore : PrefetchNodeStore.NOOP;
         this.nonDefaultStores = nonDefaultStores;
 
-        allStores = Stream.concat(Stream.of(this.globalStore), this.nonDefaultStores.stream()).collect(Collectors.toUnmodifiableSet());
+        ImmutableSet.Builder<MountedNodeStore> b = ImmutableSet.builder();
+        b.add(this.globalStore);
+        b.addAll(this.nonDefaultStores);
+        allStores = b.build();
 
         this.nodeStoresByMount = allStores.stream().collect(Collectors.toMap(MountedNodeStore::getMount, Function.identity()));
         this.nodeStateMonitor = nodeStateMonitor;

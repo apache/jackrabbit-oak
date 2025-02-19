@@ -153,9 +153,11 @@ public class AzureRepositoryLock implements RepositoryLock {
 
                 if (e instanceof BlobStorageException) {
                     BlobStorageException storageException = (BlobStorageException) e;
-                    if (Set.of(BlobErrorCode.OPERATION_TIMED_OUT,
+                    BlobErrorCode errorCode = storageException.getErrorCode();
+                    if (errorCode != null &&
+                        Set.of(BlobErrorCode.OPERATION_TIMED_OUT,
                             BlobErrorCode.SERVER_BUSY,
-                            BlobErrorCode.INTERNAL_ERROR).contains(storageException.getErrorCode())) {
+                            BlobErrorCode.INTERNAL_ERROR).contains(errorCode)) {
                         log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
                     } else {
                         log.warn("Could not renew lease due to storage exception. Retry in progress ... ", e);

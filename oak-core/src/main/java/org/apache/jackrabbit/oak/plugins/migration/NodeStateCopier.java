@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static java.util.Collections.emptySet;
 
 /**
@@ -401,7 +402,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder include(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.includePaths = Set.copyOf(paths);
+                this.includePaths = copyOf(paths);
             }
             return this;
         }
@@ -415,7 +416,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder include(@NotNull String... paths) {
-            return include(Set.of(requireNonNull(paths)));
+            return include(copyOf(requireNonNull(paths)));
         }
 
         /**
@@ -441,7 +442,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder exclude(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.excludePaths = Set.copyOf(paths);
+                this.excludePaths = copyOf(paths);
             }
             return this;
         }
@@ -455,7 +456,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder exclude(@NotNull String... paths) {
-            return exclude(Set.of(requireNonNull(paths)));
+            return exclude(copyOf(requireNonNull(paths)));
         }
 
         /**
@@ -468,7 +469,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder supportFragment(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.fragmentPaths = Set.copyOf(paths);
+                this.fragmentPaths = copyOf(paths);
             }
             return this;
         }
@@ -482,7 +483,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder supportFragment(@NotNull String... paths) {
-            return supportFragment(Set.of(requireNonNull(paths)));
+            return supportFragment(copyOf(requireNonNull(paths)));
         }
 
         /**
@@ -495,7 +496,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder excludeFragments(@NotNull Set<String> fragments) {
             if (!requireNonNull(fragments).isEmpty()) {
-                this.excludeFragments = Set.copyOf(fragments);
+                this.excludeFragments = copyOf(fragments);
             }
             return this;
         }
@@ -509,7 +510,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder excludeFragments(@NotNull String... fragments) {
-            return exclude(Set.of(requireNonNull(fragments)));
+            return exclude(copyOf(requireNonNull(fragments)));
         }
 
         /**
@@ -522,7 +523,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder merge(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.mergePaths = Set.copyOf(paths);
+                this.mergePaths = copyOf(paths);
             }
             return this;
         }
@@ -536,7 +537,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder merge(@NotNull String... paths) {
-            return merge(Set.of(requireNonNull(paths)));
+            return merge(copyOf(requireNonNull(paths)));
         }
 
         @NotNull

@@ -44,9 +44,9 @@ import java.util.concurrent.Executors;
 import javax.jcr.PropertyType;
 
 import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -3320,7 +3320,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             if (stream == null){
                 return 0;
             }
-            return stream.getCount();
+            return stream.getByteCount();
         }
 
         @Override

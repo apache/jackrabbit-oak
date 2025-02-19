@@ -37,8 +37,23 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 public class ElasticIndexHelperTest {
+
+    @Test
+    public void manyFields() {
+        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        builder.getBuilderTree().setProperty(ElasticIndexDefinition.LIMIT_TOTAL_FIELDS, 1234L);
+        IndexDefinitionBuilder.IndexRule indexRuleA = builder.indexRule("typeA");
+        indexRuleA.property("foo").type("String");
+        NodeState nodeState = builder.build();
+        ElasticIndexDefinition definition =
+                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest("prefix.path", definition);
+        assertEquals(1234L, request.settings().index().mapping().totalFields().limit().longValue());
+        assertEquals(true, request.settings().index().mapping().ignoreMalformed());
+    }
 
     @Test
     public void multiRulesWithSamePropertyNames() {

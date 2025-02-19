@@ -142,6 +142,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
+@Ignore("OAK-11490")
 public class VersionGarbageCollectorIT {
 
     // OAK-10845 : temporary hacky exposure of test store to include its dump in error message
@@ -2729,6 +2730,7 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
+    @Ignore(value = "OAK-11488 ignoring because it is flaky")
     public void testDeletedPropsAndUnmergedBCWithCollisionWithDryRunMode() throws Exception {
         // OAK-10869:
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);

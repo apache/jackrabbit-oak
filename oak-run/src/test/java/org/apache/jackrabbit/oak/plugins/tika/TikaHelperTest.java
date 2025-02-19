@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -55,7 +53,7 @@ public class TikaHelperTest {
                 "    </parser>\n" +
                 "  </parsers>\n" +
                 "</properties>";
-        Files.write(configText, config, StandardCharsets.UTF_8);
+        Files.writeString(config.toPath(), configText);
         TikaHelper tika = new TikaHelper(config);
         assertFalse(tika.isIndexed("application/xml"));
     }

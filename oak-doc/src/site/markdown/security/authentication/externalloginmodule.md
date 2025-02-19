@@ -203,7 +203,7 @@ handles the same set of supported credentials!
           @Nonnull
           @Override
           public Set<Class> getCredentialClasses() {
-              return Set.of(MyCredentials.class);
+              return ImmutableSet.<Class>of(MyCredentials.class);
           }
   
           @CheckForNull
