@@ -45,9 +45,11 @@ import org.slf4j.LoggerFactory;
  */
 public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateRoot {
 
-    public static final String TEXT_EXTRACTION_ERROR = "TextExtractionError";
     private static final Logger log = LoggerFactory.getLogger(FulltextIndexEditor.class);
+
     private static final List<Aggregate.Matcher> EMPTY_AGGREGATE_MATCHER_LIST = List.of();
+
+    public static final String TEXT_EXTRACTION_ERROR = "TextExtractionError";
 
     private final FulltextIndexEditorContext<D> context;
 
