@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.user;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Root;
@@ -282,6 +283,6 @@ public final class LoginModuleImpl extends AbstractLoginModule {
                 attributes.put(attrName, sc.getAttribute(attrName));
             }
         }
-        return new AuthInfoImpl(userId, attributes, Iterables.concat(principals, subject.getPrincipals()));
+        return new AuthInfoImpl(userId, attributes, IterableUtils.chainedIterable(principals, subject.getPrincipals()));
     }
 }

@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.HashMultimap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -88,7 +89,7 @@ public class UniquenessConstraintValidator {
     }
 
     private Iterable<String> getIndexedPaths(String propertyRelativePath, String value) {
-        return Iterables.concat(
+        return IterableUtils.chainedIterable(
                 firstStore.getIndexedPaths(propertyRelativePath, value),
                 secondStore.getIndexedPaths(propertyRelativePath, value)
         );

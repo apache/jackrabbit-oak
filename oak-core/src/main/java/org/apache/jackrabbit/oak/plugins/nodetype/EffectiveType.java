@@ -31,7 +31,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -243,7 +242,7 @@ class EffectiveType {
             NodeState residual = type
                     .getChildNode(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
 
-            for (ChildNodeEntry entry : concat(
+            for (ChildNodeEntry entry : IterableUtils.chainedIterable(
                     named.getChildNodeEntries(),
                     residual.getChildNodeEntries())) {
                 NodeState definition = entry.getNodeState();

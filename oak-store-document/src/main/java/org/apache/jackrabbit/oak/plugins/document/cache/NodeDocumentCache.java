@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Predicate;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -324,14 +325,14 @@ public class NodeDocumentCache implements Closeable {
      * @return keys stored in cache
      */
     public Iterable<CacheValue> keys() {
-        return Iterables.concat(nodeDocumentsCache.asMap().keySet(), prevDocumentsCache.asMap().keySet());
+        return IterableUtils.chainedIterable(nodeDocumentsCache.asMap().keySet(), prevDocumentsCache.asMap().keySet());
     }
 
     /**
      * @return values stored in cache
      */
     public Iterable<NodeDocument> values() {
-        return Iterables.concat(nodeDocumentsCache.asMap().values(), prevDocumentsCache.asMap().values());
+        return IterableUtils.chainedIterable(nodeDocumentsCache.asMap().values(), prevDocumentsCache.asMap().values());
     }
 
     public Iterable<CacheStats> getCacheStats() {

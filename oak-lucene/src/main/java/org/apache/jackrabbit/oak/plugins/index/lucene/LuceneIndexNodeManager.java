@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -251,7 +252,7 @@ public class LuceneIndexNodeManager {
 
         IndexReader[] readerArr = new IndexReader[readers.size() + nrtReaders.size()];
         int i = 0;
-        for (LuceneIndexReader r : Iterables.concat(readers, nrtReaders)){
+        for (LuceneIndexReader r : IterableUtils.chainedIterable(readers, nrtReaders)){
             readerArr[i++] = r.getReader();
         }
         return new MultiReader(readerArr, false);

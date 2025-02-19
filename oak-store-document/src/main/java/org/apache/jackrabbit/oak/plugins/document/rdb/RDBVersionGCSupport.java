@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -160,7 +161,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         final CountingPredicate<NodeDocument> cp1 = new CountingPredicate<NodeDocument>(name1, pred);
         final CountingPredicate<NodeDocument> cp2 = new CountingPredicate<NodeDocument>(name2, pred);
 
-        return CloseableIterable.wrap(Iterables.concat(Iterables.filter(fit1, cp1::test), Iterables.filter(fit2, cp2::test)),
+        return CloseableIterable.wrap(IterableUtils.chainedIterable(Iterables.filter(fit1, cp1::test), Iterables.filter(fit2, cp2::test)),
                 new Closeable() {
                     @Override
             public void close() throws IOException {

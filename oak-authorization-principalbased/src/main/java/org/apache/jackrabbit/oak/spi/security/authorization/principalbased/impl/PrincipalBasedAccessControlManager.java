@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -233,7 +234,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             Iterable<PrincipalAccessControlList> acls = Iterables.transform(m.entrySet(), entry -> new ImmutablePrincipalPolicy(entry.getKey(), filter.getOakPath(entry.getKey()), entry.getValue(), mgrProvider.getRestrictionProvider(), getNamePathMapper()));
 
             if (ReadPolicy.hasEffectiveReadPolicy(readPaths, oakPath)) {
-                Iterable<AccessControlPolicy> iterable = Iterables.concat(acls, Collections.singleton(ReadPolicy.INSTANCE));
+                Iterable<AccessControlPolicy> iterable = IterableUtils.chainedIterable(acls, Collections.singleton(ReadPolicy.INSTANCE));
                 return Iterables.toArray(iterable, AccessControlPolicy.class);
             } else {
                 return Iterables.toArray(acls, PrincipalAccessControlList.class);

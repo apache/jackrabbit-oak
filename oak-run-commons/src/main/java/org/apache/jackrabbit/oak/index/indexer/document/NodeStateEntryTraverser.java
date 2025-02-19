@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -40,7 +41,6 @@ import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closeable {
@@ -124,7 +124,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
         }
 
         return transform(
-                concat(singleton(nodeState),
+                IterableUtils.chainedIterable(singleton(nodeState),
                     nodeState.getAllBundledNodesStates()),
                 dns -> {
                     NodeStateEntry.NodeStateEntryBuilder builder =  new NodeStateEntry.NodeStateEntryBuilder(dns, dns.getPath().toString());

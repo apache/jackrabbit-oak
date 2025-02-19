@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -98,7 +99,7 @@ public class LuceneDocumentHolder implements JournalProperty {
      * may be directly forwarded to the queue or held in memory for later processing
      */
     Iterable<? extends LuceneDocInfo> getAllLuceneDocInfo(){
-        return Iterables.concat(nrtIndexedList.values(), syncIndexedList.values(),
+        return IterableUtils.chainedIterable(nrtIndexedList.values(), syncIndexedList.values(),
                 asLuceneDocInfo(queuedNrtIndexedPath), queuedSyncIndexedPath.values());
     }
 

@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 
 import javax.jcr.PropertyType;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -163,7 +164,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         //regex for node name indexing
         PropertyState nodenamePS =
                 new StringPropertyState(FieldNames.NODE_NAME, getName(path));
-        for (PropertyState property : Iterables.concat(state.getProperties(), Collections.singleton(nodenamePS))) {
+        for (PropertyState property : IterableUtils.chainedIterable(state.getProperties(), Collections.singleton(nodenamePS))) {
             String pname = property.getName();
 
             if (!isVisible(pname) && !FieldNames.NODE_NAME.equals(pname)) {
