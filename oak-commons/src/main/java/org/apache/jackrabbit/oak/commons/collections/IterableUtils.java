@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.iterators.LazyIteratorChain;
 
@@ -180,5 +179,15 @@ public class IterableUtils {
      */
     public static <E> boolean matchesAll(final Iterable<E> itr, final Predicate<? super E> predicate) {
         return org.apache.commons.collections4.IterableUtils.matchesAll(itr, predicate);
+    }
+
+    /**
+     * Checks if the specified iterable is empty.
+     *
+     * @param itr the iterable to check, may be null
+     * @return true if the iterable is empty or null, false otherwise
+     */
+    public static boolean isEmpty(final Iterable<?> itr) {
+        return org.apache.commons.collections4.IterableUtils.isEmpty(itr);
     }
 }
