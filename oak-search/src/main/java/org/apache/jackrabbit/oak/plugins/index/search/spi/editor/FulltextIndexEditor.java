@@ -309,10 +309,11 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             }
         }
 
-        if (!matched.isEmpty() || !inherited.isEmpty()) {
+        if (matched.isEmpty() && inherited.isEmpty()) {
+            return MatcherState.NONE;
+        } else {
             return new MatcherState(matched, inherited);
         }
-        return MatcherState.NONE;
     }
 
     /*
