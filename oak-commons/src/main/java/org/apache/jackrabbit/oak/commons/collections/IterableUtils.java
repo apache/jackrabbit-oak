@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
+import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.iterators.LazyIteratorChain;
 
 import java.util.Iterator;
@@ -165,5 +167,18 @@ public class IterableUtils {
      */
     public static int size(final Iterable<?> itr) {
         return org.apache.commons.collections4.IterableUtils.size(itr);
+    }
+
+    /**
+     * Checks if all elements in the specified iterable match the given predicate.
+     *
+     * @param <E> the type of elements in the iterable
+     * @param itr the iterable to check, may not be null
+     * @param predicate the predicate to apply to elements, may not be null
+     * @return true if all elements match the predicate, false otherwise
+     * @throws NullPointerException if the iterable or predicate is null
+     */
+    public static <E> boolean matchesAll(final Iterable<E> itr, final Predicate<? super E> predicate) {
+        return org.apache.commons.collections4.IterableUtils.matchesAll(itr, predicate);
     }
 }
