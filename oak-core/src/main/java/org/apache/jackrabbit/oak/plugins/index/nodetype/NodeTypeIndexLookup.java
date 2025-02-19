@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newName;
 
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
