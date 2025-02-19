@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
+import org.apache.commons.collections4.Predicate;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -217,5 +218,40 @@ public class IterableUtilsTest {
     @Test
     public void testSizeWithNullIterable() {
         Assert.assertEquals(0, IterableUtils.size(null));
+    }
+
+    @Test
+    public void testMatchesAllWithAllMatchingElements() {
+        Iterable<Integer> iterable = Arrays.asList(2, 4, 6);
+        Predicate<Integer> isEven = x -> x % 2 == 0;
+        Assert.assertTrue(IterableUtils.matchesAll(iterable, isEven));
+    }
+
+    @Test
+    public void testMatchesAllWithSomeNonMatchingElements() {
+        Iterable<Integer> iterable = Arrays.asList(2, 3, 6);
+        Predicate<Integer> isEven = x -> x % 2 == 0;
+        Assert.assertFalse(IterableUtils.matchesAll(iterable, isEven));
+    }
+
+    @Test
+    public void testMatchesAllWithEmptyIterable() {
+        Iterable<Integer> iterable = Collections.emptyList();
+        Predicate<Integer> isEven = x -> x % 2 == 0;
+        Assert.assertTrue(IterableUtils.matchesAll(iterable, isEven));
+    }
+
+    @Test
+    public void testMatchesAllWithNullIterable() {
+        Predicate<Integer> isEven = x -> x % 2 == 0;
+        Assert.assertTrue(IterableUtils.matchesAll(null, isEven));
+    }
+
+    @Test
+    public void testMatchesAllWithNullPredicate() {
+        Iterable<Integer> iterable = Arrays.asList(2, 4, 6);
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IterableUtils.matchesAll(iterable, null);
+        });
     }
 }
