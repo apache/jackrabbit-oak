@@ -170,25 +170,31 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     @Override
     public void propertyAdded(PropertyState after) {
-        markPropertyChanged(after.getName());
-        checkAggregates(after.getName());
-        propertyUpdated(null, after);
+        if (isIndexable()) {
+            markPropertyChanged(after.getName());
+            checkAggregates(after.getName());
+            propertyUpdated(null, after);
+        }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
-        markPropertyChanged(before.getName());
-        propertiesModified.add(before);
-        checkAggregates(before.getName());
-        propertyUpdated(before, after);
+        if (isIndexable()) {
+            markPropertyChanged(before.getName());
+            propertiesModified.add(before);
+            checkAggregates(before.getName());
+            propertyUpdated(before, after);
+        }
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
-        markPropertyChanged(before.getName());
-        propertiesModified.add(before);
-        checkAggregates(before.getName());
-        propertyUpdated(before, null);
+        if (isIndexable()) {
+            markPropertyChanged(before.getName());
+            propertiesModified.add(before);
+            checkAggregates(before.getName());
+            propertyUpdated(before, null);
+        }
     }
 
     @Override
