@@ -142,8 +142,10 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             }
         }
 
-        for (Aggregate.Matcher m : matcherState.affectedMatchers) {
-            m.markRootDirty();
+        if (!matcherState.affectedMatchers.isEmpty()) {
+            for (Aggregate.Matcher m : matcherState.affectedMatchers) {
+                m.markRootDirty();
+            }
         }
 
         if (parent == null) {
