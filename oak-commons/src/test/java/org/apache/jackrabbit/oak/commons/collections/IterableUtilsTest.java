@@ -254,4 +254,27 @@ public class IterableUtilsTest {
             IterableUtils.matchesAll(iterable, null);
         });
     }
+
+    @Test
+    public void testIsEmptyWithEmptyIterable() {
+        Iterable<String> iterable = Collections.emptyList();
+        Assert.assertTrue(IterableUtils.isEmpty(iterable));
+    }
+
+    @Test
+    public void testIsEmptyWithNonEmptyIterable() {
+        Iterable<String> iterable = Arrays.asList("a", "b", "c");
+        Assert.assertFalse(IterableUtils.isEmpty(iterable));
+    }
+
+    @Test
+    public void testIsEmptyWithSingleElement() {
+        Iterable<String> iterable = Collections.singletonList("a");
+        Assert.assertFalse(IterableUtils.isEmpty(iterable));
+    }
+
+    @Test
+    public void testIsEmptyWithNullIterable() {
+        Assert.assertTrue(IterableUtils.isEmpty(null));
+    }
 }
