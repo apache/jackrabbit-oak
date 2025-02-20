@@ -251,6 +251,10 @@ class ElasticIndexHelper {
             final String name = entry.getKey();
             final List<PropertyDefinition> propertyDefinitions = entry.getValue();
             Type<?> type = null;
+            for (PropertyDefinition pd : propertyDefinitions) {
+                type = Type.fromTag(pd.getType(), false);
+            }
+
             Property.Builder pBuilder = new Property.Builder();
             // https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
             if (Type.BINARY.equals(type)) {
