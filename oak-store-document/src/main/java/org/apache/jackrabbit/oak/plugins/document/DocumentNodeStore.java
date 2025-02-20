@@ -3429,7 +3429,7 @@ public final class DocumentNodeStore
                 // see OAK-6016 and OAK-6011
                 if (e instanceof IllegalStateException &&
                         "Root document does not have a lastRev entry for local clusterId 0".equals(e.getMessage())) {
-                    LOG.warn("diffJournalChildren failed with " +
+                    LOG.debug("diffJournalChildren failed with " +
                             e.getClass().getSimpleName() +
                             ", falling back to classic diff : " + e.getMessage());
                 } else {

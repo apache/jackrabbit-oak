@@ -219,7 +219,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 if (splitFlatFile) {
                     storeList = builder.buildList(indexHelper, indexerSupport, indexDefinitions);
                 } else {
-                    log.info("Building index store");
                     IndexStore store = builder.build(indexHelper, indexDefinitions);
                     int threads = IndexerConfiguration.indexThreadPoolSize();
                     if (store instanceof ParallelIndexStore && threads > 1) {
