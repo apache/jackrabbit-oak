@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

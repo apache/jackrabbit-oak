@@ -55,7 +55,7 @@ import java.util.regex.Pattern;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCursor;
 
-import org.apache.commons.collections4.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
