@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -173,9 +172,9 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     public void propertyAdded(PropertyState after) {
         if (isIndexable()) {
             markPropertyChanged(after.getName());
-            checkAggregates(after.getName());
             propertyUpdated(null, after);
         }
+        checkAggregates(after.getName());
     }
 
     @Override
@@ -183,9 +182,9 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         if (isIndexable()) {
             markPropertyChanged(before.getName());
             propertiesModified.add(before);
-            checkAggregates(before.getName());
             propertyUpdated(before, after);
         }
+        checkAggregates(before.getName());
     }
 
     @Override
@@ -193,9 +192,9 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         if (isIndexable()) {
             markPropertyChanged(before.getName());
             propertiesModified.add(before);
-            checkAggregates(before.getName());
             propertyUpdated(before, null);
         }
+        checkAggregates(before.getName());
     }
 
     @Override
@@ -297,14 +296,14 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             Aggregate.Matcher result = m.match(name, after);
             if (result.getStatus() == Aggregate.Matcher.Status.MATCH_FOUND) {
                 if (matched == EMPTY_AGGREGATE_MATCHER_LIST) {
-                    matched = new ArrayList<>(2);
+                    matched = new ArrayList<>();
                 }
                 matched.add(result);
             }
 
             if (result.getStatus() != Aggregate.Matcher.Status.FAIL) {
                 if (inherited == EMPTY_AGGREGATE_MATCHER_LIST) {
-                    inherited = new ArrayList<>(2);
+                    inherited = new ArrayList<>();
                 }
                 inherited.addAll(result.nextSet());
             }
