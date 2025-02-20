@@ -901,7 +901,6 @@ public class ElasticRequestHandler {
     }
 
     private Query createQuery(String propertyName, Filter.PropertyRestriction pr, PropertyDefinition defn) {
-        int propType = FulltextIndex.determinePropertyType(defn, pr);
         final String field = elasticIndexDefinition.getElasticKeyword(propertyName);
 
         if (pr.isNullRestriction()) {
@@ -912,6 +911,7 @@ public class ElasticRequestHandler {
         }
 
         Query in;
+        int propType = FulltextIndex.determinePropertyType(defn, pr);
         switch (propType) {
             case PropertyType.DATE: {
                 in = newPropertyRestrictionQuery(field, pr, value -> parse(value.getValue(Type.DATE)).getTimeInMillis());
