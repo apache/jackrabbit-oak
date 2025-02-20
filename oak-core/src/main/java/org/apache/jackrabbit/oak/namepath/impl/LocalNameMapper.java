@@ -58,16 +58,16 @@ public class LocalNameMapper extends GlobalNameMapper {
         checkArgument(!oakName.startsWith(":"), oakName); // hidden name
         checkArgument(!isExpandedName(oakName), oakName); // expanded name
 
-        if (!local.isEmpty()) {
-            int colon = oakName.indexOf(':');
-            if (colon > 0) {
-                String oakPrefix = oakName.substring(0, colon);
-                String uri = getNamespacesProperty(oakPrefix);
-                if (uri == null) {
-                    //the namespace has a local mapping, but no global mapping, which is fine
-                    return oakName;
-                }
+        int colon = oakName.indexOf(':');
+        boolean globallyMappedPrefix = false;
+        boolean locallyMappedPrefix = false;
+        if (colon > 0) {
+            String oakPrefix = oakName.substring(0, colon);
+            String uri = getNamespacesProperty(oakPrefix);
 
+            globallyMappedPrefix = uri != null;
+            locallyMappedPrefix = local.containsValue(uri);
+            if (locallyMappedPrefix) {
                 for (Map.Entry<String, String> entry : local.entrySet()) {
                     if (uri.equals(entry.getValue())) {
                         String jcrPrefix = entry.getKey();
@@ -78,10 +78,10 @@ public class LocalNameMapper extends GlobalNameMapper {
                         }
                     }
                 }
-
+            } else if (globallyMappedPrefix) {
                 // local mapping not found for this URI, make sure there
                 // is no conflicting local mapping for the prefix
-                if (local.containsKey(oakPrefix)) {
+                if (local.containsValue(oakPrefix)) {
                     for (int i = 2; true; i++) {
                         String jcrPrefix = oakPrefix + i;
                         if (!local.containsKey(jcrPrefix)) {
@@ -91,9 +91,10 @@ public class LocalNameMapper extends GlobalNameMapper {
                         }
                     }
                 }
+            } else {
+                throw new IllegalStateException("No namespace mapping found for " + oakName);
             }
         }
-
         return oakName;
     }
 
