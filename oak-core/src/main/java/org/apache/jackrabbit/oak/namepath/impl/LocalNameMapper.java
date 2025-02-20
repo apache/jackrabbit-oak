@@ -59,15 +59,12 @@ public class LocalNameMapper extends GlobalNameMapper {
         checkArgument(!isExpandedName(oakName), oakName); // expanded name
 
         int colon = oakName.indexOf(':');
-        boolean globallyMappedPrefix = false;
-        boolean locallyMappedPrefix = false;
         if (colon > 0) {
             String oakPrefix = oakName.substring(0, colon);
             String uri = getNamespacesProperty(oakPrefix);
 
-            globallyMappedPrefix = uri != null;
-            locallyMappedPrefix = local.containsValue(uri);
-            if (locallyMappedPrefix) {
+            if (local.containsValue(uri)) {
+                //local prefix replaces global prefix
                 for (Map.Entry<String, String> entry : local.entrySet()) {
                     if (uri.equals(entry.getValue())) {
                         String jcrPrefix = entry.getKey();
@@ -78,23 +75,15 @@ public class LocalNameMapper extends GlobalNameMapper {
                         }
                     }
                 }
-            } else if (globallyMappedPrefix) {
-                // local mapping not found for this URI, make sure there
-                // is no conflicting local mapping for the prefix
-                if (local.containsValue(oakPrefix)) {
-                    for (int i = 2; true; i++) {
-                        String jcrPrefix = oakPrefix + i;
-                        if (!local.containsKey(jcrPrefix)) {
-                            log.warn("no prefix found for namespace name '" + uri + "', using unmapped temporary prefix '"
-                                    + jcrPrefix + "' for now (see OAK-10544)");
-                            return jcrPrefix + oakName.substring(colon);
-                        }
-                    }
-                }
-            } else {
+            } else if (uri == null && !local.containsKey(oakPrefix)) {
+                //completely unknown prefix
                 throw new IllegalStateException("No namespace mapping found for " + oakName);
             }
         }
+
+        //locally registered, but not yet globally known
+        //or globally known, but not locally overridden
+        //or empty namespace
         return oakName;
     }
 
