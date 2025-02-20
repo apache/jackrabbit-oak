@@ -56,7 +56,14 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
                     getOptionalValue(defn, PROP_CANDIDATES, DEFAULT_CANDIDATES));
         }
         this.useInFullTextQuery = this.dynamicBoost && getOptionalValue(defn, PROP_USE_IN_FULL_TEXT_QUERY, true);
-        this.isFlattened = getOptionalValue(defn, PROP_IS_FLATTENED, false);
+        boolean flattened = getOptionalValue(defn, PROP_IS_FLATTENED, false);
+        if (analyzed) {
+            // if analyzed is enabled, then flattened needs to be disabled,
+            // because flattened types do not support fulltext queries
+            // in the same way
+            flattened = false;
+        }
+        this.isFlattened = flattened;
     }
 
     public KnnSearchParameters getKnnSearchParameters() {
