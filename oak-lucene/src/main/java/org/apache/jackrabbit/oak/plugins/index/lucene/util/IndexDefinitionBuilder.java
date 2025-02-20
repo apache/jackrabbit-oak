@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
@@ -155,7 +156,7 @@ public final class IndexDefinitionBuilder {
         if (tree.hasProperty(INDEX_TAGS)) {
             currTags = SetUtils.toSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
         }
-        Set<String> tagVals = SetUtils.toSet(Iterables.concat(currTags, asList(additionalTagVals)));
+        Set<String> tagVals = SetUtils.toSet(IterableUtils.chainedIterable(currTags, asList(additionalTagVals)));
         boolean noAdditionalTags = currTags.containsAll(tagVals);
         if (!noAdditionalTags) {
             tree.removeProperty(INDEX_TAGS);

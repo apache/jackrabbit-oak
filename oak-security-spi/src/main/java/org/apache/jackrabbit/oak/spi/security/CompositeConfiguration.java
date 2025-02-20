@@ -22,6 +22,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -262,7 +263,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     @Override
     public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
-        return Iterables.concat(
+        return IterableUtils.chainedIterable(
                 Iterables.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)));
     }
 

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
+import org.apache.commons.collections4.Predicate;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -165,5 +166,115 @@ public class IterableUtilsTest {
 
         // now next iterator should be null
         Assert.assertThrows(NullPointerException.class, iterator::hasNext);
+    }
+
+    @Test
+    public void testContainsWithNonNullElement() {
+        Iterable<String> iterable = List.of("a", "b", "c");
+        Assert.assertTrue(IterableUtils.contains(iterable, "b"));
+    }
+
+    @Test
+    public void testContainsWithNullElement() {
+        Iterable<String> iterable = Arrays.asList("a", "b", "c", null);
+        Assert.assertTrue(IterableUtils.contains(iterable, null));
+    }
+
+    @Test
+    public void testContainsWithEmptyIterable() {
+        Iterable<String> iterable = List.of();
+        Assert.assertFalse(IterableUtils.contains(iterable, "a"));
+    }
+
+    @Test
+    public void testContainsWithElementNotPresent() {
+        Iterable<String> iterable = List.of("a", "b", "c");
+        Assert.assertFalse(IterableUtils.contains(iterable, "d"));
+    }
+
+    @Test
+    public void testContainsWithNullIterable() {
+        Assert.assertFalse(IterableUtils.contains(null, "a"));
+    }
+
+    @Test
+    public void testSizeWithNonEmptyIterable() {
+        Iterable<String> iterable = Arrays.asList("a", "b", "c");
+        Assert.assertEquals(3, IterableUtils.size(iterable));
+    }
+
+    @Test
+    public void testSizeWithEmptyIterable() {
+        Iterable<String> iterable = Collections.emptyList();
+        Assert.assertEquals(0, IterableUtils.size(iterable));
+    }
+
+    @Test
+    public void testSizeWithSingleElement() {
+        Iterable<String> iterable = Collections.singletonList("a");
+        Assert.assertEquals(1, IterableUtils.size(iterable));
+    }
+
+    @Test
+    public void testSizeWithNullIterable() {
+        Assert.assertEquals(0, IterableUtils.size(null));
+    }
+
+    @Test
+    public void testMatchesAllWithAllMatchingElements() {
+        Iterable<Integer> iterable = Arrays.asList(2, 4, 6);
+        Predicate<Integer> isEven = x -> x % 2 == 0;
+        Assert.assertTrue(IterableUtils.matchesAll(iterable, isEven));
+    }
+
+    @Test
+    public void testMatchesAllWithSomeNonMatchingElements() {
+        Iterable<Integer> iterable = Arrays.asList(2, 3, 6);
+        Predicate<Integer> isEven = x -> x % 2 == 0;
+        Assert.assertFalse(IterableUtils.matchesAll(iterable, isEven));
+    }
+
+    @Test
+    public void testMatchesAllWithEmptyIterable() {
+        Iterable<Integer> iterable = Collections.emptyList();
+        Predicate<Integer> isEven = x -> x % 2 == 0;
+        Assert.assertTrue(IterableUtils.matchesAll(iterable, isEven));
+    }
+
+    @Test
+    public void testMatchesAllWithNullIterable() {
+        Predicate<Integer> isEven = x -> x % 2 == 0;
+        Assert.assertTrue(IterableUtils.matchesAll(null, isEven));
+    }
+
+    @Test
+    public void testMatchesAllWithNullPredicate() {
+        Iterable<Integer> iterable = Arrays.asList(2, 4, 6);
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IterableUtils.matchesAll(iterable, null);
+        });
+    }
+
+    @Test
+    public void testIsEmptyWithEmptyIterable() {
+        Iterable<String> iterable = Collections.emptyList();
+        Assert.assertTrue(IterableUtils.isEmpty(iterable));
+    }
+
+    @Test
+    public void testIsEmptyWithNonEmptyIterable() {
+        Iterable<String> iterable = Arrays.asList("a", "b", "c");
+        Assert.assertFalse(IterableUtils.isEmpty(iterable));
+    }
+
+    @Test
+    public void testIsEmptyWithSingleElement() {
+        Iterable<String> iterable = Collections.singletonList("a");
+        Assert.assertFalse(IterableUtils.isEmpty(iterable));
+    }
+
+    @Test
+    public void testIsEmptyWithNullIterable() {
+        Assert.assertTrue(IterableUtils.isEmpty(null));
     }
 }

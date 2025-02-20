@@ -22,7 +22,6 @@ import static java.lang.Integer.bitCount;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.oak.segment.MapEntry.newMapEntry;
 
 import java.util.ArrayList;
@@ -33,6 +32,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -335,7 +335,7 @@ public class MapRecord extends Record {
                     }
                 });
             }
-            return concat(keys);
+            return IterableUtils.chainedIterable(keys);
         }
 
         RecordId[] ids = new RecordId[size];
@@ -385,7 +385,7 @@ public class MapRecord extends Record {
                     }
                 });
             }
-            return concat(entries);
+            return IterableUtils.chainedIterable(entries);
         }
 
         MapEntry[] entries = new MapEntry[size];

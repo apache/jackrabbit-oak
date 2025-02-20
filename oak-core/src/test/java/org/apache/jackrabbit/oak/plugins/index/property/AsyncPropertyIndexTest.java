@@ -31,7 +31,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Set;
 
-import org.apache.commons.collections4.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;

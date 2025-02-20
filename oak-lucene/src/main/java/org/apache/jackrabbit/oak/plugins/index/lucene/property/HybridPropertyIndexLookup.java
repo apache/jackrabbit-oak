@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
@@ -121,7 +122,7 @@ public class HybridPropertyIndexLookup {
 
     private Iterable<String> querySimple(Filter filter, String indexName, NodeState propIndexNode,
                                          Set<String> values) {
-        return Iterables.concat(
+        return IterableUtils.chainedIterable(
                 queryBucket(filter, indexName, propIndexNode, PROP_HEAD_BUCKET, values),
                 queryBucket(filter, indexName, propIndexNode, PROP_PREVIOUS_BUCKET, values)
         );

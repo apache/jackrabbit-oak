@@ -41,66 +41,30 @@ public class RDBDataSourceFactory {
 
     static final Logger LOG = LoggerFactory.getLogger(RDBDataSourceFactory.class);
 
-    public static DataSource forJdbcUrl(String url, String username, String passwd, String specifiedDriverName) {
+    public static DataSource forJdbcUrl(String url, String username, String passwd) {
 
-        String driverName = specifiedDriverName;
-
-        // load driver class when specified
-        if (driverName != null && !driverName.isEmpty()) {
-            LOG.info("trying to load specified driver {}", driverName);
-        } else {
-            // otherwise try to determine driver from JDBC URL
-            driverName = RDBJDBCTools.driverForDBType(RDBJDBCTools.jdbctype(url));
-            if (driverName != null && !driverName.isEmpty()) {
-                LOG.info("trying to load defaulted driver {}", driverName);
-            }
-        }
-
-        if (driverName != null && !driverName.isEmpty()) {
-            try {
-                Class.forName(driverName);
-            } catch (ClassNotFoundException ex) {
-                LOG.debug("driver " + driverName + " not loaded", ex);
-                LOG.info("driver {} not loaded ({})", driverName, ex.getClass());
-            }
-        }
-
+        String classname = "org.apache.tomcat.jdbc.pool.DataSource";
         try {
-            LOG.info("Getting driver for {}", url);
-            Driver d = DriverManager.getDriver(url);
-
-            String classname = "org.apache.tomcat.jdbc.pool.DataSource";
-            try {
-                Class<?> dsclazz = Class.forName(classname);
-                DataSource ds = (DataSource) dsclazz.getDeclaredConstructor().newInstance();
-                dsclazz.getMethod("setDriverClassName", String.class).invoke(ds, d.getClass().getName());
-                dsclazz.getMethod("setUsername", String.class).invoke(ds, username);
-                dsclazz.getMethod("setPassword", String.class).invoke(ds, passwd);
-                dsclazz.getMethod("setUrl", String.class).invoke(ds, url);
-                String interceptors = SystemPropertySupplier
-                        .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory.jdbcInterceptors",
-                                "SlowQueryReport(threshold=10000);ConnectionState;StatementCache")
-                        .loggingTo(LOG).get();
-                if (!interceptors.isEmpty()) {
-                    dsclazz.getMethod("setJdbcInterceptors", String.class).invoke(ds, interceptors);
-                }
-                return new CloseableDataSource(ds);
-            } catch (Exception ex) {
-                String message = "trying to create datasource " + classname;
-                LOG.debug(message, ex);
-                LOG.info(message + " (" + ex.getMessage() + ")");
-                throw new DocumentStoreException(message, ex);
+            Class<?> dsclazz = Class.forName(classname);
+            DataSource ds = (DataSource) dsclazz.getDeclaredConstructor().newInstance();
+            dsclazz.getMethod("setDriverClassName", String.class).invoke(ds, DriverManager.getDriver(url).getClass().getName());
+            dsclazz.getMethod("setUsername", String.class).invoke(ds, username);
+            dsclazz.getMethod("setPassword", String.class).invoke(ds, passwd);
+            dsclazz.getMethod("setUrl", String.class).invoke(ds, url);
+            String interceptors = SystemPropertySupplier
+                    .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory.jdbcInterceptors",
+                            "SlowQueryReport(threshold=10000);ConnectionState;StatementCache")
+                    .loggingTo(LOG).get();
+            if (!interceptors.isEmpty()) {
+                dsclazz.getMethod("setJdbcInterceptors", String.class).invoke(ds, interceptors);
             }
-        } catch (SQLException ex) {
-            String message = "failed to to obtain driver for " + url;
+            return new CloseableDataSource(ds);
+        } catch (Exception ex) {
+            String message = "trying to create datasource " + classname;
             LOG.debug(message, ex);
             LOG.info(message + " (" + ex.getMessage() + ")");
             throw new DocumentStoreException(message, ex);
         }
-    }
-
-    public static DataSource forJdbcUrl(String url, String username, String passwd) {
-        return forJdbcUrl(url, username, passwd, null);
     }
 
     /**
