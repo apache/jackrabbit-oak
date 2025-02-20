@@ -22,12 +22,12 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;

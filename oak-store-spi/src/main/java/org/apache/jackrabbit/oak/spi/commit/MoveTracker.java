@@ -20,8 +20,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
@@ -88,7 +90,7 @@ public class MoveTracker {
 
     public boolean containsMove(@Nullable String path) {
         if (path != null) {
-            for (String p : Iterables.concat(parentSourcePaths, parentDestPaths)) {
+            for (String p : IterableUtils.chainedIterable(parentSourcePaths, parentDestPaths)) {
                 if (Text.isDescendantOrEqual(path, p)) {
                     return true;
                 }

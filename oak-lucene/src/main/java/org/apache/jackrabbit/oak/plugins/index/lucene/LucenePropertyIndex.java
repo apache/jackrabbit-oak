@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -1607,7 +1608,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         } else {
             Validate.checkState(pr.evaluateSyncNodeTypeRestriction()); //Either of property or nodetype should not be null
             Filter filter = plan.getFilter();
-            paths = FluentIterable.from(Iterables.concat(
+            paths = FluentIterable.from(IterableUtils.chainedIterable(
                     lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
                     lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()))));
         }

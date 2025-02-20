@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -528,7 +529,7 @@ public class SecurityProviderRegistration {
 
         closer = Closer.create();
         Iterable<Iterable<Monitor<?>>> monitors = Iterables.transform(securityProvider.getConfigurations(), sc -> sc.getMonitors(statisticsProvider));
-        for (Monitor monitor : Iterables.concat(monitors)) {
+        for (Monitor monitor : IterableUtils.chainedIterable(monitors)) {
             Registration reg = whiteboard.register(monitor.getMonitorClass(), monitor, monitor.getMonitorProperties());
             closer.register(reg::unregister);
 

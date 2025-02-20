@@ -21,9 +21,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -31,7 +31,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -243,7 +242,7 @@ class EffectiveType {
             NodeState residual = type
                     .getChildNode(REP_RESIDUAL_CHILD_NODE_DEFINITIONS);
 
-            for (ChildNodeEntry entry : concat(
+            for (ChildNodeEntry entry : IterableUtils.chainedIterable(
                     named.getChildNodeEntries(),
                     residual.getChildNodeEntries())) {
                 NodeState definition = entry.getNodeState();

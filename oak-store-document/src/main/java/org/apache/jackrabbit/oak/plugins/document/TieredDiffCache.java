@@ -21,6 +21,7 @@ import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -95,7 +96,7 @@ class TieredDiffCache extends DiffCache {
     @NotNull
     @Override
     public Iterable<CacheStats> getStats() {
-        return Iterables.concat(localCache.getStats(), memoryCache.getStats());
+        return IterableUtils.chainedIterable(localCache.getStats(), memoryCache.getStats());
     }
 
     @Override

@@ -35,6 +35,7 @@ import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -279,7 +280,7 @@ class Branch {
                         && input.getKey().compareRevisionTime(r) <= 0;
             }
         }::test), input -> input.getValue().getModifiedPaths());
-        return Iterables.concat(paths);
+        return IterableUtils.chainedIterable(paths);
     }
 
     @Override
@@ -407,7 +408,7 @@ class Branch {
         Iterable<Path> getModifiedPaths() {
             Iterable<Iterable<Path>> paths = transform(previous.values(),
                     branchCommit -> branchCommit.getModifiedPaths());
-            return Iterables.concat(paths);
+            return IterableUtils.chainedIterable(paths);
         }
 
         /**

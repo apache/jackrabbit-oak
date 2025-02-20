@@ -101,7 +101,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -112,6 +111,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.FailingDocumentStore.FailedUpdateOpListener;
