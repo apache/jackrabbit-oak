@@ -47,6 +47,10 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
         test.addChild("c").setProperty("propa", "foo2");
         test.addChild("d").setProperty("propc", "foo");
         test.addChild("e").setProperty("propd", "foo");
+       // create 10k nodes with different property names to have high cardinality
+        for (int i = 0; i < 10000; i++) {
+            test.addChild("node" + i).setProperty("prop" + i, "foo");
+        }
         root.commit();
 
         String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo'";
