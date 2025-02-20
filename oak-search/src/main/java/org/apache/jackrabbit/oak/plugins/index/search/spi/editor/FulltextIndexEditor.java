@@ -77,6 +77,8 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     private final MatcherState matcherState;
 
+    private final PathFilter pathFilter;
+
     private final PathFilter.Result pathFilterResult;
 
     public FulltextIndexEditor(FulltextIndexEditorContext<D> context) {
@@ -86,11 +88,13 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         this.context = context;
         this.isDeleted = false;
         this.matcherState = MatcherState.NONE;
-        this.pathFilterResult = context.getDefinition().getPathFilter().filter(PathUtils.ROOT_PATH);
+        this.pathFilter = context.getDefinition().getPathFilter();
+        this.pathFilterResult = this.pathFilter.filter(PathUtils.ROOT_PATH);
     }
 
     public FulltextIndexEditor(FulltextIndexEditor<D> parent, String name,
                                MatcherState matcherState,
+                               PathFilter pathFilter,
                                PathFilter.Result pathFilterResult,
                                boolean isDeleted) {
         this.parent = parent;
@@ -99,6 +103,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         this.context = parent.context;
         this.isDeleted = isDeleted;
         this.matcherState = matcherState;
+        this.pathFilter = pathFilter;
         this.pathFilterResult = pathFilterResult;
     }
 
@@ -199,37 +204,39 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        PathFilter.Result filterResult = getPathFilterResult(name);
+        PathFilter.Result filterResult = pathFilter.filter(PathUtils.concat(getPath(), name));
         if (filterResult != PathFilter.Result.EXCLUDE) {
-            return new FulltextIndexEditor<>(this, name, getMatcherState(name, after), filterResult, false);
+            return new FulltextIndexEditor<>(this, name, getMatcherState(name, after), pathFilter, filterResult, false);
+        } else {
+            return null;
         }
-        return null;
     }
 
     @Override
     public Editor childNodeChanged(String name, NodeState before, NodeState after) {
-        PathFilter.Result filterResult = getPathFilterResult(name);
+        PathFilter.Result filterResult = pathFilter.filter(PathUtils.concat(getPath(), name));
         if (filterResult != PathFilter.Result.EXCLUDE) {
-            return new FulltextIndexEditor<>(this, name, getMatcherState(name, after), filterResult, false);
+            return new FulltextIndexEditor<>(this, name, getMatcherState(name, after), pathFilter, filterResult, false);
+        } else {
+            return null;
         }
-        return null;
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        PathFilter.Result filterResult = getPathFilterResult(name);
+        String childPath = PathUtils.concat(getPath(), name);
+        PathFilter.Result filterResult = pathFilter.filter(childPath);
         if (filterResult == PathFilter.Result.EXCLUDE) {
             return null;
         }
 
         if (!isDeleted) {
             // tree deletion is handled on the parent node
-            String path = PathUtils.concat(getPath(), name);
             try {
                 FulltextIndexWriter<D> writer = context.getWriter();
                 // Remove all index entries in the removed subtree
-                writer.deleteDocuments(path);
+                writer.deleteDocuments(childPath);
                 this.context.indexUpdate();
             } catch (IOException e) {
                 CommitFailedException ce = new CommitFailedException("Fulltext", 5, "Failed to remove the index entries of"
@@ -240,10 +247,11 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         }
 
         MatcherState ms = getMatcherState(name, before);
-        if (!ms.isEmpty()) {
-            return new FulltextIndexEditor<>(this, name, ms, filterResult, true);
+        if (ms.isEmpty()) {
+            return null; // no need to recurse down the removed subtree
+        } else {
+            return new FulltextIndexEditor<>(this, name, ms, pathFilter, filterResult, true);
         }
-        return null; // no need to recurse down the removed subtree
     }
 
     public FulltextIndexEditorContext<D> getContext() {
@@ -275,10 +283,11 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     }
 
     private D makeDocument(String path, NodeState state, boolean isUpdate) throws IOException {
-        if (!isIndexable()) {
+        if (isIndexable()) {
+            return context.newDocumentMaker(indexingRule, path).makeDocument(state, isUpdate, propertiesModified);
+        } else {
             return null;
         }
-        return context.newDocumentMaker(indexingRule, path).makeDocument(state, isUpdate, propertiesModified);
     }
 
 
@@ -296,14 +305,14 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             Aggregate.Matcher result = m.match(name, after);
             if (result.getStatus() == Aggregate.Matcher.Status.MATCH_FOUND) {
                 if (matched == EMPTY_AGGREGATE_MATCHER_LIST) {
-                    matched = new ArrayList<>();
+                    matched = new ArrayList<>(4);
                 }
                 matched.add(result);
             }
 
             if (result.getStatus() != Aggregate.Matcher.Status.FAIL) {
                 if (inherited == EMPTY_AGGREGATE_MATCHER_LIST) {
-                    inherited = new ArrayList<>();
+                    inherited = new ArrayList<>(4);
                 }
                 inherited.addAll(result.nextSet());
             }
@@ -404,10 +413,6 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     private boolean isIndexable() {
         return indexingRule != null;
-    }
-
-    private PathFilter.Result getPathFilterResult(String childNodeName) {
-        return context.getDefinition().getPathFilter().filter(PathUtils.concat(getPath(), childNodeName));
     }
 
     private String getIndexName() {
