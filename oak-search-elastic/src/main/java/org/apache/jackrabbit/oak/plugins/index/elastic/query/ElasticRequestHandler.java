@@ -904,10 +904,10 @@ public class ElasticRequestHandler {
         final String field = elasticIndexDefinition.getElasticKeyword(propertyName);
 
         if (pr.isNullRestriction()) {
-            return Query.of(q -> q.bool(b -> b.mustNot(m -> m.exists(e -> e.field(propertyName)))));
+            return Query.of(q -> q.bool(b -> b.mustNot(m -> m.exists(e -> e.field(field)))));
         }
         if (pr.isNotNullRestriction()) {
-            return Query.of(q -> q.exists(e -> e.field(propertyName)));
+            return Query.of(q -> q.exists(e -> e.field(field)));
         }
 
         Query in;
