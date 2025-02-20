@@ -47,8 +47,11 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
         test.addChild("c").setProperty("propa", "foo2");
         test.addChild("d").setProperty("propc", "foo");
         test.addChild("e").setProperty("propd", "foo");
-       // create 10k nodes with different property names to have high cardinality
-        for (int i = 0; i < 10000; i++) {
+
+        // create 10k nodes with different property names to have high cardinality;
+        // without flattened fields, this will break the test with
+        // "Limit of total fields [1000] has been exceeded"
+        for (int i = 0; i < 10_000; i++) {
             test.addChild("node" + i).setProperty("prop" + i, "foo");
         }
         root.commit();
