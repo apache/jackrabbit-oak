@@ -193,10 +193,10 @@ public class ElasticRequestHandler {
                         bqb.must(m -> m.moreLikeThis(mltQuery(mltParams)));
                     }
                 } else {
-                  similarityQuery(queryNodePath, sp).ifPresent(similarityQuery ->
-                    bqb.filter(fb -> fb.exists(ef -> ef.field(similarityQuery.field())))
-                        .should(s -> s.knn(similarityQuery))
-                  );
+                    similarityQuery(queryNodePath, sp).ifPresent(similarityQuery ->
+                        bqb.filter(fb -> fb.exists(ef -> ef.field(similarityQuery.field())))
+                            .should(s -> s.knn(similarityQuery))
+                            );
                 }
 
                 // Add should clause to improve relevance using similarity tags only when similarity is
@@ -902,15 +902,15 @@ public class ElasticRequestHandler {
 
     private Query createQuery(String propertyName, Filter.PropertyRestriction pr, PropertyDefinition defn) {
         int propType = FulltextIndex.determinePropertyType(defn, pr);
+        final String field = elasticIndexDefinition.getElasticKeyword(propertyName);
 
         if (pr.isNullRestriction()) {
-            return Query.of(q -> q.bool(b -> b.mustNot(m -> m.exists(e -> e.field(propertyName)))));
+            return Query.of(q -> q.bool(b -> b.mustNot(m -> m.exists(e -> e.field(field)))));
         }
         if (pr.isNotNullRestriction()) {
-            return Query.of(q -> q.exists(e -> e.field(propertyName)));
+            return Query.of(q -> q.exists(e -> e.field(field)));
         }
 
-        final String field = elasticIndexDefinition.getElasticKeyword(propertyName);
         Query in;
         switch (propType) {
             case PropertyType.DATE: {
