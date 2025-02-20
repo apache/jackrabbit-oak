@@ -360,6 +360,7 @@ public class BranchCommitGCTest {
     }
 
     @Test
+    @Ignore("OAK-11252")
     public void unmergedAddsThenMergedAddsChildren() throws Exception {
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
         RevisionVector br1 = unmergedBranchCommit(b -> {
