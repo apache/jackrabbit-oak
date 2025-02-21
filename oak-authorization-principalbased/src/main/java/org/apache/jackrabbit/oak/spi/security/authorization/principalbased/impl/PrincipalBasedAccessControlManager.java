@@ -235,9 +235,9 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
             if (ReadPolicy.hasEffectiveReadPolicy(readPaths, oakPath)) {
                 Iterable<AccessControlPolicy> iterable = IterableUtils.chainedIterable(acls, Collections.singleton(ReadPolicy.INSTANCE));
-                return Iterables.toArray(iterable, AccessControlPolicy.class);
+                return IterableUtils.toArray(iterable, AccessControlPolicy.class);
             } else {
-                return Iterables.toArray(acls, PrincipalAccessControlList.class);
+                return IterableUtils.toArray(acls, PrincipalAccessControlList.class);
             }
         } catch (ParseException e) {
             String msg = "Error while collecting effective policies at " +absPath;
