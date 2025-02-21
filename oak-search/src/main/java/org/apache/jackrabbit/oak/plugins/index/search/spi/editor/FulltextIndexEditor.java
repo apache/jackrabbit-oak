@@ -344,7 +344,6 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         }
     }
 
-
     public static class MatcherState {
         final static MatcherState NONE = new MatcherState(List.of(), List.of());
         private final static BitSet EMPTY_BITSET = new BitSet(0);
@@ -356,11 +355,9 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         public MatcherState(List<Aggregate.Matcher> matched, List<Aggregate.Matcher> inherited) {
             this.matched = matched;
             this.inherited = inherited;
-
             // Affected matches would only be used when there are some matched matchers
-            affectedMatchers = matched.isEmpty() ? EMPTY_BITSET : new BitSet(matched.size());
+            this.affectedMatchers = matched.isEmpty() ? EMPTY_BITSET : new BitSet(matched.size());
         }
-
 
         public boolean isEmpty() {
             return matched.isEmpty() && inherited.isEmpty();
