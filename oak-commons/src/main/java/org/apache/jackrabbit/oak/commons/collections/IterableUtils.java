@@ -20,7 +20,10 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.iterators.LazyIteratorChain;
+import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Array;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
 
@@ -189,5 +192,24 @@ public class IterableUtils {
      */
     public static boolean isEmpty(final Iterable<?> itr) {
         return org.apache.commons.collections4.IterableUtils.isEmpty(itr);
+    }
+
+    /**
+     * Converts an Iterable to an array of the specified type.
+     *
+     * @param <T> the type of elements in the itr
+     * @param itr the itr to convert, may be null
+     * @param type the class of the type of elements in the array, may not be null
+     * @return an array containing the elements of the itr
+     * @throws NullPointerException if the itr or type is null
+     */
+    @NotNull
+    @SuppressWarnings("unchecked")
+    public static <T> T[] toArray(final Iterable<T> itr, final Class<T> type) {
+
+        final T[] t = (T[]) Array.newInstance(type, 0);
+
+        final Collection<T> collection = itr instanceof Collection ? (Collection<T>) itr : ListUtils.toList(itr);
+        return collection.toArray(t);
     }
 }

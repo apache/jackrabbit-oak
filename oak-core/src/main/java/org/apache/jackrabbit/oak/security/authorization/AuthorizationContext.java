@@ -31,7 +31,7 @@ final class AuthorizationContext implements Context, AccessControlConstants, Per
 
     private static final String[] NODE_NAMES = POLICY_NODE_NAMES.toArray(new String[0]);
     private static final String[] PROPERTY_NAMES = ACE_PROPERTY_NAMES.toArray(new String[0]);
-    private static final String[] NT_NAMES = Iterables.toArray(IterableUtils.chainedIterable(AC_NODETYPE_NAMES, PERMISSION_NODETYPE_NAMES), String.class);
+    private static final String[] NT_NAMES = IterableUtils.toArray(IterableUtils.chainedIterable(AC_NODETYPE_NAMES, PERMISSION_NODETYPE_NAMES), String.class);
 
     private static final Context INSTANCE = new AuthorizationContext();
 

@@ -27,6 +27,7 @@ import javax.management.openmbean.CompositeData;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
@@ -36,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 /**
@@ -87,21 +87,21 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public String[] getInactiveClusterNodes() {
-        return toArray(transform(filter(clusterNodes,
+        return IterableUtils.toArray(transform(filter(clusterNodes,
                 input -> !input.isActive()),
                 input -> input.getClusterId() + "=" + input.getCreated()), String.class);
     }
 
     @Override
     public String[] getActiveClusterNodes() {
-        return toArray(transform(filter(clusterNodes,
+        return IterableUtils.toArray(transform(filter(clusterNodes,
                 input -> input.isActive()),
                 input -> input.getClusterId() + "=" + input.getLeaseEndTime()), String.class);
     }
 
     @Override
     public String[] getLastKnownRevisions() {
-        return toArray(transform(filter(nodeStore.getHeadRevision(),
+        return IterableUtils.toArray(transform(filter(nodeStore.getHeadRevision(),
                 input -> input.getClusterId() != getClusterId()),
                 input -> input.getClusterId() + "=" + input.toString()), String.class);
     }

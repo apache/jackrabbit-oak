@@ -48,6 +48,7 @@ import javax.management.openmbean.TabularType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsopDiff;
@@ -354,7 +355,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             }
         }
         log.info("Checked index consistency in {}. Check result {}", watch, results);
-        return Iterables.toArray(results, String.class);
+        return IterableUtils.toArray(results, String.class);
     }
 
     @Override
@@ -579,7 +580,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             }
         }
         if (maxPathLimitBreachedAtLevel < 0) {
-            return Iterables.toArray(paths, String.class);
+            return IterableUtils.toArray(paths, String.class);
         }
 
         //If max limit for path is reached then we can safely
@@ -595,7 +596,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 }
             }
         }
-        return Iterables.toArray(result, String.class);
+        return IterableUtils.toArray(result, String.class);
     }
 
     /**

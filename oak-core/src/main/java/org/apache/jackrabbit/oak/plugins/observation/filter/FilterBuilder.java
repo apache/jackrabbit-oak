@@ -41,6 +41,7 @@ import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
@@ -463,7 +464,7 @@ public final class FilterBuilder {
         return new FilterConfigMBean() {
             @Override
             public String[] getPaths() {
-                return Iterables.toArray(pathsForMBean, String.class);
+                return IterableUtils.toArray(pathsForMBean, String.class);
             }
 
             @Override

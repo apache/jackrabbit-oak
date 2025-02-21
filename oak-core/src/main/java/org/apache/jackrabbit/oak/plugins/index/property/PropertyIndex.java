@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
@@ -216,7 +217,7 @@ class PropertyIndex implements QueryIndex {
     private static String[] getOptionalStrings(NodeState defn, String propertyName) {
         PropertyState ps = defn.getProperty(propertyName);
         if (ps != null) {
-            return Iterables.toArray(ps.getValue(Type.STRINGS), String.class);
+            return IterableUtils.toArray(ps.getValue(Type.STRINGS), String.class);
         }
         return null;
     }

@@ -123,7 +123,7 @@ public class GroupActionTest extends AbstractSecurityTest {
         Set<String> failedIds = Set.of(testUser02.getID(), testGroup.getID());
         Iterable<String> ids = IterableUtils.chainedIterable(memberIds, failedIds);
 
-        testGroup.addMembers(Iterables.toArray(ids, String.class));
+        testGroup.addMembers(IterableUtils.toArray(ids, String.class));
 
         verify(groupAction, times(1)).onMembersAdded(testGroup, memberIds, failedIds, root, getNamePathMapper());
     }
@@ -146,7 +146,7 @@ public class GroupActionTest extends AbstractSecurityTest {
         Set<String> failedIds = Set.of(testUser02.getID(), testGroup.getID());
         Iterable<String> ids = IterableUtils.chainedIterable(memberIds, failedIds);
 
-        testGroup.removeMembers(Iterables.toArray(ids, String.class));
+        testGroup.removeMembers(IterableUtils.toArray(ids, String.class));
         verify(groupAction, times(1)).onMembersRemoved(testGroup, memberIds, failedIds, root, getNamePathMapper());
     }
 
