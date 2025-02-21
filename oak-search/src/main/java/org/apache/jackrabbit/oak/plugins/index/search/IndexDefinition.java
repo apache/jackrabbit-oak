@@ -53,7 +53,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeTypeIterator;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,6 +60,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -679,7 +679,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     public String getTikaMappedMimeType(String type) {
-        return customTikaMimeTypeMappings.getOrDefault(type, type);
+        return type == null ? null : customTikaMimeTypeMappings.getOrDefault(type, type);
     }
 
     public String getIndexName() {
@@ -966,7 +966,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private boolean evaluateSuggestionEnabled() {
         for (IndexingRule indexingRule : definedRules) {
-            for (PropertyDefinition propertyDefinition : indexingRule.propConfigs.values()) {
+            for (PropertyDefinition propertyDefinition : indexingRule.propDefinitions) {
                 if (propertyDefinition.useInSuggest) {
                     return true;
                 }
@@ -994,7 +994,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private boolean evaluateSpellcheckEnabled() {
         for (IndexingRule indexingRule : definedRules) {
-            for (PropertyDefinition propertyDefinition : indexingRule.propConfigs.values()) {
+            for (PropertyDefinition propertyDefinition : indexingRule.propDefinitions) {
                 if (propertyDefinition.useInSpellcheck) {
                     return true;
                 }
@@ -1045,7 +1045,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         /**
          * Case-insensitive map of lower cased propertyName to propertyConfigs
          */
-        private final Map<String, PropertyDefinition> propConfigs;
+        private final TreeMap<String, PropertyDefinition> propConfigs;
+        private final List<PropertyDefinition> propDefinitions;
         /**
          * List of {@code NamePattern}s configured for this rule
          */
@@ -1086,6 +1087,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             List<Aggregate.Include> propIncludes = new ArrayList<>();
             this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties,
                     existentProperties, nodeScopeAnalyzedProps, functionRestrictions, syncProps, similarityProperties);
+            this.propDefinitions = List.copyOf(propConfigs.values());
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
@@ -1115,6 +1117,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.nodeTypeName = nodeTypeName;
             this.baseNodeType = original.getNodeTypeName();
             this.propConfigs = original.propConfigs;
+            this.propDefinitions = original.propDefinitions;
             this.namePatterns = original.namePatterns;
             this.boost = original.boost;
             this.inherited = original.inherited;
@@ -1172,7 +1175,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
          * @see IndexDefinition#isPureNodeTypeIndex()
          */
         public Iterable<PropertyDefinition> getProperties() {
-            return propConfigs.values();
+            return propDefinitions;
         }
 
         public List<PropertyDefinition> getNullCheckEnabledProperties() {
@@ -1263,10 +1266,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
          */
         @Nullable
         public PropertyDefinition getConfig(String propertyName) {
-            PropertyDefinition config = propConfigs.get(propertyName.toLowerCase(Locale.ENGLISH));
+            PropertyDefinition config = propConfigs.get(propertyName);
             if (config != null) {
                 return config;
-            } else if (namePatterns.size() > 0) {
+            } else if (!namePatterns.isEmpty()) {
                 // check patterns
                 for (NamePattern np : namePatterns) {
                     if (np.matches(propertyName)) {
@@ -1302,16 +1305,16 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             return JcrConstants.NT_BASE.equals(baseNodeType);
         }
 
-        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config,
-                                                                   List<NamePattern> patterns,
-                                                                   List<Aggregate.Include> propAggregate,
-                                                                   List<PropertyDefinition> nonExistentProperties,
-                                                                   List<PropertyDefinition> existentProperties,
-                                                                   List<PropertyDefinition> nodeScopeAnalyzedProps,
-                                                                   List<PropertyDefinition> functionRestrictions,
-                                                                   List<PropertyDefinition> syncProps,
-                                                                   List<PropertyDefinition> similarityProperties) {
-            Map<String, PropertyDefinition> propDefns = new HashMap<>();
+        private TreeMap<String, PropertyDefinition> collectPropConfigs(NodeState config,
+                                                                       List<NamePattern> patterns,
+                                                                       List<Aggregate.Include> propAggregate,
+                                                                       List<PropertyDefinition> nonExistentProperties,
+                                                                       List<PropertyDefinition> existentProperties,
+                                                                       List<PropertyDefinition> nodeScopeAnalyzedProps,
+                                                                       List<PropertyDefinition> functionRestrictions,
+                                                                       List<PropertyDefinition> syncProps,
+                                                                       List<PropertyDefinition> similarityProperties) {
+            TreeMap<String, PropertyDefinition> propDefns = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
             NodeState propNode = config.getChildNode(FulltextIndexConstants.PROP_NODE);
 
             if (propNode.exists() && !hasOrderableChildren(propNode)) {
@@ -1326,8 +1329,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                 PropertyDefinition pdpt = createNodeTypeDefinition(this, JcrConstants.JCR_PRIMARYTYPE, sync);
                 PropertyDefinition pdmixin = createNodeTypeDefinition(this, JcrConstants.JCR_MIXINTYPES, sync);
 
-                propDefns.put(pdpt.name.toLowerCase(Locale.ENGLISH), pdpt);
-                propDefns.put(pdmixin.name.toLowerCase(Locale.ENGLISH), pdmixin);
+                propDefns.put(pdpt.name, pdpt);
+                propDefns.put(pdmixin.name, pdmixin);
 
                 if (sync) {
                     syncProps.add(pdpt);
@@ -1339,7 +1342,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                             "definitions", indexPath, FulltextIndexConstants.PROP_INDEX_NODE_TYPE);
                 }
 
-                return Map.copyOf(propDefns);
+                return propDefns;
             }
 
             //Include all immediate child nodes to 'properties' node by default
@@ -1364,7 +1367,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                     if (pd.isRegexp) {
                         patterns.add(new NamePattern(pd.name, pd));
                     } else {
-                        propDefns.put(pd.name.toLowerCase(Locale.ENGLISH), pd);
+                        propDefns.put(pd.name, pd);
                     }
 
                     if (pd.relative) {
@@ -1395,27 +1398,27 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                 }
             }
             ensureNodeTypeIndexingIsConsistent(propDefns, syncProps);
-            return Map.copyOf(propDefns);
+            return propDefns;
         }
 
         /**
          * If jcr:primaryType is indexed but jcr:mixinTypes is not indexed
          * then ensure that jcr:mixinTypes is also indexed
          */
-        private void ensureNodeTypeIndexingIsConsistent(Map<String, PropertyDefinition> propDefns,
+        private void ensureNodeTypeIndexingIsConsistent(TreeMap<String, PropertyDefinition> propDefns,
                                                         List<PropertyDefinition> syncProps) {
-            PropertyDefinition pd_pr = propDefns.get(JcrConstants.JCR_PRIMARYTYPE.toLowerCase(Locale.ENGLISH));
-            PropertyDefinition pd_mixin = propDefns.get(JcrConstants.JCR_MIXINTYPES.toLowerCase(Locale.ENGLISH));
+            PropertyDefinition pd_pr = propDefns.get(JcrConstants.JCR_PRIMARYTYPE);
+            PropertyDefinition pd_mixin = propDefns.get(JcrConstants.JCR_MIXINTYPES);
 
             if (pd_pr != null && pd_pr.propertyIndex && pd_mixin == null) {
                 pd_mixin = createNodeTypeDefinition(this, JcrConstants.JCR_MIXINTYPES, pd_pr.sync);
                 syncProps.add(pd_mixin);
-                propDefns.put(JcrConstants.JCR_MIXINTYPES.toLowerCase(Locale.ENGLISH), pd_mixin);
+                propDefns.put(JcrConstants.JCR_MIXINTYPES, pd_mixin);
             }
         }
 
         private boolean hasAnyFullTextEnabledProperty() {
-            for (PropertyDefinition pd : propConfigs.values()) {
+            for (PropertyDefinition pd : propDefinitions) {
                 if (pd.fulltextEnabled()) {
                     return true;
                 }
@@ -1430,7 +1433,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         }
 
         private boolean hasAnyPropertyIndexConfigured() {
-            for (PropertyDefinition pd : propConfigs.values()) {
+            for (PropertyDefinition pd : propDefinitions) {
                 if (pd.propertyIndex) {
                     return true;
                 }
@@ -1447,7 +1450,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         private boolean anyNodeScopeIndexedProperty() {
             //Check if there is any nodeScope indexed property as
             //for such case a node would always be indexed
-            for (PropertyDefinition pd : propConfigs.values()) {
+            for (PropertyDefinition pd : propDefinitions) {
                 if (pd.nodeScopeIndex) {
                     return true;
                 }
@@ -1494,7 +1497,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             }
 
             //iterate over property definitions
-            for (PropertyDefinition pd : propConfigs.values()) {
+            for (PropertyDefinition pd : propDefinitions) {
                 if (FulltextIndexConstants.PROPDEF_PROP_NODE_NAME.equals(pd.name)) {
                     return true;
                 }
@@ -1956,16 +1959,14 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         Map<String, String> map = new HashMap<>();
         for (ChildNodeEntry child : node.getChildNodeEntries()) {
             for (ChildNodeEntry subChild : child.getNodeState().getChildNodeEntries()) {
-                StringBuilder typeBuilder = new StringBuilder(child.getName())
-                        .append('/')
-                        .append(subChild.getName());
                 PropertyState property = subChild.getNodeState().getProperty(TIKA_MAPPED_TYPE);
                 if (property != null) {
-                    map.put(typeBuilder.toString(), property.getValue(Type.STRING));
+                    String subChildPath = child.getName() + "/" + subChild.getName();
+                    map.put(subChildPath, property.getValue(Type.STRING));
                 }
             }
         }
-        return Collections.unmodifiableMap(map);
+        return Map.copyOf(map);
     }
 
     private PropertyDefinition createNodeTypeDefinition(IndexingRule rule, String name, boolean sync) {
