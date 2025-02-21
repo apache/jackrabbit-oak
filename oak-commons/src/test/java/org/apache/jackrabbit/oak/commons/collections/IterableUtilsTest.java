@@ -277,4 +277,40 @@ public class IterableUtilsTest {
     public void testIsEmptyWithNullIterable() {
         Assert.assertTrue(IterableUtils.isEmpty(null));
     }
+
+    @Test
+    public void testToArrayWithNonEmptyIterable() {
+        Iterable<String> itr = Arrays.asList("a", "b", "c");
+        String[] array = IterableUtils.toArray(itr, String.class);
+        Assert.assertArrayEquals(new String[]{"a", "b", "c"}, array);
+    }
+
+    @Test
+    public void testToArrayWithEmptyIterable() {
+        Iterable<String> itr = Collections.emptyList();
+        String[] array = IterableUtils.toArray(itr, String.class);
+        Assert.assertArrayEquals(new String[]{}, array);
+    }
+
+    @Test
+    public void testToArrayWithSingleElement() {
+        Iterable<String> itr = Collections.singletonList("a");
+        String[] array = IterableUtils.toArray(itr, String.class);
+        Assert.assertArrayEquals(new String[]{"a"}, array);
+    }
+
+    @Test
+    public void testToArrayWithNullIterable() {
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IterableUtils.toArray(null, String.class);
+        });
+    }
+
+    @Test
+    public void testToArrayWithNullType() {
+        Iterable<String> itr = Arrays.asList("a", "b", "c");
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IterableUtils.toArray(itr, null);
+        });
+    }
 }
