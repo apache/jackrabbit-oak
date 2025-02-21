@@ -41,8 +41,6 @@ import org.slf4j.LoggerFactory;
  */
 public class FileStore implements Store {
 
-    private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
-
     private final Properties config;
     private final String directory;
     private Compression compression = Compression.NO;
@@ -58,7 +56,6 @@ public class FileStore implements Store {
         this.directory = config.getProperty("dir");
         this.maxFileSizeBytes = Long.parseLong(config.getProperty(
                 Store.MAX_FILE_SIZE_BYTES, "" + Store.DEFAULT_MAX_FILE_SIZE_BYTES));
-        LOG.info("Max file size {} bytes", maxFileSizeBytes);
         new File(directory).mkdirs();
     }
 

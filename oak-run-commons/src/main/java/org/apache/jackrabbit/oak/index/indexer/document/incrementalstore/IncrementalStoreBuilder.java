@@ -38,8 +38,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import static java.util.Collections.unmodifiableSet;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 
 public class IncrementalStoreBuilder {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -149,9 +147,10 @@ public class IncrementalStoreBuilder {
     }
 
     private void logFlags() {
-        log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
-        log.info("Compression enabled while sorting : {} ({})", IndexStoreUtils.compressionEnabled(), OAK_INDEXER_USE_ZIP);
-        log.info("LZ4 enabled for compression algorithm : {} ({})", IndexStoreUtils.useLZ4(), OAK_INDEXER_USE_LZ4);
+        log.info("Preferred path elements {}, compression enabled {}, algorithm {}",
+                Iterables.toString(preferredPathElements),
+                IndexStoreUtils.compressionEnabled(),
+                IndexStoreUtils.useLZ4());
     }
 
 }

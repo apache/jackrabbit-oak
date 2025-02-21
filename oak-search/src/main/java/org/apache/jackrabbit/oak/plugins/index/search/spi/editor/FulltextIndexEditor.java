@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -39,6 +34,14 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
  * Generic implementation of an {@link IndexEditor} which supports index time aggregation.
@@ -323,6 +326,8 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         }
     }
 
+
+
     /*
      * Determines which all matchers are affected by this property change
      *
@@ -338,6 +343,8 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             }
         }
     }
+
+
 
     public static class MatcherState {
         final static MatcherState NONE = new MatcherState(List.of(), List.of());
@@ -358,6 +365,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
                 affectedMatchers = SetUtils.newIdentityHashSet();
             }
         }
+
 
         public boolean isEmpty() {
             return matched.isEmpty() && inherited.isEmpty();
