@@ -37,11 +37,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
  * Generic implementation of an {@link IndexEditor} which supports index time aggregation.
@@ -124,8 +121,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         }
 
         //Only check for indexing if the result is include.
-        //In case like TRAVERSE nothing needs to be indexed for those
-        //path
+        //In case like TRAVERSE nothing needs to be indexed for those paths
         if (pathFilterResult == PathFilter.Result.INCLUDE) {
             //For traversal in deleted sub tree before state has to be used
             NodeState current = after.exists() ? after : before;
