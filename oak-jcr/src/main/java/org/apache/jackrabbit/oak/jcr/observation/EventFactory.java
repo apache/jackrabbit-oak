@@ -213,7 +213,7 @@ public class EventFactory {
             public Map<?, ?> getInfo() {
                 Map<Object, Object> builder = new HashMap<>();
                 builder.put("srcChildRelPath", mapper.getJcrPath(itemPath));
-                builder.put("destChildRelPath", mapper.getJcrName(destName));
+                builder.put("destChildRelPath", mapper.getJcrPath(destName));
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
                 return Collections.unmodifiableMap(builder);
             }
