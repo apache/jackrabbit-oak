@@ -82,7 +82,7 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
     }
 
     @NotNull String[] getAutoMembership() {
-        return Iterables.toArray(IterableUtils.chainedIterable(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class);
+        return IterableUtils.toArray(IterableUtils.chainedIterable(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class);
     }
     
     @NotNull AutoMembershipConfig getAutoMembershipConfig() {

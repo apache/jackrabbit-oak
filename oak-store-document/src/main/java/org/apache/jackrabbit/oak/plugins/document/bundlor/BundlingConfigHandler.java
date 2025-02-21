@@ -26,6 +26,7 @@ import java.util.concurrent.Executor;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -62,7 +63,7 @@ public class BundlingConfigHandler implements Observer, Closeable {
         public void leave(NodeState before, NodeState after) throws CommitFailedException {
             recreateRegistry(after);
         }
-    }, Iterables.toArray(PathUtils.elements(CONFIG_PATH), String.class));
+    }, IterableUtils.toArray(PathUtils.elements(CONFIG_PATH), String.class));
 
     @Override
     public synchronized void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {

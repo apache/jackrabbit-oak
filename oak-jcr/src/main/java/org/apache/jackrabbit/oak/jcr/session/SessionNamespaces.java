@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
@@ -28,6 +26,7 @@ import javax.jcr.NamespaceException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.util.XMLChar;
@@ -105,7 +104,8 @@ public class SessionNamespaces extends LocalNameMapper {
 
         // unless there are local remappings just use the registered ones
         if (local.isEmpty()) {
-            return toArray(global, String.class);
+
+            return IterableUtils.toArray(global, String.class);
         }
 
         Set<String> prefixes = SetUtils.toSet(global);

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
@@ -31,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
@@ -306,7 +306,7 @@ public class PropertyDefinition {
         if (FulltextIndexConstants.REGEX_ALL_PROPS.equals(path)) {
             return EMPTY_ANCESTORS;
         } else {
-            return toArray(ListUtils.toList(elements(PathUtils.getParentPath(path))), String.class);
+            return IterableUtils.toArray(ListUtils.toList(elements(PathUtils.getParentPath(path))), String.class);
         }
     }
 

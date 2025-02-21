@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
@@ -64,7 +65,7 @@ public class ExternalIdentityRepositoryInitializerTest extends AbstractExternalA
         assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
         assertArrayEquals(
                 propName, new String[]{propName},
-                Iterables.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
+                IterableUtils.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
         Iterable<String> declaringNtNames = TreeUtil.getStrings(tree, IndexConstants.DECLARING_NODE_TYPES);
         assertNull(declaringNtNames);
     }

@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
@@ -85,7 +86,7 @@ class TopLevelPaths implements CugConstants {
             cnt = hiddenTopCnt.getValue(Type.LONG);
             if (cnt <= MAX_CNT) {
                 PropertyState hidden = root.getTree(PathUtils.ROOT_PATH).getProperty(HIDDEN_NESTED_CUGS);
-                paths = (hidden == null) ? new String[0] : Iterables.toArray(hidden.getValue(Type.STRINGS), String.class);
+                paths = (hidden == null) ? new String[0] : IterableUtils.toArray(hidden.getValue(Type.STRINGS), String.class);
             } else {
                 paths = new String[0];
             }

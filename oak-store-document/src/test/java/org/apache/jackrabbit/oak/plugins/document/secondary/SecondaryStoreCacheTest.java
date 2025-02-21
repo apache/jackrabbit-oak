@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -164,7 +165,7 @@ public class SecondaryStoreCacheTest {
             revs.add(r.getRootRevision());
         }
 
-        AbstractDocumentNodeState[] rootsArr = Iterables.toArray(roots, AbstractDocumentNodeState.class);
+        AbstractDocumentNodeState[] rootsArr = IterableUtils.toArray(roots, AbstractDocumentNodeState.class);
 
         Collections.shuffle(revs);
         for (RevisionVector rev : revs){

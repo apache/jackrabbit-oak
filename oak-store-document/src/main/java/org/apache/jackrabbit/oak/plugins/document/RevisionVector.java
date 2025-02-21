@@ -27,6 +27,7 @@ import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.peekingIterator;
 import static java.util.Arrays.sort;
 
@@ -78,11 +78,11 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     public RevisionVector(@NotNull Iterable<Revision> revisions) {
-        this(toArray(revisions, Revision.class), true, true);
+        this(IterableUtils.toArray(revisions, Revision.class), true, true);
     }
 
     public RevisionVector(@NotNull Set<Revision> revisions) {
-        this(toArray(revisions, Revision.class), false, true);
+        this(IterableUtils.toArray(revisions, Revision.class), false, true);
     }
 
     /**
@@ -186,7 +186,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
                 break;
             }
         }
-        return new RevisionVector(toArray(pmin, Revision.class), false, false);
+        return new RevisionVector(IterableUtils.toArray(pmin, Revision.class), false, false);
     }
 
     /**
@@ -222,7 +222,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
         }
         // add remaining
         Iterators.addAll(pmax, it);
-        return new RevisionVector(toArray(pmax, Revision.class), false, false);
+        return new RevisionVector(IterableUtils.toArray(pmax, Revision.class), false, false);
     }
 
     /**
@@ -242,7 +242,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
                 diff.add(r);
             }
         }
-        return new RevisionVector(toArray(diff, Revision.class), false, false);
+        return new RevisionVector(IterableUtils.toArray(diff, Revision.class), false, false);
     }
 
     /**
