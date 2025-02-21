@@ -317,7 +317,7 @@ public class IterableUtilsTest {
     @Test
     public void testPartitionWithNonEmptyIterable() {
         Iterable<Integer> iterable = Arrays.asList(1, 2, 3, 4, 5, 6, 7);
-        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3);
+        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3).iterator();
         Assert.assertTrue(partitions.hasNext());
         Assert.assertEquals(Arrays.asList(1, 2, 3), partitions.next());
         Assert.assertTrue(partitions.hasNext());
@@ -330,21 +330,21 @@ public class IterableUtilsTest {
     @Test
     public void testPartitionWithEmptyIterable() {
         Iterable<Integer> iterable = Collections.emptyList();
-        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3);
+        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3).iterator();
         Assert.assertFalse(partitions.hasNext());
     }
 
     @Test
     public void testPartitionWithNotSupportedRemoveIterable() {
         Iterable<Integer> iterable = Collections.emptyList();
-        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3);
+        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3).iterator();
         Assert.assertThrows(UnsupportedOperationException.class, partitions::remove);
     }
 
     @Test
     public void testPartitionWithSingleElement() {
         Iterable<Integer> iterable = Collections.singletonList(1);
-        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3);
+        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3).iterator();
         Assert.assertTrue(partitions.hasNext());
         Assert.assertEquals(Collections.singletonList(1), partitions.next());
         Assert.assertFalse(partitions.hasNext());
@@ -353,7 +353,7 @@ public class IterableUtilsTest {
     @Test
     public void testPartitionWithSizeOne() {
         Iterable<Integer> iterable = Arrays.asList(1, 2, 3, 4, 5);
-        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 1);
+        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 1).iterator();
         Assert.assertTrue(partitions.hasNext());
         Assert.assertEquals(Collections.singletonList(1), partitions.next());
         Assert.assertTrue(partitions.hasNext());

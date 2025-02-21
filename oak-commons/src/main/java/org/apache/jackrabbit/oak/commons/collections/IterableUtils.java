@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.iterators.LazyIteratorChain;
 import org.jetbrains.annotations.NotNull;
@@ -226,7 +225,7 @@ public class IterableUtils {
      * @throws NullPointerException if the itr is null
      * @throws IllegalArgumentException if size is less than or equal to 0
      */
-    public static <T> Iterator<List<T>> partition(final Iterable<T> itr, final int size) {
+    public static <T> Iterable<List<T>> partition(final Iterable<T> itr, final int size) {
         if (itr == null) {
             throw new NullPointerException("Iterable must not be null.");
         }
@@ -234,22 +233,27 @@ public class IterableUtils {
             throw new IllegalArgumentException("Size must be greater than 0.");
         }
 
-        return IteratorUtils.unmodifiableIterator(new Iterator<>() {
-            private final Iterator<T> iterator = itr.iterator();
-
+        return new Iterable<>() {
             @Override
-            public boolean hasNext() {
-                return iterator.hasNext();
-            }
+            public @NotNull Iterator<List<T>> iterator() {
+                return new Iterator<>() {
+                    private final Iterator<T> iterator = itr.iterator();
 
-            @Override
-            public List<T> next() {
-                List<T> currentPartition = new ArrayList<>(size);
-                for (int i = 0; i < size && iterator.hasNext(); i++) {
-                    currentPartition.add(iterator.next());
-                }
-                return currentPartition;
+                    @Override
+                    public boolean hasNext() {
+                        return iterator.hasNext();
+                    }
+
+                    @Override
+                    public List<T> next() {
+                        List<T> currentPartition = new ArrayList<>(size);
+                        for (int i = 0; i < size && iterator.hasNext(); i++) {
+                            currentPartition.add(iterator.next());
+                        }
+                        return currentPartition;
+                    }
+                };
             }
-        });
+        };
     }
 }
