@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
@@ -133,7 +134,7 @@ class ReferenceIndex implements QueryIndex {
             iterables.add(s.query(filter, index + "("
                     + uuid + ")", indexRoot, Set.of(uuid)));
         }
-        Iterable<String> paths = Iterables.concat(iterables);
+        Iterable<String> paths = IterableUtils.chainedIterable(iterables);
 
         if (!"*".equals(name)) {
             paths = filter(paths, path -> name.equals(getName(path)));

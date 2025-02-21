@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -163,7 +164,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         //regex for node name indexing
         PropertyState nodenamePS =
                 new StringPropertyState(FieldNames.NODE_NAME, getName(path));
-        for (PropertyState property : Iterables.concat(state.getProperties(), Collections.singleton(nodenamePS))) {
+        for (PropertyState property : IterableUtils.chainedIterable(state.getProperties(), Collections.singleton(nodenamePS))) {
             String pname = property.getName();
 
             if (!isVisible(pname) && !FieldNames.NODE_NAME.equals(pname)) {

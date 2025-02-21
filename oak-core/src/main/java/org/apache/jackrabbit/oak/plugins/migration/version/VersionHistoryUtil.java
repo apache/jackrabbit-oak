@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.version;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -40,6 +39,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -55,7 +55,7 @@ public class VersionHistoryUtil {
     private static final Logger LOG = LoggerFactory.getLogger(VersionHistoryUtil.class);
 
     public static String getRelativeVersionHistoryPath(String versionableUuid) {
-        return String.join("/", concat(
+        return String.join("/", IterableUtils.chainedIterable(
                 singleton(""),
                 getRelativeVersionHistoryPathSegments(versionableUuid),
                 singleton(versionableUuid)));

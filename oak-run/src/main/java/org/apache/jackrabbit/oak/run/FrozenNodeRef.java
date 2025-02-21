@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 
 /**
  * Contains one particular reference to an nt:frozenNode.

@@ -28,6 +28,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
@@ -287,7 +288,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
   private MatcherState getMatcherState(String name, NodeState after) {
     List<Aggregate.Matcher> matched = new ArrayList<>();
     List<Aggregate.Matcher> inherited = new ArrayList<>();
-    for (Aggregate.Matcher m : Iterables.concat(matcherState.inherited, currentMatchers)) {
+    for (Aggregate.Matcher m : IterableUtils.chainedIterable(matcherState.inherited, currentMatchers)) {
       Aggregate.Matcher result = m.match(name, after);
       if (result.getStatus() == Aggregate.Matcher.Status.MATCH_FOUND){
         matched.add(result);

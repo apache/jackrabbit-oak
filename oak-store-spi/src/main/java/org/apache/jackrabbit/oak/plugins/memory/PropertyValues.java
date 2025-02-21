@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.math.BigDecimal;
 import javax.jcr.PropertyType;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

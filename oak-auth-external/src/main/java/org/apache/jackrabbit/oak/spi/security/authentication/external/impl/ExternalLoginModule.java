@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.DebugTimer;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -457,7 +458,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (creds != null) {
             attributes.putAll(credentialsSupport.getAttributes(creds));
         }
-        return new AuthInfoImpl(userId, attributes, Iterables.concat(principals, subject.getPrincipals()));
+        return new AuthInfoImpl(userId, attributes, IterableUtils.chainedIterable(principals, subject.getPrincipals()));
     }
 
     @NotNull

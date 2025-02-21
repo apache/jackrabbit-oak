@@ -29,6 +29,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -159,7 +160,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
             }
             added = acl.addAccessControlEntry(principal, privileges);
         } else {
-            for (JackrabbitAccessControlPolicy policy : Iterables.concat(Arrays.asList(acMgr.getApplicablePolicies(principal)),
+            for (JackrabbitAccessControlPolicy policy : IterableUtils.chainedIterable(Arrays.asList(acMgr.getApplicablePolicies(principal)),
                     Arrays.asList(acMgr.getPolicies(principal)))) {
                 if (policy instanceof PrincipalAccessControlList) {
                     acl = (PrincipalAccessControlList) policy;

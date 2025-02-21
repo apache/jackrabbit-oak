@@ -39,9 +39,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MongoFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;

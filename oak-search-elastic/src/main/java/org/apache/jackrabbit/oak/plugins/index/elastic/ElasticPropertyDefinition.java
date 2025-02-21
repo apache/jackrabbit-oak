@@ -73,7 +73,19 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
     public boolean useInFullTextQuery() {
         return useInFullTextQuery;
     }
+  
+    public boolean isFlattened() {
+        return isFlattened;
+    }
 
+    @Override
+    public String toString() {
+        return "ElasticPropertyDefinition{" + super.toString() +
+                ", useInFullTextQuery=" + useInFullTextQuery +
+                ", isFlattened=" + isFlattened +
+                '}';
+    }
+      
     /**
      * Class for defining parameters of approximate knn search on dense_vector fields
      * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html">...</a> and
@@ -132,18 +144,6 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
         public int getCandidates() {
             return candidates;
         }
+      
     }
-
-    public boolean isFlattened() {
-        return isFlattened;
-    }
-
-    @Override
-    public String toString() {
-        return "ElasticPropertyDefinition{" + super.toString() +
-                ", useInFullTextQuery=" + useInFullTextQuery +
-                ", isFlattened=" + isFlattened +
-                '}';
-    }
-
 }
