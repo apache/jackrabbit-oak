@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -37,8 +36,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Generic implementation of an {@link IndexEditor} which supports index time aggregation.
@@ -146,8 +145,9 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             }
         }
 
-        if (!matcherState.affectedMatchers.isEmpty()) {
-            for (Aggregate.Matcher m : matcherState.affectedMatchers) {
+        for (int i = 0; i < matcherState.matched.size(); i++) {
+            if (matcherState.affectedMatchers.get(i)) {
+                Aggregate.Matcher m = matcherState.matched.get(i);
                 m.markRootDirty();
             }
         }
@@ -296,6 +296,10 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     }
 
     private MatcherState getMatcherState(String name, NodeState after) {
+        // Short circuit if there are no matchers to avoid creating the iterator over these two lists
+        if (matcherState.inherited.isEmpty() && currentMatchers.isEmpty()) {
+            return MatcherState.NONE;
+        }
         List<Aggregate.Matcher> matched = EMPTY_AGGREGATE_MATCHER_LIST;
         List<Aggregate.Matcher> inherited = EMPTY_AGGREGATE_MATCHER_LIST;
         for (Aggregate.Matcher m : IterableUtils.chainedIterable(matcherState.inherited, currentMatchers)) {
@@ -323,43 +327,38 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     }
 
 
-
     /*
      * Determines which all matchers are affected by this property change
      *
      * @param name modified property name
      */
     private void checkAggregates(String name) {
-        // Avoid allocating the iterator over matcherState.matched in the common case of the list being empty
-        if (!matcherState.matched.isEmpty()) {
-            for (Aggregate.Matcher m : matcherState.matched) {
-                if (!matcherState.affectedMatchers.contains(m) && m.aggregatesProperty(name)) {
-                    matcherState.affectedMatchers.add(m);
+        // Performance critical code, iterate using an index to avoid allocating an iterator
+        for (int i = 0; i < matcherState.matched.size(); i++) {
+            if (!matcherState.affectedMatchers.get(i)) {
+                Aggregate.Matcher m = matcherState.matched.get(i);
+                if (m.aggregatesProperty(name)) {
+                    matcherState.affectedMatchers.set(i);
                 }
             }
         }
     }
 
 
-
     public static class MatcherState {
         final static MatcherState NONE = new MatcherState(List.of(), List.of());
+        private final static BitSet EMPTY_BITSET = new BitSet(0);
 
         final List<Aggregate.Matcher> matched;
         final List<Aggregate.Matcher> inherited;
-        final Set<Aggregate.Matcher> affectedMatchers;
+        final BitSet affectedMatchers;
 
         public MatcherState(List<Aggregate.Matcher> matched, List<Aggregate.Matcher> inherited) {
             this.matched = matched;
             this.inherited = inherited;
 
-            //Affected matches would only be used when there are
-            //some matched matchers
-            if (matched.isEmpty()) {
-                affectedMatchers = Set.of();
-            } else {
-                affectedMatchers = SetUtils.newIdentityHashSet();
-            }
+            // Affected matches would only be used when there are some matched matchers
+            affectedMatchers = matched.isEmpty() ? EMPTY_BITSET : new BitSet(matched.size());
         }
 
 
@@ -393,17 +392,15 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             }
         }
 
-        // Avoid allocating the iterator over matcherState.matched in the common case of the list being empty
-        if (!matcherState.matched.isEmpty()) {
-            for (Aggregate.Matcher m : matcherState.matched) {
-                if (m.aggregatesProperty(propertyName)) {
-                    Aggregate.Include i = m.getCurrentInclude();
-                    if (i instanceof Aggregate.PropertyInclude) {
-                        PropertyDefinition pd = ((Aggregate.PropertyInclude) i).getPropertyDefinition();
-                        String propertyRelativePath = PathUtils.concat(m.getMatchedPath(), propertyName);
-
-                        callback.propertyUpdated(m.getRootPath(), propertyRelativePath, pd, before, after);
-                    }
+        // Performance critical code, iterate using an index to avoid allocating an iterator
+        for (int i = 0; i < matcherState.matched.size(); i++) {
+            Aggregate.Matcher m = matcherState.matched.get(i);
+            if (m.aggregatesProperty(propertyName)) {
+                Aggregate.Include aggregateInclude = m.getCurrentInclude();
+                if (aggregateInclude instanceof Aggregate.PropertyInclude) {
+                    PropertyDefinition pd = ((Aggregate.PropertyInclude) aggregateInclude).getPropertyDefinition();
+                    String propertyRelativePath = PathUtils.concat(m.getMatchedPath(), propertyName);
+                    callback.propertyUpdated(m.getRootPath(), propertyRelativePath, pd, before, after);
                 }
             }
         }
