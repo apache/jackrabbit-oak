@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -135,14 +136,14 @@ public class UserInitializerTest extends AbstractSecurityTest {
         Iterable<String> declaringNtNames = TreeUtil.getStrings(princName, IndexConstants.DECLARING_NODE_TYPES);
         assertArrayEquals(
                 new String[]{UserConstants.NT_REP_AUTHORIZABLE},
-                Iterables.toArray(declaringNtNames, String.class));
+                IterableUtils.toArray(declaringNtNames, String.class));
 
         Tree repMembers = oakIndex.getChild("repMembers");
         assertIndexDefinition(repMembers, UserConstants.REP_MEMBERS, false);
         declaringNtNames = TreeUtil.getStrings(repMembers, IndexConstants.DECLARING_NODE_TYPES);
         assertArrayEquals(
                 new String[]{UserConstants.NT_REP_MEMBER_REFERENCES},
-                Iterables.toArray(declaringNtNames, String.class));
+                IterableUtils.toArray(declaringNtNames, String.class));
     }
 
     private static void assertIndexDefinition(Tree tree, String propName, boolean isUnique) {
@@ -151,7 +152,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
         assertArrayEquals(
                 propName, new String[]{propName},
-                Iterables.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
+                IterableUtils.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
     }
 
     /**

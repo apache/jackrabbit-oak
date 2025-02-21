@@ -25,6 +25,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
@@ -130,7 +131,7 @@ public class ConfigUtil {
     public static<T> T[] getOptionalValues(NodeState definition, String propName, Type<Iterable<T>> type, Class<T> typeParam, T[] defaultValues) {
         PropertyState ps = definition.getProperty(propName);
         if (ps != null) {
-            return Iterables.toArray(ps.getValue(type), typeParam);
+            return IterableUtils.toArray(ps.getValue(type), typeParam);
         }
         return defaultValues;
     }

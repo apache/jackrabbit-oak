@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.ImmutablePrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -81,7 +82,7 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
         assertTrue(TreeUtil.getBoolean(tmpTree, REP_IS_ABSTRACT));
         assertArrayEquals(
                 new String[] {JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL},
-                Iterables.toArray(TreeUtil.getStrings(tmpTree, REP_AGGREGATES), String.class));
+                IterableUtils.toArray(TreeUtil.getStrings(tmpTree, REP_AGGREGATES), String.class));
     }
 
     @Test(expected = RepositoryException.class)

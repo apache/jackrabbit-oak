@@ -41,6 +41,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -149,7 +150,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
     @Override
     public String[] listAll() throws IOException {
-        return Iterables.toArray(fileMap.keySet(), String.class);
+        return IterableUtils.toArray(fileMap.keySet(), String.class);
     }
 
     @Override

@@ -160,7 +160,7 @@ public final class IndexDefinitionBuilder {
         boolean noAdditionalTags = currTags.containsAll(tagVals);
         if (!noAdditionalTags) {
             tree.removeProperty(INDEX_TAGS);
-            tree.setProperty(INDEX_TAGS, asList(Iterables.toArray(tagVals, String.class)), STRINGS);
+            tree.setProperty(INDEX_TAGS, asList(IterableUtils.toArray(tagVals, String.class)), STRINGS);
         }
         return this;
     }
