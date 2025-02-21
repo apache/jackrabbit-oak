@@ -193,10 +193,10 @@ public class ElasticRequestHandler {
                         bqb.must(m -> m.moreLikeThis(mltQuery(mltParams)));
                     }
                 } else {
-                  similarityQuery(queryNodePath, sp).ifPresent(similarityQuery ->
-                    bqb.filter(fb -> fb.exists(ef -> ef.field(similarityQuery.field())))
-                        .should(s -> s.knn(similarityQuery))
-                  );
+                    similarityQuery(queryNodePath, sp).ifPresent(similarityQuery ->
+                        bqb.filter(fb -> fb.exists(ef -> ef.field(similarityQuery.field())))
+                            .should(s -> s.knn(similarityQuery))
+                            );
                 }
 
                 // Add should clause to improve relevance using similarity tags only when similarity is
@@ -228,48 +228,48 @@ public class ElasticRequestHandler {
         return bqb;
     }
 
-  public Optional<KnnQuery> similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
-    if (!sp.isEmpty()) {
-      LOG.debug("generating similarity query for {}", text);
-      NodeState targetNodeState = rootState;
-      for (String token : PathUtils.elements(text)) {
-        targetNodeState = targetNodeState.getChildNode(token);
-      }
-      if (!targetNodeState.exists()) {
-        throw new IllegalArgumentException("Could not find node " + text);
-      }
-      for (PropertyDefinition propertyDefinition : sp) {
-        ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
-        String propertyPath = PathUtils.getParentPath(pd.name);
-        String propertyName = PathUtils.getName(pd.name);
-        NodeState tempState = targetNodeState;
-        for (String token : PathUtils.elements(propertyPath)) {
-          if (token.isEmpty()) {
-            break;
-          }
-          tempState = tempState.getChildNode(token);
-        }
-        PropertyState ps = tempState.getProperty(propertyName);
-        Blob property = ps != null ? ps.getValue(Type.BINARY) : null;
-        if (property == null) {
-          LOG.warn("Couldn't find property {} on {}", pd.name, text);
-          continue;
-        }
-        byte[] bytes;
-        try {
-          bytes = property.getNewStream().readAllBytes();
-        } catch (IOException e) {
-          LOG.error("Error reading bytes from property {} on {}", pd.name, text, e);
-          continue;
-        }
+    public Optional<KnnQuery> similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
+        if (!sp.isEmpty()) {
+            LOG.debug("generating similarity query for {}", text);
+            NodeState targetNodeState = rootState;
+            for (String token : PathUtils.elements(text)) {
+                targetNodeState = targetNodeState.getChildNode(token);
+            }
+            if (!targetNodeState.exists()) {
+                throw new IllegalArgumentException("Could not find node " + text);
+            }
+            for (PropertyDefinition propertyDefinition : sp) {
+                ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
+                String propertyPath = PathUtils.getParentPath(pd.name);
+                String propertyName = PathUtils.getName(pd.name);
+                NodeState tempState = targetNodeState;
+                for (String token : PathUtils.elements(propertyPath)) {
+                    if (token.isEmpty()) {
+                        break;
+                    }
+                    tempState = tempState.getChildNode(token);
+                }
+                PropertyState ps = tempState.getProperty(propertyName);
+                Blob property = ps != null ? ps.getValue(Type.BINARY) : null;
+                if (property == null) {
+                    LOG.warn("Couldn't find property {} on {}", pd.name, text);
+                    continue;
+                }
+                byte[] bytes;
+                try {
+                    bytes = property.getNewStream().readAllBytes();
+                } catch (IOException e) {
+                    LOG.error("Error reading bytes from property {} on {}", pd.name, text, e);
+                    continue;
+                }
 
-        String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
-        KnnQuery knnQuery = baseKnnQueryBuilder(similarityPropFieldName, bytes, pd).build();
-        return Optional.of(knnQuery);
-      }
+                String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
+                KnnQuery knnQuery = baseKnnQueryBuilder(similarityPropFieldName, bytes, pd).build();
+                return Optional.of(knnQuery);
+            }
+        }
+        return Optional.empty();
     }
-    return Optional.empty();
-  }
 
     @NotNull
     private KnnQuery.Builder baseKnnQueryBuilder(String similarityPropFieldName, byte[] bytes, ElasticPropertyDefinition pd) {
@@ -934,7 +934,7 @@ public class ElasticRequestHandler {
                     return like(propertyName, pr.first.getValue(Type.STRING));
                 }
 
-                //TODO Confirm that all other types can be treated as string
+                // TODO Confirm that all other types can be treated as string
                 in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.STRING));
             }
         }
