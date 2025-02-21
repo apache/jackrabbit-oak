@@ -420,7 +420,6 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
             ));
 
             try {
-                LOG.info("Waiting for tasks to complete");
                 int tasksFinished = 0;
                 int transformTasksFinished = 0;
                 boolean monitorQueues = true;
@@ -441,17 +440,13 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
                             Object result = completedTask.get();
                             if (result instanceof PipelinedMongoDownloadTask.Result) {
                                 PipelinedMongoDownloadTask.Result downloadResult = (PipelinedMongoDownloadTask.Result) result;
-                                LOG.info("Download finished. Documents downloaded: {}", downloadResult.getDocumentsDownloaded());
                                 downloadFuture = null;
 
                             } else if (result instanceof PipelinedTransformTask.Result) {
                                 PipelinedTransformTask.Result transformResult = (PipelinedTransformTask.Result) result;
                                 transformTasksFinished++;
                                 nodeStateEntriesExtracted += transformResult.getEntryCount();
-                                LOG.info("Transform task {} finished. Entries processed: {}",
-                                        transformResult.getThreadId(), transformResult.getEntryCount());
                                 if (transformTasksFinished == numberOfTransformThreads) {
-                                    LOG.info("All transform tasks finished. Total entries processed: {}", nodeStateEntriesExtracted);
                                     // No need to keep monitoring the queues, the download and transform threads are done.
                                     monitorQueues = false;
                                     // Terminate the sort thread.
@@ -462,7 +457,6 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
 
                             } else if (result instanceof PipelinedSortBatchTask.Result) {
                                 PipelinedSortBatchTask.Result sortTaskResult = (PipelinedSortBatchTask.Result) result;
-                                LOG.info("Sort batch task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
                                 // The buffers between transform and merge sort tasks are no longer needed, so remove them
                                 // from the queues so they can be garbage collected.
                                 // These buffers can be very large, so this is important to avoid running out of memory in
@@ -510,7 +504,6 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
             treeStore.close();
             return resultDir;
         } finally {
-            LOG.info("Shutting down build thread pool");
             new ExecutorCloser(threadPool).close();
         }
     }

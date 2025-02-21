@@ -72,11 +72,13 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
         FilePacker.unpack(baseFile, baseDir, true);
         File topup = new File(incrementalFile.getParent(), TOPUP_FILE);
         if (topup.exists()) {
-            LOG.info("Merging diff {}", incrementalFile.getAbsolutePath());
+            LOG.info("Merging diff {}, topup {}, to {}",
+                    incrementalFile.getAbsolutePath(),
+                    topup.getAbsolutePath(),
+                    mergedFile.getAbsolutePath()
+                    );
             updateIndexStore(baseDir, incrementalFile, algorithm);
-            LOG.info("Merging topup {}", topup.getAbsolutePath());
             updateIndexStore(baseDir, topup, algorithm);
-            LOG.info("Packing to {}", mergedFile.getAbsolutePath());
             FilePacker.pack(baseDir, TreeSession.getFileNameRegex(), mergedFile, true);
         } else {
             File mergedDir = new File(mergedFile.getAbsolutePath() + ".files");
@@ -88,9 +90,7 @@ public class MergeIncrementalTreeStore implements MergeIncrementalStore {
             LOG.info("Packing to {}", mergedFile.getAbsolutePath());
             FilePacker.pack(mergedDir, TreeSession.getFileNameRegex(), mergedFile, true);
         }
-        LOG.info("Merging metadata");
         mergeMetadataFiles();
-        LOG.info("Completed");
     }
 
     @Override
