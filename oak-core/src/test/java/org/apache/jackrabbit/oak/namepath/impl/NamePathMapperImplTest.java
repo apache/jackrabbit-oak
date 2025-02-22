@@ -140,6 +140,7 @@ public class NamePathMapperImplTest {
         assertEquals("/{http://www.example.com/foo}bar", npMapper.getExpandedJcrPath("/oak-foo:bar"));
         assertEquals("/{http://www.example.com/foo}bar/{http://www.example.com/quu}qux", npMapper.getExpandedJcrPath("/oak-foo:bar/oak-quu:qux"));
         assertEquals("{http://www.example.com/foo}bar", npMapper.getExpandedJcrPath("oak-foo:bar"));
+        // this is the self-segment from https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.4.2%20Path%20Resolution
         assertEquals(".", npMapper.getExpandedJcrPath(""));
 
         try {
