@@ -565,8 +565,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     /*
      * index aggregates on a certain path
      */
-    private boolean[] indexAggregates(final String path, final D document,
-                                      final NodeState state) {
+    private boolean[] indexAggregates(final String path, final D document, final NodeState state) {
         final AtomicBoolean dirtyFlag = new AtomicBoolean();
         final AtomicBoolean facetFlag = new AtomicBoolean();
         indexingRule.getAggregate().collectAggregates(state, new Aggregate.ResultCollector() {
@@ -613,8 +612,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
         for (PropertyState property : result.nodeState.getProperties()) {
             String pname = property.getName();
-            String propertyPath = PathUtils.concat(result.nodePath, pname);
-
             if (!isVisible(pname)) {
                 continue;
             }
@@ -634,6 +631,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             //it from aggregation if
             // 1. It's not to be indexed i.e. index=false
             // 2. It's explicitly excluded from aggregation i.e. excludeFromAggregation=true
+            String propertyPath = PathUtils.concat(result.nodePath, pname);
             PropertyDefinition pdForRootNode = indexingRule.getConfig(propertyPath);
             if (pdForRootNode != null && (!pdForRootNode.index || pdForRootNode.excludeFromAggregate)) {
                 continue;
