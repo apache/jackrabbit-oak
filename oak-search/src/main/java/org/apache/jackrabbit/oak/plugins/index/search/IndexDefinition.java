@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
@@ -422,7 +422,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         this(root, getIndexDefinitionState(defn), determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
     }
 
-    protected IndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid, String indexPath) {
+    protected IndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, @Nullable String uid, String indexPath) {
         try {
             this.root = root;
             this.version = requireNonNull(version);
@@ -690,7 +690,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return indexTags;
     }
 
-    public String getIndexSelectionPolicy() {
+    public @Nullable String getIndexSelectionPolicy() {
         return indexSelectionPolicy;
     }
 
@@ -827,7 +827,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                 }
                 includes.add(new Aggregate.NodeInclude(this, primaryType, path, relativeNode));
             }
-            aggregateMap.put(nodeType, new Aggregate(nodeType, includes, recursionLimit));
+            aggregateMap.put(nodeType, new Aggregate(nodeType, List.copyOf(includes), recursionLimit));
         }
 
         return Map.copyOf(aggregateMap);
@@ -858,14 +858,11 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     public IndexingRule getApplicableIndexingRule(String primaryNodeType) {
         //This method would be invoked for every node. So be as
         //conservative as possible in object creation
-        List<IndexingRule> rules = null;
-        List<IndexingRule> r = indexRules.get(primaryNodeType);
-        if (r != null) {
-            rules = new ArrayList<>(r);
-        }
-
+        List<IndexingRule> rules = indexRules.get(primaryNodeType);
         if (rules != null) {
-            for (IndexingRule rule : rules) {
+            // Used traversal with index to avoid creating iterator object.
+            for (int i = 0; i < rules.size(); i++) {
+                IndexingRule rule = rules.get(i);
                 if (rule.appliesTo(primaryNodeType)) {
                     return rule;
                 }
@@ -887,31 +884,36 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     public IndexingRule getApplicableIndexingRule(NodeState state) {
         //This method would be invoked for every node. So be as
         //conservative as possible in object creation
-        List<IndexingRule> rules = null;
-        List<IndexingRule> r = indexRules.get(getPrimaryTypeName(state));
-        if (r != null) {
-            rules = new ArrayList<>(r);
-        }
-
-        for (String name : getMixinTypeNames(state)) {
-            r = indexRules.get(name);
-            if (r != null) {
-                if (rules == null) {
-                    rules = new ArrayList<>();
-                }
-                rules.addAll(r);
+        {
+            List<IndexingRule> rules = indexRules.get(getPrimaryTypeName(state));
+            IndexingRule rule = getApplicableIndexingRule(state, rules);
+            if (rule != null) {
+                return rule;
             }
         }
 
+        for (String name : getMixinTypeNames(state)) {
+            List<IndexingRule> rules = indexRules.get(name);
+            IndexingRule rule = getApplicableIndexingRule(state, rules);
+            if (rule != null) {
+                return rule;
+            }
+        }
+        // no applicable rule
+        return null;
+    }
+
+    private IndexingRule getApplicableIndexingRule(NodeState state, @Nullable List<IndexingRule> rules) {
         if (rules != null) {
-            for (IndexingRule rule : rules) {
+            // Used traversal with index to avoid creating iterator object.
+            for (int i = 0; i < rules.size(); i++) {
+                IndexingRule rule = rules.get(i);
                 if (rule.appliesTo(state)) {
                     return rule;
                 }
             }
-        }
 
-        // no applicable rule
+        }
         return null;
     }
 
@@ -1742,7 +1744,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static Set<String> getMultiProperty(NodeState definition, String propName) {
         PropertyState pse = definition.getProperty(propName);
-        return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Set.of();
+        return pse != null ? Set.copyOf(SetUtils.toSet(pse.getValue(Type.STRINGS))) : Set.of();
     }
 
     private static Set<String> toLowerCase(Set<String> values) {
