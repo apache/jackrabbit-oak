@@ -245,7 +245,7 @@ public class EventFactory {
         private final String parentPath;
 
         /**
-         * Name of the item this event is about.
+         * Path of the item this event is about.
          */
         protected final String itemPath;
 
