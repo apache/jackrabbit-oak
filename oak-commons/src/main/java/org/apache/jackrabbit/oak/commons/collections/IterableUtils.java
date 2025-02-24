@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.iterators.LazyIteratorChain;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
@@ -226,12 +227,9 @@ public class IterableUtils {
      * @throws IllegalArgumentException if size is less than or equal to 0
      */
     public static <T> Iterable<List<T>> partition(final Iterable<T> itr, final int size) {
-        if (itr == null) {
-            throw new NullPointerException("Iterable must not be null.");
-        }
-        if (size <= 0) {
-            throw new IllegalArgumentException("Size must be greater than 0.");
-        }
+
+        Objects.requireNonNull(itr, "Iterable must not be null.");
+        Validate.checkArgument(size > 0, "Size must be greater than 0.");
 
         return new Iterable<>() {
             @Override
