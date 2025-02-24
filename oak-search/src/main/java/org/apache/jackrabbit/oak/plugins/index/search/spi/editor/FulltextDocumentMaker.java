@@ -723,5 +723,4 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         //cameCase file name to allow faster like search
         indexNodeName(doc, value);
     }
-
 }
