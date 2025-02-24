@@ -31,6 +31,7 @@ import static com.mongodb.client.model.Filters.lt;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
+import org.apache.jackrabbit.oak.plugins.document.FullGcNodeBin;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -473,6 +474,11 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
         sb.append(String.join(System.getProperty("line.separator"), ids));
         LOG.debug(sb.toString());
+    }
+
+    @Override
+    public FullGcNodeBin getFullGCBin() {
+        return new MongoFullGcNodeBin(store);
     }
 
     private static String getID(BasicDBObject document) {

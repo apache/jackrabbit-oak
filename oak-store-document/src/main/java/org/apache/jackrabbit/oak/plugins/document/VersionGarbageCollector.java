@@ -1072,8 +1072,6 @@ public class VersionGarbageCollector {
         /** small cache for classification of missing nodes : documents that do not exist vs deleted nodes */
         private final LinkedHashMap<Path, Boolean> missingDocsTypes;
 
-        private final FullGcBin fullGcBin;
-
         public FullGC(@NotNull RevisionVector headRevision, long toModifiedMs,
                       LinkedHashMap<Path, Boolean> missingDocsTypes, @NotNull GCMonitor monitor,
                       @NotNull AtomicBoolean cancel) {
@@ -1092,7 +1090,6 @@ public class VersionGarbageCollector {
             // clusterId is not used
             this.revisionForModified = Revision.newRevision(0);
             this.root = nodeStore.getRoot(headRevision);
-            this.fullGcBin = new FullGcBin(ds);
         }
 
         public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
@@ -1952,7 +1949,7 @@ public class VersionGarbageCollector {
                     // only delete these in case it is not a dryRun
                     if (!orphanOrDeletedRemovalMap.isEmpty()) {
 
-                        final int removedSize = fullGcBin.remove(orphanOrDeletedRemovalMap);
+                        final int removedSize = versionStore.getFullGCBin().remove(orphanOrDeletedRemovalMap);
                         stats.updatedFullGCDocsCount += removedSize;
                         stats.deletedDocGCCount += removedSize;
                         stats.deletedOrphanNodesCount += removedSize;
@@ -1970,7 +1967,7 @@ public class VersionGarbageCollector {
                     }
 
                     if (!updateOpList.isEmpty()) {
-                        List<NodeDocument> oldDocs = fullGcBin.findAndUpdate(updateOpList);
+                        List<NodeDocument> oldDocs = versionStore.getFullGCBin().findAndUpdate(updateOpList);
 
 
                         int deletedProps = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropsCountMap.getOrDefault(d.getId(), 0)).sum();

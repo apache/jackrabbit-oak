@@ -70,7 +70,6 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
-import org.apache.jackrabbit.oak.plugins.document.FullGcBin;
 import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -468,7 +467,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         //TTL index for full GC bin documents to expire after 90 days
         //see https://issues.apache.org/jira/browse/OAK-11444
-        createTTLIndex(settings, FullGcBin.GC_COLLECTED_AT, TimeUnit.DAYS.toSeconds(90));
+        createTTLIndex(settings, MongoFullGcNodeBin.GC_COLLECTED_AT, TimeUnit.DAYS.toSeconds(90));
     }
 
     private void createCollection(MongoDatabase db, String collectionName, MongoStatus mongoStatus) {
@@ -2015,6 +2014,10 @@ public class MongoDocumentStore implements DocumentStore {
     <T extends Document> MongoCollection<BasicDBObject> getDBCollection(Collection<T> collection,
                                                                         ReadPreference readPreference) {
         return getDBCollection(collection).withReadPreference(readPreference);
+    }
+
+    <T extends Document> MongoCollection<BasicDBObject> getHiddenCollection(String collection) {
+        return this.connection.getCollection(collection);
     }
 
     MongoDatabase getDatabase() {

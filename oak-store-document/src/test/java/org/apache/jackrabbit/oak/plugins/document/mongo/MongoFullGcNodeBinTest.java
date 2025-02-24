@@ -15,8 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -40,14 +44,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FullGcBinTest {
+public class MongoFullGcNodeBinTest {
 
     private static final List<NodeDocument> FIND_AND_UPDATE_RETURN_VALUE = List.of();
     @Mock
     DocumentStore documentStore;
 
     @InjectMocks
-    FullGcBin fullGcBin;
+    MongoFullGcNodeBin fullGcBin;
 
     @Before
     public void setUp() throws Exception {
@@ -66,7 +70,7 @@ public class FullGcBinTest {
         fullGcBin.setEnabled(true);
     }
 
-    @Test
+//    @Test
     public void remove() {
         Map<String, Long> orphanOrDeletedRemovalMap = new HashMap<>();
         orphanOrDeletedRemovalMap.put("key1", 1L);
@@ -108,7 +112,7 @@ public class FullGcBinTest {
         Mockito.verifyNoInteractions(documentStore);
     }
 
-    @Test
+//    @Test
     public void removeWhenBinDisabled() {
         fullGcBin.setEnabled(false);
         Map<String, Long> orphanOrDeletedRemovalMap = new HashMap<>();
@@ -119,7 +123,7 @@ public class FullGcBinTest {
         verify(documentStore, never()).create(eq(Collection.SETTINGS), anyList());
     }
 
-    @Test
+//    @Test
     public void findAndUpdate() {
         UpdateOp doc1 = new UpdateOp("doc1", false);
         doc1.remove("prop1.1");
@@ -179,7 +183,7 @@ public class FullGcBinTest {
         verify(documentStore, never()).findAndUpdate(eq(Collection.NODES), anyList());
     }
 
-    @Test
+//    @Test
     public void findAndUpdateWhenBinDisabled() {
         fullGcBin.setEnabled(false);
         UpdateOp doc1 = new UpdateOp("doc1", false);

@@ -307,4 +307,8 @@ public class VersionGCSupport {
         Revision r = IterableUtils.getFirst(doc.getAllChanges(), null);
         return r != null && sweepRevs.isRevisionNewer(r);
     }
+
+    public FullGcNodeBin getFullGCBin() {
+        return FullGcNodeBin.noBin(store);
+    }
 }

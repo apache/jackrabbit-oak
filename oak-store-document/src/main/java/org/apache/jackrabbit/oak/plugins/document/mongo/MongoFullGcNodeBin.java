@@ -14,13 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import org.apache.jackrabbit.util.ISO8601;
+import com.mongodb.BasicDBObject;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.FullGcNodeBin;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.slf4j.Logger;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
@@ -38,14 +43,14 @@ import java.util.stream.Collectors;
  *  When disabled (default)
  *  Each method delegates directly to DocumentStore
  */
-public class FullGcBin {
-    private static final Logger LOG = getLogger(FullGcBin.class);
+public class MongoFullGcNodeBin implements FullGcNodeBin {
+    private static final Logger LOG = getLogger(MongoFullGcNodeBin.class);
     public static final String GC_COLLECTED_AT = "_gcCollectedAt";
-    private final DocumentStore documentStore;
+    private final MongoDocumentStore mongoDocumentStore;
     private boolean enabled;
 
-    public FullGcBin(DocumentStore ds) {
-        documentStore = ds;
+    public MongoFullGcNodeBin(MongoDocumentStore ds) {
+        mongoDocumentStore = ds;
         enabled = System.getProperty("oak.document.fullGcBin.enabled", "false").equals("true");
     }
 
@@ -59,6 +64,7 @@ public class FullGcBin {
      * @return the number of documents removed
      * @see DocumentStore#remove(Collection, Map)
      */
+    @Override
     public int remove(Map<String, Long> orphanOrDeletedRemovalMap) {
         if (orphanOrDeletedRemovalMap.isEmpty() || !addToBin(orphanOrDeletedRemovalMap)) {
             return 0;
@@ -70,7 +76,7 @@ public class FullGcBin {
         // the node should now not be removed. The modified check
         // ensures a node would then not be removed
         // (and as a result the removedSize != map.size())
-        return documentStore.remove(Collection.NODES, orphanOrDeletedRemovalMap);
+        return mongoDocumentStore.remove(Collection.NODES, orphanOrDeletedRemovalMap);
     }
 
 
@@ -84,26 +90,27 @@ public class FullGcBin {
      * @return the list containing old documents
      * @see DocumentStore#findAndUpdate(Collection, List)
      */
+    @Override
     public List<NodeDocument> findAndUpdate(List<UpdateOp> updateOpList) {
         LOG.info("Updating {} documents", updateOpList.size());
         if (updateOpList.isEmpty() || !addToBin(updateOpList)) {
             return Collections.emptyList();
         }
-        return documentStore.findAndUpdate(Collection.NODES, updateOpList);
+        return mongoDocumentStore.findAndUpdate(Collection.NODES, updateOpList);
     }
 
-    private boolean addToBin(Map<String, Long> orphanOrDeletedRemovalMap) {
+    protected boolean addToBin(Map<String, Long> orphanOrDeletedRemovalMap) {
         if (!enabled) {
             LOG.info("Bin is disabled, skipping adding delete candidate documents to bin");
             return true;
         }
         LOG.info("Adding {} delete candidate documents to bin", orphanOrDeletedRemovalMap.size());
-        List<UpdateOp> docs = orphanOrDeletedRemovalMap.keySet().stream()
+        List<BasicDBObject> docs = orphanOrDeletedRemovalMap.keySet().stream()
             .map(e -> new UpdateOp(e, true))
-            .map(this::insertOp)
+            .map(this::toBasicDBObject)
             .collect(Collectors.toList());
         try {
-            return documentStore.create(Collection.SETTINGS, docs);
+            return persist(docs);
         } catch (Exception e) {
             LOG.error("Error while adding delete candidate documents to bin: {}", docs, e);
         }
@@ -116,35 +123,34 @@ public class FullGcBin {
             return true;
         }
         LOG.info("Adding {} removed properties to bin", updateOpList.size());
-        List<UpdateOp> binOpList = updateOpList.stream().map(this::insertOp).collect(Collectors.toList());
+        List<BasicDBObject> binOpList = updateOpList.stream().map(this::toBasicDBObject).collect(Collectors.toList());
         try {
-            documentStore.createOrUpdate(Collection.SETTINGS, binOpList);
-            return true;
+            return persist(binOpList);
         } catch (Exception e) {
             LOG.error("Error while adding removed properties to bin: {}", binOpList, e);
         }
         return false;
     }
 
-    /**
-     * Create an insert operation from the given update operation
-     *
-     * @param op the update operation
-     * @return the insert operation
-     */
-    private UpdateOp insertOp(UpdateOp op) {
-        UpdateOp insertOp = new UpdateOp("/bin/" + op.getId(), true);
+    protected boolean persist(List<BasicDBObject> inserts) {
+        mongoDocumentStore.getHiddenCollection("bin").insertMany(inserts);
+        return true;
+    }
+
+    BasicDBObject toBasicDBObject(UpdateOp op) {
+        BasicDBObject doc = new BasicDBObject();
+        doc.put(Document.ID, "/bin/" + op.getId() + "-" + Instant.now().toEpochMilli());
         //copy removed properties to the new document
         op.getChanges().forEach((k, v) -> {
             if (v.type == UpdateOp.Operation.Type.REMOVE) {
-                insertOp.set(k.getName(), "");
+                doc.put(k.getName(), "");
             }
         });
         //this property is used to track the time when the document was added to the bin
         //it can be used as a TTL index property to automatically remove the document after a certain time
         //see https://www.mongodb.com/docs/manual/core/index-ttl/#std-label-index-feature-ttl
-        insertOp.setDate(GC_COLLECTED_AT, new Date());
-        return insertOp;
+        doc.put(MongoFullGcNodeBin.GC_COLLECTED_AT, new Date());
+        return doc;
     }
 
     public void setEnabled(boolean value) {
