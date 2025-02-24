@@ -454,7 +454,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         boolean fieldAdded = false;
         List<PropertyDefinition> props = indexingRule.getNotNullCheckEnabledProperties();
         // Performance critical code: using indexed traversal to avoid creating an iterator instance.
-        for (int i=0; i<props.size(); i++) {
+        for (int i = 0; i < props.size(); i++) {
             PropertyDefinition pd = props.get(i);
             if (isPropertyNotNull(state, pd)) {
                 indexNotNullProperty(doc, pd);
@@ -508,7 +508,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     private boolean indexIfSinglePropertyRemoved(List<PropertyState> propertiesModified) {
         boolean dirty = false;
         // Performance critical code: using indexed traversal to avoid creating an iterator instance.
-        for (int i=0; i<propertiesModified.size(); i++) {
+        for (int i = 0; i < propertiesModified.size(); i++) {
             PropertyState ps = propertiesModified.get(i);
             PropertyDefinition pd = indexingRule.getConfig(ps.getName());
             if (pd != null
