@@ -60,7 +60,7 @@ public class Aggregate {
     private final String nodeTypeName;
     private final List<? extends Include> includes;
     public final int reAggregationLimit;
-    private final List<NodeInclude> relativeNodeIncludes;
+    private final NodeInclude[] relativeNodeIncludes;
     private final boolean nodeAggregates;
 
     Aggregate(String nodeTypeName) {
@@ -95,7 +95,8 @@ public class Aggregate {
         for (int i = 0; i < matchers.length; i++) {
             matchers[i] = new Matcher(this, includes.get(i), root);
         }
-        return List.of(matchers);
+        // Wrap the array in an ArrayList, this avoids copying the array
+        return Arrays.asList(matchers);
     }
 
     public boolean hasRelativeNodeInclude(String nodePath) {
@@ -198,7 +199,7 @@ public class Aggregate {
         return matchers;
     }
 
-    private static List<NodeInclude> findRelativeNodeIncludes(List<? extends Include> includes) {
+    private static NodeInclude[] findRelativeNodeIncludes(List<? extends Include> includes) {
         List<NodeInclude> result = new ArrayList<>();
         for (Include i : includes) {
             if (i instanceof NodeInclude) {
@@ -208,7 +209,7 @@ public class Aggregate {
                 }
             }
         }
-        return List.copyOf(result);
+        return result.toArray(new NodeInclude[0]);
     }
 
     public interface AggregateMapper {
