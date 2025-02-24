@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * Unit tests for the {@link IterableUtils} class.
@@ -383,5 +384,13 @@ public class IterableUtilsTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             IterableUtils.partition(iterable, -1);
         });
+    }
+
+    @Test
+    public void testTmp() {
+        Iterable<List<Integer>> partition = IterableUtils.partition(Collections.emptyList(), 1);
+        Iterator<List<Integer>> iterator = partition.iterator();
+        Assert.assertFalse(iterator.hasNext());
+        Assert.assertThrows(NoSuchElementException.class, iterator::next);
     }
 }

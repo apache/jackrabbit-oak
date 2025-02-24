@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 /**
@@ -244,6 +245,11 @@ public class IterableUtils {
 
                     @Override
                     public List<T> next() {
+                        // check if there are elements left, throw an exception if not
+                        if (!hasNext()) {
+                            throw new NoSuchElementException();
+                        }
+
                         List<T> currentPartition = new ArrayList<>(size);
                         for (int i = 0; i < size && iterator.hasNext(); i++) {
                             currentPartition.add(iterator.next());
