@@ -20,11 +20,15 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.iterators.LazyIteratorChain;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 /**
@@ -211,5 +215,49 @@ public class IterableUtils {
 
         final Collection<T> collection = itr instanceof Collection ? (Collection<T>) itr : ListUtils.toList(itr);
         return collection.toArray(t);
+    }
+
+    /**
+     * Splits an Iterable into an Iterator of sub-iterators, each of the specified size.
+     *
+     * @param <T> the type of elements in the itr
+     * @param itr the itr to split, may not be null
+     * @param size the size of each sub-iterator, must be greater than 0
+     * @return an iterator of sub-iterators, each of the specified size
+     * @throws NullPointerException if the itr is null
+     * @throws IllegalArgumentException if size is less than or equal to 0
+     */
+    public static <T> Iterable<List<T>> partition(final Iterable<T> itr, final int size) {
+
+        Objects.requireNonNull(itr, "Iterable must not be null.");
+        Validate.checkArgument(size > 0, "Size must be greater than 0.");
+
+        return new Iterable<>() {
+            @Override
+            public @NotNull Iterator<List<T>> iterator() {
+                return new Iterator<>() {
+                    private final Iterator<T> iterator = itr.iterator();
+
+                    @Override
+                    public boolean hasNext() {
+                        return iterator.hasNext();
+                    }
+
+                    @Override
+                    public List<T> next() {
+                        // check if there are elements left, throw an exception if not
+                        if (!hasNext()) {
+                            throw new NoSuchElementException();
+                        }
+
+                        List<T> currentPartition = new ArrayList<>(size);
+                        for (int i = 0; i < size && iterator.hasNext(); i++) {
+                            currentPartition.add(iterator.next());
+                        }
+                        return currentPartition;
+                    }
+                };
+            }
+        };
     }
 }

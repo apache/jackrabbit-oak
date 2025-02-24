@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * Unit tests for the {@link IterableUtils} class.
@@ -312,5 +313,84 @@ public class IterableUtilsTest {
         Assert.assertThrows(NullPointerException.class, () -> {
             IterableUtils.toArray(itr, null);
         });
+    }
+
+    @Test
+    public void testPartitionWithNonEmptyIterable() {
+        Iterable<Integer> iterable = Arrays.asList(1, 2, 3, 4, 5, 6, 7);
+        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3).iterator();
+        Assert.assertTrue(partitions.hasNext());
+        Assert.assertEquals(Arrays.asList(1, 2, 3), partitions.next());
+        Assert.assertTrue(partitions.hasNext());
+        Assert.assertEquals(Arrays.asList(4, 5, 6), partitions.next());
+        Assert.assertTrue(partitions.hasNext());
+        Assert.assertEquals(Collections.singletonList(7), partitions.next());
+        Assert.assertFalse(partitions.hasNext());
+    }
+
+    @Test
+    public void testPartitionWithEmptyIterable() {
+        Iterable<Integer> iterable = Collections.emptyList();
+        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3).iterator();
+        Assert.assertFalse(partitions.hasNext());
+    }
+
+    @Test
+    public void testPartitionWithNotSupportedRemoveIterable() {
+        Iterable<Integer> iterable = Collections.emptyList();
+        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3).iterator();
+        Assert.assertThrows(UnsupportedOperationException.class, partitions::remove);
+    }
+
+    @Test
+    public void testPartitionWithSingleElement() {
+        Iterable<Integer> iterable = Collections.singletonList(1);
+        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 3).iterator();
+        Assert.assertTrue(partitions.hasNext());
+        Assert.assertEquals(Collections.singletonList(1), partitions.next());
+        Assert.assertFalse(partitions.hasNext());
+    }
+
+    @Test
+    public void testPartitionWithSizeOne() {
+        Iterable<Integer> iterable = Arrays.asList(1, 2, 3, 4, 5);
+        Iterator<List<Integer>> partitions = IterableUtils.partition(iterable, 1).iterator();
+        Assert.assertTrue(partitions.hasNext());
+        Assert.assertEquals(Collections.singletonList(1), partitions.next());
+        Assert.assertTrue(partitions.hasNext());
+        Assert.assertEquals(Collections.singletonList(2), partitions.next());
+        Assert.assertTrue(partitions.hasNext());
+        Assert.assertEquals(Collections.singletonList(3), partitions.next());
+        Assert.assertTrue(partitions.hasNext());
+        Assert.assertEquals(Collections.singletonList(4), partitions.next());
+        Assert.assertTrue(partitions.hasNext());
+        Assert.assertEquals(Collections.singletonList(5), partitions.next());
+        Assert.assertFalse(partitions.hasNext());
+    }
+
+    @Test
+    public void testPartitionWithNullIterable() {
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IterableUtils.partition(null, 3);
+        });
+    }
+
+    @Test
+    public void testPartitionWithInvalidSize() {
+        Iterable<Integer> iterable = Arrays.asList(1, 2, 3);
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            IterableUtils.partition(iterable, 0);
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            IterableUtils.partition(iterable, -1);
+        });
+    }
+
+    @Test
+    public void testPartitionWithEmptyIterableAndSizeOne() {
+        Iterable<List<Integer>> partition = IterableUtils.partition(Collections.emptyList(), 1);
+        Iterator<List<Integer>> iterator = partition.iterator();
+        Assert.assertFalse(iterator.hasNext());
+        Assert.assertThrows(NoSuchElementException.class, iterator::next);
     }
 }
