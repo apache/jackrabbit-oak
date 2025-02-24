@@ -145,11 +145,10 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             }
         }
 
-        for (int i = 0; i < matcherState.matched.size(); i++) {
-            if (matcherState.affectedMatchers.get(i)) {
-                Aggregate.Matcher m = matcherState.matched.get(i);
-                m.markRootDirty();
-            }
+        BitSet bitSet = matcherState.affectedMatchers;
+        for (int i = bitSet.nextSetBit(0); i != -1; i = bitSet.nextSetBit(i + 1)) {
+            Aggregate.Matcher m = matcherState.matched.get(i);
+            m.markRootDirty();
         }
 
         if (parent == null) {
@@ -345,8 +344,8 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     }
 
     public static class MatcherState {
-        final static MatcherState NONE = new MatcherState(List.of(), List.of());
         private final static BitSet EMPTY_BITSET = new BitSet(0);
+        final static MatcherState NONE = new MatcherState(List.of(), List.of());
 
         final List<Aggregate.Matcher> matched;
         final List<Aggregate.Matcher> inherited;
