@@ -17,14 +17,15 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.client.MongoCollection;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -34,12 +35,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,16 +51,17 @@ public class MongoFullGcNodeBinTest {
 
     private static final List<NodeDocument> FIND_AND_UPDATE_RETURN_VALUE = List.of();
     @Mock
-    DocumentStore documentStore;
+    MongoDocumentStore documentStore;
 
     @InjectMocks
     MongoFullGcNodeBin fullGcBin;
 
+    @Mock MongoCollection<BasicDBObject> mockBinCollection;
+
+
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
-        //mock return the list argument size
-        when(documentStore.create(eq(Collection.SETTINGS), anyList())).thenReturn(true);
         when(documentStore.remove(eq(Collection.NODES), anyMap())).thenAnswer(invocation -> {
             Map<String, Long> map = invocation.getArgument(1);
             return map.size();
@@ -67,27 +71,29 @@ public class MongoFullGcNodeBinTest {
             return FIND_AND_UPDATE_RETURN_VALUE;
         });
 
+        when(documentStore.getBinCollection()).thenReturn(mockBinCollection);
+
         fullGcBin.setEnabled(true);
     }
 
-//    @Test
+    @Test
     public void remove() {
         Map<String, Long> orphanOrDeletedRemovalMap = new HashMap<>();
         orphanOrDeletedRemovalMap.put("key1", 1L);
         orphanOrDeletedRemovalMap.put("key2", 2L);
 
+
         int removed = fullGcBin.remove(orphanOrDeletedRemovalMap);
+
         //verify returned value
         assertEquals(orphanOrDeletedRemovalMap.size(), removed);
 
         //verify removed documents are added to bin
-        ArgumentCaptor<List<UpdateOp>> argumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(documentStore).create(eq(Collection.SETTINGS), argumentCaptor.capture());
+        ArgumentCaptor<List<BasicDBObject>> argumentCaptor = ArgumentCaptor.forClass(List.class);
+        verify(mockBinCollection).insertMany(argumentCaptor.capture());
         assertEquals(orphanOrDeletedRemovalMap.size(), argumentCaptor.getValue().size());
-        assertEquals("/bin/key1", argumentCaptor.getValue().get(0).getId());
-        assertTrue(argumentCaptor.getValue().get(0).isNew());
-        assertEquals("/bin/key2", argumentCaptor.getValue().get(1).getId());
-        assertTrue(argumentCaptor.getValue().get(1).isNew());
+        assertTrue(argumentCaptor.getValue().get(0).get(Document.ID).toString().matches("^\\/bin\\/key1\\-\\d+$"));
+        assertTrue(argumentCaptor.getValue().get(1).get(Document.ID).toString().matches("^\\/bin\\/key2\\-\\d+$"));
 
         //verify documents are removed
         verify(documentStore).remove(Collection.NODES, orphanOrDeletedRemovalMap);
@@ -97,7 +103,7 @@ public class MongoFullGcNodeBinTest {
     public void removeWhenCopyToBinFails() {
         Map<String, Long> orphanOrDeletedRemovalMap = new HashMap<>();
         orphanOrDeletedRemovalMap.put("key", 1L);
-        when(documentStore.create(eq(Collection.SETTINGS), anyList())).thenThrow(new RuntimeException("Error while adding documents to bin"));
+        doThrow(new RuntimeException("Error while adding documents to bin")).when(mockBinCollection).insertMany(anyList());
 
         int removed = fullGcBin.remove(orphanOrDeletedRemovalMap);
 
@@ -112,7 +118,7 @@ public class MongoFullGcNodeBinTest {
         Mockito.verifyNoInteractions(documentStore);
     }
 
-//    @Test
+    @Test
     public void removeWhenBinDisabled() {
         fullGcBin.setEnabled(false);
         Map<String, Long> orphanOrDeletedRemovalMap = new HashMap<>();
@@ -120,10 +126,10 @@ public class MongoFullGcNodeBinTest {
 
         fullGcBin.remove(orphanOrDeletedRemovalMap);
 
-        verify(documentStore, never()).create(eq(Collection.SETTINGS), anyList());
+        verify(mockBinCollection, never()).insertMany(anyList());
     }
 
-//    @Test
+    @Test
     public void findAndUpdate() {
         UpdateOp doc1 = new UpdateOp("doc1", false);
         doc1.remove("prop1.1");
@@ -136,24 +142,23 @@ public class MongoFullGcNodeBinTest {
         List<NodeDocument> modifiedDocs = fullGcBin.findAndUpdate(properties);
 
         //verify removed properties are added to bin
-        ArgumentCaptor<List<UpdateOp>> argumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(documentStore).createOrUpdate(eq(Collection.SETTINGS), argumentCaptor.capture());
+        ArgumentCaptor<List<BasicDBObject>> argumentCaptor = ArgumentCaptor.forClass(List.class);
+        verify(mockBinCollection).insertMany(argumentCaptor.capture());
 
-        List<UpdateOp> binOpList = argumentCaptor.getValue();
-        UpdateOp binDoc1 = binOpList.get(0);
-        assertTrue(binDoc1.isNew());
+        List<BasicDBObject> binOpList = argumentCaptor.getValue();
+        BasicDBObject binDoc1 = binOpList.get(0);
 
-        assertEquals("/bin/doc1", binDoc1.getId());
-        assertEquals(UpdateOp.Operation.Type.SET, binDoc1.getChanges().get(new UpdateOp.Key("prop1.1", null)).type);
-        assertFalse(binDoc1.getChanges().containsKey(new UpdateOp.Key("prop1.2", null)));//only removed props are saved
+
+        assertTrue(binDoc1.get(Document.ID).toString().matches("^\\/bin\\/doc1\\-\\d+$"));
+        assertTrue(binDoc1.containsField("prop1.1"));
+        assertFalse(binDoc1.containsField("prop1.2"));//only removed props are saved
         assertGcTimestampAdded(binDoc1);
 
-        UpdateOp binDoc2 = binOpList.get(1);
-        assertTrue(binDoc2.isNew());
-        assertEquals("/bin/doc2", binDoc2.getId());
+        BasicDBObject binDoc2 = binOpList.get(1);
+        assertTrue(binDoc2.get(Document.ID).toString().matches("^\\/bin\\/doc2\\-\\d+$"));
+        assertTrue(binDoc2.containsField("prop2.1"));
+        assertTrue(binDoc2.containsField("prop2.2"));
 
-        assertEquals(UpdateOp.Operation.Type.SET, binDoc2.getChanges().get(new UpdateOp.Key("prop2.1", null)).type);
-        assertEquals(UpdateOp.Operation.Type.SET, binDoc2.getChanges().get(new UpdateOp.Key("prop2.2", null)).type);
         assertGcTimestampAdded(binDoc2);
 
 
@@ -164,32 +169,27 @@ public class MongoFullGcNodeBinTest {
         assertEquals(FIND_AND_UPDATE_RETURN_VALUE, modifiedDocs);
     }
 
-    private static void assertGcTimestampAdded(UpdateOp binDoc2) {
-        for (Map.Entry<UpdateOp.Key, UpdateOp.Operation> keyOperationEntry : binDoc2.getChanges().entrySet()) {
-            if (keyOperationEntry.getKey().getName().equals("_gcCollectedAt")) {
-                assertEquals(UpdateOp.Operation.Type.SET, keyOperationEntry.getValue().type);
-                return;
-            }
-        }
-        fail("No _fullGcTime property found in the document");
+    private static void assertGcTimestampAdded(BasicDBObject binDoc2) {
+        assertTrue(binDoc2.containsField("_gcCollectedAt"));
+        assertTrue(binDoc2.get("_gcCollectedAt") instanceof Date);
     }
 
     @Test
     public void findAndUpdateWhenCopyToBinFails() {
-        when(documentStore.createOrUpdate(eq(Collection.SETTINGS), anyList())).thenThrow(new RuntimeException("Error while adding documents to bin"));
+        doThrow(new RuntimeException("Error while adding documents to bin")).when(mockBinCollection).insertMany(anyList());
         UpdateOp doc1 = new UpdateOp("doc1", false);
         doc1.remove("prop1");
         fullGcBin.findAndUpdate(List.of(doc1));
         verify(documentStore, never()).findAndUpdate(eq(Collection.NODES), anyList());
     }
 
-//    @Test
+    @Test
     public void findAndUpdateWhenBinDisabled() {
         fullGcBin.setEnabled(false);
         UpdateOp doc1 = new UpdateOp("doc1", false);
         doc1.remove("prop1");
         fullGcBin.findAndUpdate(List.of(doc1));
-        verify(documentStore, never()).createOrUpdate(eq(Collection.SETTINGS), anyList());
+        verify(mockBinCollection, never()).insertMany(anyList());
     }
 
     @Test
