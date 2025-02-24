@@ -153,6 +153,7 @@ public class MongoFullGcNodeBin implements FullGcNodeBin {
         return doc;
     }
 
+    @Override
     public void setEnabled(boolean value) {
         this.enabled = value;
     }

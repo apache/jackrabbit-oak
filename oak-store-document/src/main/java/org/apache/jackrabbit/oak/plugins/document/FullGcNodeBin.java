@@ -42,6 +42,11 @@ public interface FullGcNodeBin {
             public List<NodeDocument> findAndUpdate(List<UpdateOp> updateOpList) {
                 return store.findAndUpdate(Collection.NODES, updateOpList);
             }
+
+            @Override
+            public void setEnabled(boolean value) {
+                // no-op
+            }
         };
     }
 
@@ -68,4 +73,10 @@ public interface FullGcNodeBin {
      * @see DocumentStore#findAndUpdate(Collection, List)
      */
     List<NodeDocument> findAndUpdate(List<UpdateOp> updateOpList);
+
+    /**
+     * Enable or disable the bin
+     * @param value true to enable, false to disable
+     */
+    void setEnabled(boolean value);
 }
