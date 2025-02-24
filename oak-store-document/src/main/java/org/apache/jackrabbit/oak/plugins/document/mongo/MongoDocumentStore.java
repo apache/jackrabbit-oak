@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.IOUtils;
+import com.mongodb.client.model.IndexOptions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
@@ -86,7 +87,6 @@ import org.apache.jackrabbit.oak.plugins.document.cache.ModificationStamp;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createTTLIndex;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -167,6 +167,8 @@ public class MongoDocumentStore implements DocumentStore {
      * which we block any data modification operation when system has been throttled.
      */
     public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
+
+    private static final @NotNull String BIN_COLLECTION = "bin";
     /**
      * nodeNameLimit for node name based on Mongo Version
      */
@@ -467,7 +469,8 @@ public class MongoDocumentStore implements DocumentStore {
 
         //TTL index for full GC bin documents to expire after 90 days
         //see https://issues.apache.org/jira/browse/OAK-11444
-        createTTLIndex(settings, MongoFullGcNodeBin.GC_COLLECTED_AT, TimeUnit.DAYS.toSeconds(90));
+        IndexOptions indexOptions = new IndexOptions().expireAfter(TimeUnit.DAYS.toSeconds(90), java.util.concurrent.TimeUnit.SECONDS);
+        connection.getCollection(BIN_COLLECTION).createIndex(new org.bson.Document(MongoFullGcNodeBin.GC_COLLECTED_AT, 1), indexOptions);
     }
 
     private void createCollection(MongoDatabase db, String collectionName, MongoStatus mongoStatus) {
@@ -2016,8 +2019,8 @@ public class MongoDocumentStore implements DocumentStore {
         return getDBCollection(collection).withReadPreference(readPreference);
     }
 
-    <T extends Document> MongoCollection<BasicDBObject> getHiddenCollection(String collection) {
-        return this.connection.getCollection(collection);
+    <T extends Document> MongoCollection<BasicDBObject> getBinCollection() {
+        return this.connection.getCollection(BIN_COLLECTION);
     }
 
     MongoDatabase getDatabase() {

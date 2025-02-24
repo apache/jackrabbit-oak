@@ -100,19 +100,6 @@ class MongoUtils {
     }
 
     /**
-     * Creates a TTL Index
-     *
-     * @see <a href="https://docs.mongodb.com/manual/core/index-ttl/">TTL Index</a>
-     * @param collection collection to create the TTL index on
-     * @param expireAfterSec expiration time in seconds
-     * @param field date field to create the TTL index on
-     */
-    static void createTTLIndex(MongoCollection<?> collection, String field, long expireAfterSec) {
-        IndexOptions indexOptions = new IndexOptions().expireAfter(expireAfterSec, java.util.concurrent.TimeUnit.SECONDS);
-        collection.createIndex(new Document(field, 1), indexOptions);
-    }
-
-    /**
      * Forces creation of a partial index on a set of fields, if one does not
      * already exist.
      *

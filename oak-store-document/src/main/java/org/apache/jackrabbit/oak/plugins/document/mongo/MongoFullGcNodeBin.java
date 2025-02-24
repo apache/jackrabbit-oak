@@ -133,7 +133,7 @@ public class MongoFullGcNodeBin implements FullGcNodeBin {
     }
 
     protected boolean persist(List<BasicDBObject> inserts) {
-        mongoDocumentStore.getHiddenCollection("bin").insertMany(inserts);
+        mongoDocumentStore.getBinCollection().insertMany(inserts);
         return true;
     }
 
