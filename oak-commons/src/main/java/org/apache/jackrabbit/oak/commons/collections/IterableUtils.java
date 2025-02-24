@@ -260,4 +260,17 @@ public class IterableUtils {
             }
         };
     }
+
+    /**
+     * Filters an Iterable based on a given predicate.
+     *
+     * @param <E> the type of elements in the iterable
+     * @param itr the iterable to filter, may not be null
+     * @param predicate the predicate to apply to elements, may not be null
+     * @return an iterable containing only the elements that match the predicate
+     * @throws NullPointerException if the iterable or predicate is null
+     */
+    public static <E> Iterable<E> filter(final Iterable<E> itr, final Predicate<? super E> predicate) {
+        return org.apache.commons.collections4.IterableUtils.filteredIterable(itr, predicate);
+    }
 }

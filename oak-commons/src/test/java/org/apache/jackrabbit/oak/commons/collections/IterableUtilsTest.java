@@ -393,4 +393,56 @@ public class IterableUtilsTest {
         Assert.assertFalse(iterator.hasNext());
         Assert.assertThrows(NoSuchElementException.class, iterator::next);
     }
+
+    @Test
+    public void testFilterWithNonEmptyIterable() {
+        Iterable<Integer> iterable = Arrays.asList(1, 2, 3, 4, 5);
+        Predicate<Integer> predicate = x -> x % 2 == 0;
+        Iterable<Integer> filtered = IterableUtils.filter(iterable, predicate);
+        List<Integer> result = ListUtils.toList(filtered.iterator());
+        Assert.assertEquals(Arrays.asList(2, 4), result);
+    }
+
+    @Test
+    public void testFilterWithEmptyIterable() {
+        Iterable<Integer> iterable = Collections.emptyList();
+        Predicate<Integer> predicate = x -> x % 2 == 0;
+        Iterable<Integer> filtered = IterableUtils.filter(iterable, predicate);
+        List<Integer> result = ListUtils.toList(filtered.iterator());
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testFilterWithAllMatchingElements() {
+        Iterable<Integer> iterable = Arrays.asList(2, 4, 6);
+        Predicate<Integer> predicate = x -> x % 2 == 0;
+        Iterable<Integer> filtered = IterableUtils.filter(iterable, predicate);
+        List<Integer> result = ListUtils.toList(filtered.iterator());
+        Assert.assertEquals(Arrays.asList(2, 4, 6), result);
+    }
+
+    @Test
+    public void testFilterWithNoMatchingElements() {
+        Iterable<Integer> iterable = Arrays.asList(1, 3, 5);
+        Predicate<Integer> predicate = x -> x % 2 == 0;
+        Iterable<Integer> filtered = IterableUtils.filter(iterable, predicate);
+        List<Integer> result = ListUtils.toList(filtered.iterator());
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testFilterWithNullIterable() {
+        Predicate<Integer> predicate = x -> x % 2 == 0;
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IterableUtils.filter(null, predicate);
+        });
+    }
+
+    @Test
+    public void testFilterWithNullPredicate() {
+        Iterable<Integer> iterable = Arrays.asList(1, 2, 3);
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IterableUtils.filter(iterable, null);
+        });
+    }
 }
