@@ -387,7 +387,7 @@ public class IterableUtilsTest {
     }
 
     @Test
-    public void testTmp() {
+    public void testPartitionWithEmptyIterableAndSizeOne() {
         Iterable<List<Integer>> partition = IterableUtils.partition(Collections.emptyList(), 1);
         Iterator<List<Integer>> iterator = partition.iterator();
         Assert.assertFalse(iterator.hasNext());
