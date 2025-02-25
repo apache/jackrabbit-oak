@@ -242,6 +242,13 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
     @Test
     public void indexFailuresWithFailOnErrorOn() throws Exception {
+        if (ElasticPropertyDefinition.PROP_IS_FLATTENED_DEFAULT) {
+            // if "flattened" enabled by default,
+            // then the test doesn't make sense.
+            // alternatively, disable "flattened" in the index definition;
+            // but this is already tested in ElasticRegexPropertyIndexTest
+            return;
+        }
         IndexDefinitionBuilder builder = createIndex("a");
         builder.includedPaths("/test")
                 .indexRule("nt:base")

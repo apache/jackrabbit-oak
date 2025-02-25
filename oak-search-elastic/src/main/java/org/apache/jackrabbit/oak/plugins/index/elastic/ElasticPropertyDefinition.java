@@ -46,6 +46,11 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
     public static final String PROP_IS_FLATTENED = "isFlattened";
     private final boolean isFlattened;
 
+    /**
+     * The default value for the "isFlattened" property.
+     */
+    public static final boolean PROP_IS_FLATTENED_DEFAULT = false;
+
     public ElasticPropertyDefinition(IndexDefinition.IndexingRule idxDefn, String nodeName, NodeState defn) {
         super(idxDefn, nodeName, defn);
         if (this.useInSimilarity) {
@@ -56,7 +61,7 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
                     getOptionalValue(defn, PROP_CANDIDATES, DEFAULT_CANDIDATES));
         }
         this.useInFullTextQuery = this.dynamicBoost && getOptionalValue(defn, PROP_USE_IN_FULL_TEXT_QUERY, true);
-        boolean flattened = getOptionalValue(defn, PROP_IS_FLATTENED, false);
+        boolean flattened = getOptionalValue(defn, PROP_IS_FLATTENED, PROP_IS_FLATTENED_DEFAULT);
         if (analyzed) {
             // if analyzed is enabled, then flattened needs to be disabled,
             // because flattened types do not support fulltext queries

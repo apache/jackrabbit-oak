@@ -18,9 +18,14 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
@@ -30,7 +35,7 @@ import org.junit.Test;
 public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
 
     @Test
-    public void regexProperty() throws Exception {
+    public void regexPropertyWithFlattened() throws Exception {
         IndexDefinitionBuilder builder = createIndex("allProperties");
         PropertyRule prop = builder.indexRule("nt:base").property("allProperties");
         prop.getBuilderTree().setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
@@ -64,6 +69,45 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
             assertThat(explain, containsString("[{\"term\":{\"flat:allProperties.propa\":{\"value\":\"foo\"}}}]"));
             assertQuery(propaQuery, List.of("/test/a", "/test/b"));
         });
+    }
+
+    @Test
+    public void regexPropertyWithoutFlattened() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("allProperties");
+        PropertyRule prop = builder.indexRule("nt:base").property("allProperties");
+        prop.getBuilderTree().setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
+        prop.getBuilderTree().setProperty(FulltextIndexConstants.PROP_NAME, "^[^\\/]*$");
+        prop.nodeScopeIndex();
+        prop.getBuilderTree().setProperty(ElasticPropertyDefinition.PROP_IS_FLATTENED, false);
+
+        setIndex("test1", builder);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("propa", "foo");
+        test.addChild("b").setProperty("propa", "foo");
+        test.addChild("c").setProperty("propa", "foo2");
+        test.addChild("d").setProperty("propc", "foo");
+        test.addChild("e").setProperty("propd", "foo");
+
+        // create 10k nodes with different property names to have high cardinality;
+        // without flattened fields, this will break the test with
+        // "Limit of total fields [1000] has been exceeded"
+        for (int i = 0; i < 10_000; i++) {
+            test.addChild("node" + i).setProperty("prop" + i, "foo");
+        }
+        try {
+            root.commit();
+            fail();
+        } catch (CommitFailedException e) {
+            String msg = e.getMessage();
+            assertTrue(msg, msg.contains("Failed to index the node"));
+            StringWriter sw = new StringWriter();
+            PrintWriter p = new PrintWriter(sw);
+            e.printStackTrace(p);
+            String stackTrace = sw.toString();
+            assertTrue(stackTrace, stackTrace.contains("Limit of total fields [1000] has been exceeded"));
+        }
     }
 
 }
