@@ -51,7 +51,8 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
         test.addChild("b").setProperty("propa", "foo");
         test.addChild("c").setProperty("propa", "foo2");
         test.addChild("d").setProperty("propc", "foo");
-        test.addChild("e").setProperty("propd", "foo");
+        test.addChild("e").setProperty("propd", "foo2");
+        test.addChild("f").setProperty("propd", "foo1");
 
         // create 10k nodes with different property names to have high cardinality;
         // without flattened fields, this will break the test with
@@ -69,6 +70,17 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
             assertThat(explain, containsString("[{\"term\":{\"flat:allProperties.propa\":{\"value\":\"foo\"}}}]"));
             assertQuery(propaQuery, List.of("/test/a", "/test/b"));
         });
+
+        String propaOrderQuery = "select [jcr:path] from [nt:base] where [propd] like 'foo%' order by [propd]";
+
+        assertEventually(() -> {
+            String explain = explain(propaOrderQuery);
+            assertThat(explain, containsString("elasticsearch:test1"));
+            assertThat(explain, containsString("\"query\":{\"bool\":{\"filter\":[{\"prefix\":{\"flat:allProperties.propd\":{\"value\":\"foo\"}}}]}}"));
+            assertThat(explain, containsString("sortOrder: [{ propertyName : propd, propertyType : UNDEFINED, order : ASCENDING }]"));
+            assertQuery(propaOrderQuery, List.of("/test/f", "/test/e"));
+        });
+
     }
 
     @Test
