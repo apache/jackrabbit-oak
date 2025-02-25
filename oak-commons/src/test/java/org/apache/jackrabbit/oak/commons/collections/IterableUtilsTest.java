@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
 
 /**
  * Unit tests for the {@link IterableUtils} class.
@@ -491,5 +492,48 @@ public class IterableUtilsTest {
         Assert.assertThrows(NullPointerException.class, () -> {
             IterableUtils.filter(iterable, (Class)null);
         });
+    }
+
+    @Test
+    public void testTransformWithNonEmptyIterable() {
+        Iterable<Integer> iterable = Arrays.asList(1, 2, 3);
+        Function<Integer, String> function = Object::toString;
+        Iterable<String> transformed = IterableUtils.transform(iterable, function);
+        List<String> result = ListUtils.toList(transformed.iterator());
+        Assert.assertEquals(Arrays.asList("1", "2", "3"), result);
+    }
+
+    @Test
+    public void testTransformWithEmptyIterable() {
+        Iterable<Integer> iterable = Collections.emptyList();
+        Function<Integer, String> function = Object::toString;
+        Iterable<String> transformed = IterableUtils.transform(iterable, function);
+        List<String> result = ListUtils.toList(transformed.iterator());
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testTransformWithNullIterable() {
+        Function<Integer, String> function = Object::toString;
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IterableUtils.transform(null, function);
+        });
+    }
+
+    @Test
+    public void testTransformWithNullFunction() {
+        Iterable<Integer> iterable = Arrays.asList(1, 2, 3);
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IterableUtils.transform(iterable, null);
+        });
+    }
+
+    @Test
+    public void testTransformWithComplexFunction() {
+        Iterable<String> iterable = Arrays.asList("a", "bb", "ccc");
+        Function<String, Integer> function = String::length;
+        Iterable<Integer> transformed = IterableUtils.transform(iterable, function);
+        List<Integer> result = ListUtils.toList(transformed.iterator());
+        Assert.assertEquals(Arrays.asList(1, 2, 3), result);
     }
 }
