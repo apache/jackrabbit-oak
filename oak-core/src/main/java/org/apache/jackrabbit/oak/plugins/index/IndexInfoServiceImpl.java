@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -68,7 +69,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         } else {
             activeIndexes.addAll(allIndexes);
         }
-        return Iterables.filter(Iterables.transform(indexPathService.getIndexPaths(), indexPath -> {
+        return IterableUtils.filter(Iterables.transform(indexPathService.getIndexPaths(), indexPath -> {
             try {
                 IndexInfo info = getInfo(indexPath);
                 if (info != null) {

@@ -115,9 +115,9 @@ class UnsavedModifications {
         if (map.isEmpty()) {
             return Collections.emptyList();
         } else {
-            return Iterables.transform(Iterables.filter(map.entrySet(),
+            return Iterables.transform(IterableUtils.filter(map.entrySet(),
                     input ->start.compareRevisionTime(input.getValue()) < 1),
-                    input -> input.getKey());
+                    Map.Entry::getKey);
         }
     }
 

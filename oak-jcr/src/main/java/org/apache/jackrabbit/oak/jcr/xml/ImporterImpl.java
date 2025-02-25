@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
@@ -296,7 +297,7 @@ public class ImporterImpl implements Importer {
     }
 
     private Iterable<ProtectedPropertyImporter> getPropertyImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, importer -> {
+        return IterableUtils.filter(Iterables.transform(pItemImporters, importer -> {
                 if (importer instanceof ProtectedPropertyImporter) {
                     return (ProtectedPropertyImporter) importer;
                 } else {
@@ -306,7 +307,7 @@ public class ImporterImpl implements Importer {
     }
 
     private Iterable<ProtectedNodeImporter> getNodeImporters() {
-        return Iterables.filter(Iterables.transform(pItemImporters, importer -> {
+        return IterableUtils.filter(Iterables.transform(pItemImporters, importer -> {
                 if (importer instanceof ProtectedNodeImporter) {
                     return (ProtectedNodeImporter) importer;
                 } else {

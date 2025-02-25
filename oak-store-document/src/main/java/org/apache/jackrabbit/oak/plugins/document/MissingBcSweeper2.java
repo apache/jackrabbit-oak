@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.COMMITROOT_OR_REVISIONS;
 
@@ -135,7 +134,7 @@ final class MissingBcSweeper2 {
 
     private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
             final Iterable<NodeDocument> docs) {
-        return filter(transform(docs,
+        return IterableUtils.filter(transform(docs,
                 new Function<NodeDocument, Map.Entry<Path, UpdateOp>>() {
 
             int yieldCnt = 0;
@@ -170,7 +169,7 @@ final class MissingBcSweeper2 {
         // as that's what was left out by the original sweep1:
         // - COMMITROOT : for new child (parent)
         // - REVISIONS : for commit roots (root for branch commits)
-        for (String property : filter(doc.keySet(), COMMITROOT_OR_REVISIONS::test)) {
+        for (String property : IterableUtils.filter(doc.keySet(), COMMITROOT_OR_REVISIONS::test)) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
                 Revision rev = entry.getKey();

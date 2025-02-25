@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.guava.common.cache.RemovalCause.COLLECTED;
 import static org.apache.jackrabbit.guava.common.cache.RemovalCause.EXPIRED;
@@ -36,6 +35,7 @@ import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
@@ -250,7 +250,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
         Iterable<K> typedKeys = (Iterable<K>) keys;
         memCacheMetadata.incrementAll(keys);
         ImmutableMap<K, V> result = memCache.getAllPresent(keys);
-        memCacheMetadata.removeAll(filter(typedKeys, x -> !result.keySet().contains(x)));
+        memCacheMetadata.removeAll(IterableUtils.filter(typedKeys, x -> !result.keySet().contains(x)));
         return result;
     }
 

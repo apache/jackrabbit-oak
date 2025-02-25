@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.AbstractMap.SimpleImmutableEntry;
 
@@ -28,6 +27,7 @@ import java.util.TreeMap;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -55,7 +55,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
 
     @Override
     public Iterator<NodeDocument> iterator() {
-        return ensureOrder(filter(transform(doc.getPreviousRanges().entrySet(), input -> {
+        return ensureOrder(IterableUtils.filter(transform(doc.getPreviousRanges().entrySet(), input -> {
                 Revision r = input.getKey();
                 int h = input.getValue().height;
                 String prevId = Utils.getPreviousIdFor(mainPath, r, h);

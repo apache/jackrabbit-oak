@@ -2231,7 +2231,7 @@ public final class DocumentNodeStore
     public Iterable<String> checkpoints() {
         checkOpen();
         final long now = clock.getTime();
-        return Iterables.transform(Iterables.filter(checkpoints.getCheckpoints().entrySet(),
+        return Iterables.transform(IterableUtils.filter(checkpoints.getCheckpoints().entrySet(),
                 cp -> cp.getValue().getExpiryTime() > now),
                 cp -> cp.getKey().toString());
     }

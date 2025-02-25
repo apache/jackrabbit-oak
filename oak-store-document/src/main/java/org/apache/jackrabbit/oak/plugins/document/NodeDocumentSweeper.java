@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeCommitRoot;
@@ -163,7 +162,7 @@ final class NodeDocumentSweeper {
 
     private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
             final Iterable<NodeDocument> docs) {
-        return filter(transform(docs, doc -> new SimpleImmutableEntry<>(doc.getPath(), sweepOne(doc))),
+        return IterableUtils.filter(transform(docs, doc -> new SimpleImmutableEntry<>(doc.getPath(), sweepOne(doc))),
                 input -> input.getValue() != null);
     }
 
@@ -174,7 +173,7 @@ final class NodeDocumentSweeper {
         // - DELETED : for new node (this)
         // - COMMITROOT : for new child (parent)
         // - REVISIONS : for commit roots (root for branch commits)
-        for (String property : filter(doc.keySet(), SWEEP_ONE_PREDICATE::test)) {
+        for (String property : IterableUtils.filter(doc.keySet(), SWEEP_ONE_PREDICATE::test)) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
                 Revision rev = entry.getKey();

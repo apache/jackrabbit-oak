@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
@@ -56,8 +57,6 @@ import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 
 import static java.lang.System.currentTimeMillis;
 import static org.apache.jackrabbit.oak.composite.ModifiedPathDiff.getModifiedPaths;
@@ -206,7 +205,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
 
     public Iterable<String> checkpoints() {
         final NodeStore globalNodeStore = ctx.getGlobalStore().getNodeStore();
-        return filter(globalNodeStore.checkpoints(),
+        return IterableUtils.filter(globalNodeStore.checkpoints(),
                 checkpoint -> isCompositeCheckpoint(checkpoint));
     }
 
