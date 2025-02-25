@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Utility methods for {@link Iterable} conversions.
@@ -272,5 +273,19 @@ public class IterableUtils {
      */
     public static <E> Iterable<E> filter(final Iterable<E> itr, final Predicate<? super E> predicate) {
         return org.apache.commons.collections4.IterableUtils.filteredIterable(itr, predicate);
+    }
+
+    /**
+     * Filters an Iterable to include only elements of the specified class type.
+     *
+     * @param <E> the type of elements to include
+     * @param itr the iterable to filter, may not be null
+     * @param type the class type to filter by, may not be null
+     * @return an iterable containing only the elements of the specified class type
+     * @throws NullPointerException if the iterable or class type is null
+     */
+    @SuppressWarnings("unchecked")
+    public static <E> Iterable<E> filter(final Iterable<?> itr, final Class<E> type) {
+        return (Iterable<E>) StreamUtils.toStream(itr).filter(type::isInstance).collect(Collectors.toList());
     }
 }
