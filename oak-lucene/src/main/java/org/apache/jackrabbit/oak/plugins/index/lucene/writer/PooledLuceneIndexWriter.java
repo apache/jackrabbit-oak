@@ -41,6 +41,7 @@ public class PooledLuceneIndexWriter implements LuceneIndexWriter {
         this.writerPool = writerPool;
         this.delegateWriter = delegateWriter;
         this.indexName = indexName;
+        LOG.info("Created writer for index {}", indexName, new Throwable());
     }
 
     @Override
@@ -57,7 +58,7 @@ public class PooledLuceneIndexWriter implements LuceneIndexWriter {
 
     @Override
     public boolean close(long timestamp) throws IOException {
-        LOG.info("[{}] Shutting down PipelinedFullTextIndexWriter", indexName);
+        LOG.info("[{}] Shutting down writer", indexName);
         return writerPool.closeWriter(delegateWriter, timestamp);
     }
 
