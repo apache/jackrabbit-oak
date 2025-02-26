@@ -315,6 +315,8 @@ public class IterableUtils {
      * @throws NullPointerException if the iterables or c are null
      */
     public static <T> Iterable<T> mergeSorted(final Iterable<? extends Iterable<? extends T>> iterables, final Comparator<? super T> c) {
+        Objects.requireNonNull(iterables, "Iterables must not be null.");
+        Objects.requireNonNull(c, "Comparator must not be null.");
         final Iterable<T> iterable = () -> IteratorUtils.mergeSorted(org.apache.commons.collections4.IterableUtils.transformedIterable(iterables, Iterable::iterator), c);
         return org.apache.commons.collections4.IterableUtils.unmodifiableIterable(iterable);
     }
