@@ -32,6 +32,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -135,7 +136,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
     @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
-        return Iterables.filter(all(), new SearchTypePredicate(nameHint, searchType)::test).iterator();
+        return IterableUtils.filter(all(), new SearchTypePredicate(nameHint, searchType)::test).iterator();
     }
 
     @NotNull

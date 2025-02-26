@@ -24,7 +24,6 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Stream.concat;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.stream.Collectors.toList;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
@@ -43,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -184,7 +184,7 @@ public class VersionGCSupport {
     protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
                                                      final RevisionVector sweepRevs,
                                                      final long oldestRevTimeStamp) {
-        return filter(getAllDocuments(store),
+        return IterableUtils.filter(getAllDocuments(store),
                 doc -> gcTypes.contains(doc.getSplitDocType())
                         && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
                         && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs));

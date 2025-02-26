@@ -26,7 +26,6 @@ import static com.mongodb.client.model.Projections.include;
 import static com.mongodb.client.model.Sorts.ascending;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.lt;
@@ -348,7 +347,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             // of the query as part of OAK-8351 does), it nevertheless 
             // makes any future similar problem more visible than long running
             // queries alone (15min is still long).
-            Iterable<NodeDocument> iterable = filter(transform(getNodeCollection().find(query)
+            Iterable<NodeDocument> iterable = IterableUtils.filter(transform(getNodeCollection().find(query)
                     .maxTime(15, TimeUnit.MINUTES).hint(hint),
                     input -> store.convertFromDBObject(NODES, input)),
                     input -> !isDefaultNoBranchSplitNewerThan(input, sweepRevs));

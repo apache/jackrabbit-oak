@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import static java.util.Objects.requireNonNull;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
@@ -27,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iter
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -164,8 +163,8 @@ public class ModifiedNodeState extends AbstractNodeState {
             Predicate<PropertyState> predicate =
                     x -> !keys.contains(x == null ? null : x.getName());
             return IterableUtils.chainedIterable(
-                    filter(base.getProperties(), predicate::test),
-                    filter(properties.values(), x -> x != null));
+                    IterableUtils.filter(base.getProperties(), predicate::test),
+                    IterableUtils.filter(properties.values(), Objects::nonNull));
         }
     }
 
@@ -214,7 +213,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             }
             final Set<String> keys = nodes.keySet(); 
             return IterableUtils.chainedIterable(
-                    filter(base.getChildNodeNames(), x -> !keys.contains(x)),
+                    IterableUtils.filter(base.getChildNodeNames(), x -> !keys.contains(x)),
                     MapUtils.filterValues(nodes, NodeState.EXISTS).keySet());
         }
     }
@@ -347,7 +346,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             Predicate<ChildNodeEntry> predicate =
                     x -> !keys.contains(x == null ? null : x.getName());
             return IterableUtils.chainedIterable(
-                    filter(base.getChildNodeEntries(), predicate::test),
+                    IterableUtils.filter(base.getChildNodeEntries(), predicate::test),
                     iterable(MapUtils.filterValues(nodes, NodeState.EXISTS).entrySet()));
         }
     }

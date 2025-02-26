@@ -53,7 +53,6 @@ import static org.apache.commons.lang3.reflect.FieldUtils.readField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -3540,7 +3539,7 @@ public class VersionGarbageCollectorIT {
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
-                return filter(super.getPossiblyDeletedDocs(fromModified, toModified),
+                return IterableUtils.filter(super.getPossiblyDeletedDocs(fromModified, toModified),
                         input -> {
                                 try {
                                     docs.put(input);
@@ -3773,7 +3772,7 @@ public class VersionGarbageCollectorIT {
         VersionGCSupport nonReportingGcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, long toModified) {
-                return filter(fixtureGCSupport.getPossiblyDeletedDocs(fromModified, toModified),
+                return IterableUtils.filter(fixtureGCSupport.getPossiblyDeletedDocs(fromModified, toModified),
                         input -> {
                                 docCounter.incrementAndGet();
                                 // don't report any doc to be GC'able

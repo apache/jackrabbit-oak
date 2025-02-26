@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.lang.Double.POSITIVE_INFINITY;
 import static javax.jcr.PropertyType.REFERENCE;
@@ -137,7 +136,7 @@ class ReferenceIndex implements QueryIndex {
         Iterable<String> paths = IterableUtils.chainedIterable(iterables);
 
         if (!"*".equals(name)) {
-            paths = filter(paths, path -> name.equals(getName(path)));
+            paths = IterableUtils.filter(paths, path -> name.equals(getName(path)));
         }
         paths = transform(paths, path -> getParentPath(path));
         return newPathCursor(paths, filter.getQueryLimits());

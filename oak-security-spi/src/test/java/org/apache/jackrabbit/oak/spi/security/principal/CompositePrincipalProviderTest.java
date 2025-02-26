@@ -137,7 +137,7 @@ public class CompositePrincipalProviderTest {
 
     @Test
     public void findPrincipalsByTypeGroup() {
-        Iterable<? extends Principal> expected = IterableUtils.chainedIterable(Set.of(EveryonePrincipal.getInstance()), Iterables.filter(testPrincipals(),
+        Iterable<? extends Principal> expected = IterableUtils.chainedIterable(Set.of(EveryonePrincipal.getInstance()), IterableUtils.filter(testPrincipals(),
             input -> input instanceof GroupPrincipal));
 
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
@@ -146,7 +146,7 @@ public class CompositePrincipalProviderTest {
 
     @Test
     public void findPrincipalsByTypeNotGroup() {
-        Iterable<? extends Principal> expected = Iterables.filter(testPrincipals(), input -> !(input instanceof GroupPrincipal));
+        Iterable<? extends Principal> expected = IterableUtils.filter(testPrincipals(), input -> !(input instanceof GroupPrincipal));
 
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertIterator(expected, result);

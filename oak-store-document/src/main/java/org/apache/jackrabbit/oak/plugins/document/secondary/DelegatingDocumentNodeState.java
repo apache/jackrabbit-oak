@@ -155,7 +155,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return Iterables.filter(delegate.getProperties(), NOT_META_PROPS::test);
+        return IterableUtils.filter(delegate.getProperties(), NOT_META_PROPS::test);
     }
 
     @Override
