@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
@@ -29,6 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORD
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -275,7 +275,7 @@ public abstract class AbstractTree implements Tree {
     @Override
     @NotNull
     public Iterable<? extends PropertyState> getProperties() {
-        return filter(getNodeBuilder().getProperties(), propertyState -> !isHidden(propertyState.getName()));
+        return IterableUtils.filter(getNodeBuilder().getProperties(), propertyState -> !isHidden(propertyState.getName()));
     }
 
     @Override
@@ -314,6 +314,6 @@ public abstract class AbstractTree implements Tree {
                     AbstractTree child = createChild(name);
                     return child.exists() ? child : null;
                 });
-        return filter(children, x -> x != null);
+        return IterableUtils.filter(children, Objects::nonNull);
     }
 }

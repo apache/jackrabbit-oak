@@ -20,12 +20,18 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.iterators.LazyIteratorChain;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Utility methods for {@link Iterable} conversions.
@@ -211,5 +217,90 @@ public class IterableUtils {
 
         final Collection<T> collection = itr instanceof Collection ? (Collection<T>) itr : ListUtils.toList(itr);
         return collection.toArray(t);
+    }
+
+    /**
+     * Splits an Iterable into an Iterator of sub-iterators, each of the specified size.
+     *
+     * @param <T> the type of elements in the itr
+     * @param itr the itr to split, may not be null
+     * @param size the size of each sub-iterator, must be greater than 0
+     * @return an iterator of sub-iterators, each of the specified size
+     * @throws NullPointerException if the itr is null
+     * @throws IllegalArgumentException if size is less than or equal to 0
+     */
+    public static <T> Iterable<List<T>> partition(final Iterable<T> itr, final int size) {
+
+        Objects.requireNonNull(itr, "Iterable must not be null.");
+        Validate.checkArgument(size > 0, "Size must be greater than 0.");
+
+        return new Iterable<>() {
+            @Override
+            public @NotNull Iterator<List<T>> iterator() {
+                return new Iterator<>() {
+                    private final Iterator<T> iterator = itr.iterator();
+
+                    @Override
+                    public boolean hasNext() {
+                        return iterator.hasNext();
+                    }
+
+                    @Override
+                    public List<T> next() {
+                        // check if there are elements left, throw an exception if not
+                        if (!hasNext()) {
+                            throw new NoSuchElementException();
+                        }
+
+                        List<T> currentPartition = new ArrayList<>(size);
+                        for (int i = 0; i < size && iterator.hasNext(); i++) {
+                            currentPartition.add(iterator.next());
+                        }
+                        return currentPartition;
+                    }
+                };
+            }
+        };
+    }
+
+    /**
+     * Filters an Iterable based on a given predicate.
+     *
+     * @param <E> the type of elements in the iterable
+     * @param itr the iterable to filter, may not be null
+     * @param predicate the predicate to apply to elements, may not be null
+     * @return an iterable containing only the elements that match the predicate
+     * @throws NullPointerException if the iterable or predicate is null
+     */
+    public static <E> Iterable<E> filter(final Iterable<E> itr, final Predicate<? super E> predicate) {
+        return org.apache.commons.collections4.IterableUtils.filteredIterable(itr, predicate);
+    }
+
+    /**
+     * Filters an Iterable to include only elements of the specified class type.
+     *
+     * @param <E> the type of elements to include
+     * @param itr the iterable to filter, may not be null
+     * @param type the class type to filter by, may not be null
+     * @return an iterable containing only the elements of the specified class type
+     * @throws NullPointerException if the iterable or class type is null
+     */
+    @SuppressWarnings("unchecked")
+    public static <E> Iterable<E> filter(final Iterable<?> itr, final Class<E> type) {
+        return (Iterable<E>) StreamUtils.toStream(itr).filter(type::isInstance).collect(Collectors.toList());
+    }
+
+    /**
+     * Transforms an Iterable by applying a given function to each element.
+     *
+     * @param <I> the type of input elements
+     * @param <O> the type of output elements
+     * @param iterable the iterable to transform, must not be null
+     * @param function the function to apply to each element, must not be null
+     * @return an iterable containing the transformed elements
+     * @throws NullPointerException if the iterable or function is null
+     */
+    public static <I, O> Iterable<O> transform(final Iterable<I> iterable, final Function<? super I, ? extends O> function) {
+        return org.apache.commons.collections4.IterableUtils.transformedIterable(iterable, function::apply);
     }
 }

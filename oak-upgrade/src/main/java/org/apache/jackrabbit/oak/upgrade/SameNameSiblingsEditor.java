@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -34,6 +33,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -160,7 +160,7 @@ public class SameNameSiblingsEditor extends DefaultEditor {
      * @return a list of names of children accepting the predicate
      */
     private static Iterable<String> filterChildren(NodeState parent, final Predicate<NodeState> predicate) {
-        return transform(filter(parent.getChildNodeEntries(),
+        return transform(IterableUtils.filter(parent.getChildNodeEntries(),
                 input -> predicate.test(input.getNodeState())),
                 input -> input.getName());
     }

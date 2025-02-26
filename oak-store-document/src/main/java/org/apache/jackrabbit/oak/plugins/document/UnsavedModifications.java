@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Supplier;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -114,9 +115,9 @@ class UnsavedModifications {
         if (map.isEmpty()) {
             return Collections.emptyList();
         } else {
-            return Iterables.transform(Iterables.filter(map.entrySet(),
+            return Iterables.transform(IterableUtils.filter(map.entrySet(),
                     input ->start.compareRevisionTime(input.getValue()) < 1),
-                    input -> input.getKey());
+                    Map.Entry::getKey);
         }
     }
 
@@ -164,7 +165,7 @@ class UnsavedModifications {
         stats.num = pending.size();
         List<UpdateOp> updates = new ArrayList<>();
         Map<Path, Revision> pathToRevision = new HashMap<>();
-        for (Iterable<Map.Entry<Path, Revision>> batch : Iterables.partition(
+        for (Iterable<Map.Entry<Path, Revision>> batch : IterableUtils.partition(
                 pending.entrySet(), BACKGROUND_MULTI_UPDATE_LIMIT)) {
             for (Map.Entry<Path, Revision> entry : batch) {
                 Path p = entry.getKey();

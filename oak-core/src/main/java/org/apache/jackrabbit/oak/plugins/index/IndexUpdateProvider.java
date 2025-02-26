@@ -28,13 +28,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class IndexUpdateProvider implements EditorProvider {
 
-    private static final IndexUpdateCallback NOOP_CALLBACK =
-            new IndexUpdateCallback() {
-                @Override
-                public void indexUpdate() {
-                    // do nothing
-                }
-            };
+    private static final IndexUpdateCallback NOOP_CALLBACK = () -> {};
 
     private final IndexEditorProvider provider;
 

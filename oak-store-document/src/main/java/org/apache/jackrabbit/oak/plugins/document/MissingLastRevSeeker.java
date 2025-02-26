@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
@@ -82,7 +83,7 @@ public class MissingLastRevSeeker {
         // Fetch all documents where lastmod >= startTime
         Iterable<NodeDocument> nodes = getSelectedDocuments(store,
                 MODIFIED_IN_SECS, getModifiedInSecs(startTime));
-        return Iterables.filter(nodes, input -> {
+        return IterableUtils.filter(nodes, input -> {
                 Long modified = (Long) input.get(MODIFIED_IN_SECS);
                 Long sdType = (Long) input.get(SD_TYPE);
                 return (modified != null && (modified >= getModifiedInSecs(startTime)) && sdType == null);
