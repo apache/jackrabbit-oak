@@ -47,6 +47,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -757,7 +758,7 @@ public class RDBDocumentStoreJDBC {
 
         List<RDBRow> rows = new ArrayList<RDBRow>();
 
-        for (List<String> keys : Iterables.partition(allKeys, RDBJDBCTools.MAX_IN_CLAUSE)) {
+        for (List<String> keys : IterableUtils.partition(allKeys, RDBJDBCTools.MAX_IN_CLAUSE)) {
             long pstart = PERFLOG.start(PERFLOG.isDebugEnabled() ? ("reading: " + keys) : null);
 
             PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", keys, tmd.isIdBinary());
