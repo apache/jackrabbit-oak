@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -1594,7 +1593,7 @@ public final class DocumentNodeStore
         }
 
         final RevisionVector readRevision = parent.getLastRevision();
-        return transform(getChildren(parent, name, limit).children, new Function<String, DocumentNodeState>() {
+        return IterableUtils.transform(getChildren(parent, name, limit).children, new Function<String, DocumentNodeState>() {
             @Override
             public DocumentNodeState apply(String input) {
                 Path p = new Path(parent.getPath(), input);
@@ -2231,7 +2230,7 @@ public final class DocumentNodeStore
     public Iterable<String> checkpoints() {
         checkOpen();
         final long now = clock.getTime();
-        return Iterables.transform(IterableUtils.filter(checkpoints.getCheckpoints().entrySet(),
+        return IterableUtils.transform(IterableUtils.filter(checkpoints.getCheckpoints().entrySet(),
                 cp -> cp.getValue().getExpiryTime() > now),
                 cp -> cp.getKey().toString());
     }

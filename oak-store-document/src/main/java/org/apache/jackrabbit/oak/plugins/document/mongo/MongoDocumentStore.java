@@ -1260,7 +1260,7 @@ public class MongoDocumentStore implements DocumentStore {
                 results.put(op, findAndUpdate(collection, op));
             }
         } catch (MongoException e) {
-            throw handleException(e, collection, Iterables.transform(updateOps, UpdateOp::getId));
+            throw handleException(e, collection, IterableUtils.transform(updateOps, UpdateOp::getId));
         } finally {
             stats.doneFindAndModify(watch.elapsed(NANOSECONDS), collection, updateOps.stream().map(UpdateOp::getId).collect(toList()),
                     true, retryCount);
@@ -1361,7 +1361,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
         } catch (MongoException e) {
-            throw handleException(e, collection, Iterables.transform(updateOps,
+            throw handleException(e, collection, IterableUtils.transform(updateOps,
                     input -> input.getId()));
         } finally {
             stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),

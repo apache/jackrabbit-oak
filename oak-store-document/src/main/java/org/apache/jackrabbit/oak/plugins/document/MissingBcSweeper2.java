@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.COMMITROOT_OR_REVISIONS;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
@@ -134,7 +133,7 @@ final class MissingBcSweeper2 {
 
     private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
             final Iterable<NodeDocument> docs) {
-        return IterableUtils.filter(transform(docs,
+        return IterableUtils.filter(IterableUtils.transform(docs,
                 new Function<NodeDocument, Map.Entry<Path, UpdateOp>>() {
 
             int yieldCnt = 0;

@@ -43,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -889,7 +888,7 @@ public class Commit {
     }
 
     private static boolean hasContentChanges(UpdateOp op) {
-        return IterableUtils.filter(transform(op.getChanges().keySet(),
+        return IterableUtils.filter(IterableUtils.transform(op.getChanges().keySet(),
                 Key::getName), Utils.PROPERTY_OR_DELETED::test).iterator().hasNext();
     }
 }

@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -64,7 +65,7 @@ public class ReadablePathsPermissionTest extends AbstractPrincipalBasedTest {
         readablePaths = Iterators.cycle(paths);
         Set<String> childPaths = new HashSet<>();
         for (String path : paths) {
-            Iterables.transform(root.getTree(path).getChildren(), Tree::getPath).forEach(childPaths::add);
+            IterableUtils.transform(root.getTree(path).getChildren(), Tree::getPath).forEach(childPaths::add);
         }
         readableChildPaths = Iterators.cycle(childPaths);
 

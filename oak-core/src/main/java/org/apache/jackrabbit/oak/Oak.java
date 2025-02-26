@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
@@ -704,7 +705,7 @@ public class Oak {
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
-        Iterable<WorkspaceInitializer> workspaceInitializers = Iterables.transform(securityProvider.getConfigurations(),
+        Iterable<WorkspaceInitializer> workspaceInitializers = IterableUtils.transform(securityProvider.getConfigurations(),
                 sc -> {
                         WorkspaceInitializer wi = sc.getWorkspaceInitializer();
                         if (wi instanceof QueryIndexProviderAware) {

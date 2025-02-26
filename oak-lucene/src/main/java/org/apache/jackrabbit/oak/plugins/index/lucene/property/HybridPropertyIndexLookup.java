@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
@@ -103,10 +102,10 @@ public class HybridPropertyIndexLookup {
             result = querySimple(filter, indexName, propIndexNode, encodedValues);
         }
 
-        Iterable<String> paths = transform(result, path -> isAbsolute(path) ? path : "/" + path);
+        Iterable<String> paths = IterableUtils.transform(result, path -> isAbsolute(path) ? path : "/" + path);
 
         if (log.isTraceEnabled()) {
-            paths = transform(paths, path -> {
+            paths = IterableUtils.transform(paths, path -> {
                 log.trace("[{}] {} = {} -> {}", indexPath, propertyName, encodedValues, path);
                 return path;
             });

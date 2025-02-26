@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 /**
  * Implementation of a DocumentNodeStoreMBean.
@@ -86,21 +85,21 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public String[] getInactiveClusterNodes() {
-        return IterableUtils.toArray(transform(IterableUtils.filter(clusterNodes,
+        return IterableUtils.toArray(IterableUtils.transform(IterableUtils.filter(clusterNodes,
                 input -> !input.isActive()),
                 input -> input.getClusterId() + "=" + input.getCreated()), String.class);
     }
 
     @Override
     public String[] getActiveClusterNodes() {
-        return IterableUtils.toArray(transform(IterableUtils.filter(clusterNodes,
+        return IterableUtils.toArray(IterableUtils.transform(IterableUtils.filter(clusterNodes,
                 input -> input.isActive()),
                 input -> input.getClusterId() + "=" + input.getLeaseEndTime()), String.class);
     }
 
     @Override
     public String[] getLastKnownRevisions() {
-        return IterableUtils.toArray(transform(IterableUtils.filter(nodeStore.getHeadRevision(),
+        return IterableUtils.toArray(IterableUtils.transform(IterableUtils.filter(nodeStore.getHeadRevision(),
                 input -> input.getClusterId() != getClusterId()),
                 input -> input.getClusterId() + "=" + input.toString()), String.class);
     }

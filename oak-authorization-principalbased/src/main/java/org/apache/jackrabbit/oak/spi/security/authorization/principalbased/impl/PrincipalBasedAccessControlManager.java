@@ -231,7 +231,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
                     entries.add(entry);
                 }
             }
-            Iterable<PrincipalAccessControlList> acls = Iterables.transform(m.entrySet(), entry -> new ImmutablePrincipalPolicy(entry.getKey(), filter.getOakPath(entry.getKey()), entry.getValue(), mgrProvider.getRestrictionProvider(), getNamePathMapper()));
+            Iterable<PrincipalAccessControlList> acls = IterableUtils.transform(m.entrySet(), entry -> new ImmutablePrincipalPolicy(entry.getKey(), filter.getOakPath(entry.getKey()), entry.getValue(), mgrProvider.getRestrictionProvider(), getNamePathMapper()));
 
             if (ReadPolicy.hasEffectiveReadPolicy(readPaths, oakPath)) {
                 Iterable<AccessControlPolicy> iterable = IterableUtils.chainedIterable(acls, Collections.singleton(ReadPolicy.INSTANCE));

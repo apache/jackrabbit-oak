@@ -25,6 +25,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -66,7 +67,7 @@ public class PrivilegeImplTest extends AbstractSecurityTest implements Privilege
         assertEquals(expectedNames.length, aggr.length);
 
         Set<String> expected = SetUtils.toSet(expectedNames);
-        Set<String> result = SetUtils.toSet(Iterables.transform(Set.of(aggr), Privilege::getName));
+        Set<String> result = SetUtils.toSet(IterableUtils.transform(Set.of(aggr), Privilege::getName));
 
         assertEquals(expected, result);
     }

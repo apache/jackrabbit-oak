@@ -164,7 +164,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Privilege[] privileges, @NotNull final NameMapper nameMapper) {
-        return getBits(IterableUtils.filter(Iterables.transform(Arrays.asList(privileges),
+        return getBits(IterableUtils.filter(IterableUtils.transform(Arrays.asList(privileges),
                 privilege -> nameMapper.getOakNameOrNull(privilege.getName())), x -> x != null));
     }
 

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -128,7 +129,7 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
         if (!f.canHandle(principals)) {
             return EmptyPermissionProvider.getInstance();
         } else {
-            Iterable<String> principalPaths = Iterables.transform(principals, f::getOakPath);
+            Iterable<String> principalPaths = IterableUtils.transform(principals, f::getOakPath);
             return new PrincipalBasedPermissionProvider(root, workspaceName, principalPaths, this);
         }
     }
