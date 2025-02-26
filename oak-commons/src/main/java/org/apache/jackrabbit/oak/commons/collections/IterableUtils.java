@@ -26,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -302,5 +303,19 @@ public class IterableUtils {
      */
     public static <I, O> Iterable<O> transform(final Iterable<I> iterable, final Function<? super I, ? extends O> function) {
         return org.apache.commons.collections4.IterableUtils.transformedIterable(iterable, function::apply);
+    }
+
+    /**
+     * Merges multiple sorted iterables into a single sorted iterable.
+     *
+     * @param <T> the type of elements returned by this iterable
+     * @param iterables the iterables to merge, must not be null
+     * @param c the c to determine the order of elements, must not be null
+     * @return an iterable that merges the input iterables in sorted order
+     * @throws NullPointerException if the iterables or c are null
+     */
+    public static <T> Iterable<T> mergeSorted(final Iterable<? extends Iterable<? extends T>> iterables, final Comparator<? super T> c) {
+        final Iterable<T> iterable = () -> IteratorUtils.mergeSorted(org.apache.commons.collections4.IterableUtils.transformedIterable(iterables, Iterable::iterator), c);
+        return org.apache.commons.collections4.IterableUtils.unmodifiableIterable(iterable);
     }
 }

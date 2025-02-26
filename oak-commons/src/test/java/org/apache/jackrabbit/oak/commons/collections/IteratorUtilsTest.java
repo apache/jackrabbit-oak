@@ -21,8 +21,11 @@ package org.apache.jackrabbit.oak.commons.collections;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.junit.Assert.fail;
 
@@ -43,5 +46,101 @@ public class IteratorUtilsTest {
         } catch (IllegalStateException expected) {
             // that's what we want
         }
+    }
+
+    @Test
+    public void testMergeSortedWithNonEmptyIterators() {
+        List<Integer> list1 = Arrays.asList(1, 4, 7);
+        List<Integer> list2 = Arrays.asList(2, 5, 9);
+        List<Integer> list3 = Arrays.asList(3, 6, 8);
+
+        Iterable<Iterator<Integer>> iterators = Arrays.asList(list1.iterator(), list2.iterator(), list3.iterator());
+        Iterator<Integer> merged = IteratorUtils.mergeSorted(iterators, Comparator.naturalOrder());
+
+        List<Integer> expected = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9);
+        for (Integer value : expected) {
+            Assert.assertTrue(merged.hasNext());
+            Assert.assertEquals(value, merged.next());
+        }
+        Assert.assertFalse(merged.hasNext());
+    }
+
+    @Test
+    public void testMergeSortedWithDuplicateElementsIterators() {
+        List<Integer> list1 = Arrays.asList(1, 4, 7);
+        List<Integer> list2 = Arrays.asList(2, 5, 9);
+        List<Integer> list3 = Arrays.asList(3, 6, 9);
+
+        Iterable<Iterator<Integer>> iterators = Arrays.asList(list1.iterator(), list2.iterator(), list3.iterator());
+        Iterator<Integer> merged = IteratorUtils.mergeSorted(iterators, Comparator.naturalOrder());
+
+        List<Integer> expected = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 9, 9);
+        for (Integer value : expected) {
+            Assert.assertTrue(merged.hasNext());
+            Assert.assertEquals(value, merged.next());
+        }
+        Assert.assertFalse(merged.hasNext());
+    }
+
+    @Test
+    public void testMergeSortedWithEmptyIterators() {
+        List<Integer> list1 = List.of();
+        List<Integer> list2 = List.of();
+        List<Integer> list3 = List.of();
+
+        Iterable<Iterator<Integer>> iterators = Arrays.asList(list1.iterator(), list2.iterator(), list3.iterator());
+        Iterator<Integer> merged = IteratorUtils.mergeSorted(iterators, Comparator.naturalOrder());
+
+        Assert.assertFalse(merged.hasNext());
+    }
+
+    @Test
+    public void testMergeSortedWithNullIterators() {
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IteratorUtils.mergeSorted(null, Comparator.naturalOrder());
+        });
+    }
+
+    @Test
+    public void testMergeSortedWithNullComparator() {
+        List<Integer> list1 = Arrays.asList(1, 4, 7);
+        List<Integer> list2 = Arrays.asList(2, 5, 8);
+        List<Integer> list3 = Arrays.asList(3, 6, 9);
+
+        Iterable<Iterator<Integer>> iterators = Arrays.asList(list1.iterator(), list2.iterator(), list3.iterator());
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IteratorUtils.mergeSorted(iterators, null);
+        });
+    }
+
+    @Test
+    public void testMergeSortedWithSingleIterator() {
+        List<Integer> list1 = Arrays.asList(1, 2, 3);
+
+        Iterable<Iterator<Integer>> iterators = List.of(list1.iterator());
+        Iterator<Integer> merged = IteratorUtils.mergeSorted(iterators, Comparator.naturalOrder());
+
+        List<Integer> expected = Arrays.asList(1, 2, 3);
+        for (Integer value : expected) {
+            Assert.assertTrue(merged.hasNext());
+            Assert.assertEquals(value, merged.next());
+        }
+        Assert.assertFalse(merged.hasNext());
+    }
+
+    @Test
+    public void testMergeSortedWithNoIterators() {
+        Iterable<Iterator<Integer>> iterators = List.of();
+        Iterator<Integer> merged = IteratorUtils.mergeSorted(iterators, Comparator.naturalOrder());
+
+        Assert.assertFalse(merged.hasNext());
+    }
+
+    @Test
+    public void testMergeSortedWithEmptyAndOneIterator() {
+        Iterable<Iterator<Integer>> iterators = List.of();
+        Iterator<Integer> merged = IteratorUtils.mergeSorted(iterators, Comparator.naturalOrder());
+
+        Assert.assertThrows(NoSuchElementException.class, merged::next);
     }
 }
