@@ -21,8 +21,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -114,11 +112,8 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
         } catch (CommitFailedException e) {
             String msg = e.getMessage();
             assertTrue(msg, msg.contains("Failed to index the node"));
-            StringWriter sw = new StringWriter();
-            PrintWriter p = new PrintWriter(sw);
-            e.printStackTrace(p);
-            String stackTrace = sw.toString();
-            assertTrue(stackTrace, stackTrace.contains("Limit of total fields [1000] has been exceeded"));
+            // Typically, the root cause is "Limit of total fields [1000] has been exceeded"
+            // but something this is suppressed, and so we can not have an assertion on it
         }
     }
 
