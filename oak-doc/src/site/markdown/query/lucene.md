@@ -390,14 +390,7 @@ defined at the property definition level
 name
 : Property name. If not defined, then the property name is set to the node name.
 
-  Can also be set to a relative property, e.g., `jcr:content/metadata/color`.
-  For relative properties, one wildcard (`*`) is supported instead of a node name:
-  `*/color` aggregates the values of the property `color` of all direct child nodes.
-
-  If `isRegexp` is true, then the property name is a regular expression.
-
-  Special properties such as "jcr:path", "jcr:score" can not be indexed.
-  The path can be indexes using a function-based index in recent versions of Oak.
+  See [Property Names](#property-names).
 
 isRegexp
 : If set to true, then the property name is interpreted as a regular
@@ -560,25 +553,38 @@ unique
 : Requires "sync=true". Enforces unique property values in the content.
 : See [Hybrid Indexes][hybrid-index] for details.
 
-<a name="property-names"></a>**Property Names**
+##### <a name="property-names"></a>**Property Names**
 
-Property name can be one of following
+Property `name` can be one of the following:
 
-1. Simple name - Like `assetType` etc. These are used for properties which are
-   defined directly on the indexed node
-2. Relative name - Like `jcr:content/metadata/title`. These are used for
+1. Simple name - like `assetType` etc. These are used for properties which are
+   defined directly on the indexed node.
+2. Relative name - like `jcr:content/metadata/title`. These are used for
    properties which are defined relative to the node being indexed.
-3. Regular Expression - Like `.*`. Used when only property whose name
-   match given pattern are to be indexed.
-   They can also be used for relative properties like
-   `jcr:content/metadata/dc:.*$`
+   For relative properties, one wildcard (`*`) is supported instead of a node name:
+  `*/color` aggregates the values of the property `color` of all direct child nodes.
+3. Regular Expression -
+   if `isRegexp` is true, then the property name is a regular expression, for example `.*`.
+   In this case, the properties whose name match the given pattern are indexed.
+   The value can refer to relative properties like `jcr:content/metadata/dc:.*$`,
    which indexes all property names starting with `dc` from node with
-   relative path `jcr:content/metadata`
+   relative path `jcr:content/metadata`.
 4. The string `:nodeName` - this special case indexes node name as if it's a
    virtual property of the node being indexed. Setting this along with
-   `nodeScopeIndex=true` is akin to setting `indexNodeName=true` on indexing
+   `nodeScopeIndex = true` is akin to setting `indexNodeName = true` on indexing
    rule (`@since Oak 1.3.15, 1.2.14`).
-   Ordering is not supported. For ordering, use `function=name()` instead.
+   Ordering is not supported.
+   For ordering, use `function = "name()"` instead.
+
+Limitations:
+
+* Special properties such as `jcr:path`, `jcr:score` can not be indexed.
+  To index the path, use [function based indexing](#function-based-indexing): `function = "path()"`.
+* Properties where the `name` value starts with a dot
+  (eg. `./jcr:content/metadata/title`) are silently _ignored_,
+  for backward compatibility.
+  That means the property is not indexed, and when querying,
+  the index will ignore conditions on this field.
 
 ##### <a name="path-restrictions"></a> Evaluate Path Restrictions
 
