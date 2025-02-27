@@ -68,7 +68,7 @@ public class JcrAllTest extends AbstractSecurityTest implements PrivilegeConstan
 
         PrivilegeManager pMgr = getSecurityProvider().getConfiguration(PrivilegeConfiguration.class).getPrivilegeManager(root, NamePathMapper.DEFAULT);
         Iterable<Privilege> declaredAggr = Arrays.asList(pMgr.getPrivilege(JCR_ALL).getDeclaredAggregatePrivileges());
-        String[] allAggregates = IterableUtils.toArray(Iterables.transform(
+        String[] allAggregates = IterableUtils.toArray(IterableUtils.transform(
                 declaredAggr,
                 privilege -> requireNonNull(privilege).getName()), String.class);
         PrivilegeBits all2 = bitsProvider.getBits(allAggregates);

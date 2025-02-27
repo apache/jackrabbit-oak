@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -229,7 +230,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             return new AccessControlPolicy[0];
         }
         Root r = getLatestRoot();
-        Set<String> candidates = collectEffectiveCandidates(r, Iterables.transform(principals, Principal::getName));
+        Set<String> candidates = collectEffectiveCandidates(r, IterableUtils.transform(principals, Principal::getName));
         if (candidates.isEmpty()) {
             return new AccessControlPolicy[0];
         } else {

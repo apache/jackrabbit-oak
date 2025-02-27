@@ -24,6 +24,7 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -115,7 +116,7 @@ public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
             fail();
         }
 
-        Iterable<String> resultNames = Iterables.transform(SetUtils.toSet(result),
+        Iterable<String> resultNames = IterableUtils.transform(SetUtils.toSet(result),
                 Object::toString);
 
         Iterables.removeAll(resultNames, expectedNames);

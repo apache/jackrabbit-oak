@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.exercise.security.authorization.models.predefined.Editor;
 import org.apache.jackrabbit.oak.exercise.security.authorization.models.predefined.PredefinedAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.exercise.security.authorization.models.predefined.Reader;
@@ -211,7 +212,7 @@ public class L5_CustomPermissionEvaluationTest extends AbstractSecurityTest {
     }
 
     private Iterable<String> getTreePaths() {
-        return Iterables.transform(trees, Tree::getPath);
+        return IterableUtils.transform(trees, Tree::getPath);
     }
 
     private Set<Principal> getGuestPrincipals() throws Exception {

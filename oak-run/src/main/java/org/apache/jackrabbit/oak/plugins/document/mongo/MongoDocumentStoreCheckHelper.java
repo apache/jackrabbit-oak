@@ -18,12 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.DBObject;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 /**
  * <code>MongoDocumentStoreCheckHelper</code>...
@@ -35,7 +35,7 @@ public class MongoDocumentStoreCheckHelper {
     }
 
     public static Iterable<NodeDocument> getAllNodeDocuments(MongoDocumentStore store) {
-        return transform(store.getDBCollection(Collection.NODES)
+        return IterableUtils.transform(store.getDBCollection(Collection.NODES)
                         .find(DBObject.class)
                         .sort(new BsonDocument("$natural", new BsonInt32(1))),
                 input -> store.convertFromDBObject(Collection.NODES, input)

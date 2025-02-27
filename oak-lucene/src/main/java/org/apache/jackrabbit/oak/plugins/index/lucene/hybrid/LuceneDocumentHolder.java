@@ -116,7 +116,7 @@ public class LuceneDocumentHolder implements JournalProperty {
     }
 
     private static Iterable<? extends LuceneDocInfo> asLuceneDocInfo(ListValuedMap<String, String> docs) {
-        return Iterables.transform(docs.entries(), input -> {
+        return IterableUtils.transform(docs.entries(), input -> {
                 return new LuceneDocInfo() {
                     @Override
                     public String getIndexPath() {

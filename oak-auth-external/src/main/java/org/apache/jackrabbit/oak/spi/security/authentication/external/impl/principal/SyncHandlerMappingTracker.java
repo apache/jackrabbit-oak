@@ -78,7 +78,7 @@ final class SyncHandlerMappingTracker extends ServiceTracker {
     }
 
     Iterable<String> getIdpNames(@NotNull final String syncHandlerName) {
-        return IterableUtils.filter(Iterables.transform(referenceMap.values(), mapping -> {
+        return IterableUtils.filter(IterableUtils.transform(referenceMap.values(), mapping -> {
             if (syncHandlerName.equals(mapping.syncHandlerName)) {
                 return mapping.idpName;
             } else {

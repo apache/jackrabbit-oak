@@ -80,6 +80,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
@@ -804,7 +805,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 IdentifierManager idManager = sessionDelegate.getIdManager();
 
                 Iterable<String> propertyOakPaths = idManager.getReferences(weak, node.getTree(), name); // TODO: oak name?
-                Iterable<Property> properties = Iterables.transform(
+                Iterable<Property> properties = IterableUtils.transform(
                         propertyOakPaths,
                         oakPath -> {
                                 PropertyDelegate pd = sessionDelegate.getProperty(oakPath);

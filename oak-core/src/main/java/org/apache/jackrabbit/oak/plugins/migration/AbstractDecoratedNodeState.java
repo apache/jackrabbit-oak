@@ -139,7 +139,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @Override
     @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        final Iterable<ChildNodeEntry> transformed = Iterables.transform(delegate.getChildNodeEntries(), childNodeEntry -> {
+        final Iterable<ChildNodeEntry> transformed = IterableUtils.transform(delegate.getChildNodeEntries(), childNodeEntry -> {
             if (childNodeEntry != null) {
                 final String name = childNodeEntry.getName();
                 final NodeState nodeState = decorate(name, childNodeEntry.getNodeState());
@@ -170,7 +170,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @Override
     @NotNull
     public Iterable<? extends PropertyState> getProperties() {
-        final Iterable<PropertyState> propertyStates = Iterables.transform(
+        final Iterable<PropertyState> propertyStates = IterableUtils.transform(
                 delegate.getProperties(),
                 propertyState -> decorate(propertyState));
         return IterableUtils.filter(IterableUtils.chainedIterable(propertyStates, getNewPropertyStates()), Objects::nonNull);

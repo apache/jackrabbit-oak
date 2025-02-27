@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeCommitRoot;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeRevision;
@@ -162,7 +161,7 @@ final class NodeDocumentSweeper {
 
     private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
             final Iterable<NodeDocument> docs) {
-        return IterableUtils.filter(transform(docs, doc -> new SimpleImmutableEntry<>(doc.getPath(), sweepOne(doc))),
+        return IterableUtils.filter(IterableUtils.transform(docs, doc -> new SimpleImmutableEntry<>(doc.getPath(), sweepOne(doc))),
                 input -> input.getValue() != null);
     }
 

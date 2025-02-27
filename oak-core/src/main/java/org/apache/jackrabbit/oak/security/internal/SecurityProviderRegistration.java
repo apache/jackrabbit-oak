@@ -528,7 +528,7 @@ public class SecurityProviderRegistration {
         }
 
         closer = Closer.create();
-        Iterable<Iterable<Monitor<?>>> monitors = Iterables.transform(securityProvider.getConfigurations(), sc -> sc.getMonitors(statisticsProvider));
+        Iterable<Iterable<Monitor<?>>> monitors = IterableUtils.transform(securityProvider.getConfigurations(), sc -> sc.getMonitors(statisticsProvider));
         for (Monitor monitor : IterableUtils.chainedIterable(monitors)) {
             Registration reg = whiteboard.register(monitor.getMonitorClass(), monitor, monitor.getMonitorProperties());
             closer.register(reg::unregister);
