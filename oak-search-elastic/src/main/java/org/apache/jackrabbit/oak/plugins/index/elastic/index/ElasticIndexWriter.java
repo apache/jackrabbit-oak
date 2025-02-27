@@ -208,7 +208,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 StringBuilder sb = new StringBuilder();
                 int old = JsonpUtils.maxToStringLength();
                 try {
-                    JsonpUtils.maxToStringLength(16_000_000);
+                    JsonpUtils.maxToStringLength(1_000_000);
                     JsonpUtils.toString(request, sb);
                     String[] array = splitLargeString(sb.toString(), 1024);
                     for (int i = 0; i < array.length; i++) {
