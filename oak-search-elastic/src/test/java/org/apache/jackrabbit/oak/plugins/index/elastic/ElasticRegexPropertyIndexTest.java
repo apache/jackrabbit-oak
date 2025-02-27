@@ -75,6 +75,7 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
             String explain = explain(propaOrderQuery);
             assertThat(explain, containsString("elasticsearch:test1"));
             assertThat(explain, containsString("\"query\":{\"bool\":{\"filter\":[{\"prefix\":{\"flat:allProperties.propd\":{\"value\":\"foo\"}}}]}}"));
+            assertThat(explain, containsString("\"sort\":[{\"flat:allProperties.propd\":{\"order\":\"asc\"}},{\":path\":{\"order\":\"asc\"}}]"));
             assertThat(explain, containsString("sortOrder: [{ propertyName : propd, propertyType : UNDEFINED, order : ASCENDING }]"));
             assertQuery(propaOrderQuery, List.of("/test/f", "/test/e"));
         });
