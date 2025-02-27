@@ -52,14 +52,11 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     private final FulltextIndexEditorContext<D> context;
 
-    /* Name of this node, or {@code null} for the root node. */
-    private final String name;
-
     /* Parent editor or {@code null} if this is the root editor. */
     private final FulltextIndexEditor<D> parent;
 
-    /* Path of this editor, built lazily in {@link #getPath()}. */
-    private String path;
+    /* Path of this editor */
+    private final String path;
 
     private boolean propertiesChanged = false;
 
@@ -82,7 +79,6 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     public FulltextIndexEditor(FulltextIndexEditorContext<D> context) {
         this.parent = null;
-        this.name = null;
         this.path = "/";
         this.context = context;
         this.isDeleted = false;
@@ -91,14 +87,14 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         this.pathFilterResult = this.pathFilter.filter(PathUtils.ROOT_PATH);
     }
 
-    public FulltextIndexEditor(FulltextIndexEditor<D> parent, String name,
+    public FulltextIndexEditor(FulltextIndexEditor<D> parent,
+                               String path,
                                MatcherState matcherState,
                                PathFilter pathFilter,
                                PathFilter.Result pathFilterResult,
                                boolean isDeleted) {
         this.parent = parent;
-        this.name = name;
-        this.path = null;
+        this.path = path;
         this.context = parent.context;
         this.isDeleted = isDeleted;
         this.matcherState = matcherState;
@@ -107,9 +103,6 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     }
 
     public String getPath() {
-        if (path == null) { // => parent != null
-            path = PathUtils.concat(parent.getPath(), name);
-        }
         return path;
     }
 
@@ -136,7 +129,6 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
         if (propertiesChanged || !before.exists()) {
-            String path = getPath();
             if (addOrUpdate(path, after, before.exists())) {
                 long indexed = context.incIndexedNodes();
                 if (indexed % 1000 == 0) {
@@ -200,9 +192,10 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        PathFilter.Result filterResult = pathFilter.filter(PathUtils.concat(getPath(), name));
+        String childPath = PathUtils.concat(path, name);
+        PathFilter.Result filterResult = pathFilter.filter(childPath);
         if (filterResult != PathFilter.Result.EXCLUDE) {
-            return new FulltextIndexEditor<>(this, name, getMatcherState(name, after), pathFilter, filterResult, false);
+            return new FulltextIndexEditor<>(this, childPath, getMatcherState(name, after), pathFilter, filterResult, false);
         } else {
             return null;
         }
@@ -210,9 +203,10 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
     @Override
     public Editor childNodeChanged(String name, NodeState before, NodeState after) {
-        PathFilter.Result filterResult = pathFilter.filter(PathUtils.concat(getPath(), name));
+        String childPath = PathUtils.concat(path, name);
+        PathFilter.Result filterResult = pathFilter.filter(childPath);
         if (filterResult != PathFilter.Result.EXCLUDE) {
-            return new FulltextIndexEditor<>(this, name, getMatcherState(name, after), pathFilter, filterResult, false);
+            return new FulltextIndexEditor<>(this, childPath, getMatcherState(name, after), pathFilter, filterResult, false);
         } else {
             return null;
         }
@@ -221,7 +215,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        String childPath = PathUtils.concat(getPath(), name);
+        String childPath = PathUtils.concat(path, name);
         PathFilter.Result filterResult = pathFilter.filter(childPath);
         if (filterResult == PathFilter.Result.EXCLUDE) {
             return null;
@@ -246,7 +240,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         if (ms.isEmpty()) {
             return null; // no need to recurse down the removed subtree
         } else {
-            return new FulltextIndexEditor<>(this, name, ms, pathFilter, filterResult, true);
+            return new FulltextIndexEditor<>(this, childPath, ms, pathFilter, filterResult, true);
         }
     }
 
@@ -305,14 +299,14 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
             Aggregate.Matcher result = m.match(name, after);
             if (result.getStatus() == Aggregate.Matcher.Status.MATCH_FOUND) {
                 if (matched == EMPTY_AGGREGATE_MATCHER_LIST) {
-                    matched = new ArrayList<>(4);
+                    matched = new ArrayList<>();
                 }
                 matched.add(result);
             }
 
             if (result.getStatus() != Aggregate.Matcher.Status.FAIL) {
                 if (inherited == EMPTY_AGGREGATE_MATCHER_LIST) {
-                    inherited = new ArrayList<>(4);
+                    inherited = new ArrayList<>();
                 }
                 inherited.addAll(result.nextSet());
             }
@@ -384,7 +378,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         if (isIndexable()) {
             PropertyDefinition pd = indexingRule.getConfig(propertyName);
             if (pd != null) {
-                callback.propertyUpdated(getPath(), propertyName, pd, before, after);
+                callback.propertyUpdated(path, propertyName, pd, before, after);
             }
         }
 
