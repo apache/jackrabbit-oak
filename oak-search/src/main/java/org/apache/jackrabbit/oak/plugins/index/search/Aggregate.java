@@ -63,10 +63,6 @@ public class Aggregate {
     private final NodeInclude[] relativeNodeIncludes;
     private final boolean nodeAggregates;
 
-    Aggregate(String nodeTypeName) {
-        this(nodeTypeName, List.of());
-    }
-
     public Aggregate(String nodeTypeName, List<? extends Include> includes) {
         this(nodeTypeName, includes, RECURSIVE_AGGREGATION_LIMIT_DEFAULT);
     }
@@ -92,7 +88,7 @@ public class Aggregate {
 
     public List<Matcher> createMatchers(AggregateRoot root) {
         Matcher[] matchers = new Matcher[includes.size()];
-        for (int i = 0; i < matchers.length; i++) {
+        for (int i = 0; i < includes.size(); i++) {
             matchers[i] = new Matcher(this, includes.get(i), root);
         }
         // Wrap the array in an ArrayList, this avoids copying the array
@@ -164,8 +160,8 @@ public class Aggregate {
 
     private static void matchChildren(Matcher[] matchers, ResultCollector collector,
                                       Iterable<? extends ChildNodeEntry> children) {
+        List<Matcher> nextSet = null;
         for (ChildNodeEntry cne : children) {
-            List<Matcher> nextSet = new ArrayList<>(matchers.length);
             for (Matcher m : matchers) {
                 Matcher result = m.match(cne.getName(), cne.getNodeState());
                 if (result.getStatus() == Matcher.Status.MATCH_FOUND) {
@@ -173,11 +169,15 @@ public class Aggregate {
                 }
 
                 if (result.getStatus() != Matcher.Status.FAIL) {
-                    nextSet.addAll(result.nextSet());
+                    if (nextSet == null) {
+                        nextSet = new ArrayList<>();
+                    }
+                    result.nextSet(nextSet);
                 }
             }
-            if (!nextSet.isEmpty()) {
+            if (nextSet !=null && !nextSet.isEmpty()) {
                 collectAggregates(cne.getNodeState(), nextSet.toArray(new Matcher[0]), collector);
+                nextSet.clear();
             }
         }
     }
@@ -588,7 +588,7 @@ public class Aggregate {
             }
         }
 
-        public List<Matcher> nextSet() {
+        public void nextSet(List<Matcher> destination) {
             checkArgument(status != Status.FAIL);
 
             if (status == Status.MATCH_FOUND) {
@@ -597,19 +597,16 @@ public class Aggregate {
                     int recursionLevel = aggregateStack.size() + 1;
 
                     if (recursionLevel >= rootState.rootAggregate.reAggregationLimit) {
-                        return List.of();
+                        return;
                     }
 
-                    List<Matcher> result = new ArrayList<>(nextAgg.includes.size());
-                    for (Include i : nextAgg.includes) {
-                        result.add(new Matcher(this, i, currentPath));
+                    for (int i = 0; i < nextAgg.includes.size(); i++) {
+                        destination.add(new Matcher(this, nextAgg.includes.get(i), currentPath));
                     }
-                    return result;
                 }
-                return List.of();
+            } else {
+                destination.add(new Matcher(this, status, depth + 1, null, currentPath));
             }
-
-            return List.of(new Matcher(this, status, depth + 1, null, currentPath));
         }
 
         public void collectResults(ResultCollector results) {

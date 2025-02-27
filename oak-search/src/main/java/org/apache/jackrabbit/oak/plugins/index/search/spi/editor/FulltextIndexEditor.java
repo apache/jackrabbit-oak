@@ -314,7 +314,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
                 if (inherited == EMPTY_AGGREGATE_MATCHER_LIST) {
                     inherited = new ArrayList<>(4);
                 }
-                inherited.addAll(result.nextSet());
+                result.nextSet(inherited);
             }
         }
 
