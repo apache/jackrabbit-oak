@@ -160,6 +160,7 @@ public class Aggregate {
 
     private static void matchChildren(Matcher[] matchers, ResultCollector collector,
                                       Iterable<? extends ChildNodeEntry> children) {
+        // Performance critical code: create nextSet lazily. And once created, reuse the same instance.
         List<Matcher> nextSet = null;
         for (ChildNodeEntry cne : children) {
             for (Matcher m : matchers) {
@@ -177,6 +178,7 @@ public class Aggregate {
             }
             if (nextSet !=null && !nextSet.isEmpty()) {
                 collectAggregates(cne.getNodeState(), nextSet.toArray(new Matcher[0]), collector);
+                // Clear the set so it can be reused. This reduces object allocation overhead.
                 nextSet.clear();
             }
         }
