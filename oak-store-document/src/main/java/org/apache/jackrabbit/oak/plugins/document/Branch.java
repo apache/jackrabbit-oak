@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -271,7 +270,7 @@ class Branch {
         if (!commits.containsKey(r)) {
             return Collections.emptyList();
         }
-        Iterable<Iterable<Path>> paths = transform(IterableUtils.filter(commits.entrySet(),
+        Iterable<Iterable<Path>> paths = IterableUtils.transform(IterableUtils.filter(commits.entrySet(),
                 new Predicate<Map.Entry<Revision, BranchCommit>>() {
             @Override
             public boolean test(Map.Entry<Revision, BranchCommit> input) {
@@ -405,7 +404,7 @@ class Branch {
 
         @Override
         Iterable<Path> getModifiedPaths() {
-            Iterable<Iterable<Path>> paths = transform(previous.values(),
+            Iterable<Iterable<Path>> paths = IterableUtils.transform(previous.values(),
                     branchCommit -> branchCommit.getModifiedPaths());
             return IterableUtils.chainedIterable(paths);
         }

@@ -41,7 +41,6 @@ import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closeable {
     private final Closer closer = Closer.create();
@@ -123,7 +122,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
             return emptyList();
         }
 
-        return transform(
+        return IterableUtils.transform(
                 IterableUtils.chainedIterable(singleton(nodeState),
                     nodeState.getAllBundledNodesStates()),
                 dns -> {

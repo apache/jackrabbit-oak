@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -50,6 +53,19 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
                     getOptionalValue(defn, PROP_CANDIDATES, DEFAULT_CANDIDATES));
         }
         this.useInFullTextQuery = this.dynamicBoost && getOptionalValue(defn, PROP_USE_IN_FULL_TEXT_QUERY, true);
+    }
+
+    @Override
+    protected String getNamePropertyValue(NodeState definition, String defaultName) {
+        PropertyState ps = definition.getProperty(FulltextIndexConstants.PROP_NAME);
+        if (ps == null) {
+            return defaultName;
+        }
+        String value = ps.getValue(Type.STRING);
+        if (value.startsWith(".")) {
+            value = ":ignore_" + defaultName;
+        }
+        return value;
     }
 
     public KnnSearchParameters getKnnSearchParameters() {

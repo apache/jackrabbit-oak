@@ -29,6 +29,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -98,7 +99,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
         assertFalse(aTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
         List<String> expected = List.of("/a/bb", "/a/b");
-        Iterable<String> childPaths = Iterables.transform(aTree.getChildren(), input -> input.getPath());
+        Iterable<String> childPaths = IterableUtils.transform(aTree.getChildren(), input -> input.getPath());
         assertTrue(childPaths.toString(), Iterables.elementsEqual(expected, childPaths));
     }
 }

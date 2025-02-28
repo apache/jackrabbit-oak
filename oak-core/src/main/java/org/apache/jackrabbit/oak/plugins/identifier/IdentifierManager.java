@@ -319,7 +319,7 @@ public class IdentifierManager {
                             QueryEngine.INTERNAL_SQL2_QUERY,
                     Query.JCR_SQL2, bindings, NO_MAPPINGS);
 
-            Iterable<Tree> resultTrees = Iterables.transform(result.getRows(), row -> row.getTree(null));
+            Iterable<Tree> resultTrees = IterableUtils.transform(result.getRows(), row -> row.getTree(null));
             return IterableUtils.filter(resultTrees, tree1 -> !tree1.getPath().startsWith(VersionConstants.VERSION_STORE_PATH)
             );
         } catch (ParseException e) {

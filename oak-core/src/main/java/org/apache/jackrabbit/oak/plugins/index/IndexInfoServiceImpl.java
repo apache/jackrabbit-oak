@@ -69,7 +69,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         } else {
             activeIndexes.addAll(allIndexes);
         }
-        return IterableUtils.filter(Iterables.transform(indexPathService.getIndexPaths(), indexPath -> {
+        return IterableUtils.filter(IterableUtils.transform(indexPathService.getIndexPaths(), indexPath -> {
             try {
                 IndexInfo info = getInfo(indexPath);
                 if (info != null) {

@@ -23,6 +23,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -97,7 +98,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = Set.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), ResultRow::getPath)));
+        assertTrue(Iterables.elementsEqual(expected, IterableUtils.transform(result.getRows(), ResultRow::getPath)));
     }
 
     @Test
@@ -124,7 +125,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = Set.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
+        assertTrue(Iterables.elementsEqual(expected, IterableUtils.transform(result.getRows(), row -> row.getPath())));
     }
 
     @Test
@@ -141,7 +142,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = Set.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
+        assertTrue(Iterables.elementsEqual(expected, IterableUtils.transform(result.getRows(), row -> row.getPath())));
     }
 
     private void assertAccess(@NotNull String nodePath, @NotNull String subnodePath, boolean canReadPrimaryType) throws Exception {

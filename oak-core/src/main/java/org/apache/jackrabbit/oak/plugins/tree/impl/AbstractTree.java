@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
@@ -309,7 +308,7 @@ public abstract class AbstractTree implements Tree {
     @Override
     @NotNull
     public Iterable<Tree> getChildren() {
-        Iterable<Tree> children = transform(getChildNames(),
+        Iterable<Tree> children = IterableUtils.transform(getChildNames(),
                 name ->  {
                     AbstractTree child = createChild(name);
                     return child.exists() ? child : null;

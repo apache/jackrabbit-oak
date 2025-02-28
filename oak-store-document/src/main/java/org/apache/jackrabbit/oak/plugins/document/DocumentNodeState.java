@@ -501,7 +501,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return new TreeTraverser<DocumentNodeState>(){
             @Override
             public Iterable<DocumentNodeState> children(DocumentNodeState root) {
-                return Iterables.transform(() -> root.getBundledChildren(), ce -> (DocumentNodeState)ce.getNodeState());
+                return IterableUtils.transform(() -> root.getBundledChildren(), ce -> (DocumentNodeState)ce.getNodeState());
             }
         }.preOrderTraversal(this)
          .filter(dns -> !dns.getPath().equals(this.getPath()) ); //Exclude this
@@ -572,7 +572,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     private Iterable<ChildNodeEntry> getChildNodeEntries(@NotNull String name,
                                                          int limit) {
         Iterable<? extends AbstractDocumentNodeState> children = store.getChildNodes(this, name, limit);
-        return Iterables.transform(children, input -> {
+        return IterableUtils.transform(children, input -> {
                 return new AbstractChildNodeEntry() {
                     @Override
                     public String getName() {

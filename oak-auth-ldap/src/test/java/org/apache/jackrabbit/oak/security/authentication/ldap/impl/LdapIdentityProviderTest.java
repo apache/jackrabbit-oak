@@ -200,7 +200,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
     public void testGetDeclaredMembers() throws Exception {
         ExternalGroup gr = idp.getGroup(TEST_GROUP1_NAME);
         Iterable<ExternalIdentityRef> memberrefs = gr.getDeclaredMembers();
-        Iterable<String> memberIds = Iterables.transform(memberrefs, externalIdentityRef -> externalIdentityRef.getId());
+        Iterable<String> memberIds = IterableUtils.transform(memberrefs, externalIdentityRef -> externalIdentityRef.getId());
 
         Set<String> expected = Set.of(TEST_GROUP1_MEMBERS);
         assertEquals(expected, SetUtils.toSet(memberIds));
@@ -237,7 +237,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         Iterable<ExternalIdentityRef> groupRefs = user.getDeclaredGroups();
-        Iterable<String> groupIds = Iterables.transform(groupRefs, externalIdentityRef -> externalIdentityRef.getId());
+        Iterable<String> groupIds = IterableUtils.transform(groupRefs, externalIdentityRef -> externalIdentityRef.getId());
         assertEquals(Set.of(TEST_USER1_GROUPS), SetUtils.toSet(groupIds));
     }
 

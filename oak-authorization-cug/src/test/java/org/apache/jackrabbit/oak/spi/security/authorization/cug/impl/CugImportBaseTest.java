@@ -36,6 +36,7 @@ import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -191,7 +192,7 @@ public abstract class CugImportBaseTest {
 
     static void assertPrincipalNames(@NotNull Set<String> expectedPrincipalNames, @NotNull Value[] principalNames) {
         assertEquals(expectedPrincipalNames.size(), principalNames.length);
-        Set<String> result = SetUtils.toSet(Iterables.transform(Set.of(principalNames), principalName -> {
+        Set<String> result = SetUtils.toSet(IterableUtils.transform(Set.of(principalNames), principalName -> {
             try {
                 return principalName.getString();
             } catch (RepositoryException e) {

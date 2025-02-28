@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CacheLoader;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CachePrincipalFactory;
@@ -228,7 +229,7 @@ class CachedPrincipalMembershipReader implements CachedMembershipReader {
                 }
             }
             cache.setProperty(this.expirationPropertyName, LongUtils.calculateExpirationTime(expiration));
-            String value = (groupPrincipals.isEmpty()) ? "" : String.join(",", Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
+            String value = (groupPrincipals.isEmpty()) ? "" : String.join(",", IterableUtils.transform(groupPrincipals, input -> Text.escape(input.getName())));
             cache.setProperty(this.propertyName, value);
 
             root.commit(CommitMarker.asCommitAttributes());

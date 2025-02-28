@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.MountPermissionProvider;
@@ -101,13 +102,13 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
     @Test
     public void testGetCommitHooks() {
         List<Class> expected = List.of(VersionablePathHook.class, PermissionHook.class);
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(authorizationConfiguration.getCommitHooks(adminSession.getWorkspaceName()), commitHook -> commitHook.getClass())));
+        assertTrue(Iterables.elementsEqual(expected, IterableUtils.transform(authorizationConfiguration.getCommitHooks(adminSession.getWorkspaceName()), commitHook -> commitHook.getClass())));
     }
 
     @Test
     public void testGetValidators() {
         List<Class> expected = List.of(PermissionStoreValidatorProvider.class, PermissionValidatorProvider.class, AccessControlValidatorProvider.class);
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(authorizationConfiguration.getValidators(adminSession.getWorkspaceName(), Set.of(), new MoveTracker()), commitHook -> commitHook.getClass())));
+        assertTrue(Iterables.elementsEqual(expected, IterableUtils.transform(authorizationConfiguration.getValidators(adminSession.getWorkspaceName(), Set.of(), new MoveTracker()), commitHook -> commitHook.getClass())));
     }
 
     @Test

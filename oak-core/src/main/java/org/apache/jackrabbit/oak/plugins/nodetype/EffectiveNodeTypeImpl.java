@@ -205,7 +205,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getNamedNodeDefinitions(@NotNull final String oakName) {
-        return IterableUtils.chainedIterable(Iterables.transform(nodeTypes.values(),
+        return IterableUtils.chainedIterable(IterableUtils.transform(nodeTypes.values(),
                 input -> input.getDeclaredNamedNodeDefinitions(oakName)));
     }
 

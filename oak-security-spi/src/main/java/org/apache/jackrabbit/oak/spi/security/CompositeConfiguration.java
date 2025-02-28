@@ -264,7 +264,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Override
     public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
         return IterableUtils.chainedIterable(
-                Iterables.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)));
+                IterableUtils.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)));
     }
 
     private static final class Ranking {
@@ -300,7 +300,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
         private void refresh(@NotNull List<? extends SecurityConfiguration> configurations) {
             Set<Context> s = SetUtils.newLinkedHashSet(configurations.size());
-            for (Context c : Iterables.transform(configurations, ContextFunction.INSTANCE::apply)) {
+            for (Context c : IterableUtils.transform(configurations, ContextFunction.INSTANCE::apply)) {
                 if (DEFAULT != c) {
                     s.add(c);
                 }

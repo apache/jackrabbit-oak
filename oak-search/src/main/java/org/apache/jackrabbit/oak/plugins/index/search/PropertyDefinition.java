@@ -140,7 +140,7 @@ public class PropertyDefinition {
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.nodeName = nodeName;
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
-        this.name = getName(defn, nodeName);
+        this.name = getNamePropertyValue(defn, nodeName);
         this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
         this.weight = getOptionalValue(defn, PROP_WEIGHT, DEFAULT_PROPERTY_WEIGHT);
@@ -310,8 +310,7 @@ public class PropertyDefinition {
         }
     }
 
-
-    private static String getName(NodeState definition, String defaultName) {
+    protected String getNamePropertyValue(NodeState definition, String defaultName) {
         PropertyState ps = definition.getProperty(FulltextIndexConstants.PROP_NAME);
         return ps == null ? defaultName : ps.getValue(Type.STRING);
     }

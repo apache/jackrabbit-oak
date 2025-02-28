@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
@@ -29,6 +28,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -61,7 +61,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
 
         FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query).sort(sortFields);
-        return CloseableIterable.wrap(transform(cursor,
+        return CloseableIterable.wrap(IterableUtils.transform(cursor,
                 input -> store.convertFromDBObject(NODES, input)));
     }
 

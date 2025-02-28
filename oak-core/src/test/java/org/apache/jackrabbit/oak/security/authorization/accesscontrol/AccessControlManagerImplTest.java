@@ -1357,7 +1357,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(4, acl.getAccessControlEntries().length);
 
         Iterable<Tree> aceTrees = root.getTree(testPath).getChild(REP_POLICY).getChildren();
-        String[] aceNodeNames = IterableUtils.toArray(Iterables.transform(aceTrees, Tree::getName), String.class);
+        String[] aceNodeNames = IterableUtils.toArray(IterableUtils.transform(aceTrees, Tree::getName), String.class);
         assertArrayEquals(new String[]{"allow", "allow1", "deny2", "deny3"}, aceNodeNames);
     }
 

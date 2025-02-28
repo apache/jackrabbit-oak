@@ -90,7 +90,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             long docCountBreachingBulkSize = (bulkSize / docSize) + 1;
             // 250 is the default flush limit for bulk processor
             Assert.assertTrue(docCountBreachingBulkSize < 250);
-            String random = RandomStringUtils.random(docSize, true, true);
+            String random = RandomStringUtils.insecure().next(docSize, true, true);
 
             Tree test = root.getTree("/").addChild("test");
             for (int i = 1; i <= docCountBreachingBulkSize; i++) {
@@ -172,6 +172,29 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             assertQuery(queryPrefix + "NAME() = 'bar'", List.of("/test/sc/bar"));
             assertQuery(queryPrefix + "NAME() LIKE 'foo'", List.of("/test/foo"));
             assertQuery(queryPrefix + "NAME() LIKE 'camel%'", List.of("/test/camelCase"));
+        });
+    }
+
+    // OAK-11530
+    @Test
+    public void propertyWithDot() throws Exception {
+        IndexDefinitionBuilder builder = createIndex();
+        builder.includedPaths("/test")
+                .indexRule("nt:base")
+                .property("test", "./test");
+        setIndex("test1", builder);
+        root.commit();
+
+        //add content
+        root.getTree("/").addChild("test").setProperty("test", "1");
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] " +
+                "where test = '1'";
+
+        assertEventually(() -> {
+            String explanation = explain(query);
+            assertThat(explanation, containsString("no-index"));
         });
     }
 

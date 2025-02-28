@@ -297,7 +297,7 @@ public class ImporterImpl implements Importer {
     }
 
     private Iterable<ProtectedPropertyImporter> getPropertyImporters() {
-        return IterableUtils.filter(Iterables.transform(pItemImporters, importer -> {
+        return IterableUtils.filter(IterableUtils.transform(pItemImporters, importer -> {
                 if (importer instanceof ProtectedPropertyImporter) {
                     return (ProtectedPropertyImporter) importer;
                 } else {
@@ -307,7 +307,7 @@ public class ImporterImpl implements Importer {
     }
 
     private Iterable<ProtectedNodeImporter> getNodeImporters() {
-        return IterableUtils.filter(Iterables.transform(pItemImporters, importer -> {
+        return IterableUtils.filter(IterableUtils.transform(pItemImporters, importer -> {
                 if (importer instanceof ProtectedNodeImporter) {
                     return (ProtectedNodeImporter) importer;
                 } else {
