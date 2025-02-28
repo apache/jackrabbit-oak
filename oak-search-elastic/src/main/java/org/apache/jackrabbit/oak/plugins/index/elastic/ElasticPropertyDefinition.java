@@ -58,11 +58,14 @@ public class ElasticPropertyDefinition extends PropertyDefinition {
     @Override
     protected String getNamePropertyValue(NodeState definition, String defaultName) {
         PropertyState ps = definition.getProperty(FulltextIndexConstants.PROP_NAME);
+        if (ps == null) {
+            return defaultName;
+        }
         String value = ps.getValue(Type.STRING);
         if (value.startsWith(".")) {
             value = ":ignore_" + defaultName;
         }
-        return ps == null ? defaultName : value;
+        return value;
     }
 
     public KnnSearchParameters getKnnSearchParameters() {
