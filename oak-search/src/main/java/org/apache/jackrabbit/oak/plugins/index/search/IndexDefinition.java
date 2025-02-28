@@ -292,7 +292,6 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     private final boolean suggestAnalyzed;
 
     private final SecureFacetConfiguration secureFacets;
-    private final long randomSeed;
 
     private final int numberOfTopFacets;
 
@@ -487,6 +486,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.queryPaths = getOptionalValues(defn, IndexConstants.QUERY_PATHS, Type.STRINGS, String.class);
             this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
 
+            long randomSeed;
             {
                 PropertyState randomPS = defn.getProperty(PROP_RANDOM_SEED);
                 if (randomPS != null && randomPS.getType() == Type.LONG) {
@@ -884,17 +884,15 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     public IndexingRule getApplicableIndexingRule(NodeState state) {
         //This method would be invoked for every node. So be as
         //conservative as possible in object creation
-        {
-            List<IndexingRule> rules = indexRules.get(getPrimaryTypeName(state));
-            IndexingRule rule = getApplicableIndexingRule(state, rules);
-            if (rule != null) {
-                return rule;
-            }
+        List<IndexingRule> rules = indexRules.get(getPrimaryTypeName(state));
+        IndexingRule rule = getApplicableIndexingRule(state, rules);
+        if (rule != null) {
+            return rule;
         }
 
         for (String name : getMixinTypeNames(state)) {
-            List<IndexingRule> rules = indexRules.get(name);
-            IndexingRule rule = getApplicableIndexingRule(state, rules);
+            rules = indexRules.get(name);
+            rule = getApplicableIndexingRule(state, rules);
             if (rule != null) {
                 return rule;
             }
