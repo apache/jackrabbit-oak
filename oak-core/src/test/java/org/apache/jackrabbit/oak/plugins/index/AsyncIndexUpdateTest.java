@@ -1032,8 +1032,7 @@ public class AsyncIndexUpdateTest {
                         .getString(missingAsync));
 
         // second run, simulate an index going away
-        provider = CompositeIndexEditorProvider
-                .compose(new ArrayList<IndexEditorProvider>());
+        provider = CompositeIndexEditorProvider.compose();
         async = new AsyncIndexUpdate(missingAsync, store, provider);
         async.run();
         assertTrue(async.isFailing());
@@ -1083,7 +1082,7 @@ public class AsyncIndexUpdateTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // second run, simulate an index going away
-        provider = CompositeIndexEditorProvider.compose(new ArrayList<IndexEditorProvider>());
+        provider = CompositeIndexEditorProvider.compose();
         async = new AsyncIndexUpdate(missingAsyncName, store, provider);
         async.run();
         assertTrue(async.isFailing());

@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.*;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
@@ -45,7 +46,6 @@ import org.junit.Test;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -96,10 +96,10 @@ public class InvalidIndexTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
         luceneIndexEditorProvider.setBlobStore(blobStore);
 
-        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
+        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
-        )));
+        ));
         TrackingCorruptIndexHandler trackingCorruptIndexHandler = new TrackingCorruptIndexHandler();
         trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS, TimeUnit.MILLISECONDS);
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);

@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -29,19 +23,37 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Aggregation of a list of editor providers into a single provider.
  */
 public class CompositeIndexEditorProvider implements IndexEditorProvider {
 
     @NotNull
-    public static IndexEditorProvider compose(@NotNull Collection<IndexEditorProvider> providers) {
-        if (providers.isEmpty()) {
-            return (type, builder, root, callback) -> null;
-        } else if (providers.size() == 1) {
-            return providers.iterator().next();
-        } else {
-            return new CompositeIndexEditorProvider(List.copyOf(providers));
+    public static IndexEditorProvider compose(IndexEditorProvider... providers) {
+        switch (providers.length) {
+            case 0:
+                return (type, builder, root, callback) -> null;
+            case 1:
+                return providers[0];
+            default:
+                return new CompositeIndexEditorProvider(providers);
+        }
+    }
+
+    @NotNull
+    public static IndexEditorProvider compose(@NotNull List<IndexEditorProvider> providers) {
+        switch (providers.size()) {
+            case 0:
+                return (type, builder, root, callback) -> null;
+            case 1:
+                return providers.iterator().next();
+            default:
+                return new CompositeIndexEditorProvider(providers);
         }
     }
 

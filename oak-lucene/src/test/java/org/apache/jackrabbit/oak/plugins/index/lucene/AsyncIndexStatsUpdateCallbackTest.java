@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
@@ -42,26 +43,22 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.util.List;
 
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests AsyncIndexStatsUpdateCallback works as scheduled callback
  */
 public class AsyncIndexStatsUpdateCallbackTest {
-    private int SCHEDULED_CALLBACK_TIME_IN_MILLIS = 1000; //1 second
+    private final int SCHEDULED_CALLBACK_TIME_IN_MILLIS = 1000; //1 second
     protected Root root;
     private AsyncIndexUpdate asyncIndexUpdate;
     private LuceneIndexEditorProvider luceneIndexEditorProvider;
     private LogCustomizer customLogger;
-    private AsyncIndexesSizeStatsUpdateImpl asyncIndexesSizeStatsUpdate =
+    private final AsyncIndexesSizeStatsUpdateImpl asyncIndexesSizeStatsUpdate =
             new AsyncIndexesSizeStatsUpdateImpl(SCHEDULED_CALLBACK_TIME_IN_MILLIS);
-    private LuceneIndexMBeanImpl mBean = Mockito.mock(LuceneIndexMBeanImpl.class);
+    private final LuceneIndexMBeanImpl mBean = Mockito.mock(LuceneIndexMBeanImpl.class);
 
     @Before
     public void before() throws Exception {
@@ -87,10 +84,10 @@ public class AsyncIndexStatsUpdateCallbackTest {
                 null, Mounts.defaultMountInfoProvider(),
                 ActiveDeletedBlobCollectorFactory.NOOP, mBean, StatisticsProvider.NOOP);
 
-        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
+        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
-        )), StatisticsProvider.NOOP, false);
+        ), StatisticsProvider.NOOP, false);
         return new Oak(nodeStore)
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
@@ -111,16 +108,16 @@ public class AsyncIndexStatsUpdateCallbackTest {
         customLogger.starting();
         asyncIndexUpdate.run();
         List<String> logs = customLogger.getLogs();
-        assertTrue(logs.size() == 1);
+        assertEquals(1, logs.size());
         root.getTree("/content").addChild("c2").setProperty("foo", "bar");
         root.commit();
         asyncIndexUpdate.run();
-        assertTrue(logs.size() == 1);
+        assertEquals(1, logs.size());
         root.getTree("/content").addChild("c3").setProperty("foo", "bar");
         root.commit();
         Thread.sleep(2000);
         asyncIndexUpdate.run();
-        assertTrue(logs.size() == 2);
+        assertEquals(2, logs.size());
         validateLogs(logs);
     }
 
@@ -138,16 +135,16 @@ public class AsyncIndexStatsUpdateCallbackTest {
         customLogger.starting();
         asyncIndexUpdate.run();
         List<String> logs = customLogger.getLogs();
-        assertTrue(logs.size() == 0);
+        assertEquals(0, logs.size());
         root.getTree("/content").addChild("c2").setProperty("foo", "bar");
         root.commit();
         asyncIndexUpdate.run();
-        assertTrue(logs.size() == 0);
+        assertEquals(0, logs.size());
         root.getTree("/content").addChild("c3").setProperty("foo", "bar");
         root.commit();
         Thread.sleep(2000);
         asyncIndexUpdate.run();
-        assertTrue(logs.size() == 0);
+        assertEquals(0, logs.size());
         //validateLogs(logs);
     }
 
