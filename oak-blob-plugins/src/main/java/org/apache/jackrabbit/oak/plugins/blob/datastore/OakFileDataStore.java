@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -139,12 +138,13 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
         try {
             File file = new File(getPath(), name);
-            FileOutputStream os = new FileOutputStream(file);
-            try {
+            try (FileOutputStream os = new FileOutputStream(file)) {
                 IOUtils.copyLarge(input, os);
             } finally {
-                Closeables.close(os, true);
-                Closeables.close(input, true);
+                try {
+                    input.close();
+                } catch (IOException swallowed) {
+                }
             }
         } catch (IOException e) {
             LOG.error("Exception while adding metadata record with name {}, {}",
