@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
-import co.elastic.clients.elasticsearch._types.AcknowledgedResponseBase;
+import co.elastic.clients.elasticsearch._types.AcknowledgedResponse;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
@@ -239,13 +239,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         deleteOldIndices(client, aliasResponse.result().keySet());
     }
 
-    private void checkResponseAcknowledgement(AcknowledgedResponseBase response, String exceptionMessage) {
-        if (!response.acknowledged()) {
-            throw new IllegalStateException(exceptionMessage);
-        }
-    }
-
-    private void checkResponseAcknowledgement(CreateIndexResponse response, String exceptionMessage) {
+    private void checkResponseAcknowledgement(AcknowledgedResponse response, String exceptionMessage) {
         if (!response.acknowledged()) {
             throw new IllegalStateException(exceptionMessage);
         }
