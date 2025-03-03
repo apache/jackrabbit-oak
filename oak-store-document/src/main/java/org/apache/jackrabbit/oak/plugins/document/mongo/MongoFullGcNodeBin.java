@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.BasicDBObject;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -24,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.document.FullGcNodeBin;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.time.Instant;
@@ -44,14 +46,13 @@ import java.util.stream.Collectors;
  *  Each method delegates directly to DocumentStore
  */
 public class MongoFullGcNodeBin implements FullGcNodeBin {
-    private static final Logger LOG = getLogger(MongoFullGcNodeBin.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MongoFullGcNodeBin.class);
     public static final String GC_COLLECTED_AT = "_gcCollectedAt";
     private final MongoDocumentStore mongoDocumentStore;
-    private boolean enabled;
+    private boolean enabled = SystemPropertySupplier.create("oak.document.fullGcBin.enabled", false).get();
 
     public MongoFullGcNodeBin(MongoDocumentStore ds) {
         mongoDocumentStore = ds;
-        enabled = System.getProperty("oak.document.fullGcBin.enabled", "false").equals("true");
     }
 
     /**
