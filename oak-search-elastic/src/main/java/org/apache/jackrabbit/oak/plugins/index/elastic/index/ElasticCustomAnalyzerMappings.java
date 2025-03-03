@@ -187,9 +187,14 @@ public class ElasticCustomAnalyzerMappings {
                 reKey.apply(luceneParams, Map.of("mapping", "mappings"))
         );
 
-        LUCENE_ELASTIC_TRANSFORMERS.put(SynonymFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of("tokenizerFactory", "tokenizer"))
-        );
+        LUCENE_ELASTIC_TRANSFORMERS.put(SynonymFilterFactory.class, luceneParams -> {
+            // lucene does not support this option (see UNSUPPORTED_LUCENE_PARAMETERS) and it's lenient by default
+            // elastic is not lenient by default, so we need to set it to true in case it's not present
+            if (!luceneParams.containsKey("lenient")) {
+                luceneParams.put("lenient", "true");
+            }
+            return reKey.apply(luceneParams, Map.of("tokenizerFactory", "tokenizer"));
+        });
 
         LUCENE_ELASTIC_TRANSFORMERS.put(KeywordMarkerFilterFactory.class, luceneParams ->
                 reKey.apply(luceneParams, Map.of("protected", "keywords"))

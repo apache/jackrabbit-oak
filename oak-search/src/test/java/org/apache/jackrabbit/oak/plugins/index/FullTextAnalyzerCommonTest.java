@@ -1005,7 +1005,11 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree synFilter = addFilter(filters, "Synonym");
             synFilter.setProperty("synonyms", "syn.txt");
             synFilter.addChild("syn.txt").addChild(JCR_CONTENT)
-                    .setProperty(JCR_DATA, "plane, airplane, aircraft\nflies=>scars");
+                    .setProperty(JCR_DATA, "plane, airplane, aircraft\n" +
+                            "flies=>scars\n" +
+                            // this rule is incorrect: "term: + was completely eliminated by analyzer"
+                            // by default, the configuration has to be lenient and not fail on such cases
+                            "plus,+,addition");
         });
 
         Tree content = root.getTree("/").addChild("content");
