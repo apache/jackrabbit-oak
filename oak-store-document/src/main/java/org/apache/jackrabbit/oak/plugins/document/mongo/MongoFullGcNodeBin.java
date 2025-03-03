@@ -56,7 +56,7 @@ public class MongoFullGcNodeBin implements FullGcNodeBin {
 
     /**
      * Remove orphaned or deleted documents from the NODES collection
-     * If bin is enabled, the document IDs are saved to the SETTINGS collection with ID prefixed with '/bin/'
+     * If bin is enabled, the document IDs are saved to the BIN collection with ID prefixed with '/bin/'
      * If document ID cannot be saved then the removal of the document fails
      * If the bin is disabled, the document IDs are directly removed from the NODES collection
      *
@@ -82,7 +82,7 @@ public class MongoFullGcNodeBin implements FullGcNodeBin {
 
     /**
      * Performs a conditional update
-     * If the bin is enabled, the removed properties are saved to the SETTINGS collection with ID prefixed with '/bin/' and empty value
+     * If the bin is enabled, the removed properties are saved to the BIN collection with ID prefixed with '/bin/' and empty value
      * If the document ID and properties  cannot be saved then the removal of the property fails
      * If bin is disabled, the removed properties are directly removed from the NODES collection
      *
@@ -99,9 +99,15 @@ public class MongoFullGcNodeBin implements FullGcNodeBin {
         return mongoDocumentStore.findAndUpdate(Collection.NODES, updateOpList);
     }
 
-    protected boolean addToBin(Map<String, Long> orphanOrDeletedRemovalMap) {
+    /**
+     * Saves the name of properties that will be removed  in the BIN collection
+     *
+     * @param orphanOrDeletedRemovalMap the keys of the documents to remove with the corresponding timestamps
+     * @return true if the documents were successfully added to the bin
+     */
+    private boolean addToBin(Map<String, Long> orphanOrDeletedRemovalMap) {
         if (!enabled) {
-            LOG.info("Bin is disabled, skipping adding delete candidate documents to bin");
+            LOG.info("Bin is disabled, skip adding delete candidate documents to bin");
             return true;
         }
         LOG.info("Adding {} delete candidate documents to bin", orphanOrDeletedRemovalMap.size());
@@ -117,9 +123,15 @@ public class MongoFullGcNodeBin implements FullGcNodeBin {
         return false;
     }
 
+    /**
+     * Saves the ID of documents that will be removed in the BIN collection
+     *
+     * @param updateOpList the update operation list for removing the documents
+     * @return true if the documents were successfully added to the bin
+     */
     private boolean addToBin(List<UpdateOp> updateOpList) {
         if (!enabled) {
-            LOG.info("Bin is disabled, skipping adding removed properties to bin");
+            LOG.info("Bin is disabled, skip adding removed properties to bin");
             return true;
         }
         LOG.info("Adding {} removed properties to bin", updateOpList.size());
@@ -132,12 +144,12 @@ public class MongoFullGcNodeBin implements FullGcNodeBin {
         return false;
     }
 
-    protected boolean persist(List<BasicDBObject> inserts) {
+    private boolean persist(List<BasicDBObject> inserts) {
         mongoDocumentStore.getBinCollection().insertMany(inserts);
         return true;
     }
 
-    BasicDBObject toBasicDBObject(UpdateOp op) {
+    private BasicDBObject toBasicDBObject(UpdateOp op) {
         BasicDBObject doc = new BasicDBObject();
         doc.put(Document.ID, "/bin/" + op.getId() + "-" + Instant.now().toEpochMilli());
         //copy removed properties to the new document
