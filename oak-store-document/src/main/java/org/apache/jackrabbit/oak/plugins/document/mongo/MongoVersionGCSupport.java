@@ -100,6 +100,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     /** the hint representing "_modified_1__id_1" - if that index exists, null otherwise */
     private final BasicDBObject modifiedIdHint;
+    private final MongoFullGcNodeBin fullGcNodeBin;
 
     /** timestamp of last time an explain of the 'getModifiedDocs' query was logged */
     private long lastExplainLogMs = -1;
@@ -130,6 +131,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         } else {
             modifiedIdHint = null;
         }
+        fullGcNodeBin = new MongoFullGcNodeBin(store);
     }
 
     @Override
@@ -478,7 +480,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     @Override
     public FullGcNodeBin getFullGCBin() {
-        return new MongoFullGcNodeBin(store);
+        return fullGcNodeBin;
     }
 
     private static String getID(BasicDBObject document) {
