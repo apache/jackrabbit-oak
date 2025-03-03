@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.abortingIterable;
@@ -760,7 +759,7 @@ public final class NodeDocument extends Document {
         }
         // if we don't have clusterIds, we can use the local changes only
         boolean fullScan = true;
-        Iterable<Revision> changes = Iterables.mergeSorted(
+        Iterable<Revision> changes = IterableUtils.mergeSorted(
                 List.of(
                         getLocalRevisions().keySet(),
                         getLocalCommitRoot().keySet()),
@@ -771,7 +770,7 @@ public final class NodeDocument extends Document {
             // contain changes after 'lower' revision vector
             // include previous documents as well (only needed in rare cases)
             fullScan = false;
-            changes = Iterables.mergeSorted(
+            changes = IterableUtils.mergeSorted(
                     List.of(
                             changes,
                             getChanges(REVISIONS, lower),
@@ -1556,7 +1555,7 @@ public final class NodeDocument extends Document {
      */
     Iterable<Revision> getAllChanges() {
         RevisionVector empty = new RevisionVector();
-        return Iterables.mergeSorted(List.of(
+        return IterableUtils.mergeSorted(List.of(
                 getChanges(REVISIONS, empty),
                 getChanges(COMMIT_ROOT, empty)
         ), StableRevisionComparator.REVERSE);
@@ -1589,7 +1588,7 @@ public final class NodeDocument extends Document {
         if (changes.size() == 1) {
             return changes.get(0);
         } else {
-            return Iterables.mergeSorted(changes, StableRevisionComparator.REVERSE);
+            return IterableUtils.mergeSorted(changes, StableRevisionComparator.REVERSE);
         }
     }
 
@@ -1655,7 +1654,7 @@ public final class NodeDocument extends Document {
         if (changes.size() == 1) {
             return changes.get(0);
         } else {
-            return mergeSorted(changes, ValueComparator.REVERSE);
+            return IterableUtils.mergeSorted(changes, ValueComparator.REVERSE);
         }
     }
 
@@ -1708,7 +1707,7 @@ public final class NodeDocument extends Document {
             changes.add(revs.get(0));
         } else if (!revs.isEmpty()) {
             // merge sort them
-            changes.add(mergeSorted(revs, ValueComparator.REVERSE));
+            changes.add(IterableUtils.mergeSorted(revs, ValueComparator.REVERSE));
         }
     }
 
