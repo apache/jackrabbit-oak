@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -38,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
@@ -666,7 +666,7 @@ public class Aggregate {
     //~--------------------------------------------------< utility >
 
     private static String[] computeElements(String path) {
-        return toArray(elements(path), String.class);
+        return IterableUtils.toArray(elements(path), String.class);
     }
 
 }

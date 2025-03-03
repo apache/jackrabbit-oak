@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -231,7 +230,7 @@ public class EventFactory {
             }
             return Map.of(
                     JCR_PRIMARYTYPE, mapper.getJcrName(primaryType),
-                    JCR_MIXINTYPES, toArray(jcrNames, String.class));
+                    JCR_MIXINTYPES, IterableUtils.toArray(jcrNames, String.class));
         }
     }
 

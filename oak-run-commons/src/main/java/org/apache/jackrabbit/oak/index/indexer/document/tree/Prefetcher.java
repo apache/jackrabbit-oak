@@ -79,7 +79,7 @@ public class Prefetcher {
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r);
                 t.setDaemon(true);
-                t.setName("BlobPrefetcher-" + threadNumber.getAndIncrement());
+                t.setName("TreeStorePrefetcher-" + threadNumber.getAndIncrement());
                 return t;
             }
         });

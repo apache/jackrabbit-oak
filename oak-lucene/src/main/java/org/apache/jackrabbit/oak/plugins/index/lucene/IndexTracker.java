@@ -29,6 +29,7 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
@@ -177,7 +178,7 @@ public class IndexTracker {
                         badIndexTracker.markBadPersistedIndex(path, e);
                     }
                 }
-            }, Iterables.toArray(PathUtils.elements(path), String.class)));
+            }, IterableUtils.toArray(PathUtils.elements(path), String.class)));
         }
 
         EditorDiff.process(CompositeEditor.compose(editors), this.root, root);

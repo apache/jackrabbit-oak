@@ -33,6 +33,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate.NodeInclude;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate.NodeIncludeResult;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate.PropertyIncludeResult;
@@ -41,7 +42,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -258,7 +258,7 @@ public class AggregateTest {
 
         agFile.collectAggregates(nb.getNodeState(), col);
         assertEquals(expectedPaths.size(), col.getNodePaths().size());
-        assertThat(col.getNodePaths(), hasItems(toArray(expectedPaths, String.class)));
+        assertThat(col.getNodePaths(), hasItems(IterableUtils.toArray(expectedPaths, String.class)));
     }
 
     @Test

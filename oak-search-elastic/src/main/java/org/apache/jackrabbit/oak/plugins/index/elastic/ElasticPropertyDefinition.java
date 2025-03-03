@@ -24,96 +24,99 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class ElasticPropertyDefinition extends PropertyDefinition {
 
-  public static final String DEFAULT_SIMILARITY_METRIC = "l2_norm";
-  static final String PROP_SIMILARITY_METRIC = "similarityMetric";
-  private static final String PROP_SIMILARITY = "similarity";
-  private static final String PROP_K = "k";
-  private static final String PROP_CANDIDATES = "candidates";
-  private static final float DEFAULT_SIMILARITY = 0.95f;
-  private static final int DEFAULT_K = 10;
-  private static final int DEFAULT_CANDIDATES = 500;
-  private KnnSearchParameters knnSearchParameters;
+    public static final String DEFAULT_SIMILARITY_METRIC = "l2_norm";
+    static final String PROP_SIMILARITY_METRIC = "similarityMetric";
+    private static final String PROP_SIMILARITY = "similarity";
+    private static final String PROP_K = "k";
+    private static final String PROP_CANDIDATES = "candidates";
+    private static final float DEFAULT_SIMILARITY = 0.95f;
+    private static final int DEFAULT_K = 10;
+    private static final int DEFAULT_CANDIDATES = 500;
+    private KnnSearchParameters knnSearchParameters;
 
-  /**
-   * Whether to use dynamic boosted values in full text queries, default is true
-   */
-  private static final String PROP_USE_IN_FULL_TEXT_QUERY = "useInFullTextQuery";
-  private final boolean useInFullTextQuery;
+    /**
+     * Whether to use dynamic boosted values in full text queries, default is true
+     */
+    private static final String PROP_USE_IN_FULL_TEXT_QUERY = "useInFullTextQuery";
+    private final boolean useInFullTextQuery;
 
-  public ElasticPropertyDefinition(IndexDefinition.IndexingRule idxDefn, String nodeName, NodeState defn) {
-    super(idxDefn, nodeName, defn);
-    if (this.useInSimilarity) {
-      knnSearchParameters = new KnnSearchParameters(
-          getOptionalValue(defn, PROP_SIMILARITY_METRIC, DEFAULT_SIMILARITY_METRIC),
-          getOptionalValue(defn, PROP_SIMILARITY, DEFAULT_SIMILARITY),
-          getOptionalValue(defn, PROP_K, DEFAULT_K),
-          getOptionalValue(defn, PROP_CANDIDATES, DEFAULT_CANDIDATES));
+    public ElasticPropertyDefinition(IndexDefinition.IndexingRule idxDefn, String nodeName, NodeState defn) {
+        super(idxDefn, nodeName, defn);
+        if (this.useInSimilarity) {
+            knnSearchParameters = new KnnSearchParameters(
+                    getOptionalValue(defn, PROP_SIMILARITY_METRIC, DEFAULT_SIMILARITY_METRIC),
+                    getOptionalValue(defn, PROP_SIMILARITY, DEFAULT_SIMILARITY),
+                    getOptionalValue(defn, PROP_K, DEFAULT_K),
+                    getOptionalValue(defn, PROP_CANDIDATES, DEFAULT_CANDIDATES));
+        }
+        this.useInFullTextQuery = this.dynamicBoost && getOptionalValue(defn, PROP_USE_IN_FULL_TEXT_QUERY, true);
     }
-    this.useInFullTextQuery = this.dynamicBoost && getOptionalValue(defn, PROP_USE_IN_FULL_TEXT_QUERY, true);
-  }
 
-  public KnnSearchParameters getKnnSearchParameters() {
-    return knnSearchParameters;
-  }
+    public KnnSearchParameters getKnnSearchParameters() {
+        return knnSearchParameters;
+    }
 
     public boolean useInFullTextQuery() {
         return useInFullTextQuery;
     }
 
-  /**
-   * Class for defining parameters of approximate knn search on dense_vector fields
-   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html">...</a> and
-   * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/knn-search.html">...</a>
-   */
-  public static class KnnSearchParameters {
-
-    public KnnSearchParameters(String similarityMetric, float similarity, int k, int candidates) {
-      this.similarityMetric = similarityMetric;
-      this.similarity = similarity;
-      this.k = k;
-      this.candidates = candidates;
-    }
-
     /**
-     * Similarity metric used to compare query and document vectors. Possible values are l2_norm (default), cosine,
-     * dot_product, max_inner_product
+     * Class for defining parameters of approximate knn search on dense_vector fields
+     * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html">...</a> and
+     * <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/knn-search.html">...</a>
      */
-    private final String similarityMetric;
-    /**
-     * Minimum similarity for the document vector to be considered as a match. Required when cosine, dot_product
-     * or max_inner_product is set as similarityMetric
-     */
-    private final float similarity;
-    /**
-     * Number of nearest neighbours to return. Must be <= candidates
-     * vector added as a field
-     */
-    private final int k;
+    public static class KnnSearchParameters {
 
-    /**
-     * Take the top vectors with the most matching hashes and compute their exact similarity to the query vector. The
-     * candidates parameter controls the number of exact similarity computations. Specifically, we compute exact
-     * similarity for the top candidates candidate vectors in each segment. As a reminder, each Elasticsearch index has
-     * >= 1 shards, and each shard has >= 1 segments. That means if you set "candidates": 200 for an index with 2
-     * shards, each with 3 segments, then you’ll compute the exact similarity for 2 * 3 * 200 = 1200 vectors. candidates
-     * must be set to a number greater or equal to the number of Elasticsearch results you want to get. Higher values
-     * generally mean higher recall and higher latency.
-     */
-    private final int candidates;
+        public KnnSearchParameters(String similarityMetric, float similarity, int k, int candidates) {
+            this.similarityMetric = similarityMetric;
+            this.similarity = similarity;
+            this.k = k;
+            this.candidates = candidates;
+        }
 
-    public String getSimilarityMetric() {
-      return similarityMetric;
-    }
-    public float getSimilarity() {
-      return similarity;
-    }
+        /**
+         * Similarity metric used to compare query and document vectors. Possible values are l2_norm (default), cosine,
+         * dot_product, max_inner_product
+         */
+        private final String similarityMetric;
 
-    public int getK() {
-      return k;
-    }
+        /**
+         * Minimum similarity for the document vector to be considered as a match. Required when cosine, dot_product
+         * or max_inner_product is set as similarityMetric
+         */
+        private final float similarity;
 
-    public int getCandidates() {
-      return candidates;
+        /**
+         * Number of nearest neighbours to return. Must be <= candidates
+         * vector added as a field
+         */
+        private final int k;
+
+        /**
+         * Take the top vectors with the most matching hashes and compute their exact similarity to the query vector. The
+         * candidates parameter controls the number of exact similarity computations. Specifically, we compute exact
+         * similarity for the top candidates candidate vectors in each segment. As a reminder, each Elasticsearch index has
+         * >= 1 shards, and each shard has >= 1 segments. That means if you set "candidates": 200 for an index with 2
+         * shards, each with 3 segments, then you’ll compute the exact similarity for 2 * 3 * 200 = 1200 vectors. candidates
+         * must be set to a number greater or equal to the number of Elasticsearch results you want to get. Higher values
+         * generally mean higher recall and higher latency.
+         */
+        private final int candidates;
+
+        public String getSimilarityMetric() {
+            return similarityMetric;
+        }
+
+        public float getSimilarity() {
+            return similarity;
+        }
+
+        public int getK() {
+            return k;
+        }
+
+        public int getCandidates() {
+            return candidates;
+        }
     }
-  }
 }

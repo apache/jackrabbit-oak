@@ -117,7 +117,6 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL, 0);
                         MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT_TOTAL, 0);
                         MetricsUtils.addMetricByteSize(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FLAT_FILE_STORE_SIZE_BYTES, 0);
-                        LOG.info("Final merge done, {} roots", session.getRootCount());
                     }
                     long totalTimeMillis = taskStartTime.elapsed().toMillis();
                     String timeCreatingSortArrayPercentage = formatAsPercentage(timeCreatingSortArrayMillis, totalTimeMillis);
@@ -189,8 +188,6 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
 
     private void sortAndSaveBatch(NodeStateEntryBatch nseb) throws Exception {
         ByteBuffer buffer = nseb.getBuffer();
-        LOG.info("Going to sort batch in memory. Entries: {}, Size: {}",
-                nseb.numberOfEntries(), humanReadableByteCountBin(nseb.sizeOfEntriesBytes()));
         ArrayList<SortKeyPath> sortBuffer = buildSortArray(nseb);
         if (sortBuffer.isEmpty()) {
             return;
@@ -198,7 +195,8 @@ public class PipelinedTreeStoreTask implements Callable<PipelinedSortBatchTask.R
         Stopwatch sortClock = Stopwatch.createStarted();
         Collections.sort(sortBuffer);
         timeSortingMillis += sortClock.elapsed().toMillis();
-        LOG.info("Sorted batch in {}. Saving.", sortClock);
+        LOG.info("Sorted batch with {} entries, size {}, in {}",
+                nseb.numberOfEntries(), humanReadableByteCountBin(nseb.sizeOfEntriesBytes()), sortClock);
         Stopwatch saveClock = Stopwatch.createStarted();
         long textSize = 0;
         batchesProcessed++;

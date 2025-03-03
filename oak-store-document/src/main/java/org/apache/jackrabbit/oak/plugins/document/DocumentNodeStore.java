@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
@@ -82,6 +81,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
@@ -1981,7 +1981,7 @@ public final class DocumentNodeStore
                     new ResetDiff(previous.asTrunkRevision(), operations));
             LOG.debug("reset: applying {} operations", operations.size());
             // apply reset operations
-            for (List<UpdateOp> ops : partition(operations.values(), getCreateOrUpdateBatchSize())) {
+            for (List<UpdateOp> ops : IterableUtils.partition(operations.values(), getCreateOrUpdateBatchSize())) {
                 store.createOrUpdate(NODES, ops);
             }
         }
@@ -3429,9 +3429,8 @@ public final class DocumentNodeStore
                 // see OAK-6016 and OAK-6011
                 if (e instanceof IllegalStateException &&
                         "Root document does not have a lastRev entry for local clusterId 0".equals(e.getMessage())) {
-                    LOG.warn("diffJournalChildren failed with " +
-                            e.getClass().getSimpleName() +
-                            ", falling back to classic diff : " + e.getMessage());
+                    LOG.debug("diffJournalChildren failed with {}" +
+                            ", falling back to classic diff: {}", e.getClass().getSimpleName(), e.getMessage());
                 } else {
                     LOG.warn("diffJournalChildren failed with " +
                             e.getClass().getSimpleName() +

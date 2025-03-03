@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -1356,7 +1357,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(4, acl.getAccessControlEntries().length);
 
         Iterable<Tree> aceTrees = root.getTree(testPath).getChild(REP_POLICY).getChildren();
-        String[] aceNodeNames = Iterables.toArray(Iterables.transform(aceTrees, Tree::getName), String.class);
+        String[] aceNodeNames = IterableUtils.toArray(Iterables.transform(aceTrees, Tree::getName), String.class);
         assertArrayEquals(new String[]{"allow", "allow1", "deny2", "deny3"}, aceNodeNames);
     }
 

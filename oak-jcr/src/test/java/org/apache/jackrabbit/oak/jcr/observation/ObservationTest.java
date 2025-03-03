@@ -99,6 +99,7 @@ import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 import org.apache.jackrabbit.api.observation.JackrabbitObservationManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -2312,7 +2313,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertNotNull(cp);
         FilterProvider filterProvider = cp.getFilterProvider();
         assertNotNull(filterProvider);
-        assertArrayEquals(expectedSubTrees, Iterables.toArray(filterProvider.getSubTrees(), String.class));
+        assertArrayEquals(expectedSubTrees, IterableUtils.toArray(filterProvider.getSubTrees(), String.class));
         
         Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
         Node bar = parent.addNode("bar", "nt:unstructured");
