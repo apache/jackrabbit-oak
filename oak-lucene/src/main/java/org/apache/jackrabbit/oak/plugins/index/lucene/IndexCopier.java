@@ -61,7 +61,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 /**
@@ -607,7 +606,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     @Override
     public String[] getGarbageDetails() {
-        return IterableUtils.toArray(transform(failedToDeleteFiles.values(),
+        return IterableUtils.toArray(IterableUtils.transform(failedToDeleteFiles.values(),
                 input -> input.deleteLog()), String.class);
     }
 
@@ -651,7 +650,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     @Override
     public String[] getCopyInProgressDetails() {
-        return IterableUtils.toArray(transform(copyInProgressFiles,
+        return IterableUtils.toArray(IterableUtils.transform(copyInProgressFiles,
                 input -> input.copyLog()), String.class);
     }
 

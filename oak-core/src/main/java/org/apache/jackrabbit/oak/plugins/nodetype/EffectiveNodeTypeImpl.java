@@ -175,25 +175,25 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getAutoCreateNodeDefinitions() {
-        return Iterables.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isAutoCreated());
+        return IterableUtils.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isAutoCreated());
     }
 
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getAutoCreatePropertyDefinitions() {
-        return Iterables.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isAutoCreated());
+        return IterableUtils.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isAutoCreated());
     }
 
     @NotNull
     @Override
     public Iterable<NodeDefinition> getMandatoryNodeDefinitions() {
-        return Iterables.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isMandatory());
+        return IterableUtils.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isMandatory());
     }
 
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getMandatoryPropertyDefinitions() {
-        return Iterables.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isMandatory());
+        return IterableUtils.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isMandatory());
     }
 
     /**
@@ -205,7 +205,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getNamedNodeDefinitions(@NotNull final String oakName) {
-        return IterableUtils.chainedIterable(Iterables.transform(nodeTypes.values(),
+        return IterableUtils.chainedIterable(IterableUtils.transform(nodeTypes.values(),
                 input -> input.getDeclaredNamedNodeDefinitions(oakName)));
     }
 

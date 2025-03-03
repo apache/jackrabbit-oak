@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
 import org.apache.jackrabbit.oak.fixture.MemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -152,7 +153,7 @@ public class RecursiveDeleteTest {
         TreeTraverser<NodeState> t = new TreeTraverser<NodeState>() {
             @Override
             public Iterable<NodeState> children(NodeState root) {
-                return Iterables.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
+                return IterableUtils.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
             }
         };
         return t.preOrderTraversal(state).size();

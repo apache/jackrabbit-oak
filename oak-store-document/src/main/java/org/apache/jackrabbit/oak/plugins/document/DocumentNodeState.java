@@ -253,7 +253,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         //Filter out the meta properties related to bundling from
         //generic listing of props
         if (bundlingContext.isBundled()){
-            return Iterables.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS::test);
+            return IterableUtils.filter(properties.values(), BundlorUtils.NOT_BUNDLOR_PROPS::test);
         }
         return properties.values();
     }
@@ -501,7 +501,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return new TreeTraverser<DocumentNodeState>(){
             @Override
             public Iterable<DocumentNodeState> children(DocumentNodeState root) {
-                return Iterables.transform(() -> root.getBundledChildren(), ce -> (DocumentNodeState)ce.getNodeState());
+                return IterableUtils.transform(() -> root.getBundledChildren(), ce -> (DocumentNodeState)ce.getNodeState());
             }
         }.preOrderTraversal(this)
          .filter(dns -> !dns.getPath().equals(this.getPath()) ); //Exclude this
@@ -572,7 +572,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     private Iterable<ChildNodeEntry> getChildNodeEntries(@NotNull String name,
                                                          int limit) {
         Iterable<? extends AbstractDocumentNodeState> children = store.getChildNodes(this, name, limit);
-        return Iterables.transform(children, input -> {
+        return IterableUtils.transform(children, input -> {
                 return new AbstractChildNodeEntry() {
                     @Override
                     public String getName() {

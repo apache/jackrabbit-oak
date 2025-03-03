@@ -33,6 +33,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
@@ -750,7 +751,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             NodeDocument doc = Utils.getRootDocument(store.getDocumentStore());
             Set<Revision> collisions = new HashSet<>(doc.getLocalMap(COLLISIONS).keySet());
             Set<Revision> commits = new HashSet<>();
-            Iterables.transform(b.getCommits(), Revision::asTrunkRevision).forEach(commits::add);
+            IterableUtils.transform(b.getCommits(), Revision::asTrunkRevision).forEach(commits::add);
             Set<Revision> conflicts = SetUtils.intersection(collisions, commits);
             if (!conflicts.isEmpty()) {
                 throw new CommitFailedException(STATE, 2,

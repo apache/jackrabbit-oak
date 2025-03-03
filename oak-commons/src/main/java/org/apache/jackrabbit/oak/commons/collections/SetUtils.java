@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -30,9 +29,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Utility methods for {@link java.util.Set} conversions.
@@ -83,7 +79,7 @@ public class SetUtils {
         Objects.requireNonNull(elements);
         // make sure the set does not need to be resized given the initial content
         final Set<T> result = new HashSet<>(CollectionUtils.ensureCapacity(elements.length));
-        result.addAll(Arrays.asList(elements));
+        Collections.addAll(result, elements);
         return result;
     }
 
@@ -137,7 +133,7 @@ public class SetUtils {
         Objects.requireNonNull(elements);
         // make sure the set does not need to be resized given the initial content
         final Set<T> result = new LinkedHashSet<>(CollectionUtils.ensureCapacity(elements.length));
-        result.addAll(Arrays.asList(elements));
+        Collections.addAll(result, elements);
         return result;
     }
 
@@ -224,7 +220,7 @@ public class SetUtils {
     public static <T> Set<T> union(@NotNull final Set<T> s1, @NotNull final Set<T> s2) {
         Objects.requireNonNull(s1);
         Objects.requireNonNull(s2);
-        return Stream.concat(s1.stream(), s2.stream()).collect(Collectors.toSet());
+        return org.apache.commons.collections4.SetUtils.union(s1, s2);
     }
 
     /**
@@ -241,7 +237,7 @@ public class SetUtils {
     public static <T> Set<T> intersection(@NotNull final Set<T> s1, @NotNull final Set<T> s2) {
         Objects.requireNonNull(s1);
         Objects.requireNonNull(s2);
-        return s1.stream().filter(s2::contains).collect(Collectors.toSet());
+        return org.apache.commons.collections4.SetUtils.intersection(s1, s2);
     }
 
     /**
@@ -258,9 +254,7 @@ public class SetUtils {
     public static <T> Set<T> symmetricDifference(final Set<T> s1, final Set<T> s2) {
         Objects.requireNonNull(s1);
         Objects.requireNonNull(s2);
-        final Set<T> result = new HashSet<>(s1);
-        s2.stream().filter(Predicate.not(result::add)).forEach(result::remove);
-        return result;
+        return org.apache.commons.collections4.SetUtils.disjunction(s1, s2);
     }
 
     /**
@@ -277,6 +271,6 @@ public class SetUtils {
     public static <T> Set<T> difference(final Set<T> s1, final Set<T> s2) {
         Objects.requireNonNull(s1);
         Objects.requireNonNull(s2);
-        return s1.stream().filter(e -> !s2.contains(e)).collect(Collectors.toSet());
+        return org.apache.commons.collections4.SetUtils.difference(s1, s2);
     }
 }

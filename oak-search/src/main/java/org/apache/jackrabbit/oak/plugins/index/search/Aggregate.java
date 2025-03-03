@@ -18,15 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
@@ -38,13 +29,20 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 /**
  * Aggregates text from child nodes for fulltext queries.
- *
+ * <p>
  * Example: let's say node /x is of type 'web page', but the actual content is
  * stored in child nodes; say /x/section1 contains "Hello" and /x/section2
  * contains "World". If index aggregation is configured correctly, it will
@@ -62,21 +60,16 @@ public class Aggregate {
     private final String nodeTypeName;
     private final List<? extends Include> includes;
     public final int reAggregationLimit;
-    private final List<NodeInclude> relativeNodeIncludes;
+    private final NodeInclude[] relativeNodeIncludes;
     private final boolean nodeAggregates;
-
-    Aggregate(String nodeTypeName) {
-       this(nodeTypeName, Collections.<Include>emptyList());
-    }
 
     public Aggregate(String nodeTypeName, List<? extends Include> includes) {
         this(nodeTypeName, includes, RECURSIVE_AGGREGATION_LIMIT_DEFAULT);
     }
 
-    Aggregate(String nodeTypeName, List<? extends Include> includes,
-              int recursionLimit) {
+    Aggregate(String nodeTypeName, List<? extends Include> includes, int recursionLimit) {
         this.nodeTypeName = nodeTypeName;
-        this.includes = Collections.unmodifiableList(includes);
+        this.includes = List.copyOf(includes);
         this.reAggregationLimit = recursionLimit;
         this.relativeNodeIncludes = findRelativeNodeIncludes(includes);
         this.nodeAggregates = includes.stream().anyMatch(input -> input instanceof NodeInclude);
@@ -88,29 +81,30 @@ public class Aggregate {
 
     public void collectAggregates(NodeState root, ResultCollector collector) {
         if (matchingType(nodeTypeName, root)) {
-            List<Matcher> matchers = createMatchers();
+            Matcher[] matchers = createMatchers();
             collectAggregates(root, matchers, collector);
         }
     }
 
-    public List<Matcher> createMatchers(AggregateRoot root){
-        List<Matcher> matchers = new ArrayList<>(includes.size());
-        for (Include include : includes) {
-            matchers.add(new Matcher(this, include, root));
+    public List<Matcher> createMatchers(AggregateRoot root) {
+        Matcher[] matchers = new Matcher[includes.size()];
+        for (int i = 0; i < includes.size(); i++) {
+            matchers[i] = new Matcher(this, includes.get(i), root);
         }
-        return matchers;
+        // Wrap the array in an ArrayList, this avoids copying the array
+        return Arrays.asList(matchers);
     }
 
     public boolean hasRelativeNodeInclude(String nodePath) {
-        for (NodeInclude ni : relativeNodeIncludes){
-            if (ni.matches(nodePath)){
+        for (NodeInclude ni : relativeNodeIncludes) {
+            if (ni.matches(nodePath)) {
                 return true;
             }
         }
         return false;
     }
 
-    public boolean hasNodeAggregates(){
+    public boolean hasNodeAggregates() {
         return nodeAggregates;
     }
 
@@ -132,82 +126,92 @@ public class Aggregate {
         return false;
     }
 
-    private static void collectAggregates(NodeState nodeState, List<Matcher> matchers,
-                                          ResultCollector collector) {
-        if (hasPatternMatcher(matchers)){
+    private static void collectAggregates(NodeState nodeState, Matcher[] matchers, ResultCollector collector) {
+        if (hasPatternMatcher(matchers)) {
             collectAggregatesForPatternMatchers(nodeState, matchers, collector);
         } else {
             collectAggregatesForDirectMatchers(nodeState, matchers, collector);
         }
     }
 
-    private static void collectAggregatesForDirectMatchers(NodeState nodeState, List<Matcher> matchers,
+    private static void collectAggregatesForDirectMatchers(NodeState nodeState, Matcher[] matchers,
                                                            ResultCollector collector) {
-        Map<String, ChildNodeEntry> children = new HashMap<>();
+        Map<String, ChildNodeEntry> children = null;
         //Collect potentially matching child nodestates based on matcher name
-        for (Matcher m : matchers){
+        for (Matcher m : matchers) {
             String nodeName = m.getNodeName();
             NodeState child = nodeState.getChildNode(nodeName);
-            if (child.exists()){
+            if (child.exists()) {
+                if (children == null) {
+                    children = new HashMap<>();
+                }
                 children.put(nodeName, new MemoryChildNodeEntry(nodeName, child));
             }
         }
-        matchChildren(matchers, collector, children.values());
+        if (children != null) {
+            matchChildren(matchers, collector, children.values());
+        }
     }
 
-    private static void collectAggregatesForPatternMatchers(NodeState nodeState, List<Matcher> matchers,
+    private static void collectAggregatesForPatternMatchers(NodeState nodeState, Matcher[] matchers,
                                                             ResultCollector collector) {
         matchChildren(matchers, collector, nodeState.getChildNodeEntries());
     }
 
-    private static void matchChildren(List<Matcher> matchers, ResultCollector collector,
+    private static void matchChildren(Matcher[] matchers, ResultCollector collector,
                                       Iterable<? extends ChildNodeEntry> children) {
+        // Performance critical code: create nextSet lazily. And once created, reuse the same instance.
+        List<Matcher> nextSet = null;
         for (ChildNodeEntry cne : children) {
-            List<Matcher> nextSet = new ArrayList<>(matchers.size());
             for (Matcher m : matchers) {
                 Matcher result = m.match(cne.getName(), cne.getNodeState());
-                if (result.getStatus() == Matcher.Status.MATCH_FOUND){
+                if (result.getStatus() == Matcher.Status.MATCH_FOUND) {
                     result.collectResults(collector);
                 }
 
-                if (result.getStatus() != Matcher.Status.FAIL){
-                    nextSet.addAll(result.nextSet());
+                if (result.getStatus() != Matcher.Status.FAIL) {
+                    if (nextSet == null) {
+                        nextSet = new ArrayList<>();
+                    }
+                    result.nextSet(nextSet);
                 }
             }
-            if (!nextSet.isEmpty()) {
-                collectAggregates(cne.getNodeState(), nextSet, collector);
+            if (nextSet !=null && !nextSet.isEmpty()) {
+                collectAggregates(cne.getNodeState(), nextSet.toArray(new Matcher[0]), collector);
+                // Clear the set so it can be reused. This reduces object allocation overhead.
+                nextSet.clear();
             }
         }
     }
 
-    private static boolean hasPatternMatcher(List<Matcher> matchers){
-        for (Matcher m : matchers){
-            if (m.isPatternBased()){
+    private static boolean hasPatternMatcher(Matcher[] matchers) {
+        for (Matcher m : matchers) {
+            if (m.isPatternBased()) {
                 return true;
             }
         }
         return false;
     }
 
-    private List<Matcher> createMatchers() {
-        List<Matcher> matchers = new ArrayList<>(includes.size());
-        for (Include include : includes) {
-            matchers.add(new Matcher(this, include));
+    private Matcher[] createMatchers() {
+        Matcher[] matchers = new Matcher[includes.size()];
+        for (int i = 0; i < includes.size(); i++) {
+            matchers[i] = new Matcher(this, includes.get(i));
         }
         return matchers;
     }
 
-    private static List<NodeInclude> findRelativeNodeIncludes(List<? extends Include> includes) {
+    private static NodeInclude[] findRelativeNodeIncludes(List<? extends Include> includes) {
         List<NodeInclude> result = new ArrayList<>();
-        for (Include i : includes){
-            if (i instanceof NodeInclude){
+        for (Include i : includes) {
+            if (i instanceof NodeInclude) {
                 NodeInclude ni = (NodeInclude) i;
-                if (ni.relativeNode){
+                if (ni.relativeNode) {
                     result.add(ni);
                 }
             }
         }
-        return Collections.unmodifiableList(result);
+        return result.toArray(new NodeInclude[0]);
     }
 
     public interface AggregateMapper {
@@ -240,9 +244,7 @@ public class Aggregate {
             collectResults(nodePath, nodeState, results);
         }
 
-        public void collectResults(String nodePath, NodeState nodeState,
-                                            ResultCollector results) {
-
+        public void collectResults(String nodePath, NodeState nodeState, ResultCollector results) {
         }
 
         public abstract boolean aggregatesProperty(String name);
@@ -252,14 +254,14 @@ public class Aggregate {
             return null;
         }
 
-        public boolean isPattern(int depth){
+        public boolean isPattern(int depth) {
             return MATCH_ALL.equals(elements[depth]);
-
         }
 
         public String getElementNameIfNotAPattern(int depth) {
-            checkArgument(!isPattern(depth),
-                    "Element at %s is pattern instead of specific name in %s", depth, Arrays.toString(elements));
+            if (isPattern(depth)) {
+                throw new IllegalArgumentException("Element at " + depth + " is pattern instead of specific name in " + Arrays.toString(elements));
+            }
             return elements[depth];
         }
     }
@@ -302,7 +304,7 @@ public class Aggregate {
                 throw new IllegalArgumentException("" + include);
             }
             NodeInclude rootInclude = (NodeInclude) include;
-            if (rootInclude.relativeNode){
+            if (rootInclude.relativeNode) {
                 results.onResult(new NodeIncludeResult(nodePath, rootIncludePath, nodeState));
             }
 
@@ -343,11 +345,11 @@ public class Aggregate {
 
         public boolean matches(String nodePath) {
             List<String> pathElements = ListUtils.toList(PathUtils.elements(nodePath));
-            if (pathElements.size() != elements.length){
+            if (pathElements.size() != elements.length) {
                 return false;
             }
 
-            for (int i = 0; i < elements.length; i++){
+            for (int i = 0; i < elements.length; i++) {
                 String element = elements[i];
                 if (MATCH_ALL.equals(element)) {
                     continue;
@@ -401,7 +403,7 @@ public class Aggregate {
 
         @Override
         public boolean aggregatesProperty(String name) {
-            if (pattern != null){
+            if (pattern != null) {
                 return pattern.matcher(name).matches();
             }
             return propertyName.equals(name);
@@ -417,7 +419,7 @@ public class Aggregate {
         }
     }
 
-    public static class FunctionInclude extends  PropertyInclude {
+    public static class FunctionInclude extends PropertyInclude {
 
         public FunctionInclude(PropertyDefinition pd) {
             super(pd);
@@ -451,8 +453,8 @@ public class Aggregate {
             this.rootIncludePath = rootIncludePath;
         }
 
-        public boolean isRelativeNode(){
-            return  rootIncludePath != null;
+        public boolean isRelativeNode() {
+            return rootIncludePath != null;
         }
 
         @Override
@@ -523,7 +525,7 @@ public class Aggregate {
             this.status = Status.CONTINUE;
             this.currentPath = null;
             this.matchedNodeState = null;
-            this.aggregateStack = Collections.emptyList();
+            this.aggregateStack = List.of();
         }
 
         private Matcher(Matcher m, Status status, int depth) {
@@ -560,7 +562,7 @@ public class Aggregate {
 
             List<String> paths = new ArrayList<>(m.aggregateStack);
             paths.add(currentPath);
-            this.aggregateStack = Collections.unmodifiableList(paths);
+            this.aggregateStack = List.copyOf(paths);
         }
 
         public boolean isPatternBased() {
@@ -577,8 +579,8 @@ public class Aggregate {
 
         public Matcher match(String name, NodeState nodeState) {
             boolean result = currentInclude.match(name, nodeState, depth);
-            if (result){
-                if (hasMore()){
+            if (result) {
+                if (hasMore()) {
                     return new Matcher(this, Status.CONTINUE, depth, nodeState, path(name));
                 } else {
                     return new Matcher(this, Status.MATCH_FOUND, depth, nodeState, path(name));
@@ -588,29 +590,25 @@ public class Aggregate {
             }
         }
 
-        public Collection<Matcher> nextSet() {
+        public void nextSet(List<Matcher> destination) {
             checkArgument(status != Status.FAIL);
 
-            if (status == Status.MATCH_FOUND){
+            if (status == Status.MATCH_FOUND) {
                 Aggregate nextAgg = currentInclude.getAggregate(matchedNodeState);
-                if (nextAgg != null){
+                if (nextAgg != null) {
                     int recursionLevel = aggregateStack.size() + 1;
 
-                    if (recursionLevel >= rootState.rootAggregate.reAggregationLimit){
-                        return Collections.emptyList();
+                    if (recursionLevel >= rootState.rootAggregate.reAggregationLimit) {
+                        return;
                     }
 
-                    List<Matcher> result = new ArrayList<>(nextAgg.includes.size());
-                    for (Include i : nextAgg.includes){
-                        result.add(new Matcher(this,  i, currentPath));
+                    for (int i = 0; i < nextAgg.includes.size(); i++) {
+                        destination.add(new Matcher(this, nextAgg.includes.get(i), currentPath));
                     }
-                    return result;
                 }
-                return Collections.emptyList();
+            } else {
+                destination.add(new Matcher(this, status, depth + 1, null, currentPath));
             }
-
-            return Collections.singleton(new Matcher(this, status, depth + 1,
-                    null, currentPath));
         }
 
         public void collectResults(ResultCollector results) {
@@ -618,7 +616,7 @@ public class Aggregate {
 
             //If result being collected as part of re-aggregation then take path
             //from the stack otherwise it's the current path
-            String rootIncludePath = aggregateStack.isEmpty() ?  currentPath : aggregateStack.get(0);
+            String rootIncludePath = aggregateStack.isEmpty() ? currentPath : aggregateStack.get(0);
             currentInclude.collectResults(rootState.rootInclude, rootIncludePath,
                     currentPath, matchedNodeState, results);
         }
@@ -632,12 +630,12 @@ public class Aggregate {
             return rootState.root.getPath();
         }
 
-        public String getMatchedPath(){
+        public String getMatchedPath() {
             checkArgument(status == Status.MATCH_FOUND);
             return currentPath;
         }
 
-        public Include getCurrentInclude(){
+        public Include getCurrentInclude() {
             return currentInclude;
         }
 
@@ -654,8 +652,8 @@ public class Aggregate {
             return depth < currentInclude.maxDepth() - 1;
         }
 
-        private String path(String nodeName){
-            if (currentPath == null){
+        private String path(String nodeName) {
+            if (currentPath == null) {
                 return nodeName;
             } else {
                 return PathUtils.concat(currentPath, nodeName);

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.commons.sort;
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -49,7 +50,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -487,7 +487,7 @@ public class ExternalSortTest {
         Function<String, TestLine> stringToType = line -> line != null ? new TestLine(line) : null;
         Function<TestLine, String> typeToString = tl -> tl != null ? tl.line : null;
 
-        String testData = String.join("\n", transform(testLines, tl -> tl.line));
+        String testData = String.join("\n", IterableUtils.transform(testLines, tl -> tl.line));
         File testFile = folder.newFile();
         try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(testFile, charset))) {
             bufferedWriter.write(testData);

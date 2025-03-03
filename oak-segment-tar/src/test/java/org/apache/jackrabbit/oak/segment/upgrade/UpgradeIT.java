@@ -18,7 +18,6 @@
 
 package org.apache.jackrabbit.oak.segment.upgrade;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.segment.SegmentVersion.V_12;
@@ -36,6 +35,7 @@ import java.io.IOException;
 
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -151,7 +151,7 @@ public class UpgradeIT {
     }
 
     private static Iterable<SegmentData> getSegments(@NotNull TarFiles tarFiles) {
-        return transform(
+        return IterableUtils.transform(
                 tarFiles.getSegmentIds(),
                 uuid -> newSegmentData(tarFiles.readSegment(
                     uuid.getMostSignificantBits(),

@@ -102,7 +102,7 @@ public class AggregateTest {
 
         NodeState state = nb.getNodeState();
         final AtomicInteger counter = new AtomicInteger();
-        Iterable<? extends ChildNodeEntry> countingIterator = Iterables.transform(state.getChildNodeEntries(),
+        Iterable<? extends ChildNodeEntry> countingIterator = IterableUtils.transform(state.getChildNodeEntries(),
                 input -> {
                     counter.incrementAndGet();
                     return input;

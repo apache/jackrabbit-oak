@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -33,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
 
     public static <E extends Entry<String, ? extends NodeState>> Iterable<ChildNodeEntry> iterable(Iterable<E> set) {
-        return Iterables.transform(set, entry -> new MemoryChildNodeEntry(entry.getKey(), entry.getValue()));
+        return IterableUtils.transform(set, entry -> new MemoryChildNodeEntry(entry.getKey(), entry.getValue()));
     }
 
     private final String name;

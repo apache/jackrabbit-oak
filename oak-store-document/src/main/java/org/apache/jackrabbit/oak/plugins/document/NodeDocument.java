@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.abortingIterable;
@@ -1402,7 +1400,7 @@ public final class NodeDocument extends Document {
             }
 
             // didn't find entry -> scan through remaining head ranges
-            return filter(transform(getPreviousRanges().headMap(revision).entrySet(), input -> {
+            return IterableUtils.filter(IterableUtils.transform(getPreviousRanges().headMap(revision).entrySet(), input -> {
                     if (input.getValue().includes(revision)) {
                        return getPreviousDoc(input.getKey(), input.getValue());
                     }
@@ -1646,7 +1644,7 @@ public final class NodeDocument extends Document {
             if (propRevFound != null) {
                 propRevFound.set(true);
             }
-            changes.add(filter(localChanges.entrySet(), p::test));
+            changes.add(IterableUtils.filter(localChanges.entrySet(), p::test));
         }
 
         for (Revision r : readRevision) {
@@ -1817,9 +1815,9 @@ public final class NodeDocument extends Document {
                 }
             };
         } else {
-            changes = IterableUtils.chainedIterable(transform(List.copyOf(ranges), rangeToChanges::apply));
+            changes = IterableUtils.chainedIterable(IterableUtils.transform(List.copyOf(ranges), rangeToChanges::apply));
         }
-        return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
+        return IterableUtils.filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
     }
 
     /**
@@ -1915,7 +1913,7 @@ public final class NodeDocument extends Document {
      */
     @NotNull
     RevisionVector getSweepRevisions() {
-        return new RevisionVector(transform(getLocalMap(SWEEP_REV).values(),
+        return new RevisionVector(IterableUtils.transform(getLocalMap(SWEEP_REV).values(),
                 s -> Revision.fromString(s)));
     }
 

@@ -283,8 +283,8 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         Iterable<NodeDocument> garbage = gcSupport1.identifyGarbage(GC_TYPES, sweepRevs, oldestRevTimeStamp);
         assertNotNull(garbage);
         assertEquals(totalSplits, IterableUtils.size(garbage));
-        assertEquals(numSplit1, IterableUtils.size(Iterables.filter(garbage, splitDocsWithClusterId(1)::test)));
-        assertEquals(numSplit2, IterableUtils.size(Iterables.filter(garbage, splitDocsWithClusterId(2)::test)));
+        assertEquals(numSplit1, IterableUtils.size(IterableUtils.filter(garbage, splitDocsWithClusterId(1)::test)));
+        assertEquals(numSplit2, IterableUtils.size(IterableUtils.filter(garbage, splitDocsWithClusterId(2)::test)));
 
         Stats stats = deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
         assertNotNull(stats);

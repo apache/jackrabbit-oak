@@ -155,7 +155,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return Iterables.filter(delegate.getProperties(), NOT_META_PROPS::test);
+        return IterableUtils.filter(delegate.getProperties(), NOT_META_PROPS::test);
     }
 
     @Override
@@ -172,7 +172,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return Iterables.transform(delegate.getChildNodeEntries(),
+        return IterableUtils.transform(delegate.getChildNodeEntries(),
                 input -> new MemoryChildNodeEntry(input.getName(), decorate(input.getName(), input.getNodeState())));
     }
 

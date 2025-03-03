@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -287,5 +288,19 @@ public class IterableUtils {
     @SuppressWarnings("unchecked")
     public static <E> Iterable<E> filter(final Iterable<?> itr, final Class<E> type) {
         return (Iterable<E>) StreamUtils.toStream(itr).filter(type::isInstance).collect(Collectors.toList());
+    }
+
+    /**
+     * Transforms an Iterable by applying a given function to each element.
+     *
+     * @param <I> the type of input elements
+     * @param <O> the type of output elements
+     * @param iterable the iterable to transform, must not be null
+     * @param function the function to apply to each element, must not be null
+     * @return an iterable containing the transformed elements
+     * @throws NullPointerException if the iterable or function is null
+     */
+    public static <I, O> Iterable<O> transform(final Iterable<I> iterable, final Function<? super I, ? extends O> function) {
+        return org.apache.commons.collections4.IterableUtils.transformedIterable(iterable, function::apply);
     }
 }

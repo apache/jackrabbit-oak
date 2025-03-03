@@ -31,6 +31,7 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
@@ -164,7 +165,7 @@ abstract class ACL extends AbstractAccessControlList {
     private boolean internalAddEntry(@NotNull ACE entry) throws RepositoryException {
         final String principalName = entry.getPrincipal().getName();
         final Set<Restriction> restrictions = entry.getRestrictions();
-        List<ACE> subList = ListUtils.toList(Iterables.filter(entries, ace ->
+        List<ACE> subList = ListUtils.toList(IterableUtils.filter(entries, ace ->
                 principalName.equals(requireNonNull(ace).getPrincipal().getName()) && restrictions.equals(ace.getRestrictions())));
 
         boolean addEntry = true;
@@ -211,7 +212,7 @@ abstract class ACL extends AbstractAccessControlList {
 
     @NotNull
     private Set<Restriction> validateRestrictions(@NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions) throws RepositoryException {
-        Iterable<RestrictionDefinition> mandatoryDefs = Iterables.filter(getRestrictionProvider().getSupportedRestrictions(getOakPath()), RestrictionDefinition::isMandatory);
+        Iterable<RestrictionDefinition> mandatoryDefs = IterableUtils.filter(getRestrictionProvider().getSupportedRestrictions(getOakPath()), RestrictionDefinition::isMandatory);
         for (RestrictionDefinition def : mandatoryDefs) {
             String jcrName = getNamePathMapper().getJcrName(def.getName());
             boolean mandatoryPresent;

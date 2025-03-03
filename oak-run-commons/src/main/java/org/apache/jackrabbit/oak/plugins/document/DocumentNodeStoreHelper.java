@@ -30,6 +30,7 @@ import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -155,7 +156,7 @@ public class DocumentNodeStoreHelper {
                     mds, Collection.NODES);
             Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
             FindIterable<BasicDBObject> cursor = dbCol.find(query);
-            return Iterables.transform(cursor,
+            return IterableUtils.transform(cursor,
                     input -> MongoDocumentStoreHelper.convertFromDBObject(mds, Collection.NODES, input));
         } else {
             return Utils.getSelectedDocuments(store,

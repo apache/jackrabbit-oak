@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
 import static org.hamcrest.CoreMatchers.not;
@@ -128,6 +129,19 @@ public class ElasticIndexWriterTest {
         when(indexDefinitionMock.isExternallyModifiable()).thenReturn(true);
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
         verify(bulkProcessorHandlerMock).update(anyString(), any(ElasticDocument.class));
+    }
+
+    @Test
+    public void splitLargeString() {
+        assertEquals("[a]",
+                Arrays.toString(ElasticIndexWriter.splitLargeString(
+                        "a", 1024)));
+        assertEquals("[h, e, l, l, o,  , w, o, r, l, d]",
+                Arrays.toString(ElasticIndexWriter.splitLargeString(
+                        "hello world", 1)));
+        assertEquals("[he, ll, o , wo, rl, d]",
+                Arrays.toString(ElasticIndexWriter.splitLargeString(
+                        "hello world", 2)));
     }
 
 }

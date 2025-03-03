@@ -99,7 +99,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
         if (propertyState != null && OAK_CHILD_ORDER.equals(propertyState.getName())) {
             final Collection<String> childNodeNames = new ArrayList<String>();
             nodeState.getChildNodeNames().forEach(childNodeNames::add);
-            final Iterable<String> values = Iterables.filter(
+            final Iterable<String> values = IterableUtils.filter(
                     propertyState.getValue(Type.NAMES), x -> childNodeNames.contains(x));
             return PropertyStates.createProperty(OAK_CHILD_ORDER, values, Type.NAMES);
         }
@@ -139,7 +139,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @Override
     @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        final Iterable<ChildNodeEntry> transformed = Iterables.transform(delegate.getChildNodeEntries(), childNodeEntry -> {
+        final Iterable<ChildNodeEntry> transformed = IterableUtils.transform(delegate.getChildNodeEntries(), childNodeEntry -> {
             if (childNodeEntry != null) {
                 final String name = childNodeEntry.getName();
                 final NodeState nodeState = decorate(name, childNodeEntry.getNodeState());
@@ -149,7 +149,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
             }
             return null;
         });
-        return Iterables.filter(transformed, x -> x != null);
+        return IterableUtils.filter(transformed, x -> x != null);
     }
 
     @Override
@@ -170,10 +170,10 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @Override
     @NotNull
     public Iterable<? extends PropertyState> getProperties() {
-        final Iterable<PropertyState> propertyStates = Iterables.transform(
+        final Iterable<PropertyState> propertyStates = IterableUtils.transform(
                 delegate.getProperties(),
                 propertyState -> decorate(propertyState));
-        return Iterables.filter(IterableUtils.chainedIterable(propertyStates, getNewPropertyStates()), Objects::nonNull);
+        return IterableUtils.filter(IterableUtils.chainedIterable(propertyStates, getNewPropertyStates()), Objects::nonNull);
     }
 
     /**

@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -91,7 +92,7 @@ public class HybridPropertyIndexInfo {
         TreeTraverser<NodeState> t = new TreeTraverser<NodeState>() {
             @Override
             public Iterable<NodeState> children(NodeState root) {
-                return Iterables.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
+                return IterableUtils.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
             }
         };
         AtomicInteger matches = new AtomicInteger();
