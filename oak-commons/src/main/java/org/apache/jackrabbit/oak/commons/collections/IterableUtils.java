@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import com.google.common.collect.Iterators;
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.iterators.LazyIteratorChain;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
