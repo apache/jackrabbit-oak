@@ -21,7 +21,9 @@ package org.apache.jackrabbit.oak.commons.collections;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -142,5 +144,91 @@ public class IteratorUtilsTest {
         Iterator<Integer> merged = IteratorUtils.mergeSorted(iterators, Comparator.naturalOrder());
 
         Assert.assertThrows(NoSuchElementException.class, merged::next);
+    }
+
+    @Test
+    public void testNullIterators() {
+        // Both null
+        Assert.assertTrue(IteratorUtils.elementsEqual(null, null));
+
+        // One null
+        Assert.assertFalse(IteratorUtils.elementsEqual(null, Collections.emptyIterator()));
+        Assert.assertFalse(IteratorUtils.elementsEqual(Collections.emptyIterator(), null));
+    }
+
+    @Test
+    public void testEmptyIterators() {
+        Iterator<String> empty1 = Collections.emptyIterator();
+        Iterator<String> empty2 = Collections.emptyIterator();
+
+        Assert.assertTrue(IteratorUtils.elementsEqual(empty1, empty2));
+    }
+
+    @Test
+    public void testSameIterator() {
+        Iterator<String> iterator = Arrays.asList("a", "b", "c").iterator();
+        Assert.assertTrue(IteratorUtils.elementsEqual(iterator, iterator));
+    }
+
+    @Test
+    public void testEqualIterators() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b", "c").iterator();
+        Iterator<String> iterator2 = Arrays.asList("a", "b", "c").iterator();
+
+        Assert.assertTrue(IteratorUtils.elementsEqual(iterator1, iterator2));
+    }
+
+    @Test
+    public void testDifferentElements() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b", "c").iterator();
+        Iterator<String> iterator2 = Arrays.asList("a", "d", "c").iterator();
+
+        Assert.assertFalse(IteratorUtils.elementsEqual(iterator1, iterator2));
+    }
+
+    @Test
+    public void testDifferentLengthsFirstLonger() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b", "c", "d").iterator();
+        Iterator<String> iterator2 = Arrays.asList("a", "b", "c").iterator();
+
+        Assert.assertFalse(IteratorUtils.elementsEqual(iterator1, iterator2));
+    }
+
+    @Test
+    public void testDifferentLengthsSecondLonger() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b").iterator();
+        Iterator<String> iterator2 = Arrays.asList("a", "b", "c").iterator();
+
+        Assert.assertFalse(IteratorUtils.elementsEqual(iterator1, iterator2));
+    }
+
+    @Test
+    public void testWithNullElements() {
+        Iterator<String> iterator1 = Arrays.asList("a", null, "c").iterator();
+        Iterator<String> iterator2 = Arrays.asList("a", null, "c").iterator();
+
+        Assert.assertTrue(IteratorUtils.elementsEqual(iterator1, iterator2));
+
+        Iterator<String> iterator3 = Arrays.asList("a", null, "c").iterator();
+        Iterator<String> iterator4 = Arrays.asList("a", "b", "c").iterator();
+
+        Assert.assertFalse(IteratorUtils.elementsEqual(iterator3, iterator4));
+    }
+
+    @Test
+    public void testLargeIterators() {
+        // Create two large identical lists
+        List<Integer> list1 = new ArrayList<>();
+        List<Integer> list2 = new ArrayList<>();
+        for (int i = 0; i < 10000; i++) {
+            list1.add(i);
+            list2.add(i);
+        }
+
+        Assert.assertTrue(IteratorUtils.elementsEqual(list1.iterator(), list2.iterator()));
+
+        // Modify one value in the second list
+        list2.set(9999, -1);
+        Assert.assertFalse(IteratorUtils.elementsEqual(list1.iterator(), list2.iterator()));
     }
 }

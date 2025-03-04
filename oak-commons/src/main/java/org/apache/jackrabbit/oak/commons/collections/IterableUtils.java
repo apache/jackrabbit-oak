@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
+import com.google.common.collect.Iterators;
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.iterators.LazyIteratorChain;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
@@ -319,5 +320,42 @@ public class IterableUtils {
         Objects.requireNonNull(c, "Comparator must not be null.");
         final Iterable<T> iterable = () -> IteratorUtils.mergeSorted(org.apache.commons.collections4.IterableUtils.transformedIterable(iterables, Iterable::iterator), c);
         return org.apache.commons.collections4.IterableUtils.unmodifiableIterable(iterable);
+    }
+
+    /**
+     * Checks if two iterables have the same elements in the same order.
+     * <p>
+     * This method iterates through both iterables and compares each corresponding pair of elements using
+     * {@link Objects#equals(Object, Object)}.
+     * <p>
+     * Note that both iterables will be fully traversed during the comparison.
+     *
+     * @param itr1 the first iterable to compare, may be null
+     * @param itr2 the second iterable to compare, may be null
+     * @return {@code true} if both iterables contain the same elements in the same order, {@code false} otherwise.
+     *         Returns {@code true} if both iterables are null and {@code false} if only one is null.
+     *
+     * @see IteratorUtils#elementsEqual(Iterator, Iterator)
+     */
+    public static boolean elementsEqual(final Iterable<?> itr1, final Iterable<?> itr2) {
+
+        if (itr1 == itr2) {
+            // Both are null or the same instance
+            return true;
+        }
+
+        if (itr1 == null || itr2 == null) {
+            // returns false if one of the iterator is null
+            return false;
+        }
+
+        if (itr1 instanceof Collection && itr2 instanceof Collection) {
+            Collection<?> c1 = (Collection<?>) itr1;
+            Collection<?> c2 = (Collection<?>) itr2;
+            if (c1.size() != c2.size()) {
+                return false;
+            }
+        }
+        return IteratorUtils.elementsEqual(itr1.iterator(), itr2.iterator());
     }
 }

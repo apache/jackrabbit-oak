@@ -144,4 +144,37 @@ public class IteratorUtils {
             return next;
         }
     }
+
+    /**
+     * Compares two iterators to determine if they contain the same elements in the same order.
+     * <p>
+     * This method iterates through both iterators and compares each corresponding pair of elements.
+     * <p>
+     * Note that this method consumes both iterators.
+     *
+     * @param iterator1 the first iterator to compare, may be null
+     * @param iterator2 the second iterator to compare, may be null
+     * @return {@code true} if both iterators contain the same number of elements and all corresponding elements
+     *         are equal, {@code false} otherwise.
+     */
+    public static boolean elementsEqual(final Iterator<?> iterator1, final Iterator<?> iterator2) {
+        if (iterator1 == iterator2) {
+            // returns true if both point to same object or both are null
+            return true;
+        }
+
+        if (iterator1 == null || iterator2 == null) {
+            // returns false if one of the iterator is null
+            return false;
+        }
+
+        while (iterator1.hasNext() && iterator2.hasNext()) {
+            if (!Objects.equals(iterator1.next(), iterator2.next())) {
+                return false;
+            }
+        }
+
+        // return true if both the iterators have same number of elements
+        return !iterator1.hasNext() && !iterator2.hasNext();
+    }
 }

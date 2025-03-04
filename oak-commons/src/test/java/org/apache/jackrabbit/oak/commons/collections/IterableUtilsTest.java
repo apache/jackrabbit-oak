@@ -22,10 +22,12 @@ import org.apache.commons.collections4.Predicate;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
@@ -628,5 +630,129 @@ public class IterableUtilsTest {
 
         Assert.assertFalse(merged.iterator().hasNext());
         Assert.assertThrows(NoSuchElementException.class, () -> merged.iterator().next());
+    }
+
+    @Test
+    public void testNullIterables() {
+        // Both null
+        Assert.assertTrue(IterableUtils.elementsEqual(null, null));
+
+        // One null
+        Assert.assertFalse(IterableUtils.elementsEqual(null, Collections.emptyList()));
+        Assert.assertFalse(IterableUtils.elementsEqual(Collections.emptyList(), null));
+    }
+
+    @Test
+    public void testEmptyIterables() {
+        Iterable<String> empty1 = Collections.emptyList();
+        Iterable<String> empty2 = Collections.emptyList();
+
+        Assert.assertTrue(IterableUtils.elementsEqual(empty1, empty2));
+    }
+
+    @Test
+    public void testSameIterable() {
+        Iterable<String> iterable = Arrays.asList("a", "b", "c");
+        Assert.assertTrue(IterableUtils.elementsEqual(iterable, iterable));
+    }
+
+    @Test
+    public void testEqualIterables() {
+        Iterable<String> iterable1 = Arrays.asList("a", "b", "c");
+        Iterable<String> iterable2 = Arrays.asList("a", "b", "c");
+
+        Assert.assertTrue(IterableUtils.elementsEqual(iterable1, iterable2));
+    }
+
+    @Test
+    public void testDifferentElements() {
+        Iterable<String> iterable1 = Arrays.asList("a", "b", "c");
+        Iterable<String> iterable2 = Arrays.asList("a", "d", "c");
+
+        Assert.assertFalse(IterableUtils.elementsEqual(iterable1, iterable2));
+    }
+
+    @Test
+    public void testDifferentLengthsFirstLonger() {
+        Iterable<String> iterable1 = Arrays.asList("a", "b", "c", "d");
+        Iterable<String> iterable2 = Arrays.asList("a", "b", "c");
+
+        Assert.assertFalse(IterableUtils.elementsEqual(iterable1, iterable2));
+    }
+
+    @Test
+    public void testDifferentLengthsSecondLonger() {
+        Iterable<String> iterable1 = Arrays.asList("a", "b");
+        Iterable<String> iterable2 = Arrays.asList("a", "b", "c");
+
+        Assert.assertFalse(IterableUtils.elementsEqual(iterable1, iterable2));
+    }
+
+    @Test
+    public void testWithNullElements() {
+        Iterable<String> iterable1 = Arrays.asList("a", null, "c");
+        Iterable<String> iterable2 = Arrays.asList("a", null, "c");
+
+        Assert.assertTrue(IterableUtils.elementsEqual(iterable1, iterable2));
+
+        Iterable<String> iterable3 = Arrays.asList("a", null, "c");
+        Iterable<String> iterable4 = Arrays.asList("a", "b", "c");
+
+        Assert.assertFalse(IterableUtils.elementsEqual(iterable3, iterable4));
+    }
+
+    @Test
+    public void testCollectionSizeOptimization() {
+        // Different sizes should return false quickly without comparing elements
+        List<Integer> list1 = new ArrayList<>();
+        List<Integer> list2 = new ArrayList<>();
+
+        for (int i = 0; i < 1000; i++) {
+            list1.add(i);
+        }
+
+        for (int i = 0; i < 999; i++) {
+            list2.add(i);
+        }
+
+        Assert.assertFalse(IterableUtils.elementsEqual(list1, list2));
+    }
+
+    @Test
+    public void testLargeIterables() {
+        // Create two large identical lists
+        List<Integer> list1 = new ArrayList<>();
+        List<Integer> list2 = new ArrayList<>();
+        for (int i = 0; i < 10000; i++) {
+            list1.add(i);
+            list2.add(i);
+        }
+
+        Assert.assertTrue(IterableUtils.elementsEqual(list1, list2));
+
+        // Modify one value in the second list
+        list2.set(9999, -1);
+        Assert.assertFalse(IterableUtils.elementsEqual(list1, list2));
+    }
+
+    @Test
+    public void testCustomIterableImplementations() {
+        // Test with a custom iterable implementation
+        Iterable<Integer> customIterable1 = () -> Arrays.asList(1, 2, 3).iterator();
+        Iterable<Integer> customIterable2 = () -> Arrays.asList(1, 2, 3).iterator();
+
+        Assert.assertTrue(IterableUtils.elementsEqual(customIterable1, customIterable2));
+
+        Iterable<Integer> customIterable3 = () -> Arrays.asList(1, 2, 4).iterator();
+        Assert.assertFalse(IterableUtils.elementsEqual(customIterable1, customIterable3));
+    }
+
+    @Test
+    public void testMixedCollectionTypes() {
+        // Test with different collection implementations
+        List<String> arrayList = new ArrayList<>(Arrays.asList("a", "b", "c"));
+        List<String> linkedList = new LinkedList<>(Arrays.asList("a", "b", "c"));
+
+        Assert.assertTrue(IterableUtils.elementsEqual(arrayList, linkedList));
     }
 }
