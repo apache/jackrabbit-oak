@@ -41,7 +41,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -2029,9 +2028,8 @@ public class MongoDocumentStore implements DocumentStore {
         if (clusterNodesConnection != connection) {
             clusterNodesConnection.close();
         }
-
         try {
-            IOUtils.close(throttlingMetricsUpdater);
+            throttlingMetricsUpdater.close();
         } catch (IOException e) {
             LOG.warn("Error occurred while closing throttlingMetricsUpdater", e);
         }
