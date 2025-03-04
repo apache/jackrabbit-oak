@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
@@ -227,7 +228,7 @@ public class BlobIdTrackerClusterSharedTest {
             retrieved.add(iter.next());
         }
         if (iter instanceof Closeable) {
-            ((Closeable)iter).close();
+            IOUtils.closeQuietly((Closeable)iter);
         }
         return retrieved;
     }
