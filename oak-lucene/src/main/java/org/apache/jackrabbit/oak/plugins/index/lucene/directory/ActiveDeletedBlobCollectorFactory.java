@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
@@ -324,7 +325,7 @@ public class ActiveDeletedBlobCollectorFactory {
             // Synchronize deleted blob ids with the blob id tracker
             try {
                 try {
-                    idTempDeleteWriter.close();
+                    IOUtils.close(idTempDeleteWriter);
                 } catch (IOException ex) {
                     LOG.warn("IOException thrown while closing idTempDeleteWriter", ex);
                 }
