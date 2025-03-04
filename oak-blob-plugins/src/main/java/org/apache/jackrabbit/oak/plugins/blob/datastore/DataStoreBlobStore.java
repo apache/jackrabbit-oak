@@ -79,7 +79,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 
 /**
  * BlobStore wrapper for DataStore. Wraps Jackrabbit 2 DataStore and expose them as BlobStores
@@ -341,9 +340,15 @@ public class DataStoreBlobStore
             stats.uploadFailed();
             throw new IOException(e);
         } finally {
-            //DataStore does not closes the stream internally
+            //DataStore does not close the stream internally
             //So close the stream explicitly
-            Closeables.close(stream, threw);
+            try {
+                stream.close();
+            } catch (IOException ioe) {
+                if (!threw) {
+                    throw ioe;
+                }
+            }
         }
     }
 
@@ -364,15 +369,10 @@ public class DataStoreBlobStore
         //This is inefficient as repeated calls for same blobId would involve opening new Stream
         //instead clients should directly access the stream from DataRecord by special casing for
         //BlobStore which implements DataStore
-        InputStream stream = getInputStream(encodedBlobId);
-        boolean threw = true;
-        try {
+        try (InputStream stream = getInputStream(encodedBlobId)) {
             IOUtils.skipFully(stream, pos);
             int readCount = stream.read(buff, off, length);
-            threw = false;
             return readCount;
-        } finally {
-            Closeables.close(stream, threw);
         }
     }
 
@@ -439,13 +439,9 @@ public class DataStoreBlobStore
                     @Override
                     public byte[] call() throws Exception {
                         boolean threw = true;
-                        InputStream stream = getStream(blobId.blobId);
-                        try {
+                        try (InputStream stream = getStream(blobId.blobId)) {
                             byte[] result = IOUtils.toByteArray(stream);
-                            threw = false;
                             return result;
-                        } finally {
-                            Closeables.close(stream, threw);
                         }
                     }
                 });

@@ -20,7 +20,6 @@ import static java.io.File.createTempFile;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.IOUtils.copyLarge;
-import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
 import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.mergeSortedFiles;
@@ -140,25 +139,20 @@ public final class FileIOUtils {
      * @throws IOException
      */
     public static void append(List<File> files, File appendTo, boolean delete) throws IOException {
-        OutputStream appendStream = null;
-        boolean threw = true;
 
-        try {
-            appendStream = new BufferedOutputStream(new FileOutputStream(appendTo, true));
+        try (OutputStream appendStream = new BufferedOutputStream(new FileOutputStream(appendTo, true))) {
 
             for (File f : files) {
                 try (InputStream iStream = new FileInputStream(f)) {
                     copyLarge(iStream, appendStream);
                 }
             }
-            threw = false;
         } finally {
             if (delete) {
                 for (File f : files) {
                     f.delete();
                 }
             }
-            close(appendStream, threw);
         }
     }
 
@@ -227,11 +221,9 @@ public final class FileIOUtils {
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
         @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter(f, UTF_8));
-        boolean threw = true;
 
         int count = 0;
-        try {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(f, UTF_8))) {
             while (iterator.hasNext()) {
                 writeAsLine(writer, transformer.apply(iterator.next()), escape);
                 count++;
@@ -241,9 +233,6 @@ public final class FileIOUtils {
                     }
                 }
             }
-            threw = false;
-        } finally {
-            close(writer, threw);
         }
         return count;
     }
@@ -257,13 +246,10 @@ public final class FileIOUtils {
      * @throws IOException
      */
     public static Set<String> readStringsAsSet(InputStream stream, boolean unescape) throws IOException {
-        BufferedReader reader = null;
         Set<String> set = new HashSet<>();
-        boolean threw = true;
 
-        try {
-            reader = new BufferedReader(new InputStreamReader(stream, UTF_8));
-            String line  = null;
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8))) {
+            String line;
             while ((line = reader.readLine()) != null) {
                 if (unescape) {
                     set.add(unescapeLineBreaks(line));
@@ -271,9 +257,6 @@ public final class FileIOUtils {
                     set.add(line);
                 }
             }
-            threw = false;
-        } finally {
-            close(reader, threw);
         }
         return set;
     }

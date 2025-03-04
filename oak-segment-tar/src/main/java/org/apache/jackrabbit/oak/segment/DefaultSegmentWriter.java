@@ -55,7 +55,6 @@ import java.util.Map;
 import javax.jcr.PropertyType;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -645,7 +644,14 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 threw = false;
                 return id;
             } finally {
-                Closeables.close(stream, threw);
+                try {
+                    stream.close();
+                } catch (IOException ex) {
+                    if (!threw) {
+                        throw ex;
+                    }
+                    LOG.warn("IOException thrown while closing stream", ex);
+                }
             }
         }
 
