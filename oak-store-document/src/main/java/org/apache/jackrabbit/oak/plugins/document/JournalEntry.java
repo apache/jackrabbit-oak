@@ -32,6 +32,7 @@ import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -213,7 +214,7 @@ public final class JournalEntry extends Document {
         Path p = node.getPath();
         int depthDiff = p.getDepth() - path.getDepth();
         return depthDiff >= 0
-                && Iterables.elementsEqual(path.elements(), p.getAncestor(depthDiff).elements());
+                && IterableUtils.elementsEqual(path.elements(), p.getAncestor(depthDiff).elements());
     }
 
     /**

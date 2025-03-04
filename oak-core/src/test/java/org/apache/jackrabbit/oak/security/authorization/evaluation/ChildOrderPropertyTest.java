@@ -100,6 +100,6 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
         List<String> expected = List.of("/a/bb", "/a/b");
         Iterable<String> childPaths = IterableUtils.transform(aTree.getChildren(), input -> input.getPath());
-        assertTrue(childPaths.toString(), Iterables.elementsEqual(expected, childPaths));
+        assertTrue(childPaths.toString(), IterableUtils.elementsEqual(expected, childPaths));
     }
 }

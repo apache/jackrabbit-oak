@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -235,7 +236,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         ImmutableACL iacl = new ImmutableACL(aacl);
         assertImmutable(iacl);
 
-        assertTrue(Iterables.elementsEqual(entries, iacl.getEntries()));
+        assertTrue(IterableUtils.elementsEqual(entries, iacl.getEntries()));
         assertSame(aacl.getRestrictionProvider(), iacl.getRestrictionProvider());
         assertSame(aacl.getNamePathMapper(), iacl.getNamePathMapper());
 

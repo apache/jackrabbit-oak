@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
 
@@ -103,7 +103,7 @@ public class MutableSegmentReferencesTest {
         MutableSegmentReferences table = new MutableSegmentReferences();
         table.addOrReference(first);
         table.addOrReference(second);
-        assertTrue(elementsEqual(ids, table));
+        assertTrue(IterableUtils.elementsEqual(ids, table));
     }
 
 }

@@ -887,7 +887,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         SortedMap m = (SortedMap) f.get(registration);
         assertEquals(3, m.size());
         Collection c = m.values();
-        assertTrue(Iterables.elementsEqual(List.of(service2, service3, service1), c));
+        assertTrue(IterableUtils.elementsEqual(List.of(service2, service3, service1), c));
     }
 
     @Test

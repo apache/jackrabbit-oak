@@ -28,6 +28,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -110,7 +111,7 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
         assertTrue(failed.isEmpty());
 
         Iterable<String> memberIds = getMemberIds(testGroup);
-        Iterables.elementsEqual(Arrays.asList(NON_EXISTING_IDS), memberIds);
+        IterableUtils.elementsEqual(Arrays.asList(NON_EXISTING_IDS), memberIds);
 
         Iterator<Authorizable> members = testGroup.getDeclaredMembers();
         assertFalse(members.hasNext());

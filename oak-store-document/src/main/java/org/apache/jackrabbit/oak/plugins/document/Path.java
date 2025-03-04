@@ -24,12 +24,12 @@ import java.util.Objects;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
 
 /**
  * The {@code Path} class is closely modeled after the semantics of
@@ -188,7 +188,7 @@ public final class Path implements CacheValue, Comparable<Path> {
         requireNonNull(other);
         int depthDiff = other.getDepth() - getDepth();
         return depthDiff > 0
-                && elementsEqual(elements(true), other.getAncestor(depthDiff).elements(true));
+                && IterableUtils.elementsEqual(elements(true), other.getAncestor(depthDiff).elements(true));
     }
 
     /**

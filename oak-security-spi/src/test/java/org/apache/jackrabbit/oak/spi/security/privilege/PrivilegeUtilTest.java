@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.jetbrains.annotations.NotNull;
@@ -75,7 +76,7 @@ public class PrivilegeUtilTest {
 
         PrivilegeDefinition def = PrivilegeUtil.readDefinition(defTree);
         assertEquals("name", def.getName());
-        assertTrue(Iterables.elementsEqual(aggregateNames, PrivilegeUtil.readDefinition(defTree).getDeclaredAggregateNames()));
+        assertTrue(IterableUtils.elementsEqual(aggregateNames, PrivilegeUtil.readDefinition(defTree).getDeclaredAggregateNames()));
     }
     
     @Test

@@ -98,7 +98,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = Set.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, IterableUtils.transform(result.getRows(), ResultRow::getPath)));
+        assertTrue(IterableUtils.elementsEqual(expected, IterableUtils.transform(result.getRows(), ResultRow::getPath)));
     }
 
     @Test
@@ -125,7 +125,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = Set.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, IterableUtils.transform(result.getRows(), row -> row.getPath())));
+        assertTrue(IterableUtils.elementsEqual(expected, IterableUtils.transform(result.getRows(), row -> row.getPath())));
     }
 
     @Test
@@ -142,7 +142,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
         Iterable<String> expected = Set.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, IterableUtils.transform(result.getRows(), row -> row.getPath())));
+        assertTrue(IterableUtils.elementsEqual(expected, IterableUtils.transform(result.getRows(), row -> row.getPath())));
     }
 
     private void assertAccess(@NotNull String nodePath, @NotNull String subnodePath, boolean canReadPrimaryType) throws Exception {

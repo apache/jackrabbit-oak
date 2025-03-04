@@ -464,7 +464,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
         when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
 
         Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(KNOWN_PRIV_NAME);
-        assertTrue(Iterables.elementsEqual(List.of(KNOWN_PRIV_NAME), result));
+        assertTrue(IterableUtils.elementsEqual(List.of(KNOWN_PRIV_NAME), result));
     }
 
     @Test

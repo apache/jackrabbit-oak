@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
@@ -129,7 +130,7 @@ public class RepositoryPermissionTest extends AbstractPrincipalBasedTest {
         permissionProvider.refresh();
 
         Set<String> privNames = permissionProvider.getPrivileges(null);
-        assertTrue(Iterables.elementsEqual(Set.of(JCR_WORKSPACE_MANAGEMENT), privNames));
+        assertTrue(IterableUtils.elementsEqual(Set.of(JCR_WORKSPACE_MANAGEMENT), privNames));
     }
 
     @Test

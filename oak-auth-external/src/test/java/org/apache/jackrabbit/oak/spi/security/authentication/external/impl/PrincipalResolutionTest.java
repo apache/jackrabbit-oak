@@ -22,6 +22,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -131,7 +132,7 @@ public class PrincipalResolutionTest extends DynamicSyncContextTest {
         
         ExternalUser second = idp.getUser(ID_SECOND_USER);
         testuser.withGroups(second.getExternalId());
-        assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
+        assertFalse(IterableUtils.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
 
         sync(testuser, SyncResult.Status.ADD);
 

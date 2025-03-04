@@ -102,13 +102,13 @@ public class AuthorizationConfigurationImplOSGiTest extends AbstractSecurityTest
     @Test
     public void testGetCommitHooks() {
         List<Class> expected = List.of(VersionablePathHook.class, PermissionHook.class);
-        assertTrue(Iterables.elementsEqual(expected, IterableUtils.transform(authorizationConfiguration.getCommitHooks(adminSession.getWorkspaceName()), commitHook -> commitHook.getClass())));
+        assertTrue(IterableUtils.elementsEqual(expected, IterableUtils.transform(authorizationConfiguration.getCommitHooks(adminSession.getWorkspaceName()), commitHook -> commitHook.getClass())));
     }
 
     @Test
     public void testGetValidators() {
         List<Class> expected = List.of(PermissionStoreValidatorProvider.class, PermissionValidatorProvider.class, AccessControlValidatorProvider.class);
-        assertTrue(Iterables.elementsEqual(expected, IterableUtils.transform(authorizationConfiguration.getValidators(adminSession.getWorkspaceName(), Set.of(), new MoveTracker()), commitHook -> commitHook.getClass())));
+        assertTrue(IterableUtils.elementsEqual(expected, IterableUtils.transform(authorizationConfiguration.getValidators(adminSession.getWorkspaceName(), Set.of(), new MoveTracker()), commitHook -> commitHook.getClass())));
     }
 
     @Test

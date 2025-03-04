@@ -144,13 +144,13 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testGetMixinTypes() {
-        assertTrue(Iterables.elementsEqual(TreeUtil.getNames(child, JcrConstants.JCR_MIXINTYPES), TreeUtil.getMixinTypeNames(child)));
-        assertTrue(Iterables.elementsEqual(TreeUtil.getNames(rootTree, JcrConstants.JCR_MIXINTYPES), TreeUtil.getMixinTypeNames(rootTree)));
+        assertTrue(IterableUtils.elementsEqual(TreeUtil.getNames(child, JcrConstants.JCR_MIXINTYPES), TreeUtil.getMixinTypeNames(child)));
+        assertTrue(IterableUtils.elementsEqual(TreeUtil.getNames(rootTree, JcrConstants.JCR_MIXINTYPES), TreeUtil.getMixinTypeNames(rootTree)));
     }
 
     @Test
     public void testGetMixinTypeNamesUnusedLazy() {
-        assertTrue(Iterables.elementsEqual(
+        assertTrue(IterableUtils.elementsEqual(
                 TreeUtil.getNames(child, JcrConstants.JCR_MIXINTYPES),
                 TreeUtil.getMixinTypeNames(child, mock(LazyValue.class))));
     }
@@ -168,7 +168,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testGetMixinTypeNamesFromLazy() {
-        assertTrue(Iterables.elementsEqual(TreeUtil.getNames(child, JcrConstants.JCR_MIXINTYPES), TreeUtil.getMixinTypeNames(rootTree.getChild("x"), new LazyValue<Tree>() {
+        assertTrue(IterableUtils.elementsEqual(TreeUtil.getNames(child, JcrConstants.JCR_MIXINTYPES), TreeUtil.getMixinTypeNames(rootTree.getChild("x"), new LazyValue<Tree>() {
             @Override
             protected Tree createValue() {
                 return child;

@@ -346,7 +346,7 @@ public class SecureNodeBuilderTest {
     public void testGetNamesTypeNames() {
         Iterable<String> names = List.of("a", "b");
         secureNodeBuilder.setProperty("names", names, Type.NAMES);
-        assertTrue(Iterables.elementsEqual(names, secureNodeBuilder.getNames("names")));
+        assertTrue(IterableUtils.elementsEqual(names, secureNodeBuilder.getNames("names")));
     }
 
     @Test

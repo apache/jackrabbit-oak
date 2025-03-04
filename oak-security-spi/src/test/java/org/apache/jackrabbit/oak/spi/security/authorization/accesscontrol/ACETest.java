@@ -21,6 +21,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -222,7 +223,7 @@ public class ACETest extends AbstractAccessControlTest {
         ACE ace = mockACE(testPrincipal, PrivilegeBits.BUILT_IN.get(JCR_READ), true, restrictions);
         assertFalse(ace.getRestrictions().isEmpty());
         assertNotSame(restrictions, ace.getRestrictions());
-        assertTrue(Iterables.elementsEqual(restrictions, ace.getRestrictions()));
+        assertTrue(IterableUtils.elementsEqual(restrictions, ace.getRestrictions()));
     }
 
     @Test

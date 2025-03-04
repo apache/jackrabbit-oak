@@ -21,6 +21,7 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.jetbrains.annotations.NotNull;
@@ -54,6 +55,6 @@ final class ChildOrderDiff {
         beforeNames.retainAll(afterNames);
 
         // names got reordered if the elements in the 2 intersections aren't equal
-        return !Iterables.elementsEqual(afterNames, beforeNames);
+        return !IterableUtils.elementsEqual(afterNames, beforeNames);
     }
 }

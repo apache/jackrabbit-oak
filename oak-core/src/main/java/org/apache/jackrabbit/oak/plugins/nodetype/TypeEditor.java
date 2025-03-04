@@ -49,6 +49,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -451,7 +452,7 @@ public class TypeEditor extends DefaultEditor {
         } else if (pre.isEmpty() || post.isEmpty()) {
             return true;
         } else {
-            return !Iterables.elementsEqual(pre, post);
+            return !IterableUtils.elementsEqual(pre, post);
         }
     }
 

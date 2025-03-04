@@ -158,7 +158,7 @@ public class TreeUtilTest extends AbstractSecurityTest {
         Iterable<String> expected = TreeUtil.getMixinTypeNames(root.getTree(path));
         assertTrue(IterableUtils.contains(expected, "mix:title"));
 
-        assertTrue(Iterables.elementsEqual(expected, TreeUtil.getMixinTypeNames(testTree, new LazyValue<Tree>() {
+        assertTrue(IterableUtils.elementsEqual(expected, TreeUtil.getMixinTypeNames(testTree, new LazyValue<Tree>() {
             @Override
             protected Tree createValue() {
                 return testTree;
@@ -179,7 +179,7 @@ public class TreeUtilTest extends AbstractSecurityTest {
         try (ContentSession cs = login(new GuestCredentials())) {
             Root guestRoot = cs.getLatestRoot();
             assertTrue(IterableUtils.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree(path))));
-            assertTrue(Iterables.elementsEqual(expected, TreeUtil.getMixinTypeNames(guestRoot.getTree(path), new LazyValue<Tree>() {
+            assertTrue(IterableUtils.elementsEqual(expected, TreeUtil.getMixinTypeNames(guestRoot.getTree(path), new LazyValue<Tree>() {
                 @Override
                 protected Tree createValue() {
                     return testTree;

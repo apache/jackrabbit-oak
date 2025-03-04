@@ -674,7 +674,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         
         ExternalUser second = idp.getUser(ID_SECOND_USER);
         testuser.withGroups(second.getExternalId());
-        assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
+        assertFalse(IterableUtils.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
 
         sync(testuser, SyncResult.Status.ADD);
 
@@ -696,7 +696,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         // in contrast to 'testSyncMembershipWithUserRef' the conflicting group-ref refers to a user in the repository
         // and the conflict is spotted as the existing synched identity is not a group.
         testuser.withGroups(previouslySyncedUser.getExternalId());
-        assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
+        assertFalse(IterableUtils.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
 
         sync(testuser, SyncResult.Status.ADD);
 

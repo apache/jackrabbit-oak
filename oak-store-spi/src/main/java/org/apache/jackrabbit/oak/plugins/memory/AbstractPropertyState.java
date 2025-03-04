@@ -27,6 +27,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.value.BinaryBasedBlob;
 import org.apache.jackrabbit.oak.plugins.value.OakValue;
 
@@ -53,7 +54,7 @@ public abstract class AbstractPropertyState implements PropertyState {
             Type<?> type = a.getType();
             if (a.isArray()) {
                 return a.count() == b.count()
-                        && Iterables.elementsEqual(
+                        && IterableUtils.elementsEqual(
                                 (Iterable<?>) a.getValue(type),
                                 (Iterable<?>) b.getValue(type));
             } else {
