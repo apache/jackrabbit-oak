@@ -26,7 +26,6 @@ import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import co.elastic.clients.json.JsonData;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -44,9 +43,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -57,7 +54,7 @@ class ElasticBulkProcessorHandler {
     private static final int FAILED_DOC_COUNT_FOR_STATUS_NODE = Integer.getInteger("oak.failedDocStatusLimit", 10000);
 
     private static final int BULK_PROCESSOR_CONCURRENCY =
-        Integer.getInteger("oak.indexer.elastic.bulkProcessorConcurrency", 1);
+            Integer.getInteger("oak.indexer.elastic.bulkProcessorConcurrency", 1);
     private static final String SYNC_MODE_PROPERTY = "sync-mode";
     private static final String SYNC_RT_MODE = "rt";
 
@@ -89,9 +86,6 @@ class ElasticBulkProcessorHandler {
 
     protected long totalOperations;
 
-    // TODO: workaround for https://github.com/elastic/elasticsearch-java/pull/867 remove when fixed
-    private final ScheduledExecutorService scheduler;
-
     private ElasticBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
                                         @NotNull String indexName,
                                         @NotNull ElasticIndexDefinition indexDefinition,
@@ -102,13 +96,6 @@ class ElasticBulkProcessorHandler {
         this.indexDefinition = indexDefinition;
         this.definitionBuilder = definitionBuilder;
         this.waitForESAcknowledgement = waitForESAcknowledgement;
-        // TODO: workaround for https://github.com/elastic/elasticsearch-java/pull/867 remove when fixed
-        this.scheduler = Executors.newScheduledThreadPool(BULK_PROCESSOR_CONCURRENCY + 1, (r) -> {
-            Thread t = Executors.defaultThreadFactory().newThread(r);
-            t.setName("oak-bulk-ingester#");
-            t.setDaemon(true);
-            return t;
-        });
         this.bulkIngester = initBulkIngester();
     }
 
@@ -165,9 +152,6 @@ class ElasticBulkProcessorHandler {
                 b = b.flushInterval(indexDefinition.bulkFlushIntervalMs, TimeUnit.MILLISECONDS);
             }
 
-            // TODO: workaround for https://github.com/elastic/elasticsearch-java/pull/867 remove when fixed
-            b = b.scheduler(scheduler);
-
             return b.maxConcurrentRequests(BULK_PROCESSOR_CONCURRENCY);
         });
     }
@@ -182,7 +166,8 @@ class ElasticBulkProcessorHandler {
 
     /**
      * Indexes a document in the bulk processor. The document is identified by the given id. If the document already exists it will be replaced by the new one.
-     * @param id the document id
+     *
+     * @param id       the document id
      * @param document the document to index
      * @throws IOException if an error happened while processing the bulk request
      */
@@ -226,44 +211,40 @@ class ElasticBulkProcessorHandler {
 
     /**
      * Closes the bulk ingester and waits for all the bulk requests to return.
+     *
      * @return {@code true} if at least one update was performed, {@code false} otherwise
      * @throws IOException if an error happened while processing the bulk requests
      */
     public boolean close() throws IOException {
-        try {
-            LOG.trace("Calling close on bulk ingester {}", bulkIngester);
-            bulkIngester.close();
-            LOG.trace("Bulk Ingester {} closed", bulkIngester);
+        LOG.trace("Calling close on bulk ingester {}", bulkIngester);
+        bulkIngester.close();
+        LOG.trace("Bulk Ingester {} closed", bulkIngester);
 
-            // de-register main controller
-            int phase = phaser.arriveAndDeregister();
+        // de-register main controller
+        int phase = phaser.arriveAndDeregister();
 
-            if (totalOperations == 0) { // no need to invoke phaser await if we already know there were no operations
-                LOG.debug("No operations executed in this processor. Close immediately");
-                return false;
-            }
-
-            if (waitForESAcknowledgement) {
-                try {
-                    phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5, TimeUnit.MILLISECONDS);
-                } catch (TimeoutException e) {
-                    LOG.error("Error waiting for bulk requests to return", e);
-                } catch (InterruptedException e) {
-                    LOG.warn("Interrupted while waiting for bulk processor to close", e);
-                    Thread.currentThread().interrupt();  // restore interrupt status
-                }
-            }
-
-            checkFailures();
-
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Bulk identifier -> update status = {}", updatesMap);
-            }
-            return updatesMap.containsValue(Boolean.TRUE);
-        } finally {
-            // TODO: workaround for https://github.com/elastic/elasticsearch-java/pull/867 remove when fixed
-            new ExecutorCloser(scheduler).close();
+        if (totalOperations == 0) { // no need to invoke phaser await if we already know there were no operations
+            LOG.debug("No operations executed in this processor. Close immediately");
+            return false;
         }
+
+        if (waitForESAcknowledgement) {
+            try {
+                phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                LOG.error("Error waiting for bulk requests to return", e);
+            } catch (InterruptedException e) {
+                LOG.warn("Interrupted while waiting for bulk processor to close", e);
+                Thread.currentThread().interrupt();  // restore interrupt status
+            }
+        }
+
+        checkFailures();
+
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Bulk identifier -> update status = {}", updatesMap);
+        }
+        return updatesMap.containsValue(Boolean.TRUE);
     }
 
     private class OakBulkListener implements BulkListener<String> {
@@ -388,7 +369,7 @@ class ElasticBulkProcessorHandler {
             if (totalOperations > 0) {
                 LOG.debug("Forcing refresh");
                 try {
-                	this.elasticConnection.getClient().indices().refresh(b -> b.index(indexName));
+                    this.elasticConnection.getClient().indices().refresh(b -> b.index(indexName));
                 } catch (IOException e) {
                     LOG.warn("Error refreshing index {}", indexName, e);
                 }

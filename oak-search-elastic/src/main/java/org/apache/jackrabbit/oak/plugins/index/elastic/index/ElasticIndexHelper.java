@@ -222,7 +222,7 @@ class ElasticIndexHelper {
                         // Make the index more lenient when a field cannot be converted to the mapped type. Without this setting
                         // the entire document will fail to update. Instead, only the specific field won't be updated.
                         .mapping(mf -> mf.ignoreMalformed(true).
-                                totalFields(f -> f.limit(indexDefinition.limitTotalFields)))
+                                totalFields(f -> f.limit(Long.toString(indexDefinition.limitTotalFields))))
                         // static setting: cannot be changed after the index gets created
                         .numberOfShards(Integer.toString(indexDefinition.numberOfShards))
                         // dynamic settings: see #enableIndexRequest
