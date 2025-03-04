@@ -351,6 +351,9 @@ public class MongoDocumentStore implements DocumentStore {
 
         if (!readOnly) {
             ensureIndexes(db, status);
+            if (builder.isFullGCAuditLoggingEnabled()) {
+                ensureFullGcTTLIndex();
+            }
         }
 
         this.nodeLocks = new StripedNodeDocumentLocks();
@@ -466,10 +469,12 @@ public class MongoDocumentStore implements DocumentStore {
 
         // index on _modified for journal entries
         createIndex(journal, JournalEntry.MODIFIED, true, false, false);
+    }
 
+    private void ensureFullGcTTLIndex() {
         //TTL index for full GC bin documents to expire after 90 days
         //see https://issues.apache.org/jira/browse/OAK-11444
-        IndexOptions indexOptions = new IndexOptions().expireAfter(TimeUnit.DAYS.toSeconds(90), java.util.concurrent.TimeUnit.SECONDS);
+        IndexOptions indexOptions = new IndexOptions().expireAfter(TimeUnit.DAYS.toSeconds(90), TimeUnit.SECONDS);
         connection.getCollection(BIN_COLLECTION).createIndex(new org.bson.Document(MongoFullGcNodeBin.GC_COLLECTED_AT, 1), indexOptions);
     }
 

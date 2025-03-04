@@ -29,6 +29,7 @@ import static java.util.Optional.ofNullable;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.lt;
 import static java.util.Collections.emptyList;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import org.apache.jackrabbit.oak.plugins.document.FullGcNodeBin;
@@ -100,7 +101,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     /** the hint representing "_modified_1__id_1" - if that index exists, null otherwise */
     private final BasicDBObject modifiedIdHint;
-    private final MongoFullGcNodeBin fullGcNodeBin;
 
     /** timestamp of last time an explain of the 'getModifiedDocs' query was logged */
     private long lastExplainLogMs = -1;
@@ -111,10 +111,15 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     /**
      * The batch size for the query of possibly deleted docs.
      */
-    private final int batchSize = Integer.getInteger(
-            "oak.mongo.queryDeletedDocsBatchSize", 1000);
+    private final int batchSize = SystemPropertySupplier.create(
+        "oak.mongo.queryDeletedDocsBatchSize", 1000).get();
+    private final MongoFullGcNodeBin fullGcBin;
 
     public MongoVersionGCSupport(MongoDocumentStore store) {
+        this(store, false);
+    }
+
+    public MongoVersionGCSupport(MongoDocumentStore store, boolean fullGcBinEnabled) {
         super(store);
         this.store = store;
         if(hasIndex(getNodeCollection(), SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
@@ -131,7 +136,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         } else {
             modifiedIdHint = null;
         }
-        fullGcNodeBin = new MongoFullGcNodeBin(store);
+        this.fullGcBin = new MongoFullGcNodeBin(store, fullGcBinEnabled);
     }
 
     @Override
@@ -480,7 +485,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     @Override
     public FullGcNodeBin getFullGCBin() {
-        return fullGcNodeBin;
+        return fullGcBin;
     }
 
     private static String getID(BasicDBObject document) {

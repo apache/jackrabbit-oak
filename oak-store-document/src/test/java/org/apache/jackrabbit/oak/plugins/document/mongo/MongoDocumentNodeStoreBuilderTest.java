@@ -132,4 +132,10 @@ public class MongoDocumentNodeStoreBuilderTest {
         final int fullGcModeNone = 0;
         assertEquals(builder.getFullGCMode(), fullGcModeNone);
     }
+
+    @Test
+    public void isFullGCAuditLoggingEnabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertFalse(builder.isFullGCAuditLoggingEnabled());
+    }
 }
