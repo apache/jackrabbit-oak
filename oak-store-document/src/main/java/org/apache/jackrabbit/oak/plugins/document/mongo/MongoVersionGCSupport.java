@@ -197,10 +197,9 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     }
 
     /**
-     * Logs an explain of a mongo query. If log level is INFO it does it one-lined,
-     * if log level is DEBUG it does it pretty print multi-lined.
+     * Logs an explain of a mongo query if trace is enabled
      *
-     * This is done once every 24h of livetime of this particular object.
+     * This is done once every 24h of lifetime of this particular object.
      *
      * @param logMsg the log message to use - should contain two "{}" for the hint
      *               and the explain json
@@ -209,24 +208,19 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * @param hint   the hint for the query, or null
      */
     private void logQueryExplain(String logMsg, @NotNull Bson query, Bson hint) {
-        final long timeSinceLastLog = System.currentTimeMillis() - lastExplainLogMs;
-        if (timeSinceLastLog < EXPLAIN_LOG_INTERVAL_MS) {
-            // then don't log
-            return;
+        if (LOG.isTraceEnabled()) {
+            final long timeSinceLastLog = System.currentTimeMillis() - lastExplainLogMs;
+            if (timeSinceLastLog < EXPLAIN_LOG_INTERVAL_MS) {
+                // then don't log
+                return;
+            }
+            final BasicDBObject explainResult = MongoUtils.explain(store.getDatabase(),
+                    getNodeCollection(), query, hint);
+            final BasicDBObject winningPlan = MongoUtils.getWinningPlan(explainResult);
+            final BasicDBObject result = winningPlan == null ? explainResult : winningPlan;
+            LOG.trace(logMsg, hint, result);
+            lastExplainLogMs = System.currentTimeMillis();
         }
-        final BasicDBObject explainResult = MongoUtils.explain(store.getDatabase(),
-                getNodeCollection(), query, hint);
-        final BasicDBObject winningPlan = MongoUtils.getWinningPlan(explainResult);
-        final BasicDBObject result = winningPlan == null ? explainResult : winningPlan;
-        if (LOG.isDebugEnabled()) {
-            // if log level is DEBUG, let's do a pretty print
-            String prettyPrinted = JsopBuilder.prettyPrint(result.toJson());
-            LOG.debug(logMsg, hint, prettyPrinted);
-        } else {
-            // otherwise let's just do a compact print
-            LOG.info(logMsg, hint, result);
-        }
-        lastExplainLogMs = System.currentTimeMillis();
     }
 
     /**
