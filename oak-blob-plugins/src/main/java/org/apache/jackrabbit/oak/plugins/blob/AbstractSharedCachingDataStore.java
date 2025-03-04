@@ -326,15 +326,11 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             try {
                 // If cache configured to 0 will return null
                 if (cached == null || !cached.exists()) {
-                    InputStream in = null;
-                    try {
-                        TransientFileFactory fileFactory = TransientFileFactory.getInstance();
-                        File tmpFile = fileFactory.createTransientFile("temp0cache", null, temp);
-                        in = backend.getRecord(getIdentifier()).getStream();
+                    TransientFileFactory fileFactory = TransientFileFactory.getInstance();
+                    File tmpFile = fileFactory.createTransientFile("temp0cache", null, temp);
+                    try (InputStream in = backend.getRecord(getIdentifier()).getStream()) {
                         copyInputStreamToFile(in, tmpFile);
                         return new LazyFileInputStream(tmpFile);
-                    } finally {
-                        in.close();
                     }
                 } else {
                     return new FileInputStream(cached);
