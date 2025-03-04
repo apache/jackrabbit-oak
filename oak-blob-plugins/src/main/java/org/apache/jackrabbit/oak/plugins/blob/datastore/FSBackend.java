@@ -191,10 +191,7 @@ public class FSBackend extends AbstractSharedBackend {
             try (FileOutputStream os = new FileOutputStream(file)) {
                 IOUtils.copyLarge(input, os);
             } finally {
-                try {
-                    input.close();
-                } catch (IOException swallowed) {
-                }
+                IOUtils.closeQuietly(input);
             }
         } catch (IOException e) {
             LOG.error("Exception while adding metadata record with name {}, {}",
