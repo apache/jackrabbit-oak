@@ -334,11 +334,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     protected void markAndSweep(boolean markOnly, boolean forceBlobRetrieve) throws Exception {
         statsCollector.start();
-        boolean threw = true;
-        GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
         Stopwatch sw = Stopwatch.createStarted();
 
-        try {
+        try (GarbageCollectorFileState fs = createGarbageCollectorFileState(root, !LOG.isTraceEnabled() && !traceOutput)) {
             LOG.info("Starting Blob garbage collection with markOnly [{}] for repositoryId [{}]", markOnly, repoId);
 
             long markStart = System.currentTimeMillis();
@@ -360,8 +358,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     long maxTime = getMaxModifiedTime(markStart) > 0 ? getMaxModifiedTime(markStart) : markStart;
                     LOG.info("Blob garbage collection completed in {} ({} ms). Number of blobs deleted [{}] with max modification time of [{}]",
                         sw.toString(), sw.elapsed(TimeUnit.MILLISECONDS), deleteCount, timestampToString(maxTime));
-
-                    threw = false;
                 } catch (NotAllRepositoryMarkedException rm) {
                     statsCollector.finishFailure();
                 } finally {
@@ -375,17 +371,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             throw e;
         } finally {
             statsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
-
-            // OAK-7662: retain output file when tracing
-            if (!LOG.isTraceEnabled() && !traceOutput) {
-                try {
-                    IOUtils.close(fs);
-                } catch (IOException ioe) {
-                    if (!threw) {
-                        throw ioe;
-                    }
-                }
-            }
         }
     }
 
@@ -679,11 +664,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         consistencyStatsCollector.start();
         Stopwatch sw = Stopwatch.createStarted();
 
-        boolean threw = true;
-        GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
         long candidates = 0;
 
-        try {
+        try (GarbageCollectorFileState fs = createGarbageCollectorFileState(root, !traceOutput && (!LOG.isTraceEnabled() && candidates == 0))) {
             LOG.info("Starting blob consistency check with markOnly = {}", markOnly);
 
             // Mark all used blob references
@@ -742,7 +725,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     blobIdRetriever.get();
                 } catch (ExecutionException e) {
                     LOG.warn("Error occurred while fetching all the blobIds from the BlobStore");
-                    threw = false;
                     throw e;
                 }
 
@@ -772,16 +754,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
             }
         } finally {
-            // OAK-7662: retain output file when tracing
-            if (!traceOutput && (!LOG.isTraceEnabled() && candidates == 0)) {
-                try {
-                    IOUtils.close(fs);
-                } catch (IOException ioe) {
-                    if (!threw) {
-                        throw ioe;
-                    }
-                }
-            }
             sw.stop();
             consistencyStatsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
         }
@@ -1350,4 +1322,19 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             super(message);
        }
    }
+
+    private static GarbageCollectorFileState createGarbageCollectorFileState
+            (String root, boolean allowClose) throws IOException {
+        if (allowClose) {
+            return new GarbageCollectorFileState(root);
+        } else {
+            // OAK-7662: retain output file when tracing
+            return new GarbageCollectorFileState(root) {
+                @Override
+                public void close() {
+                    throw new RuntimeException("should not get here");
+                }
+            };
+        }
+    }
 }
