@@ -34,6 +34,7 @@ import org.junit.Before;
 
 import javax.jcr.RepositoryException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -56,8 +57,8 @@ public abstract class MembershipBaseTest extends AbstractUserTest implements Use
     UserManagerImpl userMgr;
     MembershipProvider mp;
 
-    private final Set<String> testUsers = new HashSet<>();
-    private final Set<String> testGroups = new HashSet<>();
+    private final Set<String> testUsers = Collections.synchronizedSet(new HashSet<>());
+    private final Set<String> testGroups = Collections.synchronizedSet(new HashSet<>());
 
     @Before
     public void before() throws Exception {

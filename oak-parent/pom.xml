@@ -127,7 +127,6 @@
           <configuration>
             <doclint>none</doclint>
             <detectJavaApiLink>true</detectJavaApiLink>
-            <aggregate>true</aggregate>
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
@@ -309,11 +308,6 @@
               <derby.stream.error.file>${project.build.directory}/derby.log</derby.stream.error.file>
             </systemPropertyVariables>
           </configuration>
-        </plugin>
-        <plugin>
-          <groupId>com.github.spotbugs</groupId>
-          <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.8.6.3</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -954,20 +948,6 @@
                   </execution>
                </executions>
             </plugin>
-            <plugin>
-               <groupId>com.github.spotbugs</groupId>
-               <artifactId>spotbugs-maven-plugin</artifactId>
-               <configuration>
-                  <failOnError>false</failOnError>
-               </configuration>
-               <executions>
-                  <execution>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
          </plugins>
       </build>
       <dependencies>
@@ -1039,25 +1019,11 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-maven-plugin</artifactId>
+            <artifactId>maven-surefire-plugin</artifactId>
             <configuration>
-              <failOnError>false</failOnError>
+              <skipTests>${surefire.skip.ut}</skipTests>
             </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
           </plugin>
-           <plugin>
-             <artifactId>maven-surefire-plugin</artifactId>
-             <configuration>
-               <skipTests>${surefire.skip.ut}</skipTests>
-             </configuration>
-           </plugin>
         </plugins>
       </build>
     </profile>
