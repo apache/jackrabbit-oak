@@ -39,7 +39,7 @@ class CdCommand extends CommandSupport{
             @Override
             SortedSet getCandidates() {
                 SortedSet<String> names = new TreeSet<String>()
-                Iterables.limit(getSession().getWorkingNode().childNodeNames, 100).each {
+                IterableUtils.limit(getSession().getWorkingNode().childNodeNames, 100).each {
                     names << it.replace(" ", "\\ ")
                 }
                 return names

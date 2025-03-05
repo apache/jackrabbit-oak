@@ -37,6 +37,7 @@ import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
@@ -194,7 +195,7 @@ public class IndexRootDirectory {
         List<String> result = new ArrayList<>(2);
 
         //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
-        for (String e : Iterables.limit(elements, 3)) {
+        for (String e : IterableUtils.limit(elements, 3)) {
             if ("oak:index".equals(e)) {
                 continue;
             }

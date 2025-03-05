@@ -42,7 +42,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
 
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Arrays.asList;
@@ -221,7 +220,7 @@ public class CompositeChildrenCountTest {
         public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
             if (children == null) {
                 Iterable<? extends ChildNodeEntry> childrenIterable = cycle(new MemoryChildNodeEntry("child", EMPTY_NODE));
-                return asCountingIterable(limit(childrenIterable, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
+                return asCountingIterable(IterableUtils.limit(childrenIterable, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
             } else {
                 return asCountingIterable(IterableUtils.transform(asList(children), input -> new MemoryChildNodeEntry(input, EMPTY_NODE)));
             }

@@ -143,7 +143,7 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
                             "[%d]. Estimated value count [%d]", maxValueCount, childNodeCount);
                 } else {
                     String[] values = IterableUtils.toArray(
-                            Iterables.limit(data.getChildNodeNames(), maxValueCount),
+                            IterableUtils.limit(data.getChildNodeNames(), maxValueCount),
                             String.class
                     );
 

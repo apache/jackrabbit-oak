@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.console.commands
 
 import org.apache.jackrabbit.guava.common.collect.Iterables
 import groovy.transform.CompileStatic
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
@@ -36,7 +37,7 @@ class LsCommand extends CommandSupport{
     Object execute(List<String> args) {
         int limit = args ? args[0] as int : 50
         def count = 0
-        Iterables.limit(session.workingNode.childNodeNames, limit).each {
+        IterableUtils.limit(session.workingNode.childNodeNames, limit).each {
             count++
             io.out.println(it)
         }
