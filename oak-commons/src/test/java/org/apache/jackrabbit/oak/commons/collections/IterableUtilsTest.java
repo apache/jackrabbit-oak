@@ -822,4 +822,45 @@ public class IterableUtilsTest {
 
         Assert.assertEquals(Arrays.asList(2, 3, 4, 5), list);
     }
+
+    @Test
+    public void testToStringWithNonEmptyIterable() {
+        Iterable<String> iterable = List.of("a", "b", "c");
+        String result = IterableUtils.toString(iterable);
+        Assert.assertEquals("[a, b, c]", result);
+    }
+
+    @Test
+    public void testToStringWithEmptyIterable() {
+        Iterable<String> iterable = Collections.emptyList();
+        String result = IterableUtils.toString(iterable);
+        Assert.assertEquals("[]", result);
+    }
+
+    @Test
+    public void testToStringWithNullIterable() {
+        String result = IterableUtils.toString(null);
+        Assert.assertEquals("[]", result);
+    }
+
+    @Test
+    public void testToStringWithNullElements() {
+        Iterable<String> iterable = Arrays.asList("a", null, "c");
+        String result = IterableUtils.toString(iterable);
+        Assert.assertEquals("[a, null, c]", result);
+    }
+
+    @Test
+    public void testToStringWithMixedTypeElements() {
+        Iterable<Object> iterable = Arrays.asList("a", 1, true, 3.14);
+        String result = IterableUtils.toString(iterable);
+        Assert.assertEquals("[a, 1, true, 3.14]", result);
+    }
+
+    @Test
+    public void testToStringWithSpecialCharacters() {
+        Iterable<String> iterable = Arrays.asList("a,b", "c\"d", "e\nf");
+        String result = IterableUtils.toString(iterable);
+        Assert.assertEquals("[a,b, c\"d, e\nf]", result);
+    }
 }

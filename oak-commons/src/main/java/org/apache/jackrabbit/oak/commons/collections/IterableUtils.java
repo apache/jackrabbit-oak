@@ -375,4 +375,19 @@ public class IterableUtils {
     public static <T> Iterable<T> limit(final Iterable<T> iterable, final int limitSize) {
         return org.apache.commons.collections4.IterableUtils.boundedIterable(iterable, limitSize);
     }
+
+    /**
+     * Returns a string representation of the elements of the specified iterable.
+     * <p>
+     * The string representation consists of a list of the iterable's elements,
+     * enclosed in square brackets ({@code "[]"}). Adjacent elements are separated
+     * by the characters {@code ", "} (a comma followed by a space). Elements are
+     * converted to strings as by {@code String.valueOf(Object)}.
+     *
+     * @param iterable  the iterable to convert to a string, may be null
+     * @return a string representation of {@code iterable}
+     */
+    public static String toString(final Iterable<?> iterable) {
+        return org.apache.commons.collections4.IterableUtils.toString(iterable);
+    }
 }
