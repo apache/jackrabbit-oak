@@ -376,7 +376,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         } finally {
             statsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
 
-            // OAK-7762: retain output file when tracing
+            // OAK-7662: retain output file when tracing
             if (!LOG.isTraceEnabled() && !traceOutput) {
                 try {
                     IOUtils.close(fs);
@@ -772,10 +772,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
             }
         } finally {
-            // OAK-7762: retain output file when tracing
+            // OAK-7662: retain output file when tracing
             if (!traceOutput && (!LOG.isTraceEnabled() && candidates == 0)) {
                 try {
-                    fs.close();
+                    IOUtils.close(fs);
                 } catch (IOException ioe) {
                     if (!threw) {
                         throw ioe;
