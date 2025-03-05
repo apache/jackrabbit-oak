@@ -56,6 +56,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
@@ -374,9 +375,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             throw e;
         } finally {
             statsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+
+            // OAK-7762: retain output file when tracing
             if (!LOG.isTraceEnabled() && !traceOutput) {
                 try {
-                    fs.close();
+                    IOUtils.close(fs);
                 } catch (IOException ioe) {
                     if (!threw) {
                         throw ioe;
@@ -728,7 +731,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
             // Get size
             getBlobReferencesSize(fs, consistencyStats);
-            
+
             if (!markOnly) {
                 // Find all blobs available in the blob store
                 ListenableFutureTask<Integer> blobIdRetriever = ListenableFutureTask.create(new BlobIdRetriever(fs,
@@ -769,6 +772,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 }
             }
         } finally {
+            // OAK-7762: retain output file when tracing
             if (!traceOutput && (!LOG.isTraceEnabled() && candidates == 0)) {
                 try {
                     fs.close();

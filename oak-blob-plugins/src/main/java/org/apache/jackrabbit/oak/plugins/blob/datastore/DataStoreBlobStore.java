@@ -322,15 +322,13 @@ public class DataStoreBlobStore
 
     @Override
     public String writeBlob(InputStream stream, BlobOptions options) throws IOException {
-        boolean threw = true;
-        try {
+        requireNonNull(stream);
+        try (stream) {
             long start = System.nanoTime();
 
-            requireNonNull(stream);
             DataRecord dr = writeStream(stream, options);
             String id = getBlobId(dr);
             updateTracker(id);
-            threw = false;
 
             stats.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, dr.getLength());
             stats.uploadCompleted(id);
@@ -339,16 +337,6 @@ public class DataStoreBlobStore
         } catch (DataStoreException e) {
             stats.uploadFailed();
             throw new IOException(e);
-        } finally {
-            //DataStore does not close the stream internally
-            //So close the stream explicitly
-            try {
-                stream.close();
-            } catch (IOException ioe) {
-                if (!threw) {
-                    throw ioe;
-                }
-            }
         }
     }
 

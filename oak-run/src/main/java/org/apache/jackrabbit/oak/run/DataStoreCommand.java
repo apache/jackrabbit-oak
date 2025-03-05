@@ -196,10 +196,8 @@ public class DataStoreCommand implements Command {
             if (dataStoreOpts.dumpRefs()) {
                 log.info("Initiating dump of data store references");
                 final File referencesTemp = File.createTempFile("traverseref", null, new File(opts.getTempDirectory()));
-                final BufferedWriter writer = new BufferedWriter(new FileWriter(referencesTemp, StandardCharsets.UTF_8));
 
-                boolean threw = true;
-                try {
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(referencesTemp, StandardCharsets.UTF_8))) {
                     BlobReferenceRetriever retriever = getRetriever(fixture, dataStoreOpts, opts);
 
                     retriever.collectReferences(new ReferenceCollector() {
@@ -227,7 +225,6 @@ public class DataStoreCommand implements Command {
 
                     writer.flush();
                     writer.close();
-                    threw = false;
 
                     sort(referencesTemp, idComparator);
 
@@ -237,14 +234,6 @@ public class DataStoreCommand implements Command {
                     FileUtils.forceMkdir(parent);
 
                     FileUtils.copyFile(referencesTemp, references);
-                } finally {
-                    try {
-                        writer.close();
-                    } catch (IOException ex) {
-                        if (!threw) {
-                            throw ex;
-                        }
-                    }
                 }
             } else if (dataStoreOpts.dumpIds()) {
                 log.info("Initiating dump of data store IDs");

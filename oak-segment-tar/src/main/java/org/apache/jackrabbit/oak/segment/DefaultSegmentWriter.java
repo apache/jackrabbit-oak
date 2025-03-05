@@ -645,7 +645,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 return id;
             } finally {
                 try {
-                    stream.close();
+                    IOUtils.close(stream);
                 } catch (IOException ex) {
                     if (!threw) {
                         throw ex;
@@ -658,10 +658,10 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private RecordId internalWriteStream(@NotNull InputStream stream) throws IOException {
             // Special case for short binaries (up to about binariesInlineThreshold, 16kB by default):
             // store them directly as small- or medium-sized value records
-                    	
+
             byte[] data = new byte[binariesInlineThreshold];
             int n = IOUtils.read(stream, data, 0, data.length);
-            
+
             if (n < binariesInlineThreshold) {
                 return writeValueRecord(n, data);
             }
