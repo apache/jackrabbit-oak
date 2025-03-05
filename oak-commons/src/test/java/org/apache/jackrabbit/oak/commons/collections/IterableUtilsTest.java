@@ -755,4 +755,71 @@ public class IterableUtilsTest {
 
         Assert.assertTrue(IterableUtils.elementsEqual(arrayList, linkedList));
     }
+
+    @Test
+    public void testLimitWithFewerElements() {
+        List<Integer> list = List.of(1, 2, 3, 4, 5);
+        Iterable<Integer> limited = IterableUtils.limit(list, 3);
+
+        List<Integer> result = new ArrayList<>();
+        limited.forEach(result::add);
+
+        Assert.assertEquals(List.of(1, 2, 3), result);
+    }
+
+    @Test
+    public void testLimitWithMoreElements() {
+        List<Integer> list = List.of(1, 2, 3);
+        Iterable<Integer> limited = IterableUtils.limit(list, 5);
+
+        List<Integer> result = new ArrayList<>();
+        limited.forEach(result::add);
+
+        Assert.assertEquals(List.of(1, 2, 3), result);
+    }
+
+    @Test
+    public void testLimitWithZero() {
+        List<Integer> list = List.of(1, 2, 3, 4, 5);
+        Iterable<Integer> limited = IterableUtils.limit(list, 0);
+
+        List<Integer> result = new ArrayList<>();
+        limited.forEach(result::add);
+
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testLimitWithEmptyIterable() {
+        List<Integer> list = Collections.emptyList();
+        Iterable<Integer> limited = IterableUtils.limit(list, 3);
+
+        Assert.assertFalse(limited.iterator().hasNext());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testLimitWithNullIterable() {
+        Iterable<Integer> limited = IterableUtils.limit(null, 3);
+
+        Assert.assertFalse(limited.iterator().hasNext());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testLimitWithNegativeSize() {
+        List<Integer> list = List.of(1, 2, 3);
+        IterableUtils.limit(list, -1);
+    }
+
+    @Test
+    public void testLimitWithRemove() {
+        List<Integer> list = new ArrayList<>(Arrays.asList(1, 2, 3, 4, 5));
+        Iterable<Integer> limited = IterableUtils.limit(list, 2);
+
+        Iterator<Integer> iterator = limited.iterator();
+        iterator.next();  // 1
+        iterator.remove();
+        iterator.next();  // 2
+
+        Assert.assertEquals(Arrays.asList(2, 3, 4, 5), list);
+    }
 }

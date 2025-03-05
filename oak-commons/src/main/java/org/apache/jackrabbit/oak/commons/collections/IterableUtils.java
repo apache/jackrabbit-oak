@@ -357,4 +357,22 @@ public class IterableUtils {
         }
         return IteratorUtils.elementsEqual(itr1.iterator(), itr2.iterator());
     }
+
+    /**
+     * Creates an iterable limited to the specified number of elements.
+     * <p>
+     * The returned iterable's iterator will stop returning elements after the specified limit
+     * has been reached or when the source iterable's iterator is exhausted, whichever comes first.
+     * <p>
+     * The returned iterable's iterator supports {@code remove()} if the original iterator supports it.
+     *
+     * @param <T> the type of elements in the iterable
+     * @param iterable the iterable to limit, may be null
+     * @param limitSize the maximum number of elements to return
+     * @return a limited iterable
+     * @throws IllegalArgumentException if limitSize is negative
+     */
+    public static <T> Iterable<T> limit(final Iterable<T> iterable, final int limitSize) {
+        return org.apache.commons.collections4.IterableUtils.boundedIterable(iterable, limitSize);
+    }
 }
