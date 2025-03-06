@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 import java.io.IOException;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrClient;
@@ -86,7 +87,7 @@ public class NodeStateSolrServerProvider implements SolrServerProvider {
     @Override
     public String toString() {
         return "NodeStateSolrServerProvider{" +
-                "nodeStateChildren=" + Iterables.toString(nodeState.getChildNodeNames()) +
+                "nodeStateChildren=" + IterableUtils.toString(nodeState.getChildNodeNames()) +
                 ", provider=" + provider +
                 '}';
     }

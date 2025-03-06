@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -625,14 +626,14 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             if (!toRemove.isEmpty()) {
                 Set<String> failed = gr.removeMembers(toRemove.keySet().toArray(new String[0]));
                 if (!failed.isEmpty()) {
-                    handleFailure("Failed removing members " + Iterables.toString(failed) + " to " + gr);
+                    handleFailure("Failed removing members " + IterableUtils.toString(failed) + " to " + gr);
                 }
             }
 
             if (!toAdd.isEmpty()) {
                 Set<String> failed = gr.addMembers(toAdd.keySet().toArray(new String[0]));
                 if (!failed.isEmpty()) {
-                    handleFailure("Failed add members " + Iterables.toString(failed) + " to " + gr);
+                    handleFailure("Failed add members " + IterableUtils.toString(failed) + " to " + gr);
                 }
             }
 

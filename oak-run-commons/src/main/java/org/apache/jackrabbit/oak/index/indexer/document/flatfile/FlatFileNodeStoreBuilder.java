@@ -23,6 +23,7 @@ import com.mongodb.MongoClientURI;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
@@ -414,7 +415,7 @@ public class FlatFileNodeStoreBuilder {
     }
 
     private void logFlags() {
-        log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
+        log.info("Preferred path elements are {}", IterableUtils.toString(preferredPathElements));
         log.info("Compression enabled while sorting : {} ({})", IndexStoreUtils.compressionEnabled(), OAK_INDEXER_USE_ZIP);
         log.info("LZ4 enabled for compression algorithm : {} ({})", IndexStoreUtils.useLZ4(), OAK_INDEXER_USE_LZ4);
         log.info("Sort strategy : {} ({})", sortStrategyType, OAK_INDEXER_SORT_STRATEGY_TYPE);

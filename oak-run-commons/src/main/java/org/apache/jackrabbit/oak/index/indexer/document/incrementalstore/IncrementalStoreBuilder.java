@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
@@ -148,7 +149,7 @@ public class IncrementalStoreBuilder {
 
     private void logFlags() {
         log.info("Preferred path elements {}, compression enabled {}, algorithm {}",
-                Iterables.toString(preferredPathElements),
+                IterableUtils.toString(preferredPathElements),
                 IndexStoreUtils.compressionEnabled(),
                 IndexStoreUtils.useLZ4());
     }

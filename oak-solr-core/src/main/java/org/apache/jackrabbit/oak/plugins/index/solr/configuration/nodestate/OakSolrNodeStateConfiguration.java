@@ -23,6 +23,7 @@ import java.util.Locale;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
@@ -243,7 +244,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
     @Override
     public String toString() {
         return "OakSolrNodeStateConfiguration{" +
-                "definitionChildren=" + Iterables.toString(definition.getChildNodeNames()) +
+                "definitionChildren=" + IterableUtils.toString(definition.getChildNodeNames()) +
                 '}';
     }
 

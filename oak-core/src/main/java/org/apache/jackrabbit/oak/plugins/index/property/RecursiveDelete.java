@@ -25,6 +25,7 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -65,7 +66,7 @@ public class RecursiveDelete {
             save(path, currentSize, false);
         }
 
-        String pathDetails = Iterables.toString(paths);
+        String pathDetails = IterableUtils.toString(paths);
         save(pathDetails, currentSize, true);
         log.debug("Removed subtree under [{}] with {} child nodes " +
                 "in {} ({} saves)", pathDetails, numRemoved, w, mergeCount);

@@ -34,6 +34,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.cursor.PathCursor;
@@ -1230,7 +1231,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         return PropertyValues.newDouble(currentRow.score);
                     }
                     if (QueryConstants.REP_SPELLCHECK.equals(columnName) || QueryConstants.REP_SUGGEST.equals(columnName)) {
-                        return PropertyValues.newString(Iterables.toString(currentRow.suggestWords));
+                        return PropertyValues.newString(IterableUtils.toString(currentRow.suggestWords));
                     }
                     if (QueryConstants.REP_EXCERPT.equals(columnName)) {
                         return PropertyValues.newString(currentRow.excerpt);
