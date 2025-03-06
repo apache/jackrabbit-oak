@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.slf4j.Logger;
@@ -74,11 +75,15 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
-        this.facetFields = elasticRequestHandler.facetFields().collect(Collectors.toSet());
+        Set<String> elasticFieldNames = elasticRequestHandler.facetFields().
+                map(p -> ElasticIndexUtils.fieldName(p)).
+                collect(Collectors.toSet());
+        this.facetFields = elasticRequestHandler.facetFields().
+                collect(Collectors.toSet());
 
         SearchRequest searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
                 .trackTotalHits(thb -> thb.enabled(true))
-                .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(facetFields)))))
+                .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(elasticFieldNames)))))
                 .query(Query.of(qb -> qb.bool(elasticRequestHandler.baseQueryBuilder().build())))
                 .aggregations(elasticRequestHandler.aggregations())
                 .size(sampleSize)
@@ -135,7 +140,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null && isAccessible.test(path)) {
             for (String field : facetFields) {
-                JsonNode value = searchHit.source().get(field);
+                JsonNode value = searchHit.source().get(ElasticIndexUtils.fieldName(field));
                 if (value != null) {
                     accessibleFacetCounts.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {

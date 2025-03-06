@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -165,16 +166,17 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     }
 
     @Override
-    protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
+    protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String propertyName, PropertyDefinition pd, int i) {
         // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
         // If the actual property value is different from the property type defined in the index definition/mapping - this will try to convert the property if possible,
         // otherwise will log a warning and not try and add the property to index. If we try and index incompatible data types (like String to Date),
         // we would get an exception while indexing the node on elastic search and other properties for the node will also don't get indexed. (See OAK-9665).
-        String fieldName = pname;
+        String fieldName = ElasticIndexUtils.fieldName(propertyName);
         if (pd.isRegexp) {
             ElasticPropertyDefinition epd = (ElasticPropertyDefinition) pd;
             if (epd.isFlattened()) {
-                fieldName = FieldNames.FLATTENED_FIELD_PREFIX + epd.nodeName + "." + pname;
+                fieldName = FieldNames.FLATTENED_FIELD_PREFIX +
+                        ElasticIndexUtils.fieldName(epd.nodeName) + "." + fieldName;
             }
         }
         int tag = pd.getType();
@@ -197,7 +199,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
             if (!LOG_SILENCER.silence(LOG_KEY_COULD_NOT_CONVERT_PROPERTY)) {
                 LOG.warn(
                         "[{}] Ignoring property. Could not convert property {} (field {}) of type {} to type {} for path {}. Error: {}",
-                        getIndexName(), pname, fieldName,
+                        getIndexName(), propertyName, fieldName,
                         Type.fromTag(property.getType().tag(), false),
                         Type.fromTag(tag, false), path, e.toString());
             }
@@ -252,7 +254,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         if (pd.getSimilaritySearchDenseVectorSize() == blob.length() / BLOB_LENGTH_DIVISOR) {
             // see https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch
             // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
-            doc.addSimilarityField(pd.name, blob);
+            doc.addSimilarityField(ElasticIndexUtils.fieldName(pd.name), blob);
         } else {
             if (!LOG_SILENCER.silence(LOG_KEY_SIMILARITY_BINARIES_WRONG_DIMENSION)) {
                 LOG.warn("[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
@@ -275,7 +277,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     @Override
     protected boolean indexDynamicBoost(ElasticDocument doc, String parent, String nodeName, String token, double boost) {
         if (!token.isEmpty()) {
-            doc.addDynamicBoostField(nodeName, token, boost);
+            doc.addDynamicBoostField(ElasticIndexUtils.fieldName(nodeName), token, boost);
             return true;
         }
         return false;

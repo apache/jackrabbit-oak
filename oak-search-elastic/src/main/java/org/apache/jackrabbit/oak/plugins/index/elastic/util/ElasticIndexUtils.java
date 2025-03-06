@@ -32,6 +32,31 @@ public class ElasticIndexUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexUtils.class);
 
     /**
+     * Convert a JCR property name to a Elasticsearch field name.
+     * Notice that "|" is not allowed in JCR names.
+     *
+     * "." is converted to "|dot|"
+     * "/" is converted to "||"
+     *
+     * @param propertyName the property name
+     * @return the field name
+     */
+    public static String fieldName(String propertyName) {
+        String fieldName = propertyName;
+        // 99% property names don't contain a slash or dot,
+        // so for performance reason use indexOf
+        int slashIndex = fieldName.indexOf('|');
+        if (slashIndex >= 0) {
+            fieldName = fieldName.replaceAll("\\|", "\\|\\|");
+        }
+        int dotIndex = fieldName.indexOf('.');
+        if (dotIndex >= 0) {
+            fieldName = fieldName.replaceAll("\\.", "|dot|");
+        }
+        return fieldName;
+    }
+
+    /**
      * Transforms a path into an _id compatible with Elasticsearch specification. The path cannot be larger than 512
      * bytes. For performance reasons paths that are already compatible are returned untouched. Otherwise, SHA-256
      * algorithm is used to return a transformed path (32 bytes max).
@@ -58,7 +83,7 @@ public class ElasticIndexUtils {
      * @return list of floats
      */
     public static List<Float> toFloats(byte[] array) {
-        int blockSize = Float.SIZE / Byte.SIZE;
+        int blockSize = Float.BYTES;
         ByteBuffer wrap = ByteBuffer.wrap(array);
         if (array.length % blockSize != 0) {
             LOG.warn("Unexpected byte array length {}", array.length);
@@ -78,10 +103,9 @@ public class ElasticIndexUtils {
      * @return byte array
      */
     public static byte[] toByteArray(List<Float> values) {
-        int blockSize = Float.SIZE / Byte.SIZE;
-        byte[] bytes = new byte[values.size() * blockSize];
+        byte[] bytes = new byte[values.size() * Float.BYTES];
         ByteBuffer wrap = ByteBuffer.wrap(bytes);
-        for (int i = 0, j = 0; i < values.size(); i++, j += blockSize) {
+        for (int i = 0; i < values.size(); i++) {
             wrap.putFloat(values.get(i));
         }
         return bytes;

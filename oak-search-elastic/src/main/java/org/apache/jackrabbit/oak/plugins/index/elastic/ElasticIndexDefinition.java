@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -324,13 +325,17 @@ public class ElasticIndexDefinition extends IndexDefinition {
             ElasticPropertyDefinition pd = getMatchingRegexPropertyDefinition(propertyName);
             if (pd != null) {
                 if (pd.isFlattened()) {
-                    return FieldNames.FLATTENED_FIELD_PREFIX + pd.nodeName + "." + propertyName;
+                    String fieldName = ElasticIndexUtils.fieldName(propertyName);
+                    String flattenedFieldName = FieldNames.FLATTENED_FIELD_PREFIX +
+                            ElasticIndexUtils.fieldName(pd.nodeName) + "." + fieldName;
+                    return flattenedFieldName;
                 }
             }
-            return propertyName + ".keyword";
+            String fieldName = ElasticIndexUtils.fieldName(propertyName);
+            return fieldName + ".keyword";
         }
 
-        String field = propertyName;
+        String field = ElasticIndexUtils.fieldName(propertyName);
         // it's ok to look at the first property since we are sure they all have the same type
         int type = propertyDefinitions.get(0).getType();
         if (isAnalyzable.apply(type) && isAnalyzed(propertyDefinitions)) {

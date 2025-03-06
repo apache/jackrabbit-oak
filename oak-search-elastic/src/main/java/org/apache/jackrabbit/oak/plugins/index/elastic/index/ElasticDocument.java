@@ -147,9 +147,9 @@ public class ElasticDocument {
         properties.put(fieldName, finalValue);
     }
 
-    void addSimilarityField(String name, Blob value) throws IOException {
+    void addSimilarityField(String fieldName, Blob value) throws IOException {
         byte[] bytes = value.getNewStream().readAllBytes();
-        addProperty(FieldNames.createSimilarityFieldName(name), toFloats(bytes));
+        addProperty(FieldNames.createSimilarityFieldName(fieldName), toFloats(bytes));
     }
 
     void indexAncestors(String path) {
@@ -160,8 +160,8 @@ public class ElasticDocument {
         addProperty(FieldNames.PATH_DEPTH, depth);
     }
 
-    void addDynamicBoostField(String propName, String value, double boost) {
-        addProperty(propName,
+    void addDynamicBoostField(String fieldName, String value, double boost) {
+        addProperty(fieldName,
                 Map.of(
                         ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE, value,
                         ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost

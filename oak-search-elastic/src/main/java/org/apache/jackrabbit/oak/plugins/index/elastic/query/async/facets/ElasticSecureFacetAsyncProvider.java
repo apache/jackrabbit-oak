@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     private static final Logger LOG = LoggerFactory.getLogger(ElasticSecureFacetAsyncProvider.class);
 
     private final Set<String> facetFields;
+    private final Set<String> elasticFieldNames;
     private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
     private final ElasticResponseHandler elasticResponseHandler;
     private final Predicate<String> isAccessible;
@@ -58,11 +60,14 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
         this.facetFields = elasticRequestHandler.facetFields().collect(Collectors.toSet());
+        this.elasticFieldNames = elasticRequestHandler.facetFields().
+                map(p -> ElasticIndexUtils.fieldName(p)).
+                collect(Collectors.toSet());
     }
 
     @Override
     public Set<String> sourceFields() {
-        return facetFields;
+        return elasticFieldNames;
     }
 
     @Override
@@ -75,7 +80,8 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null && isAccessible.test(path)) {
             for (String field: facetFields) {
-                JsonNode value = searchHit.source().get(field);
+                String elasticField = ElasticIndexUtils.fieldName(field);
+                JsonNode value = searchHit.source().get(elasticField);
                 if (value != null) {
                     accessibleFacetCounts.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {
