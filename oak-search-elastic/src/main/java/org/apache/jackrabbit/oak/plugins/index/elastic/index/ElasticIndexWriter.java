@@ -188,7 +188,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         CreateIndexRequest request;
         try {
             request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
             LOG.error("Failed to create index {}: {}", indexName, e.toString());
             throw e;
         }
