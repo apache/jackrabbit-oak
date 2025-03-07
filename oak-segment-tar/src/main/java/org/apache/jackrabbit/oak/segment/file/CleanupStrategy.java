@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
@@ -51,7 +50,7 @@ interface CleanupStrategy {
 
         Revisions getRevisions();
 
-        RecordId getCompactedRootId();
+        String getCompactedRootId();
 
         String getSegmentEvictionReason();
 

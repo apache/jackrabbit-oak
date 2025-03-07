@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.IOException;
@@ -64,15 +65,16 @@ public class GCJournal {
      * @param root          record id of the compacted root node
      */
     public synchronized void persist(long reclaimedSize, long repoSize,
-            @NotNull GCGeneration gcGeneration, long nodes, @NotNull RecordId root
+            @NotNull GCGeneration gcGeneration, long nodes, @NotNull String root
     ) {
         GCJournalEntry current = read();
-        if (root.equals(RecordId.NULL) || root.toString10().equals(current.root)) {
-            // only update the journal if the root has changed
+        if (current.getGcGeneration().equals(gcGeneration)) {
+            // failed compaction, only update the journal if the generation
+            // increases
             return;
         }
         latest = new GCJournalEntry(repoSize, reclaimedSize,
-                System.currentTimeMillis(), gcGeneration, nodes, root.toString10());
+                System.currentTimeMillis(), gcGeneration, nodes, requireNonNull(root));
         try {
             journalFile.writeLine(latest.toString());
         } catch (IOException e) {
@@ -100,7 +102,7 @@ public class GCJournal {
      * Returns all available entries from the journal
      */
     public synchronized Collection<GCJournalEntry> readAll() {
-        List<GCJournalEntry> all = new ArrayList<>();
+        List<GCJournalEntry> all = new ArrayList<GCJournalEntry>();
         for (String l : readLines()) {
             all.add(GCJournalEntry.fromString(l));
         }
@@ -113,7 +115,7 @@ public class GCJournal {
         } catch (IOException e) {
             LOG.error("Error reading gc journal", e);
         }
-        return new ArrayList<>();
+        return new ArrayList<String>();
     }
 
     public static class GCJournalEntry {
@@ -265,10 +267,10 @@ public class GCJournal {
             int result = 1;
             result = prime * result + gcGeneration.hashCode();
             result = prime * result + root.hashCode();
-            result = prime * result + Long.hashCode(nodes);
-            result = prime * result + Long.hashCode(reclaimedSize);
-            result = prime * result + Long.hashCode(repoSize);
-            result = prime * result + Long.hashCode(ts);
+            result = prime * result + (int) (nodes ^ (nodes >>> 32));
+            result = prime * result + (int) (reclaimedSize ^ (reclaimedSize >>> 32));
+            result = prime * result + (int) (repoSize ^ (repoSize >>> 32));
+            result = prime * result + (int) (ts ^ (ts >>> 32));
             return result;
         }
 
