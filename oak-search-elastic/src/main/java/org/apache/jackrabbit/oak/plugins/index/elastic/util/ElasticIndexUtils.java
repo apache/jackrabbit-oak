@@ -51,7 +51,7 @@ public class ElasticIndexUtils {
         } else {
             // 99.99% property names are OK,
             // so we loop over the characters first
-            for (int i = 0; i < fieldName.length(); i++) {
+            for (int i = 0; i < fieldName.length() && !escape ; i++) {
                 switch (fieldName.charAt(i)) {
                 case '|':
                 case '.':
