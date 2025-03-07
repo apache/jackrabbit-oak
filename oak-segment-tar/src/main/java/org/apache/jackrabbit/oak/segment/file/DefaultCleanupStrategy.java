@@ -51,7 +51,7 @@ class DefaultCleanupStrategy implements CleanupStrategy {
         context.getSegmentTracker().clearSegmentIdTables(cleanupResult.getReclaimedSegmentIds(), context.getSegmentEvictionReason());
         context.getGCListener().info("cleanup marking files for deletion: {}", toFileNames(cleanupResult.getRemovableFiles()));
 
-        long finalSize = context.getTarFiles().size();
+        long finalSize = size(context);
         long reclaimedSize = cleanupResult.getReclaimedSize();
         context.getFileStoreStats().reclaimed(reclaimedSize);
 
@@ -64,8 +64,6 @@ class DefaultCleanupStrategy implements CleanupStrategy {
                     context.getCompactionMonitor().getCompactedNodes(),
                     context.getCompactedRootId()
             );
-        } else {
-            context.getGCListener().warn("gc journal not available, unable to persist new entry.");
         }
         context.getGCListener().cleaned(reclaimedSize, finalSize);
         context.getGCListener().info(
@@ -78,11 +76,8 @@ class DefaultCleanupStrategy implements CleanupStrategy {
     }
 
     private static CleanupContext newCleanupContext(Context context) {
-        return new DefaultCleanupContext(
-                context.getSegmentTracker(),
-                context.getReclaimer(),
-                context.getCompactedRootId()
-        );
+        return new DefaultCleanupContext(context.getSegmentTracker(), context.getReclaimer(),
+                context.getCompactedRootId());
     }
 
     private static String toFileNames(@NotNull List<String> files) {
@@ -95,6 +90,10 @@ class DefaultCleanupStrategy implements CleanupStrategy {
 
     private static GCGeneration getGcGeneration(Context context) {
         return context.getRevisions().getHead().getSegmentId().getGcGeneration();
+    }
+
+    private static long size(Context context) {
+        return context.getTarFiles().size();
     }
 
 }

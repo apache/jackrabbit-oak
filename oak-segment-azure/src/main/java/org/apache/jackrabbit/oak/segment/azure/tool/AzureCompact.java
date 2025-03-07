@@ -33,7 +33,6 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 
-import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
 import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
@@ -369,8 +368,8 @@ public class AzureCompact {
             targetContainer = destinationCloudBlobDirectory.getContainer();
         }
 
-        GCGeneration gcGeneration;
-        RecordId root;
+        GCGeneration gcGeneration = null;
+        String root = null;
 
         try (FileStore store =newFileStore(splitPersistence,
                 Files.createTempDirectory(getClass().getSimpleName() + "-").toFile(),
@@ -403,7 +402,7 @@ public class AzureCompact {
 
             System.out.printf("    -> [skipping] cleaning up\n");
             gcGeneration = store.getHead().getGcGeneration();
-            root = store.getHead().getRecordId();
+            root = store.getHead().getRecordId().toString10();
         } catch (Exception e) {
             watch.stop();
             e.printStackTrace(System.err);
@@ -430,7 +429,7 @@ public class AzureCompact {
         return 0;
     }
 
-    private void persistGCJournal(SegmentNodeStorePersistence rwPersistence, long newSize, GCGeneration gcGeneration, RecordId root) throws IOException {
+    private void persistGCJournal(SegmentNodeStorePersistence rwPersistence, long newSize, GCGeneration gcGeneration, String root) throws IOException {
         GCJournalFile gcJournalFile = rwPersistence.getGCJournalFile();
         if (gcJournalFile != null) {
             GCJournal gcJournal = new GCJournal(gcJournalFile);
