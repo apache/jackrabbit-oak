@@ -201,7 +201,7 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("FullGcDelayFactory is : 2.0"));
         assertTrue(output.contains("FullGcBatchSize is : 1000"));
         assertTrue(output.contains("FullGcProgressSize is : 10000"));
-        assertTrue(output.contains("FullGcMaxAgeInSecs is : 86400"));
+        assertTrue(output.contains("FullGcMaxAgeInSecs is : 86400\n"));
         assertTrue(output.contains("FullGcMaxAgeMillis is : 86400000"));
     }
 
