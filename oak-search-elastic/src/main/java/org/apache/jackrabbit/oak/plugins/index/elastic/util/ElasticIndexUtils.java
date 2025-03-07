@@ -35,25 +35,104 @@ public class ElasticIndexUtils {
      * Convert a JCR property name to a Elasticsearch field name.
      * Notice that "|" is not allowed in JCR names.
      *
-     * "." is converted to "|dot|"
-     * "/" is converted to "||"
-     *
      * @param propertyName the property name
      * @return the field name
      */
     public static String fieldName(String propertyName) {
-        String fieldName = propertyName;
-        // 99% property names don't contain a slash or dot,
-        // so for performance reason use indexOf
-        int slashIndex = fieldName.indexOf('|');
-        if (slashIndex >= 0) {
-            fieldName = fieldName.replaceAll("\\|", "\\|\\|");
+        if(propertyName.startsWith(":")) {
+            // there are some hardcoded field names
+            return propertyName;
         }
-        int dotIndex = fieldName.indexOf('.');
-        if (dotIndex >= 0) {
-            fieldName = fieldName.replaceAll("\\.", "|dot|");
+        String fieldName = propertyName;
+        boolean escape = false;
+        if (fieldName.isBlank()) {
+            // empty field name or field names that only consist of spaces
+            escape = true;
+        } else {
+            // 99.99% property names are OK,
+            // so we loop over the characters first
+            for (int i = 0; i < fieldName.length(); i++) {
+                switch (fieldName.charAt(i)) {
+                case '|':
+                case '.':
+                case '^':
+                case '_':
+                    escape = true;
+                }
+            }
+        }
+        if (escape) {
+            StringBuilder buff = new StringBuilder(fieldName.length());
+            for (int i = 0; i < fieldName.length(); i++) {
+                char c = fieldName.charAt(i);
+                switch (c) {
+                case '|':
+                    buff.append("||");
+                    break;
+                case '.':
+                case '^':
+                    buff.append('|').append(Integer.toHexString(c)).append('|');
+                    break;
+                default:
+                    buff.append(c);
+                }
+            }
+            fieldName = buff.toString();
+            // internal field start with a _
+            // we also support empty or just spaces
+            if (fieldName.startsWith("_") || fieldName.isBlank()) {
+                fieldName = "|" + fieldName;
+            }
         }
         return fieldName;
+    }
+
+    /**
+     * Convert an elasticsearch field name to a JCR property name.
+     *
+     * @param fieldName the field name
+     * @return the property name
+     */
+    public static String propertyNameFromFieldName(String fieldName) {
+        if (fieldName.indexOf('|') < 0) {
+            return fieldName;
+        }
+        if (fieldName.startsWith("|")) {
+            if (fieldName.equals("|")) {
+                return "";
+            } if (fieldName.startsWith("|_") || fieldName.substring(1).isBlank()) {
+                fieldName = fieldName.substring(1);
+            }
+        }
+        StringBuilder buff = new StringBuilder(fieldName.length());
+        for (int i = 0; i < fieldName.length(); i++) {
+            char c = fieldName.charAt(i);
+            switch (c) {
+            case '|':
+                String next = fieldName.substring(i + 1);
+                if (next.startsWith("|")) {
+                    buff.append('|');
+                    i++;
+                } else {
+                    int end = next.indexOf('|');
+                    if (end < 0) {
+                        buff.append(next);
+                        break;
+                    }
+                    String code = next.substring(0, end);
+                    try {
+                        buff.append((char) Integer.parseInt(code, 16));
+                    } catch (NumberFormatException e) {
+                        buff.append(code);
+                    }
+                    i += code.length() + 1;
+                }
+                break;
+            default:
+                buff.append(c);
+            }
+        }
+        return buff.toString();
     }
 
     /**

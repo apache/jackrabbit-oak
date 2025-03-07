@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder.PropertyRule;
@@ -235,7 +236,9 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             String explanation = explain(query);
             assertThat(explanation, containsString("/oak:index/test1"));
             assertThat(explanation, containsString(
-                    "{\"term\":{\"first|dot|name\":{\"value\":\"Antonio\""));
+                    "{\"term\":{\"" +
+                            ElasticIndexUtils.fieldName("first.name") +
+                            "\":{\"value\":\"Antonio\""));
             assertQuery(query, List.of("/test"));
         });
 
@@ -246,7 +249,9 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             String explanation = explain(lowerQuery);
             assertThat(explanation, containsString("/oak:index/test1"));
             assertThat(explanation, containsString(
-                    "{\"term\":{\"function*lower*@first|dot|name\":{\"value\":\"antonio\""));
+                    "{\"term\":{\"" +
+                            ElasticIndexUtils.fieldName("function*lower*@first.name") +
+                            "\":{\"value\":\"antonio\""));
             assertQuery(lowerQuery, List.of("/test"));
         });
     }

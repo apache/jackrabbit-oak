@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.Test;
 
@@ -28,9 +29,39 @@ public class ElasticIndexUtilsTest {
 
     @Test
     public void fieldName() {
-        assertEquals("a", ElasticIndexUtils.fieldName("a"));
-        assertEquals("first|dot|name", ElasticIndexUtils.fieldName("first.name"));
-        assertEquals("first||name", ElasticIndexUtils.fieldName("first|name"));
+        assertEquals("regular", ElasticIndexUtils.fieldName("regular"));
+        assertEquals(":nodeName", ElasticIndexUtils.fieldName(":nodeName"));
+        assertEquals("first|2e|name", ElasticIndexUtils.fieldName("first.name"));
+        assertEquals("weird|5e|", ElasticIndexUtils.fieldName("weird^"));
+        assertEquals("embedded_is_fine", ElasticIndexUtils.fieldName("embedded_is_fine"));
+        assertEquals("|_id", ElasticIndexUtils.fieldName("_id"));
+        assertEquals("|", ElasticIndexUtils.fieldName(""));
+        assertEquals("| ", ElasticIndexUtils.fieldName(" "));
+        assertEquals("||", ElasticIndexUtils.fieldName("|"));
+        assertEquals("||test||", ElasticIndexUtils.fieldName("|test|"));
+    }
+
+    @Test
+    public void randomFieldNames() {
+        ElasticIndexUtils.propertyNameFromFieldName("");
+        Random r = new Random(1);
+        for (int i = 0; i < 1000; i++) {
+            StringBuilder buff = new StringBuilder();
+            int len = 1 + r.nextInt(5);
+            String chars = "|^._ 25ex";
+            for (int j = 0; j < len; j++) {
+                buff.append(chars.charAt(r.nextInt(chars.length())));
+            }
+            String p = buff.toString();
+            String f = ElasticIndexUtils.fieldName(p);
+            String p2 = ElasticIndexUtils.propertyNameFromFieldName(f);
+            if (!p.equals(p2)) {
+                p2 = ElasticIndexUtils.propertyNameFromFieldName(f);
+                assertEquals(p, p2);
+            }
+            // just to make sure there are no exceptions (within some limits)
+            ElasticIndexUtils.propertyNameFromFieldName(p);
+        }
     }
     
     @Test
