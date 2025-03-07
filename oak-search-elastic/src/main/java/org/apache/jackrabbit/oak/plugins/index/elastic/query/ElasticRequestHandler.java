@@ -649,16 +649,20 @@ public class ElasticRequestHandler {
     }
 
     private Stream<NestedQuery> dynamicScoreQueries(String text) {
-        return elasticIndexDefinition.getDynamicBoostProperties().stream().map(pd -> NestedQuery.of(n -> n
-                .path(ElasticIndexUtils.fieldName(pd.nodeName))
-                .query(q -> q.functionScore(s -> s
+        return elasticIndexDefinition.getDynamicBoostProperties().stream()
+            .map(pd -> {
+                String field = ElasticIndexUtils.fieldName(pd.nodeName);
+                return NestedQuery.of(n -> n
+                    .path(field)
+                    .query(q -> q.functionScore(s -> s
                         .boost(DYNAMIC_BOOST_WEIGHT)
                         .query(fq -> fq.match(m -> m.field(
-                                ElasticIndexUtils.fieldName(pd.nodeName) + ".value").
+                                field + ".value").
                                 query(FieldValue.of(text))))
                         .functions(f -> f.fieldValueFactor(fv -> fv.field(
-                                ElasticIndexUtils.fieldName(pd.nodeName) + ".boost")))))
-                .scoreMode(ChildScoreMode.Avg))
+                                field + ".boost")))))
+                    .scoreMode(ChildScoreMode.Avg));
+            }
         );
     }
 

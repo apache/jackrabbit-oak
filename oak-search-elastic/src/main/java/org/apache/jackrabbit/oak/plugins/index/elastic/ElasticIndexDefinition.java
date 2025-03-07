@@ -319,23 +319,18 @@ public class ElasticIndexDefinition extends IndexDefinition {
      */
     public String getElasticKeyword(String propertyName) {
         List<PropertyDefinition> propertyDefinitions = propertiesByName.get(propertyName);
+        String field = ElasticIndexUtils.fieldName(propertyName);
         if (propertyDefinitions == null) {
             // if there are no property definitions we return the default keyword name
             // this can happen for properties that were not explicitly defined (eg: created with a regex)
             ElasticPropertyDefinition pd = getMatchingRegexPropertyDefinition(propertyName);
-            if (pd != null) {
-                if (pd.isFlattened()) {
-                    String fieldName = ElasticIndexUtils.fieldName(propertyName);
-                    String flattenedFieldName = FieldNames.FLATTENED_FIELD_PREFIX +
-                            ElasticIndexUtils.fieldName(pd.nodeName) + "." + fieldName;
-                    return flattenedFieldName;
-                }
+            if (pd != null && pd.isFlattened()) {
+                return FieldNames.FLATTENED_FIELD_PREFIX +
+                        ElasticIndexUtils.fieldName(pd.nodeName) + "." + field;
+            } else {
+                return field + ".keyword";
             }
-            String fieldName = ElasticIndexUtils.fieldName(propertyName);
-            return fieldName + ".keyword";
         }
-
-        String field = ElasticIndexUtils.fieldName(propertyName);
         // it's ok to look at the first property since we are sure they all have the same type
         int type = propertyDefinitions.get(0).getType();
         if (isAnalyzable.apply(type) && isAnalyzed(propertyDefinitions)) {

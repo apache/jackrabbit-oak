@@ -49,6 +49,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * An {@link ElasticFacetProvider} extension that performs random sampling on the result set to compute facets.
@@ -75,10 +76,10 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
-        Set<String> elasticFieldNames = elasticRequestHandler.facetFields().
-                map(p -> ElasticIndexUtils.fieldName(p)).
-                collect(Collectors.toSet());
         this.facetFields = elasticRequestHandler.facetFields().
+                collect(Collectors.toSet());
+        Set<String> elasticFieldNames = facetFields.stream().
+                map(ElasticIndexUtils::fieldName).
                 collect(Collectors.toSet());
 
         SearchRequest searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
