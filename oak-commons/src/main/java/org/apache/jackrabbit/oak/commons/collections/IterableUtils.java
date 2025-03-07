@@ -390,4 +390,22 @@ public class IterableUtils {
     public static String toString(final Iterable<?> iterable) {
         return org.apache.commons.collections4.IterableUtils.toString(iterable);
     }
+
+    /**
+     * Returns the first element of the specified iterable, or the default value if the iterable is empty.
+     * <p>
+     * The iterable is only traversed enough to get the first element. If the iterable is empty,
+     * the default value is returned instead.
+     *
+     * @param <T> the type of elements in the iterable
+     * @param iterable the iterable to get the first element from, may be null
+     * @param defaultValue the value to return if the iterable is empty
+     * @return the first element in the iterable or the default value if the iterable is empty
+     * @throws NullPointerException if the iterable is null
+     */
+    public static <T> T getFirst(final Iterable<T> iterable, final  T defaultValue) {
+        Objects.requireNonNull(iterable, "Iterable must not be null.");
+        final Iterator<T> iterator = iterable.iterator();
+        return iterator.hasNext() ? iterator.next() : defaultValue;
+    }
 }

@@ -863,4 +863,51 @@ public class IterableUtilsTest {
         String result = IterableUtils.toString(iterable);
         Assert.assertEquals("[a,b, c\"d, e\nf]", result);
     }
+
+    @Test
+    public void testGetFirstWithNonEmptyIterable() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        String result = IterableUtils.getFirst(list, "default");
+        Assert.assertEquals("a", result);
+    }
+
+    @Test
+    public void testGetFirstWithEmptyIterable() {
+        List<String> list = Collections.emptyList();
+        String result = IterableUtils.getFirst(list, "default");
+        Assert.assertEquals("default", result);
+    }
+
+    @Test
+    public void testGetFirstWithNullIterable() {
+        Assert.assertThrows(NullPointerException.class, () -> IterableUtils.getFirst(null, "default"));
+    }
+
+    @Test
+    public void testGetFirstWithSingleElement() {
+        List<Integer> list = Collections.singletonList(42);
+        Integer result = IterableUtils.getFirst(list, 0);
+        Assert.assertEquals(Integer.valueOf(42), result);
+    }
+
+    @Test
+    public void testGetFirstWithNullFirstElement() {
+        List<String> list = Arrays.asList(null, "b", "c");
+        String result = IterableUtils.getFirst(list, "default");
+        Assert.assertNull(result);
+    }
+
+    @Test
+    public void testGetFirstWithNullDefaultValue() {
+        List<String> list = Collections.emptyList();
+        String result = IterableUtils.getFirst(list, null);
+        Assert.assertNull(result);
+    }
+
+    @Test
+    public void testGetFirstWithCustomIterable() {
+        Iterable<Integer> customIterable = () -> Arrays.asList(5, 10, 15).iterator();
+        Integer result = IterableUtils.getFirst(customIterable, 0);
+        Assert.assertEquals(Integer.valueOf(5), result);
+    }
 }
