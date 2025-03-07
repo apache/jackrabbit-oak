@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -261,7 +261,7 @@ public class DocumentNodeStoreSweepTest {
         Revision r = null;
         for (NodeDocument d : Utils.getAllDocuments(store)) {
             if (d.getPath().toString().startsWith("/node-")) {
-                r = StreamUtils.toStream(d.getAllChanges()).findFirst().orElse(null);
+                r = IterableUtils.getFirst(d.getAllChanges(), null);
                 break;
             }
         }

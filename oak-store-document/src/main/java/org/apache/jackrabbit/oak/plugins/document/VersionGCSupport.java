@@ -43,7 +43,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
-import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -307,7 +306,7 @@ public class VersionGCSupport {
         if (doc.getSplitDocType() != SplitDocType.DEFAULT_NO_BRANCH) {
             return false;
         }
-        Revision r = StreamUtils.toStream(doc.getAllChanges()).findFirst().orElse(null);
+        Revision r = IterableUtils.getFirst(doc.getAllChanges(), null);
         return r != null && sweepRevs.isRevisionNewer(r);
     }
 }

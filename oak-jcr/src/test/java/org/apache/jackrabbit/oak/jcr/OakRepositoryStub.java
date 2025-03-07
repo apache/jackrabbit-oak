@@ -26,7 +26,7 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
-import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 import org.apache.jackrabbit.test.RepositoryStubException;
@@ -66,7 +66,7 @@ public class OakRepositoryStub extends BaseRepositoryStub {
     private static RepositoryStub newDelegate(Properties settings)
             throws RepositoryException {
         // use first fixture for stub with segment-tar as default
-        Fixture f = StreamUtils.toStream(getFixtures()).findFirst().orElse(Fixture.SEGMENT_TAR);
+        Fixture f = IterableUtils.getFirst(getFixtures(), Fixture.SEGMENT_TAR);
         if (f == Fixture.DOCUMENT_MEM) {
             return new OakDocumentMemRepositoryStub(settings);
         } else if (f == Fixture.DOCUMENT_RDB) {
