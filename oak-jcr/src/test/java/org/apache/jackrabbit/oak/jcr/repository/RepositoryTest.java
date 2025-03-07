@@ -105,6 +105,7 @@ import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.stats.NoopStats;
@@ -2349,7 +2350,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void testConsistencyOfNameConversion() throws RepositoryException {
         NamespaceRegistry namespaceRegistry = getAdminSession().getWorkspace().getNamespaceRegistry();
-        Root root = RootFactory.createReadOnlyRoot(EmptyNodeState.EMPTY_NODE);
+        Root root = new RootProviderService().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE);
 
         SessionDelegate sessionDelegateMock = mock(SessionDelegate.class);
         when(sessionDelegateMock.getSessionStats()).thenReturn(mock(SessionStats.class));
