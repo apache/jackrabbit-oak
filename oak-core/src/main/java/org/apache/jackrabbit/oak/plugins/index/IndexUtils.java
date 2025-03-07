@@ -250,7 +250,9 @@ public final class IndexUtils {
             asyncNames.remove(IndexConstants.INDEXING_MODE_SYNC);
             checkArgument(!asyncNames.isEmpty(), "No valid async name found for " +
                     "index [%s], definition %s", indexPath, idxState);
-            return Iterables.getOnlyElement(asyncNames);
+            checkArgument(asyncNames.size() == 1, "Multiple async names found for " +
+                    "index [%s], definition %s", indexPath, idxState);
+            return asyncNames.stream().findAny().orElseThrow();
         }
         return null;
     }

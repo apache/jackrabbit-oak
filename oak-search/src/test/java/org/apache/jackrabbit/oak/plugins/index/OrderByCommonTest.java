@@ -23,9 +23,11 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -512,7 +514,8 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         } catch (ParseException e) {
             throw new RuntimeException(e);
         }
-        ResultRow row = Iterables.getOnlyElement(result.getRows());
+        Assert.assertEquals(1, StreamUtils.toStream(result.getRows()).count());
+        ResultRow row = StreamUtils.toStream(result.getRows()).findAny().orElseThrow();
         return row.getValue("plan").getValue(Type.STRING);
     }
 

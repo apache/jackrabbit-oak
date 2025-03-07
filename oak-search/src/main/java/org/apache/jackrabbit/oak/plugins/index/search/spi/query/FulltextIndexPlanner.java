@@ -591,7 +591,7 @@ public class FulltextIndexPlanner {
                 log.debug("Following relative property paths are not index: {}", relPaths);
                 return false;
             }
-            result.setParentPath(Iterables.getOnlyElement(relPaths, ""));
+            result.setParentPath(relPaths.stream().findAny().orElse(""));
 
             //Such non indexed path can possibly be evaluated via any rule on nt:base
             //which can possibly index everything
