@@ -71,13 +71,19 @@ public class ElasticIndexUtils {
             }
             for (int i = 0; i < fieldName.length(); i++) {
                 char c = fieldName.charAt(i);
+                // For performance, the logic for the currently supported
+                // characters is hardcoded.
+                // In case more characters need to be escaped,
+                // buff.append('|').append(Integer.toHexString(c)).append('|');
                 switch (c) {
                 case '|':
                     buff.append("||");
                     break;
                 case '.':
+                    buff.append("|2e|");
+                    break;
                 case '^':
-                    buff.append('|').append(Integer.toHexString(c)).append('|');
+                    buff.append("|5e|");
                     break;
                 default:
                     buff.append(c);
