@@ -44,8 +44,9 @@ public class ElasticIndexUtils {
             return propertyName;
         }
         String fieldName = propertyName;
+        boolean blank = fieldName.isBlank();
         boolean escape = false;
-        if (fieldName.isBlank()) {
+        if (blank) {
             // empty field name or field names that only consist of spaces
             escape = true;
         } else {
@@ -63,6 +64,11 @@ public class ElasticIndexUtils {
         }
         if (escape) {
             StringBuilder buff = new StringBuilder(fieldName.length());
+            if (fieldName.startsWith("_") || blank) {
+                // internal field start with a _
+                // we also support empty or just spaces
+                buff.append('|');
+            }
             for (int i = 0; i < fieldName.length(); i++) {
                 char c = fieldName.charAt(i);
                 switch (c) {
@@ -78,17 +84,13 @@ public class ElasticIndexUtils {
                 }
             }
             fieldName = buff.toString();
-            // internal field start with a _
-            // we also support empty or just spaces
-            if (fieldName.startsWith("_") || fieldName.isBlank()) {
-                fieldName = "|" + fieldName;
-            }
         }
         return fieldName;
     }
 
     /**
      * Convert an elasticsearch field name to a JCR property name.
+     * Please note this method is not optimized for performance.
      *
      * @param fieldName the field name
      * @return the property name
