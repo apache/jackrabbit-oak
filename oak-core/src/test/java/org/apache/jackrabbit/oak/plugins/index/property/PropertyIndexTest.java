@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -1041,7 +1042,7 @@ public class PropertyIndexTest {
         assertTrue(indexedState.exists());
         Iterable<String> values = indexedState.getStrings("entry");
         assertEquals(1, IterableUtils.size(values));
-        assertEquals("/content", Iterables.getFirst(values, null));
+        assertEquals("/content", StreamUtils.toStream(values).findFirst().orElse(null));
 
         Mount roMount = mip.getMountByName("foo");
         assertFalse(getNode(indexed, "/oak:index/foo/" + getNodeForMount(roMount)).exists());
