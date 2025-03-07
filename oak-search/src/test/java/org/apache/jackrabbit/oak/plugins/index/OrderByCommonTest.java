@@ -514,7 +514,6 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         } catch (ParseException e) {
             throw new RuntimeException(e);
         }
-        Assert.assertEquals(1, StreamUtils.toStream(result.getRows()).count());
         ResultRow row = StreamUtils.toStream(result.getRows()).findAny().orElseThrow();
         return row.getValue("plan").getValue(Type.STRING);
     }

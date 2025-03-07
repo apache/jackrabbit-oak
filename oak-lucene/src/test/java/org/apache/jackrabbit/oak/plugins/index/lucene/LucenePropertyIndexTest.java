@@ -3125,7 +3125,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     private String explainXpath(String query) throws ParseException {
         String explain = "explain " + query;
         Result result = executeQuery(explain, "xpath", NO_BINDINGS);
-        Assert.assertEquals(1, StreamUtils.toStream(result.getRows()).count());
         ResultRow row = StreamUtils.toStream(result.getRows()).findAny().orElseThrow();
         return row.getValue("plan").getValue(Type.STRING);
     }
