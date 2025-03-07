@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
@@ -132,7 +133,7 @@ public class L3_BuiltInPrivilegesTest extends AbstractSecurityTest {
                 /* EXERCISE */
         );
 
-        Iterable<Privilege> aggregated = Iterables.<Privilege>filter(
+        Iterable<Privilege> aggregated = IterableUtils.filter(
                 Arrays.asList(privilegeManager.getRegisteredPrivileges()),
                 input -> input != null && input.isAggregate());
 
