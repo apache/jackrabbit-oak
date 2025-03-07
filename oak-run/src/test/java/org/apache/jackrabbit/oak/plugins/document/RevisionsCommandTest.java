@@ -433,7 +433,7 @@ public class RevisionsCommandTest {
         @Override
         public void run() {
             try {
-                new RevisionsCommand().execute(args.toArray(new String[0]));
+                new RevisionsCommand(false).execute(args.toArray(new String[0]));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

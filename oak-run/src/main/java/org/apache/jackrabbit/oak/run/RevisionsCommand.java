@@ -105,6 +105,20 @@ public class RevisionsCommand implements Command {
             "org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations"
     );
 
+    private final boolean exitWhenDone;
+
+    public RevisionsCommand() {
+        this(true);
+    }
+
+    /**
+     *
+     * @param exitWhenDone if true, the command will exit the JVM when done
+     */
+    public RevisionsCommand(boolean exitWhenDone) {
+        this.exitWhenDone = exitWhenDone;
+    }
+
     private static class RevisionsOptions extends Utils.NodeStoreOptions {
 
         static final String CMD_INFO = "info";
@@ -324,6 +338,10 @@ public class RevisionsCommand implements Command {
                 }
             } else {
                 System.err.println("unknown revisions command: " + subCmd);
+            }
+            if (exitWhenDone) {
+                System.out.printf("Command '%s' completed successfully.%n", subCmd);
+                System.exit(0);
             }
         } catch (Throwable e) {
             LOG.error("Command failed", e);
