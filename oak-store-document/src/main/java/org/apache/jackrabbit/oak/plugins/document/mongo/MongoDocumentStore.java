@@ -65,6 +65,7 @@ import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -470,7 +471,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         if (mongoStatus.isVersion(4, 2)) {
             options.storageEngineOptions(MongoDBConfig.getCollectionStorageOptions(mongoStorageOptions));
-            if (!Iterables.tryFind(db.listCollectionNames(), s -> Objects.equals(collectionName, s)).isPresent()) {
+            if (StreamUtils.toStream(db.listCollectionNames()).noneMatch(s -> Objects.equals(collectionName, s))) {
                 db.createCollection(collectionName, options);
                 LOG.info("Creating Collection {}, with collection storage options", collectionName);
             }
