@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.commons.io;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.junit.Test;
 
 import java.io.Closeable;
