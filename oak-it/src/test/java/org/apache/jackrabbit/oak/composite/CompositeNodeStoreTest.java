@@ -233,7 +233,7 @@ public class CompositeNodeStoreTest {
 
     @Test
     public void childNodeEntryForMountIsComposite() {
-        ChildNodeEntry libsNode = Iterables.find(store.getRoot().getChildNodeEntries(),
+        ChildNodeEntry libsNode = IterableUtils.find(store.getRoot().getChildNodeEntries(),
                 input -> input.getName().equals("libs"));
 
         assertThat("root.libs(childCount)", libsNode.getNodeState().getChildNodeCount(10), equalTo(3l));

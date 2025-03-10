@@ -158,7 +158,7 @@ public class FilteringNodeStateTest {
                     return OAK_CHILD_ORDER.equals(propertyState.getName());
                 }
             };
-            final PropertyState childOrder = Iterables.find(decorated.getProperties(), isChildOrderProperty::test);
+            final PropertyState childOrder = IterableUtils.find(decorated.getProperties(), isChildOrderProperty::test);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
             assertEquals(List.of("football"), ListUtils.toList(values));
         }
