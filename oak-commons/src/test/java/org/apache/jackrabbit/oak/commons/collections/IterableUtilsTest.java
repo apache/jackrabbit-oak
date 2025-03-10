@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import org.apache.commons.collections4.Predicate;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -31,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Unit tests for the {@link IterableUtils} class.
@@ -968,5 +968,66 @@ public class IterableUtilsTest {
         List<String> list = Collections.singletonList("only");
         String result = IterableUtils.get(list, 0);
         Assert.assertEquals("only", result);
+    }
+
+    @Test
+    public void testFindWithMatchingElement() {
+        List<String> list = Arrays.asList("apple", "banana", "cherry");
+        String result = IterableUtils.find(list, s -> s.startsWith("b"));
+        Assert.assertEquals("banana", result);
+    }
+
+    @Test
+    public void testFindWithNoMatchingElement() {
+        List<String> list = Arrays.asList("apple", "banana", "cherry");
+        String result = IterableUtils.find(list, s -> s.startsWith("d"));
+        Assert.assertNull(result);
+    }
+
+    @Test
+    public void testFindWithMultipleMatchingElements() {
+        List<String> list = Arrays.asList("apple", "avocado", "banana", "apricot");
+        String result = IterableUtils.find(list, s -> s.startsWith("a"));
+        // Should return the first matching element
+        Assert.assertEquals("apple", result);
+    }
+
+    @Test
+    public void testFindWithEmptyIterable() {
+        List<String> list = Collections.emptyList();
+        String result = IterableUtils.find(list, s -> true);
+        Assert.assertNull(result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testFindWithNullIterable() {
+        IterableUtils.find(null, s -> true);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testFindWithNullPredicate() {
+        List<String> list = Arrays.asList("apple", "banana", "cherry");
+        IterableUtils.find(list, null);
+    }
+
+    @Test
+    public void testFindFirstElement() {
+        List<Integer> list = Arrays.asList(10, 20, 30, 40, 50);
+        Integer result = IterableUtils.find(list, i -> i > 5);
+        Assert.assertEquals(Integer.valueOf(10), result);
+    }
+
+    @Test
+    public void testFindLastElement() {
+        List<Integer> list = Arrays.asList(10, 20, 30, 40, 50);
+        Integer result = IterableUtils.find(list, i -> i > 45);
+        Assert.assertEquals(Integer.valueOf(50), result);
+    }
+
+    @Test
+    public void testFindWithCustomIterable() {
+        Iterable<Integer> customIterable = () -> Arrays.asList(5, 10, 15, 20, 25).iterator();
+        Integer result = IterableUtils.find(customIterable, i -> i % 10 == 0);
+        Assert.assertEquals(Integer.valueOf(10), result);
     }
 }
