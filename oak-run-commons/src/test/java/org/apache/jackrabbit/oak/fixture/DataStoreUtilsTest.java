@@ -233,7 +233,7 @@ public class DataStoreUtilsTest {
                                         String tenantId) {
         Map<String, String> config = new HashMap<>();
         config.put(AzureConstants.AZURE_CONNECTION_STRING, connectionString);
-        config.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, accountName);
+        config.put(AzureConstants.AZURE_STORAGE_ACCESS_KEY, accountName);
         config.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, accessKey);
         config.put(AzureConstants.AZURE_BLOB_ENDPOINT, blobEndpoint);
         config.put(AzureConstants.AZURE_CLIENT_ID, clientId);

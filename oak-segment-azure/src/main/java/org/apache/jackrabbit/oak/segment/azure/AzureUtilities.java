@@ -60,7 +60,9 @@ public final class AzureUtilities {
 
 
     public static List<BlobItem> getBlobs(BlobContainerClient blobContainerClient, ListBlobsOptions listOptions) {
-        listOptions.setDetails(new BlobListDetails().setRetrieveMetadata(true));
+        if (listOptions != null) {
+            listOptions.setDetails(new BlobListDetails().setRetrieveMetadata(true));
+        }
         return blobContainerClient.listBlobs(listOptions, null).stream().collect(Collectors.toList());
     }
 
