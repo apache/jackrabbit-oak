@@ -79,6 +79,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.junit.LogLevelModifier;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -549,7 +550,7 @@ public class SegmentCompactionIT {
             if (k == 0) {
                 return parent;
             } else {
-                String name = Iterables.get(node.getChildNodeNames(), k - 1);
+                String name = IterableUtils.get(node.getChildNodeNames(), k - 1);
                 return node.getChildNode(name);
             }
         }
@@ -557,7 +558,7 @@ public class SegmentCompactionIT {
         private void removeRandomProperty(NodeBuilder nodeBuilder) {
             int count = (int) nodeBuilder.getPropertyCount();
             if (count > 0) {
-                PropertyState property = Iterables.get(nodeBuilder.getProperties(), rnd.nextInt(count));
+                PropertyState property = IterableUtils.get(nodeBuilder.getProperties(), rnd.nextInt(count));
                 nodeBuilder.removeProperty(property.getName());
             }
         }
@@ -611,7 +612,7 @@ public class SegmentCompactionIT {
             if (k == 0) {
                 return parent;
             } else {
-                String name = Iterables.get(node.getChildNodeNames(), k - 1);
+                String name = IterableUtils.get(node.getChildNodeNames(), k - 1);
                 return node.getChildNode(name);
             }
         }
@@ -627,7 +628,7 @@ public class SegmentCompactionIT {
         protected final PropertyState chooseRandomProperty(NodeState node) {
             int count = (int) node.getPropertyCount();
             if (count > 0) {
-                return Iterables.get(node.getProperties(), rnd.nextInt(count));
+                return IterableUtils.get(node.getProperties(), rnd.nextInt(count));
             } else {
                 return null;
             }

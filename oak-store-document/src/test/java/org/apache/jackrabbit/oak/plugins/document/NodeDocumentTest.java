@@ -781,7 +781,7 @@ public class NodeDocumentTest {
         NodeDocument doc = getRootDocument(store);
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
-            Revision r = Iterables.get(doc.getValueMap("p").keySet(), idx);
+            Revision r = IterableUtils.get(doc.getValueMap("p").keySet(), idx);
             Iterable<Revision> revs = doc.getChanges("p", new RevisionVector(r));
             assertEquals(idx, IterableUtils.size(revs));
         }
@@ -1169,7 +1169,7 @@ public class NodeDocumentTest {
         NodeDocument doc = getRootDocument(store);
         for (int i = 0; i < 10; i++) {
             int idx = random.nextInt(numChanges);
-            Revision r = Iterables.get(doc.getValueMap("p").keySet(), idx);
+            Revision r = IterableUtils.get(doc.getValueMap("p").keySet(), idx);
             Iterable<Map.Entry<Revision, String>> revs = doc.getVisibleChanges("p", new RevisionVector(r), null);
             assertEquals(idx, numChanges - IterableUtils.size(revs));
         }

@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
@@ -78,7 +79,7 @@ public class GlobsPatternTest {
     }
     
     private static String getAnyRestriction(@NotNull Map<String, List<String>> m) {
-        return Iterables.get(m.keySet(), new Random().nextInt(m.size()));
+        return IterableUtils.get(m.keySet(), new Random().nextInt(m.size()));
     }
     
     @Test

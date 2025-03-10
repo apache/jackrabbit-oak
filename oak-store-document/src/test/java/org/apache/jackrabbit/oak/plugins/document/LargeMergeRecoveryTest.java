@@ -139,14 +139,14 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent()
                 .getRecoveryCandidateNodes();
         assertEquals(1, IterableUtils.size(cids));
-        assertEquals(c2Id, Iterables.get(cids, 0).intValue());
+        assertEquals(c2Id, IterableUtils.get(cids, 0).intValue());
 
         assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
         assertFalse(ds1.getRoot().getChildNode("a").hasChildNode("b1"));
         assertFalse(ds1.getRoot().getChildNode("a").hasChildNode("b2"));
 
         System.out.println("RECOVER...");
-        ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
+        ds1.getLastRevRecoveryAgent().recover(IterableUtils.get(cids, 0));
         System.out.println("RECOVER DONE");
 
         ds1.runBackgroundOperations();
@@ -222,12 +222,12 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent()
                 .getRecoveryCandidateNodes();
         assertEquals(1, IterableUtils.size(cids));
-        assertEquals(c2Id, Iterables.get(cids, 0).intValue());
+        assertEquals(c2Id, IterableUtils.get(cids, 0).intValue());
 
         assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
 
         System.out.println("RECOVER...");
-        ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
+        ds1.getLastRevRecoveryAgent().recover(IterableUtils.get(cids, 0));
         System.out.println("RECOVER DONE");
 
         assertEquals(zlastRev2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));

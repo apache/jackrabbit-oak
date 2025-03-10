@@ -21,6 +21,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
@@ -111,7 +112,7 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
             properties.add(r.getProperty());
         }
         properties.add(primaryType);
-        properties.add(PropertyStates.createProperty(Iterables.get(AccessControlConstants.ACE_PROPERTY_NAMES, 0), "value"));
+        properties.add(PropertyStates.createProperty(IterableUtils.get(AccessControlConstants.ACE_PROPERTY_NAMES, 0), "value"));
 
         when(restrictionsTree.getProperties()).thenReturn((Iterable)properties);
         when(restrictionsTree.exists()).thenReturn(true);

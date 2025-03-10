@@ -33,6 +33,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -155,7 +156,7 @@ public class SegmentOverflowExceptionIT {
         long count = nodeBuilder.getChildNodeCount(Long.MAX_VALUE);
         if (count > 0) {
             int c = rnd.nextInt((int) count);
-            String name = Iterables.get(nodeBuilder.getChildNodeNames(), c);
+            String name = IterableUtils.get(nodeBuilder.getChildNodeNames(), c);
             modify(nodeStore, nodeBuilder.getChildNode(name));
         }
     }
