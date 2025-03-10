@@ -141,6 +141,13 @@ public class AzureCompact {
             return this;
         }
 
+        /**
+         * The root directory to the target segment store.
+         *
+         * @param targetRootPrefix
+         *                  the root directory to the target segmen store.
+         * @return this builder
+         */
         public Builder withTargetRootPrefix(String targetRootPrefix) {
             this.targetRootPrefix = targetRootPrefix;
             return this;
