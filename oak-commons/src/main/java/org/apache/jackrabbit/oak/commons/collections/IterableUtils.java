@@ -408,4 +408,24 @@ public class IterableUtils {
         final Iterator<T> iterator = iterable.iterator();
         return iterator.hasNext() ? iterator.next() : defaultValue;
     }
+
+    /**
+     * Returns the element at the specified index in the specified iterable.
+     * <p>
+     * The iterable is traversed until the specified index is reached. If the
+     * position is greater than the number of elements in the iterable, an
+     * IndexOutOfBoundsException is thrown.
+     *
+     * @param <T> the type of elements in the iterable
+     * @param iterable the iterable to get the element from, may not be null
+     * @param index the index of the element to retrieve, must be non-negative
+     * @return the element at the specified index
+     * @throws NullPointerException if the iterable is null
+     * @throws IndexOutOfBoundsException if the position is negative or greater than
+     *         the number of elements in the iterable
+     */
+    public static <T> T get(final Iterable<T> iterable, final int index) {
+        Objects.requireNonNull(iterable, "Iterable must not be null.");
+        return org.apache.commons.collections4.IterableUtils.get(iterable, index);
+    }
 }

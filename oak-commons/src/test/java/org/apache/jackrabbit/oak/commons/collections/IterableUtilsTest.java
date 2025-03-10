@@ -910,4 +910,63 @@ public class IterableUtilsTest {
         Integer result = IterableUtils.getFirst(customIterable, 0);
         Assert.assertEquals(Integer.valueOf(5), result);
     }
+
+    @Test
+    public void testGetWithValidPosition() {
+        List<String> list = Arrays.asList("a", "b", "c", "d", "e");
+        String result = IterableUtils.get(list, 2);
+        Assert.assertEquals("c", result);
+    }
+
+    @Test
+    public void testGetFirstElement() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        String result = IterableUtils.get(list, 0);
+        Assert.assertEquals("a", result);
+    }
+
+    @Test
+    public void testGetLastElement() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        String result = IterableUtils.get(list, 2);
+        Assert.assertEquals("c", result);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testGetWithNegativePosition() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        IterableUtils.get(list, -1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testGetWithPositionTooLarge() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        IterableUtils.get(list, 3);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testGetWithEmptyIterable() {
+        List<String> list = Collections.emptyList();
+        IterableUtils.get(list, 0);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testGetWithNullIterable() {
+        IterableUtils.get(null, 0);
+    }
+
+    @Test
+    public void testGetWithCustomIterable() {
+        // Custom iterable implementation
+        Iterable<Integer> customIterable = () -> Arrays.asList(5, 10, 15, 20, 25).iterator();
+        Integer result = IterableUtils.get(customIterable, 3);
+        Assert.assertEquals(Integer.valueOf(20), result);
+    }
+
+    @Test
+    public void testGetWithSingleElementIterable() {
+        List<String> list = Collections.singletonList("only");
+        String result = IterableUtils.get(list, 0);
+        Assert.assertEquals("only", result);
+    }
 }
