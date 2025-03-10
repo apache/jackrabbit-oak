@@ -26,9 +26,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -1029,5 +1031,75 @@ public class IterableUtilsTest {
         Iterable<Integer> customIterable = () -> Arrays.asList(5, 10, 15, 20, 25).iterator();
         Integer result = IterableUtils.find(customIterable, i -> i % 10 == 0);
         Assert.assertEquals(Integer.valueOf(10), result);
+    }
+
+    @Test
+    public void testGetLastWithNonEmptyIterable() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        String result = IterableUtils.getLast(list);
+        Assert.assertEquals("c", result);
+    }
+
+    @Test
+    public void testGetLastWithEmptyIterable() {
+        List<String> list = Collections.emptyList();
+        String result = IterableUtils.getLast(list);
+        Assert.assertNull(result);
+    }
+
+    @Test
+    public void testGetLastWithNullIterable() {
+        Assert.assertThrows(NullPointerException.class, () -> IterableUtils.getLast(null));
+    }
+
+    @Test
+    public void testGetLastWithSingleElement() {
+        List<Integer> list = Collections.singletonList(42);
+        Integer result = IterableUtils.getLast(list);
+        Assert.assertEquals(Integer.valueOf(42), result);
+    }
+
+    @Test
+    public void testGetLastWithNullLastElement() {
+        List<String> list = Arrays.asList("a", "b", null);
+        String result = IterableUtils.getLast(list);
+        Assert.assertNull(result);
+    }
+
+    @Test
+    public void testGetLastWithCustomIterable() {
+        // Custom iterable that doesn't implement Collection
+        Iterable<Integer> customIterable = () -> Arrays.asList(5, 10, 15).iterator();
+        Integer result = IterableUtils.getLast(customIterable);
+        Assert.assertEquals(Integer.valueOf(15), result);
+    }
+
+    @Test
+    public void testGetLastWithLargeIterable() {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            list.add(i);
+        }
+        Integer result = IterableUtils.getLast(list);
+        Assert.assertEquals(Integer.valueOf(999), result);
+    }
+
+    @Test
+    public void testGetLastWithListImplementation() {
+        // Test to confirm optimization for List works
+        List<String> list = Arrays.asList("a", "b", "c", "d");
+        String result = IterableUtils.getLast(list);
+        Assert.assertEquals("d", result);
+    }
+
+    @Test
+    public void testGetLastWithNonListCollection() {
+        // Test with a Collection that isn't a List
+        Set<String> set = new LinkedHashSet<>();
+        set.add("a");
+        set.add("b");
+        set.add("c");
+        String result = IterableUtils.getLast(set);
+        Assert.assertEquals("c", result);
     }
 }

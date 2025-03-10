@@ -446,4 +446,33 @@ public class IterableUtils {
         Objects.requireNonNull(predicate, "Predicate must not be null.");
         return org.apache.commons.collections4.IterableUtils.find(iterable, predicate::test);
     }
+
+    /**
+     * Returns the last element of the specified iterable, or null if the iterable is empty.
+     * <p>
+     * The iterable must be fully traversed to find the last element. If the iterable is empty,
+     * the null is returned instead.
+     *
+     * @param <T> the type of elements in the iterable
+     * @param iterable the iterable to get the last element from, must not be null
+     * @return the last element in the iterable or null if the iterable is empty
+     */
+    public static <T> T getLast(final Iterable<T> iterable) {
+
+        Objects.requireNonNull(iterable, "Iterable must not be null.");
+
+        // Optimize for Collections, especially Lists
+        if (iterable instanceof List) {
+            final List<T> list = (List<T>) iterable;
+            return list.isEmpty() ? null : list.get(list.size() - 1);
+        }
+
+        // For non-List iterables
+        T last = null;
+        for (final T element : iterable) {
+            last = element;
+        }
+
+        return last;
+    }
 }
