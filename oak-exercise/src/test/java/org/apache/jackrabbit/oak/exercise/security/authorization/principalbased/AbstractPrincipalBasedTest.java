@@ -24,6 +24,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
@@ -160,7 +161,7 @@ abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     @Nullable
     static PrincipalAccessControlList getApplicablePrincipalAccessControlList(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal principal) throws Exception {
         Set<JackrabbitAccessControlPolicy> applicable = Set.of(acMgr.getApplicablePolicies(principal));
-        PrincipalAccessControlList acl = (PrincipalAccessControlList) IterableUtils.find(applicable, accessControlPolicy -> accessControlPolicy instanceof PrincipalAccessControlList, null);
+        PrincipalAccessControlList acl = (PrincipalAccessControlList) IterableUtils.find(applicable, accessControlPolicy -> accessControlPolicy instanceof PrincipalAccessControlList);
         return acl;
     }
 
