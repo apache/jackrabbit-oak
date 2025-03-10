@@ -417,7 +417,7 @@ public class IterableUtils {
      * IndexOutOfBoundsException is thrown.
      *
      * @param <T> the type of elements in the iterable
-     * @param iterable the iterable to get the element from, may not be null
+     * @param iterable the iterable to get the element from, must not be null
      * @param index the index of the element to retrieve, must be non-negative
      * @return the element at the specified index
      * @throws NullPointerException if the iterable is null
