@@ -177,4 +177,17 @@ public class IteratorUtils {
         // return true if both the iterators have same number of elements
         return !iterator1.hasNext() && !iterator2.hasNext();
     }
+
+    /**
+     * Returns the number of elements in the given iterator.
+     * <p>
+     * This method consumes the iterator to count the elements.
+     * A null or empty iterator returns 0.
+     *
+     * @param iterator the iterator whose size is to be determined
+     * @return the number of elements in the iterator
+     */
+    public static int size(Iterator<?> iterator) {
+        return org.apache.commons.collections4.IteratorUtils.size(iterator);
+    }
 }

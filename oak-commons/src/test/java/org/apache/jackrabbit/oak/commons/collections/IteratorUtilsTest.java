@@ -231,4 +231,59 @@ public class IteratorUtilsTest {
         list2.set(9999, -1);
         Assert.assertFalse(IteratorUtils.elementsEqual(list1.iterator(), list2.iterator()));
     }
+
+    @Test
+    public void testSizeWithMultipleElements() {
+        List<String> list = Arrays.asList("one", "two", "three", "four", "five");
+        Iterator<String> iterator = list.iterator();
+        Assert.assertEquals(5, IteratorUtils.size(iterator));
+        Assert.assertFalse("Iterator should be consumed after size operation", iterator.hasNext());
+    }
+
+    @Test
+    public void testSizeWithEmptyIterator() {
+        Assert.assertEquals(0, IteratorUtils.size(Collections.emptyIterator()));
+    }
+
+    @Test
+    public void testSizeWithNullIterator() {
+        Assert.assertEquals(0,IteratorUtils.size(null));
+    }
+
+    @Test
+    public void testSizeConsumesIterator() {
+        List<String> list = Arrays.asList("one", "two", "three");
+        Iterator<String> iterator = list.iterator();
+
+        Assert.assertEquals(3, IteratorUtils.size(iterator));
+        Assert.assertFalse("Iterator should be consumed after size operation", iterator.hasNext());
+    }
+
+    @Test
+    public void testSizeWithSingleElement() {
+        List<String> singletonList = Collections.singletonList("single");
+        Assert.assertEquals(1, IteratorUtils.size(singletonList.iterator()));
+    }
+
+    @Test
+    public void testSizeWithCustomIterator() {
+        Iterator<Integer> customIterator = new Iterator<>() {
+            private int count = 0;
+
+            @Override
+            public boolean hasNext() {
+                return count < 10;
+            }
+
+            @Override
+            public Integer next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                return count++;
+            }
+        };
+        Assert.assertEquals(10, IteratorUtils.size(customIterator));
+        Assert.assertFalse("Iterator should be consumed after size operation", customIterator.hasNext());
+    }
 }
