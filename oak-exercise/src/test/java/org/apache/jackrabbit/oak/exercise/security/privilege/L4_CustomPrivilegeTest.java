@@ -17,15 +17,16 @@
 package org.apache.jackrabbit.oak.exercise.security.privilege;
 
 import java.security.Principal;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
@@ -116,10 +117,9 @@ public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
             fail();
         }
 
-        Iterable<String> resultNames = IterableUtils.transform(SetUtils.toSet(result),
-                Object::toString);
+        Set<String> resultNames = Arrays.stream(result).map(Object::toString).collect(Collectors.toCollection(LinkedHashSet::new));
 
-        Iterables.removeAll(resultNames, expectedNames);
+        resultNames.removeAll(expectedNames);
         assertFalse(resultNames.iterator().hasNext());
     }
 
