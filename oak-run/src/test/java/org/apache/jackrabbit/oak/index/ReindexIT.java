@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -387,7 +387,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
 
         Query q = qm.createQuery("select * from [nt:base] where [foo] is not null", Query.JCR_SQL2);
         QueryResult result = q.execute();
-        int size = Iterators.size(result.getNodes());
+        int size = IteratorUtils.size(result.getNodes());
         session.logout();
         return size;
     }

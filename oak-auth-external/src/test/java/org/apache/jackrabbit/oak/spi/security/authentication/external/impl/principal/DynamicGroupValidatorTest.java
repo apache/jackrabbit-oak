@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -273,7 +273,7 @@ public class DynamicGroupValidatorTest extends AbstractPrincipalTest {
         groupTree.setProperty(REP_MEMBERS, members, Type.WEAKREFERENCES);
         r.commit();
 
-        assertEquals(2, Iterators.size(localGroup.getMembers()));
+        assertEquals(2, IteratorUtils.size(localGroup.getMembers()));
     }
 
 
@@ -305,7 +305,7 @@ public class DynamicGroupValidatorTest extends AbstractPrincipalTest {
         groupTree.setProperty(REP_MEMBERS, members, Type.WEAKREFERENCES);
         r.commit();
 
-        assertEquals(1, Iterators.size(localGroup.getMembers()));
+        assertEquals(1, IteratorUtils.size(localGroup.getMembers()));
     }
 
     @Test

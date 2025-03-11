@@ -31,11 +31,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 
@@ -256,7 +256,7 @@ public class BlobIdTrackerTest {
         scheduledFuture.get();
         initAdd.addAll(offlineLoad);
 
-        assertEquals(initAdd.size(), Iterators.size(tracker.get()));
+        assertEquals(initAdd.size(), IteratorUtils.size(tracker.get()));
 
         Set<String> retrieved = retrieve(tracker);
         assertEquals("Extra elements after add", initAdd, retrieved);

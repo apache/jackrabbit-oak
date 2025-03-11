@@ -39,9 +39,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -283,7 +283,7 @@ public class VersionGCDeletionTest {
 
         //Count split docs
         NodeDocument doc = ts.find(Collection.NODES, "2:/x/split");
-        int splitDocCount = Iterators.size(doc.getAllPreviousDocs());
+        int splitDocCount = IteratorUtils.size(doc.getAllPreviousDocs());
 
         long maxAge = 1; //hours
         long delta = TimeUnit.MINUTES.toMillis(10);

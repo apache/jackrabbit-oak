@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -288,7 +289,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns = createTestStore(200);
         Revision previous = ns.newRevision();
         NodeDocument root = getRootDocument(ns.getDocumentStore());
-        int numLeaves = Iterators.size(root.getPreviousDocLeaves());
+        int numLeaves = IteratorUtils.size(root.getPreviousDocLeaves());
         // remove most recent previous doc
         NodeDocument toRemove = root.getAllPreviousDocs().next();
         int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
@@ -296,7 +297,7 @@ public class NodeDocumentTest {
         assertEquals(1, numDeleted);
 
         root = getRootDocument(ns.getDocumentStore());
-        assertEquals(numLeaves - 1, Iterators.size(root.getPreviousDocLeaves()));
+        assertEquals(numLeaves - 1, IteratorUtils.size(root.getPreviousDocLeaves()));
         Iterator<NodeDocument> it = root.getPreviousDocLeaves();
         while (it.hasNext()) {
             NodeDocument leaf = it.next();
@@ -312,7 +313,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns = createTestStore(200);
         Revision previous = ns.newRevision();
         NodeDocument root = getRootDocument(ns.getDocumentStore());
-        int numLeaves = Iterators.size(root.getPreviousDocLeaves());
+        int numLeaves = IteratorUtils.size(root.getPreviousDocLeaves());
         // remove oldest previous doc
         NodeDocument toRemove = Iterators.getLast(root.getAllPreviousDocs());
         int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
@@ -320,7 +321,7 @@ public class NodeDocumentTest {
         assertEquals(1, numDeleted);
 
         root = getRootDocument(ns.getDocumentStore());
-        assertEquals(numLeaves - 1, Iterators.size(root.getPreviousDocLeaves()));
+        assertEquals(numLeaves - 1, IteratorUtils.size(root.getPreviousDocLeaves()));
         Iterator<NodeDocument> it = root.getPreviousDocLeaves();
         while (it.hasNext()) {
             NodeDocument leaf = it.next();
@@ -900,7 +901,7 @@ public class NodeDocumentTest {
             headRevs.add(ns1.getHeadRevision());
         }
 
-        int numPrevDocs = Iterators.size(test.getPreviousDocLeaves());
+        int numPrevDocs = IteratorUtils.size(test.getPreviousDocLeaves());
         assertEquals(10, numPrevDocs);
 
         // getNewestRevision must not read all previous documents

@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.junit.Test;
 
@@ -99,7 +99,7 @@ public class TapeSamplingTest {
         List<Integer> input = range(start, end);
         TapeSampling<Integer> res = new TapeSampling<>(r, input.iterator(), input.size(), k);
 
-        assertEquals("Must sample exactly " + k + " items", k, Iterators.size(res.getSamples()));
+        assertEquals("Must sample exactly " + k + " items", k, IteratorUtils.size(res.getSamples()));
     }
 
     @Test

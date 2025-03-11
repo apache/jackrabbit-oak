@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
@@ -135,7 +135,7 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
 
         @Override public String writeBlob(InputStream in) throws IOException {
             String blobId = delegate.writeBlob(in);
-            numChunks += Iterators.size(delegate.resolveChunks(blobId));
+            numChunks += IteratorUtils.size(delegate.resolveChunks(blobId));
             return blobId;
         }
 
@@ -145,13 +145,13 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
 
         @Override public String writeBlob(InputStream in, BlobOptions options) throws IOException {
             String blobId = delegate.writeBlob(in, options);
-            numChunks += Iterators.size(delegate.resolveChunks(blobId));
+            numChunks += IteratorUtils.size(delegate.resolveChunks(blobId));
             return blobId;
         }
 
         @Override public String writeBlob(String tempFileName) throws IOException {
             String blobId = delegate.writeBlob(tempFileName);
-            numChunks += Iterators.size(delegate.resolveChunks(blobId));
+            numChunks += IteratorUtils.size(delegate.resolveChunks(blobId));
             return blobId;
         }
 

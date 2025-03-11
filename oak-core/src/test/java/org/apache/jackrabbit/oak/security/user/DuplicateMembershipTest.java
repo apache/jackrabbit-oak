@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -77,35 +78,35 @@ public class DuplicateMembershipTest extends AbstractSecurityTest {
     @Test
     public void testGetMembers() throws Exception {
         when(dmp.coversAllMembers(any(Group.class))).thenReturn(false);
-        assertEquals(1, Iterators.size(group.getMembers()));
+        assertEquals(1, IteratorUtils.size(group.getMembers()));
     }
 
     @Test
     public void testGetDeclaredMembers() throws Exception {
         when(dmp.coversAllMembers(any(Group.class))).thenReturn(false);
-        assertEquals(1, Iterators.size(group.getDeclaredMembers()));
+        assertEquals(1, IteratorUtils.size(group.getDeclaredMembers()));
     }
 
     @Test
     public void testGetMembersCoversAll() throws Exception {
         when(dmp.coversAllMembers(any(Group.class))).thenReturn(true);
-        assertEquals(1, Iterators.size(group.getMembers()));
+        assertEquals(1, IteratorUtils.size(group.getMembers()));
     }
 
     @Test
     public void testGetDeclaredMembersCoversAll() throws Exception {
         when(dmp.coversAllMembers(any(Group.class))).thenReturn(true);
-        assertEquals(1, Iterators.size(group.getDeclaredMembers()));
+        assertEquals(1, IteratorUtils.size(group.getDeclaredMembers()));
     }
     
     @Test
     public void testGetMembership() throws Exception {
-        assertEquals(1, Iterators.size(member.memberOf()));
+        assertEquals(1, IteratorUtils.size(member.memberOf()));
     }
 
     @Test
     public void testGetDeclaredMembership() throws Exception {
-        assertEquals(1, Iterators.size(member.declaredMemberOf()));
+        assertEquals(1, IteratorUtils.size(member.declaredMemberOf()));
     }
 
     @Test
@@ -115,7 +116,7 @@ public class DuplicateMembershipTest extends AbstractSecurityTest {
         group.removeMember(member);
         root.commit();
 
-        assertEquals(1, Iterators.size(member.memberOf()));
+        assertEquals(1, IteratorUtils.size(member.memberOf()));
     }
 
     @Test
@@ -125,6 +126,6 @@ public class DuplicateMembershipTest extends AbstractSecurityTest {
         group.removeMember(member);
         root.commit();
 
-        assertEquals(1, Iterators.size(member.declaredMemberOf()));
+        assertEquals(1, IteratorUtils.size(member.declaredMemberOf()));
     }
 }

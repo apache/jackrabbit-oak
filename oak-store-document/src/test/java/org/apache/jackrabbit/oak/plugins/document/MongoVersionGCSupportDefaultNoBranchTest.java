@@ -42,6 +42,7 @@ import java.util.function.Predicate;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MongoFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -61,8 +62,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import com.mongodb.ReadPreference;
 
 @RunWith(Parameterized.class)
@@ -400,6 +399,6 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
             throws Exception {
         NodeDocument doc = store.find(NODES, getIdFromPath(path), -1);
         assertNotNull(doc);
-        return Iterators.size(doc.getAllPreviousDocs());
+        return IteratorUtils.size(doc.getAllPreviousDocs());
     }
 }

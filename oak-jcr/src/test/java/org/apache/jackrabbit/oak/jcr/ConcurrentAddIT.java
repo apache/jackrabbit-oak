@@ -30,8 +30,7 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,7 +74,7 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
         }
         getAdminSession().refresh(false);
         for (Node n : in((Iterator<Node>) test.getNodes())) {
-            assertEquals(NODES_PER_WORKER, Iterators.size(n.getNodes()));
+            assertEquals(NODES_PER_WORKER, IteratorUtils.size(n.getNodes()));
         }
     }
 
@@ -101,7 +100,7 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
             fail(e.toString());
         }
         getAdminSession().refresh(false);
-        assertEquals(NODES_PER_WORKER * NUM_WORKERS, Iterators.size(test.getNodes()));
+        assertEquals(NODES_PER_WORKER * NUM_WORKERS, IteratorUtils.size(test.getNodes()));
     }
 
     private static final class Worker implements Runnable {

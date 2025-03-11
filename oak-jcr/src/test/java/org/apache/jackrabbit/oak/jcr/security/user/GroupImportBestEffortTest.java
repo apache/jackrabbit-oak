@@ -24,10 +24,10 @@ import javax.jcr.PropertyType;
 import javax.jcr.Session;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -186,8 +186,8 @@ public class GroupImportBestEffortTest extends AbstractImportTest {
         assertTrue(g.isDeclaredMember(g1));
 
         // circular membership created during import -> must be spotted upon member-access
-        assertEquals(1, Iterators.size(g1.getMembers()));
-        assertEquals(1, Iterators.size(g.getMembers()));
+        assertEquals(1, IteratorUtils.size(g1.getMembers()));
+        assertEquals(1, IteratorUtils.size(g.getMembers()));
     }
 
     @Test
