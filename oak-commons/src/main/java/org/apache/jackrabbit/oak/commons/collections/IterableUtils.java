@@ -450,8 +450,7 @@ public class IterableUtils {
     /**
      * Returns the last element of the specified iterable, or null if the iterable is empty.
      * <p>
-     * The iterable must be fully traversed to find the last element. If the iterable is empty,
-     * the null is returned instead.
+     * The iterable must be fully traversed to find the last element.
      *
      * @param <T> the type of elements in the iterable
      * @param iterable the iterable to get the last element from, must not be null
@@ -461,7 +460,7 @@ public class IterableUtils {
 
         Objects.requireNonNull(iterable, "Iterable must not be null.");
 
-        // Optimize for Collections, especially Lists
+        // Optimize for Lists
         if (iterable instanceof List) {
             final List<T> list = (List<T>) iterable;
             return list.isEmpty() ? null : list.get(list.size() - 1);
