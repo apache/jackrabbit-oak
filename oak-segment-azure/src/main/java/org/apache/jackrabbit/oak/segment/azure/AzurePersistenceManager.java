@@ -163,25 +163,25 @@ public class AzurePersistenceManager {
 
             RequestRetryOptions retryOptions = readRequestRetryOptions(enableSecondaryLocation, accountName);
             BlobContainerClient blobContainerClient;
-            if (connectionString != null) {
-                blobContainerClient = getBlobContainerClient(accountName, containerName, retryOptions, azureHttpRequestLoggingPolicy, connectionString);
+            if (sasToken != null) {
+                blobContainerClient = getBlobContainerClientWithSas(accountName, containerName, retryOptions, azureHttpRequestLoggingPolicy, sasToken);
             } else {
-                blobContainerClient = getBlobContainerClient(accountName, containerName, sasToken, retryOptions, azureHttpRequestLoggingPolicy);
+                blobContainerClient = getBlobContainerClient(accountName, containerName, retryOptions, azureHttpRequestLoggingPolicy, connectionString);
             }
 
             RequestRetryOptions writeRetryOptions = AzureRequestOptions.getRetryOperationsOptimiseForWriteOperations();
             BlobContainerClient writeBlobContainerClient;
-            if (connectionString != null) {
-                writeBlobContainerClient = getBlobContainerClient(accountName, containerName, writeRetryOptions, azureHttpRequestLoggingPolicy, connectionString);
+            if (sasToken != null) {
+                writeBlobContainerClient = getBlobContainerClientWithSas(accountName, containerName, writeRetryOptions, azureHttpRequestLoggingPolicy, sasToken);
             } else {
-                writeBlobContainerClient = getBlobContainerClient(accountName, containerName, sasToken, writeRetryOptions, azureHttpRequestLoggingPolicy);
+                writeBlobContainerClient = getBlobContainerClient(accountName, containerName, writeRetryOptions, azureHttpRequestLoggingPolicy, connectionString);
             }
 
             BlobContainerClient noRetryBlobContainerClient;
-            if (connectionString != null) {
-                noRetryBlobContainerClient = getBlobContainerClient(accountName, containerName, null, azureHttpRequestLoggingPolicy, connectionString);
+            if (sasToken != null) {
+                noRetryBlobContainerClient = getBlobContainerClientWithSas(accountName, containerName, null, azureHttpRequestLoggingPolicy, sasToken);
             } else {
-                noRetryBlobContainerClient = getBlobContainerClient(accountName, containerName, sasToken, null, azureHttpRequestLoggingPolicy);
+                noRetryBlobContainerClient = getBlobContainerClient(accountName, containerName, null, azureHttpRequestLoggingPolicy, connectionString);
             }
 
             if (createContainer) {
@@ -196,7 +196,7 @@ public class AzurePersistenceManager {
         }
     }
 
-    private static BlobContainerClient getBlobContainerClient(String accountName, String containerName, String sasToken, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy) {
+    private static BlobContainerClient getBlobContainerClientWithSas(String accountName, String containerName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String sasToken) {
         BlobServiceClient blobServiceClient = blobServiceClientBuilder(accountName, requestRetryOptions, azureHttpRequestLoggingPolicy, sasToken)
                 .buildClient();
 
