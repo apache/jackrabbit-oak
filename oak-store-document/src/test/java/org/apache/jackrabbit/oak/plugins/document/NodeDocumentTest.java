@@ -544,7 +544,7 @@ public class NodeDocumentTest {
         // simulate a change revision within the range of
         // the most recent previous document
         Iterable<Revision> changes = prev.getAllChanges();
-        Revision baseRev = Iterables.getLast(changes);
+        Revision baseRev = IterableUtils.getLast(changes);
         Revision changeRev = new Revision(baseRev.getTimestamp(), 1000, ns.getClusterId());
         // reset calls to previous documents
         prevDocCalls.clear();
@@ -941,7 +941,7 @@ public class NodeDocumentTest {
         NodeDocument doc = getRootDocument(store);
         Map<Revision, String> valueMap = doc.getValueMap("p");
         assertEquals(200, valueMap.size());
-        Revision oldest = Iterables.getLast(valueMap.keySet());
+        Revision oldest = IterableUtils.getLast(valueMap.keySet());
 
         prevDocCalls.clear();
         DocumentNodeState state = doc.getNodeAtRevision(ns,

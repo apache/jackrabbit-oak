@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -504,7 +505,7 @@ public class ActiveDeletedBlobCollectorMBeanImplTest {
             blobDeletionCallback = new BlobDeletionCallback() {
                 @Override
                 public void deleted(String blobId, Iterable<String> ids) {
-                    deletedFiles.add(Iterables.getLast(ids));
+                    deletedFiles.add(IterableUtils.getLast(ids));
                     deletionCallback.deleted(blobId, ids);
                 }
 

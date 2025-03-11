@@ -57,6 +57,7 @@ import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -552,7 +553,7 @@ abstract public class OakDirectoryTestBase {
                                 new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
                                     @Override
                                     public void deleted(String blobId, Iterable<String> ids) {
-                                        deletedFiles.add(Iterables.getLast(ids));
+                                        deletedFiles.add(IterableUtils.getLast(ids));
                                     }
 
                                     @Override
@@ -596,7 +597,7 @@ abstract public class OakDirectoryTestBase {
                                 new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
                                     @Override
                                     public void deleted(String blobId, Iterable<String> ids) {
-                                        deletedFiles.add(Iterables.getLast(ids));
+                                        deletedFiles.add(IterableUtils.getLast(ids));
                                     }
 
                                     @Override
