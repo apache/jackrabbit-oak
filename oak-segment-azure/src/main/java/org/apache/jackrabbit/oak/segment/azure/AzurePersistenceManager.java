@@ -41,11 +41,11 @@ public class AzurePersistenceManager {
     private AzurePersistenceManager() {
     }
 
-    public static AzurePersistence createAzurePersistenceFrom(@NotNull String accountName, @NotNull String containerName, @NotNull String rootPrefix, @NotNull String sasToken) throws IOException {
+    public static AzurePersistence createAzurePersistenceFrom(String accountName, String containerName, String rootPrefix, String sasToken) throws IOException {
         return createAzurePersistence(null, sasToken, accountName, containerName, rootPrefix, false, false);
     }
 
-    public static AzurePersistence createAzurePersistenceFrom(@NotNull String accountName, @NotNull String containerName, @NotNull String rootPrefix, @NotNull Environment environment) throws IOException {
+    public static AzurePersistence createAzurePersistenceFrom(String accountName, String containerName, String rootPrefix, Environment environment) throws IOException {
         final String clientId = environment.getVariable(AZURE_CLIENT_ID);
         final String clientSecret = environment.getVariable(AZURE_CLIENT_SECRET);
         final String tenantId = environment.getVariable(AZURE_TENANT_ID);
@@ -89,7 +89,7 @@ public class AzurePersistenceManager {
         return createPersistenceFromAccessKey(configuration.accountName(), configuration.containerName(), configuration.accessKey(), configuration.blobEndpoint(), configuration.rootPath(), configuration.enableSecondaryLocation(), true);
     }
 
-    private static AzurePersistence createPersistenceFromAccessKey(@NotNull String accountName, @NotNull String containerName, @NotNull String accessKey, String blobEndpoint, String rootPrefix, boolean enableSecondaryLocation, boolean createContainer) throws IOException {
+    private static AzurePersistence createPersistenceFromAccessKey(String accountName, String containerName, String accessKey, String blobEndpoint, String rootPrefix, boolean enableSecondaryLocation, boolean createContainer) throws IOException {
         StringBuilder connectionString = new StringBuilder();
         connectionString.append("DefaultEndpointsProtocol=https;");
         connectionString.append("AccountName=").append(accountName).append(';');
@@ -123,6 +123,7 @@ public class AzurePersistenceManager {
     }
 
     public static AzurePersistence createPersistenceFromServicePrincipalCredentials(String accountName, String containerName, String rootPrefix, String clientId, String clientSecret, String tenantId, boolean enableSecondaryLocation, boolean createContainer) {
+        checkArguments(accountName, containerName, rootPrefix);
         AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy = new AzureHttpRequestLoggingPolicy();
 
         ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
@@ -158,6 +159,8 @@ public class AzurePersistenceManager {
         if (StringUtils.isBlank(connectionString) && StringUtils.isBlank(sasToken)) {
             throw new IllegalArgumentException("Both connectionString and sasToken are not configured. Please configure one of them.");
         }
+        checkArguments(accountName, containerName, rootPrefix);
+
         try {
             AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy = new AzureHttpRequestLoggingPolicy();
 
@@ -221,7 +224,7 @@ public class AzurePersistenceManager {
 
     private static BlobServiceClientBuilder blobServiceClientBuilder(String accountName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String sasToken) {
         if (sasToken == null) {
-            sasToken ="";
+            sasToken = "";
         } else {
             sasToken = "?" + sasToken;
         }
@@ -255,4 +258,15 @@ public class AzurePersistenceManager {
         return rootPath;
     }
 
+    private static void checkArguments(String accountName, String containerName, String rootPrefix){
+        checkIfEmpty(accountName, "Account name");
+        checkIfEmpty(containerName, "Container name");
+        checkIfEmpty(rootPrefix, "Root prefix");
+    }
+
+    private static void checkIfEmpty(String argument, String argumentName) {
+        if (StringUtils.isEmpty(argument)) {
+            throw new IllegalArgumentException(String.format("%s must not be empty argument", argumentName));
+        }
+    }
 }
