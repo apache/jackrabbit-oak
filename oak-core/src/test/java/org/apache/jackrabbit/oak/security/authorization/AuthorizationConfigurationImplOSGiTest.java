@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;

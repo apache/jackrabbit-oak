@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;

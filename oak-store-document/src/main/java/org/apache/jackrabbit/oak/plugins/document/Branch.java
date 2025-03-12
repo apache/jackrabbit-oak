@@ -31,7 +31,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+
 
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.jetbrains.annotations.NotNull;

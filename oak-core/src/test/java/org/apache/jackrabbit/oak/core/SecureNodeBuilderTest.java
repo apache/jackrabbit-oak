@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;

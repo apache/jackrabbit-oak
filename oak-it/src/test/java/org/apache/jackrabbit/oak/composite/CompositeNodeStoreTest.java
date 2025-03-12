@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;

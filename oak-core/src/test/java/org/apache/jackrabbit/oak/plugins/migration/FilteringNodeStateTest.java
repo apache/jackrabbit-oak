@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;

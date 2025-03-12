@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+
 
 /**
  * Abstract base class for {@link NodeState} implementations.

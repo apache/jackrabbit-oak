@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;

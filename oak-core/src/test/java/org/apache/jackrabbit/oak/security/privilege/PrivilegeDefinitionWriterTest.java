@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.junit.After;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.mockito.Mockito;
 
 import static java.util.Arrays.asList;

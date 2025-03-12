@@ -95,7 +95,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.jcr.InvalidItemStateException;
 
 import org.apache.jackrabbit.guava.common.base.Throwables;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;

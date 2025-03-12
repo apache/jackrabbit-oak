@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authentication.external;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;

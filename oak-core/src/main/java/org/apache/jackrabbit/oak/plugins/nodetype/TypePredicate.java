@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;

@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import org.apache.jackrabbit.guava.common.collect.HashMultimap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Multimap;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.junit.Test;

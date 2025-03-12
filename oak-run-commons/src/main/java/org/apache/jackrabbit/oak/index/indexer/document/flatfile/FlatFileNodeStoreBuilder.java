@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.mongodb.MongoClientURI;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;

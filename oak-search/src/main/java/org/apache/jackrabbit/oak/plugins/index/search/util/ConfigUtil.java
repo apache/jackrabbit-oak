@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import java.util.Collections;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;

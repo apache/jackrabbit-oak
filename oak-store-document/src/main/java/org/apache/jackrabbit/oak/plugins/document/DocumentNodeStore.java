@@ -137,7 +137,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Suppliers;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+
 
 /**
  * Implementation of a NodeStore on {@link DocumentStore}.

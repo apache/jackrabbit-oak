@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import com.mongodb.MongoClient;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
