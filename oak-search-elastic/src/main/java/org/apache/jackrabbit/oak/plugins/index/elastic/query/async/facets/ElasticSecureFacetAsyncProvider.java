@@ -45,7 +45,6 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     private static final Logger LOG = LoggerFactory.getLogger(ElasticSecureFacetAsyncProvider.class);
 
     private final Set<String> facetFields;
-    private final Set<String> elasticFieldNames;
     private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
     private final ElasticResponseHandler elasticResponseHandler;
     private final Predicate<String> isAccessible;
@@ -59,15 +58,14 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     ) {
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
-        this.facetFields = elasticRequestHandler.facetFields().collect(Collectors.toSet());
-        this.elasticFieldNames = elasticRequestHandler.facetFields().
-                map(p -> ElasticIndexUtils.fieldName(p)).
+        this.facetFields = elasticRequestHandler.facetFields().
+                map(ElasticIndexUtils::fieldName).
                 collect(Collectors.toSet());
     }
 
     @Override
     public Set<String> sourceFields() {
-        return elasticFieldNames;
+        return facetFields;
     }
 
     @Override
@@ -80,8 +78,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null && isAccessible.test(path)) {
             for (String field: facetFields) {
-                String elasticField = ElasticIndexUtils.fieldName(field);
-                JsonNode value = searchHit.source().get(elasticField);
+                JsonNode value = searchHit.source().get(field);
                 if (value != null) {
                     accessibleFacetCounts.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {
@@ -135,6 +132,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
             throw new IllegalStateException("Error while waiting for facets", e);
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);
-        return facets != null ? facets.get(FulltextIndex.parseFacetField(columnName)) : null;
+        String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
+        return facets != null ? facets.get(field) : null;
     }
 }

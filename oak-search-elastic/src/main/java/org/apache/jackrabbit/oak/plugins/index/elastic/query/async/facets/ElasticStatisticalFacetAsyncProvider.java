@@ -49,7 +49,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * An {@link ElasticFacetProvider} extension that performs random sampling on the result set to compute facets.
@@ -77,14 +76,12 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
         this.facetFields = elasticRequestHandler.facetFields().
-                collect(Collectors.toSet());
-        Set<String> elasticFieldNames = facetFields.stream().
                 map(ElasticIndexUtils::fieldName).
                 collect(Collectors.toSet());
 
         SearchRequest searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
                 .trackTotalHits(thb -> thb.enabled(true))
-                .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(elasticFieldNames)))))
+                .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(facetFields)))))
                 .query(Query.of(qb -> qb.bool(elasticRequestHandler.baseQueryBuilder().build())))
                 .aggregations(elasticRequestHandler.aggregations())
                 .size(sampleSize)
@@ -134,14 +131,15 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
             throw new IllegalStateException("Error while waiting for facets", e);
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);
-        return facets != null ? facets.get(FulltextIndex.parseFacetField(columnName)) : null;
+        String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
+        return facets != null ? facets.get(field) : null;
     }
 
     private void processHit(Hit<ObjectNode> searchHit) {
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null && isAccessible.test(path)) {
             for (String field : facetFields) {
-                JsonNode value = searchHit.source().get(ElasticIndexUtils.fieldName(field));
+                JsonNode value = searchHit.source().get(field);
                 if (value != null) {
                     accessibleFacetCounts.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {
