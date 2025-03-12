@@ -95,55 +95,6 @@ public class ElasticIndexUtils {
     }
 
     /**
-     * Convert an elasticsearch field name to a JCR property name.
-     * Please note this method is not optimized for performance.
-     *
-     * @param fieldName the field name
-     * @return the property name
-     */
-    public static String propertyNameFromFieldName(String fieldName) {
-        if (fieldName.indexOf('|') < 0) {
-            return fieldName;
-        }
-        if (fieldName.startsWith("|")) {
-            if (fieldName.equals("|")) {
-                return "";
-            } if (fieldName.startsWith("|_") || fieldName.substring(1).isBlank()) {
-                fieldName = fieldName.substring(1);
-            }
-        }
-        StringBuilder buff = new StringBuilder(fieldName.length());
-        for (int i = 0; i < fieldName.length(); i++) {
-            char c = fieldName.charAt(i);
-            switch (c) {
-            case '|':
-                String next = fieldName.substring(i + 1);
-                if (next.startsWith("|")) {
-                    buff.append('|');
-                    i++;
-                } else {
-                    int end = next.indexOf('|');
-                    if (end < 0) {
-                        buff.append(next);
-                        break;
-                    }
-                    String code = next.substring(0, end);
-                    try {
-                        buff.append((char) Integer.parseInt(code, 16));
-                    } catch (NumberFormatException e) {
-                        buff.append(code);
-                    }
-                    i += code.length() + 1;
-                }
-                break;
-            default:
-                buff.append(c);
-            }
-        }
-        return buff.toString();
-    }
-
-    /**
      * Transforms a path into an _id compatible with Elasticsearch specification. The path cannot be larger than 512
      * bytes. For performance reasons paths that are already compatible are returned untouched. Otherwise, SHA-256
      * algorithm is used to return a transformed path (32 bytes max).

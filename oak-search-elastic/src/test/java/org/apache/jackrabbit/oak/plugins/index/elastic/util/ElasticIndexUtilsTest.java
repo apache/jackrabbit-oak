@@ -43,7 +43,7 @@ public class ElasticIndexUtilsTest {
 
     @Test
     public void randomFieldNames() {
-        ElasticIndexUtils.propertyNameFromFieldName("");
+        propertyNameFromFieldName("");
         Random r = new Random(1);
         for (int i = 0; i < 1000; i++) {
             StringBuilder buff = new StringBuilder();
@@ -54,13 +54,13 @@ public class ElasticIndexUtilsTest {
             }
             String p = buff.toString();
             String f = ElasticIndexUtils.fieldName(p);
-            String p2 = ElasticIndexUtils.propertyNameFromFieldName(f);
+            String p2 = propertyNameFromFieldName(f);
             if (!p.equals(p2)) {
-                p2 = ElasticIndexUtils.propertyNameFromFieldName(f);
+                p2 = propertyNameFromFieldName(f);
                 assertEquals(p, p2);
             }
             // just to make sure there are no exceptions (within some limits)
-            ElasticIndexUtils.propertyNameFromFieldName(p);
+            propertyNameFromFieldName(p);
         }
     }
     
@@ -85,6 +85,55 @@ public class ElasticIndexUtilsTest {
         assertEquals("[NaN, 3.4028235E38]",
                 ElasticIndexUtils.toFloats(
                 ElasticIndexUtils.toByteArray(List.of(Float.NaN, Float.MAX_VALUE))).toString());
+    }
+
+    /**
+     * Convert an elasticsearch field name to a JCR property name.
+     * Please note this method is not optimized for performance.
+     *
+     * @param fieldName the field name
+     * @return the property name
+     */
+    public static String propertyNameFromFieldName(String fieldName) {
+        if (fieldName.indexOf('|') < 0) {
+            return fieldName;
+        }
+        if (fieldName.startsWith("|")) {
+            if (fieldName.equals("|")) {
+                return "";
+            } if (fieldName.startsWith("|_") || fieldName.substring(1).isBlank()) {
+                fieldName = fieldName.substring(1);
+            }
+        }
+        StringBuilder buff = new StringBuilder(fieldName.length());
+        for (int i = 0; i < fieldName.length(); i++) {
+            char c = fieldName.charAt(i);
+            switch (c) {
+            case '|':
+                String next = fieldName.substring(i + 1);
+                if (next.startsWith("|")) {
+                    buff.append('|');
+                    i++;
+                } else {
+                    int end = next.indexOf('|');
+                    if (end < 0) {
+                        buff.append(next);
+                        break;
+                    }
+                    String code = next.substring(0, end);
+                    try {
+                        buff.append((char) Integer.parseInt(code, 16));
+                    } catch (NumberFormatException e) {
+                        buff.append(code);
+                    }
+                    i += code.length() + 1;
+                }
+                break;
+            default:
+                buff.append(c);
+            }
+        }
+        return buff.toString();
     }
 
 }
