@@ -98,7 +98,9 @@ public class PipelinedMongoConnectionFailureIT {
             .withNetworkAliases("mongo")
             .withExposedPorts(MONGODB_DEFAULT_PORT);
     @Rule
-    public final ToxiproxyContainer toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(network);
+    public final ToxiproxyContainer toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
+            .withStartupAttempts(3)
+            .withNetwork(network);
     @Rule
     public final DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
     @Rule
