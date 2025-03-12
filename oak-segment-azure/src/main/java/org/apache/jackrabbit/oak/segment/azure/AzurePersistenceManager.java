@@ -90,6 +90,7 @@ public class AzurePersistenceManager {
     }
 
     private static AzurePersistence createPersistenceFromAccessKey(String accountName, String containerName, String accessKey, String blobEndpoint, String rootPrefix, boolean enableSecondaryLocation, boolean createContainer) throws IOException {
+        checkIfEmpty(accessKey, "accessKey");
         StringBuilder connectionString = new StringBuilder();
         connectionString.append("DefaultEndpointsProtocol=https;");
         connectionString.append("AccountName=").append(accountName).append(';');
