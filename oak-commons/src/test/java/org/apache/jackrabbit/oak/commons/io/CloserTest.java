@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class CloserTest {
@@ -60,7 +62,16 @@ public class CloserTest {
     }
 
     @Test
-    public void testGuavaWhatThrows() throws IOException {
+    public void testGuavaCloseableThrowsRuntimeException() {
+        Closer closer = Closer.create();
+        closer.register(() -> {
+            throw new RuntimeException();
+        });
+        assertThrows(RuntimeException.class, closer::close);
+    }
+
+    @Test
+    public void testGuavaWhichThrows() throws IOException {
         // shows which exception is not suppressed
 
         int cnt = 2;
@@ -85,6 +96,46 @@ public class CloserTest {
             fail("should throw");
         } catch (IOException ex) {
             assertEquals("1", ex.getMessage());
+        }
+    }
+
+    @Test
+    public void testGuavaRethrowRuntime() {
+        try {
+            Closer closer = Closer.create();
+            try {
+                closer.register(() -> {
+                    throw new IOException("checked");
+                });
+                throw new RuntimeException("unchecked");
+            } catch (Throwable t) {
+                throw closer.rethrow(t);
+            } finally {
+                closer.close();
+            }
+        } catch (Exception ex) {
+            assertTrue("should throw the (wrapped) unchecked exception",
+                    ex.getMessage().contains("unchecked"));
+        }
+    }
+
+    @Test
+    public void testGuavaRethrowChecked() throws IOException {
+        try {
+            Closer closer = Closer.create();
+            try {
+                closer.register(() -> {
+                    throw new IOException("checked");
+                });
+                throw new InterruptedException("interrupted");
+            } catch (Throwable t) {
+                throw closer.rethrow(t);
+            } finally {
+                closer.close();
+            }
+        } catch (RuntimeException ex) {
+            assertTrue("should throw the (wrapped) exception",
+                    ex.getCause() instanceof InterruptedException);
         }
     }
 }
