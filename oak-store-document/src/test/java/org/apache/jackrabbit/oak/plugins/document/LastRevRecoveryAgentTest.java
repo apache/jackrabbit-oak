@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;

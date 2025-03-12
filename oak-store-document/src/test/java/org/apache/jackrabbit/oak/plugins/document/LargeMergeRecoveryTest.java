@@ -37,8 +37,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
-
-
 public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
     public LargeMergeRecoveryTest(DocumentStoreFixture fixture) {

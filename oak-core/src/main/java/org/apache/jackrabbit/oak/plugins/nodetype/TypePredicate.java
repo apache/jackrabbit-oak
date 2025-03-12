@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;

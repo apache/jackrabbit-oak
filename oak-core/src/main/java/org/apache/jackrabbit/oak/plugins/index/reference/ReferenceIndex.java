@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 
-
 /**
  * Provides a QueryIndex that does lookups for node references based on a custom
  * index saved on hidden property names

@@ -64,7 +64,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 
-
 public class NodeStoreTest extends OakBaseTest {
     private NodeState root;
 

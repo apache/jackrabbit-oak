@@ -31,7 +31,6 @@ import java.util.Locale;
 import java.util.Set;
 
 
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;

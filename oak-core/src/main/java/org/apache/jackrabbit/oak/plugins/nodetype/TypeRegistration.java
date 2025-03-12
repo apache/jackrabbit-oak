@@ -74,7 +74,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 
-
 /**
  * This class is used by the {@link TypeEditorProvider} to check for,
  * validate, and post-process changes to the in-content node type registry

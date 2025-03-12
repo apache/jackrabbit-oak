@@ -87,7 +87,6 @@ import ch.qos.logback.core.read.ListAppender;
 import ch.qos.logback.core.spi.FilterReply;
 
 
-
 /**
  * Test the Property2 index mechanism.
  */

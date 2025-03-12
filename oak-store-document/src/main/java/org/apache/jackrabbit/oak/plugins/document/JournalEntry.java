@@ -30,7 +30,6 @@ import java.util.function.Consumer;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;

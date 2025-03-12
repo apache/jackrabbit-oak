@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 
-
 /**
  * RDB specific version of {@link VersionGCSupport} which uses an extended query
  * interface to fetch required {@link NodeDocument}s.
