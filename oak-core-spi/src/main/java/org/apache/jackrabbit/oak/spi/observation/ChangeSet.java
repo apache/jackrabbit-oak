@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -74,11 +75,11 @@ public final class ChangeSet {
     ChangeSet(int maxPathDepth, Set<String> parentPaths, Set<String> parentNodeNames, Set<String> parentNodeTypes,
             Set<String> propertyNames, Set<String> allNodeTypes) {
         this.maxPathDepth = maxPathDepth;
-        this.parentPaths = parentPaths == null ? null : ImmutableSet.copyOf(parentPaths);
-        this.parentNodeNames = parentNodeNames == null ? null : ImmutableSet.copyOf(parentNodeNames);
-        this.parentNodeTypes = parentNodeTypes == null ? null : ImmutableSet.copyOf(parentNodeTypes);
-        this.propertyNames = propertyNames == null ? null : ImmutableSet.copyOf(propertyNames);
-        this.allNodeTypes = allNodeTypes == null ? null : ImmutableSet.copyOf(allNodeTypes);
+        this.parentPaths = parentPaths == null ? null : SetUtils.toLinkedSet(parentPaths);
+        this.parentNodeNames = parentNodeNames == null ? null : SetUtils.toLinkedSet(parentNodeNames);
+        this.parentNodeTypes = parentNodeTypes == null ? null : SetUtils.toLinkedSet(parentNodeTypes);
+        this.propertyNames = propertyNames == null ? null : SetUtils.toLinkedSet(propertyNames);
+        this.allNodeTypes = allNodeTypes == null ? null : SetUtils.toLinkedSet(allNodeTypes);
         
         boolean hitsMaxPathDepth = false;
         if (parentPaths != null) {

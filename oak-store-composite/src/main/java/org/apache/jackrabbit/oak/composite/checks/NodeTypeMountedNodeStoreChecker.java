@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ComponentPropertyType;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
@@ -81,13 +82,13 @@ public class NodeTypeMountedNodeStoreChecker implements
     public NodeTypeMountedNodeStoreChecker(String invalidNodeType, String errorLabel, String... excludedNodeTypes) {
         this.invalidNodeType = invalidNodeType;
         this.errorLabel = errorLabel;
-        this.excludedNodeTypes = ImmutableSet.copyOf(excludedNodeTypes);
+        this.excludedNodeTypes = SetUtils.toLinkedSet(excludedNodeTypes);
     }
 
     protected void activate(ComponentContext ctx) {
         invalidNodeType = requireNonNull(PropertiesUtil.toString(ctx.getProperties().get(INVALID_NODE_TYPE), null), INVALID_NODE_TYPE);
         errorLabel = requireNonNull(PropertiesUtil.toString(ctx.getProperties().get(ERROR_LABEL), null), ERROR_LABEL);
-        excludedNodeTypes = ImmutableSet.copyOf(PropertiesUtil.toStringArray(ctx.getProperties().get(EXCLUDED_NODE_TYPES), new String[0]));
+        excludedNodeTypes = SetUtils.toLinkedSet(PropertiesUtil.toStringArray(ctx.getProperties().get(EXCLUDED_NODE_TYPES), new String[0]));
     }
 
     @Override

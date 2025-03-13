@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
@@ -69,7 +70,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -217,7 +217,7 @@ public class RepositorySidegrade {
      * @param includes Paths to be included in the copy.
      */
     public void setIncludes(@NotNull String... includes) {
-        this.includePaths = copyOf(requireNonNull(includes));
+        this.includePaths = SetUtils.toLinkedSet(requireNonNull(includes));
     }
 
     /**
@@ -227,7 +227,7 @@ public class RepositorySidegrade {
      * @param excludes Paths to be excluded from the copy.
      */
     public void setExcludes(@NotNull String... excludes) {
-        this.excludePaths = copyOf(requireNonNull(excludes));
+        this.excludePaths = SetUtils.toLinkedSet(requireNonNull(excludes));
     }
 
     /**
@@ -237,7 +237,7 @@ public class RepositorySidegrade {
      * @param merges Paths to be merged during copy.
      */
     public void setMerges(@NotNull String... merges) {
-        this.mergePaths = copyOf(requireNonNull(merges));
+        this.mergePaths = SetUtils.toLinkedSet(requireNonNull(merges));
     }
 
     public void setFilterLongNames(boolean filterLongNames) {
@@ -472,7 +472,7 @@ public class RepositorySidegrade {
         }
         excludes.add("/:async");
 
-        final Set<String> merges = union(copyOf(this.mergePaths), Set.of("/jcr:system"));
+        final Set<String> merges = union(SetUtils.toLinkedSet(this.mergePaths), Set.of("/jcr:system"));
         NodeStateCopier.builder()
             .include(includes)
             .exclude(excludes.build())

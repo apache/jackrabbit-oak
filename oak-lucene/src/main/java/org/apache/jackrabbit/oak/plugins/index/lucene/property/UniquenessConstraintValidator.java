@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -68,7 +69,7 @@ public class UniquenessConstraintValidator {
             String propertyRelativePath = e.getKey();
             String value = e.getValue();
             Iterable<String> indexedPaths = getIndexedPaths(propertyRelativePath, value);
-            Set<String> allPaths = ImmutableSet.copyOf(indexedPaths);
+            Set<String> allPaths = SetUtils.toLinkedSet(indexedPaths);
 
             //If more than one match found then filter out stale paths
             if (allPaths.size() > 1) {

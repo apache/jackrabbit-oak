@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.ALL;
@@ -77,6 +76,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -321,7 +321,7 @@ public class RepositoryUpgrade {
      * @param includes Paths to be included in the copy.
      */
     public void setIncludes(@NotNull String... includes) {
-        this.includePaths = copyOf(requireNonNull(includes));
+        this.includePaths = SetUtils.toLinkedSet(requireNonNull(includes));
     }
 
     /**
@@ -331,7 +331,7 @@ public class RepositoryUpgrade {
      * @param excludes Paths to be excluded from the copy.
      */
     public void setExcludes(@NotNull String... excludes) {
-        this.excludePaths = copyOf(requireNonNull(excludes));
+        this.excludePaths = SetUtils.toLinkedSet(requireNonNull(excludes));
     }
 
     /**
@@ -341,7 +341,7 @@ public class RepositoryUpgrade {
      * @param merges Paths to be merged during copy.
      */
     public void setMerges(@NotNull String... merges) {
-        this.mergePaths = copyOf(requireNonNull(merges));
+        this.mergePaths = SetUtils.toLinkedSet(requireNonNull(merges));
     }
 
     /**
@@ -939,8 +939,8 @@ public class RepositoryUpgrade {
     private String copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot, String workspaceName)
             throws RepositoryException {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        final Set<String> excludes = union(copyOf(this.excludePaths), Set.of("/jcr:system/jcr:versionStorage"));
-        final Set<String> merges = union(copyOf(this.mergePaths), Set.of("/jcr:system"));
+        final Set<String> excludes = union(SetUtils.toLinkedSet(this.excludePaths), Set.of("/jcr:system/jcr:versionStorage"));
+        final Set<String> merges = union(SetUtils.toLinkedSet(this.mergePaths), Set.of("/jcr:system"));
 
         logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes, merges);
 
@@ -959,7 +959,7 @@ public class RepositoryUpgrade {
 
     static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths, NodeState sourceRoot) {
         if (!includePaths.contains("/")) {
-            return copyOf(includePaths);
+            return SetUtils.toLinkedSet(includePaths);
         }
 
         // include child nodes from source individually to avoid deleting other initialized content

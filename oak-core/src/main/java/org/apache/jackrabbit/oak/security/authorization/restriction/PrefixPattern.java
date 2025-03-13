@@ -21,6 +21,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
@@ -45,7 +46,7 @@ class PrefixPattern implements RestrictionPattern {
     private final Set<String> prefixes;
 
     PrefixPattern(@NotNull Iterable<String> prefixes) {
-        this.prefixes = ImmutableSet.copyOf(prefixes);
+        this.prefixes = SetUtils.toLinkedSet(prefixes);
     }
 
     @Override

@@ -341,7 +341,7 @@ public class OakDirectory extends Directory {
         if (fileNames == null){
             fileNames = directoryBuilder.getChildNodeNames();
         }
-        Set<String> result = ImmutableSet.copyOf(fileNames);
+        Set<String> result = SetUtils.toLinkedSet(fileNames);
         PERF_LOGGER.end(start, 100, "Directory listing performed. Total {} files", result.size());
         return result;
     }
