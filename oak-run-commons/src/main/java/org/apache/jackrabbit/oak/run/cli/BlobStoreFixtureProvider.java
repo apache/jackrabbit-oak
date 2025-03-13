@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;

@@ -27,7 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;

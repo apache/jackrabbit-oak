@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;

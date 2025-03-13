@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.blob.S3DataStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import static org.apache.jackrabbit.oak.upgrade.cli.container.SegmentTarNodeStoreContainer.deleteRecursive;
 

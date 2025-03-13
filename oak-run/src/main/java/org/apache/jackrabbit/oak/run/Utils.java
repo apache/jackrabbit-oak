@@ -68,7 +68,7 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
 

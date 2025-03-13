@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;

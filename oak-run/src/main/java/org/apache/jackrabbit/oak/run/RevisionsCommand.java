@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import java.io.IOException;
 import java.util.Arrays;

@@ -39,7 +39,7 @@ public class Closer implements Closeable {
     }
 
     // stack of closeables to close
-    private final Deque<Closeable> closeables = new ArrayDeque<>();
+    private Deque<Closeable> closeables = new ArrayDeque<>();
 
     // set by rethrow method
     private Throwable rethrow = null;
@@ -53,10 +53,10 @@ public class Closer implements Closeable {
 
     /**
      * Add a {@link Closeable} to the list.
-     * @param closeable {@link Closeable} object to be added
-     * @return the closeable param
+     * @param closeable
+     * @return the {@link Closeable}
      */
-    public @Nullable <CLO extends Closeable> CLO register(@Nullable CLO closeable) {
+    public @Nullable Closeable register(@Nullable Closeable closeable) {
         if (closeable != null) {
             closeables.add(closeable);
         }
@@ -83,7 +83,7 @@ public class Closer implements Closeable {
             try {
                 closeable.close();
             } catch (IOException exception) {
-                // remember the first one that occurred
+                // remember the first one that occured
                 if (toThrow == null) {
                     toThrow = exception;
                 }
@@ -108,12 +108,12 @@ public class Closer implements Closeable {
     /**
      * Stores a {@link Throwable} for later use in {@link #close()} and
      * rethrows it (potentially wrapped into {@link RuntimeException} or
-     * {@link Error}).
+     * {@link Error}.
      * <p>
      * {@link #close()} will use the exception passed in the last call of this
      * method.
      * @return never returns
-     * @throws IOException wrapping the input, when needed
+     * @throws IOException
      */
     public RuntimeException rethrow(@NotNull Throwable throwable) throws IOException {
         rethrow = Objects.requireNonNull(throwable);

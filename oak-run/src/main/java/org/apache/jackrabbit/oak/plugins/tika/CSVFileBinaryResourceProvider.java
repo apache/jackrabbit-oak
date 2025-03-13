@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;

@@ -22,7 +22,7 @@ import java.util.ServiceLoader;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import joptsimple.OptionSet;
 
