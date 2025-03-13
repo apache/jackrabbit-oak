@@ -32,7 +32,7 @@ import java.util.Objects;
  * <p>
  * Inspired by and replacing Guava's Closer.
  */
-public class Closer {
+public class Closer implements Closeable {
 
     private Closer() {
         // no instances for you
@@ -54,11 +54,13 @@ public class Closer {
     /**
      * Add a {@link Closeable} to the list.
      * @param closeable
+     * @return the {@link Closeable}
      */
-    public void register(@Nullable Closeable closeable) {
+    public @Nullable Closeable register(@Nullable Closeable closeable) {
         if (closeable != null) {
             closeables.add(closeable);
         }
+        return closeable;
     }
 
     /**
