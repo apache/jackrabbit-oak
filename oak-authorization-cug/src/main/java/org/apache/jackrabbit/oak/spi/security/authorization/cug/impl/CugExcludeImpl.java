@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
@@ -81,6 +82,6 @@ public class CugExcludeImpl extends CugExclude.Default {
     }
 
     private void setPrincipalNames(@NotNull Map<String, Object> properties) {
-        this.principalNames = SetUtils.toLinkedSet(PropertiesUtil.toStringArray(properties.get("principalNames"), new String[0]));
+        this.principalNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(PropertiesUtil.toStringArray(properties.get("principalNames"), new String[0])));
     }
 }

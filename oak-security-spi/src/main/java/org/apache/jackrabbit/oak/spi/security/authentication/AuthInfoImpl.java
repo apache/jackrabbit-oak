@@ -49,7 +49,7 @@ public final class AuthInfoImpl implements AuthInfo {
                         @Nullable Iterable<? extends Principal> principals) {
         this.userID = userID;
         this.attributes = (attributes == null) ? Collections.emptyMap() : attributes;
-        this.principals = (principals == null) ? Collections.emptySet() : SetUtils.toLinkedSet(principals);
+        this.principals = (principals == null) ? Collections.emptySet() : Collections.unmodifiableSet(SetUtils.toLinkedSet(principals));
     }
 
     public static AuthInfo createFromSubject(@NotNull Subject subject) {

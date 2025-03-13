@@ -77,7 +77,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         this.principal = principal;
         this.privilegeBits = privilegeBits;
         this.isAllow = isAllow;
-        this.restrictions = (restrictions == null) ? Collections.emptySet() : SetUtils.toLinkedSet(restrictions);
+        this.restrictions = (restrictions == null) ? Collections.emptySet() : Collections.unmodifiableSet(restrictions);
         this.namePathMapper = namePathMapper;
         this.valueFactory = new PartialValueFactory(namePathMapper);
     }

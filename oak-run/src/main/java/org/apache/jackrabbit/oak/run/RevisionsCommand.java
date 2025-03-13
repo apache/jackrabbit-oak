@@ -340,8 +340,9 @@ public class RevisionsCommand implements Command {
                 System.err.println("unknown revisions command: " + subCmd);
             }
             if (exitWhenDone) {
+                LOG.warn("Exiting with system, exit code is 0");
                 System.out.printf("Command '%s' completed successfully.%n", subCmd);
-                System.exit(0);
+//                System.exit(0);
             }
         } catch (Throwable e) {
             LOG.error("Command failed", e);

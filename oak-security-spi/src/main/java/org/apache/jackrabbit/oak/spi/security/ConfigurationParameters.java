@@ -307,13 +307,13 @@ public final class ConfigurationParameters implements Map<String, Object> {
         if (configProperty instanceof Set) {
             return (Set) configProperty;
         } else if (configProperty instanceof Collection<?>) {
-            return SetUtils.toLinkedSet((Collection<?>) configProperty);
+            return Collections.unmodifiableSet(SetUtils.toLinkedSet((Collection<?>) configProperty));
         } else if (configProperty.getClass().isArray()) {
-            return SetUtils.toLinkedSet((Object[]) configProperty);
+            return Collections.unmodifiableSet(SetUtils.toLinkedSet((Object[]) configProperty));
         } else {
             String[] arr = PropertiesUtil.toStringArray(configProperty);
             if (arr != null) {
-                return SetUtils.toLinkedSet(arr);
+                return Collections.unmodifiableSet(SetUtils.toLinkedSet(arr));
             } else {
                 String str = configProperty.toString();
                 log.warn("Unsupported target type {} for value {}", clazz.getName(), str);

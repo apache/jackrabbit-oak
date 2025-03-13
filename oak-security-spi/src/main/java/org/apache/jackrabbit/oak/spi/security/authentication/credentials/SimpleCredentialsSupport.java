@@ -66,8 +66,7 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
             final SimpleCredentials sc = (SimpleCredentials) credentials;
-            return Maps.asMap(SetUtils.toLinkedSet(sc.getAttributeNames()),
-                    input -> sc.getAttribute(input));
+            return Maps.asMap(Collections.unmodifiableSet(SetUtils.toLinkedSet(sc.getAttributeNames())), sc::getAttribute);
         } else {
             return Collections.emptyMap();
         }

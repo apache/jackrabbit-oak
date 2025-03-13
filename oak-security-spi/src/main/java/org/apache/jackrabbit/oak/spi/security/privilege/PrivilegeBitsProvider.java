@@ -203,7 +203,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 privilegeNames = bitsToNames.get(pb);
             } else {
                 privilegeNames = collectPrivilegeNames(privilegesTree, pb);
-                bitsToNames.put(pb, SetUtils.toLinkedSet(privilegeNames));
+                bitsToNames.put(pb, Collections.unmodifiableSet(privilegeNames));
             }
             return privilegeNames;
         }
@@ -252,7 +252,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 return extractAggregatedPrivileges(Collections.singleton(privName));
             }
         } else {
-            Set<String> pNames = SetUtils.toLinkedSet(privilegeNames);
+            Set<String> pNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(privilegeNames));
             if (NON_AGGREGATE_PRIVILEGES.containsAll(pNames)) {
                 return pNames;
             } else {

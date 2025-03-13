@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -959,7 +960,7 @@ public class RepositoryUpgrade {
 
     static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths, NodeState sourceRoot) {
         if (!includePaths.contains("/")) {
-            return SetUtils.toLinkedSet(includePaths);
+            return Collections.unmodifiableSet(includePaths);
         }
 
         // include child nodes from source individually to avoid deleting other initialized content

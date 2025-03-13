@@ -402,7 +402,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder include(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.includePaths = SetUtils.toLinkedSet(paths);
+                this.includePaths = Collections.unmodifiableSet(paths);
             }
             return this;
         }
@@ -416,7 +416,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder include(@NotNull String... paths) {
-            return include(SetUtils.toLinkedSet(requireNonNull(paths)));
+            return include(Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(paths))));
         }
 
         /**
@@ -442,7 +442,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder exclude(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.excludePaths = SetUtils.toLinkedSet(paths);
+                this.excludePaths = Collections.unmodifiableSet(paths);
             }
             return this;
         }
@@ -456,7 +456,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder exclude(@NotNull String... paths) {
-            return exclude(SetUtils.toLinkedSet(requireNonNull(paths)));
+            return exclude(Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(paths))));
         }
 
         /**
@@ -469,7 +469,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder supportFragment(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.fragmentPaths = SetUtils.toLinkedSet(paths);
+                this.fragmentPaths = Collections.unmodifiableSet(paths);
             }
             return this;
         }
@@ -483,7 +483,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder supportFragment(@NotNull String... paths) {
-            return supportFragment(SetUtils.toLinkedSet(requireNonNull(paths)));
+            return supportFragment(Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(paths))));
         }
 
         /**
@@ -496,7 +496,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder excludeFragments(@NotNull Set<String> fragments) {
             if (!requireNonNull(fragments).isEmpty()) {
-                this.excludeFragments = SetUtils.toLinkedSet(fragments);
+                this.excludeFragments = Collections.unmodifiableSet(fragments);
             }
             return this;
         }
@@ -510,7 +510,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder excludeFragments(@NotNull String... fragments) {
-            return exclude(SetUtils.toLinkedSet(requireNonNull(fragments)));
+            return exclude(Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(fragments))));
         }
 
         /**
@@ -523,7 +523,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder merge(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.mergePaths = SetUtils.toLinkedSet(paths);
+                this.mergePaths = Collections.unmodifiableSet(paths);
             }
             return this;
         }
@@ -537,7 +537,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder merge(@NotNull String... paths) {
-            return merge(SetUtils.toLinkedSet(requireNonNull(paths)));
+            return merge(Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(paths))));
         }
 
         @NotNull

@@ -71,7 +71,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         if (isUnsupportedPath(oakPath)) {
             return Collections.emptySet();
         } else {
-            return SetUtils.toLinkedSet(supported.values());
+            return Collections.unmodifiableSet(SetUtils.toLinkedSet(supported.values()));
         }
     }
 

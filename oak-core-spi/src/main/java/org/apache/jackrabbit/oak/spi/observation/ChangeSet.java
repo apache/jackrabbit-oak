@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.spi.observation;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -75,11 +76,11 @@ public final class ChangeSet {
     ChangeSet(int maxPathDepth, Set<String> parentPaths, Set<String> parentNodeNames, Set<String> parentNodeTypes,
             Set<String> propertyNames, Set<String> allNodeTypes) {
         this.maxPathDepth = maxPathDepth;
-        this.parentPaths = parentPaths == null ? null : SetUtils.toLinkedSet(parentPaths);
-        this.parentNodeNames = parentNodeNames == null ? null : SetUtils.toLinkedSet(parentNodeNames);
-        this.parentNodeTypes = parentNodeTypes == null ? null : SetUtils.toLinkedSet(parentNodeTypes);
-        this.propertyNames = propertyNames == null ? null : SetUtils.toLinkedSet(propertyNames);
-        this.allNodeTypes = allNodeTypes == null ? null : SetUtils.toLinkedSet(allNodeTypes);
+        this.parentPaths = parentPaths == null ? null : Collections.unmodifiableSet(SetUtils.toLinkedSet(parentPaths));
+        this.parentNodeNames = parentNodeNames == null ? null : Collections.unmodifiableSet(SetUtils.toLinkedSet(parentNodeNames));
+        this.parentNodeTypes = parentNodeTypes == null ? null : Collections.unmodifiableSet(SetUtils.toLinkedSet(parentNodeTypes));
+        this.propertyNames = propertyNames == null ? null : Collections.unmodifiableSet(SetUtils.toLinkedSet(propertyNames));
+        this.allNodeTypes = allNodeTypes == null ? null : Collections.unmodifiableSet(SetUtils.toLinkedSet(allNodeTypes));
         
         boolean hitsMaxPathDepth = false;
         if (parentPaths != null) {
