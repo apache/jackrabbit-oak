@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.commons.io;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.junit.Test;
 
 import java.io.Closeable;
@@ -33,11 +33,11 @@ import static org.junit.Assert.fail;
 
 public class CloserTest {
 
-    // tests below confirm what Guava actually does
+    // tests below confirm what  actually does
 
     @Test
-    public void testGuavaCloserOrder() throws IOException {
-        // shows that Guava closes in reverse order
+    public void testCloserOrder() throws IOException {
+        // shows that  closes in reverse order
 
         int cnt = 2;
         List<Integer> order = new ArrayList<>();
@@ -62,7 +62,7 @@ public class CloserTest {
     }
 
     @Test
-    public void testGuavaCloseableThrowsRuntimeException() {
+    public void testCloseableThrowsRuntimeException() {
         Closer closer = Closer.create();
         closer.register(() -> {
             throw new RuntimeException();
@@ -71,7 +71,7 @@ public class CloserTest {
     }
 
     @Test
-    public void testGuavaWhichThrows() throws IOException {
+    public void testWhichThrows() throws IOException {
         // shows which exception is not suppressed
 
         int cnt = 2;
@@ -100,7 +100,7 @@ public class CloserTest {
     }
 
     @Test
-    public void testGuavaRethrowRuntime() {
+    public void testRethrowRuntime() {
         try {
             Closer closer = Closer.create();
             try {
@@ -114,13 +114,15 @@ public class CloserTest {
                 closer.close();
             }
         } catch (Exception ex) {
-            assertTrue("should throw the (wrapped) unchecked exception",
+            assertTrue(
+                    "should throw the (wrapped) unchecked exception, but got " +
+                    ex.getMessage(),
                     ex.getMessage().contains("unchecked"));
         }
     }
 
     @Test
-    public void testGuavaRethrowChecked() throws IOException {
+    public void testRethrowChecked() throws IOException {
         try {
             Closer closer = Closer.create();
             try {
