@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons.io;
+package org.apache.jackrabbit.oak.commons.pio;
 
-import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.junit.Test;
 
 import java.io.Closeable;
