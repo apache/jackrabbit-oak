@@ -52,7 +52,7 @@ public class RevisionsCommandCustomBlobStoreTest {
 
     @Test
     public void info() throws Exception {
-        RevisionsCommand cmd = new RevisionsCommand();
+        RevisionsCommand cmd = new RevisionsCommand(false);
         cmd.execute(
                 MongoUtils.URL,
                 "info"
@@ -61,7 +61,7 @@ public class RevisionsCommandCustomBlobStoreTest {
 
     @Test
     public void collect() throws Exception {
-        RevisionsCommand cmd = new RevisionsCommand();
+        RevisionsCommand cmd = new RevisionsCommand(false);
         cmd.execute(
                 MongoUtils.URL,
                 "collect"
@@ -70,7 +70,7 @@ public class RevisionsCommandCustomBlobStoreTest {
 
     @Test
     public void reset() throws Exception {
-        RevisionsCommand cmd = new RevisionsCommand();
+        RevisionsCommand cmd = new RevisionsCommand(false);
         cmd.execute(
                 MongoUtils.URL,
                 "reset"
@@ -81,7 +81,7 @@ public class RevisionsCommandCustomBlobStoreTest {
     public void sweep() throws Exception {
         int clusterId = ns.getClusterId();
         ns.dispose();
-        RevisionsCommand cmd = new RevisionsCommand();
+        RevisionsCommand cmd = new RevisionsCommand(false);
         cmd.execute(
                 "--clusterId",
                 String.valueOf(clusterId),
