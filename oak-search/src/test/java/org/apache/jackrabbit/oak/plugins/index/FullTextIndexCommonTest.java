@@ -75,13 +75,35 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         test.addChild("a").setProperty("propa", "Hello everyone. This is a fulltext test");
         root.commit();
 
-        // fuzziness support the following syntax: <term>~[edit_distance] (eg: hello~2). The query below is invalid
+        // fuzziness support the following syntax: <term>~[edit_distance] (eg: hello~[similarity value]). The query below is invalid
+        // https://lucene.apache.org/core/2_9_4/queryparsersyntax.html#Fuzzy%20Searches
         // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-fuzziness
         String query = "//*[jcr:contains(@propa, 'hello e~one')]";
 
         assertEventually(() -> {
             assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
             assertQuery(query, XPATH, List.of());
+        });
+    }
+
+    @Test
+    public void fullTextWithFuzziness() throws Exception {
+        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
+                },
+                "propa");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "Hello World!");
+        test.addChild("b").setProperty("propa", "Simple test");
+        root.commit();
+
+        String query = "//*[jcr:contains(@propa, 'wordl~0.5')]"; // misspelled world
+
+        assertEventually(() -> {
+            assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
+            assertQuery(query, XPATH, List.of("/test/a"));
         });
     }
 
@@ -318,7 +340,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         );
     }
 
-    private Tree setup(Consumer<IndexDefinitionBuilder> builderHook, Consumer<Tree> indexHook, String... propNames) throws Exception {
+    protected Tree setup(Consumer<IndexDefinitionBuilder> builderHook, Consumer<Tree> indexHook, String... propNames) throws Exception {
         IndexDefinitionBuilder builder = indexOptions.createIndex(
                 indexOptions.createIndexDefinitionBuilder(), false, propNames);
         builder.noAsync();
@@ -332,7 +354,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         return index;
     }
 
-    private String explain(String query, String lang) {
+    protected String explain(String query, String lang) {
         String explain = "explain " + query;
         return executeQuery(explain, lang).get(0);
     }
