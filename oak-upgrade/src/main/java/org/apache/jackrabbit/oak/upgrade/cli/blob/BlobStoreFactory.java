@@ -20,7 +20,7 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 
 public interface BlobStoreFactory {
     BlobStore create(Closer closer) throws IOException;

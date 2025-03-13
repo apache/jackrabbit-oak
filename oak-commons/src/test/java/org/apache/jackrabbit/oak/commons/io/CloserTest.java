@@ -25,6 +25,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -33,11 +34,9 @@ import static org.junit.Assert.fail;
 
 public class CloserTest {
 
-    // tests below confirm what  actually does
-
     @Test
     public void testCloserOrder() throws IOException {
-        // shows that  closes in reverse order
+        // shows closes in reverse order
 
         int cnt = 2;
         List<Integer> order = new ArrayList<>();
@@ -59,6 +58,19 @@ public class CloserTest {
         closer.close();
         assertEquals(1, (int)order.get(0));
         assertEquals(0, (int)order.get(1));
+    }
+
+    @Test
+    public void testCloserWithTryWithResources() throws IOException {
+        // check cloesable behavior of Closer
+
+        AtomicBoolean wasClosed = new AtomicBoolean(false);
+
+        try (Closer closer = Closer.create()) {
+            closer.register(() -> wasClosed.set(true));
+        }
+
+        assertTrue("closeable should be closed by try-w-resources", wasClosed.get());
     }
 
     @Test

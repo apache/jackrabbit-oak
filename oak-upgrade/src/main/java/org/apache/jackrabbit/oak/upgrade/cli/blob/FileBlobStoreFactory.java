@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.upgrade.cli.blob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 
 public class FileBlobStoreFactory implements BlobStoreFactory {
 
