@@ -63,7 +63,7 @@ public class ElasticIndexSuggestionCommonTest extends IndexSuggestionCommonTest 
         String expected = "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"must\":[{\"nested\":{\"inner_hits\":" +
                 "{\"size\":100},\"path\":\":suggest\",\"query\":{\"match_bool_prefix\":{\":suggest.value\":{\"operator\":\"and\",\"query\":\"boo\"}}},\"score_mode\":\"max\"}}]}},\"size\":100}";
 
-        Query q = qm.createQuery(sql, Query.SQL);
+        Query q = qm.createQuery(sql, Query.JCR_SQL2);
         Row row = q.execute().getRows().nextRow();
         MatcherAssert.assertThat(row.getValue("plan").getString(), CoreMatchers.containsString(expected));
     }

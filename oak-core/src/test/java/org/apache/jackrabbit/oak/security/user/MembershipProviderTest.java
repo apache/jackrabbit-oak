@@ -23,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
@@ -315,7 +316,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembers(getTree(g), true);
-        assertEquals(2, Iterators.size(res));
+        assertEquals(2, IteratorUtils.size(res));
     }
 
     @Test
@@ -330,7 +331,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembers(getTree(g), true);
-        assertEquals(2, Iterators.size(res));
+        assertEquals(2, IteratorUtils.size(res));
     }
 
     @Test
@@ -342,7 +343,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembers(getTree(g), false);
-        assertEquals(1, Iterators.size(res));
+        assertEquals(1, IteratorUtils.size(res));
     }
 
     @Test
@@ -359,7 +360,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembership(getTree(user), true);
-        assertEquals(3, Iterators.size(res));
+        assertEquals(3, IteratorUtils.size(res));
     }
 
     @Test
@@ -377,7 +378,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembership(getTree(user), true);
-        assertEquals(3, Iterators.size(res));
+        assertEquals(3, IteratorUtils.size(res));
     }
 
     @Test
@@ -394,7 +395,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembership(getTree(user), false);
-        assertEquals(1, Iterators.size(res));
+        assertEquals(1, IteratorUtils.size(res));
     }
     
     @Test

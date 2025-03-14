@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.iterators.LazyIteratorChain;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
@@ -32,6 +31,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -188,7 +188,7 @@ public class IterableUtils {
      * @throws NullPointerException if the iterable or predicate is null
      */
     public static <E> boolean matchesAll(final Iterable<E> itr, final Predicate<? super E> predicate) {
-        return org.apache.commons.collections4.IterableUtils.matchesAll(itr, predicate);
+        return org.apache.commons.collections4.IterableUtils.matchesAll(itr, predicate::test);
     }
 
     /**
@@ -274,7 +274,7 @@ public class IterableUtils {
      * @throws NullPointerException if the iterable or predicate is null
      */
     public static <E> Iterable<E> filter(final Iterable<E> itr, final Predicate<? super E> predicate) {
-        return org.apache.commons.collections4.IterableUtils.filteredIterable(itr, predicate);
+        return org.apache.commons.collections4.IterableUtils.filteredIterable(itr, predicate::test);
     }
 
     /**
@@ -407,5 +407,71 @@ public class IterableUtils {
         Objects.requireNonNull(iterable, "Iterable must not be null.");
         final Iterator<T> iterator = iterable.iterator();
         return iterator.hasNext() ? iterator.next() : defaultValue;
+    }
+
+    /**
+     * Returns the element at the specified index in the specified iterable.
+     * <p>
+     * The iterable is traversed until the specified index is reached. If the
+     * position is greater than the number of elements in the iterable, an
+     * IndexOutOfBoundsException is thrown.
+     *
+     * @param <T> the type of elements in the iterable
+     * @param iterable the iterable to get the element from, must not be null
+     * @param index the index of the element to retrieve, must be non-negative
+     * @return the element at the specified index
+     * @throws NullPointerException if the iterable is null
+     * @throws IndexOutOfBoundsException if the position is negative or greater than
+     *         the number of elements in the iterable
+     */
+    public static <T> T get(final Iterable<T> iterable, final int index) {
+        Objects.requireNonNull(iterable, "Iterable must not be null.");
+        return org.apache.commons.collections4.IterableUtils.get(iterable, index);
+    }
+
+    /**
+     * Returns the first element in the specified iterable that matches the given predicate.
+     * <p>
+     * The iterable is traversed until an element is found that satisfies the predicate.
+     * If no element satisfies the predicate, {@code null} is returned.
+     *
+     * @param <T> the type of elements in the iterable
+     * @param iterable the iterable to search, must not be null
+     * @param predicate the predicate to apply, must not be null
+     * @return the first element that satisfies the predicate, or null if no such element exists
+     * @throws NullPointerException if either the iterable or predicate is null
+     */
+    public static <T> T find(final Iterable<T> iterable, final Predicate<? super T> predicate) {
+        Objects.requireNonNull(iterable, "Iterable must not be null.");
+        Objects.requireNonNull(predicate, "Predicate must not be null.");
+        return org.apache.commons.collections4.IterableUtils.find(iterable, predicate::test);
+    }
+
+    /**
+     * Returns the last element of the specified iterable, or null if the iterable is empty.
+     * <p>
+     * The iterable must be fully traversed to find the last element.
+     *
+     * @param <T> the type of elements in the iterable
+     * @param iterable the iterable to get the last element from, must not be null
+     * @return the last element in the iterable or null if the iterable is empty
+     */
+    public static <T> T getLast(final Iterable<T> iterable) {
+
+        Objects.requireNonNull(iterable, "Iterable must not be null.");
+
+        // Optimize for Lists
+        if (iterable instanceof List) {
+            final List<T> list = (List<T>) iterable;
+            return list.isEmpty() ? null : list.get(list.size() - 1);
+        }
+
+        // For non-List iterables
+        T last = null;
+        for (final T element : iterable) {
+            last = element;
+        }
+
+        return last;
     }
 }

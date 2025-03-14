@@ -111,6 +111,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.FailingDocumentStore.FailedUpdateOpListener;
@@ -3505,7 +3506,7 @@ public class VersionGarbageCollectorIT {
                 gc(gc, 1, HOURS);
                 NodeDocument doc = store1.getDocumentStore().find(NODES, id);
                 assertNotNull(doc);
-                int numPrevDocs = Iterators.size(doc.getAllPreviousDocs());
+                int numPrevDocs = IteratorUtils.size(doc.getAllPreviousDocs());
                 assertTrue("too many previous docs: " + numPrevDocs,
                         numPrevDocs < 70);
             }
@@ -3589,7 +3590,7 @@ public class VersionGarbageCollectorIT {
 
         doc = ds.find(NODES, Utils.getIdFromPath("/" + names.get(0)));
         assertNotNull(doc);
-        assertEquals(0, Iterators.size(doc.getAllPreviousDocs()));
+        assertEquals(0, IteratorUtils.size(doc.getAllPreviousDocs()));
 
         VersionGCStats stats = f.get();
         assertEquals(1, stats.deletedDocGCCount);
@@ -3671,7 +3672,7 @@ public class VersionGarbageCollectorIT {
 
         foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(foo);
-        Iterators.size(foo.getAllPreviousDocs());
+        IteratorUtils.size(foo.getAllPreviousDocs());
 
         // foo must now reflect state after GC
         foo = ds.find(NODES, Utils.getIdFromPath("/foo"));

@@ -30,8 +30,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -96,7 +95,7 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
         }
         getAdminSession().refresh(false);
         for (Node n : in((Iterator<Node>) testRoot.getNodes())) {
-            assertEquals(NODES_PER_WORKER, Iterators.size(n.getNodes()));
+            assertEquals(NODES_PER_WORKER, IteratorUtils.size(n.getNodes()));
         }
     }
 

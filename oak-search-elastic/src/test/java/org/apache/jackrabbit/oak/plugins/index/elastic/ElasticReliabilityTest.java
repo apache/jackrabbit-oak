@@ -57,7 +57,9 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
 
     @Override
     public void before() throws Exception {
-        toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(elasticRule.elastic.getNetwork());
+        toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
+                .withStartupAttempts(3)
+                .withNetwork(elasticRule.elastic.getNetwork());
         toxiproxy.start();
         ToxiproxyClient toxiproxyClient = new ToxiproxyClient(toxiproxy.getHost(), toxiproxy.getControlPort());
         proxy = toxiproxyClient.createProxy("elastic", "0.0.0.0:8666", "elasticsearch:9200");

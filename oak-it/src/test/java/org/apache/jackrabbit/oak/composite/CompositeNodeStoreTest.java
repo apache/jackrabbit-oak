@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -233,7 +232,7 @@ public class CompositeNodeStoreTest {
 
     @Test
     public void childNodeEntryForMountIsComposite() {
-        ChildNodeEntry libsNode = Iterables.find(store.getRoot().getChildNodeEntries(),
+        ChildNodeEntry libsNode = IterableUtils.find(store.getRoot().getChildNodeEntries(),
                 input -> input.getName().equals("libs"));
 
         assertThat("root.libs(childCount)", libsNode.getNodeState().getChildNodeCount(10), equalTo(3l));

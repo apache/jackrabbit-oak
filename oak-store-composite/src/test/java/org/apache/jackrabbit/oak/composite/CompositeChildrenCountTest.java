@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -40,8 +38,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
+import java.util.stream.Stream;
 
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Arrays.asList;
@@ -219,8 +216,8 @@ public class CompositeChildrenCountTest {
         @Override
         public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
             if (children == null) {
-                Iterable<? extends ChildNodeEntry> childrenIterable = cycle(new MemoryChildNodeEntry("child", EMPTY_NODE));
-                return asCountingIterable(IterableUtils.limit(childrenIterable, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
+                Stream<? extends ChildNodeEntry> childrenIterable = Stream.generate(() -> new MemoryChildNodeEntry("child", EMPTY_NODE));
+                return asCountingIterable(IterableUtils.limit(childrenIterable::iterator, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
             } else {
                 return asCountingIterable(IterableUtils.transform(asList(children), input -> new MemoryChildNodeEntry(input, EMPTY_NODE)));
             }

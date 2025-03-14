@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder.PropertyRule;
@@ -65,7 +66,10 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
         assertEventually(() -> {
             String explain = explain(propaQuery);
             assertThat(explain, containsString("elasticsearch:test1"));
-            assertThat(explain, containsString("[{\"term\":{\"flat:allProperties.propa\":{\"value\":\"foo\"}}}]"));
+            assertThat(explain, containsString("[{\"term\":{\"flat:" +
+                    ElasticIndexUtils.fieldName("allProperties") + "." +
+                    ElasticIndexUtils.fieldName("propa") +
+                    "\":{\"value\":\"foo\"}}}]"));
             assertQuery(propaQuery, List.of("/test/a", "/test/b"));
         });
 
@@ -74,8 +78,14 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
         assertEventually(() -> {
             String explain = explain(propaOrderQuery);
             assertThat(explain, containsString("elasticsearch:test1"));
-            assertThat(explain, containsString("\"query\":{\"bool\":{\"filter\":[{\"prefix\":{\"flat:allProperties.propd\":{\"value\":\"foo\"}}}]}}"));
-            assertThat(explain, containsString("\"sort\":[{\"flat:allProperties.propd\":{\"order\":\"asc\"}},{\":path\":{\"order\":\"asc\"}}]"));
+            assertThat(explain, containsString("\"query\":{\"bool\":{\"filter\":[{\"prefix\":{\"flat:" +
+                    ElasticIndexUtils.fieldName("allProperties") + "." +
+                    ElasticIndexUtils.fieldName("propd") +
+                    "\":{\"value\":\"foo\"}}}]}}"));
+            assertThat(explain, containsString("\"sort\":[{\"flat:" +
+                    ElasticIndexUtils.fieldName("allProperties") + "." +
+                    ElasticIndexUtils.fieldName("propd") +
+                    "\":{\"order\":\"asc\"}},{\":path\":{\"order\":\"asc\"}}]"));
             assertThat(explain, containsString("sortOrder: [{ propertyName : propd, propertyType : UNDEFINED, order : ASCENDING }]"));
             assertQuery(propaOrderQuery, List.of("/test/f", "/test/e"));
         });

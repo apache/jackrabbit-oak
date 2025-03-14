@@ -48,6 +48,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -553,7 +554,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
             //With property index at time traversing index wins (somehow reporting lower cost)
             //and that leads to warning. So limit the iterator size
-            resultSize += Iterators.size(Iterators.limit(result.getNodes(), 500));
+            resultSize += IteratorUtils.size(Iterators.limit(result.getNodes(), 500));
         }
     }
 

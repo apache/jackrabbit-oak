@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
-import org.apache.jackrabbit.guava.common.collect.Iterables
 import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession

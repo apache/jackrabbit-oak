@@ -24,12 +24,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -135,8 +133,8 @@ public class VersionGCQueryTest {
             merge(builder);
             ns.runBackgroundOperations();
         }
-        int numPrevDocs = Iterators.size(store.find(Collection.NODES, id).getAllPreviousDocs());
-        assertEquals(1, Iterators.size(Utils.getRootDocument(store).getAllPreviousDocs()));
+        int numPrevDocs = IteratorUtils.size(store.find(Collection.NODES, id).getAllPreviousDocs());
+        assertEquals(1, IteratorUtils.size(Utils.getRootDocument(store).getAllPreviousDocs()));
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 

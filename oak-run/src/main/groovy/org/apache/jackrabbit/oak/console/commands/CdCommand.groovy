@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
-import org.apache.jackrabbit.guava.common.collect.Iterables
 import jline.console.completer.Completer
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession

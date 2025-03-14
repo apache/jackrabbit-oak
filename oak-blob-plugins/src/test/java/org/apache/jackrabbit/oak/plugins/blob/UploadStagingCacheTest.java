@@ -51,6 +51,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -144,7 +145,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertFalse(future.isPresent());
 
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
-        assertEquals(0, Iterators.size(stagingCache.getAllIdentifiers()));
+        assertEquals(0, IteratorUtils.size(stagingCache.getAllIdentifiers()));
         assertEquals(0, stagingCache.getStats().getMaxTotalWeight());
     }
 
@@ -368,7 +369,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // Should not return anything
         idsIter = stagingCache.getAllIdentifiers();
-        assertEquals(0, Iterators.size(idsIter));
+        assertEquals(0, IteratorUtils.size(idsIter));
     }
 
     /**

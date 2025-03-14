@@ -38,7 +38,6 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
@@ -52,6 +51,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
@@ -439,7 +439,7 @@ public class HybridIndexTest extends AbstractQueryTest {
                 .create();
         lc.starting();
 
-        int size = Iterators.size(itr);
+        int size = IteratorUtils.size(itr);
 
         if (!lc.getLogs().isEmpty()){
             fail(lc.getLogs().toString());

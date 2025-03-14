@@ -263,7 +263,8 @@ public class ElasticRequestHandler {
                     continue;
                 }
 
-                String similarityPropFieldName = FieldNames.createSimilarityFieldName(pd.name);
+                String similarityPropFieldName = FieldNames.createSimilarityFieldName(
+                        ElasticIndexUtils.fieldName(pd.name));
                 KnnQuery knnQuery = baseKnnQueryBuilder(similarityPropFieldName, bytes, pd).build();
                 return Optional.of(knnQuery);
             }
@@ -648,13 +649,20 @@ public class ElasticRequestHandler {
     }
 
     private Stream<NestedQuery> dynamicScoreQueries(String text) {
-        return elasticIndexDefinition.getDynamicBoostProperties().stream().map(pd -> NestedQuery.of(n -> n
-                .path(pd.nodeName)
-                .query(q -> q.functionScore(s -> s
+        return elasticIndexDefinition.getDynamicBoostProperties().stream()
+            .map(pd -> {
+                String field = ElasticIndexUtils.fieldName(pd.nodeName);
+                return NestedQuery.of(n -> n
+                    .path(field)
+                    .query(q -> q.functionScore(s -> s
                         .boost(DYNAMIC_BOOST_WEIGHT)
-                        .query(fq -> fq.match(m -> m.field(pd.nodeName + ".value").query(FieldValue.of(text))))
-                        .functions(f -> f.fieldValueFactor(fv -> fv.field(pd.nodeName + ".boost")))))
-                .scoreMode(ChildScoreMode.Avg))
+                        .query(fq -> fq.match(m -> m.field(
+                                field + ".value").
+                                query(FieldValue.of(text))))
+                        .functions(f -> f.fieldValueFactor(fv -> fv.field(
+                                field + ".boost")))))
+                    .scoreMode(ChildScoreMode.Avg));
+            }
         );
     }
 
@@ -889,8 +897,8 @@ public class ElasticRequestHandler {
                 .type(TextQueryType.CrossFields)
                 .tieBreaker(0.5d);
         if (FieldNames.FULLTEXT.equals(fieldName)) {
-            for(PropertyDefinition pd: pr.indexingRule.getNodeScopeAnalyzedProps()) {
-                qsqBuilder.fields(pd.name + "^" + pd.boost);
+            for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
+                qsqBuilder.fields(ElasticIndexUtils.fieldName(pd.name) + "^" + pd.boost);
             }
             // dynamic boost is included only for :fulltext field
             if (includeDynamicBoostedValues) {
@@ -951,6 +959,11 @@ public class ElasticRequestHandler {
         if (planResult.isPathTransformed()) {
             propertyName = PathUtils.getName(propertyName);
         }
-        return propertyName;
+        if ("*".equals(propertyName)) {
+            // elasticsearch does support the pseudo-field "*" meaning all fields,
+            // but (arguably) what we really want is the field ":fulltext".
+            return FieldNames.FULLTEXT;
+        }
+        return ElasticIndexUtils.fieldName(propertyName);
     }
 }

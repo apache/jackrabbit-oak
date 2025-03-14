@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
-import org.apache.commons.collections4.Predicate;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -27,10 +26,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Unit tests for the {@link IterableUtils} class.
@@ -909,5 +911,195 @@ public class IterableUtilsTest {
         Iterable<Integer> customIterable = () -> Arrays.asList(5, 10, 15).iterator();
         Integer result = IterableUtils.getFirst(customIterable, 0);
         Assert.assertEquals(Integer.valueOf(5), result);
+    }
+
+    @Test
+    public void testGetWithValidPosition() {
+        List<String> list = Arrays.asList("a", "b", "c", "d", "e");
+        String result = IterableUtils.get(list, 2);
+        Assert.assertEquals("c", result);
+    }
+
+    @Test
+    public void testGetFirstElement() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        String result = IterableUtils.get(list, 0);
+        Assert.assertEquals("a", result);
+    }
+
+    @Test
+    public void testGetLastElement() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        String result = IterableUtils.get(list, 2);
+        Assert.assertEquals("c", result);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testGetWithNegativePosition() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        IterableUtils.get(list, -1);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testGetWithPositionTooLarge() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        IterableUtils.get(list, 3);
+    }
+
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testGetWithEmptyIterable() {
+        List<String> list = Collections.emptyList();
+        IterableUtils.get(list, 0);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testGetWithNullIterable() {
+        IterableUtils.get(null, 0);
+    }
+
+    @Test
+    public void testGetWithCustomIterable() {
+        // Custom iterable implementation
+        Iterable<Integer> customIterable = () -> Arrays.asList(5, 10, 15, 20, 25).iterator();
+        Integer result = IterableUtils.get(customIterable, 3);
+        Assert.assertEquals(Integer.valueOf(20), result);
+    }
+
+    @Test
+    public void testGetWithSingleElementIterable() {
+        List<String> list = Collections.singletonList("only");
+        String result = IterableUtils.get(list, 0);
+        Assert.assertEquals("only", result);
+    }
+
+    @Test
+    public void testFindWithMatchingElement() {
+        List<String> list = Arrays.asList("apple", "banana", "cherry");
+        String result = IterableUtils.find(list, s -> s.startsWith("b"));
+        Assert.assertEquals("banana", result);
+    }
+
+    @Test
+    public void testFindWithNoMatchingElement() {
+        List<String> list = Arrays.asList("apple", "banana", "cherry");
+        String result = IterableUtils.find(list, s -> s.startsWith("d"));
+        Assert.assertNull(result);
+    }
+
+    @Test
+    public void testFindWithMultipleMatchingElements() {
+        List<String> list = Arrays.asList("apple", "avocado", "banana", "apricot");
+        String result = IterableUtils.find(list, s -> s.startsWith("a"));
+        // Should return the first matching element
+        Assert.assertEquals("apple", result);
+    }
+
+    @Test
+    public void testFindWithEmptyIterable() {
+        List<String> list = Collections.emptyList();
+        String result = IterableUtils.find(list, s -> true);
+        Assert.assertNull(result);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testFindWithNullIterable() {
+        IterableUtils.find(null, s -> true);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testFindWithNullPredicate() {
+        List<String> list = Arrays.asList("apple", "banana", "cherry");
+        IterableUtils.find(list, null);
+    }
+
+    @Test
+    public void testFindFirstElement() {
+        List<Integer> list = Arrays.asList(10, 20, 30, 40, 50);
+        Integer result = IterableUtils.find(list, i -> i > 5);
+        Assert.assertEquals(Integer.valueOf(10), result);
+    }
+
+    @Test
+    public void testFindLastElement() {
+        List<Integer> list = Arrays.asList(10, 20, 30, 40, 50);
+        Integer result = IterableUtils.find(list, i -> i > 45);
+        Assert.assertEquals(Integer.valueOf(50), result);
+    }
+
+    @Test
+    public void testFindWithCustomIterable() {
+        Iterable<Integer> customIterable = () -> Arrays.asList(5, 10, 15, 20, 25).iterator();
+        Integer result = IterableUtils.find(customIterable, i -> i % 10 == 0);
+        Assert.assertEquals(Integer.valueOf(10), result);
+    }
+
+    @Test
+    public void testGetLastWithNonEmptyIterable() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        String result = IterableUtils.getLast(list);
+        Assert.assertEquals("c", result);
+    }
+
+    @Test
+    public void testGetLastWithEmptyIterable() {
+        List<String> list = Collections.emptyList();
+        String result = IterableUtils.getLast(list);
+        Assert.assertNull(result);
+    }
+
+    @Test
+    public void testGetLastWithNullIterable() {
+        Assert.assertThrows(NullPointerException.class, () -> IterableUtils.getLast(null));
+    }
+
+    @Test
+    public void testGetLastWithSingleElement() {
+        List<Integer> list = Collections.singletonList(42);
+        Integer result = IterableUtils.getLast(list);
+        Assert.assertEquals(Integer.valueOf(42), result);
+    }
+
+    @Test
+    public void testGetLastWithNullLastElement() {
+        List<String> list = Arrays.asList("a", "b", null);
+        String result = IterableUtils.getLast(list);
+        Assert.assertNull(result);
+    }
+
+    @Test
+    public void testGetLastWithCustomIterable() {
+        // Custom iterable that doesn't implement Collection
+        Iterable<Integer> customIterable = () -> Arrays.asList(5, 10, 15).iterator();
+        Integer result = IterableUtils.getLast(customIterable);
+        Assert.assertEquals(Integer.valueOf(15), result);
+    }
+
+    @Test
+    public void testGetLastWithLargeIterable() {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            list.add(i);
+        }
+        Integer result = IterableUtils.getLast(list);
+        Assert.assertEquals(Integer.valueOf(999), result);
+    }
+
+    @Test
+    public void testGetLastWithListImplementation() {
+        // Test to confirm optimization for List works
+        List<String> list = Arrays.asList("a", "b", "c", "d");
+        String result = IterableUtils.getLast(list);
+        Assert.assertEquals("d", result);
+    }
+
+    @Test
+    public void testGetLastWithNonListCollection() {
+        // Test with a Collection that isn't a List
+        Set<String> set = new LinkedHashSet<>();
+        set.add("a");
+        set.add("b");
+        set.add("c");
+        String result = IterableUtils.getLast(set);
+        Assert.assertEquals("c", result);
     }
 }

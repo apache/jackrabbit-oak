@@ -22,7 +22,10 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder.PropertyRule;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -177,16 +180,18 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
     // OAK-11530
     @Test
-    public void propertyWithDot() throws Exception {
+    public void propertyWithDotPrefix() throws Exception {
         IndexDefinitionBuilder builder = createIndex();
         builder.includedPaths("/test")
                 .indexRule("nt:base")
-                .property("test", "./test");
+                .property("foo", "foo").propertyIndex()
+                .property("test", "./test").propertyIndex();
         setIndex("test1", builder);
         root.commit();
 
         //add content
-        root.getTree("/").addChild("test").setProperty("test", "1");
+        root.getTree("/").addChild("test")
+            .setProperty("test", "1");
         root.commit();
 
         String query = "select [jcr:path] from [nt:base] " +
@@ -195,6 +200,59 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         assertEventually(() -> {
             String explanation = explain(query);
             assertThat(explanation, containsString("no-index"));
+        });
+
+        String queryFoo = "select [jcr:path] from [nt:base] " +
+                "where foo = '1'";
+        assertEventually(() -> {
+            String explanation = explain(queryFoo);
+            assertThat(explanation, containsString("/oak:index/test1"));
+            assertThat(explanation, containsString("{\"term\":{\"foo\":{\"value\":\"1\""));
+            assertQuery(query, List.of());
+        });
+    }
+
+    @Test
+    public void propertyWithDot() throws Exception {
+        IndexDefinitionBuilder builder = createIndex();
+        builder.includedPaths("/test")
+                .indexRule("nt:base")
+                .property("firstName", "first.name").propertyIndex()
+                .property("lowerFirstName", "first.name");
+        PropertyRule lowerFirstName = builder.indexRule("nt:base").property("lowerFirstName");
+        lowerFirstName.getBuilderTree().setProperty(
+                FulltextIndexConstants.PROP_FUNCTION, "lower([first.name])");
+        setIndex("test1", builder);
+        root.commit();
+
+        //add content
+        root.getTree("/").addChild("test").setProperty("first.name", "Antonio");
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] " +
+                "where [first.name] = 'Antonio'";
+
+        assertEventually(() -> {
+            String explanation = explain(query);
+            assertThat(explanation, containsString("/oak:index/test1"));
+            assertThat(explanation, containsString(
+                    "{\"term\":{\"" +
+                            ElasticIndexUtils.fieldName("first.name") +
+                            "\":{\"value\":\"Antonio\""));
+            assertQuery(query, List.of("/test"));
+        });
+
+        String lowerQuery = "select [jcr:path] from [nt:base] " +
+                "where lower([first.name]) = 'antonio'";
+
+        assertEventually(() -> {
+            String explanation = explain(lowerQuery);
+            assertThat(explanation, containsString("/oak:index/test1"));
+            assertThat(explanation, containsString(
+                    "{\"term\":{\"" +
+                            ElasticIndexUtils.fieldName("function*lower*@first.name") +
+                            "\":{\"value\":\"antonio\""));
+            assertQuery(lowerQuery, List.of("/test"));
         });
     }
 
