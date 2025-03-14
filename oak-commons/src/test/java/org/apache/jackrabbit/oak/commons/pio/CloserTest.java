@@ -180,4 +180,34 @@ public class CloserTest {
             fail("should not throw but got: " + e);
         }
     }
+
+    @Test
+    public void compareClosers2() {
+        // when rethrow was called, Exceptions that happened upon close will be swallowed
+
+        com.google.common.io.Closer guavaCloser = com.google.common.io.Closer.create();
+        Closer oakCloser = Closer.create();
+
+        try {
+            throw oakCloser.rethrow(new InterruptedException());
+        } catch (Exception e) {}
+
+        try {
+            throw guavaCloser.rethrow(new InterruptedException());
+        } catch (Exception e) {}
+
+        try {
+            oakCloser.register(() -> { throw new RuntimeException(); });
+            oakCloser.close();
+        } catch (Exception e) {
+            fail("should not throw but got: " + e);
+        }
+
+        try {
+            guavaCloser.register(() -> { throw new RuntimeException(); });
+            guavaCloser.close();
+        } catch (Exception e) {
+            fail("should not throw but got: " + e);
+        }
+    }
 }

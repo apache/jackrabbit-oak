@@ -67,7 +67,7 @@ public class Closer implements Closeable {
     /**
      * Closes the set of {@link Closeable}s in reverse order.
      * <p>
-     * Swallows all {@link IOException}s except the first that
+     * Swallows all exceptions except the first that
      * was thrown.
      * <p>
      * If {@link #rethrow} was called before, even the first
@@ -75,14 +75,14 @@ public class Closer implements Closeable {
      */
     public void close() throws IOException {
         // keep track of the IOException to throw
-        IOException toThrow = null;
+        Throwable toThrow = null;
 
         // close all in reverse order
         while (!closeables.isEmpty()) {
             Closeable closeable = closeables.removeLast();
             try {
                 closeable.close();
-            } catch (IOException exception) {
+            } catch (Throwable exception) {
                 // remember the first one that occurred
                 if (toThrow == null) {
                     toThrow = exception;
@@ -90,9 +90,15 @@ public class Closer implements Closeable {
             }
         }
 
-        // potential IOException is suppressed when retrow was called
+        // exceptions are suppressed when retrow was called
         if (!suppressExceptionsOnClose && toThrow != null) {
-            throw toThrow;
+            // due to the contract of Closeable, the exception is either
+            // a checked IOException or an unchecked exception
+            if (toThrow instanceof IOException) {
+                throw (IOException) toThrow;
+            } else {
+                throw (RuntimeException) toThrow;
+            }
         }
     }
 
