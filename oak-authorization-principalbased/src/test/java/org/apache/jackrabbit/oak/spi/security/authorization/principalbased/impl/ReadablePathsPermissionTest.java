@@ -211,7 +211,7 @@ public class ReadablePathsPermissionTest extends AbstractPrincipalBasedTest {
         assertTrue(tp.isGranted(Permissions.READ_PROPERTY, t.getProperty(JCR_PRIMARYTYPE)));
         assertFalse(tp.isGranted(Permissions.READ_PROPERTY|Permissions.MODIFY_PROPERTY, t.getProperty(JCR_PRIMARYTYPE)));
         assertTrue(tp.canRead());
-        assertTrue(tp.canReadAll());
+        assertFalse(tp.canReadAll());
     }
 
     @Test

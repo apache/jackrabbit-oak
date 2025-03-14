@@ -174,7 +174,8 @@ public class RegularTreePermissionTest extends AbstractPrincipalBasedTest {
         setupPrincipalBasedAccessControl(getTestSystemUser().getPrincipal(), getTestSystemUser().getPath(), PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
         root.commit();
         permissionProvider.refresh();
-
+        tp = permissionProvider.getTreePermission(tree, TreePermission.EMPTY);
+        
         assertTrue(tp.canRead());
     }
 

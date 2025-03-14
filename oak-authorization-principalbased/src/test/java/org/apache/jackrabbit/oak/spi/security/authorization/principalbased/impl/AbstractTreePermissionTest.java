@@ -20,6 +20,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -28,30 +31,45 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class AbstractTreePermissionTest {
+public class AbstractTreePermissionTest extends AbstractPrincipalBasedTest {
 
     private Tree tree;
     private PrincipalBasedPermissionProvider pp;
+    private PrivilegeBitsProvider bitsProvider;
 
     @Before
-    public void before() {
+    public void before() throws Exception {
+        super.before();
+
+        bitsProvider = new PrivilegeBitsProvider(root);
+        
         tree = mock(Tree.class);
         pp = mock(PrincipalBasedPermissionProvider.class);
 
+        when(pp.getGrantedPrivilegeBits(any())).thenReturn(bitsProvider.getBits(PrivilegeConstants.JCR_READ));
     }
 
     private AbstractTreePermission createAbstractTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull PrincipalBasedPermissionProvider pp) {
-        return new AbstractTreePermission(tree, type) {
+        AbstractTreePermission abstractTreePermission = new AbstractTreePermission(tree, type) {
             @Override
             PrincipalBasedPermissionProvider getPermissionProvider() {
                 return pp;
             }
         };
+        when(pp.getTreePermission(anyString(), any(), any())).thenReturn(abstractTreePermission);
+        return abstractTreePermission;
     }
 
     @Test
@@ -77,25 +95,55 @@ public class AbstractTreePermissionTest {
 
     @Test
     public void testCanRead() {
+        when(pp.hasRestrictions()).thenReturn(false);
+        when(pp.getGrantedPrivilegeBits(any())).thenReturn(bitsProvider.getBits(PrivilegeConstants.JCR_READ));
+        
+        AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.DEFAULT, pp);
+        boolean canRead = atp.canRead();
+
+        assertTrue(canRead);
+        verify(pp, never()).isGranted(tree, null, Permissions.READ_NODE);
+    }    
+    
+    @Test
+    public void testCanReadWithRestrictions() {
+        when(pp.hasRestrictions()).thenReturn(true);
         AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.DEFAULT, pp);
         atp.canRead();
 
+        // Ensure that the permission is checked if there's restrictions
         verify(pp, times(1)).isGranted(tree, null, Permissions.READ_NODE);
     }
 
     @Test
     public void testCanReadAcType() {
+        // No restrictions and read AC permissions granted
+        when(pp.hasRestrictions()).thenReturn(false);
+        
+        when(pp.getGrantedPrivilegeBits(any())).thenReturn(bitsProvider.getBits(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        
+        AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.ACCESS_CONTROL, pp);
+        boolean canReadAC = atp.canRead();
+
+        //Ensure that has permission
+        assertTrue(canReadAC);
+        //Verify that principal based permission provider is not called
+        verify(pp, never()).isGranted(any(Tree.class), isNull(), anyLong());
+    }
+
+    @Test
+    public void testCanReadAcTypeWithRestrictions() {
+        when(pp.hasRestrictions()).thenReturn(true);
         AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.ACCESS_CONTROL, pp);
         atp.canRead();
 
         //Check for can read all
-        verify(pp, times(1)).isGranted(tree, null, Permissions.READ_ACCESS_CONTROL | Permissions.READ );
-        //Check for read access control permissions
-        verify(pp, times(1)).isGranted(tree, null, Permissions.READ_ACCESS_CONTROL);
+        verify(pp, times(1)).isGranted(tree, null , Permissions.READ_ACCESS_CONTROL);
     }
 
     @Test
     public void testCanReadWithProperty() {
+        when(pp.hasRestrictions()).thenReturn(true);
         PropertyState ps = mock(PropertyState.class);
 
         AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.VERSION, pp);
@@ -106,6 +154,7 @@ public class AbstractTreePermissionTest {
 
     @Test
     public void testCanReadWithPropertyAcType() {
+        when(pp.hasRestrictions()).thenReturn(true);
         PropertyState ps = mock(PropertyState.class);
 
         AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.ACCESS_CONTROL, pp);
@@ -116,6 +165,24 @@ public class AbstractTreePermissionTest {
 
     @Test
     public void testCanReadAll() {
+        when(pp.hasRestrictions()).thenReturn(false);
+        when(pp.getGrantedPrivilegeBits(any())).thenReturn(bitsProvider.getBits(PrivilegeConstants.JCR_ALL));
+        AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.DEFAULT, pp);
+        assertTrue(atp.canReadAll());
+    }
+
+    @Test
+    public void testCantReadAll() {
+        when(pp.hasRestrictions()).thenReturn(false);
+        when(pp.getGrantedPrivilegeBits(any())).thenReturn(bitsProvider.getBits(PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.REP_READ_NODES ));
+        AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.DEFAULT, pp);
+        assertFalse(atp.canReadAll());
+    }
+
+    @Test
+    public void testCantReadProperties() {
+        when(pp.hasRestrictions()).thenReturn(false);
+        when(pp.getGrantedPrivilegeBits(any())).thenReturn(bitsProvider.getBits(PrivilegeConstants.JCR_READ));
         AbstractTreePermission atp = createAbstractTreePermission(tree, TreeType.DEFAULT, pp);
         assertFalse(atp.canReadAll());
     }

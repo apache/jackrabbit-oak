@@ -22,17 +22,25 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.security.auth.Subject;
 import java.security.Principal;
@@ -42,84 +50,100 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.NT_REP_ACL;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NT_NAMES;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_POLICY;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ_ACCESS_CONTROL;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_REMOVE_CHILD_NODES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_VERSION_MANAGEMENT;
+import static org.apache.jackrabbit.oak.spi.version.VersionConstants.REP_VERSIONSTORAGE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class PrincipalBasedPermissionProviderRegularTreePermissionTest extends AbstractPrincipalBasedTest {
 
+
     private PrincipalBasedPermissionProvider permissionProvider;
-
     private String childPath;
-
-    private User alternativeServiceUser;
-    private PrincipalBasedPermissionProvider alternatePermissionProvider;
 
     @Before
     public void before() throws Exception {
         super.before();
+        
+        namePathMapper = NamePathMapper.DEFAULT;
 
         childPath = PathUtils.getAncestorPath(TEST_OAK_PATH, 2);
 
-        Principal testPrincipal = getTestSystemUser().getPrincipal();
-
         setupContentTrees(TEST_OAK_PATH);
-        setupContentTrees(NT_FOLDER, childPath + "/folder", TEST_OAK_PATH + "/folder");
+        setupContentTrees(NT_FOLDER, childPath + "/folder");
 
-        createPrincipalPolicy(testPrincipal);
-        addRestrictionToPrincipal(testPrincipal);
-
-        Principal alternativePrincipal = getAlternativeSystemUser().getPrincipal();
-        createPrincipalPolicy(alternativePrincipal);
-
+        // Creates access control node
+        setupAccessControlTree(childPath + "/accessControlledFolder");
         root.commit();
-
-        permissionProvider = createPermissionProvider(root, testPrincipal);
-        alternatePermissionProvider = createPermissionProvider(root, alternativePrincipal);
-    }
-
-    @Override
-    protected NamePathMapper getNamePathMapper() {
-        return NamePathMapper.DEFAULT;
     }
 
     @Test
-    public void testTreePermissionWithRestriction() throws Exception {
+    public void testReadContent() throws Exception {
+        setPermissions(getTestSystemUser().getPrincipal(), childPath, JCR_READ);
+        permissionProvider = createPermissionProvider(root, getTestSystemUser().getPrincipal());
         try (ContentSession testSession = getSession(getTestSystemUser())) {
             Tree tree = testSession.getLatestRoot().getTree(childPath);
-            assertFalse(permissionProvider.getTreePermission(tree, getParentTreePermission(tree.getParent(), permissionProvider)).canReadAll());
+            assertTrue(getTreePermission(tree, permissionProvider).canRead());
         }
     }
 
     @Test
-    public void testTreePermissionWithoutRestriction() throws Exception {
-        try (ContentSession testSession = getSession(alternativeServiceUser)) {
+    public void testReadProperties() throws Exception {
+        setPermissions(getTestSystemUser().getPrincipal(), childPath, JCR_ALL);
+        permissionProvider = createPermissionProvider(root, getTestSystemUser().getPrincipal());
+        try (ContentSession testSession = getSession(getTestSystemUser())) {
             Tree tree = testSession.getLatestRoot().getTree(childPath);
-            assertTrue(alternatePermissionProvider.getTreePermission(tree, getParentTreePermission(tree.getParent(), alternatePermissionProvider)).canReadAll());
+            assertTrue(getTreePermission(tree, permissionProvider).canReadProperties());
+            assertTrue(getTreePermission(tree, permissionProvider).canReadAll());
         }
     }
 
-
-    //-------------------------------
-
-    private User getAlternativeSystemUser() throws Exception {
-        if (alternativeServiceUser == null) {
-            String uid = "alternativeUser" + UUID.randomUUID();
-            alternativeServiceUser = getUserManager(root).createSystemUser(uid, INTERMEDIATE_PATH);
-            root.commit();
+    @Test
+    public void testReadAccessControlNodes() throws Exception {
+        setPermissions(getTestSystemUser().getPrincipal(), childPath + "/accessControlledFolder", JCR_READ_ACCESS_CONTROL);
+        permissionProvider = createPermissionProvider(root, getTestSystemUser().getPrincipal());
+        try (ContentSession testSession = getSession(getTestSystemUser())) {
+            Tree tree = testSession.getLatestRoot().getTree(childPath + "/accessControlledFolder");
+            TreePermission treePermission = getTreePermission(tree, permissionProvider);
+            assertFalse(treePermission.canRead());
+            TreePermission versionTreePermission = permissionProvider.getTreePermission(tree.getChild(REP_POLICY), treePermission);
+            assertTrue(versionTreePermission.canRead());
         }
-        return alternativeServiceUser;
     }
 
-    private void createPrincipalPolicy(Principal testPrincipal) throws Exception {
-        // setup permissions on childPath + TEST_OAK_PATH
-        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(testPrincipal, getNamePathMapper().getJcrPath(childPath), JCR_READ, JCR_REMOVE_CHILD_NODES, JCR_READ_ACCESS_CONTROL);
-        addPrincipalBasedEntry(policy, getNamePathMapper().getJcrPath(TEST_OAK_PATH), JCR_VERSION_MANAGEMENT);
+    @Test
+    public void testReadContentWithRestrictions() throws Exception {
+        setPermissions(getTestSystemUser().getPrincipal(), childPath, JCR_READ);
+        addRestrictionToPrincipal(getTestSystemUser().getPrincipal());
+        permissionProvider = createPermissionProvider(root, getTestSystemUser().getPrincipal());
+        try (ContentSession testSession = getSession(getTestSystemUser())) {
+            Tree tree = testSession.getLatestRoot().getTree(childPath);
+            TreePermission childPathPermission = getTreePermission(tree, permissionProvider);
+            assertTrue(childPathPermission.canRead());
+            assertFalse(childPathPermission.canReadProperties());
+            assertFalse(childPathPermission.canReadAll());
+            TreePermission folderPermission = permissionProvider.getTreePermission(tree.getChild("folder"), childPathPermission);
+            assertTrue(folderPermission.canRead());
+            assertFalse(folderPermission.canReadProperties());
+        }        
+    }
+    
+    // ------------------------------------------------< private >---------------------------------------------------
+    
+    private void setPermissions(Principal principal, String path, String... privileges) throws Exception {
+        String jcrPath = getNamePathMapper().getJcrPath(path);
+        PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(principal, jcrPath, privileges);
+        addPrincipalBasedEntry(policy, jcrPath, privileges);
+        root.commit();
     }
 
     private void addRestrictionToPrincipal(Principal testPrincipal) throws Exception {
@@ -129,9 +153,22 @@ public class PrincipalBasedPermissionProviderRegularTreePermissionTest extends A
         Map<String, Value[]> restrictions = Map.of(REP_NT_NAMES, new Value[] {getValueFactory(root).createValue("folder", PropertyType.NAME)});
         policy.addEntry(childPath, privilegesFromNames(JCR_READ), Map.of(), restrictions);
         accessControlManager.setPolicy(policy.getPath(), policy);
+        root.commit();
     }
 
-    private TreePermission getParentTreePermission(Tree root, PrincipalBasedPermissionProvider provider) {
+    private void setupAccessControlTree(String path) throws Exception {
+        // Creates given path as folder and creates rep:policy node setting as well all other required properties 
+        // as orderable child nodes and setting the rep:accessControllable mixin
+        setupContentTrees(NT_FOLDER, path);
+        Tree accessControlFolder = root.getTree(path);
+        TreeUtil.addMixin(accessControlFolder, MIX_REP_ACCESS_CONTROLLABLE,
+                root.getTree(NodeTypeConstants.NODE_TYPES_PATH), root.getContentSession().getAuthInfo().getUserID());
+        setupContentTrees(NT_REP_ACL, path + "/" + REP_POLICY);
+        accessControlFolder.setOrderableChildren(true);
+        accessControlFolder.getChild(REP_POLICY).setOrderableChildren(true);
+    }
+
+    private TreePermission getTreePermission(Tree root, PrincipalBasedPermissionProvider provider) {
         return new AbstractTreePermission(root, TreeType.DEFAULT) {
             @Override
             PrincipalBasedPermissionProvider getPermissionProvider() {

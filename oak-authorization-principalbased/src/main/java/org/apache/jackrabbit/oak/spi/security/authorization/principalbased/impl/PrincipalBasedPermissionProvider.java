@@ -218,7 +218,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     public @NotNull TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
         Tree readOnly = getReadOnlyTree(tree);
         if (readOnly.isRoot()) {
-            return new RegularTreePermission(readOnly, TreeType.DEFAULT);
+            return new RegularTreePermission(readOnly, TreeType.DEFAULT, parentPermission);
         }
         switch (type) {
             case HIDDEN:
@@ -240,14 +240,11 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
                     }
                 } else {
                     // versionstorage -> regular tree permissions
-                    return new RegularTreePermission(readOnly, type);
+                    return new RegularTreePermission(readOnly, type, parentPermission);
                 }
             case ACCESS_CONTROL:
             default:
-                if (parentPermission != null && parentPermission.canReadAll()) {
-                    return new AllowReadTreePermission(readOnly, type);
-                }
-                return new RegularTreePermission(readOnly, type);
+                return new RegularTreePermission(readOnly, type, parentPermission);
         }
     }
 
@@ -310,7 +307,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     }
 
     @NotNull
-    private PrivilegeBits getGrantedPrivilegeBits(@Nullable Tree tree) {
+    PrivilegeBits getGrantedPrivilegeBits(@Nullable Tree tree) {
         Tree readOnly = (tree == null) ? null : getReadOnlyTree(tree);
         PrivilegeBits subtract = PrivilegeBits.EMPTY;
         if (readOnly != null) {
@@ -452,8 +449,8 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
 
     private final class RegularTreePermission extends AbstractTreePermission {
 
-        RegularTreePermission(@NotNull Tree tree, @NotNull TreeType type) {
-            super(tree, type);
+        RegularTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
+            super(tree, type, parentPermission);
         }
 
         @Override
@@ -461,24 +458,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
             return PrincipalBasedPermissionProvider.this;
         }
     }
-
-    private final class AllowReadTreePermission extends AbstractTreePermission {
-        
-        public AllowReadTreePermission(@NotNull Tree tree, @NotNull TreeType type) {
-            super(tree, type);
-        }
-
-        @Override
-        PrincipalBasedPermissionProvider getPermissionProvider() {
-            return PrincipalBasedPermissionProvider.this;
-        }
-        
-        @Override
-        public boolean canReadAll() {
-            return true;
-        }
-    }
-
+    
     private final class VersionTreePermission extends AbstractTreePermission implements VersionConstants {
 
         private final Tree versionTree;

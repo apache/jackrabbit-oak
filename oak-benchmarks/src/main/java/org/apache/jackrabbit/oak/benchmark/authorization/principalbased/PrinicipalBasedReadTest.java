@@ -101,7 +101,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
 
         // grant read at the root
         Principal principal = subject.getPrincipals().iterator().next();
-        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ);
+        Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_READ_ACCESS_CONTROL);
         addEntry(acMgr, principal, PathUtils.ROOT_PATH, readPrivs, testDefault);
         // for AND-composite-evaluation with principal-based: also need to grant on default model (see repository setup below)
         if (!testDefault && CompositeAuthorizationConfiguration.CompositionType.AND == CompositeAuthorizationConfiguration.CompositionType.valueOf(compositionType)) {

@@ -140,7 +140,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
             }
         }
     }
-
+    
     @NotNull
     PrincipalPolicyImpl getPrincipalPolicyImpl(@NotNull Principal testPrincipal, @NotNull JackrabbitAccessControlManager acMgr) throws Exception {
         for (JackrabbitAccessControlPolicy policy : ArrayUtils.addAll(acMgr.getApplicablePolicies(testPrincipal), acMgr.getPolicies(testPrincipal))) {
