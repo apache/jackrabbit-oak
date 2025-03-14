@@ -42,8 +42,7 @@ public class Closer implements Closeable {
     private final Deque<Closeable> closeables = new ArrayDeque<>();
 
     // set by rethrow method
-    private Throwable rethrow = null;
-
+    private boolean suppressExceptionsOnClose = false;
     /**
      * Create instance of Closer.
      */
@@ -90,33 +89,23 @@ public class Closer implements Closeable {
             }
         }
 
-        // consider exceptions passed to rethrow()
-        if (rethrow instanceof IOException) {
-            throw (IOException) rethrow;
-        } else if (rethrow instanceof RuntimeException) {
-            throw (RuntimeException) rethrow;
-        } else if (rethrow != null) {
-            throw new RuntimeException(rethrow);
-        }
-
-        // otherwise throw the IOException we selected
-        if (toThrow != null) {
+        // potential IOException is suppressed when retrow was called
+        if (!suppressExceptionsOnClose && toThrow != null) {
             throw toThrow;
         }
     }
 
     /**
-     * Stores a {@link Throwable} for later use in {@link #close()} and
-     * rethrows it (potentially wrapped into {@link RuntimeException} or
-     * {@link Error}).
+     * Sets a flag indicating that this method was called, then rethrows the
+     * given exception.
      * <p>
-     * {@link #close()} will use the exception passed in the last call of this
-     * method.
+     * {@link #close()} will not throw when this method was called before.
      * @return never returns
      * @throws IOException wrapping the input, when needed
      */
     public RuntimeException rethrow(@NotNull Throwable throwable) throws IOException {
-        rethrow = Objects.requireNonNull(throwable);
+        Objects.requireNonNull(throwable);
+        suppressExceptionsOnClose = true;
         if (throwable instanceof IOException) {
             throw (IOException) throwable;
         } else if (throwable instanceof RuntimeException) {

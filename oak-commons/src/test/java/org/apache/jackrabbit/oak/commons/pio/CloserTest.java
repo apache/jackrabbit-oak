@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -149,6 +150,34 @@ public class CloserTest {
         } catch (RuntimeException ex) {
             assertTrue("should throw the (wrapped) exception",
                     ex.getCause() instanceof InterruptedException);
+        }
+    }
+
+    @Test
+    public void compareClosers() {
+        // when rethrow was called, IOExceptions that happened upon close will be swallowed
+
+        com.google.common.io.Closer guavaCloser = com.google.common.io.Closer.create();
+        Closer oakCloser = Closer.create();
+
+        try {
+            throw oakCloser.rethrow(new InterruptedException());
+        } catch (Exception e) {}
+
+        try {
+            throw guavaCloser.rethrow(new InterruptedException());
+        } catch (Exception e) {}
+
+        try {
+            oakCloser.close();
+        } catch (Exception e) {
+            fail("should not throw but got: " + e);
+        }
+
+        try {
+            guavaCloser.close();
+        } catch (Exception e) {
+            fail("should not throw but got: " + e);
         }
     }
 }
