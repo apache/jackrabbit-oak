@@ -1,6 +1,7 @@
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -41,7 +42,7 @@ public class OrderedChildnameIterable implements Iterable<String> {
         private Iterator<String> nonOrderedChildrenIterator = null;
 
         public OrderedChildnameIterator (Iterable<String> orderedChildren, Iterable<String> allChildren) {
-            this.orderedChildren = orderedChildren.iterator();
+            this.orderedChildren = orderedChildren == null ? Collections.emptyIterator() : orderedChildren.iterator();
             this.allChildren = allChildren.iterator();
             nextResult = getNextElement();
         }
