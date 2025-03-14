@@ -28,7 +28,8 @@ import java.util.Deque;
 import java.util.Objects;
 
 /**
- * Convenience utility to close a list of {@link Closeable}s.
+ * Convenience utility to close a list of {@link Closeable}s in reverse order,
+ * suppressing all but the first exception to occur.
  * <p>
  * Inspired by and replacing Guava's Closer.
  */
@@ -41,8 +42,9 @@ public class Closer implements Closeable {
     // stack of closeables to close
     private final Deque<Closeable> closeables = new ArrayDeque<>();
 
-    // set by rethrow method
+    // flag set by rethrow method
     private boolean suppressExceptionsOnClose = false;
+
     /**
      * Create instance of Closer.
      */
@@ -68,9 +70,8 @@ public class Closer implements Closeable {
      * Swallows all {@link IOException}s except the first that
      * was thrown.
      * <p>
-     * If {@link #rethrow} was called before, throw <em>that</em>
-     * exception instead (wrapped into a {@link RuntimeException}
-     * when necessary).
+     * If {@link #rethrow} was called before, even the first
+     * exception will be suppressed.
      */
     public void close() throws IOException {
         // keep track of the IOException to throw
@@ -97,7 +98,7 @@ public class Closer implements Closeable {
 
     /**
      * Sets a flag indicating that this method was called, then rethrows the
-     * given exception.
+     * given exception (potentially wrapped into {@link Error} or {@link RuntimeException}).
      * <p>
      * {@link #close()} will not throw when this method was called before.
      * @return never returns
