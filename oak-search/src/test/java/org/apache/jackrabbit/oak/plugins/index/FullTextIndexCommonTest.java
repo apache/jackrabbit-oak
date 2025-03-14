@@ -96,14 +96,20 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
 
         test.addChild("a").setProperty("propa", "Hello World!");
-        test.addChild("b").setProperty("propa", "Simple test");
+        test.addChild("b").setProperty("propa", "hello~folks!");
+        test.addChild("c").setProperty("propa", "Hello everyone!");
         root.commit();
 
-        String query = "//*[jcr:contains(@propa, 'wordl~0.5')]"; // misspelled world
+        String misspelledWorld = "//*[jcr:contains(@propa, 'wordl~0.5')]";
+        String multipleMisspelledWorlds = "//*[jcr:contains(@propa, 'wordl~0.5 OR everone~0.5')]";
+        String withTilde = "//*[jcr:contains(@propa, 'hello\\~folks')]";
 
         assertEventually(() -> {
-            assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
-            assertQuery(query, XPATH, List.of("/test/a"));
+            assertThat(explain(misspelledWorld, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
+
+            assertQuery(misspelledWorld, XPATH, List.of("/test/a"));
+            assertQuery(multipleMisspelledWorlds, XPATH, List.of("/test/a", "/test/c"));
+            assertQuery(withTilde, XPATH, List.of("/test/b"));
         });
     }
 

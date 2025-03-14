@@ -60,11 +60,13 @@ public class ElasticFullTextIndexTest extends FullTextIndexCommonTest {
         test.addChild("b").setProperty("propa", "Simple test");
         root.commit();
 
-        String query = "//*[jcr:contains(@propa, 'wordl~1')]"; // misspelled world
+        String misspelledWorld = "//*[jcr:contains(@propa, 'wordl~0.5')]";
+        String mixedFuzzyFormats = "//*[jcr:contains(@propa, 'wordl~0.5 OR sample~1')]";
 
         assertEventually(() -> {
-            assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
-            assertQuery(query, XPATH, List.of("/test/a"));
+            assertThat(explain(misspelledWorld, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
+            assertQuery(misspelledWorld, XPATH, List.of("/test/a"));
+            assertQuery(mixedFuzzyFormats, XPATH, List.of("/test/a", "/test/b"));
         });
     }
 

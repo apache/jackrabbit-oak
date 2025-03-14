@@ -128,9 +128,10 @@ public class ElasticRequestHandler {
     private static final String HIGHLIGHT_PREFIX = "<strong>";
     private static final String HIGHLIGHT_SUFFIX = "</strong>";
 
-    // Match old-style fuzzy queries (e.g., roam~0.8), but not new ones (e.g., roam~2)
-    private static final Pattern OLD_FUZZY_PATTERN = Pattern.compile("\\b(\\w+)~([0-9]*\\.?[0-9]+)\\b");
-    private static final Pattern NEW_FUZZY_PATTERN = Pattern.compile("\\b(\\w+)~([0-2])\\b");
+    // Match Lucene 4.x fuzzy queries (e.g., roam~0.8), but not 5.x and beyond (e.g., roam~2)
+    private static final Pattern LUCENE_4_FUZZY_PATTERN = Pattern.compile("\\b(\\w+)~([0-9]*\\.?[0-9]+)\\b");
+    // From Lucene 5 and above (used by elastic), the fuzzy query syntax has changed to use a single integer
+    private static final Pattern ELASTIC_FUZZY_PATTERN = Pattern.compile("\\b(\\w+)~([0-2])\\b");
 
     private final IndexPlan indexPlan;
     private final Filter filter;
@@ -918,9 +919,7 @@ public class ElasticRequestHandler {
         String rewritten = FulltextIndex.rewriteQueryText(text);
 
         // here we handle special cases where the syntax used in the lucene 4.x query parser is not supported by the current version
-        if (rewritten.contains("~")) {
-            rewritten = convertFuzzyQuery(rewritten);
-        }
+        rewritten = convertFuzzyQuery(rewritten);
 
         return rewritten;
     }
@@ -943,15 +942,23 @@ public class ElasticRequestHandler {
      * @return A query string where old fuzzy syntax is converted to the new format.
      */
     private String convertFuzzyQuery(String text) {
-        Matcher oldMatcher = OLD_FUZZY_PATTERN.matcher(text);
-        StringBuilder result = new StringBuilder();
+        if (!text.contains("~")) {
+            return text;
+        }
+        Matcher lucene4FuzzyMatcher = LUCENE_4_FUZZY_PATTERN.matcher(text);
 
-        while (oldMatcher.find()) {
-            String term = oldMatcher.group(1);
-            String fuzzyValue = oldMatcher.group(2);
+        if (!lucene4FuzzyMatcher.find()) {
+            // this can only happen if the pattern is not found, which means we are dealing with a tilde not related to a fuzzy query
+            return text;
+        }
+
+        StringBuilder result = new StringBuilder();
+        do {
+            String term = lucene4FuzzyMatcher.group(1);
+            String fuzzyValue = lucene4FuzzyMatcher.group(2);
 
             // Skip if it's already using the new syntax (integer 0-2)
-            if (NEW_FUZZY_PATTERN.matcher(term + "~" + fuzzyValue).matches()) {
+            if (ELASTIC_FUZZY_PATTERN.matcher(term + "~" + fuzzyValue).matches()) {
                 continue;
             }
 
@@ -965,13 +972,16 @@ public class ElasticRequestHandler {
                     editDistance = 1;
                 }
             } catch (NumberFormatException e) {
-                LOG.warn("Invalid fuzzy value: {}, using default edit distance of 2", fuzzyValue);
+                LOG.warn("Invalid fuzzy value: {} for query text {}, using default edit distance of 2", fuzzyValue, text);
             }
 
-            oldMatcher.appendReplacement(result, term + "~" + editDistance);
-        }
-        oldMatcher.appendTail(result);
-        return result.toString();
+            lucene4FuzzyMatcher.appendReplacement(result, term + "~" + editDistance);
+        } while (lucene4FuzzyMatcher.find());
+
+        lucene4FuzzyMatcher.appendTail(result);
+        String resultString = result.toString();
+        LOG.info("Converted fuzzy query from '{}' to '{}'", text, resultString);
+        return resultString;
     }
 
     private Query createQuery(String propertyName, Filter.PropertyRestriction pr, PropertyDefinition defn) {
