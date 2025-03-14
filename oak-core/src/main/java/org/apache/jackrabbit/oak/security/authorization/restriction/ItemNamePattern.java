@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import java.util.Collections;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -38,7 +39,7 @@ class ItemNamePattern implements RestrictionPattern {
     private final Set<String> names;
 
     ItemNamePattern(Iterable<String> names) {
-        this.names = SetUtils.toLinkedSet(names);
+        this.names = Collections.unmodifiableSet(SetUtils.toLinkedSet(names));
     }
 
     @Override

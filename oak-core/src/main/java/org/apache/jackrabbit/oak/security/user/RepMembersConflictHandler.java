@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -82,7 +83,7 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
     public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
             @NotNull PropertyState theirs, @NotNull PropertyState base) {
         if (isRepMembersProperty(theirs)) {
-            Set<String> baseMembers = SetUtils.toLinkedSet(base.getValue(Type.STRINGS));
+            Set<String> baseMembers = Collections.unmodifiableSet(SetUtils.toLinkedSet(base.getValue(Type.STRINGS)));
             mergeChange(parent, ours, theirs, baseMembers);
             return Resolution.MERGED;
         } else {
@@ -158,8 +159,8 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
         PropertyBuilder<String> merged = PropertyBuilder.array(Type.WEAKREFERENCE);
         merged.setName(UserConstants.REP_MEMBERS);
 
-        Set<String> theirMembers = SetUtils.toLinkedSet(theirs.getValue(Type.STRINGS));
-        Set<String> ourMembers = SetUtils.toLinkedSet(ours.getValue(Type.STRINGS));
+        Set<String> theirMembers = Collections.unmodifiableSet(SetUtils.toLinkedSet(theirs.getValue(Type.STRINGS)));
+        Set<String> ourMembers = Collections.unmodifiableSet(SetUtils.toLinkedSet(ours.getValue(Type.STRINGS)));
 
         // merge ours and theirs to a de-duplicated set
         Set<String> combined = new LinkedHashSet<>(Sets.intersection(ourMembers, theirMembers));

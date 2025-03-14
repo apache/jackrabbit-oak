@@ -29,7 +29,6 @@ import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -307,13 +306,13 @@ public final class ConfigurationParameters implements Map<String, Object> {
         if (configProperty instanceof Set) {
             return (Set) configProperty;
         } else if (configProperty instanceof Collection<?>) {
-            return Collections.unmodifiableSet(SetUtils.toLinkedSet((Collection<?>) configProperty));
+            return ImmutableSet.copyOf((Collection<?>) configProperty);
         } else if (configProperty.getClass().isArray()) {
-            return Collections.unmodifiableSet(SetUtils.toLinkedSet((Object[]) configProperty));
+            return ImmutableSet.copyOf((Object[]) configProperty);
         } else {
             String[] arr = PropertiesUtil.toStringArray(configProperty);
             if (arr != null) {
-                return Collections.unmodifiableSet(SetUtils.toLinkedSet(arr));
+                return ImmutableSet.copyOf(arr);
             } else {
                 String str = configProperty.toString();
                 log.warn("Unsupported target type {} for value {}", clazz.getName(), str);

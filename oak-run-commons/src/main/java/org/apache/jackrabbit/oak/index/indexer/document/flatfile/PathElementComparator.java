@@ -35,7 +35,7 @@ public class PathElementComparator implements Comparator<Iterable<String>> {
     }
 
     public PathElementComparator(Iterable<String> preferredPathElements) {
-        this.preferred = SetUtils.toLinkedSet(preferredPathElements);
+        this.preferred = Collections.unmodifiableSet(SetUtils.toLinkedSet(preferredPathElements));
     }
 
     @Override

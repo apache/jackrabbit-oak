@@ -45,6 +45,7 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -177,7 +178,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         } else if (size == 1) {
             return credentialsSupport.values().iterator().next();
         } else {
-            return CompositeCredentialsSupport.newInstance(() -> SetUtils.toLinkedSet(credentialsSupport.values()));
+            return CompositeCredentialsSupport.newInstance(() -> Collections.unmodifiableSet(SetUtils.toLinkedSet(credentialsSupport.values())));
         }
     }
 }

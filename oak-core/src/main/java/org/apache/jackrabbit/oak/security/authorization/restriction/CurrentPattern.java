@@ -35,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.NamespaceRegistry;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
@@ -100,7 +101,7 @@ class CurrentPattern implements RestrictionPattern {
 
     CurrentPattern(@NotNull String treePath, @NotNull Iterable<String> propertyNames) {
         this.treePath = treePath;
-        this.propertyNames = SetUtils.toLinkedSet(propertyNames);
+        this.propertyNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(propertyNames));
     }
 
     @Override

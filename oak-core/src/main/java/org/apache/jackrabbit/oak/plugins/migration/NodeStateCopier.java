@@ -402,7 +402,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder include(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.includePaths = Collections.unmodifiableSet(paths);
+                this.includePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(paths));
             }
             return this;
         }
@@ -442,7 +442,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder exclude(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.excludePaths = Collections.unmodifiableSet(paths);
+                this.excludePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(paths));
             }
             return this;
         }
@@ -469,7 +469,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder supportFragment(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.fragmentPaths = Collections.unmodifiableSet(paths);
+                this.fragmentPaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(paths));
             }
             return this;
         }
@@ -496,7 +496,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder excludeFragments(@NotNull Set<String> fragments) {
             if (!requireNonNull(fragments).isEmpty()) {
-                this.excludeFragments = Collections.unmodifiableSet(fragments);
+                this.excludeFragments = Collections.unmodifiableSet(SetUtils.toLinkedSet(fragments));
             }
             return this;
         }
@@ -523,7 +523,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder merge(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.mergePaths = Collections.unmodifiableSet(paths);
+                this.mergePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(paths));
             }
             return this;
         }

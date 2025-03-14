@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
@@ -333,7 +332,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
         Set<String> filesToBeDeleted =
                 // Files present locally
-                SetUtils.toLinkedSet(local.listAll()).stream()
+                ImmutableSet.copyOf(local.listAll()).stream()
                 // but not in my view
                 .filter(name -> !remoteFiles.contains(name))
                 // and also older than a safe timestamp (deleteBeforeTS)

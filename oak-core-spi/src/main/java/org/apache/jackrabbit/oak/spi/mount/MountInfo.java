@@ -65,7 +65,7 @@ public final class MountInfo implements Mount {
         this.readOnly = readOnly;
         this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
-        this.pathsSupportingFragments = SetUtils.toLinkedSet(pathsSupportingFragments);
+        this.pathsSupportingFragments = Collections.unmodifiableSet(SetUtils.toLinkedSet(pathsSupportingFragments));
     }
 
     @Override

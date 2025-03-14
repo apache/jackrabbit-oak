@@ -33,6 +33,7 @@ import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -221,7 +222,7 @@ final class AutoMembershipPrincipals {
                 }
             }
             // only cache the principal instance but not the group (tree might become disconnected)
-            principalMap.put(idpName, SetUtils.toLinkedSet(map.keySet()));
+            principalMap.put(idpName, Collections.unmodifiableSet(SetUtils.toLinkedSet(map.keySet())));
         } else {
             // resolve Group objects from cached principals
             principalMap.get(idpName).forEach(groupPrincipal -> {

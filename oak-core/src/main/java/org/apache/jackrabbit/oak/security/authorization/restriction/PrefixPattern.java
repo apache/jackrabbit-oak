@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import java.util.Collections;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -46,7 +47,7 @@ class PrefixPattern implements RestrictionPattern {
     private final Set<String> prefixes;
 
     PrefixPattern(@NotNull Iterable<String> prefixes) {
-        this.prefixes = SetUtils.toLinkedSet(prefixes);
+        this.prefixes = Collections.unmodifiableSet(SetUtils.toLinkedSet(prefixes));
     }
 
     @Override

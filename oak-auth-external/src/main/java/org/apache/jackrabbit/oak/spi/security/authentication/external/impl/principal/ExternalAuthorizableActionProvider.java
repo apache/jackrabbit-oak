@@ -200,7 +200,7 @@ public final class ExternalAuthorizableActionProvider implements AuthorizableAct
         
         private static void updateAutoMembershipMap(@NotNull Map<String, Set<String>> map, @NotNull String syncHandlerName, 
                                                     @NotNull String idpName, @NotNull String[] membership) {
-            Set<String> userMembership = SetUtils.toLinkedSet(membership);
+            Set<String> userMembership = Collections.unmodifiableSet(SetUtils.toLinkedSet(membership));
             Set<String> previous = map.put(idpName, userMembership);
             if (previous != null) {
                 String msg = previous.equals(userMembership) ? "Duplicate" : "Colliding";

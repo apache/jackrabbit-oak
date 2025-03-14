@@ -37,7 +37,7 @@ class CustomPrincipalProvider implements PrincipalProvider {
     private final Set<String> knownPrincipalNames;
 
     CustomPrincipalProvider(String[] knownPrincipalNames) {
-        this.knownPrincipalNames = SetUtils.toLinkedSet(knownPrincipalNames);
+        this.knownPrincipalNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(knownPrincipalNames));
     }
 
     @Nullable

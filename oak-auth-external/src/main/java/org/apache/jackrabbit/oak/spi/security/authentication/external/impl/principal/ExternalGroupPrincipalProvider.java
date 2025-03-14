@@ -328,7 +328,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 return Collections.emptyIterator();
             }
 
-            Set<Value> valueSet = SetUtils.toLinkedSet(vs);
+            Set<Value> valueSet = Collections.unmodifiableSet(SetUtils.toLinkedSet(vs));
             Iterator<Group> declared = Iterators.filter(Iterators.transform(valueSet.iterator(), value -> {
                 try {
                     String groupPrincipalName = value.getString();

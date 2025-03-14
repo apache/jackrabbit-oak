@@ -39,6 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Set;
 
 class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, ThreeRolesConstants {
@@ -62,7 +63,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
                                  @NotNull String supportedPath, @NotNull Context ctx,
                                  @NotNull RootProvider rootProvider) {
         this.root = root;
-        this.principalNames = SetUtils.toLinkedSet(IterableUtils.transform(principals, Principal::getName));
+        this.principalNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(IterableUtils.transform(principals, Principal::getName)));
         this.supportedPath = supportedPath;
         this.ctx = ctx;
         this.rootProvider = rootProvider;
@@ -167,7 +168,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-        return getPrivileges(tree).containsAll(SetUtils.toLinkedSet(privilegeNames));
+        return getPrivileges(tree).containsAll(Collections.unmodifiableSet(SetUtils.toLinkedSet(privilegeNames)));
     }
 
     @NotNull
