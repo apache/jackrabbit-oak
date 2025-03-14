@@ -1,6 +1,7 @@
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.Assert;
@@ -9,6 +10,45 @@ import org.junit.Test;
 public class OrderedChildnameIterableTest {
 
     static final List<String> ALL_CHILDREN = List.of("1","2","3","4","5");
+
+    // Track iterator access for testing lazy loading
+    private static class TrackingIterable implements Iterable<String> {
+        private final List<String> elements;
+        private int accessCount = 0;
+        private final List<String> accessedElements = new ArrayList<>();
+
+        TrackingIterable(List<String> elements) {
+            this.elements = elements;
+        }
+
+        @Override
+        public Iterator<String> iterator() {
+            return new Iterator<String>() {
+                private int index = 0;
+
+                @Override
+                public boolean hasNext() {
+                    return index < elements.size();
+                }
+
+                @Override
+                public String next() {
+                    String element = elements.get(index++);
+                    accessCount++;
+                    accessedElements.add(element);
+                    return element;
+                }
+            };
+        }
+
+        public int getAccessCount() {
+            return accessCount;
+        }
+
+        public List<String> getAccessedElements() {
+            return accessedElements;
+        }
+    }
 
     List<String> iterableToList(Iterable<String> iter) {
         List<String> result = new ArrayList<>();
@@ -44,4 +84,42 @@ public class OrderedChildnameIterableTest {
         Assert.assertEquals(List.of(), iterableToList(iterable));
     }
 
+    @Test
+    public void testLazyLoading() {
+        // Create tracking iterable for allChildren
+        TrackingIterable trackingAllChildren = new TrackingIterable(ALL_CHILDREN);
+
+        OrderedChildnameIterable iterable = new OrderedChildnameIterable(
+            List.of("4", "1"),
+            trackingAllChildren
+        );
+
+        Iterator<String> iterator = iterable.iterator();
+
+        // Get first element ("4")
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertEquals("4", iterator.next());
+        // iterated through 4 elements in allChildren
+        Assert.assertEquals(4, trackingAllChildren.getAccessCount());
+        Assert.assertEquals(List.of("1", "2", "3", "4"), trackingAllChildren.getAccessedElements());
+
+        // Get second element ("1")
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertEquals("1", iterator.next());
+        // No additional access to allChildren
+        Assert.assertEquals(4, trackingAllChildren.getAccessCount());
+        Assert.assertEquals(List.of("1", "2", "3", "4"), trackingAllChildren.getAccessedElements());
+
+        // Get remaining elements
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertEquals("2", iterator.next());
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertEquals("3", iterator.next());
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertEquals("5", iterator.next());
+
+        // No more elements should be accessed since we already had them all
+        Assert.assertEquals(5, trackingAllChildren.getAccessCount());
+        Assert.assertFalse(iterator.hasNext());
+    }
 }
