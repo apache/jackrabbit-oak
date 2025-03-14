@@ -39,8 +39,8 @@ public class Closer implements Closeable {
         // no instances for you
     }
 
-    // stack of closeables to close
-    private final Deque<Closeable> closeables = new ArrayDeque<>();
+    // stack of closeables to close, in general will be few
+    private final Deque<Closeable> closeables = new ArrayDeque<>(3);
 
     // flag set by rethrow method
     private boolean suppressExceptionsOnClose = false;
