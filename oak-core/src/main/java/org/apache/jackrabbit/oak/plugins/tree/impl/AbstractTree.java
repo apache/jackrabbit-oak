@@ -125,17 +125,7 @@ public abstract class AbstractTree implements Tree {
         NodeBuilder nodeBuilder = getNodeBuilder();
         PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
         if (order != null && order.getType() == NAMES) {
-            Set<String> names = SetUtils.toLinkedSet(nodeBuilder.getChildNodeNames());
-            List<String> ordered = new ArrayList<>(names.size());
-            for (String name : order.getValue(NAMES)) {
-                // only include names of child nodes that actually exist
-                if (names.remove(name)) {
-                    ordered.add(name);
-                }
-            }
-            // add names of child nodes that are not explicitly ordered
-            ordered.addAll(names);
-            return ordered;
+            return new OrderedChildnameIterable(order.getValue(NAMES), nodeBuilder.getChildNodeNames());
         } else {
             return nodeBuilder.getChildNodeNames();
         }
