@@ -56,7 +56,7 @@ public class Closer implements Closeable {
      * @param closeable {@link Closeable} object to be added
      * @return the closeable param
      */
-    public @Nullable <CLO extends Closeable> CLO register(@Nullable CLO closeable) {
+    public @Nullable <C extends Closeable> C register(@Nullable C closeable) {
         if (closeable != null) {
             closeables.add(closeable);
         }
