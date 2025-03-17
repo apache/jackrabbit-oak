@@ -27,6 +27,7 @@ import co.elastic.clients.json.JsonData;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -57,6 +58,9 @@ public class ElasticBulkProcessorHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticBulkProcessorHandler.class);
 
+    /**
+     * Keeps information about an index that is being written by the bulk processor
+     */
     static class IndexInfo {
         public final String indexName;
         public final ElasticIndexDefinition indexDefinition;
@@ -82,6 +86,9 @@ public class ElasticBulkProcessorHandler {
         }
     }
 
+    /**
+     * Context object associated with each operation passed to the bulk processor
+     */
     public final static class OperationContext {
         final IndexInfo indexInfo;
         final String documentId;
@@ -106,22 +113,26 @@ public class ElasticBulkProcessorHandler {
     public static final int BULK_SIZE_BYTES_DEFAULT = 8 * 1024 * 1024; // 8MB
     public static final String BULK_FLUSH_INTERVAL_MS_PROP = "oak.indexer.elastic.bulkProcessor.bulkFlushIntervalMs";
     public static final int BULK_FLUSH_INTERVAL_MS_DEFAULT = 5000;
-    public static final String BULK_PROCESSOR_CONCURRENCY_PROP = "oak.indexer.elastic.bulkProcessor.concurrency";
+    public static final String BULK_MAX_CONCURRENT_REQUESTS_PROP = "oak.indexer.elastic.bulkProcessor.maxConcurrentRequests";
+    private static final int BULK_MAX_CONCURRENT_REQUESTS_DEFAULT = 1;
     // when true, fails indexing in case of bulk failures
     public static final String FAIL_ON_ERROR_PROP = "oak.indexer.elastic.bulkProcessor.failOnError";
     public static final boolean FAIL_ON_ERROR_DEFAULT = true;
 
     private static final String SYNC_MODE_PROPERTY = "sync-mode";
     private static final String SYNC_RT_MODE = "rt";
+    private static final int MAX_SUPPRESSED_ERROR_CAUSES = 50;
 
     private final int FAILED_DOC_COUNT_FOR_STATUS_NODE = ConfigHelper.getSystemPropertyAsInt("oak.failedDocStatusLimit", 10000);
     private final int BULK_MAX_OPERATIONS = ConfigHelper.getSystemPropertyAsInt(BULK_ACTIONS_PROP, BULK_ACTIONS_DEFAULT);
     private final int BULK_MAX_SIZE_BYTES = ConfigHelper.getSystemPropertyAsInt(BULK_SIZE_BYTES_PROP, BULK_SIZE_BYTES_DEFAULT);
     private final int BULK_FLUSH_INTERVAL_MS = ConfigHelper.getSystemPropertyAsInt(BULK_FLUSH_INTERVAL_MS_PROP, BULK_FLUSH_INTERVAL_MS_DEFAULT);
-    private final int BULK_PROCESSOR_CONCURRENCY = ConfigHelper.getSystemPropertyAsInt(BULK_PROCESSOR_CONCURRENCY_PROP, 1);
+    private final int BULK_MAX_CONCURRENT_REQUESTS = ConfigHelper.getSystemPropertyAsInt(BULK_MAX_CONCURRENT_REQUESTS_PROP, BULK_MAX_CONCURRENT_REQUESTS_DEFAULT);
     private final boolean FAIL_ON_ERROR = ConfigHelper.getSystemPropertyAsBoolean(FAIL_ON_ERROR_PROP, FAIL_ON_ERROR_DEFAULT);
+
     private final ElasticConnection elasticConnection;
     private final BulkIngester<OperationContext> bulkIngester;
+
     // Used to keep track of the sequence number of the batches that are currently being processed.
     // This is used to wait until all operations for a writer are processed before closing it.
     private final ReentrantLock lock = new ReentrantLock();
@@ -138,7 +149,7 @@ public class ElasticBulkProcessorHandler {
         // BulkIngester does not support retry policies. Some retries though are already implemented in the transport layer.
         // More details here: https://github.com/elastic/elasticsearch-java/issues/478
         LOG.info("Creating bulk ingester [maxActions: {}, maxSizeBytes: {} flushInterval {}, concurrency {}]",
-                BULK_MAX_OPERATIONS, BULK_MAX_SIZE_BYTES, BULK_FLUSH_INTERVAL_MS, BULK_PROCESSOR_CONCURRENCY_PROP);
+                BULK_MAX_OPERATIONS, BULK_MAX_SIZE_BYTES, BULK_FLUSH_INTERVAL_MS, BULK_MAX_CONCURRENT_REQUESTS_PROP);
         this.bulkIngester = BulkIngester.of(b -> {
             b = b.client(elasticConnection.getAsyncClient())
                     .listener(new OakBulkListener());
@@ -151,8 +162,8 @@ public class ElasticBulkProcessorHandler {
             if (BULK_FLUSH_INTERVAL_MS > 0) {
                 b = b.flushInterval(BULK_FLUSH_INTERVAL_MS, TimeUnit.MILLISECONDS);
             }
-            if (BULK_PROCESSOR_CONCURRENCY > 0) {
-                b = b.maxConcurrentRequests(BULK_PROCESSOR_CONCURRENCY);
+            if (BULK_MAX_CONCURRENT_REQUESTS > 0) {
+                b = b.maxConcurrentRequests(BULK_MAX_CONCURRENT_REQUESTS);
             }
             return b;
         });
@@ -368,7 +379,9 @@ public class ElasticBulkProcessorHandler {
 
     private void checkFailuresForIndex(IndexInfo indexInfo) throws IOException {
         if (!indexInfo.suppressedErrorCauses.isEmpty()) {
-            IOException ioe = new IOException("Exception while indexing. See suppressed for details");
+            String overflowMessage = (indexInfo.suppressedErrorCauses.size() >= MAX_SUPPRESSED_ERROR_CAUSES) ?
+                    ". (Too many failed operations in last bulk request, including only " + indexInfo.suppressedErrorCauses.size() + " errors)" : "";
+            IOException ioe = new IOException("Exception while indexing. See suppressed for details" + overflowMessage);
             indexInfo.suppressedErrorCauses.stream().map(ec -> new IllegalStateException(ec.reason())).forEach(ioe::addSuppressed);
             throw ioe;
         }
@@ -383,10 +396,9 @@ public class ElasticBulkProcessorHandler {
     }
 
     private long totalWaitTimeNanos = 0;
+
     private void add(BulkOperation operation, OperationContext context) throws IOException {
-//        if (totalOperations % 4096 == 0) {
-//            LOG.info("Adding operation: [{}]: {}", context.indexInfo.indexName, context.documentId);
-//        }
+        LOG.info("Adding operation: [{}]: {}", context.indexInfo.indexName, context.documentId);
         // fail fast: we don't want to wait until the processor gets closed to fail
         checkFailuresForIndex(context.indexInfo);
         long start = System.nanoTime();
@@ -397,7 +409,8 @@ public class ElasticBulkProcessorHandler {
 
     public void printStatistics() {
         LOG.info("BulkIngester statistics: [operationsCount: {}, requestCount: {}, avgOperationsPerBulk: {}, operationContentionsCount: {}, requestContentionsCount: {}, waitTimeMs: {}]",
-                bulkIngester.operationsCount(), bulkIngester.requestCount(), bulkIngester.operationsCount()/bulkIngester.requestCount(),
+                bulkIngester.operationsCount(), bulkIngester.requestCount(),
+                FormattingUtils.safeComputeAverage(bulkIngester.operationsCount(), bulkIngester.requestCount()),
                 bulkIngester.operationContentionsCount(), bulkIngester.requestContentionsCount(),
                 TimeUnit.NANOSECONDS.toMillis(totalWaitTimeNanos));
     }
@@ -485,7 +498,7 @@ public class ElasticBulkProcessorHandler {
                                 //   However, this is not performance critical so we can use coarse grained locking
                                 k -> new FailedDocSetTracker(indexInfo.definitionBuilder));
 
-                        if (FAIL_ON_ERROR) {
+                        if (FAIL_ON_ERROR && indexInfo.suppressedErrorCauses.size() < MAX_SUPPRESSED_ERROR_CAUSES) {
                             indexInfo.suppressedErrorCauses.add(item.error());
                         }
                         String documentId = contexts.get(i).documentId;

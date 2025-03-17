@@ -21,6 +21,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
@@ -28,6 +29,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder.PropertyRule;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -38,6 +41,20 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
+    @Rule
+    public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
+
+    // Tests are hardcoded for these values
+    private final static int BULK_ACTIONS_TEST = 250;
+    private final static int BULK_SIZE_BYTES_TEST = 1024 * 1024;
+
+    @Before
+    public void before() throws Exception {
+        // Use a low value for the tests
+        System.setProperty(ElasticBulkProcessorHandler.BULK_ACTIONS_PROP, Integer.toString(BULK_ACTIONS_TEST));
+        System.setProperty(ElasticBulkProcessorHandler.BULK_SIZE_BYTES_PROP, Integer.toString(BULK_SIZE_BYTES_TEST));
+        super.before();
+    }
 
     @Test
     public void bulkProcessorEventsFlushLimit() throws Exception {
@@ -80,7 +97,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             customLogger.starting();
         /*
         Below are the conditions to flush data from bulk processor.
-        1. Based on events by default 250 events.
+        1. Based on events reaching 250. (BULK_ACTIONS_TEST)
         2. Based on size of estimated bulk request size.
         3. When index writer is closed.
         To trigger flush on bulk request size, we will load large documents so that
@@ -89,7 +106,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             setIndex("test1", createIndex("propa", "propb"));
             int docSize = 1024 * 16;
             // +1 at end leads to bulk size breach, leading to two bulkIds.
-            int docCountBreachingBulkSize = (ElasticBulkProcessorHandler.BULK_SIZE_BYTES_DEFAULT / docSize) + 1;
+            int docCountBreachingBulkSize = (BULK_SIZE_BYTES_TEST / docSize) + 1;
             // 250 is the default flush limit for bulk processor
             Assert.assertTrue(docCountBreachingBulkSize < 250);
             String random = RandomStringUtils.insecure().next(docSize, true, true);
