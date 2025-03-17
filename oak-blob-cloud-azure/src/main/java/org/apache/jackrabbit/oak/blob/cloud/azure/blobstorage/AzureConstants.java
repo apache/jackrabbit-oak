@@ -21,9 +21,14 @@ package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 public final class AzureConstants {
     /**
+     * Azure storage access key
+     */
+    public static final String AZURE_STORAGE_ACCESS_KEY = "accessKey";
+
+    /**
      * Azure storage account name
      */
-    public static final String AZURE_STORAGE_ACCOUNT_NAME = "accessKey";
+    public static final String AZURE_STORAGE_ACCOUNT_NAME = "accountName";
 
     /**
      * Azure storage account key

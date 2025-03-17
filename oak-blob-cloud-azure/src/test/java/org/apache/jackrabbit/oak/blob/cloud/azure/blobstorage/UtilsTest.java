@@ -46,7 +46,7 @@ public class UtilsTest {
     public void testConnectionStringIsBasedOnSASWithoutEndpoint() {
         Properties properties = new Properties();
         properties.put(AzureConstants.AZURE_SAS, "sas");
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "account");
+        properties.put(AzureConstants.AZURE_STORAGE_ACCESS_KEY, "account");
         String connectionString = Utils.getConnectionStringFromProperties(properties);
         assertEquals(connectionString,
                 String.format("AccountName=%s;SharedAccessSignature=%s", "account", "sas"));
@@ -55,7 +55,7 @@ public class UtilsTest {
     @Test
     public void testConnectionStringIsBasedOnAccessKeyIfSASMissing() {
         Properties properties = new Properties();
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "accessKey");
+        properties.put(AzureConstants.AZURE_STORAGE_ACCESS_KEY, "accessKey");
         properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "secretKey");
 
         String connectionString = Utils.getConnectionStringFromProperties(properties);
@@ -69,7 +69,7 @@ public class UtilsTest {
         properties.put(AzureConstants.AZURE_SAS, "sas");
         properties.put(AzureConstants.AZURE_BLOB_ENDPOINT, "endpoint");
 
-        properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "accessKey");
+        properties.put(AzureConstants.AZURE_STORAGE_ACCESS_KEY, "accessKey");
         properties.put(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "secretKey");
 
         String connectionString = Utils.getConnectionStringFromProperties(properties);

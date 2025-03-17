@@ -152,7 +152,7 @@ public class AzureBlobContainerProvider implements Closeable {
 
         public Builder initializeWithProperties(Properties properties) {
             withAzureConnectionString(properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, ""));
-            withAccountName(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ""));
+            withAccountName(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCESS_KEY, ""));
             withBlobEndpoint(properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, ""));
             withSasToken(properties.getProperty(AzureConstants.AZURE_SAS, ""));
             withAccountKey(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ""));

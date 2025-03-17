@@ -127,7 +127,7 @@ public final class Utils {
         String sasUri = properties.getProperty(AzureConstants.AZURE_SAS, "");
         String blobEndpoint = properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, "");
         String connectionString = properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, "");
-        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
+        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCESS_KEY, "");
         String accountKey = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, "");
 
         if (!connectionString.isEmpty()) {
