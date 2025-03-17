@@ -56,7 +56,8 @@
               org.apache.jackrabbit.oak.commons.log,
               org.apache.jackrabbit.oak.commons.sort,
               org.apache.jackrabbit.oak.commons.properties,
-              org.apache.jackrabbit.oak.commons.jdkcompat
+              org.apache.jackrabbit.oak.commons.jdkcompat,
+              org.apache.jackrabbit.oak.commons.pio
             </Export-Package>
           </instructions>
         </configuration>
