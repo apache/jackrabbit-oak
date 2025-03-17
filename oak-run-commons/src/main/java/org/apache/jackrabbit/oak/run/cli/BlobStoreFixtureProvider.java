@@ -30,10 +30,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
