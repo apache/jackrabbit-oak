@@ -57,40 +57,6 @@ public class ElasticBulkProcessorHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticBulkProcessorHandler.class);
 
-    public static final String BULK_ACTIONS_PROP = "oak.indexer.elastic.bulkProcessor.maxBulkOperations";
-    public static final int BULK_ACTIONS_DEFAULT = 250;
-    public static final String BULK_SIZE_BYTES_PROP = "oak.indexer.elastic.bulkProcessor.maxBulkSizeBytes";
-    public static final int BULK_SIZE_BYTES_DEFAULT = 1024 * 1024; // 1MB
-    public static final String BULK_FLUSH_INTERVAL_MS_PROP = "oak.indexer.elastic.bulkProcessor.bulkFlushIntervalMs";
-    public static final int BULK_FLUSH_INTERVAL_MS_DEFAULT = 3000;
-    public static final String BULK_PROCESSOR_CONCURRENCY_PROP = "oak.indexer.elastic.bulkProcessor.concurrency";
-    // when true, fails indexing in case of bulk failures
-    public static final String FAIL_ON_ERROR_PROP = "oak.indexer.elastic.bulkProcessor.failOnError";
-    public static final boolean FAIL_ON_ERROR_DEFAULT = true;
-    private static final String SYNC_MODE_PROPERTY = "sync-mode";
-    private static final String SYNC_RT_MODE = "rt";
-
-    private final int FAILED_DOC_COUNT_FOR_STATUS_NODE = ConfigHelper.getSystemPropertyAsInt("oak.failedDocStatusLimit", 10000);
-    private final int BULK_MAX_OPERATIONS = ConfigHelper.getSystemPropertyAsInt(BULK_ACTIONS_PROP, BULK_ACTIONS_DEFAULT);
-    private final int BULK_MAX_SIZE_BYTES = ConfigHelper.getSystemPropertyAsInt(BULK_SIZE_BYTES_PROP, BULK_SIZE_BYTES_DEFAULT);
-    private final int BULK_FLUSH_INTERVAL_MS = ConfigHelper.getSystemPropertyAsInt(BULK_FLUSH_INTERVAL_MS_PROP, BULK_FLUSH_INTERVAL_MS_DEFAULT);
-    private final int BULK_PROCESSOR_CONCURRENCY = ConfigHelper.getSystemPropertyAsInt(BULK_PROCESSOR_CONCURRENCY_PROP, 1);
-    private final boolean FAIL_ON_ERROR = ConfigHelper.getSystemPropertyAsBoolean(FAIL_ON_ERROR_PROP, FAIL_ON_ERROR_DEFAULT);
-    protected final ElasticConnection elasticConnection;
-    protected final BulkIngester<OperationContext> bulkIngester;
-
-    // Used to keep track of the sequence number of the batches that are currently being processed.
-    // This is used to wait until all operations for a writer are processed before closing it.
-    private final ReentrantLock lock = new ReentrantLock();
-    private final Condition bulkProcessedCondition = lock.newCondition();
-    private final HashSet<Long> pendingBulks = new HashSet<>();
-
-    private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final ConcurrentHashMap<String, IndexInfo> registeredIndexes = new ConcurrentHashMap<>();
-
-    protected long totalOperations;
-    private final ConcurrentLinkedQueue<ErrorCause> globalSuppressedErrorCauses = new ConcurrentLinkedQueue<>();
-
     static class IndexInfo {
         public final String indexName;
         public final ElasticIndexDefinition indexDefinition;
@@ -101,7 +67,6 @@ public class ElasticBulkProcessorHandler {
          * Exceptions occurred while trying to update index in elasticsearch
          */
         public final ConcurrentLinkedQueue<ErrorCause> suppressedErrorCauses = new ConcurrentLinkedQueue<>();
-
 
         long indexOperations = 0;
         long deleteOperations = 0;
@@ -134,6 +99,39 @@ public class ElasticBulkProcessorHandler {
                     '}';
         }
     }
+
+    public static final String BULK_ACTIONS_PROP = "oak.indexer.elastic.bulkProcessor.maxBulkOperations";
+    public static final int BULK_ACTIONS_DEFAULT = 8192;
+    public static final String BULK_SIZE_BYTES_PROP = "oak.indexer.elastic.bulkProcessor.maxBulkSizeBytes";
+    public static final int BULK_SIZE_BYTES_DEFAULT = 8 * 1024 * 1024; // 8MB
+    public static final String BULK_FLUSH_INTERVAL_MS_PROP = "oak.indexer.elastic.bulkProcessor.bulkFlushIntervalMs";
+    public static final int BULK_FLUSH_INTERVAL_MS_DEFAULT = 5000;
+    public static final String BULK_PROCESSOR_CONCURRENCY_PROP = "oak.indexer.elastic.bulkProcessor.concurrency";
+    // when true, fails indexing in case of bulk failures
+    public static final String FAIL_ON_ERROR_PROP = "oak.indexer.elastic.bulkProcessor.failOnError";
+    public static final boolean FAIL_ON_ERROR_DEFAULT = true;
+
+    private static final String SYNC_MODE_PROPERTY = "sync-mode";
+    private static final String SYNC_RT_MODE = "rt";
+
+    private final int FAILED_DOC_COUNT_FOR_STATUS_NODE = ConfigHelper.getSystemPropertyAsInt("oak.failedDocStatusLimit", 10000);
+    private final int BULK_MAX_OPERATIONS = ConfigHelper.getSystemPropertyAsInt(BULK_ACTIONS_PROP, BULK_ACTIONS_DEFAULT);
+    private final int BULK_MAX_SIZE_BYTES = ConfigHelper.getSystemPropertyAsInt(BULK_SIZE_BYTES_PROP, BULK_SIZE_BYTES_DEFAULT);
+    private final int BULK_FLUSH_INTERVAL_MS = ConfigHelper.getSystemPropertyAsInt(BULK_FLUSH_INTERVAL_MS_PROP, BULK_FLUSH_INTERVAL_MS_DEFAULT);
+    private final int BULK_PROCESSOR_CONCURRENCY = ConfigHelper.getSystemPropertyAsInt(BULK_PROCESSOR_CONCURRENCY_PROP, 1);
+    private final boolean FAIL_ON_ERROR = ConfigHelper.getSystemPropertyAsBoolean(FAIL_ON_ERROR_PROP, FAIL_ON_ERROR_DEFAULT);
+    private final ElasticConnection elasticConnection;
+    private final BulkIngester<OperationContext> bulkIngester;
+    // Used to keep track of the sequence number of the batches that are currently being processed.
+    // This is used to wait until all operations for a writer are processed before closing it.
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition bulkProcessedCondition = lock.newCondition();
+    private final HashSet<Long> pendingBulks = new HashSet<>();
+
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final ConcurrentHashMap<String, IndexInfo> registeredIndexes = new ConcurrentHashMap<>();
+
+    private final ConcurrentLinkedQueue<ErrorCause> globalSuppressedErrorCauses = new ConcurrentLinkedQueue<>();
 
     public ElasticBulkProcessorHandler(@NotNull ElasticConnection elasticConnection) {
         this.elasticConnection = elasticConnection;
@@ -352,6 +350,7 @@ public class ElasticBulkProcessorHandler {
         } else {
             LOG.info("Closing bulk processor handler");
             LOG.trace("Calling close on bulk ingester {}", bulkIngester);
+            printStatistics();
             // This blocks until all requests are processed
             // Fail is some of the indexes were not closed
             if (!registeredIndexes.isEmpty()) {
@@ -383,14 +382,24 @@ public class ElasticBulkProcessorHandler {
         return indexInfo;
     }
 
+    private long totalWaitTimeNanos = 0;
     private void add(BulkOperation operation, OperationContext context) throws IOException {
-        if (totalOperations%128 == 0) {
-            LOG.info("Adding operation: [{}]: {}", context.indexInfo.indexName, context.documentId);
-        }
+//        if (totalOperations % 4096 == 0) {
+//            LOG.info("Adding operation: [{}]: {}", context.indexInfo.indexName, context.documentId);
+//        }
         // fail fast: we don't want to wait until the processor gets closed to fail
         checkFailuresForIndex(context.indexInfo);
+        long start = System.nanoTime();
         bulkIngester.add(operation, context);
-        totalOperations++;
+        long end = System.nanoTime();
+        totalWaitTimeNanos += end - start;
+    }
+
+    public void printStatistics() {
+        LOG.info("BulkIngester statistics: [operationsCount: {}, requestCount: {}, avgOperationsPerBulk: {}, operationContentionsCount: {}, requestContentionsCount: {}, waitTimeMs: {}]",
+                bulkIngester.operationsCount(), bulkIngester.requestCount(), bulkIngester.operationsCount()/bulkIngester.requestCount(),
+                bulkIngester.operationContentionsCount(), bulkIngester.requestContentionsCount(),
+                TimeUnit.NANOSECONDS.toMillis(totalWaitTimeNanos));
     }
 
     private class OakBulkListener implements BulkListener<OperationContext> {
@@ -403,14 +412,11 @@ public class ElasticBulkProcessorHandler {
             } finally {
                 lock.unlock();
             }
+            if (bulkIngester.requestCount() % 32 == 0) {
+                LOG.info("Sending bulk with id {} -> #ops: {}", executionId, contexts.size());
+                printStatistics();
+            }
 
-
-            LOG.info("Sending bulk with id {} -> #ops: {}", executionId, contexts.size());
-//            LOG.info("Bulk Requests: \n{}", request.operations()
-//                    .stream()
-//                    .map(BulkOperation::toString)
-//                    .collect(Collectors.joining("\n"))
-//            );
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Bulk Requests: \n{}", request.operations()
                         .stream()
@@ -461,7 +467,7 @@ public class ElasticBulkProcessorHandler {
         @Override
         public void afterBulk(long executionId, BulkRequest request, List<OperationContext> contexts, BulkResponse response) {
             try {
-                LOG.info("Bulk with id {} processed in {} ms", executionId, response.took() / 1_000_000 );
+                LOG.debug("Bulk with id {} processed in {} ms", executionId, response.took() / 1_000_000);
                 if (LOG.isTraceEnabled()) {
                     LOG.trace(response.toString());
                 }
