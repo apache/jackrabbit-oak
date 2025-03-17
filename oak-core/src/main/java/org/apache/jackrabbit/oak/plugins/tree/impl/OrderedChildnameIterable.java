@@ -65,11 +65,9 @@ public class OrderedChildnameIterable implements Iterable<String> {
             nextResult = getNextElement();
         }
 
-        String getNextElement() {
-            String elem = null;
-
+        private String getNextElement() {
             if (orderedChildren.hasNext()) {
-                elem = getNextOrderedChild();
+                String elem = getNextOrderedChild();
                 if (elem != null) {
                     return elem;
                 }
@@ -83,7 +81,7 @@ public class OrderedChildnameIterable implements Iterable<String> {
             if (nonOrderedChildrenIterator.hasNext()) {
                 return nonOrderedChildrenIterator.next();
             }
-            // return all children which have not been consumed from the allChildren iterator yet
+            // return all children which have not been consumed from the allChildren iterator
             if (allChildren.hasNext()) {
                 return allChildren.next();
             }
@@ -92,8 +90,8 @@ public class OrderedChildnameIterable implements Iterable<String> {
         }
 
         /**
-         * Consume the next element from the orderedChild list
-         * @return null if no ordered child can be retrieved, otherwise the next ordered child name
+         * Consume the next element from the orderedChild list and validates that it's actually present
+         * @return the next ordered child or  {code null} if all ordered children have already been returned
          */
         String getNextOrderedChild() {
             String current = null;
@@ -102,6 +100,8 @@ public class OrderedChildnameIterable implements Iterable<String> {
                 current = orderedChildren.next();
                 if (isOrderedChildPresent(current)) {
                     return current;
+                } else {
+                    current = null; // skip this element, as it's not present in the allChildren iterator
                 }
             }
             return null;

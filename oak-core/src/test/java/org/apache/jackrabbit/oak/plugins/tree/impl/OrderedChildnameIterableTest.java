@@ -91,7 +91,7 @@ public class OrderedChildnameIterableTest {
     @Test
     public void orderedChildrenWithNonExistingOrderedChild() {
         // the ordered list contains a non-existing childname, which is not part of children list
-        OrderedChildnameIterable iterable = new OrderedChildnameIterable(List.of("4","5","nonexisting"),ALL_CHILDREN);
+        OrderedChildnameIterable iterable = new OrderedChildnameIterable(List.of("4","nonexisting1","5","nonexisting2"),ALL_CHILDREN);
         Assert.assertEquals(List.of("4","5","1","2","3"), iterableToList(iterable));
     }
 
