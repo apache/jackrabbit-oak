@@ -260,7 +260,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private void initAzureDSConfig() {
         AzureBlobContainerProvider.Builder builder = AzureBlobContainerProvider.Builder.builder(properties.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME))
                 .withAzureConnectionString(properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, ""))
-                .withAccountName(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCESS_KEY, ""))
+                .withAccountName(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ""))
                 .withBlobEndpoint(properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, ""))
                 .withSasToken(properties.getProperty(AzureConstants.AZURE_SAS, ""))
                 .withAccountKey(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ""))
@@ -1105,7 +1105,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     }
 
     private String getDefaultBlobStorageDomain() {
-        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCESS_KEY, "");
+        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
         if (StringUtils.isEmpty(accountName)) {
             LOG.warn("Can't generate presigned URI - Azure account name not found in properties");
             return null;

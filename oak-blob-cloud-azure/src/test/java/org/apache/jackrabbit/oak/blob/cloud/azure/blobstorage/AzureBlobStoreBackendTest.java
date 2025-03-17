@@ -176,7 +176,7 @@ public class AzureBlobStoreBackendTest {
         final String clientSecret = getEnvironmentVariable(AZURE_CLIENT_SECRET);
 
         Properties properties = new Properties();
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCESS_KEY, accountName);
+        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, accountName);
         properties.setProperty(AzureConstants.AZURE_TENANT_ID, tenantId);
         properties.setProperty(AzureConstants.AZURE_CLIENT_ID, clientId);
         properties.setProperty(AzureConstants.AZURE_CLIENT_SECRET, clientSecret);
@@ -221,7 +221,7 @@ public class AzureBlobStoreBackendTest {
     private static Properties getBasicConfiguration() {
         Properties properties = new Properties();
         properties.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, CONTAINER_NAME);
-        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCESS_KEY, AzuriteDockerRule.ACCOUNT_NAME);
+        properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_NAME);
         properties.setProperty(AzureConstants.AZURE_BLOB_ENDPOINT, azurite.getBlobEndpoint());
         properties.setProperty(AzureConstants.AZURE_CREATE_CONTAINER, "");
         return properties;

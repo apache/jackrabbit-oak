@@ -137,7 +137,7 @@ public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessP
         assertNotEquals(DOWNLOAD_URI_DOMAIN, downloadUri.getHost());
 
         Properties properties = AzureDataStoreUtils.getDirectAccessDataStoreProperties();
-        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCESS_KEY, null);
+        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, null);
         assertNotNull(accountName);
         assertEquals(String.format("%s.blob.core.windows.net", accountName), downloadUri.getHost());
     }
@@ -151,7 +151,7 @@ public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessP
         assertTrue(upload.getUploadURIs().size() > 0);
 
         Properties properties = AzureDataStoreUtils.getDirectAccessDataStoreProperties();
-        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCESS_KEY, null);
+        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, null);
         assertNotNull(accountName);
         String defaultDomain = String.format("%s.blob.core.windows.net", accountName);
         for (URI uri : upload.getUploadURIs()) {

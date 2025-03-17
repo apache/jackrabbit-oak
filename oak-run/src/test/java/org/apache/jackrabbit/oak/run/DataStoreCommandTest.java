@@ -1130,7 +1130,7 @@ public class DataStoreCommandTest {
 
             @Override public NodeStore init(DataStoreBlobStore blobStore, File storeFile) throws Exception {
                 Properties props = AzureDataStoreUtils.getAzureConfig();
-                String accountName = props.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME);
+                String accountName = props.getProperty("accountName");
                 String secretKey = props.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY);
                 container = props.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
                 container = container + System.currentTimeMillis();

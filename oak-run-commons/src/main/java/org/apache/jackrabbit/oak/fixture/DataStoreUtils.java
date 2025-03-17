@@ -177,7 +177,7 @@ public class DataStoreUtils {
         final String clientId = (String) config.get(AzureConstants.AZURE_CLIENT_ID);
         final String clientSecret = (String) config.get(AzureConstants.AZURE_CLIENT_SECRET);
         final String tenantId = (String) config.get(AzureConstants.AZURE_TENANT_ID);
-        final String accountName = (String) config.get(AzureConstants.AZURE_STORAGE_ACCESS_KEY);
+        final String accountName = (String) config.get(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME);
         final String accountKey = (String) config.get(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY);
         final String blobEndpoint = (String) config.get(AzureConstants.AZURE_BLOB_ENDPOINT);
         final String sasToken = (String) config.get(AzureConstants.AZURE_SAS);
