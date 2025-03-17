@@ -360,7 +360,7 @@ public class AzureCompact {
         BlobContainerClient targetContainer;
         if (sourceBlobContainerClient != null && destinationBlobContainerClient != null) {
             roPersistence = new AzurePersistence(sourceBlobContainerClient, rootPrefix);
-            rwPersistence = new AzurePersistence(destinationBlobContainerClient, rootPrefix);
+            rwPersistence = new AzurePersistence(destinationBlobContainerClient, targetRootPrefix);
             targetContainer = destinationBlobContainerClient;
         } else {
             roPersistence = createAzurePersistence(path);
