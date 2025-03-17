@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -38,6 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Set;
 
 class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, ThreeRolesConstants {
@@ -61,7 +63,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
                                  @NotNull String supportedPath, @NotNull Context ctx,
                                  @NotNull RootProvider rootProvider) {
         this.root = root;
-        this.principalNames = ImmutableSet.copyOf(IterableUtils.transform(principals, Principal::getName));
+        this.principalNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(IterableUtils.transform(principals, Principal::getName)));
         this.supportedPath = supportedPath;
         this.ctx = ctx;
         this.rootProvider = rootProvider;
@@ -166,7 +168,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-        return getPrivileges(tree).containsAll(ImmutableSet.copyOf(privilegeNames));
+        return getPrivileges(tree).containsAll(Collections.unmodifiableSet(SetUtils.toLinkedSet(privilegeNames)));
     }
 
     @NotNull

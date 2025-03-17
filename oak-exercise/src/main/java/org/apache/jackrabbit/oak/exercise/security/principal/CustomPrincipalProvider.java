@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +37,7 @@ class CustomPrincipalProvider implements PrincipalProvider {
     private final Set<String> knownPrincipalNames;
 
     CustomPrincipalProvider(String[] knownPrincipalNames) {
-        this.knownPrincipalNames = ImmutableSet.copyOf(knownPrincipalNames);
+        this.knownPrincipalNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(knownPrincipalNames));
     }
 
     @Nullable
