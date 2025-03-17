@@ -20,10 +20,8 @@ package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 /**
  *  Return the childrenNames in the order defined by the orderedChildren iterator, and merges it
@@ -95,6 +93,7 @@ public class OrderedChildnameIterable implements Iterable<String> {
          * Consume the next element from the orderedChild list and validates that it's actually present
          * @return the next ordered child or  {code null} if all ordered children have already been returned
          */
+        @SuppressWarnings("java:S2589")
         private String getNextOrderedChild() {
             String current = null;
             // check that this element is actually present in the allChildren iterable
