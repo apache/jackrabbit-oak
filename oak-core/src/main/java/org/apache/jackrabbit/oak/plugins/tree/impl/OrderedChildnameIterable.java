@@ -37,6 +37,11 @@ public class OrderedChildnameIterable implements Iterable<String> {
 
     final OrderedChildnameIterator iter;
 
+    /**
+     * Create an iterator, which returns all children in the correct order
+     * @param orderedChildren the children defined by the :childrenOrder property
+     * @param allChildren all children
+     */
     public OrderedChildnameIterable (Iterable<String> orderedChildren, Iterable<String> allChildren) {
         iter = new OrderedChildnameIterator(orderedChildren,allChildren);
     }
@@ -52,9 +57,6 @@ public class OrderedChildnameIterable implements Iterable<String> {
         final Iterator<String> allChildren;
 
         private String nextResult;
-
-        // lazily populated by elements from the allChildren iterable
-        private final Set<String> allChildrenSet = new HashSet<>();
 
         private final List<String> nonOrderedChildren = new ArrayList<>();
         private Iterator<String> nonOrderedChildrenIterator = null;
@@ -93,7 +95,7 @@ public class OrderedChildnameIterable implements Iterable<String> {
          * Consume the next element from the orderedChild list and validates that it's actually present
          * @return the next ordered child or  {code null} if all ordered children have already been returned
          */
-        String getNextOrderedChild() {
+        private String getNextOrderedChild() {
             String current = null;
             // check that this element is actually present in the allChildren iterable
             while (current == null && orderedChildren.hasNext()) {
@@ -107,7 +109,12 @@ public class OrderedChildnameIterable implements Iterable<String> {
             return null;
         }
 
-        boolean isOrderedChildPresent(String orderedChildName) {
+        /**
+         * Check if the provided childname is also provided by the allChildren iterator.
+         * @param orderedChildName
+         * @return true if childname is a valid child, false otherwise
+         */
+        private boolean isOrderedChildPresent(String orderedChildName) {
             // read from the allChildren iterator until it's a hit or exhausted
             while (!nonOrderedChildren.contains(orderedChildName) && allChildren.hasNext()) {
                 nonOrderedChildren.add(allChildren.next());
