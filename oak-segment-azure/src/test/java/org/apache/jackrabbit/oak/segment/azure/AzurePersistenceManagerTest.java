@@ -138,4 +138,5 @@ public class AzurePersistenceManagerTest {
                 }})
                 .to(Configuration.class);
     }
+
 }
