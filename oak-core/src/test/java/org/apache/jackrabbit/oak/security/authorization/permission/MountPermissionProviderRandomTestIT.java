@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -37,7 +37,7 @@ public class MountPermissionProviderRandomTestIT extends AbstractPermissionRando
     public void before() throws Exception {
         super.before();
 
-        String[] mpxs = new String[] { Iterators.get(allowU.iterator(), allowU.size() / 2) };
+        String[] mpxs = new String[] { IteratorUtils.get(allowU.iterator(), allowU.size() / 2) };
         Mounts.Builder builder = Mounts.newBuilder();
         int i = 0;
         for (String p : mpxs) {
