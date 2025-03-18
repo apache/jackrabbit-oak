@@ -208,4 +208,26 @@ public class IteratorUtils {
         Objects.requireNonNull(iterator, "Iterator must not be null");
         return org.apache.commons.collections4.IteratorUtils.get(iterator, index);
     }
+
+    /**
+     * Returns the last element in the given iterator.
+     * <p>
+     * This method consumes the entire iterator to find the last element.
+     * <p>
+     *
+     * @param <T>      the type of elements in the iterator
+     * @param iterator the iterator to get the last element from, must not be null
+     * @return the last element in the iterator
+     * @throws NullPointerException   if the iterator is null
+     * @throws NoSuchElementException if the iterator is empty
+     */
+    public static <T> T getLast(Iterator<T> iterator) {
+        Objects.requireNonNull(iterator, "Iterator must not be null");
+        while (true) {
+            T currentElement = iterator.next();
+            if (!iterator.hasNext()) {
+                return currentElement;
+            }
+        }
+    }
 }
