@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- *  Return the childrenNames in the order defined by the orderedChildren iterator, and merges it
+ *  Return the childrenNames in the order defined by the orderedChildren iterator, and merge it
  *  with the existing children defined by allChildren.
  *  
  *  This implementation focuses on being as lazy as possible; especially consuming the
