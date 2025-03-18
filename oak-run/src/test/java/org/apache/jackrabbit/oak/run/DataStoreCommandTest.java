@@ -1130,16 +1130,16 @@ public class DataStoreCommandTest {
 
             @Override public NodeStore init(DataStoreBlobStore blobStore, File storeFile) throws Exception {
                 Properties props = AzureDataStoreUtils.getAzureConfig();
-                String accountName = props.getProperty("accountName");
+                String accessKey = props.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME);
                 String secretKey = props.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY);
                 container = props.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
                 container = container + System.currentTimeMillis();
                 // Create the azure segment container
-                String connectionString = getAzureConnectionString(accountName, secretKey, container, AZURE_DIR);
-                AzurePersistenceManager.createAzurePersistence(connectionString, null, accountName, container, AZURE_DIR, false, true);
+                String connectionString = getAzureConnectionString(accessKey, secretKey, container, AZURE_DIR);
+                AzurePersistenceManager.createAzurePersistence(connectionString, null, accessKey, container, AZURE_DIR, false, true);
 
                 // get the azure uri expected by the command
-                storePath = getAzureUri(accountName, container, AZURE_DIR);
+                storePath = getAzureUri(accessKey, container, AZURE_DIR);
 
                 // initialize azure segment for test setup
                 SegmentNodeStorePersistence segmentNodeStorePersistence =
