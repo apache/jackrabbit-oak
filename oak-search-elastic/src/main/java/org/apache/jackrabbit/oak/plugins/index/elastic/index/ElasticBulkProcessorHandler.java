@@ -141,8 +141,11 @@ public class ElasticBulkProcessorHandler {
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ConcurrentHashMap<String, IndexInfo> registeredIndexes = new ConcurrentHashMap<>();
-
     private final ConcurrentLinkedQueue<ErrorCause> globalSuppressedErrorCauses = new ConcurrentLinkedQueue<>();
+
+    // Time blocked waiting to add operations to the bulk processor.
+    private final long startTime = System.nanoTime();
+    private long totalWaitTimeNanos = 0;
 
     public ElasticBulkProcessorHandler(@NotNull ElasticConnection elasticConnection) {
         this.elasticConnection = elasticConnection;
@@ -270,7 +273,14 @@ public class ElasticBulkProcessorHandler {
     }
 
     /**
-     * Waits for all the bulk requests to return.
+     * Closes an index. The underlying bulk ingestor will be flushed, to ensure that all pending operations for this
+     * index are sent to the server. If this index was registered with waitForESAcknowledgement set to true, then this
+     * method will wait until we receive an acknowledgement from the server for all the operations up to when this
+     * method was called.
+     * <p>
+     * Note: Closing an index will have the side-effect of flushing all pending operations for all indexes registered
+     * with the bulk processor. This should be transparent for the user, but it may mean that this method would take
+     * longer to return than if it was flusing only the operations for the index being closed.
      *
      * @return {@code true} if at least one update was performed, {@code false} otherwise
      * @throws IOException if an error happened while processing the bulk requests
@@ -300,7 +310,7 @@ public class ElasticBulkProcessorHandler {
                 // If there is no pending request, we return immediately
                 long remainingTimeoutNanos = TimeUnit.MILLISECONDS.toNanos(BULK_FLUSH_INTERVAL_MS * 5L);
                 while (lowestPendingBulkRequest.isPresent() && lowestPendingBulkRequest.getAsLong() <= highestBulkRequestSent) {
-                    LOG.info("Waiting for request {} to be processed. Lowest pending request: {}", lowestPendingBulkRequest.getAsLong(), lowestPendingBulkRequest.getAsLong());
+                    LOG.debug("Waiting for request {} to be processed. Lowest pending request: {}", highestBulkRequestSent, lowestPendingBulkRequest.getAsLong());
                     try {
                         if (remainingTimeoutNanos <= 0) {
                             LOG.error("Timeout waiting for bulk requests to return");
@@ -314,7 +324,7 @@ public class ElasticBulkProcessorHandler {
                         Thread.currentThread().interrupt();  // restore interrupt status
                     }
                 }
-                LOG.info("All requests up to {} have been processed, index flushed and closed", highestBulkRequestSent);
+                LOG.debug("All requests up to {} have been processed, index flushed and closed", highestBulkRequestSent);
             } finally {
                 lock.unlock();
             }
@@ -345,7 +355,7 @@ public class ElasticBulkProcessorHandler {
     }
 
     /**
-     * Closes the bulk ingester and waits for all the bulk requests to return.
+     * Closes the bulk ingester. Any registered indexes must have been closed before calling this method.
      *
      * @throws IOException if an error happened while processing the bulk requests
      */
@@ -359,9 +369,8 @@ public class ElasticBulkProcessorHandler {
             bulkIngester.close();
             // Fail is some of the indexes were not closed
             if (!registeredIndexes.isEmpty()) {
-                throw new IllegalStateException("Some indexes are still open: " + Collections.list(registeredIndexes.keys()));
+                LOG.warn("Some indexes were still still open: {}", Collections.list(registeredIndexes.keys()));
             }
-            LOG.trace("Bulk Ingester {} closed", bulkIngester);
             if (!globalSuppressedErrorCauses.isEmpty()) {
                 IOException ioe = new IOException("Exception while indexing. See suppressed for details");
                 globalSuppressedErrorCauses.stream().map(ec -> new IllegalStateException(ec.reason())).forEach(ioe::addSuppressed);
@@ -388,8 +397,6 @@ public class ElasticBulkProcessorHandler {
         return indexInfo;
     }
 
-    private long totalWaitTimeNanos = 0;
-
     private void add(BulkOperation operation, OperationContext context) throws IOException {
         // fail fast: we don't want to wait until the processor gets closed to fail
         checkFailuresForIndex(context.indexInfo);
@@ -400,36 +407,16 @@ public class ElasticBulkProcessorHandler {
     }
 
     public void printStatistics() {
-        LOG.info("BulkIngester statistics: [operationsCount: {}, requestCount: {}, avgOperationsPerBulk: {}, operationContentionsCount: {}, requestContentionsCount: {}, waitTimeMs: {}]",
+        LOG.info("BulkIngester statistics: [operationsCount: {}, requestCount: {}, avgOperationsPerBulk: {}, " +
+                        "operationContentionsCount: {}, requestContentionsCount: {}, totalWaitTimeMs: {}, percentageWaitTime: {}]",
                 bulkIngester.operationsCount(), bulkIngester.requestCount(),
                 FormattingUtils.safeComputeAverage(bulkIngester.operationsCount(), bulkIngester.requestCount()),
                 bulkIngester.operationContentionsCount(), bulkIngester.requestContentionsCount(),
-                TimeUnit.NANOSECONDS.toMillis(totalWaitTimeNanos));
+                TimeUnit.NANOSECONDS.toMillis(totalWaitTimeNanos),
+                FormattingUtils.safeComputePercentage(totalWaitTimeNanos, System.nanoTime() - startTime));
     }
 
     private class OakBulkListener implements BulkListener<OperationContext> {
-
-        @Override
-        public void beforeBulk(long executionId, BulkRequest request, List<OperationContext> contexts) {
-            lock.lock();
-            try {
-                pendingBulks.add(executionId);
-            } finally {
-                lock.unlock();
-            }
-            if (bulkIngester.requestCount() % 32 == 0) {
-                LOG.info("Sending bulk with id {} -> #ops: {}", executionId, contexts.size());
-                printStatistics();
-            }
-
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Bulk Requests: \n{}", request.operations()
-                        .stream()
-                        .map(BulkOperation::toString)
-                        .collect(Collectors.joining("\n"))
-                );
-            }
-        }
 
         private final class FailedDocSetTracker {
             final HashSet<String> failedDocSet;
@@ -466,6 +453,28 @@ public class ElasticBulkProcessorHandler {
                 if (updated) {
                     status.setProperty(IndexDefinition.FAILED_DOC_PATHS, failedDocSet, Type.STRINGS);
                 }
+            }
+        }
+
+        @Override
+        public void beforeBulk(long executionId, BulkRequest request, List<OperationContext> contexts) {
+            lock.lock();
+            try {
+                pendingBulks.add(executionId);
+            } finally {
+                lock.unlock();
+            }
+            if (bulkIngester.requestCount() % 64 == 0) {
+                LOG.info("Sending bulk with id {} -> #ops: {}", executionId, contexts.size());
+                printStatistics();
+            }
+
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Bulk Requests: \n{}", request.operations()
+                        .stream()
+                        .map(BulkOperation::toString)
+                        .collect(Collectors.joining("\n"))
+                );
             }
         }
 
