@@ -41,7 +41,7 @@ public class OrderedChildnameIterable implements Iterable<String> {
      * @param allChildren all children
      */
     public OrderedChildnameIterable (Iterable<String> orderedChildren, Iterable<String> allChildren) {
-        iter = new OrderedChildnameIterator(orderedChildren,allChildren);
+        iter = new OrderedChildnameIterator(orderedChildren, allChildren);
     }
 
     @Override
