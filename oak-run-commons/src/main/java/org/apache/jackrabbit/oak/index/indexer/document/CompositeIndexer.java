@@ -19,16 +19,16 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 
@@ -102,14 +102,13 @@ public class CompositeIndexer implements NodeStateIndexer {
 
     @Override
     public void close() throws IOException {
-        indexers.forEach(indexer -> {
+        for (NodeStateIndexer indexer : indexers) {
             try {
                 indexer.close();
             } catch (IOException e) {
-                LOG.warn("Error closing indexer {}. Proceeding.", indexer, e);
+                LOG.warn("Error closing indexer {}. Suppressing exception.", indexer, e);
             }
-        });
-
+        }
     }
 
     public List<NodeStateIndexer> getIndexers() {
