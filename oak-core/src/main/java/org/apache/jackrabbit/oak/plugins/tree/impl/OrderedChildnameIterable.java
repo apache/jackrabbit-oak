@@ -59,7 +59,7 @@ public class OrderedChildnameIterable implements Iterable<String> {
         private final List<String> nonOrderedChildren = new ArrayList<>();
         private Iterator<String> nonOrderedChildrenIterator = null;
 
-        public OrderedChildnameIterator (Iterable<String> orderedChildren, Iterable<String> allChildren) {
+        public OrderedChildnameIterator(Iterable<String> orderedChildren, Iterable<String> allChildren) {
             this.orderedChildren = orderedChildren == null ? Collections.emptyIterator() : orderedChildren.iterator();
             this.allChildren = allChildren.iterator();
             nextResult = getNextElement();
