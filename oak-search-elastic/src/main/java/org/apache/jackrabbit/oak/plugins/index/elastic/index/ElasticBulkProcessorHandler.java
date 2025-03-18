@@ -112,7 +112,7 @@ public class ElasticBulkProcessorHandler {
     public static final String BULK_SIZE_BYTES_PROP = "oak.indexer.elastic.bulkProcessor.maxBulkSizeBytes";
     public static final int BULK_SIZE_BYTES_DEFAULT = 8 * 1024 * 1024; // 8MB
     public static final String BULK_FLUSH_INTERVAL_MS_PROP = "oak.indexer.elastic.bulkProcessor.bulkFlushIntervalMs";
-    public static final int BULK_FLUSH_INTERVAL_MS_DEFAULT = 5000;
+    public static final int BULK_FLUSH_INTERVAL_MS_DEFAULT = 3000;
     public static final String BULK_MAX_CONCURRENT_REQUESTS_PROP = "oak.indexer.elastic.bulkProcessor.maxConcurrentRequests";
     private static final int BULK_MAX_CONCURRENT_REQUESTS_DEFAULT = 1;
     // when true, fails indexing in case of bulk failures
@@ -174,12 +174,6 @@ public class ElasticBulkProcessorHandler {
      * <p>
      * The `sync-mode` property can be set to `rt` (real-time). In this case the returned handler will be real-time.
      * This option is available for sync index definitions only.
-     *
-     * @param indexName
-     * @param indexDefinition
-     * @param definitionBuilder
-     * @param commitInfo
-     * @param waitForESAcknowledgement
      */
     public void registerIndex(String indexName, ElasticIndexDefinition indexDefinition, NodeBuilder definitionBuilder, CommitInfo commitInfo, boolean waitForESAcknowledgement) {
         checkOpen();
@@ -360,14 +354,13 @@ public class ElasticBulkProcessorHandler {
             LOG.info("Already closed");
         } else {
             LOG.info("Closing bulk processor handler");
-            LOG.trace("Calling close on bulk ingester {}", bulkIngester);
             printStatistics();
             // This blocks until all requests are processed
+            bulkIngester.close();
             // Fail is some of the indexes were not closed
             if (!registeredIndexes.isEmpty()) {
                 throw new IllegalStateException("Some indexes are still open: " + Collections.list(registeredIndexes.keys()));
             }
-            bulkIngester.close();
             LOG.trace("Bulk Ingester {} closed", bulkIngester);
             if (!globalSuppressedErrorCauses.isEmpty()) {
                 IOException ioe = new IOException("Exception while indexing. See suppressed for details");
@@ -398,7 +391,6 @@ public class ElasticBulkProcessorHandler {
     private long totalWaitTimeNanos = 0;
 
     private void add(BulkOperation operation, OperationContext context) throws IOException {
-        LOG.info("Adding operation: [{}]: {}", context.indexInfo.indexName, context.documentId);
         // fail fast: we don't want to wait until the processor gets closed to fail
         checkFailuresForIndex(context.indexInfo);
         long start = System.nanoTime();

@@ -42,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
@@ -52,6 +53,7 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
     private final ElasticIndexWriterFactory indexWriterFactory;
     private final ElasticConnection connection;
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public ElasticIndexerProvider(IndexHelper indexHelper, ElasticConnection connection) {
         this.indexHelper = indexHelper;
@@ -85,10 +87,12 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
 
     @Override
     public void close() {
-        try {
-            this.bulkProcessorHandler.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (closed.compareAndSet(false, true)) {
+            try {
+                this.bulkProcessorHandler.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }
