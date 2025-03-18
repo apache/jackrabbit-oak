@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -154,58 +153,35 @@ public class CloserTest {
     }
 
     @Test
-    public void compareClosers() {
+    public void testRethrow2() {
         // when rethrow was called, IOExceptions that happened upon close will be swallowed
 
-        com.google.common.io.Closer guavaCloser = com.google.common.io.Closer.create();
-        Closer oakCloser = Closer.create();
+        Closer closer = Closer.create();
 
         try {
-            throw oakCloser.rethrow(new InterruptedException());
+            throw closer.rethrow(new InterruptedException());
         } catch (Exception e) {}
 
         try {
-            throw guavaCloser.rethrow(new InterruptedException());
-        } catch (Exception e) {}
-
-        try {
-            oakCloser.close();
-        } catch (Exception e) {
-            fail("should not throw but got: " + e);
-        }
-
-        try {
-            guavaCloser.close();
+            closer.close();
         } catch (Exception e) {
             fail("should not throw but got: " + e);
         }
     }
 
     @Test
-    public void compareClosers2() {
+    public void testRethrow3() {
         // when rethrow was called, Exceptions that happened upon close will be swallowed
 
-        com.google.common.io.Closer guavaCloser = com.google.common.io.Closer.create();
-        Closer oakCloser = Closer.create();
+        Closer closer = Closer.create();
 
         try {
-            throw oakCloser.rethrow(new InterruptedException());
+            throw closer.rethrow(new InterruptedException());
         } catch (Exception e) {}
 
         try {
-            throw guavaCloser.rethrow(new InterruptedException());
-        } catch (Exception e) {}
-
-        try {
-            oakCloser.register(() -> { throw new RuntimeException(); });
-            oakCloser.close();
-        } catch (Exception e) {
-            fail("should not throw but got: " + e);
-        }
-
-        try {
-            guavaCloser.register(() -> { throw new RuntimeException(); });
-            guavaCloser.close();
+            closer.register(() -> { throw new RuntimeException(); });
+            closer.close();
         } catch (Exception e) {
             fail("should not throw but got: " + e);
         }
