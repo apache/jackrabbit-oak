@@ -98,11 +98,12 @@ public class ElasticBulkProcessorHandlerTest {
         bulkProcessorHandler.registerIndex("index", indexDefinitionMock, definitionBuilder, commitInfo, true);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void didNotCloseIndex() throws IOException {
         when(definitionNodeStateMock.getProperty(eq("async"))).thenReturn(null);
         ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(elasticConnectionMock);
         bulkProcessorHandler.registerIndex("index", indexDefinitionMock, definitionBuilder, commitInfo, true);
+        // Should still close successfully, but should print a warning message
         bulkProcessorHandler.close();
     }
 

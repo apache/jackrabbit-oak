@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -369,7 +370,7 @@ public class ElasticBulkProcessorHandler {
             bulkIngester.close();
             // Fail is some of the indexes were not closed
             if (!registeredIndexes.isEmpty()) {
-                LOG.warn("Some indexes were still still open: {}", Collections.list(registeredIndexes.keys()));
+                LOG.warn("Some indexes were not closed properly: {}", Collections.list(registeredIndexes.keys()));
             }
             if (!globalSuppressedErrorCauses.isEmpty()) {
                 IOException ioe = new IOException("Exception while indexing. See suppressed for details");
@@ -380,11 +381,15 @@ public class ElasticBulkProcessorHandler {
     }
 
     private void checkFailuresForIndex(IndexInfo indexInfo) throws IOException {
-        if (!indexInfo.suppressedErrorCauses.isEmpty()) {
-            String overflowMessage = (indexInfo.suppressedErrorCauses.size() >= MAX_SUPPRESSED_ERROR_CAUSES) ?
-                    ". (Too many failed operations in last bulk request, including only " + indexInfo.suppressedErrorCauses.size() + " errors)" : "";
+        // Also consider the global failures
+        if (!(indexInfo.suppressedErrorCauses.isEmpty() && globalSuppressedErrorCauses.isEmpty())) {
+            List<ErrorCause> errors = new ArrayList<>();
+            errors.addAll(indexInfo.suppressedErrorCauses);
+            errors.addAll(globalSuppressedErrorCauses);
+            String overflowMessage = (errors.size() >= MAX_SUPPRESSED_ERROR_CAUSES) ?
+                    ". (Too many failed operations in last bulk request, including only " + errors.size() + " errors)" : "";
             IOException ioe = new IOException("Exception while indexing. See suppressed for details" + overflowMessage);
-            indexInfo.suppressedErrorCauses.stream().map(ec -> new IllegalStateException(ec.reason())).forEach(ioe::addSuppressed);
+            errors.stream().map(ec -> new IllegalStateException(ec.reason())).forEach(ioe::addSuppressed);
             throw ioe;
         }
     }

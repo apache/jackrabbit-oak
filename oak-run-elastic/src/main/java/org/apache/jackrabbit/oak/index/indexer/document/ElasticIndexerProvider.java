@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
-
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -86,13 +85,9 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         if (closed.compareAndSet(false, true)) {
-            try {
-                this.bulkProcessorHandler.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            this.bulkProcessorHandler.close();
         }
     }
 }
