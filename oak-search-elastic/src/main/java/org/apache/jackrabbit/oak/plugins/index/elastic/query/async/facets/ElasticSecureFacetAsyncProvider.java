@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,9 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     ) {
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
-        this.facetFields = elasticRequestHandler.facetFields().collect(Collectors.toSet());
+        this.facetFields = elasticRequestHandler.facetFields().
+                map(ElasticIndexUtils::fieldName).
+                collect(Collectors.toSet());
     }
 
     @Override
@@ -129,6 +132,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
             throw new IllegalStateException("Error while waiting for facets", e);
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);
-        return facets != null ? facets.get(FulltextIndex.parseFacetField(columnName)) : null;
+        String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
+        return facets != null ? facets.get(field) : null;
     }
 }

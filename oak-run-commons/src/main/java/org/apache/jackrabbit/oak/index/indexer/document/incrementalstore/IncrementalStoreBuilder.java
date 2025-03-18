@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.index.IndexHelper;

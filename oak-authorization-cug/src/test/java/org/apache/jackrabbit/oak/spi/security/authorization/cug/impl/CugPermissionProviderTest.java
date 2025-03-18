@@ -25,7 +25,6 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;

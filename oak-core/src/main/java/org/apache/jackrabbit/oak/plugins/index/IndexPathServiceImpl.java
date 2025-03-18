@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Iterator;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;

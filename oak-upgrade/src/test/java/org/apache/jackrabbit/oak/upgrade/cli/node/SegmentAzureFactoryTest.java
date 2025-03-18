@@ -22,7 +22,7 @@ import com.microsoft.azure.storage.SharedAccessAccountPolicy;
 import com.microsoft.azure.storage.SharedAccessAccountResourceType;
 import com.microsoft.azure.storage.SharedAccessAccountService;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;

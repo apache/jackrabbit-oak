@@ -42,7 +42,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import ch.qos.logback.classic.Level;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
@@ -51,8 +50,10 @@ import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
@@ -144,7 +145,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertFalse(future.isPresent());
 
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
-        assertEquals(0, Iterators.size(stagingCache.getAllIdentifiers()));
+        assertEquals(0, IteratorUtils.size(stagingCache.getAllIdentifiers()));
         assertEquals(0, stagingCache.getStats().getMaxTotalWeight());
     }
 
@@ -368,7 +369,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // Should not return anything
         idsIter = stagingCache.getAllIdentifiers();
-        assertEquals(0, Iterators.size(idsIter));
+        assertEquals(0, IteratorUtils.size(idsIter));
     }
 
     /**

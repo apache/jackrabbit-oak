@@ -1508,7 +1508,7 @@ public abstract class IndexPlannerCommonTest {
     }
 
     private static String generateRandomIndexName(String prefix) {
-        return prefix + RandomStringUtils.random(5, true, false);
+        return prefix + RandomStringUtils.insecure().next(5, true, false);
     }
 
     /**

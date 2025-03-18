@@ -40,7 +40,6 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;

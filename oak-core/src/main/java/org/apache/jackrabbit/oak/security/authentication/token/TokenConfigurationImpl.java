@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
@@ -44,6 +45,7 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -176,7 +178,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         } else if (size == 1) {
             return credentialsSupport.values().iterator().next();
         } else {
-            return CompositeCredentialsSupport.newInstance(() -> ImmutableSet.copyOf(credentialsSupport.values()));
+            return CompositeCredentialsSupport.newInstance(() -> Collections.unmodifiableSet(SetUtils.toLinkedSet(credentialsSupport.values())));
         }
     }
 }

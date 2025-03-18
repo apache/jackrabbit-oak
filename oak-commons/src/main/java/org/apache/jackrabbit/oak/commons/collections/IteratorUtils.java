@@ -177,4 +177,35 @@ public class IteratorUtils {
         // return true if both the iterators have same number of elements
         return !iterator1.hasNext() && !iterator2.hasNext();
     }
+
+    /**
+     * Returns the number of elements in the given iterator.
+     * <p>
+     * This method consumes the iterator to count the elements.
+     * A null or empty iterator returns 0.
+     *
+     * @param iterator the iterator whose size is to be determined
+     * @return the number of elements in the iterator
+     */
+    public static int size(Iterator<?> iterator) {
+        return org.apache.commons.collections4.IteratorUtils.size(iterator);
+    }
+
+    /**
+     * Returns the element at the specified position in the iterator.
+     * <p>
+     * This method will consume the iterator up to the specified position.
+     * <p>
+     * @param <T> the type of elements in the iterator
+     * @param iterator the iterator to get the element from, must not be null
+     * @param index the position of the element to return, zero-based
+     * @return the element at the specified position
+     * @throws NullPointerException if the iterator is null
+     * @throws IndexOutOfBoundsException if the iterator is empty or index is negative or greater than the number
+     * of elements in the iterator
+     */
+    public static <T> T get(Iterator<T> iterator, int index) {
+        Objects.requireNonNull(iterator, "Iterator must not be null");
+        return org.apache.commons.collections4.IteratorUtils.get(iterator, index);
+    }
 }

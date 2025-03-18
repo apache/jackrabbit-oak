@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -58,23 +59,23 @@ public class ResultIteratorTest {
 
     @Test
     public void testCreateOffsetLtSize() {
-        assertEquals(1, Iterators.size(ResultIterator.create(1, ResultIterator.MAX_ALL, List.of("str", "str").iterator())));
+        assertEquals(1, IteratorUtils.size(ResultIterator.create(1, ResultIterator.MAX_ALL, List.of("str", "str").iterator())));
     }
 
     @Test
     public void testCreateOffsetEqualsMax() {
-        assertEquals(1, Iterators.size(ResultIterator.create(1, 1, List.of("str", "str").iterator())));
+        assertEquals(1, IteratorUtils.size(ResultIterator.create(1, 1, List.of("str", "str").iterator())));
     }
 
     @Test
     public void testCreateOffsetGtMax() {
-        assertEquals(1, Iterators.size(ResultIterator.create(2, 1, List.of("str", "str", "str").iterator())));
+        assertEquals(1, IteratorUtils.size(ResultIterator.create(2, 1, List.of("str", "str", "str").iterator())));
     }
 
     @Test
     public void testCreateOffsetLtMax() {
         Iterator resultIt = ResultIterator.create(1, 3, List.of("str", "str", "str", "str").iterator());
-        assertEquals(3, Iterators.size(resultIt));
+        assertEquals(3, IteratorUtils.size(resultIt));
     }
 
     @Test(expected = NoSuchElementException.class)

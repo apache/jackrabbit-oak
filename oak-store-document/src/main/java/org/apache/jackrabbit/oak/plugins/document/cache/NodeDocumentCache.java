@@ -44,8 +44,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 /**
  * Cache for the NodeDocuments. This class is thread-safe and uses the provided NodeDocumentLock.
  */

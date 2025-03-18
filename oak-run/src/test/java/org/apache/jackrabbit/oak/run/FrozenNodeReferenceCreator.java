@@ -23,13 +23,12 @@ import javax.jcr.PropertyType;
 import javax.jcr.Session;
 import javax.jcr.Value;
 
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;

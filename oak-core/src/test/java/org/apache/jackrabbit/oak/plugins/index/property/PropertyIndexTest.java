@@ -86,7 +86,6 @@ import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.read.ListAppender;
 import ch.qos.logback.core.spi.FilterReply;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * Test the Property2 index mechanism.

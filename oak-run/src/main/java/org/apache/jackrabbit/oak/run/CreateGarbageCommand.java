@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.run;
 
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.CreateGarbageHelper;

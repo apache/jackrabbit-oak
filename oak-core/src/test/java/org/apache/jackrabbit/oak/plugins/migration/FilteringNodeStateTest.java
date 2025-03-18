@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -158,7 +157,7 @@ public class FilteringNodeStateTest {
                     return OAK_CHILD_ORDER.equals(propertyState.getName());
                 }
             };
-            final PropertyState childOrder = Iterables.find(decorated.getProperties(), isChildOrderProperty::test);
+            final PropertyState childOrder = IterableUtils.find(decorated.getProperties(), isChildOrderProperty::test);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
             assertEquals(List.of("football"), ListUtils.toList(values));
         }

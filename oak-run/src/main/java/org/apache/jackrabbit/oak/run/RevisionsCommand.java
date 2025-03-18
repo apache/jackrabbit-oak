@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +36,7 @@ import ch.qos.logback.classic.LoggerContext;
 import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -104,6 +103,20 @@ public class RevisionsCommand implements Command {
             "org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport",
             "org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations"
     );
+
+    private final boolean exitWhenDone;
+
+    public RevisionsCommand() {
+        this(true);
+    }
+
+    /**
+     *
+     * @param exitWhenDone if true, the command will exit the JVM when done
+     */
+    public RevisionsCommand(boolean exitWhenDone) {
+        this.exitWhenDone = exitWhenDone;
+    }
 
     private static class RevisionsOptions extends Utils.NodeStoreOptions {
 
@@ -193,8 +206,8 @@ public class RevisionsCommand implements Command {
                     .withRequiredArg().ofType(Integer.class).defaultsTo(10000);
             fullGcMaxAge = parser.accepts("fullGcMaxAge", "The maximum age of the document in seconds " +
                             "to be considered for Full GC i.e. Version Garbage Collector (Full GC) logic will only consider those " +
-                            "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge)")
-                    .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toMillis(1));
+                            "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge). Default: 86400 (one day)")
+                    .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toSeconds(1));
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -324,6 +337,10 @@ public class RevisionsCommand implements Command {
                 }
             } else {
                 System.err.println("unknown revisions command: " + subCmd);
+            }
+            if (exitWhenDone) {
+                System.out.printf("Command '%s' completed successfully.%n", subCmd);
+                System.exit(0);
             }
         } catch (Throwable e) {
             LOG.error("Command failed", e);

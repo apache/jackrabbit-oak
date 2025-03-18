@@ -114,7 +114,7 @@ public class SetUtils {
      * @param <T> the type of the elements
      */
     @NotNull
-    public static <T> Set<T> toLinkedSet(@NotNull  final Iterable<T> iterable) {
+    public static <T> Set<T> toLinkedSet(@NotNull  final Iterable<? extends T> iterable) {
         Objects.requireNonNull(iterable);
         final Set<T> result = new LinkedHashSet<>();
         iterable.forEach(result::add);

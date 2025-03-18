@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * Provides a QueryIndex that does lookups for node references based on a custom

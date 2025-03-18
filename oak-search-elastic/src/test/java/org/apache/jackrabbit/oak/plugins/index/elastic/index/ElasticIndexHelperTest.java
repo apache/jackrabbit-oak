@@ -28,6 +28,7 @@ import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -71,7 +72,7 @@ public class ElasticIndexHelperTest {
 
         TypeMapping fooPropertyMappings = request.mappings();
         assertThat(fooPropertyMappings, notNullValue());
-        Property fooProperty = fooPropertyMappings.properties().get("foo");
+        Property fooProperty = fooPropertyMappings.properties().get(ElasticIndexUtils.fieldName("foo"));
         assertThat(fooProperty, is(notNullValue()));
         assertThat(fooProperty._kind(), is(Property.Kind.Text));
         TextProperty fooTextProperty = fooProperty.text();
@@ -151,7 +152,7 @@ public class ElasticIndexHelperTest {
 
         TypeMapping fooMappings = request.mappings();
         assertThat(fooMappings, notNullValue());
-        Property fooProperty = fooMappings.properties().get("foo");
+        Property fooProperty = fooMappings.properties().get(ElasticIndexUtils.fieldName("foo"));
         assertThat(fooProperty, is(notNullValue()));
         TextProperty textProperty = fooProperty.text();
         assertThat(textProperty.analyzer(), is("oak_analyzer"));
@@ -160,7 +161,7 @@ public class ElasticIndexHelperTest {
 
         TypeMapping barMappings = request.mappings();
         assertThat(barMappings, notNullValue());
-        Property barProperty = barMappings.properties().get("bar");
+        Property barProperty = barMappings.properties().get(ElasticIndexUtils.fieldName("bar"));
         assertThat(barProperty._kind(), is(Property.Kind.Keyword));
     }
 

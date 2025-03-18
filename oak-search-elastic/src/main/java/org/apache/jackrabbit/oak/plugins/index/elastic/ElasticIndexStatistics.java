@@ -25,6 +25,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -111,8 +113,9 @@ public class ElasticIndexStatistics implements IndexStatistics {
      */
     @Override
     public int getDocCountFor(String field) {
+        String elasticField = ElasticIndexUtils.fieldName(field);
         return countCache.getUnchecked(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), field, null)
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), elasticField, null)
         );
     }
 

@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -77,7 +77,7 @@ public class PreviousDocCacheTest extends AbstractMongoConnectionTest {
         assertEquals("Only main doc entry expected in nodes cache", 1, nodesCache.getElementCount());
         assertEquals("No entries expected in prev docs cache", 0, prevDocsCache.getElementCount());
 
-        Iterators.size(doc.getAllPreviousDocs());
+        IteratorUtils.size(doc.getAllPreviousDocs());
         validateFullyLoadedCache(docStore, SPLIT_THRESHOLD, nodesCache, prevDocsCache);
     }
 
@@ -91,7 +91,7 @@ public class PreviousDocCacheTest extends AbstractMongoConnectionTest {
         assertEquals("Root doc must be available in nodes cache", 1, nodesCache.getHitCount());
         assertEquals("Prev docs must not be read", 0, prevDocsCache.getHitCount());
 
-        Iterators.size(doc.getAllPreviousDocs());
+        IteratorUtils.size(doc.getAllPreviousDocs());
         assertEquals("Nodes cache should not have a miss", 0, nodesCache.getMissCount());
         assertEquals("Prev docs cache should not have a miss", 0, prevDocsCache.getMissCount());
     }

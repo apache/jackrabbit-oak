@@ -25,7 +25,6 @@ import java.util.function.Function;
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;

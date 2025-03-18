@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import java.util.Collections;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +39,7 @@ class ItemNamePattern implements RestrictionPattern {
     private final Set<String> names;
 
     ItemNamePattern(Iterable<String> names) {
-        this.names = ImmutableSet.copyOf(names);
+        this.names = Collections.unmodifiableSet(SetUtils.toLinkedSet(names));
     }
 
     @Override

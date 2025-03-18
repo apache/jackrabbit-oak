@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.spi.security;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;

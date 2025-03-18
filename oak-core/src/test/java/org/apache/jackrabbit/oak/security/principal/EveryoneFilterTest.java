@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.principal;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class EveryoneFilterTest {
         Iterator<Principal> principals = Iterators.forArray(EveryonePrincipal.getInstance(), anotherPrincipal);
         Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 0, Long.MAX_VALUE);
         
-        assertEquals(2, Iterators.size(result));
+        assertEquals(2, IteratorUtils.size(result));
     }
 
     @Test
@@ -69,7 +70,7 @@ public class EveryoneFilterTest {
         Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 0, Long.MAX_VALUE);
 
         int expectedSize = adjustExpectedSize(searchType, 1);
-        assertEquals(expectedSize, Iterators.size(result));
+        assertEquals(expectedSize, IteratorUtils.size(result));
     }
 
     @Test
@@ -78,7 +79,7 @@ public class EveryoneFilterTest {
         Iterator<Principal> result = EveryoneFilter.filter(principals, null, searchType, 0, Long.MAX_VALUE);
 
         int expectedSize = adjustExpectedSize(searchType, 1);
-        assertEquals(expectedSize, Iterators.size(result));
+        assertEquals(expectedSize, IteratorUtils.size(result));
     }
 
     @Test
@@ -86,7 +87,7 @@ public class EveryoneFilterTest {
         Iterator<Principal> principals = Iterators.forArray(anotherPrincipal);
         Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 1, Long.MAX_VALUE);
 
-        assertEquals(1, Iterators.size(result));
+        assertEquals(1, IteratorUtils.size(result));
     }
 
     @Test
@@ -94,7 +95,7 @@ public class EveryoneFilterTest {
         Iterator<Principal> principals = Iterators.forArray();
         Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 0, 10);
 
-        assertEquals(0, Iterators.size(result));
+        assertEquals(0, IteratorUtils.size(result));
     }
     
     @Test
@@ -102,6 +103,6 @@ public class EveryoneFilterTest {
         Iterator<Principal> principals = Iterators.forArray(anotherPrincipal, null, EveryonePrincipal.getInstance());
         Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 0, Long.MAX_VALUE);
 
-        assertEquals(3, Iterators.size(result));
+        assertEquals(3, IteratorUtils.size(result));
     }
 }

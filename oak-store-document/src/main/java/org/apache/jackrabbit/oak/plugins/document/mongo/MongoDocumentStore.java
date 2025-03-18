@@ -43,7 +43,6 @@ import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import com.mongodb.Block;

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Ignore;
@@ -285,12 +286,12 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             ObjectNode indexed1 = getDocument(index, "/content/indexed1");
-            assertThat(indexed1.get("a").asText(), equalTo("foo"));
+            assertThat(indexed1.get(ElasticIndexUtils.fieldName("a")).asText(), equalTo("foo"));
 
             ObjectNode indexed2 = getDocument(index, "/content/indexed2");
-            assertThat(indexed2.get("a").size(), equalTo(2));
-            assertThat(indexed2.get("a").get(0).asText(), equalTo("foo"));
-            assertThat(indexed2.get("a").get(1).asText(), equalTo("bar"));
+            assertThat(indexed2.get(ElasticIndexUtils.fieldName("a")).size(), equalTo(2));
+            assertThat(indexed2.get(ElasticIndexUtils.fieldName("a")).get(0).asText(), equalTo("foo"));
+            assertThat(indexed2.get(ElasticIndexUtils.fieldName("a")).get(1).asText(), equalTo("bar"));
         });
     }
 

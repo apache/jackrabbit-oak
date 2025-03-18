@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -318,19 +319,18 @@ public class ElasticIndexDefinition extends IndexDefinition {
      */
     public String getElasticKeyword(String propertyName) {
         List<PropertyDefinition> propertyDefinitions = propertiesByName.get(propertyName);
+        String field = ElasticIndexUtils.fieldName(propertyName);
         if (propertyDefinitions == null) {
             // if there are no property definitions we return the default keyword name
             // this can happen for properties that were not explicitly defined (eg: created with a regex)
             ElasticPropertyDefinition pd = getMatchingRegexPropertyDefinition(propertyName);
-            if (pd != null) {
-                if (pd.isFlattened()) {
-                    return FieldNames.FLATTENED_FIELD_PREFIX + pd.nodeName + "." + propertyName;
-                }
+            if (pd != null && pd.isFlattened()) {
+                return FieldNames.FLATTENED_FIELD_PREFIX +
+                        ElasticIndexUtils.fieldName(pd.nodeName) + "." + field;
+            } else {
+                return field + ".keyword";
             }
-            return propertyName + ".keyword";
         }
-
-        String field = propertyName;
         // it's ok to look at the first property since we are sure they all have the same type
         int type = propertyDefinitions.get(0).getType();
         if (isAnalyzable.apply(type) && isAnalyzed(propertyDefinitions)) {

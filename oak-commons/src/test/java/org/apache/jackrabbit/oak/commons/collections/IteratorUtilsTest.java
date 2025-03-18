@@ -231,4 +231,138 @@ public class IteratorUtilsTest {
         list2.set(9999, -1);
         Assert.assertFalse(IteratorUtils.elementsEqual(list1.iterator(), list2.iterator()));
     }
+
+    @Test
+    public void testSizeWithMultipleElements() {
+        List<String> list = Arrays.asList("one", "two", "three", "four", "five");
+        Iterator<String> iterator = list.iterator();
+        Assert.assertEquals(5, IteratorUtils.size(iterator));
+        Assert.assertFalse("Iterator should be consumed after size operation", iterator.hasNext());
+    }
+
+    @Test
+    public void testSizeWithEmptyIterator() {
+        Assert.assertEquals(0, IteratorUtils.size(Collections.emptyIterator()));
+    }
+
+    @Test
+    public void testSizeWithNullIterator() {
+        Assert.assertEquals(0,IteratorUtils.size(null));
+    }
+
+    @Test
+    public void testSizeConsumesIterator() {
+        List<String> list = Arrays.asList("one", "two", "three");
+        Iterator<String> iterator = list.iterator();
+
+        Assert.assertEquals(3, IteratorUtils.size(iterator));
+        Assert.assertFalse("Iterator should be consumed after size operation", iterator.hasNext());
+    }
+
+    @Test
+    public void testSizeWithSingleElement() {
+        List<String> singletonList = Collections.singletonList("single");
+        Assert.assertEquals(1, IteratorUtils.size(singletonList.iterator()));
+    }
+
+    @Test
+    public void testSizeWithCustomIterator() {
+        Iterator<Integer> customIterator = new Iterator<>() {
+            private int count = 0;
+
+            @Override
+            public boolean hasNext() {
+                return count < 10;
+            }
+
+            @Override
+            public Integer next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                return count++;
+            }
+        };
+        Assert.assertEquals(10, IteratorUtils.size(customIterator));
+        Assert.assertFalse("Iterator should be consumed after size operation", customIterator.hasNext());
+    }
+
+    @Test
+    public void testGetFirstElement() {
+        Iterator<String> iterator = Arrays.asList("a", "b", "c").iterator();
+        Assert.assertEquals("a", IteratorUtils.get(iterator, 0));
+        // iterator should be at position 1
+        Assert.assertEquals("b", iterator.next());
+
+    }
+
+    @Test
+    public void testGetMiddleElement() {
+        Iterator<Integer> iterator = Arrays.asList(1, 2, 3).iterator();
+        Assert.assertEquals(Integer.valueOf(2), IteratorUtils.get(iterator, 1));
+        // iterator should be at position 2
+        Assert.assertEquals(Integer.valueOf(3), iterator.next());
+    }
+
+    @Test
+    public void testGetLastElement() {
+        Iterator<String> iterator = Arrays.asList("a", "b", "c").iterator();
+        Assert.assertEquals("c", IteratorUtils.get(iterator, 2));
+        Assert.assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testGetWithNullIterator() {
+        Assert.assertThrows(NullPointerException.class, () -> {
+            IteratorUtils.get(null, 0);
+        });
+    }
+
+    @Test
+    public void testGetWithNegativeIndex() {
+        List<String> data = Arrays.asList("a", "b", "c");
+        Assert.assertThrows(IndexOutOfBoundsException.class, () -> {
+            IteratorUtils.get(data.iterator(), -1);
+        });
+    }
+
+    @Test
+    public void testWithIndexGreaterThanSizeOfIterator() {
+        List<String> data = Arrays.asList("a", "b", "c");
+        Assert.assertThrows(IndexOutOfBoundsException.class, () -> {
+            IteratorUtils.get(data.iterator(), 3);
+        });
+    }
+
+    @Test
+    public void testGetWithEmptyIterator() {
+        Assert.assertThrows(IndexOutOfBoundsException.class, () -> {
+            IteratorUtils.get(Collections.emptyIterator(), 0);
+        });
+    }
+
+    @Test
+    public void testGetWithCustomObject() {
+        class TestObject {
+            private final String value;
+
+            TestObject(String value) {
+                this.value = value;
+            }
+
+            @Override
+            public String toString() {
+                return value;
+            }
+        }
+
+        List<TestObject> data = Arrays.asList(
+                new TestObject("obj1"),
+                new TestObject("obj2"),
+                new TestObject("obj3")
+        );
+
+        TestObject result = IteratorUtils.get(data.iterator(), 1);
+        Assert.assertEquals("obj2", result.toString());
+    }
 }
