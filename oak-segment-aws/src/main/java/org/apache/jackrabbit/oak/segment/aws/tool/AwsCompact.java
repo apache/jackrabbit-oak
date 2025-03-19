@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.aws.tool;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
@@ -26,11 +25,11 @@ import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.printableS
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.io.Files;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
@@ -220,7 +219,8 @@ public class AwsCompact {
         printArchives(System.out, beforeArchives);
         System.out.printf("    -> compacting\n");
 
-        try (FileStore store = newFileStore(persistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
+        try (FileStore store = newFileStore(persistence,
+                Files.createTempDirectory(getClass().getSimpleName() + "-").toFile(), strictVersionCheck, segmentCacheSize,
                 gcLogInterval, compactorType, concurrency)) {
             boolean success = false;
             switch (gcType) {

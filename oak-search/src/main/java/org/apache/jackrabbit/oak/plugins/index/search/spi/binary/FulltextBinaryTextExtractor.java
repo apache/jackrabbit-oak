@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
-import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -172,7 +172,7 @@ public class FulltextBinaryTextExtractor {
                     getParser().parse(stream, handler, metadata, new ParseContext());
                 }
             } finally {
-                bytesRead = stream.getCount();
+                bytesRead = stream.getByteCount();
                 stream.close();
             }
         } catch (LinkageError e) {

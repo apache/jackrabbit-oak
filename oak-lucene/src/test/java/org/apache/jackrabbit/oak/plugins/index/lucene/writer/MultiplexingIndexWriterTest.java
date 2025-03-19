@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
@@ -88,7 +88,7 @@ public class MultiplexingIndexWriterTest {
         LuceneIndexWriterFactory factory = newDirectoryFactory();
         LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
         assertTrue(writer.close(0));
-        assertEquals(2, Iterables.size(getIndexDirNodes()));
+        assertEquals(2, IterableUtils.size(getIndexDirNodes()));
         assertFalse(builder.hasChildNode(indexDirName(roMount)));
         assertEquals(0, numDocs(fooMount));
         assertEquals(0, numDocs(defaultMount));
@@ -99,7 +99,7 @@ public class MultiplexingIndexWriterTest {
         // empty index dir doesn't get created during normal indexing
         writer = factory.newInstance(defn, builder, null, false);
         assertFalse(writer.close(0));
-        assertEquals(0, Iterables.size(getIndexDirNodes()));
+        assertEquals(0, IterableUtils.size(getIndexDirNodes()));
     }
 
     @Test

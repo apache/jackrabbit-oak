@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,11 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Maps.immutableEntry;
-
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeCommitRoot;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeRevision;
@@ -151,7 +148,7 @@ final class NodeDocumentSweeper {
         }
 
         Iterable<Map.Entry<Path, UpdateOp>> ops = sweepOperations(documents);
-        for (List<Map.Entry<Path, UpdateOp>> batch : partition(ops, INVALIDATE_BATCH_SIZE)) {
+        for (List<Map.Entry<Path, UpdateOp>> batch : IterableUtils.partition(ops, INVALIDATE_BATCH_SIZE)) {
             Map<Path, UpdateOp> updates = new HashMap<>();
             for (Map.Entry<Path, UpdateOp> entry : batch) {
                 updates.put(entry.getKey(), entry.getValue());
@@ -164,7 +161,7 @@ final class NodeDocumentSweeper {
 
     private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
             final Iterable<NodeDocument> docs) {
-        return filter(transform(docs, doc -> immutableEntry(doc.getPath(), sweepOne(doc))),
+        return IterableUtils.filter(IterableUtils.transform(docs, doc -> new SimpleImmutableEntry<>(doc.getPath(), sweepOne(doc))),
                 input -> input.getValue() != null);
     }
 
@@ -175,7 +172,7 @@ final class NodeDocumentSweeper {
         // - DELETED : for new node (this)
         // - COMMITROOT : for new child (parent)
         // - REVISIONS : for commit roots (root for branch commits)
-        for (String property : filter(doc.keySet(), SWEEP_ONE_PREDICATE::test)) {
+        for (String property : IterableUtils.filter(doc.keySet(), SWEEP_ONE_PREDICATE::test)) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
                 Revision rev = entry.getKey();

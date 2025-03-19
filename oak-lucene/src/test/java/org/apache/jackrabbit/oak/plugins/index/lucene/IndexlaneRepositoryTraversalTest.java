@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.RecursiveDelete;
@@ -52,7 +52,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -102,14 +101,14 @@ public class IndexlaneRepositoryTraversalTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
         luceneIndexEditorProvider.setBlobStore(blobStore);
 
-        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
+        asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
-        )));
-        asyncIndexUpdateFulltext = new AsyncIndexUpdate("fulltext-async", nodeStore, compose(List.of(
+        ));
+        asyncIndexUpdateFulltext = new AsyncIndexUpdate("fulltext-async", nodeStore, CompositeIndexEditorProvider.compose(
                 luceneIndexEditorProvider,
                 new NodeCounterEditorProvider()
-        )));
+        ));
         TrackingCorruptIndexHandler trackingCorruptIndexHandler = new TrackingCorruptIndexHandler();
         trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS, TimeUnit.MILLISECONDS);
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
@@ -131,8 +130,8 @@ public class IndexlaneRepositoryTraversalTest {
         Tree test1 = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild("mynodetype");
         test1.setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
         test1.setProperty("type", "property");
-        test1.setProperty("propertyNames", ImmutableList.of("jcr:primaryType", "jcr:mixinTypes"), Type.NAMES);
-        test1.setProperty("declaringNodeTypes", ImmutableList.of("oak:QueryIndexDefinition"), Type.NAMES);
+        test1.setProperty("propertyNames", List.of("jcr:primaryType", "jcr:mixinTypes"), Type.NAMES);
+        test1.setProperty("declaringNodeTypes", List.of("oak:QueryIndexDefinition"), Type.NAMES);
         test1.setProperty("nodeTypeListDefined", true);
         test1.setProperty("reindex", true);
         root.commit();
@@ -164,7 +163,7 @@ public class IndexlaneRepositoryTraversalTest {
     }
 
     @Test
-    public void repositoryTraversalAsyncNodeContainsAsyncProperty() throws Exception {
+    public void repositoryTraversalAsyncNodeContainsAsyncProperty() {
         // first run to populate /:async node.
         asyncIndexUpdate.run();
         asyncIndexUpdate.run();
@@ -174,7 +173,7 @@ public class IndexlaneRepositoryTraversalTest {
     }
 
     @Test
-    public void repositoryTraversalAsyncNodeDonotContainsFulltextAsyncProperty() throws Exception {
+    public void repositoryTraversalAsyncNodeDonotContainsFulltextAsyncProperty() {
         // first run to populate /:async node.
         asyncIndexUpdate.run();
         List<String> logs = customLogger.getLogs();

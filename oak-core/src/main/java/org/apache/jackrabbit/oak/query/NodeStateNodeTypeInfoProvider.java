@@ -27,7 +27,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPER
 
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -71,17 +71,17 @@ public class NodeStateNodeTypeInfoProvider implements NodeTypeInfoProvider {
 
         @Override
         public Set<String> getSuperTypes() {
-            return  CollectionUtils.toSet(type.getNames(REP_SUPERTYPES));
+            return  SetUtils.toSet(type.getNames(REP_SUPERTYPES));
         }
 
         @Override
         public Set<String> getPrimarySubTypes() {
-            return CollectionUtils.toSet(type.getNames(REP_PRIMARY_SUBTYPES));
+            return SetUtils.toSet(type.getNames(REP_PRIMARY_SUBTYPES));
         }
 
         @Override
         public Set<String> getMixinSubTypes() {
-            return CollectionUtils.toSet(type.getNames(REP_MIXIN_SUBTYPES));
+            return SetUtils.toSet(type.getNames(REP_MIXIN_SUBTYPES));
         }
 
         @Override

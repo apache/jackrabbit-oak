@@ -20,11 +20,11 @@ import static org.junit.Assert.assertNotNull;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import org.apache.felix.connect.launch.PojoServiceRegistry;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Assert;
@@ -155,7 +155,7 @@ public class SegmentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
             return result;
         }
 
-        private final Map<ServiceReference<NodeStore>, NodeStore> stores = Maps.newHashMap();
+        private final Map<ServiceReference<NodeStore>, NodeStore> stores = new HashMap<>();
         private final Object trackerLock = new Object();
         private final CountDownLatch trackerLatch;
         private final CountDownLatch deactivateLatch;

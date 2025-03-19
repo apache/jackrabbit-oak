@@ -17,7 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -56,7 +57,7 @@ public class CugTreePermissionTest extends AbstractCugTest {
     }
 
     private CugTreePermission getCugTreePermission(@NotNull String path, @NotNull Principal... principals) {
-        CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.copyOf(SUPPORTED_PATHS), principals);
+        CugPermissionProvider pp = createCugPermissionProvider(Set.of(SUPPORTED_PATHS), principals);
         TreePermission targetTp = getTreePermission(root, path, pp);
         assertTrue(targetTp instanceof CugTreePermission);
         return (CugTreePermission) targetTp;

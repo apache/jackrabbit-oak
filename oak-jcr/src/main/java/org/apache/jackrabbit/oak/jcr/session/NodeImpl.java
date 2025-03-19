@@ -67,7 +67,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
@@ -80,7 +79,9 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -804,7 +805,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 IdentifierManager idManager = sessionDelegate.getIdManager();
 
                 Iterable<String> propertyOakPaths = idManager.getReferences(weak, node.getTree(), name); // TODO: oak name?
-                Iterable<Property> properties = Iterables.transform(
+                Iterable<Property> properties = IterableUtils.transform(
                         propertyOakPaths,
                         oakPath -> {
                                 PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
@@ -1017,7 +1018,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 // distinguish between a combination of removeMixin and addMixin
                 // and Node#remove plus subsequent addNode when it comes to
                 // autocreated properties like jcr:create, jcr:uuid and so forth.
-                Set<String> mixins = CollectionUtils.toLinkedSet(getNames(dlg.getTree(), JCR_MIXINTYPES));
+                Set<String> mixins = SetUtils.toLinkedSet(getNames(dlg.getTree(), JCR_MIXINTYPES));
                 if (!mixins.isEmpty() && mixins.remove(getOakName(mixinName))) {
                     PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, mixins, NAMES);
                     sessionContext.getAccessManager().checkPermissions(dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT);
@@ -1728,7 +1729,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
         public long getSize() {
             try {
-                return Iterators.size(iterator());
+                return IteratorUtils.size(iterator());
             } catch (InvalidItemStateException e) {
                 throw new IllegalStateException(
                         "This iterator is no longer valid", e);

@@ -21,14 +21,14 @@ package org.apache.jackrabbit.oak.run.osgi;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.guava.common.io.Files;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.osgi.framework.BundleContext;
@@ -93,7 +93,7 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
         //current config files. Such configs must be remove. Note it does not lead to
         //removal of configs added by using ConfigAdmin directly, say using WebConsole
         //ui
-        Set<String> pidsToBeRemoved = Sets.difference(existingPids, configs.keySet());
+        Set<String> pidsToBeRemoved = SetUtils.difference(existingPids, configs.keySet());
         configInstaller.removeConfigs(pidsToBeRemoved);
     }
 
@@ -112,7 +112,7 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
                 continue;
             }
 
-            String content = Files.toString(jsonFile, StandardCharsets.UTF_8);
+            String content = new String(Files.readAllBytes(jsonFile.toPath()), StandardCharsets.UTF_8);
             JSONObject json = (JSONObject) JSONValue.parse(content);
             configs.putAll(json);
         }

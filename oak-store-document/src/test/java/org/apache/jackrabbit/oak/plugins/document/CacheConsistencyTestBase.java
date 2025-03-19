@@ -17,14 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.junit.After;
 import org.junit.Before;

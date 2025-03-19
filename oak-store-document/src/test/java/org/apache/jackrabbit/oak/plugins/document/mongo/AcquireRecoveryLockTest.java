@@ -20,7 +20,7 @@ import java.util.List;
 
 import com.mongodb.MongoClient;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
@@ -73,7 +73,7 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
     @Test
     public void recoveryBy() throws Exception {
         MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(store, getTestClock());
-        List<ClusterNodeInfoDocument> infoDocs = CollectionUtils.toList(seeker.getAllClusters());
+        List<ClusterNodeInfoDocument> infoDocs = ListUtils.toList(seeker.getAllClusters());
         assertEquals(1, infoDocs.size());
         int clusterId = infoDocs.get(0).getClusterId();
         int otherClusterId = clusterId + 1;

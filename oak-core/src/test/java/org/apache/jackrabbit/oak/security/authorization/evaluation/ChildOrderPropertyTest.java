@@ -24,13 +24,12 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
@@ -65,7 +64,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
     @Test
     public void testGetProperties() {
-        Set<String> propertyNames = CollectionUtils.toSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
+        Set<String> propertyNames = SetUtils.toSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
 
         Tree a = root.getTree("/a");
         for (PropertyState prop : a.getProperties()) {
@@ -98,8 +97,8 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
         // verify that properties cannot be read:
         assertFalse(aTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
-        List<String> expected = ImmutableList.of("/a/bb", "/a/b");
-        Iterable<String> childPaths = Iterables.transform(aTree.getChildren(), input -> input.getPath());
-        assertTrue(childPaths.toString(), Iterables.elementsEqual(expected, childPaths));
+        List<String> expected = List.of("/a/bb", "/a/b");
+        Iterable<String> childPaths = IterableUtils.transform(aTree.getChildren(), input -> input.getPath());
+        assertTrue(childPaths.toString(), IterableUtils.elementsEqual(expected, childPaths));
     }
 }

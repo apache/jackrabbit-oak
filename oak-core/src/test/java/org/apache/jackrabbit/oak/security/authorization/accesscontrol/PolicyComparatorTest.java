@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
@@ -90,7 +89,7 @@ public class PolicyComparatorTest {
     public void testPath1Deeper() {
         JackrabbitAccessControlPolicy policy1 = when(mock(JackrabbitAccessControlPolicy.class).getPath()).thenReturn("/some/deeper/path").getMock();
         JackrabbitAccessControlPolicy policy2 = when(mock(JackrabbitAccessControlPolicy.class).getPath()).thenReturn("/").getMock();
-        int expected = Ints.compare(PathUtils.getDepth("/some/deeper/path"), PathUtils.getDepth("/"));
+        int expected = Integer.compare(PathUtils.getDepth("/some/deeper/path"), PathUtils.getDepth("/"));
         assertEquals(expected, comparator.compare(policy1, policy2));
     }
 
@@ -98,7 +97,7 @@ public class PolicyComparatorTest {
     public void testPath2Deeper() {
         JackrabbitAccessControlPolicy policy1 = when(mock(JackrabbitAccessControlPolicy.class).getPath()).thenReturn("/path").getMock();
         JackrabbitAccessControlPolicy policy2 = when(mock(JackrabbitAccessControlPolicy.class).getPath()).thenReturn("/a/deeper/path").getMock();
-        int expected = Ints.compare(PathUtils.getDepth("/path"), PathUtils.getDepth("/a/deeper/path"));
+        int expected = Integer.compare(PathUtils.getDepth("/path"), PathUtils.getDepth("/a/deeper/path"));
         assertEquals(expected, comparator.compare(policy1, policy2));
     }
 

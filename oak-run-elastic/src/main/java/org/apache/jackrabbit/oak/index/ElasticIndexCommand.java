@@ -18,15 +18,14 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerElastic;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -162,7 +161,7 @@ public class ElasticIndexCommand implements Command {
         if (definitions != null) {
             IndexDefinitionUpdater updater = new IndexDefinitionUpdater(definitions);
             Set<String> indexPathsFromJson = updater.getIndexPaths();
-            Set<String> diff = Sets.difference(indexPathsFromJson, indexPaths);
+            Set<String> diff = SetUtils.difference(indexPathsFromJson, indexPaths);
             if (!diff.isEmpty()) {
                 log.info("Augmenting the indexPaths with {} which are present in {}", diff, definitions);
             }
@@ -250,7 +249,7 @@ public class ElasticIndexCommand implements Command {
     }
 
     private static void logCliArgs(String[] args) {
-        log.info("Command line arguments used for indexing [{}]", Joiner.on(' ').join(args));
+        log.info("Command line arguments used for indexing [{}]", String.join(" ", args));
         List<String> inputArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
         if (!inputArgs.isEmpty()) {
             log.info("System properties and vm options passed {}", inputArgs);

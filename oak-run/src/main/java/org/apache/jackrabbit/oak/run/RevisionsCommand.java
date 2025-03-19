@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -39,6 +36,7 @@ import ch.qos.logback.classic.LoggerContext;
 import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -85,7 +83,7 @@ public class RevisionsCommand implements Command {
 
     private static final Logger LOG = LoggerFactory.getLogger(RevisionsCommand.class);
 
-    private static final String USAGE = Joiner.on(System.lineSeparator()).join(
+    private static final String USAGE = String.join(System.lineSeparator(),
             "revisions {<jdbc-uri> | <mongodb-uri>} <sub-command> [options]",
             "where sub-command is one of",
             "  info           give information about the revisions state without performing",
@@ -106,6 +104,20 @@ public class RevisionsCommand implements Command {
             "org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations"
     );
 
+    private final boolean exitWhenDone;
+
+    public RevisionsCommand() {
+        this(true);
+    }
+
+    /**
+     *
+     * @param exitWhenDone if true, the command will exit the JVM when done
+     */
+    public RevisionsCommand(boolean exitWhenDone) {
+        this.exitWhenDone = exitWhenDone;
+    }
+
     private static class RevisionsOptions extends Utils.NodeStoreOptions {
 
         static final String CMD_INFO = "info";
@@ -122,6 +134,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Long> olderThan;
         final OptionSpec<Double> delay;
         final OptionSpec<Double> fullGcDelayFactor;
+        final OptionSpec<Long> fullGcMaxAge;
         final OptionSpec<?> continuous;
         final OptionSpec<?> fullGCOnly;
         final OptionSpec<Boolean> resetFullGC;
@@ -191,6 +204,10 @@ public class RevisionsCommand implements Command {
             fullGcProgressSize = parser.accepts("fullGcProgressSize", "The number of documents to check for " +
                             "garbage in each Full GC cycle")
                     .withRequiredArg().ofType(Integer.class).defaultsTo(10000);
+            fullGcMaxAge = parser.accepts("fullGcMaxAge", "The maximum age of the document in seconds " +
+                            "to be considered for Full GC i.e. Version Garbage Collector (Full GC) logic will only consider those " +
+                            "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge). Default: 86400 (one day)")
+                    .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toSeconds(1));
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -232,6 +249,10 @@ public class RevisionsCommand implements Command {
 
         int getFullGcProgressSize() {
             return fullGcProgressSize.value(options);
+        }
+
+        long getFullGcMaxAge() {
+            return fullGcMaxAge.value(options);
         }
 
         double getFullGcDelayFactor() {
@@ -317,6 +338,10 @@ public class RevisionsCommand implements Command {
             } else {
                 System.err.println("unknown revisions command: " + subCmd);
             }
+            if (exitWhenDone) {
+                System.out.printf("Command '%s' completed successfully.%n", subCmd);
+                System.exit(0);
+            }
         } catch (Throwable e) {
             LOG.error("Command failed", e);
             throw closer.rethrow(e);
@@ -349,6 +374,7 @@ public class RevisionsCommand implements Command {
         builder.setFullGCDelayFactor(options.getFullGcDelayFactor());
         builder.setFullGCBatchSize(options.getFullGcBatchSize());
         builder.setFullGCProgressSize(options.getFullGcProgressSize());
+        builder.setFullGcMaxAgeMillis(SECONDS.toMillis(options.getFullGcMaxAge()));
 
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
@@ -380,6 +406,8 @@ public class RevisionsCommand implements Command {
         System.out.println("FullGcDelayFactory is : " + options.getFullGcDelayFactor());
         System.out.println("FullGcBatchSize is : " + options.getFullGcBatchSize());
         System.out.println("FullGcProgressSize is : " + options.getFullGcProgressSize());
+        System.out.println("FullGcMaxAgeInSecs is : " + options.getFullGcMaxAge());
+        System.out.println("FullGcMaxAgeMillis is : " + builder.getFullGcMaxAgeMillis());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
 
         VersionGCOptions gcOptions = gc.getOptions();

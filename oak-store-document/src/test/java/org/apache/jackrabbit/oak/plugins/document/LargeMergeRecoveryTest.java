@@ -29,14 +29,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
@@ -137,15 +136,15 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent()
                 .getRecoveryCandidateNodes();
-        assertEquals(1, Iterables.size(cids));
-        assertEquals(c2Id, Iterables.get(cids, 0).intValue());
+        assertEquals(1, IterableUtils.size(cids));
+        assertEquals(c2Id, IterableUtils.get(cids, 0).intValue());
 
         assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
         assertFalse(ds1.getRoot().getChildNode("a").hasChildNode("b1"));
         assertFalse(ds1.getRoot().getChildNode("a").hasChildNode("b2"));
 
         System.out.println("RECOVER...");
-        ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
+        ds1.getLastRevRecoveryAgent().recover(IterableUtils.get(cids, 0));
         System.out.println("RECOVER DONE");
 
         ds1.runBackgroundOperations();
@@ -220,13 +219,13 @@ public class LargeMergeRecoveryTest extends AbstractTwoNodeTest {
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent()
                 .getRecoveryCandidateNodes();
-        assertEquals(1, Iterables.size(cids));
-        assertEquals(c2Id, Iterables.get(cids, 0).intValue());
+        assertEquals(1, IterableUtils.size(cids));
+        assertEquals(c2Id, IterableUtils.get(cids, 0).intValue());
 
         assertFalse(ds1.getRoot().getChildNode("x").getChildNode("y").hasChildNode(childPrefix + "0"));
 
         System.out.println("RECOVER...");
-        ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
+        ds1.getLastRevRecoveryAgent().recover(IterableUtils.get(cids, 0));
         System.out.println("RECOVER DONE");
 
         assertEquals(zlastRev2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));

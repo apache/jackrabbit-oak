@@ -27,10 +27,10 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -220,7 +220,7 @@ public class DocumentQueueTest {
 
     @Test
     public void addAllSync() throws Exception{
-        ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
+        ListValuedMap<String, LuceneDoc> docs = new ArrayListValuedHashMap<>();
         tracker = createTracker();
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.SYNC);
         tracker.update(indexed);
@@ -285,7 +285,7 @@ public class DocumentQueueTest {
 
         w = Stopwatch.createStarted();
         for (int i = 0; i < numDocs; i++) {
-            ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
+            ListValuedMap<String, LuceneDoc> docs = new ArrayListValuedHashMap<>();
             docs.get("/oak:index/fooIndex").add(doc);
             queue.addAllSynchronously(docs.asMap());
         }

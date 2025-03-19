@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -38,7 +39,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -65,8 +65,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
 
 public abstract class AbstractOak2OakTest {
 
@@ -105,7 +103,7 @@ public abstract class AbstractOak2OakTest {
         }
 
         String[] args = getArgs();
-        log.info("oak2oak {}", Joiner.on(' ').join(args));
+        log.info("oak2oak {}", String.join(" ", args));
         OakUpgrade.main(args);
         createSession();
     }
@@ -186,13 +184,14 @@ public abstract class AbstractOak2OakTest {
         Node nodeType = session.getNode("/jcr:system/jcr:nodeTypes/sling:OrderedFolder");
         assertEquals("rep:NodeType", nodeType.getProperty("jcr:primaryType").getString());
 
-        List<String> values = Lists.transform(Arrays.asList(nodeType.getProperty("rep:protectedProperties").getValues()), input -> {
-                try {
-                    return input.getString();
-                } catch (RepositoryException e) {
-                    return null;
-                }
-            });
+        List<String> values = Arrays.stream(nodeType.getProperty("rep:protectedProperties").getValues())
+                .map(input -> {
+                    try {
+                        return input.getString();
+                    } catch (RepositoryException e) {
+                        return null;
+                    }
+                }).collect(Collectors.toList());
         assertTrue(values.contains("jcr:mixinTypes"));
         assertTrue(values.contains("jcr:primaryType"));
         assertEquals("false", nodeType.getProperty("jcr:isAbstract").getString());

@@ -23,12 +23,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+
 /**
  * Extension point for plugging in different kinds of IndexEditor providers.
  * 
  * @see IndexEditor
  */
-public interface IndexEditorProvider {
+public interface IndexEditorProvider extends AutoCloseable {
 
     /**
      * Each provider knows how to produce a certain type of index. If the
@@ -56,4 +58,7 @@ public interface IndexEditorProvider {
             @NotNull String type, @NotNull NodeBuilder definition,
             @NotNull NodeState root, 
             @NotNull IndexUpdateCallback callback) throws CommitFailedException;
+
+    default void close() throws IOException {
+    }
 }

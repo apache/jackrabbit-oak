@@ -48,10 +48,6 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -60,9 +56,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
 import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditorProvider;
@@ -705,7 +703,7 @@ public class Oak {
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
-        Iterable<WorkspaceInitializer> workspaceInitializers = Iterables.transform(securityProvider.getConfigurations(),
+        Iterable<WorkspaceInitializer> workspaceInitializers = IterableUtils.transform(securityProvider.getConfigurations(),
                 sc -> {
                         WorkspaceInitializer wi = sc.getWorkspaceInitializer();
                         if (wi instanceof QueryIndexProviderAware) {
@@ -1037,20 +1035,20 @@ public class Oak {
         @Deprecated
         public static final OakDefaultComponents INSTANCE = new OakDefaultComponents();
 
-        private final Iterable<CommitHook> commitHooks = ImmutableList.of(new VersionHook());
+        private final Iterable<CommitHook> commitHooks = List.of(new VersionHook());
 
-        private  final Iterable<RepositoryInitializer> repositoryInitializers = ImmutableList
+        private  final Iterable<RepositoryInitializer> repositoryInitializers = List
                 .of(new InitialContent());
 
-        private  final Iterable<EditorProvider> editorProviders = ImmutableList.of(
+        private  final Iterable<EditorProvider> editorProviders = List.of(
                 new ItemSaveValidatorProvider(), new NameValidatorProvider(), new NamespaceEditorProvider(),
                 new TypeEditorProvider(), new ConflictValidatorProvider(), new ChangeCollectorProvider());
 
-        private  final Iterable<IndexEditorProvider> indexEditorProviders = ImmutableList.of(
+        private  final Iterable<IndexEditorProvider> indexEditorProviders = List.of(
                 new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider(),
                 new OrderedPropertyIndexEditorProvider());
 
-        private  final Iterable<QueryIndexProvider> queryIndexProviders = ImmutableList
+        private  final Iterable<QueryIndexProvider> queryIndexProviders = List
                 .of(new ReferenceIndexProvider(), new PropertyIndexProvider(), new NodeTypeIndexProvider());
 
         private  final SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().build();

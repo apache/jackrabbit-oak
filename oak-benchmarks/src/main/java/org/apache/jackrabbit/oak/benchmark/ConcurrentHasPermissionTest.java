@@ -20,8 +20,6 @@ import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 /**
  * Concurrently calls Session#hasPermission on the deep tree:
  * - the path argument a random path out of the deep tree
@@ -29,7 +27,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
  */
 public class ConcurrentHasPermissionTest extends ConcurrentReadDeepTreeTest {
 
-    private static final List<String> ACTIONS = ImmutableList.of(
+    private static final List<String> ACTIONS = List.of(
             Session.ACTION_READ,
             Session.ACTION_ADD_NODE,
             Session.ACTION_SET_PROPERTY,

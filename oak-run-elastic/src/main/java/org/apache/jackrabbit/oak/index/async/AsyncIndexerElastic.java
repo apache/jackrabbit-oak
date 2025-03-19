@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.async;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.ElasticIndexOptions;
 import org.apache.jackrabbit.oak.index.IndexHelper;

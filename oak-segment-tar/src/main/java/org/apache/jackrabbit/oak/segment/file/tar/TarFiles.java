@@ -43,11 +43,10 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -496,7 +495,7 @@ public class TarFiles implements Closeable {
             lock.readLock().unlock();
         }
 
-        return String.format("TarFiles{readers=%s,writer=%s}", CollectionUtils.toList(iterable(head)), w);
+        return String.format("TarFiles{readers=%s,writer=%s}", ListUtils.toList(iterable(head)), w);
     }
 
     public long size() {
@@ -520,7 +519,7 @@ public class TarFiles implements Closeable {
     }
 
     private static int getSize(Node head) {
-        return Iterables.size(iterable(head));
+        return IterableUtils.size(iterable(head));
     }
 
     public int readerCount() {

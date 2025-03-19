@@ -38,7 +38,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
-import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.composite.CompositeNodeStore;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -286,7 +286,7 @@ public class Persistence {
                                          SecurityProvider securityProvider) throws RepositoryException {
         ContentSession cs = null;
         try {
-            cs = Subject.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+            cs = Java23Subject.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
                 @Override
                 public ContentSession run() throws Exception {
                     return repo.login(null, null);

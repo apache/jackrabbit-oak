@@ -14,10 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.security.authentication.ldap;
-
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.core.Appender;
@@ -47,10 +44,14 @@ public class LdapServerClassLoader extends URLClassLoader {
 
     private LdapServerClassLoader(URL[] urls, Class serverClass, Class serverBaseClass) throws IOException {
         super(urls, ClassLoader.getSystemClassLoader().getParent());
-        this.serverClassResource = ByteStreams.toByteArray(
-                serverClass.getResourceAsStream("/".concat(serverClass.getCanonicalName()).replace('.', '/').concat(".class")));
-        this.serverBaseClassResource = ByteStreams.toByteArray(
-                serverBaseClass.getResourceAsStream("/".concat(serverBaseClass.getCanonicalName()).replace('.', '/').concat(".class")));
+        this.serverClassResource = classAsBytes(serverClass);
+        this.serverBaseClassResource = classAsBytes(serverBaseClass);
+    }
+
+    private static byte[] classAsBytes(Class base) throws IOException {
+        try (InputStream is = base.getResourceAsStream("/".concat(base.getCanonicalName()).replace('.', '/').concat(".class"))) {
+            return is.readAllBytes();
+        }
     }
 
     public static LdapServerClassLoader createServerClassLoader() throws URISyntaxException, ClassNotFoundException, IOException {

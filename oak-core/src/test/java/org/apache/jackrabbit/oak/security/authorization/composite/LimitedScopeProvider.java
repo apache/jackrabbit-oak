@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
@@ -83,7 +83,7 @@ class LimitedScopeProvider extends AbstractAggrProvider implements PrivilegeCons
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-        Set<String> pSet = CollectionUtils.toSet(privilegeNames);
+        Set<String> pSet = SetUtils.toSet(privilegeNames);
         if (tree == null) {
             if (pSet.contains(JCR_NAMESPACE_MANAGEMENT)) {
                 return false;

@@ -30,7 +30,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -74,6 +76,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String DYNAMIC_MAPPING = "dynamicMapping";
     // possible values are: true, false, runtime, strict. See https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic.html
     public static final String DYNAMIC_MAPPING_DEFAULT = "true";
+
+    // https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-settings-limit.html
+    // index.mapping.total_fields.limit
+    public static final String LIMIT_TOTAL_FIELDS = "limitTotalFields";
+    public static final long LIMIT_TOTAL_FIELDS_DEFAULT = 1000L;
 
     // when true, fails indexing in case of bulk failures
     public static final String FAIL_ON_ERROR = "failOnError";
@@ -185,9 +192,10 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final boolean failOnError;
     public final long indexNameSeed;
     public final InferenceDefinition inferenceDefinition;
+    public final long limitTotalFields;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
-    private final List<PropertyDefinition> dynamicBoostProperties;
+    private final List<ElasticPropertyDefinition> dynamicBoostProperties;
     private final List<PropertyDefinition> similarityProperties;
     private final List<PropertyDefinition> similarityTagsProperties;
     private final String[] similarityTagsFields;
@@ -220,10 +228,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
         );
         this.indexNameSeed = getOptionalValue(defn, INDEX_NAME_SEED, INDEX_NAME_SEED_DEFAULT);
         this.similarityTagsFields = getOptionalValues(defn, SIMILARITY_TAGS_FIELDS, Type.STRINGS, String.class, SIMILARITY_TAGS_FIELDS_DEFAULT);
+        this.limitTotalFields = getOptionalValue(defn, LIMIT_TOTAL_FIELDS, LIMIT_TOTAL_FIELDS_DEFAULT);
 
         this.propertiesByName = getDefinedRules()
                 .stream()
-                .flatMap(rule -> Stream.concat(CollectionUtils.toStream(rule.getProperties()),
+                .flatMap(rule -> Stream.concat(StreamUtils.toStream(rule.getProperties()),
                         rule.getFunctionRestrictions().stream()))
                 .filter(pd -> pd.index) // keep only properties that can be indexed
                 .collect(Collectors.groupingBy(pd -> {
@@ -238,6 +247,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .stream()
                 .flatMap(IndexingRule::getNamePatternsProperties)
                 .filter(pd -> pd.dynamicBoost)
+                .map(pd -> (ElasticPropertyDefinition) pd)
                 .collect(Collectors.toList());
 
         this.similarityProperties = getDefinedRules()
@@ -278,7 +288,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         return propertiesByName;
     }
 
-    public List<PropertyDefinition> getDynamicBoostProperties() {
+    public List<ElasticPropertyDefinition> getDynamicBoostProperties() {
         return dynamicBoostProperties;
     }
 
@@ -309,19 +319,40 @@ public class ElasticIndexDefinition extends IndexDefinition {
      */
     public String getElasticKeyword(String propertyName) {
         List<PropertyDefinition> propertyDefinitions = propertiesByName.get(propertyName);
+        String field = ElasticIndexUtils.fieldName(propertyName);
         if (propertyDefinitions == null) {
             // if there are no property definitions we return the default keyword name
             // this can happen for properties that were not explicitly defined (eg: created with a regex)
-            return propertyName + ".keyword";
+            ElasticPropertyDefinition pd = getMatchingRegexPropertyDefinition(propertyName);
+            if (pd != null && pd.isFlattened()) {
+                return FieldNames.FLATTENED_FIELD_PREFIX +
+                        ElasticIndexUtils.fieldName(pd.nodeName) + "." + field;
+            } else {
+                return field + ".keyword";
+            }
         }
-
-        String field = propertyName;
         // it's ok to look at the first property since we are sure they all have the same type
         int type = propertyDefinitions.get(0).getType();
         if (isAnalyzable.apply(type) && isAnalyzed(propertyDefinitions)) {
             field += ".keyword";
         }
         return field;
+    }
+
+    /**
+     * Try to get the matching regular expression property definition, if any
+     *
+     * @param propertyName the property name (may not be null)
+     * @return the property definition, or null if not found
+     */
+    private ElasticPropertyDefinition getMatchingRegexPropertyDefinition(String propertyName) {
+        for (IndexingRule rule : getDefinedRules()) {
+            PropertyDefinition pd = rule.getConfig(propertyName);
+            if (pd != null && pd.isRegexp) {
+                return (ElasticPropertyDefinition) pd;
+            }
+        }
+        return null;
     }
 
     public boolean isAnalyzed(List<PropertyDefinition> propertyDefinitions) {
@@ -382,7 +413,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * Class to help with {@link ElasticIndexDefinition} creation.
      * The built object represents the index definition only without the node structure.
      */
-    public static class Builder extends IndexDefinition.Builder {
+    public static class Builder extends IndexDefinition.Builder<ElasticIndexDefinition> {
 
         private final String indexPrefix;
 
@@ -392,7 +423,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
         @Override
         public ElasticIndexDefinition build() {
-            return (ElasticIndexDefinition) super.build();
+            return super.build();
         }
 
         @Override
@@ -402,7 +433,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         }
 
         @Override
-        protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
+        protected ElasticIndexDefinition createInstance(NodeState indexDefnStateToUse) {
             return new ElasticIndexDefinition(root, indexDefnStateToUse, indexPath, indexPrefix);
         }
     }
@@ -432,12 +463,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
          */
         public InferenceDefinition(NodeState inferenceNode) {
             if (inferenceNode.hasChildNode("properties")) {
-                this.properties = CollectionUtils.toStream(inferenceNode.getChildNode("properties").getChildNodeEntries())
+                this.properties = StreamUtils.toStream(inferenceNode.getChildNode("properties").getChildNodeEntries())
                         .map(cne -> new Property(cne.getName(), cne.getNodeState()))
                         .collect(Collectors.toList());
             }
             if (inferenceNode.hasChildNode("queries")) {
-                this.queries = CollectionUtils.toStream(inferenceNode.getChildNode("queries").getChildNodeEntries())
+                this.queries = StreamUtils.toStream(inferenceNode.getChildNode("queries").getChildNodeEntries())
                         .map(cne -> new Query(cne.getName(), cne.getNodeState()))
                         .collect(Collectors.toList());
             }

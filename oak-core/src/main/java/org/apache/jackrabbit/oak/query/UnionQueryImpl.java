@@ -40,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 
@@ -329,7 +328,7 @@ public class UnionQueryImpl implements Query {
         } else {
             // This would suggest either the sub queries are sorted by index or explicitly by QueryImpl (in case of traversing index)
             // So use mergeSorted here.
-            it = Iterators.mergeSorted(ImmutableList.of(leftIter, rightIter), orderBy);
+            it = Iterators.mergeSorted(List.of(leftIter, rightIter), orderBy);
         }
 
         it = FilterIterators.newCombinedFilter(it, distinct, limit.orElse(Long.MAX_VALUE), offset.orElse(0L), null, settings);

@@ -29,7 +29,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.FileDataStore;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -75,7 +75,7 @@ public class OakFileDataStoreTest {
         fds.init(null);
 
         Iterator<DataIdentifier> dis = fds.getAllIdentifiers();
-        Set<String> fileNames = CollectionUtils.toSet(Iterators.transform(dis, DataIdentifier::toString));
+        Set<String> fileNames = SetUtils.toSet(Iterators.transform(dis, DataIdentifier::toString));
 
         Set<String> expectedNames = Set.of("abcdef","bcdefg","cdefgh");
         assertEquals(expectedNames, fileNames);

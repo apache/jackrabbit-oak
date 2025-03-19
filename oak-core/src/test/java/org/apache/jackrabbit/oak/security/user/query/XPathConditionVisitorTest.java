@@ -20,11 +20,11 @@ import java.util.Iterator;
 import java.util.Map;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
@@ -67,7 +67,7 @@ public class XPathConditionVisitorTest extends AbstractSecurityTest {
             it.next();
             it.remove();
         }
-        assertEquals(1, Iterators.size(condition.iterator()));
+        assertEquals(1, IteratorUtils.size(condition.iterator()));
     }
 
     @Test

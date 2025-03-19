@@ -35,6 +35,7 @@ import java.util.Properties;
 import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -46,10 +47,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
-import static org.apache.jackrabbit.guava.common.io.ByteStreams.toByteArray;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -166,7 +163,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
             assertEquals(200, conn.getResponseCode());
 
             testStream.reset();
-            assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
+            assertTrue(Arrays.equals(testStream.readAllBytes(), conn.getInputStream().readAllBytes()));
         }
         finally {
             if (null != record) {
@@ -241,7 +238,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
                 );
 
                 testStream.reset();
-                assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
+                assertTrue(Arrays.equals(testStream.readAllBytes(), conn.getInputStream().readAllBytes()));
             }
         }
         finally {
@@ -303,7 +300,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
         assertTrue(uploadContext.getMaxPartSize() >= uploadContext.getMinPartSize());
         assertTrue(uploadContext.getMaxPartSize() <= getProviderMaxPartSize());
         assertTrue((uploadContext.getMaxPartSize() * uploadContext.getUploadURIs().size()) >= ONE_MB);
-        assertFalse(Strings.isNullOrEmpty(uploadContext.getUploadToken()));
+        assertFalse(StringUtils.isEmpty(uploadContext.getUploadToken()));
     }
 
     @Test
@@ -587,7 +584,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
                 DataRecord retrievedRecord = doGetRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 assertNotNull(retrievedRecord);
                 uploadStream.reset();
-                assertTrue(Arrays.equals(toByteArray(uploadStream), toByteArray(retrievedRecord.getStream())));
+                assertTrue(Arrays.equals(uploadStream.readAllBytes(), retrievedRecord.getStream().readAllBytes()));
             }
             finally {
                 if (null != uploadedRecord) {

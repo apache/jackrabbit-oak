@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -86,7 +86,7 @@ public class SimpleNodeAggregator implements QueryIndex.NodeAggregator {
                 parentPath = getParentPath(parentPath);
                 if (isNodeType(root, parentPath, primaryType)) {
                     parents.add(parentPath);
-                    parents.addAll(CollectionUtils.toList(getParents(root, parentPath,
+                    parents.addAll(ListUtils.toList(getParents(root, parentPath,
                             false)));
                     return parents.iterator();
                 }

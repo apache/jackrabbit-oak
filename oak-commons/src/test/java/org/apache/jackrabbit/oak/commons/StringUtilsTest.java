@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -77,6 +78,57 @@ public class StringUtilsTest {
         for (final Map.Entry<String, Integer> e : testStrings.entrySet()) {
             assertEquals(e.getValue().intValue(), StringUtils.estimateMemoryUsage(e.getKey()));
         }
+    }
+
+
+    @Test
+    public void testIsNullOrEmptyWithNull() {
+        Assert.assertTrue(StringUtils.isNullOrEmpty(null));
+    }
+
+    @Test
+    public void testIsNullOrEmptyWithEmptyString() {
+        Assert.assertTrue(StringUtils.isNullOrEmpty(""));
+    }
+
+    @Test
+    public void testIsNullOrEmptyWithNonEmptyString() {
+        Assert.assertFalse(StringUtils.isNullOrEmpty("not empty"));
+    }
+
+    @Test
+    public void testIsNullOrEmptyWithWhitespaceString() {
+        Assert.assertFalse(StringUtils.isNullOrEmpty(" "));
+    }
+
+    @Test
+    public void testIsNullOrEmptyWithNewlineString() {
+        Assert.assertFalse(StringUtils.isNullOrEmpty("\n"));
+    }
+
+    @Test
+    public void testEmptyToNullWithNull() {
+        Assert.assertNull(StringUtils.emptyToNull(null));
+    }
+
+    @Test
+    public void testEmptyToNullWithEmptyString() {
+        Assert.assertNull(StringUtils.emptyToNull(""));
+    }
+
+    @Test
+    public void testEmptyToNullWithNonEmptyString() {
+        Assert.assertEquals("not empty", StringUtils.emptyToNull("not empty"));
+    }
+
+    @Test
+    public void testEmptyToNullWithWhitespaceString() {
+        Assert.assertEquals(" ", StringUtils.emptyToNull(" "));
+    }
+
+    @Test
+    public void testEmptyToNullWithNewlineString() {
+        Assert.assertEquals("\n", StringUtils.emptyToNull("\n"));
     }
 
 }

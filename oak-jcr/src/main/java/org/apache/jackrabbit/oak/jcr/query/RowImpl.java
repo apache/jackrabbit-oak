@@ -28,8 +28,6 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-
 /**
  * The implementation of the corresponding JCR interface.
  */
@@ -115,9 +113,7 @@ public class RowImpl implements Row {
     }
 
     private static PropertyValue mvpToString(PropertyValue pv) {
-        String v = Joiner.on(' ')
-                .appendTo(new StringBuilder(), pv.getValue(Type.STRINGS))
-                .toString();
+        String v = String.join(" ", pv.getValue(Type.STRINGS));
         return PropertyValues.newString(v);
     }
 

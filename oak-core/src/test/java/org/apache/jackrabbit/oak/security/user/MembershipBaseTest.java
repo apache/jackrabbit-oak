@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +33,7 @@ import org.junit.Before;
 
 import javax.jcr.RepositoryException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -55,8 +56,8 @@ public abstract class MembershipBaseTest extends AbstractUserTest implements Use
     UserManagerImpl userMgr;
     MembershipProvider mp;
 
-    private final Set<String> testUsers = new HashSet<>();
-    private final Set<String> testGroups = new HashSet<>();
+    private final Set<String> testUsers = Collections.synchronizedSet(new HashSet<>());
+    private final Set<String> testGroups = Collections.synchronizedSet(new HashSet<>());
 
     @Before
     public void before() throws Exception {
@@ -72,7 +73,7 @@ public abstract class MembershipBaseTest extends AbstractUserTest implements Use
         try {
             clearInvocations(monitor);
             root.refresh();
-            for (String path : Iterables.concat(testUsers, testGroups)) {
+            for (String path : IterableUtils.chainedIterable(testUsers, testGroups)) {
                 Authorizable auth = userMgr.getAuthorizableByPath(path);
                 if (auth != null) {
                     auth.remove();

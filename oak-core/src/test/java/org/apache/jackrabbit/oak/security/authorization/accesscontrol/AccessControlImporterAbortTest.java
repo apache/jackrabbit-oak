@@ -18,7 +18,8 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
 
@@ -33,6 +34,6 @@ public class AccessControlImporterAbortTest extends AccessControlImporterBaseTes
     public void testStartAceChildInfoUnknownPrincipal() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of(unknownPrincipalInfo));
+        importer.startChildInfo(aceGrantInfo, List.of(unknownPrincipalInfo));
     }
 }

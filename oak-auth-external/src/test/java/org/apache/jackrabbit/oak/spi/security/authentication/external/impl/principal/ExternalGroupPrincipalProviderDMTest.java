@@ -27,6 +27,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -329,7 +330,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         
         Iterator<Group> groups = principalProvider.getMembership(user, false);
         if (dynamicGroupsEnabled) {
-            assertEquals(getExpectedNumberOfGroups(), Iterators.size(groups));
+            assertEquals(getExpectedNumberOfGroups(), IteratorUtils.size(groups));
         } else {
             assertFalse(groups.hasNext());
         }
@@ -342,7 +343,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
 
         Iterator<Group> groups = principalProvider.getMembership(user, true);
         if (dynamicGroupsEnabled) {
-            assertEquals(getExpectedNumberOfGroups(), Iterators.size(groups));
+            assertEquals(getExpectedNumberOfGroups(), IteratorUtils.size(groups));
         } else {
             assertFalse(groups.hasNext());
         }

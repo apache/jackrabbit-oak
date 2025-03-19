@@ -41,7 +41,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -136,7 +136,7 @@ class PropertyIndexEditor implements IndexEditor {
             // OAK-1273: optimize for the common case
             this.propertyNames = singleton(names.getValue(NAME, 0));
         } else {
-            this.propertyNames = CollectionUtils.toSet(names.getValue(NAMES));
+            this.propertyNames = SetUtils.toSet(names.getValue(NAMES));
         }
         this.valuePattern = new ValuePattern(definition);
 

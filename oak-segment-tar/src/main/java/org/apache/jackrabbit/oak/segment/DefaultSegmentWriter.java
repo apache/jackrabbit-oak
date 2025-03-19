@@ -23,14 +23,12 @@ import static java.lang.Math.min;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
+import static java.util.Objects.checkFromToIndex;
+import static java.util.Objects.checkIndex;
 import static java.util.Objects.requireNonNull;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.io.ByteStreams.read;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -56,12 +54,12 @@ import java.util.Map;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.io.Closeables;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
@@ -333,7 +331,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private RecordId writeMapLeaf(int level, Collection<MapEntry> entries) throws IOException {
             requireNonNull(entries);
             int size = entries.size();
-            checkElementIndex(size, MapRecord.MAX_SIZE);
+            checkIndex(size, MapRecord.MAX_SIZE);
             checkPositionIndex(level, MapRecord.MAX_NUMBER_OF_LEVELS);
             checkArgument(size != 0 || level == MapRecord.MAX_NUMBER_OF_LEVELS);
             return writeOperationHandler.execute(gcGeneration, newWriteOperation(
@@ -341,7 +339,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeMapBranch(int level, int size, MapRecord... buckets) throws IOException {
-            checkElementIndex(size, MapRecord.MAX_SIZE);
+            checkIndex(size, MapRecord.MAX_SIZE);
             int bitmap = 0;
             List<RecordId> bucketIds = new ArrayList<>(buckets.length);
             for (int i = 0; i < buckets.length; i++) {
@@ -433,7 +431,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 List<MapEntry> list = new ArrayList<>();
                 for (MapRecord bucket : buckets) {
                     if (bucket != null) {
-                        addAll(list, bucket.getEntries());
+                        bucket.getEntries().forEach(list::add);
                     }
                 }
                 return writeMapLeaf(level, list);
@@ -456,7 +454,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             List<RecordId> thisLevel = list;
             while (thisLevel.size() > 1) {
                 List<RecordId> nextLevel = new ArrayList<>();
-                for (List<RecordId> bucket : CollectionUtils.partitionList(thisLevel, ListRecord.LEVEL_SIZE)) {
+                for (List<RecordId> bucket : ListUtils.partitionList(thisLevel, ListRecord.LEVEL_SIZE)) {
                     if (bucket.size() > 1) {
                         nextLevel.add(writeListBucket(bucket));
                     } else {
@@ -619,7 +617,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private RecordId writeBlock(@NotNull byte[] bytes, int offset, int length)
                 throws IOException {
             requireNonNull(bytes);
-            checkPositionIndexes(offset, offset + length, bytes.length);
+            checkFromToIndex(offset, offset + length, bytes.length);
             return writeOperationHandler.execute(gcGeneration, newWriteOperation(
                 RecordWriters.newBlockWriter(bytes, offset, length)));
         }
@@ -646,17 +644,24 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 threw = false;
                 return id;
             } finally {
-                Closeables.close(stream, threw);
+                try {
+                    IOUtils.close(stream);
+                } catch (IOException ex) {
+                    if (!threw) {
+                        throw ex;
+                    }
+                    LOG.warn("IOException thrown while closing stream", ex);
+                }
             }
         }
 
         private RecordId internalWriteStream(@NotNull InputStream stream) throws IOException {
             // Special case for short binaries (up to about binariesInlineThreshold, 16kB by default):
             // store them directly as small- or medium-sized value records
-                    	
+
             byte[] data = new byte[binariesInlineThreshold];
-            int n = read(stream, data, 0, data.length);
-            
+            int n = IOUtils.read(stream, data, 0, data.length);
+
             if (n < binariesInlineThreshold) {
                 return writeValueRecord(n, data);
             }
@@ -672,14 +677,14 @@ public class DefaultSegmentWriter implements SegmentWriter {
             // store the binaries as small or medium sized value records 
             
             data = Arrays.copyOf(data, Segment.MEDIUM_LIMIT);
-            n += read(stream, data, n, Segment.MEDIUM_LIMIT - n);
+            n += IOUtils.read(stream, data, n, Segment.MEDIUM_LIMIT - n);
             
             if (n < Segment.MEDIUM_LIMIT) {
                 return writeValueRecord(n, data);
             }
 
             data = Arrays.copyOf(data, Segment.MAX_SEGMENT_SIZE);
-            n += read(stream, data, n, Segment.MAX_SEGMENT_SIZE - n);
+            n += IOUtils.read(stream, data, n, Segment.MAX_SEGMENT_SIZE - n);
             long length = n;
             List<RecordId> blockIds =
                     new ArrayList<>(2 * n / SegmentStream.BLOCK_SIZE);
@@ -694,7 +699,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                     blockIds.add(new RecordId(bulkId, data.length - n + i));
                 }
 
-                n = read(stream, data, 0, data.length);
+                n = IOUtils.read(stream, data, 0, data.length);
                 length += n;
             }
 

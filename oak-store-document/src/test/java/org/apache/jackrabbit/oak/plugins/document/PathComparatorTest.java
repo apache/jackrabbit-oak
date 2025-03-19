@@ -19,12 +19,9 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static org.junit.Assert.assertEquals;
 

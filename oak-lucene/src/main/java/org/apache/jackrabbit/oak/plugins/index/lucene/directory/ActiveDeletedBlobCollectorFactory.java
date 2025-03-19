@@ -22,6 +22,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,17 +38,15 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker.Options;
@@ -218,7 +217,7 @@ public class ActiveDeletedBlobCollectorFactory {
             if (blobIdsTracked) {
                 try {
                     idTempDeleteFile = File.createTempFile("idTempDelete", null, rootDirectory);
-                    idTempDeleteWriter = Files.newWriter(idTempDeleteFile, StandardCharsets.UTF_8);
+                    idTempDeleteWriter = new BufferedWriter(new FileWriter(idTempDeleteFile, StandardCharsets.UTF_8));
                 } catch (Exception e) {
                     LOG.warn("Unable to open a writer to a temp file, will ignore tracker sync");
                     blobIdsTracked = false;
@@ -273,7 +272,7 @@ public class ActiveDeletedBlobCollectorFactory {
 
                                     lastDeletedBlobTimestamp = Math.max(lastDeletedBlobTimestamp, blobDeletionTimestamp);
 
-                                    List<String> chunkIds = CollectionUtils.toList(blobStore.resolveChunks(deletedBlobId));
+                                    List<String> chunkIds = ListUtils.toList(blobStore.resolveChunks(deletedBlobId));
                                     if (chunkIds.size() > 0) {
                                         long deleted = blobStore.countDeleteChunks(chunkIds, 0);
                                         if (deleted < 1) {
@@ -325,7 +324,11 @@ public class ActiveDeletedBlobCollectorFactory {
             long startBlobTrackerSyncTime = clock.getTime();
             // Synchronize deleted blob ids with the blob id tracker
             try {
-                Closeables.close(idTempDeleteWriter, true);
+                try {
+                    IOUtils.close(idTempDeleteWriter);
+                } catch (IOException ex) {
+                    LOG.warn("IOException thrown while closing idTempDeleteWriter", ex);
+                }
 
                 if (blobIdsTracked && numBlobsDeleted > 0) {
                     BlobTracker tracker = ((BlobTrackingStore) blobStore).getTracker();
@@ -538,7 +541,7 @@ public class ActiveDeletedBlobCollectorFactory {
 
             @Override
             public String toString() {
-                return String.format("%s|%s|%s", blobId, clock.getTime(), Joiner.on("|").join(ids));
+                return String.format("%s|%s|%s", blobId, clock.getTime(), String.join("|", ids));
             }
         }
     }

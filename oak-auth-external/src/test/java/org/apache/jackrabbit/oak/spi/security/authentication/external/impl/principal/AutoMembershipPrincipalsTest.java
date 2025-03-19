@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
@@ -98,7 +97,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
 
         Collection<Principal> principals = getAutoMembership(IDP_VALID_AM, authorizable, false);
         assertFalse(principals.isEmpty());
-        Set<Principal> expected = CollectionUtils.toSet(automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
+        Set<Principal> expected = SetUtils.toSet(automembershipGroup1.getPrincipal(), automembershipGroup2.getPrincipal());
         assertEquals(expected, principals);
 
         // change behavior of automembership-config
@@ -117,7 +116,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
     public void testGetPrincipalsMixed() throws Exception {
         Collection<Principal> principals = getAutoMembership(IDP_MIXED_AM, authorizable, false);
         assertFalse(principals.isEmpty());
-        assertEquals(Set.of(automembershipGroup1.getPrincipal()), ImmutableSet.copyOf(principals));
+        assertEquals(Set.of(automembershipGroup1.getPrincipal()), Set.copyOf(principals));
         verifyNoInteractions(authorizable, amConfig);
     }
 

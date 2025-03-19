@@ -16,14 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
@@ -286,7 +287,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
      */
     @NotNull
     private Set<String> updateMembers(boolean isRemove, @NotNull String... memberIds) throws RepositoryException {
-        Set<String> failedIds = CollectionUtils.toSet(memberIds);
+        Set<String> failedIds = SetUtils.toSet(memberIds);
         int importBehavior = UserUtil.getImportBehavior(getUserManager().getConfig());
 
         DynamicMembershipProvider dmp = getUserManager().getDynamicMembershipProvider();
@@ -297,10 +298,10 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
 
         // calculate the contentID for each memberId and remember ids that cannot be processed
-        Map<String, String> updateMap = CollectionUtils.newHashMap(memberIds.length);
+        Map<String, String> updateMap = MapUtils.newHashMap(memberIds.length);
         MembershipProvider mp = getMembershipProvider();
         for (String memberId : memberIds) {
-            if (Strings.isNullOrEmpty(memberId)) {
+            if (StringUtils.isEmpty(memberId)) {
                 throw new ConstraintViolationException("MemberId must not be null or empty.");
             }
             if (isValidMemberId(memberId, importBehavior)) {

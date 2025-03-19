@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
-import co.elastic.clients.elasticsearch._types.AcknowledgedResponseBase;
+import co.elastic.clients.elasticsearch._types.AcknowledgedResponse;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
@@ -185,12 +185,14 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             return;
         }
 
-        final CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
-        if (LOG.isDebugEnabled()) {
-            StringBuilder sb = new StringBuilder();
-            JsonpUtils.toString(request, sb);
-            LOG.debug("Creating Index with request {}", sb);
+        CreateIndexRequest request;
+        try {
+            request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
+        } catch (Exception e) {
+            LOG.error("Failed to create index {}: {}", indexName, e.toString());
+            throw e;
         }
+        LOG.debug("Creating Index with request {}", request);
         // create the new index
         try {
             final CreateIndexResponse response = esClient.create(request);
@@ -204,9 +206,33 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             if (ese.status() == 400 && ese.getMessage().contains("resource_already_exists_exception")) {
                 LOG.warn("Index {} already exists. Ignoring error", indexName);
             } else {
+                LOG.warn("Failed to create index {}", indexName, ese);
+                StringBuilder sb = new StringBuilder();
+                int old = JsonpUtils.maxToStringLength();
+                try {
+                    JsonpUtils.maxToStringLength(1_000_000);
+                    JsonpUtils.toString(request, sb);
+                    String[] array = splitLargeString(sb.toString(), 1024);
+                    for (int i = 0; i < array.length; i++) {
+                        LOG.warn("request chunk[{}] = {}", i, array[i]);
+                    }
+                } finally {
+                    JsonpUtils.maxToStringLength(old);
+                }
                 throw ese;
             }
         }
+    }
+
+    public static String[] splitLargeString(String largeString, int chunkSize) {
+        int totalChunks = (largeString.length() + chunkSize - 1) / chunkSize;
+        String[] array = new String[totalChunks];
+        for (int i = 0; i < totalChunks; i++) {
+            int start = i * chunkSize;
+            int end = Math.min(start + chunkSize, largeString.length());
+            array[i] = largeString.substring(start, end);
+        }
+        return array;
     }
 
     private void enableIndex() throws IOException {
@@ -244,13 +270,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         deleteOldIndices(client, aliasResponse.result().keySet());
     }
 
-    private void checkResponseAcknowledgement(AcknowledgedResponseBase response, String exceptionMessage) {
-        if (!response.acknowledged()) {
-            throw new IllegalStateException(exceptionMessage);
-        }
-    }
-
-    private void checkResponseAcknowledgement(CreateIndexResponse response, String exceptionMessage) {
+    private void checkResponseAcknowledgement(AcknowledgedResponse response, String exceptionMessage) {
         if (!response.acknowledged()) {
             throw new IllegalStateException(exceptionMessage);
         }

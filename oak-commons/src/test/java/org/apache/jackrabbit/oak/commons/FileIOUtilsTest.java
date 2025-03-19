@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.commons;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.lexComparator;
@@ -61,9 +60,7 @@ import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
@@ -191,8 +188,8 @@ public class FileIOUtilsTest {
             entries[i] = r.nextLong();
         }
 
-        Iterator<Long> boxedEntries = Longs.asList(entries).iterator();
-        Iterator<String> hexEntries = Iterators.transform(boxedEntries, input -> Long.toHexString(input));
+        Iterator<String> hexEntries = Arrays.stream(entries).
+                mapToObj(input -> Long.toHexString(input)).iterator();
         File f = assertWrite(hexEntries, false, numEntries);
 
         Comparator<String> prefixComparator = new Comparator<String>() {
@@ -239,7 +236,7 @@ public class FileIOUtilsTest {
         File f3 = assertWrite(added3.iterator(), false, added3.size());
 
         append(List.of(f2, f3), f1, true);
-        assertEquals(union(union(added1, added2), added3),
+        assertEquals(SetUtils.union(SetUtils.union(added1, added2), added3),
             readStringsAsSet(new FileInputStream(f1), false));
         assertTrue(!f2.exists());
         assertTrue(!f3.exists());
@@ -259,7 +256,7 @@ public class FileIOUtilsTest {
 
         append(List.of(f2, f3), f1, false);
 
-        assertEquals(union(union(added1, added2), added3),
+        assertEquals(SetUtils.union(SetUtils.union(added1, added2), added3),
             readStringsAsSet(new FileInputStream(f1), false));
         assertTrue(f2.exists());
         assertTrue(f3.exists());
@@ -295,7 +292,7 @@ public class FileIOUtilsTest {
 
         append(List.of(f2), f1, true);
 
-        assertEquals(union(added1, added2),
+        assertEquals(SetUtils.union(added1, added2),
             readStringsAsSet(new FileInputStream(f1), true));
     }
 
@@ -309,7 +306,7 @@ public class FileIOUtilsTest {
 
         append(List.of(f1), f2, true);
 
-        assertEquals(union(added1, added2), readStringsAsSet(new FileInputStream(f2), true));
+        assertEquals(SetUtils.union(added1, added2), readStringsAsSet(new FileInputStream(f2), true));
     }
 
     @Test
@@ -336,7 +333,7 @@ public class FileIOUtilsTest {
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator =
                 org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()));
 
-        assertEquals(added, CollectionUtils.toSet(iterator));
+        assertEquals(added, SetUtils.toSet(iterator));
         assertTrue(f.exists());
     }
 
@@ -348,7 +345,7 @@ public class FileIOUtilsTest {
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator =
                 org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
 
-        assertEquals(added, CollectionUtils.toSet(iterator));
+        assertEquals(added, SetUtils.toSet(iterator));
         assertTrue(!f.exists());
     }
 
@@ -360,7 +357,7 @@ public class FileIOUtilsTest {
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator = new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String>(
                 FileUtils.lineIterator(f, UTF_8.toString()), f, EscapeUtils::unescapeLineBreaks);
 
-        assertEquals(added, CollectionUtils.toSet(iterator));
+        assertEquals(added, SetUtils.toSet(iterator));
         assertTrue(!f.exists());
     }
 
@@ -375,7 +372,7 @@ public class FileIOUtilsTest {
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator = new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String>(
                 FileUtils.lineIterator(f, UTF_8.toString()), f, EscapeUtils::unescapeLineBreaks);
 
-        assertEquals(added, CollectionUtils.toSet(iterator));
+        assertEquals(added, SetUtils.toSet(iterator));
         assertTrue(!f.exists());
     }
 

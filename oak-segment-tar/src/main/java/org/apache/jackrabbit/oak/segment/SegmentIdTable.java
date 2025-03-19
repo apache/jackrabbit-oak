@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,7 +129,7 @@ public class SegmentIdTable {
 
     private synchronized Collection<SegmentId> refresh() {
         int size = references.size();
-        Map<SegmentId, WeakReference<SegmentId>> ids = CollectionUtils.newHashMap(size);
+        Map<SegmentId, WeakReference<SegmentId>> ids = MapUtils.newHashMap(size);
 
         boolean hashCollisions = false;
         boolean emptyReferences = false;

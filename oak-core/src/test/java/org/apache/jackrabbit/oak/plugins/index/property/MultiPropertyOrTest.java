@@ -25,19 +25,17 @@ import static org.junit.Assert.assertTrue;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
 import javax.jcr.query.Query;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -61,7 +59,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
                         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
                         IndexUtils.createIndexDefinition(
                                 index, "xyz", true, false,
-                                ImmutableList.of("x", "y", "z", "w"), null);
+                                List.of("x", "y", "z", "w"), null);
                     }
                 })
                 .with(new OpenSecurityProvider())
@@ -79,7 +77,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
         root.commit();
         setTraversalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [x] is not null",
-                ImmutableList.of("/a"));
+                List.of("/a"));
 
         List<String> lines = executeQuery(
                 "explain select [jcr:path] from [nt:base] where [x] is not null",
@@ -105,13 +103,13 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
 
         assertQuery(
                 "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'",
-                ImmutableList.of("/a"));
+                List.of("/a"));
         assertQuery(
                 "select [jcr:path] from [nt:base] where [x] = 'foo' OR [z] = 'foo'",
-                ImmutableList.of("/a", "/c"));
+                List.of("/a", "/c"));
         assertQuery(
                 "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'",
-                ImmutableList.of("/a", "/b"));
+                List.of("/a", "/b"));
         setTraversalEnabled(false);
     }
 
@@ -186,8 +184,8 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
     }
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
-        List<? extends ResultRow> result = CollectionUtils.toList(
-            qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
+        List<? extends ResultRow> result = ListUtils.toList(
+            qe.executeQuery(query, lang, limit, 0, new HashMap<>(),
                 NO_MAPPINGS).getRows());
 
         String measure = "";

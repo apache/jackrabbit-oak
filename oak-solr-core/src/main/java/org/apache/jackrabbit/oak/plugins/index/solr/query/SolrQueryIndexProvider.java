@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.util.List;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -28,7 +27,10 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * {@link QueryIndexProvider} for {@link SolrQueryIndex}
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
+@Deprecated(forRemoval=true, since="1.74.0")
 public class SolrQueryIndexProvider implements QueryIndexProvider {
 
     private final SolrServerProvider solrServerProvider;
@@ -51,7 +53,7 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
     @NotNull
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.of(new SolrQueryIndex(aggregator, oakSolrConfigurationProvider, solrServerProvider));
+        return List.of(new SolrQueryIndex(aggregator, oakSolrConfigurationProvider, solrServerProvider));
     }
 
 }

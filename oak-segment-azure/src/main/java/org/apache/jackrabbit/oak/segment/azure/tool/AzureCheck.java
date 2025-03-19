@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import com.google.common.io.Files;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import com.azure.storage.blob.BlobContainerClient;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
@@ -29,7 +27,9 @@ import org.apache.jackrabbit.oak.segment.tool.Check;
 import org.apache.jackrabbit.oak.segment.tool.check.CheckHelper;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.text.MessageFormat;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -55,6 +55,8 @@ public class AzureCheck {
     public static class Builder {
 
         private String path;
+
+        private String rootPrefix;
 
         private String journal;
 
@@ -84,7 +86,7 @@ public class AzureCheck {
 
         private Integer persistentCacheSizeGb;
 
-        private CloudBlobDirectory cloudBlobDirectory;
+        private BlobContainerClient blobContainerClient;
 
         private Builder() {
             // Prevent external instantiation.
@@ -98,6 +100,17 @@ public class AzureCheck {
          */
         public Builder withPath(String path) {
             this.path = requireNonNull(path);
+            return this;
+        }
+
+        /**
+         * The root prefix to an existing segment store. This parameter is required.
+         *
+         * @param rootPrefix
+         * @return this builder.
+         */
+        public Builder withRootPrefix(String rootPrefix) {
+            this.rootPrefix = rootPrefix;
             return this;
         }
 
@@ -277,12 +290,12 @@ public class AzureCheck {
 
         /**
          * The Azure blob directory to connect to.
-         * @param cloudBlobDirectory
+         * @param blobContainerClient
          *          the Azure blob directory.
          * @return this builder
          */
-        public Builder withCloudBlobDirectory(CloudBlobDirectory cloudBlobDirectory) {
-            this.cloudBlobDirectory = requireNonNull(cloudBlobDirectory);
+        public Builder withBlobContainerClient(BlobContainerClient blobContainerClient) {
+            this.blobContainerClient = requireNonNull(blobContainerClient);
             return this;
         }
 
@@ -292,7 +305,7 @@ public class AzureCheck {
          * @return an instance of {@link Runnable}.
          */
         public AzureCheck build() {
-            if (cloudBlobDirectory == null) {
+            if (blobContainerClient == null) {
                 requireNonNull(path);
             }
             return new AzureCheck(this);
@@ -318,6 +331,8 @@ public class AzureCheck {
     }
 
     private final String path;
+
+    private final String rootPrefix;
 
     private final String journal;
 
@@ -347,11 +362,11 @@ public class AzureCheck {
 
     private final Integer persistentCacheSizeGb;
 
-    private final CloudBlobDirectory cloudBlobDirectory;
-    private final AzureStorageCredentialManager azureStorageCredentialManager;
+    private final BlobContainerClient blobContainerClient;
 
     private AzureCheck(Builder builder) {
         this.path = builder.path;
+        this.rootPrefix = builder.rootPrefix;
         this.debugInterval = builder.debugInterval;
         this.checkHead = builder.checkHead;
         this.checkBinaries = builder.checkBinaries;
@@ -366,8 +381,7 @@ public class AzureCheck {
         this.failFast = builder.failFast;
         this.persistentCachePath = builder.persistentCachePath;
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
-        this.cloudBlobDirectory = builder.cloudBlobDirectory;
-        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
+        this.blobContainerClient = builder.blobContainerClient;
     }
 
     private static Integer revisionsToCheckCount(Integer revisionsCount) {
@@ -378,17 +392,23 @@ public class AzureCheck {
         StatisticsIOMonitor ioMonitor = new StatisticsIOMonitor();
         SegmentNodeStorePersistence persistence;
 
-        if (cloudBlobDirectory != null) {
-            persistence = new AzurePersistence(cloudBlobDirectory);
+        if (blobContainerClient != null) {
+            persistence = new AzurePersistence(blobContainerClient, rootPrefix);
         } else {
-            persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path, azureStorageCredentialManager);
+            persistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path);
         }
 
         if (persistentCachePath != null) {
             persistence = ToolUtils.decorateWithCache(persistence, persistentCachePath, persistentCacheSizeGb);
         }
 
-        FileStoreBuilder builder = fileStoreBuilder(Files.createTempDir()).withCustomPersistence(persistence);
+        FileStoreBuilder builder = null;
+        try {
+            builder = fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile()).withCustomPersistence(persistence);
+        } catch (IOException e) {
+            e.printStackTrace(err);
+            return 1;
+        }
 
         if (ioStatistics) {
             builder.withIOMonitor(ioMonitor);
@@ -427,8 +447,6 @@ public class AzureCheck {
         } catch (Exception e) {
             e.printStackTrace(err);
             return 1;
-        } finally {
-            azureStorageCredentialManager.close();
         }
     }
 

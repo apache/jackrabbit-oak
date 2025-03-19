@@ -20,10 +20,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
@@ -294,7 +295,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
             // are still present.
             Set<String> reconnect = getCugPathsToReconnect(before);
             if (isRoot) {
-                if (!Iterables.isEmpty(reconnect)) {
+                if (!IterableUtils.isEmpty(reconnect)) {
                     afterBuilder.setProperty(HIDDEN_NESTED_CUGS, reconnect, Type.STRINGS);
                     afterBuilder.setProperty(HIDDEN_TOP_CUG_CNT, reconnect.size());
                 }
@@ -323,7 +324,7 @@ class NestedCugHook implements PostValidationHook, CugConstants {
                 // parent CUG got removed -> no removal/reconnect required if current path is listed.
                 NodeState cugNode = diff.beforeState.getChildNode(REP_CUG_POLICY);
                 PropertyState ps = cugNode.getProperty(HIDDEN_NESTED_CUGS);
-                if (ps != null && Iterables.contains(ps.getValue(Type.STRINGS), path)) {
+                if (ps != null && IterableUtils.contains(ps.getValue(Type.STRINGS), path)) {
                     log.debug("Nested cug property containing {} has also been removed; no reconnect required.", path);
                     return true;
                 }

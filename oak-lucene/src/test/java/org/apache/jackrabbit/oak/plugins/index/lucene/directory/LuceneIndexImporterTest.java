@@ -45,8 +45,8 @@ import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STA
 import static org.junit.Assert.*;
 
 public class LuceneIndexImporterTest {
-    private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
-    private NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
+    private final NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
+    private final NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
@@ -54,7 +54,7 @@ public class LuceneIndexImporterTest {
     @Test
     public void exportAndImport() throws Exception{
         NodeState baseIndexState = idx.getNodeState();
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, baseIndexState, "/oak:index/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(rootState, baseIndexState, "/oak:index/fooIndex").build();
 
         LuceneIndexEditorContext.configureUniqueId(idx);
 

@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.guava.common.hash.HashCode;
 import org.apache.jackrabbit.guava.common.hash.Hashing;
-import org.apache.jackrabbit.guava.common.io.ByteSource;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -53,15 +53,6 @@ public abstract class AbstractBlob implements Blob {
             .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
             .get();
 
-    private static ByteSource supplier(final Blob blob) {
-        return new ByteSource() {
-            @Override
-            public InputStream openStream() throws IOException {
-                return blob.getNewStream();
-            }
-        };
-    }
-
     public static boolean equal(Blob a, Blob b) {
         // shortcut: first compare lengths if known in advance
         long al = a.length();
@@ -84,7 +75,7 @@ public abstract class AbstractBlob implements Blob {
         }
 
         try {
-            return supplier(a).contentEquals(supplier(b));
+            return IOUtils.contentEquals(a.getNewStream(), b.getNewStream());
         } catch (IOException e) {
             throw new IllegalStateException("Blob equality check failed", e);
         }
@@ -129,7 +120,7 @@ public abstract class AbstractBlob implements Blob {
         // Blobs are immutable so we can safely cache the hash
         if (hashCode == null) {
             try {
-                hashCode = supplier(this).hash(Hashing.sha256());
+                hashCode = Hashing.sha256().hashBytes(this.getNewStream().readAllBytes());
             } catch (IOException e) {
                 throw new IllegalStateException("Hash calculation failed", e);
             }

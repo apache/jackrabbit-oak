@@ -28,11 +28,11 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.FULL_MATCH;
@@ -65,7 +65,7 @@ public final class MountInfo implements Mount {
         this.readOnly = readOnly;
         this.pathFragmentName = "oak:mount-" + name;
         this.includedPaths = cleanCopy(includedPaths);
-        this.pathsSupportingFragments = ImmutableSet.copyOf(pathsSupportingFragments);
+        this.pathsSupportingFragments = Collections.unmodifiableSet(SetUtils.toLinkedSet(pathsSupportingFragments));
     }
 
     @Override
@@ -140,7 +140,7 @@ public final class MountInfo implements Mount {
 
     private static TreeSet<String> cleanCopy(Collection<String> includedPaths) {
         // ensure that paths don't have trailing slashes - this triggers an assertion in PathUtils isAncestor
-        return CollectionUtils.toTreeSet(transform(includedPaths, SANITIZE_PATH::apply));
+        return SetUtils.toTreeSet(IterableUtils.transform(includedPaths, SANITIZE_PATH));
     }
 
     public Set<String> getPathsSupportingFragments() {

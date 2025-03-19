@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.cow;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -57,7 +57,7 @@ public class BranchNodeStore implements NodeStore, Observable {
 
     public BranchNodeStore(NodeStore nodeStore) throws CommitFailedException {
         this.nodeStore = nodeStore;
-        this.inheritedCheckpoints = CollectionUtils.toList(nodeStore.checkpoints());
+        this.inheritedCheckpoints = ListUtils.toList(nodeStore.checkpoints());
         this.checkpointMapping = new ConcurrentHashMap<>();
 
         String cp = nodeStore.checkpoint(CHECKPOINT_LIFETIME, singletonMap("type", "copy-on-write"));
@@ -126,7 +126,7 @@ public class BranchNodeStore implements NodeStore, Observable {
     @Override
     public Iterable<String> checkpoints() {
         List<String> result = new ArrayList<>(inheritedCheckpoints);
-        result.retainAll(CollectionUtils.toList(nodeStore.checkpoints()));
+        result.retainAll(ListUtils.toList(nodeStore.checkpoints()));
 
         checkpointMapping.entrySet().stream()
                 .filter(e -> memoryNodeStore.listCheckpoints().contains(e.getValue()))

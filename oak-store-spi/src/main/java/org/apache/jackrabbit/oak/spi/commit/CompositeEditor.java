@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static java.util.Arrays.asList;
-import static java.util.Objects.requireNonNull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -26,7 +23,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -35,26 +31,25 @@ import java.util.List;
 public class CompositeEditor implements Editor {
 
     @Nullable
-    public static Editor compose(@NotNull Collection<? extends Editor> editors) {
-        requireNonNull(editors);
+    public static Editor compose(@NotNull List<? extends Editor> editors) {
         switch (editors.size()) {
-        case 0:
-            return null;
-        case 1:
-            return editors.iterator().next();
-        default:
-            return new CompositeEditor(editors);
+            case 0:
+                return null;
+            case 1:
+                return editors.get(0);
+            default:
+                return new CompositeEditor(editors);
         }
     }
 
-    private final Collection<? extends Editor> editors;
+    private final List<? extends Editor> editors;
 
-    public CompositeEditor(Collection<? extends Editor> editors) {
+    public CompositeEditor(List<? extends Editor> editors) {
         this.editors = editors;
     }
 
     public CompositeEditor(Editor... editors) {
-        this(asList(editors));
+        this(List.of(editors));
     }
 
     @Override
@@ -73,28 +68,30 @@ public class CompositeEditor implements Editor {
         }
     }
 
-
     @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
-        for (Editor editor : editors) {
-            editor.propertyAdded(after);
+        // Performance critical code, avoid creating an iterator object
+        for (int i = 0; i < editors.size(); i++) {
+            editors.get(i).propertyAdded(after);
         }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
-        for (Editor editor : editors) {
-            editor.propertyChanged(before, after);
+        // Performance critical code, avoid creating an iterator object
+        for (int i = 0; i < editors.size(); i++) {
+            editors.get(i).propertyChanged(before, after);
         }
     }
 
     @Override
     public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
-        for (Editor editor : editors) {
-            editor.propertyDeleted(before);
+        // Performance critical code, avoid creating an iterator object
+        for (int i = 0; i < editors.size(); i++) {
+            editors.get(i).propertyDeleted(before);
         }
     }
 
@@ -102,8 +99,9 @@ public class CompositeEditor implements Editor {
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
         List<Editor> list = new ArrayList<>(editors.size());
-        for (Editor editor : editors) {
-            Editor child = editor.childNodeAdded(name, after);
+        // Performance critical code, avoid creating an iterator object
+        for (int i = 0; i < editors.size(); i++) {
+            Editor child = editors.get(i).childNodeAdded(name, after);
             if (child != null) {
                 list.add(child);
             }
@@ -112,12 +110,12 @@ public class CompositeEditor implements Editor {
     }
 
     @Override
-    public Editor childNodeChanged(
-            String name, NodeState before, NodeState after)
+    public Editor childNodeChanged(String name, NodeState before, NodeState after)
             throws CommitFailedException {
         List<Editor> list = new ArrayList<>(editors.size());
-        for (Editor editor : editors) {
-            Editor child = editor.childNodeChanged(name, before, after);
+        // Performance critical code, avoid creating an iterator object
+        for (int i = 0; i < editors.size(); i++) {
+            Editor child = editors.get(i).childNodeChanged(name, before, after);
             if (child != null) {
                 list.add(child);
             }
@@ -129,13 +127,13 @@ public class CompositeEditor implements Editor {
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
         List<Editor> list = new ArrayList<>(editors.size());
-        for (Editor editor : editors) {
-            Editor child = editor.childNodeDeleted(name, before);
+        // Performance critical code, avoid creating an iterator object
+        for (int i = 0; i < editors.size(); i++) {
+            Editor child = editors.get(i).childNodeDeleted(name, before);
             if (child != null) {
                 list.add(child);
             }
         }
         return compose(list);
     }
-
 }

@@ -32,7 +32,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -226,10 +225,10 @@ public class MemoryDocumentStore implements DocumentStore {
         Lock lock = rwLock.writeLock();
         lock.lock();
         try {
-            Maps.filterValues(map, doc -> {
-                    Long modified = Utils.asLong((Number) doc.get(indexedProperty));
-                    return startValue < modified && modified < endValue;
-                }).clear();
+            map.entrySet().removeIf(entry -> {
+                Long modified = Utils.asLong((Number) entry.getValue().get(indexedProperty));
+                return startValue < modified && modified < endValue;
+            });
         } finally {
             lock.unlock();
         }

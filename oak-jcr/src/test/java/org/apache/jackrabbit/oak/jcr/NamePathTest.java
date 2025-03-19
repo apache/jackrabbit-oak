@@ -32,8 +32,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.junit.After;
@@ -62,7 +60,7 @@ public class NamePathTest {
 
     @Test
     public void testSlashInPath() throws RepositoryException {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "//jcr:content",
                 "//content"
         );
@@ -71,7 +69,7 @@ public class NamePathTest {
 
     @Test
     public void testSlashInName() throws RepositoryException {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "/jcr:content",
                 "/content",
                 "jcr:con/ent",
@@ -83,7 +81,7 @@ public class NamePathTest {
 
     @Test
     public void testColonInPath() throws RepositoryException {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "/jcr:con:ent"
         );
         testPaths(paths);
@@ -91,7 +89,7 @@ public class NamePathTest {
 
     @Test
     public void testColonInName() throws RepositoryException {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "jcr:con:ent"
         );
         testNames(names);
@@ -99,7 +97,7 @@ public class NamePathTest {
 
     @Test
     public void testSquareBracketsInPath() throws RepositoryException {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "//jcr:content",
                 "/jcr:con]ent",
                 "/con]ent"
@@ -109,7 +107,7 @@ public class NamePathTest {
 
     @Test
     public void testSquareBracketsInName() throws RepositoryException {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "jcr:content[1]",
                 "content[1]",
                 "jcr:conten[t]",
@@ -135,7 +133,7 @@ public class NamePathTest {
 
     @Test
     public void testAsteriskInPath() throws RepositoryException {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "/jcr:con*ent",
                 "/jcr:*ontent",
                 "/jcr:conten*",
@@ -148,7 +146,7 @@ public class NamePathTest {
 
     @Test
     public void testAsteriskInName() throws RepositoryException {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "jcr:con*ent",
                 "jcr:*ontent",
                 "jcr:conten*",
@@ -161,7 +159,7 @@ public class NamePathTest {
 
     @Test
     public void testVerticalLineInPath() throws Exception {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "/jcr:con|ent",
                 "/jcr:|ontent",
                 "/jcr:conten|",
@@ -174,7 +172,7 @@ public class NamePathTest {
 
     @Test
     public void testVerticalLineInName() throws Exception {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "jcr:con|ent",
                 "jcr:|ontent",
                 "jcr:conten|",
@@ -187,7 +185,7 @@ public class NamePathTest {
 
     @Test
     public void testWhitespaceInPath() throws Exception {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "/content ",
                 "/ content",
                 "/content\t",
@@ -201,7 +199,7 @@ public class NamePathTest {
 
     @Test
     public void testWhitespaceInName() throws Exception {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "jcr:content ",
                 "content ",
                 " content",

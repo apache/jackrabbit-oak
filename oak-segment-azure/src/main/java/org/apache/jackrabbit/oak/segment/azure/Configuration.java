@@ -27,7 +27,7 @@ import static org.apache.jackrabbit.oak.segment.azure.Configuration.PID;
         pid = {PID},
         name = "Apache Jackrabbit Oak Azure Segment Store Service",
         description = "Azure backend for the Oak Segment Node Store")
-@interface Configuration {
+public @interface Configuration {
 
     String PID = "org.apache.jackrabbit.oak.segment.azure.AzureSegmentStoreService";
 

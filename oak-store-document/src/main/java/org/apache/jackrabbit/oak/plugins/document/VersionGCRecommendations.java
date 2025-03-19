@@ -104,10 +104,11 @@ public class VersionGCRecommendations {
      * @param gcMonitor          monitor class for messages
      * @param fullGCEnabled      whether fullGC is enabled or not
      * @param isFullGCDryRun     whether fullGC is running in dryRun mode or not
+     * @param fullGcMaxAgeMs the maximum age for revisions to be collected by fullGC
      */
     VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, boolean checkpointCleanup, Clock clock,
                                     VersionGCSupport vgc, VersionGCOptions options, GCMonitor gcMonitor,
-                                    boolean fullGCEnabled, boolean isFullGCDryRun) {
+                                    boolean fullGCEnabled, boolean isFullGCDryRun, long fullGcMaxAgeMs) {
         boolean ignoreDueToCheckPoint;
         boolean ignoreFullGCDueToCheckPoint;
         long deletedOnceCount = 0;
@@ -185,9 +186,11 @@ public class VersionGCRecommendations {
             }
         }
 
+        TimeInterval keepFullGc = new TimeInterval(clock.getTime() - fullGcMaxAgeMs, Long.MAX_VALUE);
+
         TimeInterval scopeFullGC = new TimeInterval(isFullGCDryRun ? oldestModifiedDryRunDocTimeStamp.get() :
                 oldestModifiedDocTimeStamp.get(), MAX_VALUE);
-        scopeFullGC = scopeFullGC.notLaterThan(keep.fromMs);
+        scopeFullGC = scopeFullGC.notLaterThan(keepFullGc.fromMs);
 
         suggestedIntervalMs = (long) settings.get(SETTINGS_COLLECTION_REC_INTERVAL_PROP);
         if (suggestedIntervalMs > 0) {
@@ -248,7 +251,7 @@ public class VersionGCRecommendations {
         this.scopeFullGC = scopeFullGC;
         this.fullGCId = isFullGCDryRun ? oldestModifiedDryRunDocId : oldestModifiedDocId;
         this.scopeIsComplete = scope.toMs >= keep.fromMs;
-        this.fullGCScopeIsComplete = scopeFullGC.toMs >= keep.fromMs;
+        this.fullGCScopeIsComplete = scopeFullGC.toMs >= keepFullGc.fromMs;
         this.maxCollect = collectLimit;
         this.suggestedIntervalMs = suggestedIntervalMs;
         this.deleteCandidateCount = deletedOnceCount;

@@ -26,9 +26,9 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.peekingIterator;
 import static java.util.Arrays.sort;
 
@@ -79,11 +78,11 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     public RevisionVector(@NotNull Iterable<Revision> revisions) {
-        this(toArray(revisions, Revision.class), true, true);
+        this(IterableUtils.toArray(revisions, Revision.class), true, true);
     }
 
     public RevisionVector(@NotNull Set<Revision> revisions) {
-        this(toArray(revisions, Revision.class), false, true);
+        this(IterableUtils.toArray(revisions, Revision.class), false, true);
     }
 
     /**
@@ -187,7 +186,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
                 break;
             }
         }
-        return new RevisionVector(toArray(pmin, Revision.class), false, false);
+        return new RevisionVector(IterableUtils.toArray(pmin, Revision.class), false, false);
     }
 
     /**
@@ -223,7 +222,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
         }
         // add remaining
         Iterators.addAll(pmax, it);
-        return new RevisionVector(toArray(pmax, Revision.class), false, false);
+        return new RevisionVector(IterableUtils.toArray(pmax, Revision.class), false, false);
     }
 
     /**
@@ -243,7 +242,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
                 diff.add(r);
             }
         }
-        return new RevisionVector(toArray(diff, Revision.class), false, false);
+        return new RevisionVector(IterableUtils.toArray(diff, Revision.class), false, false);
     }
 
     /**
@@ -307,7 +306,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      */
     public Revision getRevision(int clusterId) {
         for (Revision r : revisions) {
-            int cmp = Ints.compare(r.getClusterId(), clusterId);
+            int cmp = Integer.compare(r.getClusterId(), clusterId);
             if (cmp == 0) {
                 return r;
             } else if (cmp > 0) {
@@ -449,7 +448,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
                 return 1;
             }
             Revision otherRev = it.next();
-            int cmp = -Ints.compare(r.getClusterId(), otherRev.getClusterId());
+            int cmp = -Integer.compare(r.getClusterId(), otherRev.getClusterId());
             if (cmp != 0) {
                 return cmp;
             }
@@ -526,7 +525,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
         if (revisions.length < 2) {
             return;
         }
-        Set<Integer> known = CollectionUtils.newHashSet(revisions.length);
+        Set<Integer> known = SetUtils.newHashSet(revisions.length);
         for (Revision revision : revisions) {
             if (!known.add(revision.getClusterId())) {
                 throw new IllegalArgumentException(
@@ -544,7 +543,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
 
         @Override
         public int compare(Revision o1, Revision o2) {
-            return Ints.compare(o1.getClusterId(), o2.getClusterId());
+            return Integer.compare(o1.getClusterId(), o2.getClusterId());
         }
     }
 }

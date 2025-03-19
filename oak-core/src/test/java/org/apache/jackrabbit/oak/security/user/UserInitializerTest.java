@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -27,6 +26,8 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -48,7 +49,6 @@ import org.junit.Test;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
@@ -135,14 +135,14 @@ public class UserInitializerTest extends AbstractSecurityTest {
         Iterable<String> declaringNtNames = TreeUtil.getStrings(princName, IndexConstants.DECLARING_NODE_TYPES);
         assertArrayEquals(
                 new String[]{UserConstants.NT_REP_AUTHORIZABLE},
-                Iterables.toArray(declaringNtNames, String.class));
+                IterableUtils.toArray(declaringNtNames, String.class));
 
         Tree repMembers = oakIndex.getChild("repMembers");
         assertIndexDefinition(repMembers, UserConstants.REP_MEMBERS, false);
         declaringNtNames = TreeUtil.getStrings(repMembers, IndexConstants.DECLARING_NODE_TYPES);
         assertArrayEquals(
                 new String[]{UserConstants.NT_REP_MEMBER_REFERENCES},
-                Iterables.toArray(declaringNtNames, String.class));
+                IterableUtils.toArray(declaringNtNames, String.class));
     }
 
     private static void assertIndexDefinition(Tree tree, String propName, boolean isUnique) {
@@ -151,7 +151,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
         assertArrayEquals(
                 propName, new String[]{propName},
-                Iterables.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
+                IterableUtils.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
     }
 
     /**
@@ -173,7 +173,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
                 .with(sp)
                 .createContentRepository();
 
-        try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
+        try (ContentSession cs = Java23Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
             Root root = cs.getLatestRoot();
             UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
@@ -210,7 +210,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
                 .with(sp)
                 .createContentRepository();
 
-        try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
+        try (ContentSession cs = Java23Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
             Root root = cs.getLatestRoot();
             UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);

@@ -28,7 +28,7 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +93,7 @@ public final class GraphLoader {
     public static Map<UUID, List<UUID>> parseGraph(Buffer buffer) {
         int nEntries = buffer.getInt(buffer.limit() - 12);
 
-        Map<UUID, List<UUID>> graph = CollectionUtils.newHashMap(nEntries);
+        Map<UUID, List<UUID>> graph = MapUtils.newHashMap(nEntries);
 
         for (int i = 0; i < nEntries; i++) {
             long msb = buffer.getLong();

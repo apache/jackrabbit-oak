@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.junit.Assert.assertTrue;
 
@@ -33,7 +34,7 @@ public class UserImporterMembershipBesteffortTest extends UserImporterMembership
 
     @Test
     public void testUnknownMember() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, unknownContentId)));
         importer.processReferences();
 
         assertTrue(groupTree.hasProperty(REP_MEMBERS));
@@ -41,7 +42,7 @@ public class UserImporterMembershipBesteffortTest extends UserImporterMembership
 
     @Test
     public void testMixedMembers() throws Exception {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, unknownContentId, knownMemberContentId)));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, unknownContentId, knownMemberContentId)));
         importer.processReferences();
 
         assertTrue(groupTree.hasProperty(REP_MEMBERS));

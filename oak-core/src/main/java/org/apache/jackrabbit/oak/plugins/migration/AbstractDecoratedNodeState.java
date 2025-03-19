@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
@@ -96,8 +97,8 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     protected static PropertyState fixChildOrderPropertyState(NodeState nodeState, PropertyState propertyState) {
         if (propertyState != null && OAK_CHILD_ORDER.equals(propertyState.getName())) {
             final Collection<String> childNodeNames = new ArrayList<String>();
-            Iterables.addAll(childNodeNames, nodeState.getChildNodeNames());
-            final Iterable<String> values = Iterables.filter(
+            nodeState.getChildNodeNames().forEach(childNodeNames::add);
+            final Iterable<String> values = IterableUtils.filter(
                     propertyState.getValue(Type.NAMES), x -> childNodeNames.contains(x));
             return PropertyStates.createProperty(OAK_CHILD_ORDER, values, Type.NAMES);
         }
@@ -137,7 +138,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @Override
     @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        final Iterable<ChildNodeEntry> transformed = Iterables.transform(delegate.getChildNodeEntries(), childNodeEntry -> {
+        final Iterable<ChildNodeEntry> transformed = IterableUtils.transform(delegate.getChildNodeEntries(), childNodeEntry -> {
             if (childNodeEntry != null) {
                 final String name = childNodeEntry.getName();
                 final NodeState nodeState = decorate(name, childNodeEntry.getNodeState());
@@ -147,7 +148,7 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
             }
             return null;
         });
-        return Iterables.filter(transformed, x -> x != null);
+        return IterableUtils.filter(transformed, x -> x != null);
     }
 
     @Override
@@ -168,10 +169,10 @@ public abstract class AbstractDecoratedNodeState extends AbstractNodeState {
     @Override
     @NotNull
     public Iterable<? extends PropertyState> getProperties() {
-        final Iterable<PropertyState> propertyStates = Iterables.transform(
+        final Iterable<PropertyState> propertyStates = IterableUtils.transform(
                 delegate.getProperties(),
                 propertyState -> decorate(propertyState));
-        return Iterables.filter(Iterables.concat(propertyStates, getNewPropertyStates()), x -> x != null);
+        return IterableUtils.filter(IterableUtils.chainedIterable(propertyStates, getNewPropertyStates()), Objects::nonNull);
     }
 
     /**

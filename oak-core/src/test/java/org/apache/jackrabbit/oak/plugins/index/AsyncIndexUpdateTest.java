@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,7 +61,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate.AsyncIndexStats;
@@ -97,11 +98,6 @@ import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import ch.qos.logback.classic.Level;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
@@ -120,7 +116,7 @@ public class AsyncIndexUpdateTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value) {
-        return CollectionUtils.toSet(lookup.query(FilterImpl.newTestInstance(), name,
+        return SetUtils.toSet(lookup.query(FilterImpl.newTestInstance(), name,
                 PropertyValues.newString(value)));
     }
 
@@ -211,10 +207,10 @@ public class AsyncIndexUpdateTest {
 
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         assertEquals(Set.of("testRoot"), find(lookup, "foo", "abc"));
-        assertEquals(ImmutableSet.<String> of(), find(lookup, "foo", "def"));
-        assertEquals(ImmutableSet.<String> of(), find(lookup, "foo", "ghi"));
+        assertEquals(Set.<String> of(), find(lookup, "foo", "def"));
+        assertEquals(Set.<String> of(), find(lookup, "foo", "ghi"));
 
-        assertEquals(ImmutableSet.<String> of(), find(lookup, "bar", "abc"));
+        assertEquals(Set.<String> of(), find(lookup, "bar", "abc"));
         assertEquals(Set.of("testRoot"), find(lookup, "bar", "def"));
         assertEquals(Set.of("testSecond"), find(lookup, "bar", "ghi"));
 
@@ -268,7 +264,7 @@ public class AsyncIndexUpdateTest {
                 .getChildNode("newchild").getChildNode("other"));
         assertEquals(Set.of("testChild"),
                 find(lookupChild, "foo", "xyz"));
-        assertEquals(ImmutableSet.<String> of(),
+        assertEquals(Set.<String> of(),
                 find(lookupChild, "foo", "abc"));
     }
 
@@ -524,7 +520,7 @@ public class AsyncIndexUpdateTest {
     // OAK-1784
     @Test
     public void failOnConflict() throws Exception {
-        final Map<Thread, Semaphore> locks = Maps.newIdentityHashMap();
+        final Map<Thread, Semaphore> locks = new IdentityHashMap<>();
         NodeStore store = new MemoryNodeStore() {
             @NotNull
             @Override
@@ -883,7 +879,7 @@ public class AsyncIndexUpdateTest {
                 mns.listCheckpoints().size() == 1);
         assertTrue(
                 "Expecting one temp checkpoint",
-                CollectionUtils.toSet(
+                SetUtils.toSet(
                         store.getRoot().getChildNode(ASYNC)
                                 .getStrings("async-temp")).size() == 1);
 
@@ -896,7 +892,7 @@ public class AsyncIndexUpdateTest {
                 mns.listCheckpoints().size() == 2);
         assertTrue(
                 "Expecting two temp checkpoints",
-                CollectionUtils.toSet(
+                SetUtils.toSet(
                         store.getRoot().getChildNode(ASYNC)
                                 .getStrings("async-temp")).size() == 2);
 
@@ -1036,8 +1032,7 @@ public class AsyncIndexUpdateTest {
                         .getString(missingAsync));
 
         // second run, simulate an index going away
-        provider = CompositeIndexEditorProvider
-                .compose(new ArrayList<IndexEditorProvider>());
+        provider = CompositeIndexEditorProvider.compose();
         async = new AsyncIndexUpdate(missingAsync, store, provider);
         async.run();
         assertTrue(async.isFailing());
@@ -1087,7 +1082,7 @@ public class AsyncIndexUpdateTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // second run, simulate an index going away
-        provider = CompositeIndexEditorProvider.compose(new ArrayList<IndexEditorProvider>());
+        provider = CompositeIndexEditorProvider.compose();
         async = new AsyncIndexUpdate(missingAsyncName, store, provider);
         async.run();
         assertTrue(async.isFailing());
@@ -1226,7 +1221,7 @@ public class AsyncIndexUpdateTest {
                 ASYNC);
         assertEquals(firstCp, asyncNode.getString("async-slow"));
         assertEquals(secondCp, asyncNode.getString("async"));
-        assertFalse(CollectionUtils.toSet(asyncNode.getStrings("async-temp")).contains(
+        assertFalse(SetUtils.toSet(asyncNode.getStrings("async-temp")).contains(
                 firstCp));
 
         NodeState indexNode = store.getRoot().getChildNode(
@@ -1882,7 +1877,7 @@ public class AsyncIndexUpdateTest {
         AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         CollectingValidatorProvider v = new CollectingValidatorProvider();
 
-        async.setValidatorProviders(ImmutableList.<ValidatorProvider>of(v));
+        async.setValidatorProviders(List.of(v));
         async.run();
 
         assertFalse(v.visitedPaths.isEmpty());

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.ByteArrayInputStream;
@@ -43,7 +42,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
@@ -244,7 +242,7 @@ public class BundlingNodeTest extends AbstractTest<BundlingNodeTest.TestContext>
         }
         commentElements.add(contentNodeType);
         commentElements.add(bundlingMode.name());
-        return Joiner.on(',').join(commentElements);
+        return String.join(",", commentElements);
     }
 
     protected class TestContext {

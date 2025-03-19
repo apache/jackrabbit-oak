@@ -50,8 +50,7 @@ import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
 
@@ -62,6 +61,7 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -130,6 +130,7 @@ import org.slf4j.LoggerFactory;
         configurationPid = {Configuration.PID})
 public class DocumentNodeStoreService {
 
+    public static final boolean DEFAULT_INVISIBLE_FOR_DISCOVERY = false;
     private static final long MB = 1024 * 1024;
     static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     static final int DEFAULT_CACHE = (int) (DEFAULT_MEMORY_CACHE_SIZE / MB);
@@ -164,6 +165,11 @@ public class DocumentNodeStoreService {
      * Revisions older than this time would be garbage collected
      */
     static final long DEFAULT_VER_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
+
+    /**
+     * Nodes older than this time would be garbage collected by Full GC
+     */
+    static final long DEFAULT_FULL_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
 
 
     /**
@@ -505,6 +511,7 @@ public class DocumentNodeStoreService {
                         config.childrenCachePercentage(),
                         config.diffCachePercentage(),
                         config.prevNoPropCachePercentage()).
+                setClusterInvisible(config.invisibleForDiscovery()).
                 setCacheSegmentCount(config.cacheSegmentCount()).
                 setCacheStackMoveDistance(config.cacheStackMoveDistance()).
                 setBundlingDisabled(config.bundlingDisabled()).
@@ -523,6 +530,7 @@ public class DocumentNodeStoreService {
                 setFullGCExcludePaths(config.fullGCExcludePaths()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
                 setFullGCMode(config.fullGCMode()).
+                setFullGcMaxAgeMillis(TimeUnit.SECONDS.toMillis(config.fullGcMaxAgeInSecs())).
                 setFullGCBatchSize(config.fullGCBatchSize()).
                 setFullGCProgressSize(config.fullGCProgressSize()).
                 setFullGCDelayFactor(config.fullGCDelayFactor()).
@@ -565,10 +573,10 @@ public class DocumentNodeStoreService {
                 setJournalGCMaxAge(config.journalGCMaxAge()).
                 setNodeCachePathPredicate(createCachePredicate());
 
-        if (!Strings.isNullOrEmpty(persistentCache)) {
+        if (!StringUtils.isEmpty(persistentCache)) {
             builder.setPersistentCache(persistentCache);
         }
-        if (!Strings.isNullOrEmpty(journalCache)) {
+        if (!StringUtils.isEmpty(journalCache)) {
             builder.setJournalCache(journalCache);
         }
 
@@ -602,7 +610,7 @@ public class DocumentNodeStoreService {
 
         Set<Path> paths = new HashSet<>();
         for (String p : config.persistentCacheIncludes()) {
-            p = p != null ? Strings.emptyToNull(p.trim()) : null;
+            p = p != null ? org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(p.trim()) : null;
             if (p != null) {
                 paths.add(Path.fromString(p));
             }
@@ -621,7 +629,7 @@ public class DocumentNodeStoreService {
     }
 
     private boolean isNodeStoreProvider() {
-        return !Strings.isNullOrEmpty(config.role());
+        return !StringUtils.isEmpty(config.role());
     }
 
     private boolean isContinuousRevisionGC() {
@@ -634,7 +642,7 @@ public class DocumentNodeStoreService {
     private String getVersionGCExpression() {
         String defaultExpr = CONTINUOUS_RGC_EXPR;
         String expr = config.versionGCExpression();
-        if (Strings.isNullOrEmpty(expr)) {
+        if (StringUtils.isEmpty(expr)) {
             expr = defaultExpr;
         }
         // validate expression
@@ -966,7 +974,7 @@ public class DocumentNodeStoreService {
 
     private String resolvePath(String value, String defaultValue) {
         String path = value;
-        if (Strings.isNullOrEmpty(value)) {
+        if (StringUtils.isEmpty(value)) {
             path = defaultValue;
         }
         if ("-".equals(path)) {
@@ -979,7 +987,7 @@ public class DocumentNodeStoreService {
 
     private String getRepositoryHome() {
         String repoHome = config.repository_home();
-        if (Strings.isNullOrEmpty(repoHome)) {
+        if (StringUtils.isEmpty(repoHome)) {
             repoHome = DEFAULT_PROP_HOME;
         }
         return repoHome;

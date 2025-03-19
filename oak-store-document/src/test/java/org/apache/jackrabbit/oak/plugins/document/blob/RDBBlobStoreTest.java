@@ -47,9 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 /**
  * Tests the RDBBlobStore implementation.
  */
@@ -199,7 +196,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
         // Metadata row should not have been touched
         Assert.assertFalse("entry was cleaned although it shouldn't have",
-                blobStore.deleteChunks(ImmutableList.of(id), beforeUpdateTs));
+                blobStore.deleteChunks(List.of(id), beforeUpdateTs));
         // Actual data row should still be present
         Assert.assertNotNull(RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest));
     }
@@ -228,7 +225,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         byte[] digest2 = getDigest(data2);
         RDBBlobStoreFriend.storeBlock(blobStore, digest2, 0, data2);
 
-        Assert.assertEquals("meta entry was not removed", 1, blobStore.countDeleteChunks(ImmutableList.of(id1), now));
+        Assert.assertEquals("meta entry was not removed", 1, blobStore.countDeleteChunks(List.of(id1), now));
         Assert.assertFalse("data entry was not removed", RDBBlobStoreFriend.isDataEntryPresent(blobStore, digest1));
     }
 

@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -30,6 +29,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.core.TestPermissionProvider.NAME_ACCESSIBLE;
 import static org.apache.jackrabbit.oak.core.TestPermissionProvider.NAME_NON_ACCESSIBLE;
@@ -245,20 +246,20 @@ public class SecureNodeBuilderTest {
 
     @Test
     public void testGetProperties() {
-        assertEquals(1, Iterables.size(secureNodeBuilder.getProperties()));
-        assertEquals(1, Iterables.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
-        assertEquals(1, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
-        assertEquals(0, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
+        assertEquals(1, IterableUtils.size(secureNodeBuilder.getProperties()));
+        assertEquals(1, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
+        assertEquals(1, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
     }
 
     @Test
     public void testGetPropertiesCanReadProperties() {
         try {
             permissionProvider.canReadProperties = true;
-            assertEquals(2, Iterables.size(secureNodeBuilder.getProperties()));
-            assertEquals(2, Iterables.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
-            assertEquals(2, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
-            assertEquals(0, Iterables.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
+            assertEquals(2, IterableUtils.size(secureNodeBuilder.getProperties()));
+            assertEquals(2, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_ACCESSIBLE).getProperties()));
+            assertEquals(2, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_NON_ACCESSIBLE).getProperties()));
+            assertEquals(0, IterableUtils.size(secureNodeBuilder.getChildNode(NAME_NON_EXISTING).getProperties()));
         } finally {
             permissionProvider.canReadProperties = false;
         }
@@ -266,14 +267,14 @@ public class SecureNodeBuilderTest {
 
     @Test
     public void testGetPropertiesAfterSet() {
-        secureNodeBuilder.setProperty(PropertyStates.createProperty("another", ImmutableList.of("v", "v2"), Type.STRINGS));
-        assertEquals(2, Iterables.size(secureNodeBuilder.getProperties()));
+        secureNodeBuilder.setProperty(PropertyStates.createProperty("another", List.of("v", "v2"), Type.STRINGS));
+        assertEquals(2, IterableUtils.size(secureNodeBuilder.getProperties()));
     }
 
     @Test
     public void testGetPropertiesAfterRemoval() {
         secureNodeBuilder.removeProperty("prop");
-        assertEquals(0, Iterables.size(secureNodeBuilder.getProperties()));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getProperties()));
     }
 
     @Test
@@ -291,7 +292,7 @@ public class SecureNodeBuilderTest {
 
     @Test
     public void testGetBooleanTypeBooleans() {
-        secureNodeBuilder.setProperty("booleans", ImmutableList.of(true, false), Type.BOOLEANS);
+        secureNodeBuilder.setProperty("booleans", List.of(true, false), Type.BOOLEANS);
         assertFalse(secureNodeBuilder.getBoolean("booleans"));
     }
 
@@ -304,7 +305,7 @@ public class SecureNodeBuilderTest {
 
     @Test
     public void testGetStringTypeStrings() {
-        secureNodeBuilder.setProperty("strings", ImmutableList.of("a", "b"), Type.STRINGS);
+        secureNodeBuilder.setProperty("strings", List.of("a", "b"), Type.STRINGS);
         assertNull(secureNodeBuilder.getString("strings"));
     }
 
@@ -323,7 +324,7 @@ public class SecureNodeBuilderTest {
 
     @Test
     public void testGetNameTypeNames() {
-        secureNodeBuilder.setProperty("names", ImmutableList.of("a", "b"), Type.NAMES);
+        secureNodeBuilder.setProperty("names", List.of("a", "b"), Type.NAMES);
         assertNull(secureNodeBuilder.getName("names"));
     }
 
@@ -335,22 +336,22 @@ public class SecureNodeBuilderTest {
 
     @Test
     public void testGetNames() {
-        assertEquals(0, Iterables.size(secureNodeBuilder.getNames("prop")));
-        assertEquals(0, Iterables.size(secureNodeBuilder.getNames(NAME_NON_EXISTING)));
-        assertEquals(0, Iterables.size(secureNodeBuilder.getNames(NAME_NON_ACCESSIBLE)));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getNames("prop")));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getNames(NAME_NON_EXISTING)));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getNames(NAME_NON_ACCESSIBLE)));
     }
 
     @Test
     public void testGetNamesTypeNames() {
-        Iterable<String> names = ImmutableList.of("a", "b");
+        Iterable<String> names = List.of("a", "b");
         secureNodeBuilder.setProperty("names", names, Type.NAMES);
-        assertTrue(Iterables.elementsEqual(names, secureNodeBuilder.getNames("names")));
+        assertTrue(IterableUtils.elementsEqual(names, secureNodeBuilder.getNames("names")));
     }
 
     @Test
     public void testGetNamesTypeName() {
         secureNodeBuilder.setProperty("name", "value", Type.NAME);
-        assertEquals(0, Iterables.size(secureNodeBuilder.getNames("name")));
+        assertEquals(0, IterableUtils.size(secureNodeBuilder.getNames("name")));
     }
 
     @Test

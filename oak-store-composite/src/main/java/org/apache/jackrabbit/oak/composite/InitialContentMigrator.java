@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
@@ -43,6 +42,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.CLUSTER_CONFIG_NODE;
 
@@ -82,7 +83,8 @@ public class InitialContentMigrator {
         this.excludeFragments = Set.of(seedMount.getPathFragmentName());
 
         if (seedMount instanceof MountInfo) {
-            this.excludePaths = Sets.union(((MountInfo) seedMount).getIncludedPaths(), DEFAULT_IGNORED_PATHS);
+            this.excludePaths = Stream.concat(((MountInfo) seedMount).getIncludedPaths().stream(), DEFAULT_IGNORED_PATHS.stream())
+                    .collect(Collectors.toUnmodifiableSet());
             this.fragmentPaths = new HashSet<>();
             for (String p : ((MountInfo) seedMount).getPathsSupportingFragments()) {
                 fragmentPaths.add(stripPatternCharacters(p));
@@ -179,7 +181,7 @@ public class InitialContentMigrator {
             if (temp == null) {
                 continue;
             }
-            List<String> tempValues = CollectionUtils.toList(temp.getValue(Type.STRINGS));
+            List<String> tempValues = ListUtils.toList(temp.getValue(Type.STRINGS));
             for (Map.Entry<String, String> sToD : checkpointSegmentToDoc.entrySet()) {
                 if (tempValues.contains(sToD.getKey())) {
                     tempValues.set(tempValues.indexOf(sToD.getKey()), sToD.getValue());

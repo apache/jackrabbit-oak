@@ -18,12 +18,13 @@ package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
+
+import java.util.List;
 
 /**
  * Benchmark for {@link SynchronizationMBean#syncExternalUsers(String[])}
@@ -33,7 +34,7 @@ public class PrincipalNameResolutionTest extends AbstractExternalTest {
     private SynchronizationMBean bean;
 
     public PrincipalNameResolutionTest(int numberOfUsers, int membershipSize, long expTime, int roundtripDelay) {
-        super(numberOfUsers, membershipSize, expTime, true, ImmutableList.<String>of(), roundtripDelay, 0L);
+        super(numberOfUsers, membershipSize, expTime, true, List.of(), roundtripDelay, 0L);
     }
 
     @Override

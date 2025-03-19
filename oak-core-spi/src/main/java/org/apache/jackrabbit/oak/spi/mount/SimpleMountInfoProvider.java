@@ -18,33 +18,36 @@
  */
 package org.apache.jackrabbit.oak.spi.mount;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * A simple and inefficient implementation to manage mount points
  */
 final class SimpleMountInfoProvider implements MountInfoProvider {
 
-    private final Map<String, Mount> mounts;
+    private final Map<String, Mount> nameToMount;
     private final Mount defMount;
     private final boolean hasMounts;
+    private final List<Mount> mounts;
 
     SimpleMountInfoProvider(List<Mount> mountInfos) {
-        this.mounts = getMounts(mountInfos);
+        this.mounts = List.copyOf(mountInfos);
+        this.nameToMount = mountInfos.stream().collect(Collectors.toMap(Mount::getName, mi -> mi));
         this.hasMounts = !this.mounts.isEmpty();
-        this.defMount = defaultMount(this.mounts);
+        this.defMount = new Mounts.DefaultMount(mounts);
         //TODO add validation of mountpoints
     }
 
     @Override
-    public Mount getMountByPath(String path) {
-        for (Mount m : mounts.values()){
-            if (m.isMounted(path)){
+    public @NotNull Mount getMountByPath(String path) {
+        for (Mount m : mounts) {
+            if (m.isMounted(path)) {
                 return m;
             }
         }
@@ -52,13 +55,13 @@ final class SimpleMountInfoProvider implements MountInfoProvider {
     }
 
     @Override
-    public Collection<Mount> getNonDefaultMounts() {
-        return mounts.values();
+    public @NotNull Collection<Mount> getNonDefaultMounts() {
+        return mounts;
     }
 
     @Override
     public Mount getMountByName(String name) {
-        return mounts.get(name);
+        return nameToMount.get(name);
     }
 
     @Override
@@ -67,10 +70,10 @@ final class SimpleMountInfoProvider implements MountInfoProvider {
     }
 
     @Override
-    public Collection<Mount> getMountsPlacedUnder(String path) {
-        Collection<Mount> mounts = new ArrayList<>();
-        for ( Mount mount : this.mounts.values()) {
-            if ( mount.isUnder(path) ) {
+    public @NotNull Collection<Mount> getMountsPlacedUnder(String path) {
+        Collection<Mount> mounts = new ArrayList<>(1);
+        for (Mount mount : this.mounts) {
+            if (mount.isUnder(path)) {
                 mounts.add(mount);
             }
         }
@@ -78,10 +81,10 @@ final class SimpleMountInfoProvider implements MountInfoProvider {
     }
 
     @Override
-    public Collection<Mount> getMountsPlacedDirectlyUnder(String path) {
-        Collection<Mount> mounts = new ArrayList<>();
-        for ( Mount mount : this.mounts.values()) {
-            if ( mount.isDirectlyUnder(path) ) {
+    public @NotNull Collection<Mount> getMountsPlacedDirectlyUnder(String path) {
+        Collection<Mount> mounts = new ArrayList<>(1);
+        for (Mount mount : this.mounts) {
+            if (mount.isDirectlyUnder(path)) {
                 mounts.add(mount);
             }
         }
@@ -89,24 +92,7 @@ final class SimpleMountInfoProvider implements MountInfoProvider {
     }
 
     @Override
-    public Mount getDefaultMount() {
+    public @NotNull Mount getDefaultMount() {
         return defMount;
     }
-
-    //~----------------------------------------< builder >
-
-    //~----------------------------------------< private >
-
-    private static Map<String, Mount> getMounts(List<Mount> mountInfos) {
-        Map<String, Mount> mounts = new HashMap<>();
-        for (Mount mi : mountInfos) {
-            mounts.put(mi.getName(), mi);
-        }
-        return Collections.unmodifiableMap(mounts);
-    }
-
-    private static Mount defaultMount(Map<String, Mount> mounts) {
-        return new Mounts.DefaultMount(mounts.values());
-    }
-
 }

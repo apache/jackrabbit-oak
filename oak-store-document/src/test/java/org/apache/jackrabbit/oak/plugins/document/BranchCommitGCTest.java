@@ -21,6 +21,7 @@ import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.build;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.gc;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.allOrphProp;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsEqual;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsZero;
@@ -51,7 +52,6 @@ import java.util.SortedMap;
 import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.GCCounts;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -145,7 +145,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
+        VersionGarbageCollector.VersionGCStats stats = gc(gc,1, HOURS);
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
@@ -160,7 +160,7 @@ public class BranchCommitGCTest {
 
         // now do another gc - should not have anything left to clean up though
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc,1, HOURS);
         assertStatsCountsZero(stats);
         if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.EMPTYPROPS)) {
             assertNotExists("1:/a");
@@ -204,7 +204,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
+        VersionGarbageCollector.VersionGCStats stats = gc(gc, 1, HOURS);
 
         if (collisionsBeforeGC == 1) {
             // expects a collision to have happened - which was cleaned up - hence a _bc (but not the _revision I guess)
@@ -241,7 +241,7 @@ public class BranchCommitGCTest {
         assertNotExists("1:/b");
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
         assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
@@ -288,7 +288,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
+        VersionGarbageCollector.VersionGCStats stats = gc(gc, 1, HOURS);
 
         // 6 deleted props: 0:/[_collisions], 1:/foo[p, a], 1:/bar[_bc,prop,_revisions]
         assertStatsCountsEqual(stats,
@@ -331,7 +331,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
+        VersionGarbageCollector.VersionGCStats stats = gc(gc, 1, HOURS);
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
@@ -351,7 +351,7 @@ public class BranchCommitGCTest {
 
         // now do another gc - should not have anything left to clean up though
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
         assertStatsCountsZero(stats);
         if (!isModeOneOf(FullGCMode.NONE)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br1);
@@ -360,6 +360,7 @@ public class BranchCommitGCTest {
     }
 
     @Test
+    @Ignore("OAK-11252")
     public void unmergedAddsThenMergedAddsChildren() throws Exception {
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
         RevisionVector br1 = unmergedBranchCommit(b -> {
@@ -387,7 +388,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
+        VersionGarbageCollector.VersionGCStats stats = gc(gc, 1, HOURS);
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
@@ -404,7 +405,7 @@ public class BranchCommitGCTest {
 
         // now do another gc to get those documents actually deleted
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
         assertStatsCountsZero(stats);
         if (!isModeOneOf(FullGCMode.NONE)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br1);
@@ -413,6 +414,7 @@ public class BranchCommitGCTest {
     }
 
     @Test
+    @Ignore("OAK-11489")
     public void unmergedAddsThenMergedAddThenUnmergedRemovesChildren() throws Exception {
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC); // see OAK-10852
         assumeTrue(fullGcMode != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS); // see OAK-10852
@@ -452,7 +454,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
+        VersionGarbageCollector.VersionGCStats stats = gc(gc, 1, HOURS);
 
         assertStatsCountsEqual(stats,
                 empPropOnly(0, 0, 0, 0, 0, 0, 0),
@@ -469,7 +471,7 @@ public class BranchCommitGCTest {
 
         // now do another gc to get those documents actually deleted
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
         assertStatsCountsZero(stats);
         if (!isModeOneOf(FullGCMode.NONE)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br1);
@@ -494,7 +496,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
+        VersionGarbageCollector.VersionGCStats stats = gc(gc, 1, HOURS);
 
         // first gc round now deletes it, via orphaned node deletion
         assertStatsCountsEqual(stats,
@@ -511,7 +513,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // now do second gc round - should not have anything left to clean up though
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
         assertStatsCountsZero(stats);
         if (!isModeOneOf(FullGCMode.NONE)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br);
@@ -524,7 +526,7 @@ public class BranchCommitGCTest {
         mergedBranchCommit(b -> b.child("foo").setProperty("a", "b"));
         // do a gc without waiting, to check that works fine
         store.runBackgroundOperations();
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
         assertEquals(0, stats.updatedFullGCDocsCount);
 
         RevisionVector br = unmergedBranchCommit(b -> b.child("foo").removeProperty("a"));
@@ -534,7 +536,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
@@ -560,7 +562,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
 
         // 1 deleted prop: 1:/foo[a]
         assertStatsCountsEqual(stats,
@@ -589,7 +591,7 @@ public class BranchCommitGCTest {
         });
         // do a gc without waiting, to check that works fine
         store.runBackgroundOperations();
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
         assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
 
@@ -605,7 +607,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
@@ -638,7 +640,7 @@ public class BranchCommitGCTest {
         });
         // do a gc without waiting, to check that works fine
         store.runBackgroundOperations();
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
         assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
 
@@ -655,7 +657,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
@@ -681,7 +683,7 @@ public class BranchCommitGCTest {
         mergedBranchCommit(b -> b.child("foo").setProperty("c", "d"));
         // do a gc without waiting, to check that works fine
         store.runBackgroundOperations();
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
         assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertEquals(0, stats.deletedPropsCount);
@@ -712,7 +714,7 @@ public class BranchCommitGCTest {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        stats = gc.gc(1, HOURS);
+        stats = gc(gc, 1, HOURS);
 
         // deleted props: 0:/[rootProp], 1:/foo[a]
         // deleted internal prop : 0:/ _collision

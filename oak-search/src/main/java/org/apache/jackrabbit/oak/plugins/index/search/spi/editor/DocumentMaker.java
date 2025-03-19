@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
-import java.io.IOException;
-import java.util.List;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import java.io.IOException;
+import java.util.List;
 
 /**
  * A {@link DocumentMaker} is responsible for creating an instance of a document D to be indexed.
@@ -30,14 +30,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public interface DocumentMaker<D> {
 
-  /**
-   * create a document from the current state and list of modified properties
-   * @param state the node state
-   * @param isUpdate whether it is an update or not
-   * @param propertiesModified the list of modified properties
-   * @return a document to be indexed
-   * @throws IOException whether node state read operations or document creation fail
-   */
-  D makeDocument(NodeState state, boolean isUpdate, List<PropertyState> propertiesModified) throws IOException;
+    /**
+     * create a document from the current state and list of modified properties
+     *
+     * @param state              the node state
+     * @param isUpdate           whether it is an update or not
+     * @param propertiesModified the list of modified properties
+     * @return a document to be indexed
+     * @throws IOException whether node state read operations or document creation fail
+     */
+    D makeDocument(NodeState state, boolean isUpdate, List<PropertyState> propertiesModified) throws IOException;
 
 }

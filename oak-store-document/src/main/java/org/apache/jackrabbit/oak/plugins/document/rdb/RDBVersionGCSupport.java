@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -45,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * RDB specific version of {@link VersionGCSupport} which uses an extended query
@@ -104,7 +102,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
     private Iterable<NodeDocument> identifyGarbageMode1(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
             final long oldestRevTimeStamp) {
-        return filter(getSplitDocuments(), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp)::test);
+        return IterableUtils.filter(getSplitDocuments(), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp)::test);
     }
 
     private Predicate<NodeDocument> getGarbageCheckPredicate(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
@@ -160,7 +158,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         final CountingPredicate<NodeDocument> cp1 = new CountingPredicate<NodeDocument>(name1, pred);
         final CountingPredicate<NodeDocument> cp2 = new CountingPredicate<NodeDocument>(name2, pred);
 
-        return CloseableIterable.wrap(Iterables.concat(Iterables.filter(fit1, cp1::test), Iterables.filter(fit2, cp2::test)),
+        return CloseableIterable.wrap(IterableUtils.chainedIterable(IterableUtils.filter(fit1, cp1::test), IterableUtils.filter(fit2, cp2::test)),
                 new Closeable() {
                     @Override
             public void close() throws IOException {

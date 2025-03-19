@@ -61,7 +61,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -218,8 +217,8 @@ public class CompactionAndCleanupIT {
             long size7 = fileStore.getStats().getApproximateSize();
 
             // No data loss
-            byte[] blob = ByteStreams.toByteArray(nodeStore.getRoot()
-                    .getProperty("blob2").getValue(Type.BINARY).getNewStream());
+            byte[] blob = nodeStore.getRoot()
+                    .getProperty("blob2").getValue(Type.BINARY).getNewStream().readAllBytes();
             assertEquals(blobSize, blob.length);
         } finally {
             fileStore.close();
@@ -308,8 +307,8 @@ public class CompactionAndCleanupIT {
             assertTrue("the blob should not be collected", size7 > blobSize);
 
             // No data loss
-            byte[] blob = ByteStreams.toByteArray(nodeStore.getRoot()
-                    .getProperty("blob2").getValue(Type.BINARY).getNewStream());
+            byte[] blob = nodeStore.getRoot()
+                    .getProperty("blob2").getValue(Type.BINARY).getNewStream().readAllBytes();
             assertEquals(blobSize, blob.length);
         } finally {
             fileStore.close();

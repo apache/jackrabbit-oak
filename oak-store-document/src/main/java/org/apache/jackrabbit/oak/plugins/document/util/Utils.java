@@ -44,6 +44,7 @@ import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -64,7 +65,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isCommitRootEntry;
@@ -969,14 +969,14 @@ public class Utils {
      */
     public static Iterable<StringValue> asStringValueIterable(
             @NotNull Iterable<String> values) {
-        return transform(values, input -> new StringValue(input));
+        return IterableUtils.transform(values, input -> new StringValue(input));
     }
 
     /**
      * Transforms the given paths into ids using {@link #getIdFromPath(String)}.
      */
     public static Iterable<String> pathToId(@NotNull Iterable<String> paths) {
-        return transform(paths, input -> getIdFromPath(input));
+        return IterableUtils.transform(paths, input -> getIdFromPath(input));
     }
 
     /**

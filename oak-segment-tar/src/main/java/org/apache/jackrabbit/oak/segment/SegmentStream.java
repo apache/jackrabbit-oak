@@ -20,16 +20,15 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static java.util.Objects.checkFromToIndex;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -102,7 +101,7 @@ public class SegmentStream extends InputStream {
             SegmentStream stream = new SegmentStream(recordId, blocks, length);
             try {
                 byte[] data = new byte[(int) length];
-                ByteStreams.readFully(stream, data);
+                IOUtils.readFully(stream, data, 0, (int)length);
                 return new String(data, StandardCharsets.UTF_8);
             } catch (IOException e) {
                 throw new IllegalStateException("Unexpected IOException", e);
@@ -140,7 +139,7 @@ public class SegmentStream extends InputStream {
     @Override
     public int read(@NotNull byte[] b, int off, int len) {
         requireNonNull(b);
-        checkPositionIndexes(off, off + len, b.length);
+        checkFromToIndex(off, off + len, b.length);
 
         if (len == 0) {
             return 0;

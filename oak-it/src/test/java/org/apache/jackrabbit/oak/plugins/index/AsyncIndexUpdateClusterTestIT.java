@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
@@ -53,9 +54,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 public class AsyncIndexUpdateClusterTestIT {
 
     private DocumentNodeStore ns1;
@@ -65,8 +63,7 @@ public class AsyncIndexUpdateClusterTestIT {
     private MemoryBlobStore bs;
 
     private Random random = new Random();
-    private final List<String> values = ImmutableList.of("a", "b", "c", "d",
-            "e");
+    private final List<String> values = List.of("a", "b", "c", "d", "e");
 
     private Closer closer = Closer.create();
     private final AtomicBoolean illegalReindex = new AtomicBoolean(false);

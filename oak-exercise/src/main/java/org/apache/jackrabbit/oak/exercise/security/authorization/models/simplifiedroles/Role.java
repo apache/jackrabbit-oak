@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
+import java.util.Collections;
 import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +39,7 @@ final class Role {
 
     private Role(long permissions, String... privilegeNames) {
         this.permissions = permissions;
-        this.privilegeNames = ImmutableSet.copyOf(privilegeNames);
+        this.privilegeNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(privilegeNames));
     }
 
     private Role(@NotNull Role base, long permissions, String... privilegeNames) {

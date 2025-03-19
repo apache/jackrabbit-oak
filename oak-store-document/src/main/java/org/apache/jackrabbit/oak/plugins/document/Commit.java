@@ -30,8 +30,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -43,8 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -408,7 +406,7 @@ public class Commit {
                 success = true;
             } else {
                 int batchSize = nodeStore.getCreateOrUpdateBatchSize();
-                for (List<UpdateOp> updates : CollectionUtils.partitionList(changedNodes, batchSize)) {
+                for (List<UpdateOp> updates : ListUtils.partitionList(changedNodes, batchSize)) {
                     List<NodeDocument> oldDocs = store.createOrUpdate(NODES, updates);
                     checkConflicts(oldDocs, updates);
                     checkSplitCandidate(oldDocs);
@@ -683,7 +681,7 @@ public class Commit {
                 checkConflicts(op, doc);
             } catch (ConflictException e) {
                 exceptions.add(e);
-                Iterables.addAll(revisions, e.getConflictRevisions());
+                e.getConflictRevisions().forEach(revisions::add);
             }
         }
         if (!exceptions.isEmpty()) {
@@ -890,7 +888,7 @@ public class Commit {
     }
 
     private static boolean hasContentChanges(UpdateOp op) {
-        return filter(transform(op.getChanges().keySet(),
-                input -> input.getName()), Utils.PROPERTY_OR_DELETED::test).iterator().hasNext();
+        return IterableUtils.filter(IterableUtils.transform(op.getChanges().keySet(),
+                Key::getName), Utils.PROPERTY_OR_DELETED::test).iterator().hasNext();
     }
 }

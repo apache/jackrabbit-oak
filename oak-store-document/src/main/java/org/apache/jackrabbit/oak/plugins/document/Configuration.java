@@ -350,6 +350,14 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     boolean fullGCEnabled() default DEFAULT_FULL_GC_ENABLED;
 
     @AttributeDefinition(
+            name = "Full GC Max Age (in secs)",
+            description = "Version Garbage Collector (Full GC) logic will only consider those nodes for Full GC which " +
+                    "are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAgeInSecs). For " +
+                    "example as per default only those document which have not been *updated* 24 hrs ago will be " +
+                    "considered for Full GC.")
+    long fullGcMaxAgeInSecs() default DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE;
+
+    @AttributeDefinition(
             name = "Document Node Store Embedded Verification for Full GC",
             description = "Boolean value indicating whether Embedded Verification (i.e. verify the document after " +
                     "applying changes in memory before any database calls) for Full GC should be enabled for " +
@@ -387,4 +395,9 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             description = "Integer value indicating the number of documents to check for garbage in each Full GC cycle." +
                     "The default value is " + DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE)
     int fullGCProgressSize() default DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
+
+    @AttributeDefinition(
+            name = "Invisible for discovery",
+            description = "Boolean value indicating whether the instance should be discoverable by the cluster. The default value is " + DocumentNodeStoreService.DEFAULT_INVISIBLE_FOR_DISCOVERY)
+    boolean invisibleForDiscovery() default DocumentNodeStoreService.DEFAULT_INVISIBLE_FOR_DISCOVERY;
 }

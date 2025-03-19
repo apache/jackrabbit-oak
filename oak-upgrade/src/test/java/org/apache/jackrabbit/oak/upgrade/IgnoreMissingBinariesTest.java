@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.AbstractOak2OakTest;
 import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
@@ -59,7 +58,7 @@ public class IgnoreMissingBinariesTest extends AbstractOak2OakTest {
         assertTrue(new File(blob.getDirectory(), "0c/07/02/0c0702b43bfcc7c0bb1329a10bbc6d5c5ef15856afd714c1331495b95f65b292").delete());
 
         String[] args = getArgs();
-        log.info("oak2oak {}", Joiner.on(' ').join(args));
+        log.info("oak2oak {}", String.join(" ", args));
         OakUpgrade.main(args);
 
         createSession();

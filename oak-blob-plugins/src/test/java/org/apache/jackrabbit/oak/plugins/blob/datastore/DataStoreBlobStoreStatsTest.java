@@ -39,7 +39,6 @@ import java.util.function.Function;
 import javax.jcr.RepositoryException;
 import javax.management.openmbean.CompositeData;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;

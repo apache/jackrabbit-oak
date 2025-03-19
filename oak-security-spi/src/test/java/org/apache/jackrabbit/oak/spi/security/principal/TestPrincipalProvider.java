@@ -17,22 +17,22 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,18 +54,20 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
     public TestPrincipalProvider(String... principalNames) {
         this.exposesEveryone = true;
-        this.principals = Maps.toMap(ImmutableSet.copyOf(principalNames), input -> new ItemBasedPrincipal() {
-            @NotNull
-            @Override
-            public String getPath() {
-                return "/path/to/principal/" + input;
-            }
+        this.principals = SetUtils.toLinkedSet(Arrays.asList(principalNames))
+                .stream() // using LinkedHashMap to maintain the order of LinkedSet
+                .collect(LinkedHashMap::new, (m, e)-> m.put(e, new ItemBasedPrincipal() {
+                    @NotNull
+                    @Override
+                    public String getPath() {
+                        return "/path/to/principal/" + e;
+                    }
 
-            @Override
-            public String getName() {
-                return input;
-            }
-        });
+                    @Override
+                    public String getName() {
+                        return e;
+                    }
+                }), LinkedHashMap::putAll);
     }
 
     public Iterable<Principal> getTestPrincipals() {
@@ -133,7 +135,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
     @NotNull
     @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
-        return Iterables.filter(all(), new SearchTypePredicate(nameHint, searchType)::test).iterator();
+        return IterableUtils.filter(all(), new SearchTypePredicate(nameHint, searchType)::test).iterator();
     }
 
     @NotNull
@@ -173,7 +175,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
         public TestGroup(String name, Principal... members) {
             super(name);
-            Set<? extends Principal> mset = ImmutableSet.copyOf(members);
+            Set<? extends Principal> mset = Set.of(members);
             this.members = Iterators.asEnumeration(mset.iterator());
         }
 

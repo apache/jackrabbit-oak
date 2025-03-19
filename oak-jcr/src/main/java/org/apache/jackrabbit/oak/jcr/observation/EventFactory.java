@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -30,16 +28,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.StringJoiner;
 
 import javax.jcr.Value;
 import javax.jcr.observation.Event;
-
-import org.apache.jackrabbit.guava.common.base.MoreObjects;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -222,7 +220,7 @@ public class EventFactory {
     }
 
     private Map<String, ?> createInfoMap(String primaryType, Iterable<String> mixinTypes) {
-        if (isEmpty(mixinTypes)) {
+        if (IterableUtils.isEmpty(mixinTypes)) {
             return Map.of(
                     JCR_PRIMARYTYPE, mapper.getJcrName(primaryType));
         } else {
@@ -232,7 +230,7 @@ public class EventFactory {
             }
             return Map.of(
                     JCR_PRIMARYTYPE, mapper.getJcrName(primaryType),
-                    JCR_MIXINTYPES, toArray(jcrNames, String.class));
+                    JCR_MIXINTYPES, IterableUtils.toArray(jcrNames, String.class));
         }
     }
 
@@ -328,15 +326,15 @@ public class EventFactory {
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper("Event")
-                    .add("type", getType())
-                    .add("path", getPath())
-                    .add("identifier", getIdentifier())
-                    .add("info", getInfo())
-                    .add("userID", getUserID())
-                    .add("userData", getUserData())
-                    .add("date", getDate())
-                    .add("external", isExternal())
+            return new StringJoiner(", ", "Event [", "]")
+                    .add("type=" + getType())
+                    .add("path=" + getPath())
+                    .add("identifier=" + getIdentifier())
+                    .add("info=" + getInfo())
+                    .add("userID=" + getUserID())
+                    .add("userData=" + getUserData())
+                    .add("date=" + getDate())
+                    .add("external=" + isExternal())
                     .toString();
         }
 

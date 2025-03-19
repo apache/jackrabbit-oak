@@ -40,10 +40,7 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -52,6 +49,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.cluster.AbstractClusterTest;
@@ -127,14 +125,14 @@ public class ObservationQueueTest extends AbstractClusterTest {
             Session s = loginUser(repos.next());
             observers.add(new Thread(new Observer(s, queueLength)));
         }
-        for (Thread t : Iterables.concat(writers, readers, observers, loggers)) {
+        for (Thread t : IterableUtils.chainedIterable(writers, readers, observers, loggers)) {
             t.start();
         }
-        for (Thread t : Iterables.concat(writers, readers)) {
+        for (Thread t : IterableUtils.chainedIterable(writers, readers)) {
             t.join();
         }
         LOG.info("Writes stopped. Waiting for observers...");
-        for (Thread t : Iterables.concat(observers, loggers)) {
+        for (Thread t : IterableUtils.chainedIterable(observers, loggers)) {
             t.join();
         }
         for (Throwable t : exceptions) {

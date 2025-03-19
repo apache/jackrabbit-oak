@@ -283,10 +283,13 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             logger.info("crash: stopped lastrev thread, now setting lease to end within 1 sec");
 
             boolean renewed = setLeaseTime(1000 /* 1 sec */, 10 /*10ms*/);
-            if (!renewed) {
-                logger.info("halt");
-                fail("did not renew clusterid lease");
-            }
+            logger.info("renewed : {}", renewed);
+            // OAK-11477: lease could have been updated by lease update thread while we wanted to do that
+            // in which case testing for !renewed is not very useful here
+            //if (!renewed) {
+            //    logger.info("halt");
+            //    fail("did not renew clusterid lease");
+            //}
 
             logger.info("crash: now stopping background read/update");
             stopAllBackgroundThreads();

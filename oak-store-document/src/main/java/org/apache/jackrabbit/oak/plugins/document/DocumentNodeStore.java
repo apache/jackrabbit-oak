@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -75,6 +72,7 @@ import java.util.function.Supplier;
 
 import javax.jcr.PropertyType;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -82,7 +80,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -135,12 +135,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
-
 import org.apache.jackrabbit.guava.common.base.Suppliers;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * Implementation of a NodeStore on {@link DocumentStore}.
@@ -164,7 +159,7 @@ public final class DocumentNodeStore
      * List of meta properties which are created by DocumentNodeStore and which needs to be
      * retained in any cloned copy of DocumentNodeState.
      */
-    public static final List<String> META_PROP_NAMES = ImmutableList.of(
+    public static final List<String> META_PROP_NAMES = List.of(
             DocumentBundlor.META_PROP_PATTERN,
             DocumentBundlor.META_PROP_BUNDLING_PATH,
             DocumentBundlor.META_PROP_NON_BUNDLED_CHILD,
@@ -551,7 +546,7 @@ public final class DocumentNodeStore
      * reverts changes done by commits in the set that are older than the
      * current head revision.
      */
-    private final Set<Revision> inDoubtTrunkCommits = CollectionUtils.newConcurrentHashSet();
+    private final Set<Revision> inDoubtTrunkCommits = SetUtils.newConcurrentHashSet();
 
     /**
      * Contains journal entry revisions (branch commit style) that were created
@@ -560,7 +555,7 @@ public final class DocumentNodeStore
      * upon each backgroundWrite. It is used to avoid duplicate journal entries
      * that would otherwise be created as a result of merge (normal plus exclusive) retries
      */
-    private final Set<String> pendingRollbackInvalidations = CollectionUtils.newConcurrentHashSet();
+    private final Set<String> pendingRollbackInvalidations = SetUtils.newConcurrentHashSet();
 
     private final Predicate<Path> nodeCachePredicate;
 
@@ -658,7 +653,7 @@ public final class DocumentNodeStore
         this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport(), isFullGCEnabled(builder), false,
                 isEmbeddedVerificationEnabled(builder), builder.getFullGCMode(), builder.getFullGCDelayFactor(),
-                builder.getFullGCBatchSize(), builder.getFullGCProgressSize());
+                builder.getFullGCBatchSize(), builder.getFullGCProgressSize(), builder.getFullGcMaxAgeMillis());
         this.versionGarbageCollector.setStatisticsProvider(builder.getStatisticsProvider());
         this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
         this.versionGarbageCollector.setFullGCPaths(builder.getFullGCIncludePaths(), builder.getFullGCExcludePaths());
@@ -1596,7 +1591,7 @@ public final class DocumentNodeStore
         }
 
         final RevisionVector readRevision = parent.getLastRevision();
-        return transform(getChildren(parent, name, limit).children, new Function<String, DocumentNodeState>() {
+        return IterableUtils.transform(getChildren(parent, name, limit).children, new Function<String, DocumentNodeState>() {
             @Override
             public DocumentNodeState apply(String input) {
                 Path p = new Path(parent.getPath(), input);
@@ -1962,7 +1957,7 @@ public final class DocumentNodeStore
         // reset each branch commit in reverse order
         Map<Path, UpdateOp> operations = new HashMap<>();
         AtomicReference<Revision> currentRev = new AtomicReference<>();
-        for (Revision r : reverse(revs)) {
+        for (Revision r : ListUtils.reverse(revs)) {
             operations.clear();
             Revision previous = currentRev.getAndSet(r);
             if (previous == null) {
@@ -1983,7 +1978,7 @@ public final class DocumentNodeStore
                     new ResetDiff(previous.asTrunkRevision(), operations));
             LOG.debug("reset: applying {} operations", operations.size());
             // apply reset operations
-            for (List<UpdateOp> ops : partition(operations.values(), getCreateOrUpdateBatchSize())) {
+            for (List<UpdateOp> ops : IterableUtils.partition(operations.values(), getCreateOrUpdateBatchSize())) {
                 store.createOrUpdate(NODES, ops);
             }
         }
@@ -2233,7 +2228,7 @@ public final class DocumentNodeStore
     public Iterable<String> checkpoints() {
         checkOpen();
         final long now = clock.getTime();
-        return Iterables.transform(Iterables.filter(checkpoints.getCheckpoints().entrySet(),
+        return IterableUtils.transform(IterableUtils.filter(checkpoints.getCheckpoints().entrySet(),
                 cp -> cp.getValue().getExpiryTime() > now),
                 cp -> cp.getKey().toString());
     }
@@ -2247,7 +2242,7 @@ public final class DocumentNodeStore
             return null;
         }
         // make sure all changes up to checkpoint are visible
-        suspendUntilAll(CollectionUtils.toSet(rv));
+        suspendUntilAll(SetUtils.toSet(rv));
         return getRoot(rv);
     }
 
@@ -3431,9 +3426,8 @@ public final class DocumentNodeStore
                 // see OAK-6016 and OAK-6011
                 if (e instanceof IllegalStateException &&
                         "Root document does not have a lastRev entry for local clusterId 0".equals(e.getMessage())) {
-                    LOG.warn("diffJournalChildren failed with " +
-                            e.getClass().getSimpleName() +
-                            ", falling back to classic diff : " + e.getMessage());
+                    LOG.debug("diffJournalChildren failed with {}" +
+                            ", falling back to classic diff: {}", e.getClass().getSimpleName(), e.getMessage());
                 } else {
                     LOG.warn("diffJournalChildren failed with " +
                             e.getClass().getSimpleName() +
@@ -4015,7 +4009,7 @@ public final class DocumentNodeStore
     
     @Override
     public boolean isVisible(@NotNull String visibilityToken, long maxWaitMillis) throws InterruptedException {
-        if (Strings.isNullOrEmpty(visibilityToken)) {
+        if (StringUtils.isEmpty(visibilityToken)) {
             // we've asked for @Nonnull..
             // hence throwing an exception
             throw new IllegalArgumentException("visibilityToken must not be null or empty");
@@ -4031,7 +4025,7 @@ public final class DocumentNodeStore
         
         // otherwise wait until the visibility token's revisions all become visible
         // (or maxWaitMillis has passed)
-        commitQueue.suspendUntilAll(CollectionUtils.toSet(visibilityTokenRv), maxWaitMillis);
+        commitQueue.suspendUntilAll(SetUtils.toSet(visibilityTokenRv), maxWaitMillis);
         
         // if we got interrupted above would throw InterruptedException
         // otherwise, we don't know why suspendUntilAll returned, so

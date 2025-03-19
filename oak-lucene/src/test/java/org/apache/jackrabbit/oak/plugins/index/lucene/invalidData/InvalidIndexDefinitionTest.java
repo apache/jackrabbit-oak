@@ -121,7 +121,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         root.commit();
     }
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = RuntimeException.class)
     public void invalidBlobSize() throws CommitFailedException {
         Tree def = createIndexNodeAndData();
         // 1L + Integer.MAX_VALUE results in IllegalArgumentException: Out of range: 2147483648
@@ -140,7 +140,7 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         assertQuery(query, List.of("/tmp/testNode"));
     }    
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = RuntimeException.class)
     public void invalidMaxFieldLength() throws CommitFailedException {
         Tree def = createIndexNodeAndData();
         // 1L + Integer.MAX_VALUE results in IllegalArgumentException: Out of range: 2147483648
@@ -213,8 +213,33 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([./test]) = 'HELLO'";
         assertThat(explain(query), containsString("traverse"));
         assertQuery(query, List.of("/tmp/testNode"));
-    }    
-    
+    }
+
+    @Test
+    public void invalidProperty() throws CommitFailedException {
+        Tree def = createIndexNodeAndData();
+        Tree indexRules = def.getChild(LuceneIndexConstants.INDEX_RULES);
+        Tree ntBase = indexRules.getChild("nt:base");
+        Tree properties = ntBase.getChild(FulltextIndexConstants.PROP_NODE);
+        Tree foo = properties.addChild("foo");
+        foo.setProperty(FulltextIndexConstants.PROP_NAME, "foo");
+        foo.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        Tree bar = properties.addChild("bar");
+        // errors here are ignored - just the index is not used then
+        // ("./bar" is not a supported syntax)
+        bar.setProperty(FulltextIndexConstants.PROP_NAME, "./bar");
+        bar.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+        root.commit();
+        String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and [foo] = 'hello'";
+        assertThat(explain(query), containsString("lucene:test"));
+        query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and [./foo] = 'hello'";
+        assertThat(explain(query), containsString("lucene:test"));
+        query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and [bar] = 'hello'";
+        assertThat(explain(query), containsString("traverse"));
+        query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and [./bar] = 'hello'";
+        assertThat(explain(query), containsString("traverse"));
+    }
+
     Tree createIndexNodeAndData() throws CommitFailedException {
         Tree tmp = root.getTree("/").addChild("tmp");
         tmp.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);

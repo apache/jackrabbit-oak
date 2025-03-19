@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -37,14 +38,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 
 public class AzureDataStoreFactory implements BlobStoreFactory {
 
@@ -70,7 +68,7 @@ public class AzureDataStoreFactory implements BlobStoreFactory {
         // Default directory
 
         this.directory = directory;
-        this.tempHomeDir = Files.createTempDir();
+        this.tempHomeDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         this.ignoreMissingBlobs = ignoreMissingBlobs;
     }
 

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -33,6 +32,8 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
+
+import java.util.List;
 
 public class ValuePatternPropertyIndexTests extends AbstractQueryTest {
     private static final String INDEXED_PROPERTY = "indexedProperty";
@@ -57,7 +58,7 @@ public class ValuePatternPropertyIndexTests extends AbstractQueryTest {
     
     private void valuePattern(String middle, String plan) throws Exception {
         Tree index = super.createTestIndexNode(root.getTree("/"), TYPE);
-        index.setProperty(PROPERTY_NAMES, of(INDEXED_PROPERTY), NAMES);
+        index.setProperty(PROPERTY_NAMES, List.of(INDEXED_PROPERTY), NAMES);
         index.setProperty(IndexConstants.VALUE_INCLUDED_PREFIXES, "hello" + middle + "world");
         index.setProperty(REINDEX_PROPERTY_NAME, true);
         root.commit();

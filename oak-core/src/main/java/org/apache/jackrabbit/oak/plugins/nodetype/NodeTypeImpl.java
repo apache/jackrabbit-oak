@@ -66,13 +66,13 @@ import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.commons.cnd.CompactNodeTypeDefWriter;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
@@ -186,7 +186,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     @Override @NotNull
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
         Map<Integer, PropertyDefinition> definitions = new TreeMap<>();
-        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.PROPERTY_DEF_PREDICATE::test)) {
+        for (Tree child : IterableUtils.filter(definition.getChildren(), PrimaryTypePredicate.PROPERTY_DEF_PREDICATE::test)) {
             definitions.put(getIndex(child), new PropertyDefinitionImpl(child, this, mapper));
         }
         return definitions.values().toArray(NO_PROPERTY_DEFINITIONS);
@@ -200,7 +200,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     @Override @NotNull
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
         Map<Integer, NodeDefinition> definitions = new TreeMap<>();
-        for (Tree child : Iterables.filter(definition.getChildren(), PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE::test)) {
+        for (Tree child : IterableUtils.filter(definition.getChildren(), PrimaryTypePredicate.CHILDNODE_DEF_PREDICATE::test)) {
             definitions.put(getIndex(child), new NodeDefinitionImpl(child, this, mapper));
         }
         return definitions.values().toArray(NO_NODE_DEFINITIONS);

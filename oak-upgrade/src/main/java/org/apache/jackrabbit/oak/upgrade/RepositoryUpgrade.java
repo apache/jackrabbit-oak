@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-
 import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.ALL;
@@ -59,7 +58,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.jackrabbit.JcrConstants;

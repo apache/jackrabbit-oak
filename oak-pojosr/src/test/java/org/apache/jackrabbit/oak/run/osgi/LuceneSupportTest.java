@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 import javax.jcr.Node;
@@ -38,7 +39,6 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 import org.apache.felix.connect.launch.PojoServiceRegistry;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -77,8 +77,7 @@ public class LuceneSupportTest extends AbstractRepositoryFactoryTest {
                 new ByteArrayInputStream("the quick brown fox jumps over the lazy dog.".getBytes("utf-8")));
         session.save();
 
-        SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(NT_FILE,
-                Lists.newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
+        SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(NT_FILE, List.of(JCR_CONTENT, JCR_CONTENT + "/*"));
         getRegistry().registerService(NodeAggregator.class.getName(), agg, null);
 
         //The lucene index is set to synched mode

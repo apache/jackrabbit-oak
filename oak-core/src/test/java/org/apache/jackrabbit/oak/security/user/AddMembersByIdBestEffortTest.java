@@ -17,17 +17,17 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -110,7 +110,7 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
         assertTrue(failed.isEmpty());
 
         Iterable<String> memberIds = getMemberIds(testGroup);
-        Iterables.elementsEqual(ImmutableList.copyOf(NON_EXISTING_IDS), memberIds);
+        IterableUtils.elementsEqual(Arrays.asList(NON_EXISTING_IDS), memberIds);
 
         Iterator<Authorizable> members = testGroup.getDeclaredMembers();
         assertFalse(members.hasNext());
@@ -160,8 +160,8 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
         root.commit();
 
         // cyclic membership must be spotted upon membership resolution
-        assertEquals(1, Iterators.size(memberGroup.getMembers()));
-        assertEquals(1, Iterators.size(testGroup.getMembers()));
+        assertEquals(1, IteratorUtils.size(memberGroup.getMembers()));
+        assertEquals(1, IteratorUtils.size(testGroup.getMembers()));
     }
 
     /**
@@ -179,8 +179,8 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
         // cyclic membership must be spotted upon membership resolution
         root.refresh();
         UserManager uMgr = getUserManager(root);
-        assertEquals(1, Iterators.size(uMgr.getAuthorizable(memberGroup.getID(), Group.class).getMembers()));
-        assertEquals(1, Iterators.size(uMgr.getAuthorizable(testGroup.getID(), Group.class).getMembers()));
+        assertEquals(1, IteratorUtils.size(uMgr.getAuthorizable(memberGroup.getID(), Group.class).getMembers()));
+        assertEquals(1, IteratorUtils.size(uMgr.getAuthorizable(testGroup.getID(), Group.class).getMembers()));
     }
 
     @Test

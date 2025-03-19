@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
@@ -57,7 +56,6 @@ import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.id.NodeId;
@@ -137,7 +135,7 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     private final Map<NodeId, JackrabbitNodeState> nodeStateCache;
 
-    private final List<String> ignoredPaths = ImmutableList.of("/jcr:system/jcr:nodeTypes");
+    private final List<String> ignoredPaths = List.of("/jcr:system/jcr:nodeTypes");
 
     public static JackrabbitNodeState createRootNodeState(
             RepositoryContext context,
@@ -448,7 +446,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             }
             property = properties.get(JCR_FROZENMIXINTYPES);
             if (property != null && property.getType() == NAMES) {
-                addAll(frozenMixins, property.getValue(NAMES));
+                property.getValue(NAMES).forEach(frozenMixins::add);
             }
 
             if (!isReferenceable.test(frozenPrimary, frozenMixins)) {

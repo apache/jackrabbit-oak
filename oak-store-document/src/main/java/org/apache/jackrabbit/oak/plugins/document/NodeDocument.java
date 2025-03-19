@@ -19,10 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.mergeSorted;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator.REVERSE;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.abortingIterable;
@@ -55,13 +51,11 @@ import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.DequeUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -146,8 +140,7 @@ public final class NodeDocument extends Document {
      */
     static final int MODIFIED_IN_SECS_RESOLUTION = 5;
 
-    private static final NavigableMap<Revision, Range> EMPTY_RANGE_MAP =
-            Maps.unmodifiableNavigableMap(new TreeMap<Revision, Range>(REVERSE));
+    private static final NavigableMap<Revision, Range> EMPTY_RANGE_MAP = Collections.unmodifiableNavigableMap(new TreeMap<>(REVERSE));
 
     /**
      * The list of revision to root commit depth mappings to find out if a
@@ -765,8 +758,8 @@ public final class NodeDocument extends Document {
         }
         // if we don't have clusterIds, we can use the local changes only
         boolean fullScan = true;
-        Iterable<Revision> changes = Iterables.mergeSorted(
-                ImmutableList.of(
+        Iterable<Revision> changes = IterableUtils.mergeSorted(
+                List.of(
                         getLocalRevisions().keySet(),
                         getLocalCommitRoot().keySet()),
                 getLocalRevisions().comparator()
@@ -776,8 +769,8 @@ public final class NodeDocument extends Document {
             // contain changes after 'lower' revision vector
             // include previous documents as well (only needed in rare cases)
             fullScan = false;
-            changes = Iterables.mergeSorted(
-                    ImmutableList.of(
+            changes = IterableUtils.mergeSorted(
+                    List.of(
                             changes,
                             getChanges(REVISIONS, lower),
                             getChanges(COMMIT_ROOT, lower)
@@ -1362,7 +1355,7 @@ public final class NodeDocument extends Document {
                 }
                 transformed.put(r.high, r);
             }
-            ranges = Maps.unmodifiableNavigableMap(transformed);
+            ranges = Collections.unmodifiableNavigableMap(transformed);
         }
         return ranges;
     }
@@ -1405,7 +1398,7 @@ public final class NodeDocument extends Document {
             }
 
             // didn't find entry -> scan through remaining head ranges
-            return filter(transform(getPreviousRanges().headMap(revision).entrySet(), input -> {
+            return IterableUtils.filter(IterableUtils.transform(getPreviousRanges().headMap(revision).entrySet(), input -> {
                     if (input.getValue().includes(revision)) {
                        return getPreviousDoc(input.getKey(), input.getValue());
                     }
@@ -1438,7 +1431,7 @@ public final class NodeDocument extends Document {
         //on property that all prevDoc id would starts <depth+2>:p/path/to/node
         return new AbstractIterator<NodeDocument>(){
             private Queue<Map.Entry<Revision, Range>> previousRanges =
-                    CollectionUtils.toArrayDeque(getPreviousRanges().entrySet());
+                    DequeUtils.toArrayDeque(getPreviousRanges().entrySet());
             @Override
             protected NodeDocument computeNext() {
                 if(!previousRanges.isEmpty()){
@@ -1561,7 +1554,7 @@ public final class NodeDocument extends Document {
      */
     Iterable<Revision> getAllChanges() {
         RevisionVector empty = new RevisionVector();
-        return Iterables.mergeSorted(ImmutableList.of(
+        return IterableUtils.mergeSorted(List.of(
                 getChanges(REVISIONS, empty),
                 getChanges(COMMIT_ROOT, empty)
         ), StableRevisionComparator.REVERSE);
@@ -1594,7 +1587,7 @@ public final class NodeDocument extends Document {
         if (changes.size() == 1) {
             return changes.get(0);
         } else {
-            return Iterables.mergeSorted(changes, StableRevisionComparator.REVERSE);
+            return IterableUtils.mergeSorted(changes, StableRevisionComparator.REVERSE);
         }
     }
 
@@ -1649,7 +1642,7 @@ public final class NodeDocument extends Document {
             if (propRevFound != null) {
                 propRevFound.set(true);
             }
-            changes.add(filter(localChanges.entrySet(), p::test));
+            changes.add(IterableUtils.filter(localChanges.entrySet(), p::test));
         }
 
         for (Revision r : readRevision) {
@@ -1660,7 +1653,7 @@ public final class NodeDocument extends Document {
         if (changes.size() == 1) {
             return changes.get(0);
         } else {
-            return mergeSorted(changes, ValueComparator.REVERSE);
+            return IterableUtils.mergeSorted(changes, ValueComparator.REVERSE);
         }
     }
 
@@ -1713,7 +1706,7 @@ public final class NodeDocument extends Document {
             changes.add(revs.get(0));
         } else if (!revs.isEmpty()) {
             // merge sort them
-            changes.add(mergeSorted(revs, ValueComparator.REVERSE));
+            changes.add(IterableUtils.mergeSorted(revs, ValueComparator.REVERSE));
         }
     }
 
@@ -1820,9 +1813,9 @@ public final class NodeDocument extends Document {
                 }
             };
         } else {
-            changes = Iterables.concat(transform(copyOf(ranges), rangeToChanges::apply));
+            changes = IterableUtils.chainedIterable(IterableUtils.transform(List.copyOf(ranges), rangeToChanges::apply));
         }
-        return filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
+        return IterableUtils.filter(changes, input -> !readRev.isRevisionNewer(input.getKey()));
     }
 
     /**
@@ -1918,7 +1911,7 @@ public final class NodeDocument extends Document {
      */
     @NotNull
     RevisionVector getSweepRevisions() {
-        return new RevisionVector(transform(getLocalMap(SWEEP_REV).values(),
+        return new RevisionVector(IterableUtils.transform(getLocalMap(SWEEP_REV).values(),
                 s -> Revision.fromString(s)));
     }
 

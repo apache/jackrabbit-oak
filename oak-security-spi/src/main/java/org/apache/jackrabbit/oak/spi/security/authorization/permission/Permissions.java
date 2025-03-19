@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -358,7 +358,7 @@ public final class Permissions {
     public static long getPermissions(@NotNull String jcrActions,
                                       @NotNull TreeLocation location,
                                       boolean isAccessControlContent) {
-        Set<String> actions = CollectionUtils.toSet(Text.explode(jcrActions, ',', false));
+        Set<String> actions = SetUtils.toSet(Text.explode(jcrActions, ',', false));
         long permissions = NO_PERMISSION;
         // map read action respecting the 'isAccessControlContent' flag.
         if (actions.remove(Session.ACTION_READ)) {
@@ -441,7 +441,7 @@ public final class Permissions {
         if (permissionNames == null || permissionNames.isEmpty()) {
             return NO_PERMISSION;
         } else {
-            return getPermissions(CollectionUtils.toSet(permissionNames.split(",")));
+            return getPermissions(SetUtils.toSet(permissionNames.split(",")));
         }
     }
 

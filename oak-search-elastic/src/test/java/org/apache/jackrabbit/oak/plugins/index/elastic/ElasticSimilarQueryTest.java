@@ -25,6 +25,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
@@ -174,10 +175,11 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
     @Test
     public void vectorSimilarityIndexConfiguration() throws Exception {
         final String indexName = "test1";
-        final String fieldName1 = "fv1";
+        String propertyName = "fv1";
+        final String fieldName1 = ElasticIndexUtils.fieldName(propertyName);
         final String similarityFieldName1 = FieldNames.createSimilarityFieldName(fieldName1);
-        IndexDefinitionBuilder builder = createIndex(fieldName1);
-        Tree tree = builder.indexRule("nt:base").property(fieldName1).useInSimilarity(true).nodeScopeIndex()
+        IndexDefinitionBuilder builder = createIndex(propertyName);
+        Tree tree = builder.indexRule("nt:base").property(propertyName).useInSimilarity(true).nodeScopeIndex()
                 .similaritySearchDenseVectorSize(2048).getBuilderTree();
         tree.setProperty(ElasticPropertyDefinition.PROP_SIMILARITY_METRIC, "cosine");
 

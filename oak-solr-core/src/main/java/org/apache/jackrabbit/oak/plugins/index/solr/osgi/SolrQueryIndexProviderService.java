@@ -19,14 +19,18 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.ReferencePolicyOption;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
@@ -34,8 +38,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.ComponentContext;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,9 +47,29 @@ import org.slf4j.LoggerFactory;
  *
  * @see org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider
  * @see QueryIndexProvider
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
-@Component(metatype = true, immediate = true, label = "Apache Jackrabbit Oak Solr Query index provider configuration")
+@Component(
+        immediate = true
+)
+@Designate(
+        ocd = SolrQueryIndexProviderService.Configuration.class
+)
+@Deprecated(forRemoval=true, since="1.74.0")
 public class SolrQueryIndexProviderService {
+
+    @ObjectClassDefinition(
+            id = "org.apache.jackrabbit.oak.plugins.index.solr.osgi.SolrQueryIndexProviderService",
+            name = "Apache Jackrabbit Oak Solr Query index provider configuration"
+    )
+    @interface Configuration {
+        @AttributeDefinition(
+                name ="query time aggregation",
+                description = "enable query time aggregation for Solr index"
+        )
+        boolean query_aggregation() default QUERY_TIME_AGGREGATION_DEFAULT;
+    }
 
     private static final boolean QUERY_TIME_AGGREGATION_DEFAULT = true;
 
@@ -60,21 +83,16 @@ public class SolrQueryIndexProviderService {
     @Reference
     private OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
-    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY,
+    @Reference(cardinality = ReferenceCardinality.MANDATORY,
             policyOption = ReferencePolicyOption.GREEDY,
             policy = ReferencePolicy.DYNAMIC
     )
     private volatile QueryIndex.NodeAggregator nodeAggregator;
 
-    @Property(boolValue = QUERY_TIME_AGGREGATION_DEFAULT, label = "query time aggregation",
-            description = "enable query time aggregation for Solr index")
-    private static final String QUERY_TIME_AGGREGATION = "query.aggregation";
-
     @SuppressWarnings("UnusedDeclaration")
     @Activate
-    protected void activate(ComponentContext componentContext) {
-        Object value = componentContext.getProperties().get(QUERY_TIME_AGGREGATION);
-        boolean queryTimeAggregation = PropertiesUtil.toBoolean(value, QUERY_TIME_AGGREGATION_DEFAULT);
+    protected void activate(ComponentContext componentContext, Configuration configuration) {
+        boolean queryTimeAggregation = configuration.query_aggregation();
         if (solrServerProvider != null && oakSolrConfigurationProvider != null) {
             QueryIndexProvider solrQueryIndexProvider = new SolrQueryIndexProvider(solrServerProvider,
                     oakSolrConfigurationProvider, nodeAggregator);

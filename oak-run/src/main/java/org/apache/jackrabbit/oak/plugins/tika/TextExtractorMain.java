@@ -24,6 +24,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.File;
 
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.index.datastore.DataStoreTextWriter;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreFixtureProvider;
@@ -35,8 +36,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 import joptsimple.OptionParser;
 

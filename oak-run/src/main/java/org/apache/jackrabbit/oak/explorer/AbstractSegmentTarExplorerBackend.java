@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.explorer;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -85,7 +85,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
                     entry -> entry.getRevision());
 
             try {
-                revs = CollectionUtils.toList(revisionIterator);
+                revs = ListUtils.toList(revisionIterator);
             } finally {
                 journalReader.close();
             }

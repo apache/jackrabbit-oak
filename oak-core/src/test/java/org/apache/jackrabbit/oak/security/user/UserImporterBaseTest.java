@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.User;
@@ -65,7 +64,7 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         @NotNull
         @Override
         public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-            return (testAction == null) ? ImmutableList.of() : ImmutableList.of(testAction);
+            return (testAction == null) ? List.of() : List.of(testAction);
         }
     };
 
@@ -206,6 +205,6 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
 
     @NotNull
     NodeInfo createNodeInfo(@NotNull String name, @NotNull String primaryTypeName) {
-        return new NodeInfo(name, primaryTypeName, ImmutableList.of(), null);
+        return new NodeInfo(name, primaryTypeName, List.of(), null);
     }
 }

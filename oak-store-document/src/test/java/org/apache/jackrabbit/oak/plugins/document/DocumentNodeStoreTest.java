@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -96,13 +95,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.jcr.InvalidItemStateException;
 
 import org.apache.jackrabbit.guava.common.base.Throwables;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -240,7 +237,7 @@ public class DocumentNodeStoreTest {
                 100 / 2);
         builder.child(name).remove();
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        int numEntries = Iterables.size(store.getRoot().getChildNodeEntries());
+        int numEntries = IterableUtils.size(store.getRoot().getChildNodeEntries());
         assertEquals(max - 1, numEntries);
     }
 
@@ -1241,7 +1238,7 @@ public class DocumentNodeStoreTest {
 
         //force filling up doc child cache
         parentState = store.getRoot().getChildNode("b");
-        Iterables.size(parentState.getChildNodeEntries());
+        IterableUtils.size(parentState.getChildNodeEntries());
 
         reads.clear();
         nonExistingChild = parentState.getChildNode("non-existing-node-3");
@@ -1280,7 +1277,7 @@ public class DocumentNodeStoreTest {
 
         //force filling up doc child cache
         NodeState parentNodeState = store.getRoot().getChildNode("a");
-        Iterables.size(parentNodeState.getChildNodeEntries());
+        IterableUtils.size(parentNodeState.getChildNodeEntries());
 
         reads.clear();
         NodeState nonExistingChild = parentNodeState.getChildNode("non-existing-child-1");
@@ -1342,7 +1339,7 @@ public class DocumentNodeStoreTest {
 
         //Force fill child node cache
         NodeState parentNodeState = store.getRoot().getChildNode("parent");
-        Iterables.size(parentNodeState.getChildNodeEntries());
+        IterableUtils.size(parentNodeState.getChildNodeEntries());
 
         reads.clear();
         NodeState nonExistingChild = parentNodeState.getChildNode("child501-non-existing-child");
@@ -1976,8 +1973,8 @@ public class DocumentNodeStoreTest {
 
         // on cluster node 2, remove of child-0 is not yet visible
         DocumentNodeState bar = asDocumentNodeState(ns2.getRoot().getChildNode("foo").getChildNode("bar"));
-        List<ChildNodeEntry> children = CollectionUtils.toList(bar.getChildNodeEntries());
-        assertEquals(2, Iterables.size(children));
+        List<ChildNodeEntry> children = ListUtils.toList(bar.getChildNodeEntries());
+        assertEquals(2, IterableUtils.size(children));
         RevisionVector invalidate = bar.getLastRevision();
         assertNotNull(invalidate);
 
@@ -1993,8 +1990,8 @@ public class DocumentNodeStoreTest {
         // forget cache entry for deleted node
         ns2.invalidateNodeCache("/foo/bar/child-0", invalidate);
 
-        children = CollectionUtils.toList(ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
-        assertEquals(1, Iterables.size(children));
+        children = ListUtils.toList(ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
+        assertEquals(1, IterableUtils.size(children));
     }
 
     // OAK-3646
@@ -2035,14 +2032,14 @@ public class DocumentNodeStoreTest {
         merge(ns2, b2);
 
         // on cluster node 2, add of child-1 is not yet visible
-        List<ChildNodeEntry> children = CollectionUtils.toList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
-        assertEquals(1, Iterables.size(children));
+        List<ChildNodeEntry> children = ListUtils.toList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
+        assertEquals(1, IterableUtils.size(children));
 
         // this will make changes from cluster node 1 visible
         ns2.runBackgroundOperations();
 
-        children = CollectionUtils.toList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
-        assertEquals(2, Iterables.size(children));
+        children = ListUtils.toList(ns2.getRoot().getChildNode("foo").getChildNodeEntries());
+        assertEquals(2, IterableUtils.size(children));
     }
 
     private static boolean backgroundLeaseUpdateThreadRunning(int clusterId) {
@@ -2900,7 +2897,7 @@ public class DocumentNodeStoreTest {
 
         //The fetch would happen on "br" format of revision
         for (int i = 0; i < DocumentMK.UPDATE_LIMIT + 1; i++) {
-            Iterables.size(b1.getChildNode("child" + i).getChildNodeNames());
+            IterableUtils.size(b1.getChildNode("child" + i).getChildNodeNames());
         }
 
         //must not have duplicated cache entries
@@ -3163,7 +3160,7 @@ public class DocumentNodeStoreTest {
         RevisionVector headRev = ns.getHeadRevision();
         Iterable<DocumentNodeState> nodes = ns.getChildNodes(
                 asDocumentNodeState(ns.getRoot().getChildNode("foo")), "", 10);
-        assertEquals(2, Iterables.size(nodes));
+        assertEquals(2, IterableUtils.size(nodes));
         for (DocumentNodeState c : nodes) {
             assertEquals(headRev, c.getRootRevision());
         }
@@ -3327,7 +3324,7 @@ public class DocumentNodeStoreTest {
         assertNotNull(doc);
         long previousValue = -1;
         List<String> values = new ArrayList<>(doc.getLocalMap("p").values());
-        for (String v : Lists.reverse(values)) {
+        for (String v : ListUtils.reverse(values)) {
             long currentValue = Long.parseLong(v);
             assertEquals(previousValue + 1, currentValue);
             previousValue = currentValue;
@@ -3879,7 +3876,7 @@ public class DocumentNodeStoreTest {
         assertNotNull(entry);
 
         // must reference at least one branch commit
-        assertThat(Iterables.size(entry.getBranchCommits()), greaterThan(0));
+        assertThat(IterableUtils.size(entry.getBranchCommits()), greaterThan(0));
         // now remove them
         for (JournalEntry bc : entry.getBranchCommits()) {
             docStore.remove(JOURNAL, bc.getId());
@@ -3920,28 +3917,28 @@ public class DocumentNodeStoreTest {
         final long UL = Long.MAX_VALUE; // unknown
         // childNodeCount = none
         getChildNodeCountTest(0,
-                of(0L, 1L),
-                of(0L, 0L)
+                List.of(0L, 1L),
+                List.of(0L, 0L)
         );
         // childNodeCount = less than initial fetch size 42
         getChildNodeCountTest(42,
-                of( 0L,  1L, 41L, 42L, 43L, 100L),
-                of(42L, 42L, 42L, 42L, 42L, 42L)
+                List.of( 0L,  1L, 41L, 42L, 43L, 100L),
+                List.of(42L, 42L, 42L, 42L, 42L, 42L)
         );
         // childNodeCount = initial fetch size (100)
         getChildNodeCountTest(100,
-                of(  0L,   1L,  99L, 100L, 101L, 200L),
-                of(100L, 100L, 100L, 100L, 100L, 100L)
+                List.of(  0L,   1L,  99L, 100L, 101L, 200L),
+                List.of(100L, 100L, 100L, 100L, 100L, 100L)
         );
         // childNodeCount = initial fetch size + 1 (100 + 1)
         getChildNodeCountTest(101,
-                of(0L, 1L, 99L, 100L, 101L, 200L),
-                of(UL, UL,  UL,   UL, 101L, 101L)
+                List.of(0L, 1L, 99L, 100L, 101L, 200L),
+                List.of(UL, UL,  UL,   UL, 101L, 101L)
         );
         // childNodeCount = first two fetches (100 + 200)
         getChildNodeCountTest(300,
-                of(0L, 1L, 99L, 100L, 101L, 200L, 299L, 300L, 301L, 400L),
-                of(UL, UL,  UL,   UL, 300L, 300L, 300L, 300L, 300L, 300L)
+                List.of(0L, 1L, 99L, 100L, 101L, 200L, 299L, 300L, 301L, 400L),
+                List.of(UL, UL,  UL,   UL, 300L, 300L, 300L, 300L, 300L, 300L)
         );
     }
 

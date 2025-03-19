@@ -42,14 +42,14 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -327,7 +327,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         }
 
         commentElements.add("numIdxs:"+ numOfIndexes);
-        return Joiner.on(',').join(commentElements);
+        return String.join(",", commentElements);
     }
 
     protected class TestContext {
@@ -513,7 +513,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             if (nodetype.exists()) {
                 List<String> nodetypes = new ArrayList<>();
                 if (nodetype.hasProperty(DECLARING_NODE_TYPES)){
-                    nodetypes = CollectionUtils.toList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
+                    nodetypes = ListUtils.toList(nodetype.getProperty(DECLARING_NODE_TYPES).getValue(Type.STRINGS));
                 }
 
                 if (nodetypes.isEmpty()) {
@@ -554,7 +554,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
             //With property index at time traversing index wins (somehow reporting lower cost)
             //and that leads to warning. So limit the iterator size
-            resultSize += Iterators.size(Iterators.limit(result.getNodes(), 500));
+            resultSize += IteratorUtils.size(Iterators.limit(result.getNodes(), 500));
         }
     }
 

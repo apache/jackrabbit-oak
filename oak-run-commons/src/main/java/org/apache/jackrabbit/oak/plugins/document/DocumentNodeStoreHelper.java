@@ -30,6 +30,7 @@ import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -38,8 +39,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.conversions.Bson;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -75,7 +74,7 @@ public class DocumentNodeStoreHelper {
                                                           boolean isFullGCDryRun, final DocumentNodeStoreBuilder<?> builder) {
         return new VersionGarbageCollector(nodeStore, gcSupport, isFullGCEnabled(builder), isFullGCDryRun,
                 isEmbeddedVerificationEnabled(builder), builder.getFullGCMode(), builder.getFullGCDelayFactor(),
-                builder.getFullGCBatchSize(), builder.getFullGCProgressSize());
+                builder.getFullGCBatchSize(), builder.getFullGCProgressSize(), builder.getFullGcMaxAgeMillis());
     }
 
     public static DocumentNodeState readNode(DocumentNodeStore documentNodeStore, Path path, RevisionVector rootRevision) {
@@ -156,7 +155,7 @@ public class DocumentNodeStoreHelper {
                     mds, Collection.NODES);
             Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
             FindIterable<BasicDBObject> cursor = dbCol.find(query);
-            return Iterables.transform(cursor,
+            return IterableUtils.transform(cursor,
                     input -> MongoDocumentStoreHelper.convertFromDBObject(mds, Collection.NODES, input));
         } else {
             return Utils.getSelectedDocuments(store,
@@ -232,7 +231,7 @@ public class DocumentNodeStoreHelper {
 
         @Override
         public int compare(BlobReferences o1, BlobReferences o2) {
-            int c = Longs.compare(o1.garbageSize, o2.garbageSize);
+            int c = Long.compare(o1.garbageSize, o2.garbageSize);
             if (c != 0) {
                 return c;
             }

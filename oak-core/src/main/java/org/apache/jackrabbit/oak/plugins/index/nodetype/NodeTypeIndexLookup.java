@@ -19,12 +19,11 @@ package org.apache.jackrabbit.oak.plugins.index.nodetype;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newName;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * <code>NodeTypeIndexLookup</code> uses {@link PropertyIndexLookup} internally
@@ -89,7 +88,7 @@ class NodeTypeIndexLookup implements JcrConstants {
      */
     public Iterable<String> query(Filter filter) {
         PropertyIndexLookup lookup = new PropertyIndexLookup(root, mountInfoProvider);
-        return Iterables.concat(
+        return IterableUtils.chainedIterable(
                 lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
                 lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes())));
     }

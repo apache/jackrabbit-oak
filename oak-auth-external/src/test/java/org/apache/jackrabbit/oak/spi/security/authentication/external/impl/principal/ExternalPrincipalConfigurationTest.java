@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -325,7 +325,7 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     @Test
     public void testGetMonitors() {
         Iterable<Monitor<?>> monitors = externalPrincipalConfiguration.getMonitors(StatisticsProvider.NOOP);
-        assertEquals(1, Iterables.size(monitors));
+        assertEquals(1, IterableUtils.size(monitors));
         assertTrue(monitors.iterator().next() instanceof ExternalIdentityMonitorImpl);
     }
 

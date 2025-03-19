@@ -31,9 +31,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABL
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.spi.commit.CompositeEditor.compose;
-import static org.apache.jackrabbit.oak.spi.commit.EditorDiff.process;
-import static org.apache.jackrabbit.oak.spi.commit.VisibleEditor.wrap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,14 +39,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback.PathSource;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
@@ -57,7 +53,10 @@ import org.apache.jackrabbit.oak.plugins.index.progress.NodeCountEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.TraversalRateEstimator;
 import org.apache.jackrabbit.oak.plugins.index.upgrade.IndexDisabler;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
+import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -134,7 +133,7 @@ public class IndexUpdate implements Editor, PathSource {
     /**
      * Editors for indexes that need to be re-indexed.
      */
-    private final Map<String, Editor> reindex = new HashMap<String, Editor>();
+    private final Map<String, Editor> reindex = new HashMap<>();
 
     public IndexUpdate(
             IndexEditorProvider provider, String async,
@@ -182,8 +181,10 @@ public class IndexUpdate implements Editor, PathSource {
         }
 
         // no-op when reindex is empty
-        CommitFailedException exception = process(
-                wrap(wrapProgress(compose(reindex.values()))), MISSING_NODE, after);
+        CommitFailedException exception = EditorDiff.process(
+                VisibleEditor.wrap(wrapProgress(CompositeEditor.compose(List.copyOf(reindex.values())))),
+                MISSING_NODE,
+                after);
         rootState.progressReporter.reindexingTraversalEnd();
         if (exception != null) {
             throw exception;
@@ -194,31 +195,31 @@ public class IndexUpdate implements Editor, PathSource {
         }
     }
 
-    public boolean isReindexingPerformed(){
+    public boolean isReindexingPerformed() {
         return !getReindexStats().isEmpty();
     }
 
-    public List<String> getReindexStats(){
+    public List<String> getReindexStats() {
         return rootState.progressReporter.getReindexStats();
     }
 
-    public Set<String> getUpdatedIndexPaths(){
+    public Set<String> getUpdatedIndexPaths() {
         return rootState.progressReporter.getUpdatedIndexPaths();
     }
 
-    public void setTraversalRateEstimator(TraversalRateEstimator estimator){
+    public void setTraversalRateEstimator(TraversalRateEstimator estimator) {
         rootState.progressReporter.setTraversalRateEstimator(estimator);
     }
 
-    public void setNodeCountEstimator(NodeCountEstimator nodeCountEstimator){
+    public void setNodeCountEstimator(NodeCountEstimator nodeCountEstimator) {
         rootState.progressReporter.setNodeCountEstimator(nodeCountEstimator);
     }
 
-    public String getIndexingStats(){
+    public String getIndexingStats() {
         return rootState.getIndexingStats();
     }
 
-    public void setIgnoreReindexFlags(boolean ignoreReindexFlag){
+    public void setIgnoreReindexFlags(boolean ignoreReindexFlag) {
         rootState.setIgnoreReindexFlags(ignoreReindexFlag);
     }
 
@@ -268,7 +269,7 @@ public class IndexUpdate implements Editor, PathSource {
         return result;
     }
 
-    private static boolean hasAnyHiddenNodes(NodeBuilder builder){
+    private static boolean hasAnyHiddenNodes(NodeBuilder builder) {
         for (String name : builder.getChildNodeNames()) {
             if (NodeStateUtils.isHidden(name)) {
                 NodeBuilder childNode = builder.getChildNode(name);
@@ -281,8 +282,7 @@ public class IndexUpdate implements Editor, PathSource {
         return false;
     }
 
-    private void collectIndexEditors(NodeBuilder definitions,
-            NodeState before) throws CommitFailedException {
+    private void collectIndexEditors(NodeBuilder definitions, NodeState before) throws CommitFailedException {
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);
             if (isIncluded(rootState.async, definition)) {
@@ -309,7 +309,7 @@ public class IndexUpdate implements Editor, PathSource {
 
                 boolean shouldReindex = shouldReindex(definition, before, name);
                 String indexPath = getIndexPath(getPath(), name);
-                if (definition.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME) && !shouldReindex){
+                if (definition.hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME) && !shouldReindex) {
                     String corruptSince = definition.getProperty(IndexConstants.CORRUPT_PROPERTY_NAME).getValue(Type.DATE);
                     rootState.corruptIndexHandler.skippingCorruptIndex(rootState.async, indexPath, ISO8601.parse(corruptSince));
                     continue;
@@ -338,7 +338,7 @@ public class IndexUpdate implements Editor, PathSource {
                             long now = System.nanoTime();
                             long last = lastMissingProviderMessageTime.get();
                             if (now > last + silenceMessagesNanos
-                                    && lastMissingProviderMessageTime.compareAndSet(last,  now)) {
+                                    && lastMissingProviderMessageTime.compareAndSet(last, now)) {
                                 log.warn("Missing provider for nrt/sync index: {}. " +
                                         "Please note, it means that index data should be trusted only after this index " +
                                         "is processed in an async indexing cycle. " +
@@ -404,9 +404,9 @@ public class IndexUpdate implements Editor, PathSource {
             Iterable<String> opt = p.getValue(Type.STRINGS);
             if (asyncRef == null) {
                 // sync index job, accept synonyms
-                return Iterables.contains(opt, INDEXING_MODE_NRT) || Iterables.contains(opt, INDEXING_MODE_SYNC);
+                return IterableUtils.contains(opt, INDEXING_MODE_NRT) || IterableUtils.contains(opt, INDEXING_MODE_SYNC);
             } else {
-                return Iterables.contains(opt, asyncRef);
+                return IterableUtils.contains(opt, asyncRef);
             }
         } else {
             return asyncRef == null;
@@ -426,7 +426,7 @@ public class IndexUpdate implements Editor, PathSource {
      * <p>Note that this differs from #isIncluded which also considers the value of <code>async</code>
      * property to determine if the index should be selected for current IndexUpdate run.
      */
-    private boolean isMatchingIndexMode(NodeBuilder definition){
+    private boolean isMatchingIndexMode(NodeBuilder definition) {
         boolean async = definition.hasProperty(ASYNC_PROPERTY_NAME);
         //Either
         // 1. async index and async index update
@@ -436,7 +436,7 @@ public class IndexUpdate implements Editor, PathSource {
 
     private void incrementReIndexCount(NodeBuilder definition) {
         long count = 0;
-        if(definition.hasProperty(REINDEX_COUNT)){
+        if (definition.hasProperty(REINDEX_COUNT)) {
             count = definition.getProperty(REINDEX_COUNT).getValue(Type.LONG);
         }
         definition.setProperty(REINDEX_COUNT, count + 1);
@@ -460,7 +460,7 @@ public class IndexUpdate implements Editor, PathSource {
             editor.leave(before, after);
         }
 
-        if (parent == null){
+        if (parent == null) {
             rootState.progressReporter.logReport();
         }
     }
@@ -503,7 +503,7 @@ public class IndexUpdate implements Editor, PathSource {
                 children.add(child);
             }
         }
-        return compose(children);
+        return CompositeEditor.compose(children);
     }
 
     @Override @NotNull
@@ -518,7 +518,7 @@ public class IndexUpdate implements Editor, PathSource {
                 children.add(child);
             }
         }
-        return compose(children);
+        return CompositeEditor.compose(children);
     }
 
     @Override @Nullable
@@ -531,7 +531,7 @@ public class IndexUpdate implements Editor, PathSource {
                 children.add(child);
             }
         }
-        return compose(children);
+        return CompositeEditor.compose(children);
     }
 
     public void commitProgress(IndexProgress indexProgress) {
@@ -559,7 +559,7 @@ public class IndexUpdate implements Editor, PathSource {
         return path + "/" + INDEX_DEFINITIONS_NAME + "/" + indexName;
     }
 
-    private Editor wrapProgress(Editor editor){
+    private Editor wrapProgress(Editor editor) {
         return rootState.progressReporter.wrapProgress(editor);
     }
 
@@ -623,7 +623,7 @@ public class IndexUpdate implements Editor, PathSource {
         final CommitInfo commitInfo;
         final IndexDisabler indexDisabler;
         private boolean ignoreReindexFlags = IGNORE_REINDEX_FLAGS;
-        final Set<IndexCommitCallback> indexCommitCallbacks = CollectionUtils.newIdentityHashSet();
+        final Set<IndexCommitCallback> indexCommitCallbacks = SetUtils.newIdentityHashSet();
         final CorruptIndexHandler corruptIndexHandler;
         final IndexingProgressReporter progressReporter;
         private int changedNodeCount;
@@ -648,7 +648,7 @@ public class IndexUpdate implements Editor, PathSource {
             return new ReportingCallback(indexPath, reindex);
         }
 
-        public boolean isAsync(){
+        public boolean isAsync() {
             return async != null;
         }
 
@@ -657,7 +657,7 @@ public class IndexUpdate implements Editor, PathSource {
             progressReporter.traversedNode(pathSource);
         }
 
-        public void propertyChanged(String name){
+        public void propertyChanged(String name) {
             changedPropertyCount++;
         }
 
@@ -699,7 +699,7 @@ public class IndexUpdate implements Editor, PathSource {
 
             @Override
             public void indexUpdate() throws CommitFailedException {
-               progressReporter.indexUpdate(indexPath);
+                progressReporter.indexUpdate(indexPath);
             }
 
             //~------------------------------< ContextAwareCallback >

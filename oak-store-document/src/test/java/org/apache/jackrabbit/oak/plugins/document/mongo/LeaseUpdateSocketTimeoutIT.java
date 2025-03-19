@@ -70,6 +70,7 @@ public class LeaseUpdateSocketTimeoutIT {
 
     @Rule
     public ToxiproxyContainer tp = new ToxiproxyContainer(TOXIPROXY_IMAGE)
+            .withStartupAttempts(3)
             .withNetwork(network);
 
     private Proxy proxy;

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -240,7 +240,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractUserTest {
         assertTrue(testGroup.isDeclaredMember(memberGroup));
 
         Iterable<String> memberIds = getMemberIds(testGroup);
-        assertEquals(1, Iterables.size(memberIds));
+        assertEquals(1, IterableUtils.size(memberIds));
         verifyMonitor(2, 0);
     }
 

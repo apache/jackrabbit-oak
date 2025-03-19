@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +78,7 @@ public class FileReaper {
             }
         }
         if (!removed.isEmpty()) {
-            logger.info("Removed files {}", Joiner.on(",").join(removed));
+            logger.info("Removed files {}", String.join(",", removed));
         }
 
         if (redo.isEmpty()) {

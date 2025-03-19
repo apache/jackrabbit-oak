@@ -57,9 +57,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 
 /**
@@ -328,15 +326,11 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             try {
                 // If cache configured to 0 will return null
                 if (cached == null || !cached.exists()) {
-                    InputStream in = null;
-                    try {
-                        TransientFileFactory fileFactory = TransientFileFactory.getInstance();
-                        File tmpFile = fileFactory.createTransientFile("temp0cache", null, temp);
-                        in = backend.getRecord(getIdentifier()).getStream();
+                    TransientFileFactory fileFactory = TransientFileFactory.getInstance();
+                    File tmpFile = fileFactory.createTransientFile("temp0cache", null, temp);
+                    try (InputStream in = backend.getRecord(getIdentifier()).getStream()) {
                         copyInputStreamToFile(in, tmpFile);
                         return new LazyFileInputStream(tmpFile);
-                    } finally {
-                        Closeables.close(in, false);
                     }
                 } else {
                     return new FileInputStream(cached);
@@ -374,7 +368,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     }
 
     public List<DataStoreCacheStatsMBean> getStats() {
-        return ImmutableList.of(cache.getCacheStats(), cache.getStagingCacheStats());
+        return List.of(cache.getCacheStats(), cache.getStagingCacheStats());
     }
 
     protected CompositeDataStoreCache getCache() {

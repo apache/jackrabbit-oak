@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.property.LuceneIndexProper
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyQuery;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterPool;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
 import org.apache.jackrabbit.oak.plugins.index.search.CompositePropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -68,24 +69,27 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
  *
  * @see LuceneIndexEditor
  * @see IndexEditorProvider
- *
  */
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
+    private final static Logger LOG = LoggerFactory.getLogger(LuceneIndexEditorProvider.class);
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    public static final String OAK_INDEXER_EDITOR_PARALLEL_WRITER_ENABLED = "oak.indexer.editor.parallelWriter.enabled";
+
+
     private final IndexCopier indexCopier;
     private final ExtractedTextCache extractedTextCache;
     private final IndexAugmentorFactory augmentorFactory;
     private final IndexTracker indexTracker;
     private final MountInfoProvider mountInfoProvider;
     private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
+    private final LuceneIndexMBean mbean;
+    private final StatisticsProvider statisticsProvider;
+    private final IndexWriterPool indexWriterPool;
+
     private GarbageCollectableBlobStore blobStore;
     private IndexingQueue indexingQueue;
     private boolean nrtIndexingEnabled;
     private LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
-
-    private final LuceneIndexMBean mbean;
-    private final StatisticsProvider statisticsProvider;
 
     /**
      * Number of indexed Lucene document that can be held in memory
@@ -124,6 +128,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this(indexCopier, indexTracker, extractedTextCache, augmentorFactory, mountInfoProvider,
                 ActiveDeletedBlobCollectorFactory.NOOP, null, null);
     }
+
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
                                      @Nullable IndexTracker indexTracker,
                                      ExtractedTextCache extractedTextCache,
@@ -140,6 +145,10 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this.activeDeletedBlobCollector = activeDeletedBlobCollector;
         this.mbean = mbean;
         this.statisticsProvider = statisticsProvider;
+
+        boolean parallelIndexingEnabled = ConfigHelper.getSystemPropertyAsBoolean(
+                OAK_INDEXER_EDITOR_PARALLEL_WRITER_ENABLED, false);
+        this.indexWriterPool = parallelIndexingEnabled ? new IndexWriterPool() : null;
     }
 
     public LuceneIndexEditorProvider withAsyncIndexesSizeStatsUpdate(AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate) {
@@ -149,13 +158,13 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-        @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
-        @NotNull IndexUpdateCallback callback)
+            @NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root,
+            @NotNull IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +
-                    "ContextAwareCallback [%s]", callback);
-            IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
+            checkArgument(callback instanceof ContextAwareCallback,
+                    "callback instance not of type ContextAwareCallback [%s]", callback);
+            IndexingContext indexingContext = ((ContextAwareCallback) callback).getIndexingContext();
             BlobDeletionCallback blobDeletionCallback = activeDeletedBlobCollector.getBlobDeletionCallback();
             indexingContext.registerIndexCommitCallback(blobDeletionCallback);
             FulltextIndexWriterFactory writerFactory = null;
@@ -169,41 +178,41 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
                 //Would not participate in reindexing. Only interested in
                 //incremental indexing
-                if (indexingContext.isReindexing()){
+                if (indexingContext.isReindexing()) {
                     return null;
                 }
 
                 CommitContext commitContext = getCommitContext(indexingContext);
-                if (commitContext == null){
+                if (commitContext == null) {
                     //Logically there should not be any commit without commit context. But
                     //some initializer code does the commit with out it. So ignore such calls with
                     //warning now
                     //TODO Revisit use of warn level once all such cases are analyzed
-                    log.warn("No CommitContext found for commit", new Exception());
+                    LOG.warn("No CommitContext found for commit", new Exception());
                     return null;
                 }
 
                 //TODO Also check if index has been done once
 
 
-                writerFactory = new LocalIndexWriterFactory(getDocumentHolder(commitContext),
-                        indexPath);
+                writerFactory = new LocalIndexWriterFactory(getDocumentHolder(commitContext), indexPath);
 
                 //IndexDefinition from tracker might differ from one passed here for reindexing
                 //case which should be fine. However reusing existing definition would avoid
                 //creating definition instance for each commit as this gets executed for each commit
-                if (indexTracker != null){
+                if (indexTracker != null) {
                     indexDefinition = indexTracker.getIndexDefinition(indexPath);
-                    if (indexDefinition != null && !indexDefinition.hasMatchingNodeTypeReg(root)){
-                        log.debug("Detected change in NodeType registry for index {}. Would not use " +
+                    if (indexDefinition != null && !indexDefinition.hasMatchingNodeTypeReg(root)) {
+                        LOG.debug("Detected change in NodeType registry for index {}. Would not use " +
                                 "existing index definition", indexDefinition.getIndexPath());
                         indexDefinition = null;
                     }
                 }
 
                 if (indexDefinition == null) {
-                    indexDefinition = LuceneIndexDefinition.newBuilder(root, definition.getNodeState(),
-                            indexPath).build();
+                    indexDefinition = LuceneIndexDefinition
+                            .newLuceneBuilder(root, definition.getNodeState(), indexPath)
+                            .build();
                 }
 
                 if (indexDefinition.hasSyncPropertyDefinitions()) {
@@ -230,7 +239,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
                 writerFactory = new DefaultIndexWriterFactory(mountInfoProvider,
                         newDirectoryFactory(blobDeletionCallback, cowDirectoryCleanupCallback),
-                        writerConfig);
+                        writerConfig,
+                        indexWriterPool);
             }
 
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
@@ -277,7 +287,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         return new DefaultDirectoryFactory(indexCopier, blobStore, blobDeletionCallback, cowDirectoryTracker);
     }
 
-    private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext){
+    private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext) {
         LuceneDocumentHolder holder = (LuceneDocumentHolder) commitContext.get(LuceneDocumentHolder.NAME);
         if (holder == null) {
             holder = new LuceneDocumentHolder(indexingQueue, inMemoryDocsLimit);
@@ -307,6 +317,14 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         return nrtIndexingEnabled;
     }
 
+    @Override
+    public void close() {
+        LOG.info("Closing LuceneIndexEditorProvider");
+        if (indexWriterPool != null) {
+            indexWriterPool.close();
+        }
+    }
+
     private static CommitContext getCommitContext(IndexingContext indexingContext) {
         return (CommitContext) indexingContext.getCommitInfo().getInfo().get(CommitContext.NAME);
     }
@@ -314,8 +332,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private static class COWDirectoryCleanupCallback implements IndexCommitCallback, COWDirectoryTracker {
         private static final Logger LOG = LoggerFactory.getLogger(COWDirectoryCleanupCallback.class);
 
-        private List<CopyOnWriteDirectory> openedCoWDirectories = new ArrayList<>();
-        private List<File> reindexingLocalDirectories = new ArrayList<>();
+        private final List<CopyOnWriteDirectory> openedCoWDirectories = new ArrayList<>();
+        private final List<File> reindexingLocalDirectories = new ArrayList<>();
 
         @Override
         public void commitProgress(IndexProgress indexProgress) {
@@ -330,7 +348,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 }
 
                 for (File f : reindexingLocalDirectories) {
-                    if ( ! FileUtils.deleteQuietly(f)) {
+                    if (!FileUtils.deleteQuietly(f)) {
                         LOG.warn("Failed to delete {}", f);
                     }
                 }

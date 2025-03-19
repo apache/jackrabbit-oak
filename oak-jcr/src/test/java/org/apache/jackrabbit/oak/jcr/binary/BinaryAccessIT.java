@@ -44,7 +44,6 @@ import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
@@ -53,6 +52,7 @@ import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.util.Content;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
@@ -155,7 +155,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         assertNotNull(upload);
 
         List<URI> uris = new ArrayList<>();
-        Iterables.addAll(uris, upload.getUploadURIs());
+        upload.getUploadURIs().forEach(uris::add);
 
         // this follows the upload algorithm from BinaryUpload
         if (content.size() / upload.getMaxPartSize() > uris.size()) {
@@ -810,7 +810,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 1024, -1);
         assertNotNull(upload);
-        assertTrue(Iterables.size(upload.getUploadURIs()) > 50);
+        assertTrue(IterableUtils.size(upload.getUploadURIs()) > 50);
         // 50 is our default expected client max -
         // this is to make sure we will give as many as needed
         // if the client doesn't specify their own limit
@@ -822,7 +822,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
                 .setDirectUploadURIExpirySeconds(REGULAR_WRITE_EXPIRY);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(1024 * 1024 * 100, 1);
         assertNotNull(upload);
-        assertEquals(1, Iterables.size(upload.getUploadURIs()));
+        assertEquals(1, IterableUtils.size(upload.getUploadURIs()));
     }
 
     @Test

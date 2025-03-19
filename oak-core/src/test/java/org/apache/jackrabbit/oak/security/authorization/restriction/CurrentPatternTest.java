@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -148,7 +147,7 @@ public class CurrentPatternTest {
 
     @Test
     public void testMatchesPath() {
-        List<String[]> propNames = ImmutableList.of(new String[0], new String[]{RESIDUAL_NAME}, new String[] {PROP_NAME});
+        List<String[]> propNames = List.of(new String[0], new String[]{RESIDUAL_NAME}, new String[] {PROP_NAME});
         for (String[] pn : propNames) {
             RestrictionPattern rp = createPattern(pn);
             assertTrue(rp.matches(TEST_PATH));
@@ -172,7 +171,7 @@ public class CurrentPatternTest {
         }
         
         // pattern with * or all propnames will match
-        List<String[]> propNames = ImmutableList.of(new String[]{RESIDUAL_NAME}, knownPropertyNames);
+        List<String[]> propNames = List.of(new String[]{RESIDUAL_NAME}, knownPropertyNames);
         for (String[] names : propNames) {
             rp = createPattern(names);
             for (String pn : knownPropertyNames) {
@@ -205,7 +204,7 @@ public class CurrentPatternTest {
         }
 
         // pattern with * or all node-names will NOT match because they point to items that are known to be nodes
-        List<String[]> propNames = ImmutableList.of(new String[]{RESIDUAL_NAME}, knownNodeNames);
+        List<String[]> propNames = List.of(new String[]{RESIDUAL_NAME}, knownNodeNames);
         for (String[] names : propNames) {
             rp = createPattern(names);
             for (String pn : knownNodeNames) {

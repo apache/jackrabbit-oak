@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import java.nio.charset.StandardCharsets;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
@@ -44,7 +42,7 @@ public class GetReferencesResponseEncoder extends MessageToByteEncoder<GetRefere
     }
 
     private static String serialize(String segmentId, Iterable<String> references) {
-        return segmentId + ":" + Joiner.on(",").join(references);
+        return segmentId + ":" + String.join(",", references);
     }
 
 }

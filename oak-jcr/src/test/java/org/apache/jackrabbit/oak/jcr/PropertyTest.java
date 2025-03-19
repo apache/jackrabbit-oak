@@ -30,10 +30,9 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.value.ValueFactoryImpl;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 public class PropertyTest extends AbstractJCRTest {
 
@@ -274,15 +273,15 @@ public class PropertyTest extends AbstractJCRTest {
         //Extra 1 for jcr:primaryType
         PropertyIterator pitr = n.getProperties();
         assertEquals(4 + 1, pitr.getSize());
-        assertEquals(4 + 1, Iterators.size(pitr));
+        assertEquals(4 + 1, IteratorUtils.size(pitr));
 
         pitr = n.getProperties("foo*");
         assertEquals(2, pitr.getSize());
-        assertEquals(2, Iterators.size(pitr));
+        assertEquals(2, IteratorUtils.size(pitr));
 
         pitr = n.getProperties(new String[] {"foo*", "cat*"});
         assertEquals(3, pitr.getSize());
-        assertEquals(3, Iterators.size(pitr));
+        assertEquals(3, IteratorUtils.size(pitr));
     }
 
     public void testSetAndRemoveUnprotectedProperty() throws RepositoryException {

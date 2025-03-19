@@ -47,7 +47,7 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     @Override
     @NotNull
     public Set<Class> getCredentialClasses() {
-        return ImmutableSet.<Class>of(SimpleCredentials.class);
+        return Set.of(SimpleCredentials.class);
     }
 
     @Override

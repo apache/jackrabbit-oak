@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.junit.Assert;
@@ -67,26 +67,26 @@ public class FlatFileBufferLinkedListTest {
 
     @Test
     public void iterator() {
-        Assert.assertEquals("empty list must be 0-sized", 0, Iterators.size(list.iterator()));
+        Assert.assertEquals("empty list must be 0-sized", 0, IteratorUtils.size(list.iterator()));
 
         list.add(testNode("/"));
-        Assert.assertEquals("single entry list must be 1-sized", 1, Iterators.size(list.iterator()));
+        Assert.assertEquals("single entry list must be 1-sized", 1, IteratorUtils.size(list.iterator()));
         Assert.assertEquals("single entry list must be 1-sized on separate iterators",
-                1, Iterators.size(list.iterator()));
+                1, IteratorUtils.size(list.iterator()));
 
         list.add(testNode("/a"));
-        Assert.assertEquals("2 entries in list must be 2-sized", 2, Iterators.size(list.iterator()));
+        Assert.assertEquals("2 entries in list must be 2-sized", 2, IteratorUtils.size(list.iterator()));
 
         Assert.assertEquals("2 entries in list must be 2-sized on separate iterators",
-                2, Iterators.size(list.iterator()));
+                2, IteratorUtils.size(list.iterator()));
 
         Iterator<NodeStateEntry> iter2 = list.iterator();
         Iterator<NodeStateEntry> iter1 = list.iterator();
         Assert.assertEquals("/", iter2.next().toString());
         Assert.assertEquals("2 entries in list must be 1-sized after consuming an item",
-                1, Iterators.size(iter2));
+                1, IteratorUtils.size(iter2));
         Assert.assertEquals("2 entries in list must be 2-sized even if some other iterator consumed an item",
-                2, Iterators.size(iter1));
+                2, IteratorUtils.size(iter1));
 
         list.add(testNode("/b"));
         iter1 = list.iterator();
@@ -109,7 +109,7 @@ public class FlatFileBufferLinkedListTest {
         //this should work
         Assert.assertEquals(testNode("/b"), iter2.next());
         Assert.assertEquals("2 entries in list must be 1-sized after removal of an iterm",
-                1, Iterators.size(list.iterator()));
+                1, IteratorUtils.size(list.iterator()));
     }
 
     @Test

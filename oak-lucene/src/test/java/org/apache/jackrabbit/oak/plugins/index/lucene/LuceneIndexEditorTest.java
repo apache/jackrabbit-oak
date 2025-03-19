@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
@@ -29,7 +28,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
@@ -118,7 +116,7 @@ public class LuceneIndexEditorTest {
 
     @Parameterized.Parameters(name = "{index}: useBlobStore ({0})")
     public static List<Boolean[]> fixtures() {
-        return ImmutableList.of(new Boolean[] {true}, new Boolean[] {false});
+        return List.of(new Boolean[] {true}, new Boolean[] {false});
     }
 
     @Before

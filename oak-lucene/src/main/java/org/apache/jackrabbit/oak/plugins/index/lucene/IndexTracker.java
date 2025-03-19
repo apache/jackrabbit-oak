@@ -23,12 +23,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
@@ -49,8 +50,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-
-
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.isLuceneIndexNode;
@@ -178,7 +177,7 @@ public class IndexTracker {
                         badIndexTracker.markBadPersistedIndex(path, e);
                     }
                 }
-            }, Iterables.toArray(PathUtils.elements(path), String.class)));
+            }, IterableUtils.toArray(PathUtils.elements(path), String.class)));
         }
 
         EditorDiff.process(CompositeEditor.compose(editors), this.root, root);
@@ -186,8 +185,8 @@ public class IndexTracker {
 
         if (!updates.isEmpty()) {
             Map<String, LuceneIndexNodeManager> builder = new HashMap<>();
-            builder.putAll(Maps.filterKeys(original, x -> !updates.keySet().contains(x)));
-            builder.putAll(Maps.filterValues(updates, x -> x != null));
+            builder.putAll(MapUtils.filterKeys(original, x -> !updates.containsKey(x)));
+            builder.putAll(MapUtils.filterValues(updates, Objects::nonNull));
             indices = Collections.unmodifiableMap(builder);
 
             badIndexTracker.markGoodIndexes(updates.keySet());

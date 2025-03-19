@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexPlannerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReader;

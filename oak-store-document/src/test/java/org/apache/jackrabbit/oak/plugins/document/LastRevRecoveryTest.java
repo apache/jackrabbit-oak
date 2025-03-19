@@ -23,9 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -169,7 +168,7 @@ public class LastRevRecoveryTest {
         // run recovery on ds2
         LastRevRecoveryAgent agent = new LastRevRecoveryAgent(sharedStore, ds2);
         Iterable<Integer> clusterIds = agent.getRecoveryCandidateNodes();
-        assertTrue(Iterables.contains(clusterIds, c1Id));
+        assertTrue(IterableUtils.contains(clusterIds, c1Id));
         assertEquals("must not recover any documents",
                 0, agent.recover(c1Id));
     }
@@ -328,7 +327,7 @@ public class LastRevRecoveryTest {
         // run recovery on ds2 for ds1
         LastRevRecoveryAgent agent = new LastRevRecoveryAgent(sharedStore, ds2);
         Iterable<Integer> clusterIds = agent.getRecoveryCandidateNodes();
-        assertTrue(Iterables.contains(clusterIds, c1Id));
+        assertTrue(IterableUtils.contains(clusterIds, c1Id));
         // nothing to recover
         assertEquals("must not recover any documents",
                 0, agent.recover(c1Id));

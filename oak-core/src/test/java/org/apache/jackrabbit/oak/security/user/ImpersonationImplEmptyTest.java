@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -95,7 +94,7 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
 
     @NotNull
     static Subject createSubject(@NotNull Principal... principals) {
-        return new Subject(true, ImmutableSet.copyOf(principals), Set.of(), Set.of());
+        return new Subject(true, Set.of(principals), Set.of(), Set.of());
     }
 
     @Test

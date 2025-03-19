@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.jclouds.ContextBuilder;
@@ -160,7 +159,7 @@ public class CloudBlobStore extends CachingBlobStore {
     
             Payload payload = cloudBlob.getPayload();
             try {
-                data = ByteStreams.toByteArray(payload.getInput());
+                data = payload.getInput().readAllBytes();
                 cache.put(id, data);        
             } finally {
                 payload.close();

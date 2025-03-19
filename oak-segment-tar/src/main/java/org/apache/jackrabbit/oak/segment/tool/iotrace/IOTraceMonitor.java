@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.jetbrains.annotations.NotNull;
@@ -43,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
 public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
     @NotNull
     private final AtomicReference<List<String>> context =
-            new AtomicReference<>(ImmutableList.of());
+            new AtomicReference<>(List.of());
 
     @NotNull
     private final IOTraceWriter traceWriter;

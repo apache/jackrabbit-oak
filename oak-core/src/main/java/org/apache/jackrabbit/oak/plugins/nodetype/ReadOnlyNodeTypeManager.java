@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
@@ -314,7 +314,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
         PropertyState supertypes = type.getProperty(REP_SUPERTYPES);
         return supertypes != null
-                && contains(supertypes.getValue(Type.NAMES), superName);
+                && IterableUtils.contains(supertypes.getValue(Type.NAMES), superName);
     }
 
     @Override

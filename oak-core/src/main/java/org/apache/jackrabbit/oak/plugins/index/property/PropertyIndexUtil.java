@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
@@ -44,22 +43,18 @@ public class PropertyIndexUtil {
         if (set == null || set.isEmpty()) {
             return set;
         }
-        try {
-            Set<String> values = new HashSet<String>();
-            for(String v : set) {
+        Set<String> values = new HashSet<>();
+        for (String v : set) {
+            if (v.isEmpty()) {
+                v = EMPTY_TOKEN;
+            } else {
                 if (v.length() > MAX_STRING_LENGTH) {
                     v = v.substring(0, MAX_STRING_LENGTH);
                 }
-                if (v.isEmpty()) {
-                    v = EMPTY_TOKEN;
-                } else {
-                    v = URLEncoder.encode(v, StandardCharsets.UTF_8.name());
-                }
-                values.add(v);
+                v = URLEncoder.encode(v, StandardCharsets.UTF_8);
             }
-            return values;
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("UTF-8 is unsupported", e);
+            values.add(v);
         }
+        return values;
     }
 }

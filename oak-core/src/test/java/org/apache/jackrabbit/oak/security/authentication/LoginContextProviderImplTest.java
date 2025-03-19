@@ -33,6 +33,7 @@ import javax.security.auth.login.ConfigurationSpi;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
@@ -121,7 +122,7 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
     @Test
     public void testGetPreAuthLoginContext() {
         Subject subject = new Subject(true, Set.of(), Set.of(), Set.of());
-        LoginContext ctx = Subject.doAs(subject, (PrivilegedAction<LoginContext>) () -> {
+        LoginContext ctx = Java23Subject.doAs(subject, (PrivilegedAction<LoginContext>) () -> {
             try {
                 return lcProvider.getLoginContext(null, null);
             } catch (LoginException e) {

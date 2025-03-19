@@ -55,6 +55,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.stream.Collectors;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPOutputStream;
 
@@ -62,7 +63,8 @@ import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -90,8 +92,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Implementation of {@link DocumentStore} for relational databases.
@@ -419,7 +419,7 @@ public class RDBDocumentStore implements DocumentStore {
                 break;
             }
 
-            for (List<UpdateOp> partition : CollectionUtils.partitionList(new ArrayList<>(operationsToCover.values()), CHUNKSIZE)) {
+            for (List<UpdateOp> partition : ListUtils.partitionList(new ArrayList<>(operationsToCover.values()), CHUNKSIZE)) {
                 Map<UpdateOp, T> successfulUpdates = bulkUpdate(collection, partition, oldDocs, upsert);
                 results.putAll(successfulUpdates);
                 operationsToCover.values().removeAll(successfulUpdates.keySet());
@@ -442,8 +442,8 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
         stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
-                collection, Lists.transform(updateOps, input -> input.getId()));
-        return new ArrayList<T>(results.values());
+                collection, updateOps.stream().map(UpdateOp::getId).collect(Collectors.toList()));
+        return new ArrayList<>(results.values());
     }
 
     private <T extends Document> Map<String, T> readDocumentCached(Collection<T> collection, Set<String> keys) {
@@ -459,7 +459,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
         }
 
-        Set<String> documentsToRead = Sets.difference(keys, documents.keySet());
+        Set<String> documentsToRead = SetUtils.difference(keys, documents.keySet());
         Map<String, T> readDocuments = readDocumentsUncached(collection, documentsToRead);
         documents.putAll(readDocuments);
 
@@ -532,7 +532,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
         oldDocs.putAll(freshDocs);
 
-        try (CacheChangesTracker tracker = obtainTracker(collection, Sets.union(oldDocs.keySet(), missingDocs) )) {
+        try (CacheChangesTracker tracker = obtainTracker(collection, SetUtils.union(oldDocs.keySet(), missingDocs) )) {
             List<T> docsToUpdate = new ArrayList<T>(updates.size());
             Set<String> keysToUpdate = new HashSet<String>();
             for (UpdateOp update : updates) {
@@ -557,7 +557,7 @@ public class RDBDocumentStore implements DocumentStore {
                 Set<String> successfulUpdates = db.update(connection, tmd, docsToUpdate, upsert);
                 connection.commit();
 
-                Set<String> failedUpdates = Sets.difference(keysToUpdate, successfulUpdates);
+                Set<String> failedUpdates = SetUtils.difference(keysToUpdate, successfulUpdates);
                 oldDocs.keySet().removeAll(failedUpdates);
 
                 if (LOG.isTraceEnabled()) {
@@ -1564,7 +1564,7 @@ public class RDBDocumentStore implements DocumentStore {
         try {
 
             // try up to CHUNKSIZE ops in one transaction
-            for (List<UpdateOp> chunks : CollectionUtils.partitionList(updates, CHUNKSIZE)) {
+            for (List<UpdateOp> chunks : ListUtils.partitionList(updates, CHUNKSIZE)) {
                 List<T> docs = new ArrayList<T>();
                 for (UpdateOp update : chunks) {
                     ids.add(update.getId());
@@ -1831,7 +1831,7 @@ public class RDBDocumentStore implements DocumentStore {
             final List<String> excludeKeyPatterns, final List<QueryCondition> conditions, final int limit, final String sortBy) {
 
         final RDBTableMetaData tmd = getTable(collection);
-        Set<String> allowedProps = Sets.intersection(INDEXEDPROPERTIES, tmd.getColumnProperties());
+        Set<String> allowedProps = SetUtils.intersection(INDEXEDPROPERTIES, tmd.getColumnProperties());
         for (QueryCondition cond : conditions) {
             if (!allowedProps.contains(cond.getPropertyName())) {
                 String message = "indexed property " + cond.getPropertyName() + " not supported, query was '" + cond
@@ -1979,7 +1979,7 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> int delete(Collection<T> collection, List<String> ids) {
         int numDeleted = 0;
         RDBTableMetaData tmd = getTable(collection);
-        for (List<String> sublist : CollectionUtils.partitionList(ids, 64)) {
+        for (List<String> sublist : ListUtils.partitionList(ids, 64)) {
             Connection connection = null;
             Stopwatch watch = startWatch();
             try {

@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STO
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -44,8 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} the creates
@@ -96,11 +95,11 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
             NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
 
             NodeBuilder uuid = IndexUtils.createIndexDefinition(index, "uuid", true, true,
-                    ImmutableList.<String>of(JCR_UUID), null);
+                    List.of(JCR_UUID), null);
             uuid.setProperty("info",
                     "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
             NodeBuilder nodetype = IndexUtils.createIndexDefinition(index, "nodetype", true, false,
-                    ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES), null);
+                    List.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES), null);
             nodetype.setProperty("info", 
                     "Oak index for queries with node type, and possibly path restrictions, " + 
                     "for example \"/jcr:root/content//element(*, mix:language)\".");

@@ -25,11 +25,10 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 /**
  * A helper class to manage checkpoints on TarMK and DocumentMK.

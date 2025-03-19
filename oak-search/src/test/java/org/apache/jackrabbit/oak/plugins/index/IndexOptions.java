@@ -51,9 +51,12 @@ public abstract class IndexOptions {
         if (!isAsync) {
             builder = builder.noAsync();
         }
-        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(type);
-        for (String propName : propNames) {
-            indexRule.property(propName).propertyIndex();
+
+        if (type != null) {
+            IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(type);
+            for (String propName : propNames) {
+                indexRule.property(propName).propertyIndex();
+            }
         }
         return builder;
     }

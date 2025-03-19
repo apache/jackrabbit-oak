@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -79,7 +77,7 @@ public class SharedDataStoreMarkSweepGarbageCollectorTest {
   @Before
   public void setUp() throws IOException {
     when(whiteboard.track(CheckpointMBean.class)).thenReturn(tracker);
-    when(tracker.getServices()).thenReturn(ImmutableList.of(checkpointMBean));
+    when(tracker.getServices()).thenReturn(List.of(checkpointMBean));
 
     when(blobStore.getType()).thenReturn(SHARED);
 
@@ -116,7 +114,7 @@ public class SharedDataStoreMarkSweepGarbageCollectorTest {
   @Test
   public void markAndSweepShouldSucceedWhenAllRepositoriesAreAvailable() throws Exception {
     setupSharedDataRecords("REPO1", "REPO1");
-    when(blobStore.getAllChunkIds(0L)).thenReturn(ImmutableList.<String>of().iterator());
+    when(blobStore.getAllChunkIds(0L)).thenReturn(List.<String>of().iterator());
 
     collector.markAndSweep(false, true);
 
@@ -133,8 +131,8 @@ public class SharedDataStoreMarkSweepGarbageCollectorTest {
     DataRecord repoDataRecord = mock(DataRecord.class);
     when(repoDataRecord.getIdentifier()).thenReturn(new DataIdentifier("repository-" + repoRepoId));
 
-    List<DataRecord> refs = ImmutableList.of(refDataRecord);
-    List<DataRecord> repos = ImmutableList.of(repoDataRecord);
+    List<DataRecord> refs = List.of(refDataRecord);
+    List<DataRecord> repos = List.of(repoDataRecord);
 
     when(blobStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REFERENCES.getType())).thenReturn(refs);
     when(blobStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType())).thenReturn(repos);

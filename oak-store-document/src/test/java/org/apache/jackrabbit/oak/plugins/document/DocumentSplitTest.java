@@ -26,13 +26,13 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
@@ -47,9 +47,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.MongoBlobGCTest.randomStream;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DOC_SIZE_THRESHOLD;
@@ -353,7 +350,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         }
         ns.runBackgroundOperations();
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test/foo"));
-        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         assertEquals(SplitDocType.DEFAULT_LEAF, prevDocs.get(0).getSplitDocType());
     }
@@ -376,7 +373,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         }
         ns.runBackgroundOperations();
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test/foo"));
-        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         assertEquals(SplitDocType.COMMIT_ROOT_ONLY, prevDocs.get(0).getSplitDocType());
     }
@@ -398,7 +395,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         }
         ns.runBackgroundOperations();
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test/foo"));
-        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
 
         //Check for hasBinary
@@ -451,7 +448,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertNotNull(doc);
         assertEquals(2, doc.getPreviousRanges().size());
 
-        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         //1 intermediate and 11 previous doc
         assertEquals(1 + 11, prevDocs.size());
         assertTrue(prevDocs.stream().anyMatch(input -> input.getSplitDocType() == SplitDocType.INTERMEDIATE));
@@ -462,7 +459,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                 continue;
             }
             Iterable<NodeDocument> prev = doc.getPreviousDocs("prop", r);
-            assertEquals(1, Iterables.size(prev));
+            assertEquals(1, IterableUtils.size(prev));
             for (NodeDocument d : prev) {
                 assertTrue(d.containsRevision(r));
             }
@@ -538,7 +535,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         doc = store.find(NODES, id);
         assertNotNull(doc);
-        List<UpdateOp> splitOps = CollectionUtils.toList(doc.split(
+        List<UpdateOp> splitOps = ListUtils.toList(doc.split(
                 mk.getNodeStore(), mk.getNodeStore().getHeadRevision(),
                 NO_BINARY));
         assertEquals(2, splitOps.size());
@@ -595,7 +592,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         // must split document and create a previous document starting at
         // the second most recent revision
-        List<UpdateOp> splitOps = CollectionUtils.toList(doc.split(
+        List<UpdateOp> splitOps = ListUtils.toList(doc.split(
                 mk.getNodeStore(), mk.getNodeStore().getHeadRevision(),
                 NO_BINARY));
         assertEquals(2, splitOps.size());
@@ -628,7 +625,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         Revision r = valueMap.keySet().iterator().next();
         assertTrue(doc.getLocalRevisions().containsKey(r));
         // but also the previous document must contain the revision
-        List<NodeDocument> prevDocs = CollectionUtils.toList(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         NodeDocument prev = prevDocs.get(0);
         assertTrue(prev.getLocalRevisions().containsKey(r));
@@ -662,7 +659,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         Revision r = valueMap.keySet().iterator().next();
         assertTrue(doc.getLocalCommitRoot().containsKey(r));
         // but also the previous document must contain the commitRoot entry
-        List<NodeDocument> prevDocs = CollectionUtils.toList(doc.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         NodeDocument prev = prevDocs.get(0);
         assertTrue(prev.getLocalCommitRoot().containsKey(r));
@@ -889,7 +886,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             }
             Set<Revision> revs = new HashSet<>();
             for (RevisionVector rv : revisions) {
-                Iterables.addAll(revs, rv);
+                rv.forEach(revs::add);
             }
             revs.removeAll(doc.getValueMap("_deleted").keySet());
             assertTrue("Missing _deleted entries on " + doc.getId() + ": " + revs, revs.isEmpty());
@@ -916,7 +913,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         NodeDocument foo = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(foo);
-        List<NodeDocument> prevDocs = copyOf(foo.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(foo.getAllPreviousDocs());
         // all but most recent value are moved to individual previous docs
         assertEquals(9, prevDocs.size());
     }
@@ -950,7 +947,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         // now the old binary value must be moved to a previous document
         foo = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(foo);
-        List<NodeDocument> prevDocs = copyOf(foo.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(foo.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
     }
 
@@ -973,7 +970,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         NodeDocument foo = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(foo);
-        List<NodeDocument> prevDocs = copyOf(foo.getAllPreviousDocs());
+        List<NodeDocument> prevDocs = ListUtils.toList(foo.getAllPreviousDocs());
         // must not create split documents for small binaries less 4k
         assertEquals(0, prevDocs.size());
     }
@@ -999,7 +996,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
         Iterable<UpdateOp> splitOps = store.find(NODES, id)
                 .split(ns, ns.getHeadRevision(), NO_BINARY);
-        assertEquals(0, Iterables.size(splitOps));
+        assertEquals(0, IterableUtils.size(splitOps));
     }
 
     @Test

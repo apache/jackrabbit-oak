@@ -24,7 +24,6 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
@@ -159,7 +158,7 @@ public class QueryUtilTest {
 
     @Test
     public void testEscapeNodeName() {
-        List<String> names = ImmutableList.of("name", JcrConstants.JCR_CREATED, "%name", "a%name", "name%");
+        List<String> names = List.of("name", JcrConstants.JCR_CREATED, "%name", "a%name", "name%");
         for (String name : names) {
             assertEquals(QueryUtils.escapeNodeName(name), QueryUtil.escapeNodeName(name));
         }

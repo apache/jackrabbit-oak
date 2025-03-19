@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -59,7 +59,7 @@ public class LuceneIndexDumper {
     public void dump() throws IOException {
         try (Closer closer = Closer.create()) {
             NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
-            LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx, indexPath).build();
+            LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(rootState, idx, indexPath).build();
             indexDir = DirectoryUtils.createIndexDir(baseDir, indexPath);
             IndexMeta meta = new IndexMeta(indexPath);
 

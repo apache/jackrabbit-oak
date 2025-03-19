@@ -23,7 +23,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
@@ -155,7 +155,7 @@ public class IndexDisablerTest {
         PropertyState declaringNodeType = rootBuilder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").getProperty(DECLARING_NODE_TYPES);
         assertEquals(Type.NAMES, declaringNodeType.getType());
 
-        Set<String> names = CollectionUtils.toSet(declaringNodeType.getValue(Type.NAMES));
+        Set<String> names = SetUtils.toSet(declaringNodeType.getValue(Type.NAMES));
         assertThat(names, containsInAnyOrder("oak:TestNode"));
     }
 

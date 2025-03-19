@@ -26,8 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Assume;
@@ -182,7 +181,7 @@ public class LastRevSingleNodeRecoveryTest {
         // recover on self would recover too (testLastRevRestore)
         assertTrue(recoveryAgent.isRecoveryNeeded());
         Iterable<Integer> cids = recoveryAgent.getRecoveryCandidateNodes();
-        assertEquals(0, Iterables.size(cids));
+        assertEquals(0, IterableUtils.size(cids));
     }
     
     private void setupScenario() throws InterruptedException {

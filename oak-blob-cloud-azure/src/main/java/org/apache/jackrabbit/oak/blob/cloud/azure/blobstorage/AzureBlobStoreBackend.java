@@ -49,7 +49,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
@@ -180,7 +180,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             try {
                 Utils.setProxyIfNeeded(properties);
                 createBlobContainer = PropertiesUtil.toBoolean(
-                    Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
+                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
                 initAzureDSConfig();
 
                 concurrentRequestCount = PropertiesUtil.toInteger(
@@ -204,7 +204,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT), RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT);
                 }
                 presignedDownloadURIVerifyExists = PropertiesUtil.toBoolean(
-                    Strings.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
+                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
 
                 enableSecondaryLocation = PropertiesUtil.toBoolean(
                         properties.getProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
@@ -242,7 +242,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
                 // Initialize reference key secret
                 boolean createRefSecretOnInit = PropertiesUtil.toBoolean(
-                    Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT)), true);
+                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT)), true);
 
                 if (createRefSecretOnInit) {
                     getOrCreateReferenceKey();
@@ -549,7 +549,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         if (null == input) {
             throw new NullPointerException("input");
         }
-        if (Strings.isNullOrEmpty(name)) {
+        if (StringUtils.isEmpty(name)) {
             throw new IllegalArgumentException("name");
         }
         long start = System.currentTimeMillis();
@@ -572,7 +572,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         if (null == input) {
             throw new NullPointerException("input");
         }
-        if (Strings.isNullOrEmpty(name)) {
+        if (StringUtils.isEmpty(name)) {
             throw new IllegalArgumentException("name");
         }
         long start = System.currentTimeMillis();
@@ -878,13 +878,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 headers.setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds));
 
                 String contentType = downloadOptions.getContentTypeHeader();
-                if (! Strings.isNullOrEmpty(contentType)) {
+                if (! StringUtils.isEmpty(contentType)) {
                     headers.setContentType(contentType);
                 }
 
                 String contentDisposition =
                         downloadOptions.getContentDispositionHeader();
-                if (! Strings.isNullOrEmpty(contentDisposition)) {
+                if (! StringUtils.isEmpty(contentDisposition)) {
                     headers.setContentDisposition(contentDisposition);
                 }
 
@@ -1046,7 +1046,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
             throws DataRecordUploadException, DataStoreException {
 
-        if (Strings.isNullOrEmpty(uploadTokenStr)) {
+        if (StringUtils.isEmpty(uploadTokenStr)) {
             throw new IllegalArgumentException("uploadToken required");
         }
 
@@ -1106,7 +1106,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     private String getDefaultBlobStorageDomain() {
         String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        if (Strings.isNullOrEmpty(accountName)) {
+        if (StringUtils.isEmpty(accountName)) {
             LOG.warn("Can't generate presigned URI - Azure account name not found in properties");
             return null;
         }
@@ -1117,7 +1117,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : downloadDomainOverride;
-        if (Strings.isNullOrEmpty(domain)) {
+        if (StringUtils.isEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1127,7 +1127,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : uploadDomainOverride;
-        if (Strings.isNullOrEmpty(domain)) {
+        if (StringUtils.isEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1155,7 +1155,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                                    Map<String, String> additionalQueryParams,
                                    SharedAccessBlobHeaders optionalHeaders,
                                    String domain) {
-        if (Strings.isNullOrEmpty(domain)) {
+        if (StringUtils.isEmpty(domain)) {
             LOG.warn("Can't generate presigned URI - no Azure domain provided (is Azure account name configured?)");
             return null;
         }

@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -148,9 +147,9 @@ public class ElasticDocument {
         properties.put(fieldName, finalValue);
     }
 
-    void addSimilarityField(String name, Blob value) throws IOException {
-        byte[] bytes = new BlobByteSource(value).read();
-        addProperty(FieldNames.createSimilarityFieldName(name), toFloats(bytes));
+    void addSimilarityField(String fieldName, Blob value) throws IOException {
+        byte[] bytes = value.getNewStream().readAllBytes();
+        addProperty(FieldNames.createSimilarityFieldName(fieldName), toFloats(bytes));
     }
 
     void indexAncestors(String path) {
@@ -161,8 +160,8 @@ public class ElasticDocument {
         addProperty(FieldNames.PATH_DEPTH, depth);
     }
 
-    void addDynamicBoostField(String propName, String value, double boost) {
-        addProperty(propName,
+    void addDynamicBoostField(String fieldName, String value, double boost) {
+        addProperty(fieldName,
                 Map.of(
                         ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE, value,
                         ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
@@ -194,6 +193,22 @@ public class ElasticDocument {
     @NotNull
     public Set<String> getPropertiesToRemove() {
         return propertiesToRemove;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("path:").append(path).append('\n');
+        if (!fulltext.isEmpty()) {
+            buff.append("fulltext:").append(fulltext).append('\n');
+        }
+        if (!properties.isEmpty()) {
+            buff.append("properties:").append(properties).append('\n');
+        }
+        if (!dynamicProperties.isEmpty()) {
+            buff.append("dynamicProperties:").append(dynamicProperties).append('\n');
+        }
+        return buff.toString();
     }
 
 }

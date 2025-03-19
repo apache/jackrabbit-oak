@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -91,7 +91,7 @@ class InternalSecurityProvider implements SecurityProvider, WhiteboardAware {
     @NotNull
     @Override
     public Iterable<? extends SecurityConfiguration> getConfigurations() {
-        return CollectionUtils.toSet(
+        return SetUtils.toSet(
                 authenticationConfiguration,
                 authorizationConfiguration,
                 userConfiguration,

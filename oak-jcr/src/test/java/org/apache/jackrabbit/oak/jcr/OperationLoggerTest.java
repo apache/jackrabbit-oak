@@ -32,7 +32,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +68,7 @@ public class OperationLoggerTest extends AbstractJCRTest {
         String stmt = "select * from [nt:base] where foo = 'bar'";
         Query q = qm.createQuery(stmt, Query.JCR_SQL2);
         QueryResult r = q.execute();
-        Iterators.size(r.getRows());
+        IteratorUtils.size(r.getRows());
         stop();
 
         boolean queryStmtLog = false;

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
@@ -31,15 +30,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -191,12 +189,12 @@ public class IndexRootDirectory {
      * The resulting file name would be truncated to MAX_NAME_LENGTH
      */
     static String getIndexFolderBaseName(String indexPath) {
-        List<String> elements = CollectionUtils.toList(PathUtils.elements(indexPath));
+        List<String> elements = ListUtils.toList(PathUtils.elements(indexPath));
         Collections.reverse(elements);
         List<String> result = new ArrayList<>(2);
 
         //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
-        for (String e : Iterables.limit(elements, 3)) {
+        for (String e : IterableUtils.limit(elements, 3)) {
             if ("oak:index".equals(e)) {
                 continue;
             }
@@ -205,7 +203,7 @@ public class IndexRootDirectory {
         }
 
         Collections.reverse(result);
-        String name = Joiner.on('_').join(result);
+        String name = String.join("_", result);
         if (name.length() > MAX_NAME_LENGTH){
             name = name.substring(0, MAX_NAME_LENGTH);
         }
@@ -222,7 +220,7 @@ public class IndexRootDirectory {
     private Map<String, List<LocalIndexDir>> getIndexesPerPath() throws IOException {
         File[] dirs = indexRootDir.listFiles(LOCAL_DIR_FILTER);
 
-        ListMultimap<String, LocalIndexDir> pathToDirMap = ArrayListMultimap.create();
+        ListValuedMap<String, LocalIndexDir> pathToDirMap = new ArrayListValuedHashMap<>();
         for (File indexDir : dirs){
             LocalIndexDir localIndexDir = new LocalIndexDir(indexDir);
             pathToDirMap.get(localIndexDir.getJcrPath()).add(localIndexDir);

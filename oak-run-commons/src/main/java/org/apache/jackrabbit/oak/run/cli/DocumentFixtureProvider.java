@@ -23,9 +23,9 @@ import java.io.IOException;
 import javax.sql.DataSource;
 
 import com.mongodb.client.MongoDatabase;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import com.mongodb.MongoClientURI;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;

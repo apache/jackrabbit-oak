@@ -42,7 +42,8 @@ import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnWriteDirectory;
@@ -60,8 +61,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 /**
@@ -104,7 +103,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private final boolean prefetchEnabled;
     private volatile boolean closed;
     private final IndexRootDirectory indexRootDirectory;
-    private final Set<String> validatedIndexPaths = CollectionUtils.newConcurrentHashSet();
+    private final Set<String> validatedIndexPaths = SetUtils.newConcurrentHashSet();
     private final IndexSanityChecker.IndexSanityStatistics indexSanityStatistics = new IndexSanityChecker.IndexSanityStatistics();
 
     public IndexCopier(Executor executor, File indexRootDir) throws IOException {
@@ -607,7 +606,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     @Override
     public String[] getGarbageDetails() {
-        return toArray(transform(failedToDeleteFiles.values(),
+        return IterableUtils.toArray(IterableUtils.transform(failedToDeleteFiles.values(),
                 input -> input.deleteLog()), String.class);
     }
 
@@ -651,7 +650,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     @Override
     public String[] getCopyInProgressDetails() {
-        return toArray(transform(copyInProgressFiles,
+        return IterableUtils.toArray(IterableUtils.transform(copyInProgressFiles,
                 input -> input.copyLog()), String.class);
     }
 

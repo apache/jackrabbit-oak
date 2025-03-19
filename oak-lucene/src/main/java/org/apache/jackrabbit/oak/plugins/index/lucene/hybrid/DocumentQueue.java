@@ -33,8 +33,8 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.util.concurrent.Striped;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
@@ -100,7 +100,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
                     long start = PERF_LOGGER.start();
                     int maxSize = docsQueue.size();
                     List<LuceneDoc> docs = new ArrayList<>(maxSize);
-                    ListMultimap<String, LuceneDoc> docsPerIndex = ArrayListMultimap.create();
+                    ListValuedMap<String, LuceneDoc> docsPerIndex = new ArrayListValuedHashMap<>();
 
                     //Do the processing in batches
                     int count = docsQueue.drainTo(docs, maxSize);

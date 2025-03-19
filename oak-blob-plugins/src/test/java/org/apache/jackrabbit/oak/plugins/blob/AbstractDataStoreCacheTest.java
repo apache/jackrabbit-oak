@@ -29,6 +29,8 @@ import java.io.InputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -62,8 +64,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.io.Files;
-
 /**
  * Abstract class for DataStore cache related tests.
  */
@@ -89,7 +89,7 @@ public class AbstractDataStoreCacheTest {
             try {
                 File move = getFile(id, root);
                 move.getParentFile().mkdirs();
-                Files.copy(f, move);
+                Files.copy(f.toPath(), move.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 LOG.info("In TestStagingUploader after write [{}]", move);
             } catch (IOException e) {
                 throw new DataStoreException(e);
@@ -125,7 +125,7 @@ public class AbstractDataStoreCacheTest {
             try {
                 File move = getFile(id, root);
                 move.getParentFile().mkdirs();
-                Files.copy(f, move);
+                Files.copy(f.toPath(), move.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 LOG.info("In TestCacheLoader after write [{}], [{}]", id, move);
             } catch (IOException e) {
                 throw new DataStoreException(e);

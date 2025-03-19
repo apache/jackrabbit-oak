@@ -25,8 +25,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -536,13 +536,13 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     private static void assertCacheIfPresent(int seed, FileCache cache, File f) throws IOException {
         File cached = cache.getIfPresent(ID_PREFIX + seed);
         assertNotNull(cached);
-        assertTrue(Files.equal(f, cached));
+        assertTrue(FileUtils.contentEquals(f, cached));
     }
 
     private static void assertCache(int seed, FileCache cache, File f) throws IOException {
         File cached = cache.get(ID_PREFIX + seed);
         assertNotNull(cached);
-        assertTrue(Files.equal(f, cached));
+        assertTrue(FileUtils.contentEquals(f, cached));
     }
 
     private static File createFile(int seed, TestCacheLoader loader, FileCache cache, TemporaryFolder folder)

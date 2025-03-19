@@ -18,31 +18,25 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 
-class TestNodeStateIndexer implements NodeStateIndexer {
+class TestIndexDefinition extends IndexDefinition {
 
-    private final String name;
+    private final String indexName;
     private final List<String> includedPaths;
 
-    public TestNodeStateIndexer(List<String> includedPaths) {
-        this("test-index", includedPaths);
-    }
-
-    public TestNodeStateIndexer(String name, List<String> includedPaths) {
-        this.name = name;
+    public TestIndexDefinition(String indexName, List<String> includedPaths) {
+        super(EmptyNodeState.EMPTY_NODE, EmptyNodeState.EMPTY_NODE, "");
+        this.indexName = indexName;
         this.includedPaths = includedPaths;
     }
 
-    @Override
-    public void close() {
+    public TestIndexDefinition(List<@NotNull String> includedPaths) {
+        this("test-index", includedPaths);
     }
 
     @Override
@@ -51,27 +45,8 @@ class TestNodeStateIndexer implements NodeStateIndexer {
     }
 
     @Override
-    public boolean shouldInclude(NodeDocument doc) {
-        return false;
-    }
-
-    @Override
-    public boolean index(NodeStateEntry entry) throws IOException, CommitFailedException {
-        return false;
-    }
-
-    @Override
-    public boolean indexesRelativeNodes() {
-        return false;
-    }
-
-    @Override
-    public Set<String> getRelativeIndexedNodeNames() {
-        return null;
-    }
-
-    @Override
     public String getIndexName() {
-        return name;
+        return indexName;
     }
+
 }

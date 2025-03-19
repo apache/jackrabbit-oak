@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.RevisionsCommand;
@@ -191,16 +191,28 @@ public class RevisionsCommandTest {
         ns.dispose();
 
         String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo"));
-        assertTrue(output.contains("DryRun is enabled : true"));
-        assertTrue(output.contains("ResetFullGC is enabled : false"));
-        assertTrue(output.contains("Compaction is enabled : false"));
+        assertTrue(output.contains("DryRun is enabled : true\n"));
+        assertTrue(output.contains("ResetFullGC is enabled : false\n"));
+        assertTrue(output.contains("Compaction is enabled : false\n"));
+        assertTrue(output.contains("starting gc collect\n"));
+        assertTrue(output.contains("IncludePaths are : [/]\n"));
+        assertTrue(output.contains("ExcludePaths are : []\n"));
+        assertTrue(output.contains("FullGcMode is : 0\n"));
+        assertTrue(output.contains("FullGcDelayFactory is : 2.0\n"));
+        assertTrue(output.contains("FullGcBatchSize is : 1000\n"));
+        assertTrue(output.contains("FullGcProgressSize is : 10000\n"));
+        assertTrue(output.contains("FullGcMaxAgeInSecs is : 86400\n"));
+        assertTrue(output.contains("FullGcMaxAgeMillis is : 86400000\n"));
+    }
+
+    @Test
+    public void fullGCWithMaxAgeInSecs() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcMaxAge", "10000", "--entireRepo"));
+        assertTrue(output.contains("FullGcMaxAgeInSecs is : 10000\n"));
+        assertTrue(output.contains("FullGcMaxAgeMillis is : 10000000\n"));
         assertTrue(output.contains("starting gc collect"));
-        assertTrue(output.contains("IncludePaths are : [/]"));
-        assertTrue(output.contains("ExcludePaths are : []"));
-        assertTrue(output.contains("FullGcMode is : 0"));
-        assertTrue(output.contains("FullGcDelayFactory is : 2.0"));
-        assertTrue(output.contains("FullGcBatchSize is : 1000"));
-        assertTrue(output.contains("FullGcProgressSize is : 10000"));
     }
 
     @Test
@@ -208,7 +220,7 @@ public class RevisionsCommandTest {
         ns.dispose();
 
         String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcDelayFactor", "2.5", "--entireRepo"));
-        assertTrue(output.contains("FullGcDelayFactory is : 2.5"));
+        assertTrue(output.contains("FullGcDelayFactory is : 2.5\n"));
         assertTrue(output.contains("starting gc collect"));
     }
 
@@ -217,7 +229,7 @@ public class RevisionsCommandTest {
         ns.dispose();
 
         String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcBatchSize", "200", "--entireRepo"));
-        assertTrue(output.contains("FullGcBatchSize is : 200"));
+        assertTrue(output.contains("FullGcBatchSize is : 200\n"));
         assertTrue(output.contains("starting gc collect"));
     }
 
@@ -226,7 +238,7 @@ public class RevisionsCommandTest {
         ns.dispose();
 
         String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcProgressSize", "20000", "--entireRepo"));
-        assertTrue(output.contains("FullGcProgressSize is : 20000"));
+        assertTrue(output.contains("FullGcProgressSize is : 20000\n"));
         assertTrue(output.contains("starting gc collect"));
     }
 
@@ -409,17 +421,19 @@ public class RevisionsCommandTest {
 
     private static class RevisionsCmd implements Runnable {
 
-        private final ImmutableList<String> args;
+        private final List<String> args;
 
         public RevisionsCmd(String... args) {
-            this.args = ImmutableList.<String>builder().add(MongoUtils.URL)
-                    .add(args).build();
+            List<String> builder = new ArrayList<>();
+            builder.add(MongoUtils.URL);
+            builder.addAll(Arrays.asList(args));
+            this.args = Collections.unmodifiableList(builder);
         }
 
         @Override
         public void run() {
             try {
-                new RevisionsCommand().execute(args.toArray(new String[0]));
+                new RevisionsCommand(false).execute(args.toArray(new String[0]));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.commons.sort;
 
 import java.io.IOException;
@@ -29,9 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.Collections2;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -108,7 +105,7 @@ public class StringSortTest {
         Collections.sort(paths, comparator);
         collector.sort();
 
-        List<String> sortedPaths = ImmutableList.copyOf(collector.getIds());
+        List<String> sortedPaths = ListUtils.toList(collector.getIds());
         assertEquals(paths.size(), sortedPaths.size());
         assertEquals(paths, sortedPaths);
     }
@@ -123,12 +120,12 @@ public class StringSortTest {
         List<String> rootPaths = Arrays.asList("a", "b", "c", "d", "e", "f", "g");
         List<String> paths = new ArrayList<String>();
 
-
-        if (permutation){
-            List<String> newRoots = new ArrayList<String>();
-            for (List<String> permuts : Collections2.orderedPermutations(rootPaths)){
-                newRoots.add(Joiner.on("").join(permuts));
-            }
+        if (permutation) {
+            List<String> newRoots = new ArrayList<>();
+            org.apache.commons.collections4.CollectionUtils.permutations(rootPaths).
+                    stream().
+                    sorted((a, b) -> Arrays.compare(a.toArray(new String[0]), b.toArray(new String[0]))).
+                    forEach(permuts -> newRoots.add(String.join("", permuts)));
             rootPaths = newRoots;
         }
 
@@ -150,7 +147,7 @@ public class StringSortTest {
     }
 
     private static String createId(Iterable<String> pathElements){
-        return "/" + Joiner.on('/').join(pathElements);
+        return "/" + String.join("/", pathElements);
     }
 
     private static  class PathComparator implements Comparator<String>, Serializable {

@@ -26,8 +26,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.commons.lang3.StringUtils;
 import com.microsoft.azure.storage.StorageException;
 
 import org.apache.commons.io.IOUtils;
@@ -35,6 +34,7 @@ import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
 import org.junit.After;
 import org.junit.Before;
@@ -396,7 +396,7 @@ public class AzureDataStoreTest {
                 ids.add(identifier);
             }
 
-            int actualRecCount = Iterators.size(backend.getAllIdentifiers());
+            int actualRecCount = IteratorUtils.size(backend.getAllIdentifiers());
 
             for (DataIdentifier identifier : ids) {
                 backend.deleteRecord(identifier);
@@ -631,7 +631,7 @@ public class AzureDataStoreTest {
     public void testBackendDeleteMetadataRecord() throws DataStoreException {
         backend.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : Arrays.asList("invalid", "", null)) {
-            if (Strings.isNullOrEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 try {
                     backend.deleteMetadataRecord(name);
                 }
@@ -649,7 +649,7 @@ public class AzureDataStoreTest {
     public void testBackendMetadataRecordExists() throws DataStoreException {
         backend.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : Arrays.asList("invalid", "", null)) {
-            if (Strings.isNullOrEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 try {
                     backend.metadataRecordExists(name);
                 }

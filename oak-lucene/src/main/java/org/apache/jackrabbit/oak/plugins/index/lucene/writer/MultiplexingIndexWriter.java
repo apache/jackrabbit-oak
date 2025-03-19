@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -31,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.index.IndexableField;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static java.util.Collections.singleton;
 
 class MultiplexingIndexWriter implements LuceneIndexWriter {
@@ -81,7 +81,7 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
         // explicitly get writers for mounts which haven't got writers even at close.
         // This essentially ensures we respect DefaultIndexWriters#close's intent to
         // create empty index even if nothing has been written during re-index.
-        StreamSupport.stream(concat(singleton(mountInfoProvider.getDefaultMount()), mountInfoProvider.getNonDefaultMounts())
+        StreamSupport.stream(IterableUtils.chainedIterable(singleton(mountInfoProvider.getDefaultMount()), mountInfoProvider.getNonDefaultMounts())
                 .spliterator(), false)
                 .filter(m ->  reindex && !m.isReadOnly()) // only needed when re-indexing for read-write mounts.
                                                          // reindex for ro-mount doesn't make sense in this case anyway.
@@ -100,15 +100,20 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
     }
 
     private DefaultIndexWriter getWriter(Mount mount) {
-        DefaultIndexWriter writer = writers.computeIfAbsent(mount, w -> createWriter(mount));
-        return writer;
+        return writers.computeIfAbsent(mount, w -> createWriter(mount));
     }
 
     private DefaultIndexWriter createWriter(Mount m) {
         String dirName = MultiplexersLucene.getIndexDirName(m);
         String suggestDirName = MultiplexersLucene.getSuggestDirName(m);
         return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory, dirName,
-            suggestDirName, reindex, writerConfig);
+                suggestDirName, reindex, writerConfig);
     }
 
+    @Override
+    public String toString() {
+        return "MultiplexingIndexWriter{" +
+                "writers=" + writers.values() +
+                '}';
+    }
 }

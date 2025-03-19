@@ -19,18 +19,18 @@ package org.apache.jackrabbit.oak.upgrade.cli.container;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.security.InvalidKeyException;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
@@ -76,14 +76,14 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public NodeStore open() throws IOException {
-        AzurePersistence azPersistence = null;
+        AzurePersistenceV8 azPersistence = null;
         try {
-            azPersistence = new AzurePersistence(container.getDirectoryReference(dir));
+            azPersistence = new AzurePersistenceV8(container.getDirectoryReference(dir));
         } catch (URISyntaxException e) {
             throw new IllegalStateException(e);
         }
 
-        tmpDir = Files.createTempDir();
+        tmpDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
 
@@ -113,7 +113,7 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
     @Override
     public void clean() throws IOException {
         try {
-            AzureUtilities.deleteAllEntries(container.getDirectoryReference(dir));
+            AzureUtilitiesV8.deleteAllEntries(container.getDirectoryReference(dir));
         } catch (URISyntaxException e) {
             throw new IOException(e);
         }

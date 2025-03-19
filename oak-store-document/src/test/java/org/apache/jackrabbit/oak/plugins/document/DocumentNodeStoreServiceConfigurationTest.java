@@ -45,6 +45,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 public class DocumentNodeStoreServiceConfigurationTest {
 
@@ -101,6 +102,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DEFAULT_FGC_PROGRESS_SIZE, config.fullGCProgressSize());
         assertEquals(DEFAULT_FULL_GC_ENABLED, config.fullGCEnabled());
         assertEquals(DEFAULT_EMBEDDED_VERIFICATION_ENABLED, config.embeddedVerificationEnabled());
+        assertEquals(DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE, config.fullGcMaxAgeInSecs());
         assertEquals(CommitQueue.DEFAULT_SUSPEND_TIMEOUT, config.suspendTimeoutMillis());
     }
 
@@ -169,6 +171,28 @@ public class DocumentNodeStoreServiceConfigurationTest {
     }
 
     @Test
+    public void invisibleForDiscoveryFalse() throws Exception {
+        boolean batchSize = false;
+        addConfigurationEntry(preset, "invisibleForDiscovery", batchSize);
+        Configuration config = createConfiguration();
+        assertFalse(config.invisibleForDiscovery());
+    }
+
+    @Test
+    public void invisibleForDiscoveryTrue() throws Exception {
+        boolean batchSize = true;
+        addConfigurationEntry(preset, "invisibleForDiscovery", batchSize);
+        Configuration config = createConfiguration();
+        assertTrue(config.invisibleForDiscovery());
+    }
+
+    @Test
+    public void invisibleForDiscoveryFalseByDefault() throws Exception {
+        Configuration config = createConfiguration();
+        assertFalse(config.invisibleForDiscovery());
+    }
+
+    @Test
     public void fullGCProgressSize() throws Exception {
         int progressSize = 20000;
         addConfigurationEntry(preset, "fullGCProgressSize", progressSize);
@@ -182,6 +206,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "fullGCDelayFactor", fullGCDelayFactor);
         Configuration config = createConfiguration();
         assertEquals(fullGCDelayFactor, config.fullGCDelayFactor(), 0.01);
+    }
+
+    @Test
+    public void fullGcMaxAgeInSecs() throws Exception {
+        long fullGcMaxAgeInSecs = 30 * 24 * 60 * 60; // 30 days
+        addConfigurationEntry(preset, "fullGcMaxAgeInSecs", fullGcMaxAgeInSecs);
+        Configuration config = createConfiguration();
+        assertEquals(fullGcMaxAgeInSecs, config.fullGcMaxAgeInSecs());
     }
 
     @Test

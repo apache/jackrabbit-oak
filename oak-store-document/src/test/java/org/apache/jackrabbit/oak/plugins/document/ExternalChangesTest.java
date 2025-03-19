@@ -24,10 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyBuilder;
@@ -301,13 +299,13 @@ public class ExternalChangesTest {
 
         @Override
         public String buildAsString() {
-            return Joiner.on(",").join(allProps.values);
+            return String.join(",", allProps.values);
         }
 
         @Override
         public void addSerializedProperty(@Nullable String s) {
             if (s != null){
-                Iterables.addAll(allProps.values, Splitter.on(',').split(s));
+                Splitter.on(',').split(s).forEach(allProps.values::add);
             }
         }
 

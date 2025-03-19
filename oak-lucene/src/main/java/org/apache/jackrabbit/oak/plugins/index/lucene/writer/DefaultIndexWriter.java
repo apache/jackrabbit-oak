@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
 import static java.util.Objects.requireNonNull;
@@ -30,7 +29,9 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
@@ -49,8 +50,6 @@ import org.apache.lucene.store.Directory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 class DefaultIndexWriter implements LuceneIndexWriter {
     private static final Logger log = LoggerFactory.getLogger(DefaultIndexWriter.class);
@@ -121,7 +120,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         //it indicates that the index is empty. In such a case trigger
         //creation of write such that an empty Lucene index state is persisted
         //in directory
-        if (reindex && writer == null){
+        if (reindex && writer == null) {
             getWriter();
         }
 
@@ -148,7 +147,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             writer.close();
             PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
 
-            if (!indexUpdated){
+            if (!indexUpdated) {
                 long genAtEnd = getLatestGeneration(directory);
                 indexUpdated = genAtEnd != genAtStart;
             }
@@ -174,7 +173,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
                     config.setMergePolicy(definition.getMergePolicy());
                     writer = localRefWriter = new IndexWriter(directory, config);
                     genAtStart = getLatestGeneration(directory);
-                    log.trace("IndexWriterConfig for index [{}] is {}", definition.getIndexPath(), config);
+                    log.info("Creating writer for index: {}. Config: {}", definition.getIndexPath(), config);
                     PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
                 }
             }
@@ -184,8 +183,9 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     /**
      * eventually update suggest dictionary
-     * @throws IOException if suggest dictionary update fails
+     *
      * @param analyzer the analyzer used to update the suggester
+     * @throws IOException if suggest dictionary update fails
      */
     private boolean updateSuggester(Analyzer analyzer, Calendar currentTime) throws IOException {
         synchronized (this) {
@@ -214,6 +214,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
      * Checks if last suggestion build time was done sufficiently in the past AND that there were non-zero indexedNodes
      * stored in the last run. Note, if index is updated only to rebuild suggestions, even then we update indexedNodes,
      * which would be zero in case it was a forced update of suggestions.
+     *
      * @return is suggest dict should be updated
      */
     private boolean shouldUpdateSuggestions(Calendar currentTime) {
@@ -228,7 +229,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
                 Calendar suggesterLastUpdatedTime = ISO8601.parse(suggesterLastUpdatedValue.getValue(Type.DATE));
 
                 int updateFrequency = definition.getSuggesterUpdateFrequencyMinutes();
-                Calendar nextSuggestUpdateTime = (Calendar)suggesterLastUpdatedTime.clone();
+                Calendar nextSuggestUpdateTime = (Calendar) suggesterLastUpdatedTime.clone();
                 nextSuggestUpdateTime.add(Calendar.MINUTE, updateFrequency);
                 if (currentTime.after(nextSuggestUpdateTime)) {
                     updateSuggestions = (writer != null || isIndexUpdatedAfter(suggesterLastUpdatedTime));
@@ -292,8 +293,13 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             }
             sb.append(", ");
         }
-        log.trace("Directory overall size: {}, files: {}",
-                org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(overallSize),
-                sb.toString());
+        log.trace("Directory overall size: {}, files: {}", IOUtils.humanReadableByteCount(overallSize), sb);
+    }
+
+    @Override
+    public String toString() {
+        return "DefaultIndexWriter{" +
+                "index=" + definition.getIndexName() +
+                '}';
     }
 }

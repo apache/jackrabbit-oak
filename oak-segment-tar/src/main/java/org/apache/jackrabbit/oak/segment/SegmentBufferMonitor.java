@@ -25,7 +25,7 @@ import java.lang.ref.WeakReference;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -69,7 +69,7 @@ public class SegmentBufferMonitor {
     public static final String HEAP_BUFFER_CAPACITY = "oak.segment.heap-buffer-capacity";
 
     @NotNull
-    private final Set<BufferReference> buffers = CollectionUtils.newConcurrentHashSet();
+    private final Set<BufferReference> buffers = SetUtils.newConcurrentHashSet();
 
     @NotNull
     private final ReferenceQueue<Buffer> referenceQueue = new ReferenceQueue<>();

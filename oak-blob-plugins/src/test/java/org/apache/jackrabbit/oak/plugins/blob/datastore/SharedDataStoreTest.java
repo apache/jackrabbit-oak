@@ -33,9 +33,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -44,7 +43,8 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreTest.FixtureHelper.DATA_STORE;
 import org.junit.Before;
@@ -102,7 +102,7 @@ public class SharedDataStoreTest {
 
             Properties props = new Properties();
             props.setProperty("fsBackendPath", folder.newFolder().getAbsolutePath());
-            PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+            PropertiesUtil.populate(ds, MapUtils.fromProperties(props), false);
             ds.setProperties(props);
             ds.init(folder.newFolder().getAbsolutePath());
             dataStore = ds;
@@ -145,7 +145,7 @@ public class SharedDataStoreTest {
         fds.init(null);
 
         Iterator<DataIdentifier> dis = fds.getAllIdentifiers();
-        Set<String> fileNames = CollectionUtils.toSet(Iterators.transform(dis, DataIdentifier::toString));
+        Set<String> fileNames = SetUtils.toSet(Iterators.transform(dis, DataIdentifier::toString));
 
         Set<String> expectedNames = Set.of("abcdef","bcdefg","cdefgh");
         assertEquals(expectedNames, fileNames);
@@ -313,7 +313,7 @@ public class SharedDataStoreTest {
 
         fds.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : new ArrayList<>(Arrays.asList("", null))) {
-            if (Strings.isNullOrEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 try {
                     fds.deleteMetadataRecord(name);
                 }
@@ -387,7 +387,7 @@ public class SharedDataStoreTest {
 
         fds.addMetadataRecord(randomStream(0, 10), "name");
         for (String name : new ArrayList<>(Arrays.asList("invalid", "", null))) {
-            if (Strings.isNullOrEmpty(name)) {
+            if (StringUtils.isEmpty(name)) {
                 try {
                     fds.metadataRecordExists(name);
                 }

@@ -22,7 +22,10 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder.PropertyRule;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -90,7 +93,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
             long docCountBreachingBulkSize = (bulkSize / docSize) + 1;
             // 250 is the default flush limit for bulk processor
             Assert.assertTrue(docCountBreachingBulkSize < 250);
-            String random = RandomStringUtils.random(docSize, true, true);
+            String random = RandomStringUtils.insecure().next(docSize, true, true);
 
             Tree test = root.getTree("/").addChild("test");
             for (int i = 1; i <= docCountBreachingBulkSize; i++) {
@@ -175,6 +178,84 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         });
     }
 
+    // OAK-11530
+    @Test
+    public void propertyWithDotPrefix() throws Exception {
+        IndexDefinitionBuilder builder = createIndex();
+        builder.includedPaths("/test")
+                .indexRule("nt:base")
+                .property("foo", "foo").propertyIndex()
+                .property("test", "./test").propertyIndex();
+        setIndex("test1", builder);
+        root.commit();
+
+        //add content
+        root.getTree("/").addChild("test")
+            .setProperty("test", "1");
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] " +
+                "where test = '1'";
+
+        assertEventually(() -> {
+            String explanation = explain(query);
+            assertThat(explanation, containsString("no-index"));
+        });
+
+        String queryFoo = "select [jcr:path] from [nt:base] " +
+                "where foo = '1'";
+        assertEventually(() -> {
+            String explanation = explain(queryFoo);
+            assertThat(explanation, containsString("/oak:index/test1"));
+            assertThat(explanation, containsString("{\"term\":{\"foo\":{\"value\":\"1\""));
+            assertQuery(query, List.of());
+        });
+    }
+
+    @Test
+    public void propertyWithDot() throws Exception {
+        IndexDefinitionBuilder builder = createIndex();
+        builder.includedPaths("/test")
+                .indexRule("nt:base")
+                .property("firstName", "first.name").propertyIndex()
+                .property("lowerFirstName", "first.name");
+        PropertyRule lowerFirstName = builder.indexRule("nt:base").property("lowerFirstName");
+        lowerFirstName.getBuilderTree().setProperty(
+                FulltextIndexConstants.PROP_FUNCTION, "lower([first.name])");
+        setIndex("test1", builder);
+        root.commit();
+
+        //add content
+        root.getTree("/").addChild("test").setProperty("first.name", "Antonio");
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] " +
+                "where [first.name] = 'Antonio'";
+
+        assertEventually(() -> {
+            String explanation = explain(query);
+            assertThat(explanation, containsString("/oak:index/test1"));
+            assertThat(explanation, containsString(
+                    "{\"term\":{\"" +
+                            ElasticIndexUtils.fieldName("first.name") +
+                            "\":{\"value\":\"Antonio\""));
+            assertQuery(query, List.of("/test"));
+        });
+
+        String lowerQuery = "select [jcr:path] from [nt:base] " +
+                "where lower([first.name]) = 'antonio'";
+
+        assertEventually(() -> {
+            String explanation = explain(lowerQuery);
+            assertThat(explanation, containsString("/oak:index/test1"));
+            assertThat(explanation, containsString(
+                    "{\"term\":{\"" +
+                            ElasticIndexUtils.fieldName("function*lower*@first.name") +
+                            "\":{\"value\":\"antonio\""));
+            assertQuery(lowerQuery, List.of("/test"));
+        });
+    }
+
     @Test
     public void emptyIndex() throws Exception {
         setIndex("test1", createIndex("propa", "propb"));
@@ -242,6 +323,13 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
     @Test
     public void indexFailuresWithFailOnErrorOn() throws Exception {
+        if (ElasticPropertyDefinition.PROP_IS_FLATTENED_DEFAULT) {
+            // if "flattened" enabled by default,
+            // then the test doesn't make sense.
+            // alternatively, disable "flattened" in the index definition;
+            // but this is already tested in ElasticRegexPropertyIndexTest
+            return;
+        }
         IndexDefinitionBuilder builder = createIndex("a");
         builder.includedPaths("/test")
                 .indexRule("nt:base")

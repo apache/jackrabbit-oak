@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
@@ -37,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 
 final class NodeStoreUtils {
@@ -46,7 +44,7 @@ final class NodeStoreUtils {
         CompositeHook hooks = new CompositeHook(
                 ResetCommitAttributeHook.INSTANCE,
                 new ConflictHook(new AnnotatingConflictHandler()),
-                new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
+                new EditorHook(new ConflictValidatorProvider())
         );
         nodeStore.merge(builder, hooks, createCommitInfo());
     }
@@ -57,7 +55,7 @@ final class NodeStoreUtils {
                 ResetCommitAttributeHook.INSTANCE,
                 new EditorHook(new IndexUpdateProvider(indexEditorProvider, null, true)),
                 new ConflictHook(new AnnotatingConflictHandler()),
-                new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
+                new EditorHook(new ConflictValidatorProvider())
         );
         nodeStore.merge(builder, hooks, createCommitInfo());
     }

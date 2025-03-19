@@ -17,8 +17,15 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.FullTextIndexCommonTest;
 import org.junit.ClassRule;
+import org.junit.Test;
+
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticFullTextIndexTest extends FullTextIndexCommonTest {
 
@@ -38,6 +45,29 @@ public class ElasticFullTextIndexTest extends FullTextIndexCommonTest {
     @Override
     protected void createTestIndexNode() {
         setTraversalEnabled(false);
+    }
+
+    @Test
+    public void fullTextWithFuzzyEditDistance() throws Exception {
+        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
+                },
+                "propa");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "Hello World!");
+        test.addChild("b").setProperty("propa", "Simple test");
+        root.commit();
+
+        String misspelledWorld = "//*[jcr:contains(@propa, 'wordl~0.5')]";
+        String mixedFuzzyFormats = "//*[jcr:contains(@propa, 'wordl~0.5 OR sample~1')]";
+
+        assertEventually(() -> {
+            assertThat(explain(misspelledWorld, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
+            assertQuery(misspelledWorld, XPATH, List.of("/test/a"));
+            assertQuery(mixedFuzzyFormats, XPATH, List.of("/test/a", "/test/b"));
+        });
     }
 
 }

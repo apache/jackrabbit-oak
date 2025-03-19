@@ -28,13 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJSONSupport;
 import org.apache.jackrabbit.oak.run.commons.Command;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 import joptsimple.OptionSpec;
 

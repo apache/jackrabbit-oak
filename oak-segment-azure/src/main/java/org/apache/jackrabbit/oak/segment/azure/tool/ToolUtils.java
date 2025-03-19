@@ -21,27 +21,24 @@ package org.apache.jackrabbit.oak.segment.azure.tool;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_SHARED_ACCESS_SIGNATURE;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONTAINER_NAME;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
-import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistenceManager;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.*;
@@ -60,12 +57,8 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.Persist
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,15 +123,12 @@ public class ToolUtils {
     }
 
     public static SegmentNodeStorePersistence newSegmentNodeStorePersistence(SegmentStoreType storeType,
-                                                                             String pathOrUri,
-                                                                             @Nullable AzureStorageCredentialManager azureStorageCredentialManager) {
+                                                                             String pathOrUri) {
         SegmentNodeStorePersistence persistence = null;
 
         switch (storeType) {
             case AZURE:
-                Objects.requireNonNull(azureStorageCredentialManager, "azure storage credentials manager instance cannot be null");
-                CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri.substring(3), azureStorageCredentialManager);
-                persistence = new AzurePersistence(cloudBlobDirectory);
+                persistence = createAzurePersistence(pathOrUri.substring(3));
                 break;
             default:
                 persistence = new TarPersistence(new File(pathOrUri));
@@ -160,48 +150,43 @@ public class ToolUtils {
         return archiveManager;
     }
 
-    public static CloudBlobDirectory createCloudBlobDirectory(String path, AzureStorageCredentialManager azureStorageCredentialManager) {
-        return createCloudBlobDirectory(path, ENVIRONMENT, azureStorageCredentialManager);
+    public static AzurePersistence createAzurePersistence(String path) {
+        return createAzurePersistence(path, ENVIRONMENT);
     }
 
-    public static CloudBlobDirectory createCloudBlobDirectory(String path,
-                                                              Environment environment,
-                                                              AzureStorageCredentialManager azureStorageCredentialManager) {
+    public static AzurePersistence createAzurePersistence(String path,
+                                                          Environment environment) {
         Map<String, String> config = parseAzureConfigurationFromUri(path);
 
         String accountName = config.get(KEY_ACCOUNT_NAME);
-
-        StorageCredentials credentials;
-        if (config.containsKey(KEY_SHARED_ACCESS_SIGNATURE)) {
-            credentials = new StorageCredentialsSharedAccessSignature(config.get(KEY_SHARED_ACCESS_SIGNATURE));
-        } else {
-            credentials = azureStorageCredentialManager.getStorageCredentialsFromEnvironment(accountName, environment);
-        }
-
-        String uri = config.get(KEY_STORAGE_URI);
+        String containerName = config.get(KEY_CONTAINER_NAME);
         String dir = config.get(KEY_DIR);
 
+        AzurePersistence azurePersistence;
         try {
-            return AzureUtilities.cloudBlobDirectoryFrom(credentials, uri, dir);
-        } catch (URISyntaxException | StorageException e) {
+            if (config.containsKey(KEY_SHARED_ACCESS_SIGNATURE)) {
+                azurePersistence = AzurePersistenceManager.createAzurePersistenceFrom(accountName, containerName, dir, config.get(KEY_SHARED_ACCESS_SIGNATURE));
+            } else {
+                azurePersistence = AzurePersistenceManager.createAzurePersistenceFrom(accountName, containerName, dir, environment);
+            }
+        } catch (IOException e) {
             throw new IllegalArgumentException(
                     "Could not connect to the Azure Storage. Please verify the path provided!");
         }
+        return azurePersistence;
     }
 
     public static List<String> readRevisions(String uri) {
-        try (AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager()) {
-            SegmentNodeStorePersistence persistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, uri, azureStorageCredentialManager);
-            JournalFile journal = persistence.getJournalFile();
-            if (journal.exists()) {
-                try (JournalReader journalReader = new JournalReader(journal)) {
-                    Iterator<String> revisionIterator = Iterators.transform(journalReader,
-                         entry -> entry.getRevision());
-                    return CollectionUtils.toList(revisionIterator);
-                } catch (Exception e) {
-                    log.error("Error while reading from journal file");
-                    e.printStackTrace();
-                }
+        SegmentNodeStorePersistence persistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, uri);
+        JournalFile journal = persistence.getJournalFile();
+        if (journal.exists()) {
+            try (JournalReader journalReader = new JournalReader(journal)) {
+                Iterator<String> revisionIterator = Iterators.transform(journalReader,
+                        entry -> entry.getRevision());
+                return ListUtils.toList(revisionIterator);
+            } catch (Exception e) {
+                log.error("Error while reading from journal file");
+                e.printStackTrace();
             }
         }
 

@@ -39,9 +39,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
@@ -127,7 +126,7 @@ public final class FilterBuilder {
      */
     @NotNull
     private Iterable<String> getSubTrees() {
-        return subTrees.isEmpty() ? ImmutableList.of("/") : subTrees;
+        return subTrees.isEmpty() ? List.of("/") : subTrees;
     }
 
     public FilterBuilder aggregator(EventAggregator aggregator) {
@@ -464,7 +463,7 @@ public final class FilterBuilder {
         return new FilterConfigMBean() {
             @Override
             public String[] getPaths() {
-                return Iterables.toArray(pathsForMBean, String.class);
+                return IterableUtils.toArray(pathsForMBean, String.class);
             }
 
             @Override

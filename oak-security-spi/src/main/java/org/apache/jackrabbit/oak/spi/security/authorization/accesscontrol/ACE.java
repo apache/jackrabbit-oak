@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.Collections2;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
@@ -112,7 +111,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
     @NotNull
     @Override
     public String[] getRestrictionNames() {
-        return Collections2.transform(restrictions, this::getJcrName).toArray(new String[restrictions.size()]);
+        return restrictions.stream().map(this::getJcrName).toArray(String[]::new);
     }
 
     @Nullable

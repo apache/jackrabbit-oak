@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -122,7 +122,7 @@ public class UserManagerImpl implements UserManager {
     @Nullable
     @Override
     public Authorizable getAuthorizable(@NotNull String id) throws RepositoryException {
-        Tree tree = (Strings.isNullOrEmpty(id)) ? null : userProvider.getAuthorizable(id);
+        Tree tree = (StringUtils.isEmpty(id)) ? null : userProvider.getAuthorizable(id);
         return getAuthorizable(tree);
     }
 
@@ -487,7 +487,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     void checkValidPrincipal(@Nullable Principal principal, boolean isGroup) throws RepositoryException {
-        if (principal == null || Strings.isNullOrEmpty(principal.getName())) {
+        if (principal == null || StringUtils.isEmpty(principal.getName())) {
             throw new IllegalArgumentException("Principal may not be null and must have a valid name.");
         }
         if (!isGroup && EveryonePrincipal.NAME.equals(principal.getName())) {
@@ -560,11 +560,11 @@ public class UserManagerImpl implements UserManager {
      */
     @NotNull
     private Iterable<GroupAction> filterGroupActions() {
-        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider), GroupAction.class);
+        return IterableUtils.filter(actionProvider.getAuthorizableActions(securityProvider), GroupAction.class);
     }
 
     @NotNull
     private Iterable<UserAction> filterUserActions() {
-        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider), UserAction.class);
+        return IterableUtils.filter(actionProvider.getAuthorizableActions(securityProvider), UserAction.class);
     }
 }

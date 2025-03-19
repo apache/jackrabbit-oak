@@ -45,7 +45,7 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
     @Before
     @Override
     public void setUpConnection() throws Exception {
-        dataSource = RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD);
+        dataSource = RDBDataSourceFactory.forJdbcUrl(RdbConnectionUtils.mapJdbcURL(), USERNAME, PASSWD);
         DocumentMK.Builder builder = new DocumentMK.Builder().clock(getTestClock()).setAsyncDelay(0);
         RDBOptions opt = new RDBOptions().tablePrefix("T" + Long.toHexString(System.currentTimeMillis())).dropTablesOnClose(true);
         store = new TestStore(dataSource, builder, opt);

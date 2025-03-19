@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
-
 import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -171,7 +170,7 @@ public class DocumentStoreException extends RuntimeException {
                                                                   Iterable<String> ids) {
         String msg = message;
         if (ids.iterator().hasNext()) {
-            msg += " " + CollectionUtils.toList(ids);
+            msg += " " + ListUtils.toList(ids);
         }
         if (t instanceof DocumentStoreException) {
             return (DocumentStoreException) t;

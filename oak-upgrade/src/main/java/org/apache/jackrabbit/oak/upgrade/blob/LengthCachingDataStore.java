@@ -20,12 +20,13 @@ package org.apache.jackrabbit.oak.upgrade.blob;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -35,7 +36,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
@@ -262,7 +262,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
         if (mappingFile.exists()) {
             try {
                 existingMappings = loadMappingData(mappingFile);
-            } catch (FileNotFoundException e) {
+            } catch (IOException e) {
                 throw new RuntimeException("Failed to read mapping data from " + mappingFile, e);
             }
         } else {
@@ -287,17 +287,13 @@ public class LengthCachingDataStore extends AbstractDataStore {
             File configFile = new File(delegateConfigFilePath);
             checkArgument(configFile.exists(), "Delegate DataStore config file %s does not exist", configFile.getAbsolutePath());
 
-            InputStream is = null;
-            try {
+            try (InputStream is = new FileInputStream(configFile)) {
                 Properties props = new Properties();
-                is = Files.asByteSource(configFile).openStream();
                 props.load(is);
                 PropertiesUtil.populate(delegate, propsToMap(props), false);
                 log.info("Configured the delegating DataStore via {}", configFile.getAbsolutePath());
             } catch (IOException e) {
                 throw new RepositoryException("Error reading from config file " + configFile.getAbsolutePath(), e);
-            } finally {
-                IOUtils.closeQuietly(is);
             }
         }
 
@@ -326,10 +322,10 @@ public class LengthCachingDataStore extends AbstractDataStore {
         }
     }
 
-    private static Map<String, Long> loadMappingData(File mappingFile) throws FileNotFoundException {
+    private static Map<String, Long> loadMappingData(File mappingFile) throws IOException {
         Map<String, Long> mapping = new HashMap<String, Long>();
         log.info("Reading mapping data from {}", mappingFile.getAbsolutePath());
-        LineIterator itr = new LineIterator(Files.newReader(mappingFile, StandardCharsets.UTF_8));
+        LineIterator itr = new LineIterator(Files.newBufferedReader(mappingFile.toPath()));
         try {
             while (itr.hasNext()) {
                 String line = itr.nextLine();

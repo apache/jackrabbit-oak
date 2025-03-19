@@ -84,7 +84,7 @@ public class TreeStore implements ParallelIndexStore {
     private final AtomicLong nodeCacheHits = new AtomicLong();
     private final AtomicLong nodeCacheMisses = new AtomicLong();
     private final AtomicLong nodeCacheFills = new AtomicLong();
-    private int iterationCount;
+    private long iterationCount;
     private PathIteratorFilter filter = new PathIteratorFilter();
     private ArrayList<String> splitPoints;
 
@@ -120,7 +120,6 @@ public class TreeStore implements ParallelIndexStore {
         this.session = new TreeSession(store);
         // we don not want to merge too early during the download
         session.setMaxRoots(1000);
-        LOG.info("Open " + toString());
     }
 
     public void init() {
@@ -137,7 +136,6 @@ public class TreeStore implements ParallelIndexStore {
     }
 
     public void setIncludedPaths(SortedSet<String> includedPaths) {
-        LOG.info("Included paths {}", includedPaths.toString());
         filter = new PathIteratorFilter(includedPaths);
     }
 
@@ -197,7 +195,7 @@ public class TreeStore implements ParallelIndexStore {
                             continue;
                         }
                     }
-                    if (++iterationCount % 1_000_000 == 0) {
+                    if (++iterationCount % 5_000_000 == 0) {
                         LOG.info("Fetching {} in {}", iterationCount, TreeStore.this.toString());
                     }
                     current = key;

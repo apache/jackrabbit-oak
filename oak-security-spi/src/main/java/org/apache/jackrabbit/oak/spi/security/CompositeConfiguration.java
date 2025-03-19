@@ -18,13 +18,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -45,12 +43,14 @@ import org.osgi.annotation.versioning.ProviderType;
 import org.osgi.framework.Constants;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Abstract base implementation for {@link SecurityConfiguration}s that can
@@ -142,9 +142,9 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     public List<T> getConfigurations() {
         if (configurations.isEmpty() && defaultConfig != null) {
-            return ImmutableList.of(defaultConfig);
+            return List.of(defaultConfig);
         } else {
-            return ImmutableList.copyOf(configurations);
+            return List.copyOf(configurations);
         }
     }
 
@@ -205,44 +205,52 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
-        return new CompositeWorkspaceInitializer(Lists.transform(getConfigurations(),
-                securityConfiguration -> securityConfiguration.getWorkspaceInitializer()));
+        return new CompositeWorkspaceInitializer(getConfigurations().stream()
+                .map(SecurityConfiguration::getWorkspaceInitializer)
+                .collect(Collectors.toList()));
     }
 
     @NotNull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
-        return new CompositeInitializer(Lists.transform(getConfigurations(),
-                securityConfiguration -> securityConfiguration.getRepositoryInitializer()));
+        return new CompositeInitializer(getConfigurations().stream()
+                .map(SecurityConfiguration::getRepositoryInitializer)
+                .collect(Collectors.toList()));
     }
 
     @NotNull
     @Override
     public List<? extends CommitHook> getCommitHooks(@NotNull final String workspaceName) {
-        Iterable<CommitHook> t = Iterables.concat(Lists.transform(getConfigurations(),
-                securityConfiguration -> securityConfiguration.getCommitHooks(workspaceName)));
-        return ImmutableList.copyOf(t);
+        return Collections.unmodifiableList(getConfigurations().stream()
+                .map(securityConfiguration -> securityConfiguration.getCommitHooks(workspaceName))
+                .flatMap(List::stream).collect(Collectors.toList()));
     }
 
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull final String workspaceName, @NotNull final Set<Principal> principals, @NotNull final MoveTracker moveTracker) {
-        Iterable<ValidatorProvider> t = Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getValidators(workspaceName, principals, moveTracker)));
-        return ImmutableList.copyOf(t);
+        return Collections.unmodifiableList(getConfigurations().stream()
+                .map(securityConfiguration -> securityConfiguration.getValidators(workspaceName, principals, moveTracker))
+                .flatMap(List::stream)
+                .collect(Collectors.toList()));
     }
 
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
-        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getConflictHandlers())));
+        return getConfigurations().stream()
+                .map(SecurityConfiguration::getConflictHandlers)
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
     }
 
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        Iterable<ProtectedItemImporter> t = Iterables.concat(Lists.transform(getConfigurations(),
-                securityConfiguration -> securityConfiguration.getProtectedItemImporters()));
-        return ImmutableList.copyOf(t);
+        return Collections.unmodifiableList(getConfigurations().stream()
+                .map(SecurityConfiguration::getProtectedItemImporters)
+                .flatMap(List::stream)
+                .collect(Collectors.toList()));
     }
 
     @NotNull
@@ -254,8 +262,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     @Override
     public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
-        return Iterables.concat(
-                Iterables.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)));
+        return IterableUtils.chainedIterable(
+                IterableUtils.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)));
     }
 
     private static final class Ranking {
@@ -290,8 +298,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
         private Context[] delegatees = null;
 
         private void refresh(@NotNull List<? extends SecurityConfiguration> configurations) {
-            Set<Context> s = CollectionUtils.newLinkedHashSet(configurations.size());
-            for (Context c : Iterables.transform(configurations, ContextFunction.INSTANCE::apply)) {
+            Set<Context> s = SetUtils.newLinkedHashSet(configurations.size());
+            for (Context c : IterableUtils.transform(configurations, ContextFunction.INSTANCE::apply)) {
                 if (DEFAULT != c) {
                     s.add(c);
                 }
@@ -310,7 +318,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
                             return;
                         }
                     }
-                    delegatees = ObjectArrays.concat(delegatees, c);
+                    delegatees = ArrayUtils.add(delegatees, c);
                 }
             }
         }

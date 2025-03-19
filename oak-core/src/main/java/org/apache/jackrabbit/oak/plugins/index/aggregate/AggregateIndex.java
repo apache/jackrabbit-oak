@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
@@ -34,8 +35,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 
@@ -206,9 +205,9 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
             @Override
             public boolean visit(FullTextOr or) {
                 final int[] index = new int[1];
-                List<Cursor> cursors = Lists.transform(or.list,
-                        input -> flatten(input, plan, filter, state,
-                                        path + " or(" + index[0]++ + ")"));
+                List<Cursor> cursors = or.list.stream()
+                        .map(input -> flatten(input, plan, filter, state, path + " or(" + index[0]++ + ")"))
+                        .collect(Collectors.toList());
                 result.set(Cursors.newConcatCursor(cursors,
                         filter.getQueryLimits()));
                 return true;

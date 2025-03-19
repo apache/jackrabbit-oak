@@ -16,13 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Collections.max;
 import static java.util.EnumSet.allOf;
-
-import org.apache.jackrabbit.guava.common.primitives.UnsignedBytes;
 
 /**
  * Version of the segment storage format. <ul> <li>12 = all oak-segment-tar
@@ -56,7 +53,7 @@ public enum SegmentVersion {
      * Latest segment version
      */
     public static final SegmentVersion LATEST_VERSION = max(allOf(SegmentVersion.class),
-        (v1, v2) -> UnsignedBytes.compare(v1.version, v2.version));
+        (v1, v2) -> Integer.compare(Byte.toUnsignedInt(v1.version), Byte.toUnsignedInt(v2.version)));
 
     private final byte version;
 

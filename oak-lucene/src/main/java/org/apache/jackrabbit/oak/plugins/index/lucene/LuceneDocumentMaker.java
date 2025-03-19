@@ -58,18 +58,20 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPro
 public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     // Lucene doesn't support indexing data larger than 32766 (OAK-9707)
     public static final int STRING_PROPERTY_MAX_LENGTH = 32766;
-    private static final Logger log = LoggerFactory.getLogger(LuceneDocumentMaker.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneDocumentMaker.class);
 
     private static final String DYNAMIC_BOOST_SPLIT_REGEX = "[:/]";
-    
+
     private final FacetsConfigProvider facetsConfigProvider;
     private final IndexAugmentorFactory augmentorFactory;
-    
+
     private static final LogSilencer LOG_SILENCER = new LogSilencer(Duration.ofSeconds(10).toMillis(), 10);
     private static final String LOG_KEY_DUPLICATE = "Duplicate value";
     private static final String LOG_KEY_NOT_A_DATE_STRING = "Not a date string";
     private static final String LOG_KEY_UNABLE_TO_PARSE = "Unable to parse the provided date field";
     private static final String LOG_KEY_FOR_INPUT_STRING = "For input string";
+    private static final String LOG_KEY_IGNORING_FACET_PROPERTY = "Ignoring facet property";
+    private static final String LOG_KEY_UNKNOWN = "Unknown";
 
     public LuceneDocumentMaker(IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
@@ -147,7 +149,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     private String constructAnalyzedPropertyName(String pname) {
-        if (definition.getVersion().isAtLeast(IndexFormatVersion.V2)){
+        if (definition.getVersion().isAtLeast(IndexFormatVersion.V2)) {
             return FieldNames.createAnalyzedFieldName(pname);
         }
         return pname;
@@ -180,24 +182,26 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                 getFacetsConfig().setMultiValued(pname, true);
                 Iterable<String> values = property.getValue(Type.STRINGS);
                 for (String value : values) {
-                    if (value != null && value.length() > 0) {
+                    if (value != null && !value.isEmpty()) {
                         doc.add(new SortedSetDocValuesFacetField(pname, value));
                     }
                 }
                 fieldAdded = true;
             } else if (tag == Type.STRING.tag()) {
                 String value = property.getValue(Type.STRING);
-                if (value.length() > 0) {
+                if (!value.isEmpty()) {
                     doc.add(new SortedSetDocValuesFacetField(pname, value));
                     fieldAdded = true;
                 }
             }
 
         } catch (Throwable e) {
-            log.warn("[{}] Ignoring facet property. Could not convert property {} of type {} to type {} for path {}",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+            if (!LOG_SILENCER.silence(LOG_KEY_IGNORING_FACET_PROPERTY)) {
+                LOG.warn("[{}] Ignoring facet property. Could not convert property {} of type {} to type {} for path {}",
+                        getIndexName(), pname,
+                        Type.fromTag(property.getType().tag(), false),
+                        Type.fromTag(tag, false), path, e);
+            }
         }
         return fieldAdded;
     }
@@ -205,7 +209,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     @Override
     protected void indexAggregateValue(Document doc, Aggregate.NodeIncludeResult result, String value, PropertyDefinition pd) {
         Field field = result.isRelativeNode() ?
-                newFulltextField(result.rootIncludePath, value) : newFulltextField(value) ;
+                newFulltextField(result.rootIncludePath, value) : newFulltextField(value);
         if (pd != null) {
             field.setBoost(pd.boost);
         }
@@ -302,13 +306,13 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                     fieldAdded = true;
                 } else {
                     if (!LOG_SILENCER.silence(LOG_KEY_DUPLICATE)) {
-                        log.warn("Duplicate value for ordered field {}; ignoring. Possibly duplicate index definition.", f.name());
+                        LOG.warn("Duplicate value for ordered field {}; ignoring. Possibly duplicate index definition.", f.name());
                     }
                 }
             }
         } catch (Exception e) {
             String message = e.getMessage();
-            String key = null;
+            String key;
             // This is a known warning, one of:
             // - IllegalArgumentException: Not a date string
             // - RuntimeException: Unable to parse the provided date field
@@ -321,22 +325,27 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                 key = LOG_KEY_UNABLE_TO_PARSE;
             } else if (message.startsWith("For input string")) {
                 key = LOG_KEY_FOR_INPUT_STRING;
+            } else {
+                key = LOG_KEY_UNKNOWN;
             }
-            if (key != null) {
-                if (!LOG_SILENCER.silence(key)) {
+            if (!LOG_SILENCER.silence(key)) {
+                if (key.equals(LOG_KEY_UNKNOWN)) {
+                    // unknown error, log with stack trace
+                    LOG.warn(
+                            "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
+                            getIndexName(), pname,
+                            Type.fromTag(property.getType().tag(), false),
+                            Type.fromTag(tag, false), path, e);
+                } else {
                     // log without stack trace (as it is known)
-                    log.warn(
+                    LOG.warn(
                             "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}, message {}",
                             getIndexName(), pname,
                             Type.fromTag(property.getType().tag(), false),
                             Type.fromTag(tag, false), path, e.getMessage());
+
+
                 }
-            } else {
-                log.warn(
-                        "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
-                        getIndexName(), pname,
-                        Type.fromTag(property.getType().tag(), false),
-                        Type.fromTag(tag, false), path, e);
             }
         }
         return fieldAdded;
@@ -365,11 +374,11 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         if (ref.length <= maxLength) {
             return ref;
         }
-        
-        log.trace("Property {} at path:[{}] has value {}", prop, path, value);
-        log.info("Truncating property {} at path:[{}] as length after encoding {} is > {} ",
-            prop, path, ref.length, maxLength);
-        
+
+        LOG.trace("Property {} at path:[{}] has value {}", prop, path, value);
+        LOG.info("Truncating property {} at path:[{}] as length after encoding {} is > {} ",
+                prop, path, ref.length, maxLength);
+
         int end = maxLength - 1;
         // skip over tails of utf-8 multi-byte sequences (up to 3 bytes)
         while ((ref.bytes[end] & 0b11000000) == 0b10000000) {
@@ -382,12 +391,12 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         byte[] truncatedBytes = Arrays.copyOf(ref.bytes, end + 1);
         String truncated = new String(truncatedBytes, StandardCharsets.UTF_8);
         ref = new BytesRef(truncated);
-        if (log.isTraceEnabled()) {
-            log.trace("Truncated property {} at path:[{}] to {}", prop, path, ref.utf8ToString());
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Truncated property {} at path:[{}] to {}", prop, path, ref.utf8ToString());
         }
 
         while (ref.length > maxLength) {
-            log.error("Truncation did not work: still {} bytes", ref.length);
+            LOG.error("Truncation did not work: still {} bytes", ref.length);
             // this may not properly work with unicode surrogates:
             // it is an "emergency" procedure and should never happen
             truncated = truncated.substring(0, truncated.length() - 10);
@@ -444,7 +453,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         }
         boolean added = false;
         for (String token : tokens) {
-            if (token.length() > 0) {
+            if (!token.isEmpty()) {
                 AugmentedField f = new AugmentedField(parent + "/" + token.toLowerCase(), confidence);
                 if (doc.getField(f.name()) == null) {
                     doc.add(f);
@@ -454,8 +463,8 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         }
 
         if (added) {
-            if (log.isTraceEnabled()) {
-                log.trace(
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(
                         "Added augmented fields: {}[{}], {}",
                         parent + "/", String.join(", ", tokens), confidence
                 );
@@ -475,6 +484,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
 
     private static class AugmentedField extends Field {
         private static final FieldType ft = new FieldType();
+
         static {
             ft.setIndexed(true);
             ft.setStored(false);

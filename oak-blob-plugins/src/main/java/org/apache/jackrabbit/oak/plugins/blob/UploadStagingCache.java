@@ -22,12 +22,15 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
@@ -39,7 +42,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.cache.Weigher;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
@@ -61,7 +63,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUpgradeUtils
@@ -384,7 +385,7 @@ public class UploadStagingCache implements Closeable {
                         // Add the uploaded file to the download cache if available
                         if (downloadCache != null) {
                             // Touch the file to update timestamp and record length
-                            Files.touch(upload);
+                            Files.setLastModifiedTime(upload.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
                             downloadCache.put(id, upload);
 
                             LOG.debug("[{}] added to cache", id);
@@ -774,18 +775,18 @@ class StagingCacheStats extends AnnotatedStandardMBean implements DataStoreCache
 
     @Override
     public String cacheInfoAsString() {
-        return toStringHelper("StagingCacheStats")
-            .add("requestCount", getRequestCount())
-            .add("hitCount", getHitCount())
-            .add("hitRate", format("%1.2f", getHitRate()))
-            .add("missCount", getMissCount())
-            .add("missRate", format("%1.2f", getMissRate()))
-            .add("loadCount", getLoadCount())
-            .add("loadSuccessCount", getLoadSuccessCount())
-            .add("elementCount", getElementCount())
-            .add("currentMemSize", estimateCurrentMemoryWeight())
-            .add("totalWeight", humanReadableByteCount(estimateCurrentWeight()))
-            .add("maxWeight", humanReadableByteCount(getMaxTotalWeight()))
+        return new StringJoiner(", ", "StagingCacheStats + [", "]")
+            .add("requestCount=" + getRequestCount())
+            .add("hitCount=" + getHitCount())
+            .add("hitRate=" + format("%1.2f", getHitRate()))
+            .add("missCount=" + getMissCount())
+            .add("missRate=" + format("%1.2f", getMissRate()))
+            .add("loadCount=" + getLoadCount())
+            .add("loadSuccessCount=" + getLoadSuccessCount())
+            .add("elementCount=" + getElementCount())
+            .add("currentMemSize=" + estimateCurrentMemoryWeight())
+            .add("totalWeight=" + humanReadableByteCount(estimateCurrentWeight()))
+            .add("maxWeight=" + humanReadableByteCount(getMaxTotalWeight()))
             .toString();
     }
 
