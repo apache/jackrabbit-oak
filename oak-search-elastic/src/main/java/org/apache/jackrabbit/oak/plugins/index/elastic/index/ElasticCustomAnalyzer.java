@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.CharFilterFactory;
 import org.apache.lucene.analysis.TokenFilterFactory;
+import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
 import org.apache.lucene.analysis.en.AbstractWordsFileFilterFactory;
 import org.apache.lucene.util.ResourceLoader;
 import org.jetbrains.annotations.NotNull;
@@ -188,6 +189,7 @@ public class ElasticCustomAnalyzer {
             String name;
             List<String> content = null;
             List<ParameterTransformer> transformers;
+            boolean skipEntry = false;
             try {
                 Class<? extends AbstractAnalysisFactory> tff = lookup.apply(t.getName());
 
@@ -207,6 +209,13 @@ public class ElasticCustomAnalyzer {
                     // this will parse/load the content handling different formats, comments, etc
                     wordsFF.inform(new NodeStateResourceLoader(child));
                     content = wordsFF.getWords().stream().map(w -> new String(((char[]) w))).collect(Collectors.toList());
+                }
+                if (luceneFactory instanceof MappingCharFilterFactory) {
+                    MappingCharFilterFactory map = (MappingCharFilterFactory) luceneFactory;
+                    if (map.getOriginalArgs().isEmpty()) {
+                        skipEntry = true;
+                        LOG.warn("Empty CharFilter mapping: ignoring");
+                    }
                 }
 
                 name = normalize((String) tff.getField("NAME").get(null));
@@ -245,6 +254,9 @@ public class ElasticCustomAnalyzer {
             }
             args.put(ANALYZER_TYPE, name);
 
+            if (skipEntry) {
+                continue;
+            }
             filters.put(name + "_" + i, factory.apply(name, JsonData.of(args)));
             i++;
         }

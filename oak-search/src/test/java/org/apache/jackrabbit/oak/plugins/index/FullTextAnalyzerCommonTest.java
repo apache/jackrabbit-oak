@@ -1075,6 +1075,37 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         });
     }
 
+    // OAK-11568
+    @Test
+    public void analyzerWithEmptyCharFilterMapping() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree analyzers = idx.addChild(FulltextIndexConstants.ANALYZERS);
+            Tree defaultAnalyzers = analyzers.addChild(FulltextIndexConstants.ANL_DEFAULT);
+            Tree charFilters = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_CHAR_FILTERS);
+            charFilters.addChild("HTMLStrip");
+
+            // having the mappings, but not having any content, resulted in:
+            // co.elastic.clients.elasticsearch._types.ElasticsearchException:
+            // [es/indices.create] failed: [illegal_argument_exception]
+            // mapping requires either `mappings` or `mappings_path` to be configured
+            charFilters.addChild("Mapping");
+
+            defaultAnalyzers.addChild(FulltextIndexConstants.ANL_TOKENIZER)
+                .setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree filters = analyzers.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            filters.addChild("LowerCase");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "foo bar");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'foo')", List.of("/content/bar"));
+        });
+    }
+
     protected Tree addFilter(Tree analyzer, String filterName) {
         Tree filter = analyzer.addChild(filterName);
         // mimics nodes api
