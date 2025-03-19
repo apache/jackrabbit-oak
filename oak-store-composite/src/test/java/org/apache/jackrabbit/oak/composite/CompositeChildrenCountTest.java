@@ -18,10 +18,8 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
@@ -36,13 +34,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import java.util.stream.Stream;
 
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Arrays.asList;
@@ -72,7 +68,7 @@ public class CompositeChildrenCountTest {
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        List<MountedNodeStore> mounts = new ArrayList<>(); 
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 
@@ -123,7 +119,7 @@ public class CompositeChildrenCountTest {
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        List<MountedNodeStore> mounts = new ArrayList<>(); 
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 
@@ -220,10 +216,10 @@ public class CompositeChildrenCountTest {
         @Override
         public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
             if (children == null) {
-                Iterable<? extends ChildNodeEntry> childrenIterable = cycle(new MemoryChildNodeEntry("child", EMPTY_NODE));
-                return asCountingIterable(limit(childrenIterable, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
+                Stream<? extends ChildNodeEntry> childrenIterable = Stream.generate(() -> new MemoryChildNodeEntry("child", EMPTY_NODE));
+                return asCountingIterable(IterableUtils.limit(childrenIterable::iterator, childrenCount == MAX_VALUE ? 1000 : (int) childrenCount));
             } else {
-                return asCountingIterable(transform(asList(children), input -> new MemoryChildNodeEntry(input, EMPTY_NODE)));
+                return asCountingIterable(IterableUtils.transform(asList(children), input -> new MemoryChildNodeEntry(input, EMPTY_NODE)));
             }
         }
 
@@ -239,7 +235,7 @@ public class CompositeChildrenCountTest {
         }
 
         private <T> Iterable<T> asCountingIterable(Iterable<T> input) {
-            return Iterables.transform(input, inp -> {
+            return IterableUtils.transform(input, inp -> {
                     fetchedChildren++;
                     return inp;
             });

@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.segment.azure.tool;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.fetchByteArray;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeDescription;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-
+import com.azure.storage.blob.BlobContainerClient;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
@@ -45,7 +43,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -289,9 +286,9 @@ public class SegmentStoreMigrator implements Closeable  {
             return this;
         }
 
-        public Builder withSource(CloudBlobDirectory dir) throws URISyntaxException, StorageException {
-            this.source = new AzurePersistence(dir);
-            this.sourceName = storeDescription(SegmentStoreType.AZURE, dir.getContainer().getName() + "/" + dir.getPrefix());
+        public Builder withSource(BlobContainerClient blobContainerClient, String rootPrefix) {
+            this.source = new AzurePersistence(blobContainerClient, rootPrefix);
+            this.sourceName = storeDescription(SegmentStoreType.AZURE, blobContainerClient.getBlobContainerName() + "/" + rootPrefix);
             return this;
         }
 
@@ -313,9 +310,9 @@ public class SegmentStoreMigrator implements Closeable  {
             return this;
         }
 
-        public Builder withTarget(CloudBlobDirectory dir) throws URISyntaxException, StorageException {
-            this.target = new AzurePersistence(dir);
-            this.targetName = storeDescription(SegmentStoreType.AZURE, dir.getContainer().getName() + "/" + dir.getPrefix());
+        public Builder withTarget(BlobContainerClient blobContainerClient, String rootPrefix) {
+            this.target = new AzurePersistence(blobContainerClient, rootPrefix);
+            this.targetName = storeDescription(SegmentStoreType.AZURE, blobContainerClient.getBlobContainerUrl() + "/" + rootPrefix);
             return this;
         }
 

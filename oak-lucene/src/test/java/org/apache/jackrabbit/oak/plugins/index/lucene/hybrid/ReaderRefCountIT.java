@@ -26,6 +26,7 @@ import java.io.StringWriter;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +49,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.of;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -146,7 +146,7 @@ public class ReaderRefCountIT {
                     Document d1 = new Document();
                     d1.add(newPathField("/a/b"));
                     LuceneDoc lcDoc = LuceneDoc.forUpdate(indexPath, "/a", d1);
-                    queue.addAllSynchronously(of(indexPath, singletonList(lcDoc)));
+                    queue.addAllSynchronously(Map.of(indexPath, singletonList(lcDoc)));
                 }
             }
         };

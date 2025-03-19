@@ -18,11 +18,12 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.index.ElasticIndexCommand;
 import org.apache.jackrabbit.oak.index.ElasticPurgeOldIndexVersionCommand;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
+
+import java.util.Map;
 
 /*
 Avaialble modes for elastic. Add new elastic operations/commands to be supported here.
@@ -30,8 +31,7 @@ Avaialble modes for elastic. Add new elastic operations/commands to be supported
 public final class AvailableElasticModes {
     // list of available Modes for the tool
     public static final Modes MODES = new Modes(
-            ImmutableMap.<String, Command>builder()
-                    .put("index", new ElasticIndexCommand())
-                    .put("purge-index-versions", new ElasticPurgeOldIndexVersionCommand())
-                    .build());
+            Map.of(
+                    "index", new ElasticIndexCommand(),
+                    "purge-index-versions", new ElasticPurgeOldIndexVersionCommand()));
 }

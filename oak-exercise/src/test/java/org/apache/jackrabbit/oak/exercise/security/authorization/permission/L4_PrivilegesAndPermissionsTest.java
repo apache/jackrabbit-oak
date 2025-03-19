@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.exercise.security.authorization.permission;
 
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.AccessDeniedException;
@@ -28,8 +29,6 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -261,7 +260,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
 
         // EXERCISE: fill in the expected return values for Session.hasPermission as performed below
         // EXERCISE: verify that the test passes and explain the individual results
-        Map<String, Boolean> pathHasPermissionMap = ImmutableMap.of(
+        Map<String, Boolean> pathHasPermissionMap = Map.of(
                 testRootNode.getPath(), null,
                 childPath, null,
                 childPath + "/toCreate", null,
@@ -276,7 +275,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
 
         // EXERCISE: fill in the expected return values for AccessControlManager#getPrivileges as performed below
         // EXERCISE: verify that the test passes and compare the results with your findings from the permission-discovery
-        Map<String, Privilege[]> pathPrivilegesMap = ImmutableMap.of(
+        Map<String, Privilege[]> pathPrivilegesMap = Map.of(
                 testRootNode.getPath(), null,
                 childPath, null,
                 childPath + "/toCreate", null,
@@ -301,7 +300,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
 
         // EXERCISE: fill in the expected return values for Session.hasPermission as performed below
         // EXERCISE: verify that the test passes and explain the individual results
-        Map<String, Boolean[]> pathHasPermissionMap = ImmutableMap.of(
+        Map<String, Boolean[]> pathHasPermissionMap = Map.of(
                 propertyPath, new Boolean[]{null, null},
                 childPath + "/newProp", new Boolean[]{null, null},
                 childPropertyPath, new Boolean[]{null, null},
@@ -322,7 +321,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         // EXERCISE: setup the correct set of privileges such that the test passes
         superuser.save();
 
-        Map<String, Boolean> pathHasPermissionMap = ImmutableMap.of(
+        Map<String, Boolean> pathHasPermissionMap = Map.of(
                 testRootNode.getPath(), false,
                 childPath, false,
                 grandChildPath, true
@@ -348,7 +347,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         AccessControlUtils.addAccessControlEntry(superuser, childPath, testPrincipal, new String[] {PrivilegeConstants.REP_REMOVE_PROPERTIES}, true);
         superuser.save();
 
-        Map<String, Boolean> pathCanRemoveMap = ImmutableMap.of(
+        Map<String, Boolean> pathCanRemoveMap = Map.of(
                 propertyPath, false,
                 childPropertyPath, true,
                 grandChildPath + "/" + JcrConstants.JCR_PRIMARYTYPE, false,
@@ -382,7 +381,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         superuser.save();
 
         // EXERCISE: fill in the expected values for Session.hasPermission(path, Session.ACTION_REMOVE) and explain
-        Map<String, Boolean> pathHasPermission = ImmutableMap.of(
+        Map<String, Boolean> pathHasPermission = Map.of(
                 childPath + "_non_existing_sibling", null,
                 childPath + "/_non_existing_childitem", null,
                 grandChildPath + "/_non_existing_child_item", null
@@ -404,7 +403,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         superuser.save();
 
         // EXERCISE: Fill if setting the property at the path(s) is expected to pass or not
-        Map<String, Boolean> pathCanModify = ImmutableMap.of(
+        Map<String, Boolean> pathCanModify = Map.of(
                 propertyPath, null,
                 childPropertyPath, null,
                 grandChildPath + "/" + JcrConstants.JCR_PRIMARYTYPE, null,
@@ -438,7 +437,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
         // EXERCISE: Fill if new properties values such that the test-cases succeeds
         // EXERCISE: Discuss your findings and explain each value.
 
-        Map<String, Value> pathResultMap = Maps.newHashMap();
+        Map<String, Value> pathResultMap = new HashMap<>();
         pathResultMap.put(childPropertyPath, (Value) null);
         pathResultMap.put(grandChildPath + "/nonexisting", (Value) null);
 

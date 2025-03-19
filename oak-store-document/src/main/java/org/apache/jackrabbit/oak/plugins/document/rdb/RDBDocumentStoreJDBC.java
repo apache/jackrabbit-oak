@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHAR2OCTETRATIO;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.asBytes;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.asDocumentStoreException;
@@ -47,7 +46,9 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -60,9 +61,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Implements (most) DB interactions used in {@link RDBDocumentStore}.
@@ -140,7 +138,7 @@ public class RDBDocumentStoreJDBC {
     public int delete(Connection connection, RDBTableMetaData tmd, List<String> allIds) throws SQLException {
         int count = 0;
 
-        for (List<String> ids : Lists.partition(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
+        for (List<String> ids : ListUtils.partitionList(allIds, RDBJDBCTools.MAX_IN_CLAUSE)) {
             PreparedStatement stmt;
             PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", ids, tmd.isIdBinary());
             String sql = "delete from " + tmd.getName() + " where " + inClause.getStatementComponent();
@@ -430,7 +428,7 @@ public class RDBDocumentStoreJDBC {
     }
 
     private static <T extends Document> void assertNoDuplicatedIds(List<T> documents) {
-        if (CollectionUtils.toSet(transform(documents, Document::getId)).size() < documents.size()) {
+        if (SetUtils.toSet(IterableUtils.transform(documents, Document::getId)).size() < documents.size()) {
             throw new IllegalArgumentException("There are duplicated ids in the document list");
         }
     }
@@ -665,6 +663,7 @@ public class RDBDocumentStoreJDBC {
             internalClose();
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         public void finalize() throws Throwable {
             try {
@@ -756,7 +755,7 @@ public class RDBDocumentStoreJDBC {
 
         List<RDBRow> rows = new ArrayList<RDBRow>();
 
-        for (List<String> keys : Iterables.partition(allKeys, RDBJDBCTools.MAX_IN_CLAUSE)) {
+        for (List<String> keys : IterableUtils.partition(allKeys, RDBJDBCTools.MAX_IN_CLAUSE)) {
             long pstart = PERFLOG.start(PERFLOG.isDebugEnabled() ? ("reading: " + keys) : null);
 
             PreparedStatementComponent inClause = RDBJDBCTools.createInStatement("ID", keys, tmd.isIdBinary());

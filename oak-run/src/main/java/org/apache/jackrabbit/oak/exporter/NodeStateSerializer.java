@@ -16,19 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.exporter;
 
+import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.google.gson.stream.JsonWriter;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
@@ -37,8 +39,7 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.FSBlobSerializer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 public class NodeStateSerializer {
     public enum Format {JSON, TXT}
@@ -72,10 +73,10 @@ public class NodeStateSerializer {
         if (dir.exists()) {
             checkArgument(dir.isDirectory(), "Input file must be directory [%s]", dir.getAbsolutePath());
         } else {
-            checkState(dir.mkdirs(), "Cannot create directory [%s]", dir.getAbsolutePath());
+            Validate.checkState(dir.mkdirs(), "Cannot create directory [%s]", dir.getAbsolutePath());
         }
         File file = new File(dir, getFileName());
-        try (Writer writer = Files.newWriter(file, StandardCharsets.UTF_8)){
+        try (Writer writer = new BufferedWriter(new FileWriter(file, StandardCharsets.UTF_8))) {
             serialize(writer, createBlobSerializer(dir));
         }
         closeSerializer();
@@ -126,7 +127,9 @@ public class NodeStateSerializer {
     }
 
     private String getFilter() throws IOException {
-        return filterFile != null ? Files.toString(filterFile, StandardCharsets.UTF_8) : filter;
+        return filterFile != null
+                ? new String(Files.readAllBytes(filterFile.toPath()), StandardCharsets.UTF_8)
+                : filter;
     }
 
     public String getFileName() {

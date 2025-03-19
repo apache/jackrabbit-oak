@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 class ResultCountingIndexProvider implements QueryIndexProvider {
     private final QueryIndexProvider delegate;
@@ -64,13 +64,14 @@ class ResultCountingIndexProvider implements QueryIndexProvider {
     @Override
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
         if (shouldCount) {
-            return Lists.transform(delegate.getQueryIndexes(nodeState), input -> {
-                if (input instanceof AdvanceFulltextQueryIndex) {
-                    return new CountingIndex((AdvanceFulltextQueryIndex) input, cursorFactory);
-                } else {
-                    return input;
-                }
-            });
+            return delegate.getQueryIndexes(nodeState).stream()
+                    .map(input -> {
+                        if (input instanceof AdvanceFulltextQueryIndex) {
+                            return new CountingIndex((AdvanceFulltextQueryIndex) input, cursorFactory);
+                        } else {
+                            return input;
+                        }
+                    }).collect(Collectors.toList());
         } else {
             return delegate.getQueryIndexes(nodeState);
         }

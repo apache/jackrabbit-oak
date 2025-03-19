@@ -24,7 +24,6 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -333,7 +332,7 @@ public class FindAuthorizablesTest extends AbstractUserTest {
 
     @Test
     public void testFindUserWithSpecialCharIdByPrincipalName() throws RepositoryException {
-        List<String> ids = Lists.newArrayList("'", "]", "']", Text.escapeIllegalJcrChars("']"), Text.escape("']"));
+        List<String> ids = List.of("'", "]", "']", Text.escapeIllegalJcrChars("']"), Text.escape("']"));
         for (String id : ids) {
             User user = null;
             try {

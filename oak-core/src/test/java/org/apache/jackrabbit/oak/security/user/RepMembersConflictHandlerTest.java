@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -57,7 +56,7 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
 
     @Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { 0, "Empty Group" },
                 new Object[] { 5, "Tiny Group" },
                 new Object[] { MembershipWriter.DEFAULT_MEMBERSHIP_THRESHOLD - 1, "Border Group" },

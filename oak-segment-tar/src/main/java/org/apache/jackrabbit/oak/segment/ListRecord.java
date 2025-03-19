@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static java.util.Objects.checkFromToIndex;
+import static java.util.Objects.checkIndex;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
@@ -61,7 +61,7 @@ class ListRecord extends Record {
     }
 
     public RecordId getEntry(int index) {
-        checkElementIndex(index, size);
+        checkIndex(index, size);
         if (size == 1) {
             return getRecordId();
         } else {
@@ -95,7 +95,7 @@ class ListRecord extends Record {
     }
 
     private void getEntries(int index, int count, List<RecordId> ids) {
-        checkPositionIndexes(index, index + count, size);
+        checkFromToIndex(index, index + count, size);
         Segment segment = getSegment();
         if (size == 1) {
             ids.add(getRecordId());

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
@@ -42,8 +41,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.management.openmbean.TabularData;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
@@ -51,7 +48,8 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorServi
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexFile;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -70,7 +68,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.DELETE_MARGIN_MILLIS_NAME;
@@ -150,7 +147,7 @@ public class IndexCopierTest {
 
     @Test
     public void basicTestWithPrefetch() throws Exception{
-        final List<String> syncedFiles = Lists.newArrayList();
+        final List<String> syncedFiles = new ArrayList<>();
         Directory baseDir = new RAMDirectory(){
             @Override
             public void sync(Collection<String> names) throws IOException {
@@ -335,7 +332,7 @@ public class IndexCopierTest {
         Directory baseDir = new RAMDirectory();
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
 
-        final List<ListenableFuture<?>> submittedTasks = Lists.newArrayList();
+        final List<ListenableFuture<?>> submittedTasks = new ArrayList<>();
         ExecutorService executor = new ForwardingListeningExecutorService() {
             @Override
             protected ListeningExecutorService delegate() {
@@ -646,11 +643,11 @@ public class IndexCopierTest {
         Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
                 IndexCopier.COWDirectoryTracker.NOOP);
 
-        assertEquals(Set.of("t1"), CollectionUtils.toSet(local.listAll()));
+        assertEquals(Set.of("t1"), SetUtils.toSet(local.listAll()));
         assertEquals(t1.length, local.fileLength("t1"));
 
         byte[] t2 = writeFile(local, "t2");
-        assertEquals(Set.of("t1", "t2"), CollectionUtils.toSet(local.listAll()));
+        assertEquals(Set.of("t1", "t2"), SetUtils.toSet(local.listAll()));
         assertEquals(t2.length, local.fileLength("t2"));
 
         assertTrue(local.fileExists("t1"));
@@ -662,10 +659,10 @@ public class IndexCopierTest {
         readAndAssert(local, "t2", t2);
 
         local.deleteFile("t1");
-        assertEquals(Set.of("t2"), CollectionUtils.toSet(local.listAll()));
+        assertEquals(Set.of("t2"), SetUtils.toSet(local.listAll()));
 
         local.deleteFile("t2");
-        assertEquals(Set.of(), CollectionUtils.toSet(local.listAll()));
+        assertEquals(Set.of(), SetUtils.toSet(local.listAll()));
 
 
         try {
@@ -703,7 +700,7 @@ public class IndexCopierTest {
         byte[] t2 = writeFile(remote, "t2");
         Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
                 IndexCopier.COWDirectoryTracker.NOOP);
-        assertEquals(Set.of("t1", "t2"), CollectionUtils.toSet(local.listAll()));
+        assertEquals(Set.of("t1", "t2"), SetUtils.toSet(local.listAll()));
 
         byte[] t3 = writeFile(local, "t3");
 
@@ -1207,7 +1204,7 @@ public class IndexCopierTest {
     }
 
     private class FileTrackingDirectory extends DelayCopyingSimpleFSDirectory {
-        final List<String> openedFiles = newArrayList();
+        final List<String> openedFiles = new ArrayList<>();
 
         public FileTrackingDirectory() throws IOException {
         }

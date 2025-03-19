@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.osgi;
 
 import static java.util.Objects.requireNonNull;
@@ -25,6 +24,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -45,7 +45,6 @@ import javax.management.AttributeList;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.connect.launch.BundleDescriptor;
@@ -347,8 +346,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
             if (bundleFilter == null){
                 bundleFilter = REPOSITORY_BUNDLE_FILTER_DEFAULT;
             }
-            List<BundleDescriptor> descriptors = new ClasspathScanner().scanForBundles(bundleFilter);
-            descriptors = Lists.newArrayList(descriptors);
+            List<BundleDescriptor> descriptors = new ArrayList<>(new ClasspathScanner().scanForBundles(bundleFilter));
             if (PropertiesUtil.toBoolean(config.get(REPOSITORY_ENV_SPRING_BOOT), false)){
                 descriptors = SpringBootSupport.processDescriptors(descriptors);
             }

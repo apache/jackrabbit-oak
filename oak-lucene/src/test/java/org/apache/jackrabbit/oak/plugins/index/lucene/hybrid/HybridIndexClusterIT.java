@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,7 +35,6 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -206,7 +205,7 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
         Query q = qm.createQuery("select * from [nt:base] where [" + indexedPropName + "] = $value", Query.JCR_SQL2);
         q.bindValue("value", session.getValueFactory().createValue(value));
         QueryResult result = q.execute();
-        List<String> paths = Lists.newArrayList();
+        List<String> paths = new ArrayList<>();
         for (Row r : JcrUtils.getRows(result)){
             paths.add(r.getPath());
         }

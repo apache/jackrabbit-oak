@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -26,6 +24,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -87,7 +86,7 @@ class ContentSessionImpl implements ContentSession {
     }
 
     synchronized void checkLive() {
-        checkState(live, "This session has been closed");
+        Validate.checkState(live, "This session has been closed");
     }
 
     //-----------------------------------------------------< ContentSession >---

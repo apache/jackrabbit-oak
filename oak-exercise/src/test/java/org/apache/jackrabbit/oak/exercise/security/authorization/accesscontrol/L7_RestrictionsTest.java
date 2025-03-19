@@ -26,7 +26,6 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -182,8 +181,8 @@ public class L7_RestrictionsTest extends AbstractJCRTest {
         ValueFactory vf = superuser.getValueFactory();
 
         acl.addEntry(testPrincipal, testPrivileges, false,
-                ImmutableMap.of(AccessControlConstants.REP_GLOB, vf.createValue("/*")),
-                ImmutableMap.of(AccessControlConstants.REP_PREFIXES, new Value[] {vf.createValue("jcr"), vf.createValue("rep")})
+                Map.of(AccessControlConstants.REP_GLOB, vf.createValue("/*")),
+                Map.of(AccessControlConstants.REP_PREFIXES, new Value[] {vf.createValue("jcr"), vf.createValue("rep")})
         );
 
         for (AccessControlEntry ace : acl.getAccessControlEntries()) {

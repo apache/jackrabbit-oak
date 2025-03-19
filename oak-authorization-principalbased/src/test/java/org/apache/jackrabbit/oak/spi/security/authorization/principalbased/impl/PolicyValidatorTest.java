@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -27,6 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -43,6 +40,7 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -267,7 +265,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
     @Test
     public void tetPolicyChildAddedMissingMixinOnParent() {
         NodeState rootState = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
-        assertFalse(Iterables.contains(rootState.getNames(JcrConstants.JCR_MIXINTYPES), MIX_REP_PRINCIPAL_BASED_MIXIN));
+        assertFalse(IterableUtils.contains(rootState.getNames(JcrConstants.JCR_MIXINTYPES), MIX_REP_PRINCIPAL_BASED_MIXIN));
 
         NodeState child = mockNodeState(NT_REP_PRINCIPAL_POLICY);
         try {
@@ -404,7 +402,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
     @Test
     public void testAddRestrictionWithDifferentACE() throws Exception {
         // validator must not complain about adding restrictions to a different authorization model
-        Map<String, Value> restr = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("val"));
+        Map<String, Value> restr = Map.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("val"));
         addDefaultEntry(PathUtils.ROOT_PATH, EveryonePrincipal.getInstance(), restr, null, JCR_LIFECYCLE_MANAGEMENT);
         root.commit();
     }
@@ -526,7 +524,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         try {
             NodeState entry = mockNodeState(NT_REP_PRINCIPAL_ENTRY);
             when(entry.getProperty(REP_EFFECTIVE_PATH)).thenReturn(PropertyStates.createProperty(REP_EFFECTIVE_PATH,"/path", Type.PATH));
-            when(entry.getNames(REP_PRIVILEGES)).thenReturn(ImmutableList.of("privName"));
+            when(entry.getNames(REP_PRIVILEGES)).thenReturn(List.of("privName"));
 
             v.childNodeChanged("entryName", entry, entry);
             fail("CommitFailedException type OAK code 13 expected.");
@@ -555,7 +553,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         try {
             NodeState entry = mockNodeState(NT_REP_PRINCIPAL_ENTRY);
             when(entry.getProperty(REP_EFFECTIVE_PATH)).thenReturn(null);
-            when(entry.getNames(REP_PRIVILEGES)).thenReturn(ImmutableList.of(JCR_READ));
+            when(entry.getNames(REP_PRIVILEGES)).thenReturn(List.of(JCR_READ));
 
             v.childNodeChanged("entryName", entry, entry);
             fail("CommitFailedException type CONSTRAINT code 21 expected.");

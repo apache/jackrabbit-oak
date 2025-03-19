@@ -23,29 +23,18 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.read.ListAppender;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
-import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 
-import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
-import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_ACCOUNT_NAME;
@@ -55,12 +44,9 @@ import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_SECRE
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNotNull;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mockStatic;
 
 public class ToolUtilsTest {
     private static final Environment ENVIRONMENT = new Environment();
@@ -71,75 +57,56 @@ public class ToolUtilsTest {
     private static final String DEFAULT_ACCOUNT_NAME = "myaccount";
     private static final String DEFAULT_CONTAINER_NAME = "oak";
     private static final String DEFAULT_REPO_DIR = "repository";
-    private static final String DEFAULT_CONTAINER_URL = String.format(CONTAINER_URL_FORMAT, DEFAULT_ACCOUNT_NAME, DEFAULT_CONTAINER_NAME);
     private static final String DEFAULT_SEGMENT_STORE_PATH = String.format(SEGMENT_STORE_PATH_FORMAT, DEFAULT_ACCOUNT_NAME, DEFAULT_CONTAINER_NAME, DEFAULT_REPO_DIR);
     public static final String AZURE_SECRET_KEY_WARNING = "AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables empty or missing. Switching to authentication with AZURE_SECRET_KEY.";
 
     private final TestEnvironment environment = new TestEnvironment();
-    private AzureStorageCredentialManager azureStorageCredentialManager;
-
-    @Before
-    public void init() {
-        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
-    }
-
-    @After
-    public void clear() {
-        this.azureStorageCredentialManager.close();
-    }
 
     @Test
-    public void createCloudBlobDirectoryWithAccessKey() {
+    public void createAzurePersistenceWithAccessKey() {
         environment.setVariable(AZURE_SECRET_KEY, AzuriteDockerRule.ACCOUNT_KEY);
 
         final ListAppender<ILoggingEvent> logAppender = subscribeAppender();
 
-        StorageCredentialsAccountAndKey credentials = expectCredentials(
-            StorageCredentialsAccountAndKey.class, 
-            () -> ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment, azureStorageCredentialManager),
-            DEFAULT_CONTAINER_URL
-        );
+        AzurePersistence azurePersistence = ToolUtils.createAzurePersistence(DEFAULT_SEGMENT_STORE_PATH, environment);
 
         assertTrue(checkLogContainsMessage(AZURE_SECRET_KEY_WARNING, logAppender.list.stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList())));
         assertEquals(Level.WARN, logAppender.list.get(0).getLevel());
 
-        assertEquals(DEFAULT_ACCOUNT_NAME, credentials.getAccountName());
-        assertEquals(AzuriteDockerRule.ACCOUNT_KEY, credentials.exportBase64EncodedKey());
+        assertEquals(DEFAULT_ACCOUNT_NAME, azurePersistence.getReadBlobContainerClient().getAccountName());
+        assertEquals(DEFAULT_CONTAINER_NAME, azurePersistence.getReadBlobContainerClient().getBlobContainerName());
         unsubscribe(logAppender);
     }
 
     @Test
-    public void createCloudBlobDirectoryFailsWhenAccessKeyNotPresent() {
+    public void createAzurePersistenceFailsWhenAccessKeyNotPresent() {
         environment.setVariable(AZURE_SECRET_KEY, null);
         assertThrows(IllegalArgumentException.class, () ->
-            ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment, azureStorageCredentialManager)
+                ToolUtils.createAzurePersistence(DEFAULT_SEGMENT_STORE_PATH, environment)
         );
     }
 
     @Test
-    public void createCloudBlobDirectoryFailsWhenAccessKeyIsInvalid() {
+    public void createAzurePersistenceFailsWhenAccessKeyIsInvalid() {
         environment.setVariable(AZURE_SECRET_KEY, "invalid");
-        assertThrows(IllegalArgumentException.class, () ->
-            ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment, azureStorageCredentialManager)
+        AzurePersistence azurePersistence = ToolUtils.createAzurePersistence(DEFAULT_SEGMENT_STORE_PATH, environment);
+
+        assertThrows(Exception.class, () ->
+                azurePersistence.getReadBlobContainerClient().exists()
         );
     }
 
     @Test
-    public void createCloudBlobDirectoryWithSasUri() {
+    public void createAzurePersistenceWithSasUri() {
         String sasToken = "sig=qL%2Fi%2BP7J6S0sA8Ihc%2BKq75U5uJcnukpfktT2fm1ckXk%3D&se=2022-02-09T11%3A52%3A42Z&sv=2019-02-02&sp=rl&sr=c";
 
-        StorageCredentialsSharedAccessSignature credentials = expectCredentials(
-            StorageCredentialsSharedAccessSignature.class, 
-            () -> ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH + '?' + sasToken, azureStorageCredentialManager),
-            DEFAULT_CONTAINER_URL
-        );
+        AzurePersistence azurePersistence  = ToolUtils.createAzurePersistence(DEFAULT_SEGMENT_STORE_PATH + '?' + sasToken);
 
-        assertEquals(sasToken, credentials.getToken());
-        assertNull("AccountName should be null when SAS credentials are used", credentials.getAccountName());
+        assertEquals(DEFAULT_CONTAINER_NAME, azurePersistence.getReadBlobContainerClient().getBlobContainerName());
     }
 
     @Test
-    public void createCloudBlobDirectoryWithServicePrincipal() throws URISyntaxException, StorageException {
+    public void createAzurePersistenceWithServicePrincipal() {
         assumeNotNull(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME));
         assumeNotNull(ENVIRONMENT.getVariable(AZURE_TENANT_ID));
         assumeNotNull(ENVIRONMENT.getVariable(AZURE_CLIENT_ID));
@@ -149,24 +116,9 @@ public class ToolUtilsTest {
         String containerName = "oak";
         String segmentStorePath = String.format(SEGMENT_STORE_PATH_FORMAT, accountName, containerName, DEFAULT_REPO_DIR);
 
-        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(segmentStorePath, ENVIRONMENT, azureStorageCredentialManager);
-        assertNotNull(cloudBlobDirectory);
-        assertEquals(containerName, cloudBlobDirectory.getContainer().getName());
-    }
-
-    private static <T extends StorageCredentials> T expectCredentials(Class<T> clazz, Runnable body, String containerUrl) {
-        ArgumentCaptor<T> credentialsCaptor = ArgumentCaptor.forClass(clazz);
-        try (MockedStatic<AzureUtilities> mockedAzureUtilities = mockStatic(AzureUtilities.class)) {
-            body.run();
-
-            mockedAzureUtilities.verify(() -> AzureUtilities.cloudBlobDirectoryFrom(
-                    credentialsCaptor.capture(),
-                    eq(containerUrl),
-                    eq(DEFAULT_REPO_DIR)
-                )
-            );
-            return credentialsCaptor.getValue();
-        }
+        AzurePersistence azurePersistence = ToolUtils.createAzurePersistence(segmentStorePath, ENVIRONMENT);
+        assertNotNull(azurePersistence);
+        assertEquals(containerName, azurePersistence.getReadBlobContainerClient().getBlobContainerName());
     }
 
     private boolean checkLogContainsMessage(String toCheck, List<String> messages) {

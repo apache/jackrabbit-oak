@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.stats;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.jmx.QueryStatManagerMBean;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
@@ -70,7 +69,7 @@ public class StatisticManagerTest {
     @Test
     public void timeSeriesOnly() throws Exception{
         Whiteboard wb = new DefaultWhiteboard();
-        final Map<String, StatsOptions> optionsPassed = Maps.newHashMap();
+        final Map<String, StatsOptions> optionsPassed = new HashMap<>();
         wb.register(StatisticsProvider.class, new DummyStatsProvider(){
             @Override
             public MeterStats getMeter(String name, StatsOptions options) {

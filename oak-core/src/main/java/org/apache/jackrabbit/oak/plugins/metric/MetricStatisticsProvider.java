@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.metric;
 
 import java.io.Closeable;
 import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -36,7 +37,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ObjectNameFactory;
 import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.Timer;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
@@ -59,7 +59,7 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
 
     private static final String JMX_TYPE_METRICS = "Metrics";
 
-    private final ConcurrentMap<String, Stats> statsRegistry = Maps.newConcurrentMap();
+    private final ConcurrentMap<String, Stats> statsRegistry = new ConcurrentHashMap<>();
     private final MetricRegistry registry;
     private final JmxReporter reporter;
     private final RepositoryStatisticsImpl repoStats;

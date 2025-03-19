@@ -18,11 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -82,7 +81,7 @@ public class MongoMissingLastRevSeekerTest {
     public void completeResult() throws Exception {
         final int NUM_DOCS = 200;
         // populate the store
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
         for (int i = 0; i < NUM_DOCS; i++) {
             UpdateOp op = new UpdateOp(getIdFromPath("/node-" + i), true);
             NodeDocument.setModified(op, new Revision(i * 5000, 0, 1));

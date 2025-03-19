@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -32,7 +30,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
@@ -78,7 +79,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -384,7 +384,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     @Override
     public void startChildInfo(@NotNull NodeInfo childInfo, @NotNull List<PropInfo> propInfos) {
-        checkState(currentMembership != null);
+        Validate.checkState(currentMembership != null);
 
         String ntName = childInfo.getPrimaryTypeName();
         //noinspection deprecation
@@ -618,21 +618,21 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 Authorizable dm = declMembers.next();
                 toRemove.put(dm.getID(), dm);
             }
-            Map<String, String> nonExisting = Maps.newHashMap();
+            Map<String, String> nonExisting = new HashMap<>();
             Map<String, Authorizable> toAdd = getAuthorizablesToAdd(gr, toRemove, nonExisting);
 
             // 2. adjust members of the group
             if (!toRemove.isEmpty()) {
                 Set<String> failed = gr.removeMembers(toRemove.keySet().toArray(new String[0]));
                 if (!failed.isEmpty()) {
-                    handleFailure("Failed removing members " + Iterables.toString(failed) + " to " + gr);
+                    handleFailure("Failed removing members " + IterableUtils.toString(failed) + " to " + gr);
                 }
             }
 
             if (!toAdd.isEmpty()) {
                 Set<String> failed = gr.addMembers(toAdd.keySet().toArray(new String[0]));
                 if (!failed.isEmpty()) {
-                    handleFailure("Failed add members " + Iterables.toString(failed) + " to " + gr);
+                    handleFailure("Failed add members " + IterableUtils.toString(failed) + " to " + gr);
                 }
             }
 
@@ -657,7 +657,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         @NotNull
         Map<String, Authorizable> getAuthorizablesToAdd(@NotNull Group gr, @NotNull Map<String, Authorizable> toRemove,
                                                         @NotNull Map<String, String> nonExisting) throws RepositoryException {
-            Map<String, Authorizable> toAdd = CollectionUtils.newHashMap(members.size());
+            Map<String, Authorizable> toAdd = MapUtils.newHashMap(members.size());
             for (String contentId : members) {
                 // NOTE: no need to check for re-mapped uuids with the referenceTracker because
                 // ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW is not supported for user/group imports (see line 189)

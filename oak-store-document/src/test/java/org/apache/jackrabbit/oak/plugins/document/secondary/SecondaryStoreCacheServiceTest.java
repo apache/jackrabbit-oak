@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -64,7 +63,7 @@ public class SecondaryStoreCacheServiceTest {
             public NodeStore getNodeStore() {
                 return secondaryStore;
             }
-        }, ImmutableMap.<String, Object>of("role", "secondary"));
+        }, Map.of("role", "secondary"));
         context.registerService(Executor.class, Executors.newSingleThreadExecutor());
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         MockOsgi.injectServices(cacheService, context.bundleContext());

@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,7 +31,6 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -52,7 +52,9 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     private CompositeRestrictionProvider composite = null;
 
     public AbstractRestrictionProvider(@NotNull Map<String, ? extends RestrictionDefinition> definitions) {
-        this.supported = ImmutableMap.copyOf(definitions);
+        Map<String, RestrictionDefinition> builder = new LinkedHashMap<>();
+        builder.putAll(definitions);
+        this.supported = Collections.unmodifiableMap(builder);
     }
 
     //---------------------------------------------------< AggregationAware >---

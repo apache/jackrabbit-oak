@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,6 +37,7 @@ import java.util.function.Consumer;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANALYZERS;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -258,12 +258,14 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
 
-            Tree stopFilter = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "Stop");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree stopFilter = addFilter(filters, "Stop");
             stopFilter.setProperty("words", "stop1.txt, stop2.txt");
-            stopFilter.addChild("stop1.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "foo");
-            stopFilter.addChild("stop2.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "and");
+            stopFilter.addChild("stop1.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "foo");
+            stopFilter.addChild("stop2.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "and");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -281,20 +283,22 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree charFilters = anl.addChild(FulltextIndexConstants.ANL_CHAR_FILTERS);
+            charFilters.setOrderableChildren(true);
             addFilter(charFilters, "HTMLStrip");
             Tree mappingFilter = addFilter(charFilters, "Mapping");
             mappingFilter.setProperty("mapping", "mappings.txt");
-            mappingFilter.addChild("mappings.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, getHinduArabicMapping());
+            mappingFilter.addChild("mappings.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, getHinduArabicMapping());
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
             addFilter(filters, "LowerCase");
             Tree stopFilter = addFilter(filters, "Stop");
             stopFilter.setProperty("words", "stop1.txt, stop2.txt");
-            stopFilter.addChild("stop1.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "my");
-            stopFilter.addChild("stop2.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "is");
+            stopFilter.addChild("stop1.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "my");
+            stopFilter.addChild("stop2.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "is");
             addFilter(filters, "PorterStem");
         });
 
@@ -324,19 +328,21 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree charFilters = anl.addChild(FulltextIndexConstants.ANL_CHAR_FILTERS);
+            charFilters.setOrderableChildren(true);
             Tree mappingFilter = addFilter(charFilters, "Mapping");
             mappingFilter.setProperty("mapping", "mapping-ISOLatin1Accent.txt");
-            mappingFilter.addChild("mapping-ISOLatin1Accent.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, mappings);
+            mappingFilter.addChild("mapping-ISOLatin1Accent.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, mappings);
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
             Tree synFilter = addFilter(filters, "Synonym");
             synFilter.setProperty("synonyms", "syn.txt");
             synFilter.setProperty("format", "solr");
             synFilter.setProperty("expand", "true");
             synFilter.setProperty("tokenizerFactory", "standard");
-            synFilter.addChild("syn.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "# Synonym mappings can be used for spelling correction too\n" +
+            synFilter.addChild("syn.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "# Synonym mappings can be used for spelling correction too\n" +
                             "tool => instrument");
 
             addFilter(filters, "LowerCase");
@@ -345,8 +351,8 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             stopFilter.setProperty("enablePositionIncrements", "true");
             stopFilter.setProperty("ignoreCase", "true");
             stopFilter.setProperty("words", "stopwords-snowball.txt");
-            stopFilter.addChild("stopwords-snowball.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, stopwords);
+            stopFilter.addChild("stopwords-snowball.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, stopwords);
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -370,6 +376,7 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
             addFilter(filters, "LowerCase");
             addFilter(filters, "SpanishLightStem");
         });
@@ -388,7 +395,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
-            addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "KStem");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            addFilter(filters, "KStem");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -406,11 +415,12 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
             addFilter(filters, "LowerCase");
             Tree marker = addFilter(filters, "KeywordMarker");
             marker.setProperty("protected", "protected.txt");
-            marker.addChild("protected.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "# some comment here\nrunning");
+            marker.addChild("protected.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "# some comment here\nrunning");
             addFilter(filters, "PorterStem");
         });
 
@@ -428,6 +438,7 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree charFilters = anl.addChild(FulltextIndexConstants.ANL_CHAR_FILTERS);
+            charFilters.setOrderableChildren(true);
             Tree patternReplace = addFilter(charFilters, "PatternReplace");
             patternReplace.setProperty("pattern", "(\\d+)-(?=\\d)");
             patternReplace.setProperty("replacement", "$1");
@@ -449,7 +460,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Classic");
 
-            addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "Classic");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            addFilter(filters, "Classic");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -465,9 +478,11 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
-            Tree asciiFilter = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "AsciiFolding");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree asciiFilter = addFilter(filters, "AsciiFolding");
             asciiFilter.setProperty("preserveOriginal", "true");
-            asciiFilter.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+            asciiFilter.setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -484,6 +499,7 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
             Tree cjk = addFilter(filters, "CJKBigram");
             cjk.setProperty("hangul", "false");
             cjk.setProperty("hiragana", "false");
@@ -509,10 +525,12 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
-            Tree commonGrams = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "CommonGrams");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree commonGrams = addFilter(filters, "CommonGrams");
             commonGrams.setProperty("words", "words.txt");
-            commonGrams.addChild("words.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "is\nthe");
+            commonGrams.addChild("words.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "is\nthe");
 
         });
 
@@ -529,7 +547,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
 
-            Tree delimited = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "DelimitedPayload");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree delimited = addFilter(filters, "DelimitedPayload");
             delimited.setProperty("encoder", "float");
         });
 
@@ -541,12 +561,46 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void fulltextSearchWithWordDelimiterFilter() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Keyword");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            addFilter(filters, "LowerCase");
+            addFilter(filters, "ASCIIFolding");
+            Tree wordDelimiter = addFilter(filters, "WordDelimiter");
+            wordDelimiter.setProperty("preserveOriginal", "1");
+            wordDelimiter.setProperty("splitOnCaseChange", "0");
+            wordDelimiter.setProperty("splitOnNumerics", "0");
+            wordDelimiter.setProperty("types", "types.txt");
+            wordDelimiter.addChild("types.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "_ => ALPHANUM\n- => ALPHANUM\n");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "10022025|01.jpg");
+        content.addChild("baz").setProperty("foo", "10022025_01.jpg");
+        content.addChild("bat").setProperty("foo", "10022025-01.jpg");
+        content.addChild("bax").setProperty("foo", "10022025_0101.jpg");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, '10022025')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, '01')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, '10022025_01*.jpg')", List.of("/content/baz", "/content/bax"));
+        });
+    }
+
+    @Test
     public void fulltextSearchWithStemmingAndAsciiFilter() throws Exception {
         setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
             addFilter(filters, "LowerCase");
             addFilter(filters, "ASCIIFolding");
             Tree wordDelimiter = addFilter(filters, "WordDelimiter");
@@ -583,7 +637,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
 
-            Tree edgeNGram = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "NGram");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree edgeNGram = addFilter(filters, "NGram");
             edgeNGram.setProperty("minGramSize", "2");
             edgeNGram.setProperty("maxGramSize", "3");
         });
@@ -605,7 +661,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
 
-            Tree edgeNGram = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "EdgeNGram");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree edgeNGram = addFilter(filters, "EdgeNGram");
             edgeNGram.setProperty("minGramSize", "1");
             edgeNGram.setProperty("maxGramSize", "3");
         });
@@ -624,10 +682,12 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
 
-            Tree elision = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "Elision");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree elision = addFilter(filters, "Elision");
             elision.setProperty("articles", "articles.txt");
-            elision.addChild("articles.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "j\ns\nc\nt");
+            elision.addChild("articles.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "j\ns\nc\nt");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -644,10 +704,12 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
-            Tree kw = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "KeepWord");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree kw = addFilter(filters, "KeepWord");
             kw.setProperty("words", "words.txt");
-            kw.addChild("words.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "dog\nelephant\nfox");
+            kw.addChild("words.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "dog\nelephant\nfox");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -668,7 +730,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
 
-            Tree length = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "Length");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree length = addFilter(filters, "Length");
             length.setProperty("min", "0");
             length.setProperty("max", "4");
         });
@@ -690,7 +754,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
 
-            Tree length = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "LimitTokenCount");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree length = addFilter(filters, "LimitTokenCount");
             length.setProperty("maxTokenCount", "2");
         });
 
@@ -711,7 +777,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
-            addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "GermanNormalization");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            addFilter(filters, "GermanNormalization");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -728,7 +796,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
-            Tree pcg = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "PatternCaptureGroup");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree pcg = addFilter(filters, "PatternCaptureGroup");
             pcg.setProperty("pattern", "(([a-z]+)(\\d*))");
         });
 
@@ -746,7 +816,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
-            Tree shingle = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "Shingle");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree shingle = addFilter(filters, "Shingle");
             shingle.setProperty("minShingleSize", "2");
             shingle.setProperty("maxShingleSize", "3");
             shingle.setProperty("outputUnigrams", "false");
@@ -767,10 +839,11 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
             Tree dd = addFilter(filters, "DictionaryCompoundWord");
             dd.setProperty("dictionary", "words.txt");
-            dd.addChild("words.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "Donau\ndampf\nmeer\nschiff");
+            dd.addChild("words.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "Donau\ndampf\nmeer\nschiff");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -792,7 +865,9 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             idx.setProperty(IndexConstants.ASYNC_PROPERTY_NAME, "async");
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
-            Tree synFilter = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "Synonym");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree synFilter = addFilter(filters, "Synonym");
             synFilter.setProperty("synonyms", "syn.txt");
             // Don't add syn.txt to make analyzer (and hence index def) invalid
             // synFilter.addChild("syn.txt").addChild(JCR_CONTENT).setProperty(JCR_DATA, "blah, foo, bar");
@@ -814,10 +889,12 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
-            Tree type = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "Type");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree type = addFilter(filters, "Type");
             type.setProperty("types", "stopTypes.txt");
-            type.addChild("stopTypes.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "<NUM>\n<SYNONYM>");
+            type.addChild("stopTypes.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "<NUM>\n<SYNONYM>");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -836,11 +913,13 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
-            Tree type = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "Type");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree type = addFilter(filters, "Type");
             type.setProperty("types", "stopTypes.txt");
             type.setProperty("useWhitelist", "true");
-            type.addChild("stopTypes.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "<NUM>\n<SYNONYM>");
+            type.addChild("stopTypes.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "<NUM>\n<SYNONYM>");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -854,14 +933,83 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void fullTextWithHunspell() throws Exception {
+        String affix = new String(getClass().getClassLoader()
+                .getResourceAsStream("fr-affix.txt").readAllBytes(), StandardCharsets.UTF_8);
+        String dictionary = new String(getClass().getClassLoader()
+                .getResourceAsStream("fr-dictionary.txt").readAllBytes(), StandardCharsets.UTF_8);
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree hunspellStem = addFilter(filters, "HunspellStem");
+            hunspellStem.setProperty("affix", "fr.aff");
+            hunspellStem.addChild("fr.aff").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, affix);
+            hunspellStem.setProperty("dictionary", "fr.dic");
+            hunspellStem.addChild("fr.dic").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, dictionary);
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "mangé");
+        content.addChild("baz").setProperty("foo", "chevaux");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/content') and CONTAINS(*, 'manger')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/content') and CONTAINS(*, 'cheval')", List.of("/content/baz"));
+        });
+    }
+
+    /**
+     * This test verifies that the FrenchLightStemmer, an algorithmic stemmer,
+     * produces the same results as the dictionary-based Hunspell stemmer (see FullTextAnalyzerCommonsTest#fullTextWithHunspell)
+     * for the given French words.
+     */
+    @Test
+    public void fullTextWithFrenchLightStemmer() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            addFilter(filters, "LowerCase");
+            Tree elision = addFilter(filters, "Elision");
+            elision.setProperty("articles", "articles.txt");
+            elision.addChild("articles.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "l\nm\nt\nqu\nn\ns\nj\nd\nc\njusqu\nquoiqu\nlorsqu\npuisqu");
+            addFilter(filters, "FrenchLightStem");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "mangé");
+        content.addChild("baz").setProperty("foo", "chevaux");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/content') and CONTAINS(*, 'manger')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where ISDESCENDANTNODE('/content') and CONTAINS(*, 'cheval')", List.of("/content/baz"));
+        });
+    }
+
+    @Test
     public void synonyms() throws Exception {
         setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
-            Tree synFilter = addFilter(anl.addChild(FulltextIndexConstants.ANL_FILTERS), "Synonym");
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            Tree synFilter = addFilter(filters, "Synonym");
             synFilter.setProperty("synonyms", "syn.txt");
-            synFilter.addChild("syn.txt").addChild(JcrConstants.JCR_CONTENT)
-                    .setProperty(JcrConstants.JCR_DATA, "plane, airplane, aircraft\nflies=>scars");
+            synFilter.addChild("syn.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "plane, airplane, aircraft\n" +
+                            "flies=>scars\n" +
+                            // this rule is incorrect: "term: + was completely eliminated by analyzer"
+                            // by default, the configuration has to be lenient and not fail on such cases
+                            "plus,+,addition");
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -930,7 +1078,7 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
     protected Tree addFilter(Tree analyzer, String filterName) {
         Tree filter = analyzer.addChild(filterName);
         // mimics nodes api
-        filter.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+        filter.setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
         try {
             filter.setProperty("binary", root.createBlob(new ByteArrayInputStream(new byte[0])), Type.BINARY);
         } catch (IOException e) {

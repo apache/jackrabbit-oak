@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -36,6 +35,7 @@ import javax.jcr.ValueFactory;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertSame;
 
@@ -88,7 +88,7 @@ public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
         DefaultSyncConfig sc = createSyncConfig();
         UserManager um = getUserManager(r);
         // create automembership groups
-        for (String id : Iterables.concat(sc.user().getAutoMembership(), sc.group().getAutoMembership())) {
+        for (String id : IterableUtils.chainedIterable(sc.user().getAutoMembership(), sc.group().getAutoMembership())) {
             um.createGroup(id);
         }
     }
@@ -116,17 +116,17 @@ public abstract class AbstractDynamicTest extends AbstractExternalAuthTest {
 
     @NotNull
     static List<String> getIds(@NotNull Iterator<? extends Authorizable> authorizables) {
-        return ImmutableList.copyOf(Iterators.transform(authorizables, authorizable -> {
+        return StreamUtils.toStream(authorizables).map(authorizable -> {
             try {
                 return authorizable.getID();
             } catch (RepositoryException repositoryException) {
                 throw new RuntimeException();
             }
-        }));
+        }).collect(Collectors.toList());
     }
 
     @NotNull
     static List<String> getPrincipalNames(@NotNull Iterator<Principal> groupPrincipals) {
-        return ImmutableList.copyOf(Iterators.transform(groupPrincipals, Principal::getName));
+        return StreamUtils.toStream(groupPrincipals).map(Principal::getName).collect(Collectors.toList());
     }
 }

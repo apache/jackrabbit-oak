@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
@@ -25,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil.encode;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -43,8 +44,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,13 +119,13 @@ public class PropertyIndexLookup {
         if (indexMeta == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
-        List<Iterable<String>> iterables = Lists.newArrayList();
+        List<Iterable<String>> iterables = new ArrayList<>();
         ValuePattern pattern = new ValuePattern(indexMeta);
         for (IndexStoreStrategy s : getStrategies(indexMeta)) {
             iterables.add(s.query(filter, propertyName, indexMeta,
                     encode(value, pattern)));
         }
-        return Iterables.concat(iterables);
+        return org.apache.jackrabbit.oak.commons.collections.IterableUtils.chainedIterable(iterables);
     }
 
     Set<IndexStoreStrategy> getStrategies(NodeState definition) {
@@ -174,7 +173,7 @@ public class PropertyIndexLookup {
             if (type == null || type.isArray() || !getType().equals(type.getValue(Type.STRING))) {
                 continue;
             }
-            if (contains(getNames(index, PROPERTY_NAMES), propertyName)) {
+            if (IterableUtils.contains(getNames(index, PROPERTY_NAMES), propertyName)) {
                 NodeState indexContent = index.getChildNode(INDEX_CONTENT_NODE_NAME);
                 if (!indexContent.exists()) {
                     continue;

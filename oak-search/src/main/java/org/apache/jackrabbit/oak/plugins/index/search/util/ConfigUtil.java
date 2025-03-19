@@ -16,21 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import java.util.Collections;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 /**
  * Utility class to retrieve configuration values for index definitions.
@@ -51,7 +49,7 @@ public class ConfigUtil {
     public static int getOptionalValue(NodeState definition, String propName, int defaultVal) {
         try {
             PropertyState ps = definition.getProperty(propName);
-            return ps == null ? defaultVal : Ints.checkedCast(ps.getValue(Type.LONG));
+            return ps == null ? defaultVal : Math.toIntExact(ps.getValue(Type.LONG));
         } catch (IllegalStateException e) {
             throw new IllegalStateException(String.format(ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE, propName), e);
         }
@@ -132,7 +130,7 @@ public class ConfigUtil {
     public static<T> T[] getOptionalValues(NodeState definition, String propName, Type<Iterable<T>> type, Class<T> typeParam, T[] defaultValues) {
         PropertyState ps = definition.getProperty(propName);
         if (ps != null) {
-            return Iterables.toArray(ps.getValue(type), typeParam);
+            return IterableUtils.toArray(ps.getValue(type), typeParam);
         }
         return defaultValues;
     }

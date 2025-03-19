@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.spi.commit;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -81,7 +81,7 @@ public class CommitContextTest extends OakBaseTest {
         Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
         tree.setProperty("a", 1);
-        root.commit(ImmutableMap.<String, Object>of("foo", "bar"));
+        root.commit(Map.of("foo", "bar"));
 
         assertNotNull(observer.info);
         assertTrue(observer.info.getInfo().containsKey("foo"));

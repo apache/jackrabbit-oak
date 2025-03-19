@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,47 +37,47 @@ public class DefaultWhiteboardTest {
 
     @Test
     public void filteredTracker() {
-        whiteboard.register(Service1.class, new Service1("s1"), ImmutableMap.of());
-        whiteboard.register(Service2.class, new Service2("s2"), ImmutableMap.of("role", "myrole"));
-        whiteboard.register(Service3.class, new Service3("s3_1"), ImmutableMap.of());
-        whiteboard.register(Service3.class, new Service3("s3_2"), ImmutableMap.of("role", "myrole"));
-        whiteboard.register(Service3.class, new Service3("s3_3"), ImmutableMap.of("role", "myotherrole", "id", 1024));
+        whiteboard.register(Service1.class, new Service1("s1"), Map.of());
+        whiteboard.register(Service2.class, new Service2("s2"), Map.of("role", "myrole"));
+        whiteboard.register(Service3.class, new Service3("s3_1"), Map.of());
+        whiteboard.register(Service3.class, new Service3("s3_2"), Map.of("role", "myrole"));
+        whiteboard.register(Service3.class, new Service3("s3_3"), Map.of("role", "myotherrole", "id", 1024));
 
         assertEquals(Set.of("s1"), track(Service1.class));
         assertEquals(Set.of("s1"), track(Service1.class, singletonMap("role", null)));
-        assertEquals(Set.of(), track(Service1.class, ImmutableMap.of("role", "myrole")));
+        assertEquals(Set.of(), track(Service1.class, Map.of("role", "myrole")));
 
         assertEquals(Set.of("s2"), track(Service2.class));
         assertEquals(Set.of(), track(Service2.class, singletonMap("role", null)));
-        assertEquals(Set.of("s2"), track(Service2.class, ImmutableMap.of("role", "myrole")));
+        assertEquals(Set.of("s2"), track(Service2.class, Map.of("role", "myrole")));
 
         assertEquals(Set.of("s3_1", "s3_2", "s3_3"), track(Service3.class));
         assertEquals(Set.of("s3_1"), track(Service3.class, singletonMap("role", null)));
-        assertEquals(Set.of("s3_2"), track(Service3.class, ImmutableMap.of("role", "myrole")));
-        assertEquals(Set.of("s3_3"), track(Service3.class, ImmutableMap.of("role", "myotherrole")));
-        assertEquals(Set.of("s3_3"), track(Service3.class, ImmutableMap.of("role", "myotherrole", "id", "1024")));
-        assertEquals(Set.of("s3_3"), track(Service3.class, ImmutableMap.of("id", "1024")));
-        assertEquals(Set.of(), track(Service3.class, ImmutableMap.of("id", "2048")));
+        assertEquals(Set.of("s3_2"), track(Service3.class, Map.of("role", "myrole")));
+        assertEquals(Set.of("s3_3"), track(Service3.class, Map.of("role", "myotherrole")));
+        assertEquals(Set.of("s3_3"), track(Service3.class, Map.of("role", "myotherrole", "id", "1024")));
+        assertEquals(Set.of("s3_3"), track(Service3.class, Map.of("id", "1024")));
+        assertEquals(Set.of(), track(Service3.class, Map.of("id", "2048")));
     }
 
     @Test
     public void sameServiceRegisteredAgain() {
         Service1 s1 = new Service1("s1");
 
-        whiteboard.register(Service1.class, s1, ImmutableMap.of());
-        whiteboard.register(Service1.class, s1, ImmutableMap.of());
-        whiteboard.register(Service1.class, s1, ImmutableMap.of());
+        whiteboard.register(Service1.class, s1, Map.of());
+        whiteboard.register(Service1.class, s1, Map.of());
+        whiteboard.register(Service1.class, s1, Map.of());
 
         assertEquals(Set.of("s1"), track(Service1.class));
     }
 
     @Test
     public void unregister() {
-        Registration r1 = whiteboard.register(Service1.class, new Service1("s1"), ImmutableMap.of());
-        Registration r2 = whiteboard.register(Service2.class, new Service2("s2"), ImmutableMap.of("role", "myrole"));
-        Registration r3_1 = whiteboard.register(Service3.class, new Service3("s3_1"), ImmutableMap.of());
-        Registration r3_2 = whiteboard.register(Service3.class, new Service3("s3_2"), ImmutableMap.of("role", "myrole"));
-        Registration r3_3 = whiteboard.register(Service3.class, new Service3("s3_3"), ImmutableMap.of("role", "myotherrole", "id", 1024));
+        Registration r1 = whiteboard.register(Service1.class, new Service1("s1"), Map.of());
+        Registration r2 = whiteboard.register(Service2.class, new Service2("s2"), Map.of("role", "myrole"));
+        Registration r3_1 = whiteboard.register(Service3.class, new Service3("s3_1"), Map.of());
+        Registration r3_2 = whiteboard.register(Service3.class, new Service3("s3_2"), Map.of("role", "myrole"));
+        Registration r3_3 = whiteboard.register(Service3.class, new Service3("s3_3"), Map.of("role", "myotherrole", "id", 1024));
 
         assertEquals(Set.of("s1"), track(Service1.class));
         r1.unregister();

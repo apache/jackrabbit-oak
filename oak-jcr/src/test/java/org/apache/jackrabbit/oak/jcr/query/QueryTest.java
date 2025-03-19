@@ -55,7 +55,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -526,7 +526,7 @@ public class QueryTest extends AbstractRepositoryTest {
                 query, "xpath").execute();
         NodeIterator it = r.getNodes();
 
-        Set<String> expected = CollectionUtils.toSet("/test/two", "/test/two/child", "/test/one/child");
+        Set<String> expected = SetUtils.toSet("/test/two", "/test/two/child", "/test/one/child");
         while (it.hasNext()) {
             String path = it.nextNode().getPath();
             assertTrue("Unexpected path " + path, expected.contains(path));
@@ -680,7 +680,7 @@ public class QueryTest extends AbstractRepositoryTest {
         r = q.execute();
         assertEquals(
                 Set.of("jcr:path", "jcr:score", "jcr:primaryType"),
-                CollectionUtils.toSet(r.getColumnNames()));
+                SetUtils.toSet(r.getColumnNames()));
     }
 
     @Test

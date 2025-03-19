@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -99,7 +99,7 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
     public void _testRenameEventHandling() throws RepositoryException, InterruptedException {
         Session s = getHelper().getSuperuserSession();
         ObservationManager mgr = s.getWorkspace().getObservationManager();
-        final List<Event> events = newArrayList();
+        final List<Event> events = new ArrayList<>();
         final CountDownLatch latch1 = new CountDownLatch(1);
         final CountDownLatch latch2 = new CountDownLatch(1);
 

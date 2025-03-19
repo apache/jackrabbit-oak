@@ -22,6 +22,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.TestRepository;
 import org.apache.jackrabbit.oak.plugins.index.TestRepositoryBuilder;
@@ -34,9 +35,6 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import java.util.List;
-
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 
 public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
 
@@ -50,10 +48,10 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
         this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
         this.editorProvider = getIndexEditorProvider();
         this.indexProvider = new ElasticIndexProvider(indexTracker);
-        this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
+        this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(
                 editorProvider,
                 new NodeCounterEditorProvider()
-        )));
+        ));
         queryEngineSettings = new QueryEngineSettings();
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }

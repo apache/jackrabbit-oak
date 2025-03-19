@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Random;
 
 import javax.jcr.Binary;
@@ -27,8 +28,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.commons.JcrUtils;
-
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 abstract class ReadManyTest extends AbstractTest {
 
@@ -61,11 +60,8 @@ abstract class ReadManyTest extends AbstractTest {
         public void read(Node node) throws RepositoryException {
             Binary binary = node.getProperty("jcr:content/jcr:data").getBinary();
             try {
-                InputStream stream = binary.getStream();
-                try {
-                    ByteStreams.copy(stream, ByteStreams.nullOutputStream());
-                } finally {
-                    stream.close();
+                try (InputStream stream = binary.getStream()) {
+                    stream.transferTo(OutputStream.nullOutputStream());
                 }
             } catch (IOException e) {
                 throw new RepositoryException("Unexpected IOException", e);

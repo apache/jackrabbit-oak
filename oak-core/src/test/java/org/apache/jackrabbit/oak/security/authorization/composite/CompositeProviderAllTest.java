@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.Session;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -293,15 +291,15 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testIsGrantedAction2() throws Exception {
-        Map<String, String[]> noAccess = ImmutableMap.<String, String[]>builder().
-                put(ROOT_PATH, new String[] {Session.ACTION_READ}).
-                put(ROOT_PATH + "jcr:primaryType", new String[] {Session.ACTION_READ, Session.ACTION_SET_PROPERTY}).
-                put("/nonexisting", new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE}).
-                put(TEST_PATH_2, new String[] {Session.ACTION_READ, Session.ACTION_REMOVE}).
-                put(TEST_PATH_2 + "/jcr:primaryType", new String[] {Session.ACTION_READ, Session.ACTION_SET_PROPERTY}).
-                put(TEST_A_B_C_PATH, new String[] {Session.ACTION_READ, Session.ACTION_REMOVE}).
-                put(TEST_A_B_C_PATH + "/noneExisting", new String[] {Session.ACTION_READ, JackrabbitSession.ACTION_REMOVE_NODE}).
-                put(TEST_A_B_C_PATH + "/jcr:primaryType", new String[] {JackrabbitSession.ACTION_REMOVE_PROPERTY}).build();
+        Map<String, String[]> noAccess = Map.of(
+                ROOT_PATH, new String[] {Session.ACTION_READ},
+                ROOT_PATH + "jcr:primaryType", new String[] {Session.ACTION_READ, Session.ACTION_SET_PROPERTY},
+                "/nonexisting", new String[] {Session.ACTION_READ, Session.ACTION_ADD_NODE},
+                TEST_PATH_2, new String[] {Session.ACTION_READ, Session.ACTION_REMOVE},
+                TEST_PATH_2 + "/jcr:primaryType", new String[] {Session.ACTION_READ, Session.ACTION_SET_PROPERTY},
+                TEST_A_B_C_PATH, new String[] {Session.ACTION_READ, Session.ACTION_REMOVE},
+                TEST_A_B_C_PATH + "/noneExisting", new String[] {Session.ACTION_READ, JackrabbitSession.ACTION_REMOVE_NODE},
+                TEST_A_B_C_PATH + "/jcr:primaryType", new String[] {JackrabbitSession.ACTION_REMOVE_PROPERTY});
 
         for (String p : noAccess.keySet()) {
             assertFalse(p, cpp.isGranted(p, getActionString(noAccess.get(p))));
@@ -380,14 +378,14 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testTreePermissionCanRead() throws Exception {
-        Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
-                put(ROOT_PATH, false).
-                put(TEST_PATH, true).
-                put(TEST_A_PATH, true).
-                put(TEST_A_B_PATH, true).
-                put(TEST_A_B_C_PATH, false).
-                put(TEST_A_B_C_PATH + "/nonexisting", false).
-                build();
+        // order is relevant here
+        Map<String, Boolean> readMap = new LinkedHashMap<>();
+        readMap.put(ROOT_PATH, false);
+        readMap.put(TEST_PATH, true);
+        readMap.put(TEST_A_PATH, true);
+        readMap.put(TEST_A_B_PATH, true);
+        readMap.put(TEST_A_B_C_PATH, false);
+        readMap.put(TEST_A_B_C_PATH + "/nonexisting", false);
 
         TreePermission parentPermission = TreePermission.EMPTY;
         for (String nodePath : readMap.keySet()) {
@@ -403,14 +401,14 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testTreePermissionCanReadOR() throws Exception {
-        Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
-                put(ROOT_PATH, true).
-                put(TEST_PATH, true).
-                put(TEST_A_PATH, true).
-                put(TEST_A_B_PATH, true).
-                put(TEST_A_B_C_PATH, true).
-                put(TEST_A_B_C_PATH + "/nonexisting", true).
-                build();
+        // order is relevant here
+        Map<String, Boolean> readMap = new LinkedHashMap<>();
+        readMap.put(ROOT_PATH, true);
+        readMap.put(TEST_PATH, true);
+        readMap.put(TEST_A_PATH, true);
+        readMap.put(TEST_A_B_PATH, true);
+        readMap.put(TEST_A_B_C_PATH, true);
+        readMap.put(TEST_A_B_C_PATH + "/nonexisting", true);
 
         TreePermission parentPermission = TreePermission.EMPTY;
         for (String nodePath : readMap.keySet()) {
@@ -426,14 +424,14 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testTreePermissionCanReadProperty() throws Exception {
-        Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
-                put(ROOT_PATH, false).
-                put(TEST_PATH, true).
-                put(TEST_A_PATH, true).
-                put(TEST_A_B_PATH, true).
-                put(TEST_A_B_C_PATH, true).
-                put(TEST_A_B_C_PATH + "/nonexisting", true).
-                build();
+        // order is relevant here
+        Map<String, Boolean> readMap = new LinkedHashMap<>();
+        readMap.put(ROOT_PATH, false);
+        readMap.put(TEST_PATH, true);
+        readMap.put(TEST_A_PATH, true);
+        readMap.put(TEST_A_B_PATH, true);
+        readMap.put(TEST_A_B_C_PATH, true);
+        readMap.put(TEST_A_B_C_PATH + "/nonexisting", true);
 
         TreePermission parentPermission = TreePermission.EMPTY;
         for (String nodePath : readMap.keySet()) {
@@ -450,14 +448,14 @@ public class CompositeProviderAllTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testTreePermissionCanReadPropertyOR() throws Exception {
-        Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
-                put(ROOT_PATH, true).
-                put(TEST_PATH, true).
-                put(TEST_A_PATH, true).
-                put(TEST_A_B_PATH, true).
-                put(TEST_A_B_C_PATH, true).
-                put(TEST_A_B_C_PATH + "/nonexisting", true).
-                build();
+        // order is relevant here
+        Map<String, Boolean> readMap = new LinkedHashMap<>();
+        readMap.put(ROOT_PATH, true);
+        readMap.put(TEST_PATH, true);
+        readMap.put(TEST_A_PATH, true);
+        readMap.put(TEST_A_B_PATH, true);
+        readMap.put(TEST_A_B_C_PATH, true);
+        readMap.put(TEST_A_B_C_PATH + "/nonexisting", true);
 
         TreePermission parentPermission = TreePermission.EMPTY;
         for (String nodePath : readMap.keySet()) {

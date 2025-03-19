@@ -19,25 +19,25 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 
 import static java.lang.Thread.currentThread;
 
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 
@@ -122,7 +122,7 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
          * Pool of writers. Every thread is assigned a unique writer per GC generation, therefore only requiring
          * a concurrent map to synchronize access to them.
          */
-        private final ConcurrentMap<Object, SegmentBufferWriter> writers = newConcurrentMap();
+        private final ConcurrentMap<Object, SegmentBufferWriter> writers = new ConcurrentHashMap<>();
 
         public ThreadSpecificSegmentBufferWriterPool(
                 @NotNull SegmentIdProvider idProvider,
@@ -210,8 +210,8 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
 
         @Override
         public void flush(@NotNull SegmentStore store) throws IOException {
-            List<SegmentBufferWriter> toFlush = newArrayList();
-            List<SegmentBufferWriter> toReturn = newArrayList();
+            List<SegmentBufferWriter> toFlush = new ArrayList<>();
+            List<SegmentBufferWriter> toReturn = new ArrayList<>();
 
             poolMonitor.enter();
             try {
@@ -307,7 +307,7 @@ public abstract class SegmentBufferWriterPool implements WriteOperationHandler {
             poolMonitor.enter();
             try {
                 if (borrowed.remove(writer)) {
-                    checkState(writers.put(key, writer) == null);
+                    Validate.checkState(writers.put(key, writer) == null);
                 } else {
                     // Defer flush this writer as it was borrowed while flush() was called.
                     disposed.add(writer);

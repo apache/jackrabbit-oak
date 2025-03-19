@@ -25,8 +25,6 @@ import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintable
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-
 import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
@@ -86,7 +84,7 @@ class DefaultCleanupStrategy implements CleanupStrategy {
         if (files.isEmpty()) {
             return "none";
         } else {
-            return Joiner.on(",").join(files);
+            return String.join(",", files);
         }
     }
 

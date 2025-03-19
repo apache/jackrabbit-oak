@@ -16,15 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.junit.Test;
 
@@ -44,18 +42,19 @@ public class TextExtractorTest {
         );
 
         extractor.extract(binaries);
-
         extractor.close();
+
         assertEquals(2, writer.data.size());
         assertEquals("foo", writer.data.get("b").trim());
     }
 
     private static BinaryResource bin(String text, String mime, String id) {
-        return new BinaryResource(ByteSource.wrap(text.getBytes()), mime, null, id, id);
+        return new BinaryResource(new TestDataSource(text),
+                mime, null, id, id);
     }
 
     private static class MapTextWriter implements TextWriter {
-        final Map<String, String> data = Maps.newConcurrentMap();
+        final Map<String, String> data = new ConcurrentHashMap<>();
 
         @Override
         public void write(String blobId, String text) throws IOException {

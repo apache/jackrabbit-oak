@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static java.lang.Thread.currentThread;
 import static javax.management.openmbean.SimpleType.INTEGER;
 import static javax.management.openmbean.SimpleType.STRING;
@@ -36,6 +35,7 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.r
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.succeeded;
 
 import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -218,9 +218,9 @@ public class ManagementOperation<R> extends FutureTask<R> {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
-            .add("name", name)
-            .add("id", id)
+        return new StringJoiner(", ", ManagementOperation.class.getSimpleName() + "[", "]")
+            .add("name=" + name)
+            .add("id=" + id)
             .toString();
     }
 
@@ -407,10 +407,10 @@ public class ManagementOperation<R> extends FutureTask<R> {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
-                .addValue(code)
-                .add("id", id)
-                .add("message", message)
+            return new StringJoiner(", ", Status.class.getSimpleName() + "[", "]")
+                .add("code=" + code)
+                .add("id=" + id)
+                .add("message=" + message)
                 .toString();
         }
 

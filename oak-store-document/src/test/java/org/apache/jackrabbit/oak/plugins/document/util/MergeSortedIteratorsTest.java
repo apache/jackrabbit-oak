@@ -25,8 +25,6 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -66,7 +64,7 @@ public class MergeSortedIteratorsTest {
     }
 
     private List<Integer> sort(List<Integer>... lists) {
-        List<Iterator<Integer>> iterators = Lists.newArrayList();
+        List<Iterator<Integer>> iterators = new ArrayList<>();
         for (List<Integer> list : lists) {
             iterators.add(list.iterator());
         }

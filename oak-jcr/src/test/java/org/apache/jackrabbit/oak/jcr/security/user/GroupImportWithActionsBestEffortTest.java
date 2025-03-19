@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -36,6 +35,8 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -139,23 +140,23 @@ public class GroupImportWithActionsBestEffortTest extends AbstractImportTest {
         @Override
         public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
-            this.memberIds.addAll(ImmutableSet.copyOf(memberIds));
-            this.failedIds.addAll(ImmutableSet.copyOf(failedIds));
+            this.memberIds.addAll(SetUtils.toSet(memberIds));
+            this.failedIds.addAll(SetUtils.toSet(failedIds));
             onMembersAddedCalled = true;
         }
 
         @Override
         public void onMembersAddedContentId(@NotNull Group group, @NotNull Iterable<String> memberContentIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
-            this.memberContentIds.addAll(ImmutableSet.copyOf(memberContentIds));
-            this.failedIds.addAll(ImmutableSet.copyOf(failedIds));
+            this.memberContentIds.addAll(SetUtils.toSet(memberContentIds));
+            this.failedIds.addAll(SetUtils.toSet(failedIds));
             onMembersAddedContentIdCalled = true;
         }
     }
 
     private final class TestActionProvider implements AuthorizableActionProvider {
 
-        private final List<AuthorizableAction> actions = Lists.newArrayList();
+        private final List<AuthorizableAction> actions = new ArrayList<>();
 
         private void addAction(AuthorizableAction action) {
             actions.add(action);

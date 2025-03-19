@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -45,7 +44,7 @@ public class ConcurrentFileWriteTest extends AbstractTest {
 
     private final Random random = new Random();
 
-    private final List<String> paths = newArrayList();
+    private final List<String> paths = new ArrayList<>();
 
     private Writer writer;
 

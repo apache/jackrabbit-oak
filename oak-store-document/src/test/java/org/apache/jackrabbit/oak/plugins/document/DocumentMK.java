@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,8 +38,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * A JSON-based wrapper around the NodeStore implementation that stores the
@@ -388,7 +387,7 @@ public class DocumentMK {
     }
 
     private void parseAddNode(CommitBuilder commit, JsopReader t, String path) {
-        List<PropertyState> props = Lists.newArrayList();
+        List<PropertyState> props = new ArrayList<>();
         if (!t.matches('}')) {
             do {
                 String key = t.readString();
@@ -466,6 +465,7 @@ public class DocumentMK {
         public static final long DEFAULT_MEMORY_CACHE_SIZE = DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
         public static final int DEFAULT_NODE_CACHE_PERCENTAGE = DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
         public static final int DEFAULT_PREV_DOC_CACHE_PERCENTAGE = DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+        public static final int DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE = DocumentNodeStoreBuilder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
         public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = DocumentNodeStoreBuilder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
         public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = DocumentNodeStoreBuilder.DEFAULT_DIFF_CACHE_PERCENTAGE;
         public static final int DEFAULT_CACHE_SEGMENT_COUNT = DocumentNodeStoreBuilder.DEFAULT_CACHE_SEGMENT_COUNT;

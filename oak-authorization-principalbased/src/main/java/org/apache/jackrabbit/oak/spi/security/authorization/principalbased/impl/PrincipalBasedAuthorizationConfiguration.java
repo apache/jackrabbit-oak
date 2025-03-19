@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -129,7 +128,7 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
         if (!f.canHandle(principals)) {
             return EmptyPermissionProvider.getInstance();
         } else {
-            Iterable<String> principalPaths = Iterables.transform(principals, f::getOakPath);
+            Iterable<String> principalPaths = IterableUtils.transform(principals, f::getOakPath);
             return new PrincipalBasedPermissionProvider(root, workspaceName, principalPaths, this);
         }
     }
@@ -164,7 +163,7 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(new PrincipalPolicyValidatorProvider(new MgrProviderImpl(this), principals, workspaceName));
+        return List.of(new PrincipalPolicyValidatorProvider(new MgrProviderImpl(this), principals, workspaceName));
     }
 
     @NotNull

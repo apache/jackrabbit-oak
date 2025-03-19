@@ -16,24 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.upgrade.blob;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.io.ByteSource;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -52,7 +49,7 @@ public class LengthCachingDataStoreTest {
         File root = tempFolder.getRoot();
         File mappingFile = new File(root, "mapping.txt");
         String text = "1000|foo\n2000|bar";
-        Files.write(text, mappingFile, Charset.defaultCharset());
+        Files.writeString(mappingFile.toPath(), text);
 
         LengthCachingDataStore fds = new LengthCachingDataStore();
         fds.setDelegateClass(FileDataStore.class.getName());
@@ -94,7 +91,7 @@ public class LengthCachingDataStoreTest {
 
         File mappingFile = new File(tempFolder.getRoot(), "mapping.txt");
         String text = String.format("%s|%s", data.length, dr.getIdentifier().toString());
-        Files.write(text, mappingFile, Charset.defaultCharset());
+        Files.writeString(mappingFile.toPath(), text);
 
         LengthCachingDataStore fds = new LengthCachingDataStore();
         fds.setDelegateClass(FileDataStore.class.getName());
@@ -105,7 +102,7 @@ public class LengthCachingDataStoreTest {
         assertEquals(dr, dr2);
 
         assertEquals(dr.getLength(), dr2.getLength());
-        assertTrue(supplier(dr).contentEquals(supplier(dr2)));
+        assertArrayEquals(streamAsByteArray(dr), streamAsByteArray(dr2));
     }
 
     @Test
@@ -180,16 +177,9 @@ public class LengthCachingDataStoreTest {
         return data;
     }
 
-    private static ByteSource supplier(final DataRecord dr) {
-        return new ByteSource() {
-            @Override
-            public InputStream openStream() throws IOException {
-                try {
-                    return dr.getStream();
-                } catch (DataStoreException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
+    private static byte[] streamAsByteArray(final DataRecord dr) throws IOException, DataStoreException {
+        try (InputStream is = dr.getStream()) {
+            return is.readAllBytes();
+        }
     }
 }

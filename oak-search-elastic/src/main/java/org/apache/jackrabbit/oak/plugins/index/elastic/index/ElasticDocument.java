@@ -17,29 +17,35 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.commons.codec.digest.MurmurHash3;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.LinkedHashSet;
 
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ElasticDocument {
 
     @JsonProperty(FieldNames.PATH)
     public final String path;
+    @JsonProperty(ElasticIndexDefinition.PATH_RANDOM_VALUE)
+    public final int pathRandomValue;
     @JsonProperty(FieldNames.FULLTEXT)
     public final Set<String> fulltext;
     @JsonProperty(FieldNames.SUGGEST)
@@ -55,9 +61,21 @@ public class ElasticDocument {
     private final Map<String, Object> properties;
     @JsonProperty(ElasticIndexDefinition.DYNAMIC_PROPERTIES)
     private final List<Map<String, Object>> dynamicProperties;
+    @JsonProperty(ElasticIndexDefinition.LAST_UPDATED)
+    private long lastUpdated;
+
+    // Internal set with properties that need to be removed from the document on update operations
+    @JsonIgnore
+    private final Set<String> propertiesToRemove;
 
     ElasticDocument(String path) {
+        this(path, 0);
+    }
+
+    ElasticDocument(String path, int seed) {
         this.path = path;
+        byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
+        this.pathRandomValue = MurmurHash3.hash32x86(pathBytes, 0, pathBytes.length, seed);
         this.fulltext = new LinkedHashSet<>();
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();
@@ -65,6 +83,7 @@ public class ElasticDocument {
         this.dynamicProperties = new ArrayList<>();
         this.dbFullText = new LinkedHashSet<>();
         this.similarityTags = new LinkedHashSet<>();
+        this.propertiesToRemove = new HashSet<>();
     }
 
     void addFulltext(String value) {
@@ -128,9 +147,9 @@ public class ElasticDocument {
         properties.put(fieldName, finalValue);
     }
 
-    void addSimilarityField(String name, Blob value) throws IOException {
-        byte[] bytes = new BlobByteSource(value).read();
-        addProperty(FieldNames.createSimilarityFieldName(name), toDoubles(bytes));
+    void addSimilarityField(String fieldName, Blob value) throws IOException {
+        byte[] bytes = value.getNewStream().readAllBytes();
+        addProperty(FieldNames.createSimilarityFieldName(fieldName), toFloats(bytes));
     }
 
     void indexAncestors(String path) {
@@ -141,8 +160,8 @@ public class ElasticDocument {
         addProperty(FieldNames.PATH_DEPTH, depth);
     }
 
-    void addDynamicBoostField(String propName, String value, double boost) {
-        addProperty(propName,
+    void addDynamicBoostField(String fieldName, String value, double boost) {
+        addProperty(fieldName,
                 Map.of(
                         ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE, value,
                         ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
@@ -158,9 +177,38 @@ public class ElasticDocument {
         similarityTags.add(value);
     }
 
+    void setLastUpdated(long lastUpdated) {
+        this.lastUpdated = lastUpdated;
+    }
+
     @JsonAnyGetter
     public Map<String, Object> getProperties() {
         return properties;
+    }
+
+    public void removeProperty(String fieldName) {
+        propertiesToRemove.add(fieldName);
+    }
+
+    @NotNull
+    public Set<String> getPropertiesToRemove() {
+        return propertiesToRemove;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("path:").append(path).append('\n');
+        if (!fulltext.isEmpty()) {
+            buff.append("fulltext:").append(fulltext).append('\n');
+        }
+        if (!properties.isEmpty()) {
+            buff.append("properties:").append(properties).append('\n');
+        }
+        if (!dynamicProperties.isEmpty()) {
+            buff.append("dynamicProperties:").append(dynamicProperties).append('\n');
+        }
+        return buff.toString();
     }
 
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
@@ -37,6 +36,7 @@ import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
@@ -129,7 +129,7 @@ public class AbstractEntryTest extends AbstractPrincipalBasedTest {
     private final class TestEntry extends AbstractEntry {
 
         TestEntry(@Nullable String oakPath, @NotNull Principal principal, @NotNull PrivilegeBits privilegeBits, @NotNull Restriction... restrictions) throws AccessControlException {
-            super(oakPath, principal, privilegeBits, ImmutableSet.copyOf(restrictions), AbstractEntryTest.this.getNamePathMapper());
+            super(oakPath, principal, privilegeBits, Set.of(restrictions), AbstractEntryTest.this.getNamePathMapper());
         }
 
         TestEntry(@NotNull AbstractEntry base) throws AccessControlException {

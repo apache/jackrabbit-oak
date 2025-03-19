@@ -137,7 +137,7 @@ Example how to use this type of pre-authentication:
     Subject subject = new Subject(true, principals, Collections.singleton(authInfo), Collections.<Object>emptySet());
     Session session;
     try {
-        session = Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
+        session = Java23Compatibility.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
             @Override
             public Session run() throws Exception {
                 return login(null, null);

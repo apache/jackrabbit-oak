@@ -23,10 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -34,7 +34,6 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.io.ByteStreams.toByteArray;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -62,7 +61,7 @@ public abstract class AbstractDataRecordAccessProviderIT {
         // Execute this test from the command line like this:
         //   mvn test -Dtest=<child-class-name> -Dtest.opts.memory=-Xmx2G
         DataRecordAccessProvider ds = getDataStore();
-        for (AbstractDataRecordAccessProviderTest.InitUploadResult res : Lists.newArrayList(
+        for (AbstractDataRecordAccessProviderTest.InitUploadResult res : List.of(
             new AbstractDataRecordAccessProviderTest.InitUploadResult() {
                 @Override public long getUploadSize() { return TWENTY_MB; }
                 @Override public int getMaxNumURIs() { return 10; }
@@ -111,7 +110,7 @@ public abstract class AbstractDataRecordAccessProviderIT {
                 assertNotNull(retrievedRecord);
 
                 in.reset();
-                assertTrue(Arrays.equals(toByteArray(in), toByteArray(retrievedRecord.getStream())));
+                assertTrue(Arrays.equals(in.readAllBytes(), retrievedRecord.getStream().readAllBytes()));
             }
             finally {
                 if (null != uploadedRecord) {

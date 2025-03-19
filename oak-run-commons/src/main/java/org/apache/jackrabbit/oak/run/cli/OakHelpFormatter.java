@@ -28,14 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import joptsimple.BuiltinHelpFormatter;
 import joptsimple.HelpFormatter;
 import joptsimple.OptionDescriptor;
 import joptsimple.OptionSpec;
 
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.jetbrains.annotations.Nullable;
 
 public class OakHelpFormatter implements HelpFormatter {
@@ -47,7 +45,7 @@ public class OakHelpFormatter implements HelpFormatter {
 
     public OakHelpFormatter(Iterable<OptionsBean> optionBeans, @Nullable String commandName,
                             @Nullable String summary,@Nullable String connectionString) {
-        this.optionBeans = Lists.newArrayList(optionBeans);
+        this.optionBeans = ListUtils.toList(optionBeans);
         this.commandName = commandName;
         this.summary = summary;
         this.connectionString = connectionString;
@@ -55,7 +53,7 @@ public class OakHelpFormatter implements HelpFormatter {
 
     @Override
     public String format(Map<String, ? extends OptionDescriptor> options) {
-        Map<String, ? extends OptionDescriptor> clonedOptions = Maps.newHashMap(options);
+        Map<String, ? extends OptionDescriptor> clonedOptions = new HashMap<>(options);
         List<OptionCategory> optionCategories = categorise(clonedOptions);
         //TODO Take care of left over options
 
@@ -136,7 +134,7 @@ public class OakHelpFormatter implements HelpFormatter {
 
         @Override
         public int compareTo(OptionCategory that) {
-            return Ints.compare(this.bean.order(), that.bean.order());
+            return Integer.compare(this.bean.order(), that.bean.order());
         }
     }
 

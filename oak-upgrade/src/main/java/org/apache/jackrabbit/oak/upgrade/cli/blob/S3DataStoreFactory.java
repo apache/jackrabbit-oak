@@ -20,6 +20,8 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
@@ -31,16 +33,13 @@ import java.util.regex.Pattern;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
@@ -66,7 +65,7 @@ public class S3DataStoreFactory implements BlobStoreFactory {
         }
 
         this.directory = directory;
-        this.tempHomeDir = Files.createTempDir();
+        this.tempHomeDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         this.ignoreMissingBlobs = ignoreMissingBlobs;
     }
 
@@ -108,7 +107,7 @@ public class S3DataStoreFactory implements BlobStoreFactory {
 
     static S3DataStore createDS(String directory, Properties props) {
         Properties strippedProperties = new Properties();
-        Map<String, String> map = Maps.newHashMap();
+        Map<String, String> map = new HashMap<>();
 
         for (Object key : new HashSet<>(props.keySet())) {
             String strippedValue = stripValue(props.getProperty((String) key));

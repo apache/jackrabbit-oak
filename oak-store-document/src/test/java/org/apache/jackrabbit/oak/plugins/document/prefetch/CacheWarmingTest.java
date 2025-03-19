@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNoException;
 import static org.junit.Assume.assumeNotNull;
 
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.mongodb.MongoTimeoutException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -110,7 +112,12 @@ public class CacheWarmingTest {
         mongoConnection = connectionFactory.getConnection();
         assumeNotNull(mongoConnection);
         db = new CountingMongoDatabase(mongoConnection.getDatabase());
-        MongoUtils.dropCollections(db);
+        try {
+            MongoUtils.dropCollections(db);
+        } catch (MongoTimeoutException e) {
+            LOG.warn("Skipping the current test case, because the collection cleanup in the Mongo DB timed out.", e);
+            assumeNoException("Skipping the current test case, because the collection cleanup in the Mongo DB timed out.", e);
+        }
         DocumentMK.Builder builder = new DocumentMK.Builder()
                 .clock(getTestClock()).setAsyncDelay(0);
         MongoDocumentStore store = new MongoDocumentStore(mongoConnection.getMongoClient(), db, builder);

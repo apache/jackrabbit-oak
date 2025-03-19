@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.nCopies;
 
 import java.lang.ref.WeakReference;
@@ -29,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +59,7 @@ public class SegmentIdTable {
      * entries would be slower).
      */
     private final ArrayList<WeakReference<SegmentId>> references =
-            newArrayList(nCopies(1024, (WeakReference<SegmentId>) null));
+            new ArrayList<>(nCopies(1024, (WeakReference<SegmentId>) null));
 
     private static final Logger LOG = LoggerFactory.getLogger(SegmentIdTable.class);
 
@@ -130,7 +129,7 @@ public class SegmentIdTable {
 
     private synchronized Collection<SegmentId> refresh() {
         int size = references.size();
-        Map<SegmentId, WeakReference<SegmentId>> ids = CollectionUtils.newHashMap(size);
+        Map<SegmentId, WeakReference<SegmentId>> ids = MapUtils.newHashMap(size);
 
         boolean hashCollisions = false;
         boolean emptyReferences = false;

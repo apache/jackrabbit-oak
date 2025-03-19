@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -78,14 +77,14 @@ public abstract class IndexAndTraversalQueriesSimilarResultsCommonTest extends A
      * - The queries that have different results between traversal and the indexes, for the most part also produce
      * different results between Elastic and Lucene.
      */
-    protected List<String> queriesWithSameResults = ImmutableList.of(
+    protected List<String> queriesWithSameResults = List.of(
             // Full-text queries
             "/jcr:root//*[jcr:contains(@propa, '*')]",
             "/jcr:root//*[jcr:contains(@propa, '123*')]",
             "/jcr:root//*[jcr:contains(@propa, 'fal*')]"
     );
 
-    protected List<String> queriesWithDifferentResults = ImmutableList.of(
+    protected List<String> queriesWithDifferentResults = List.of(
             "/jcr:root//*[@propa]",
             "/jcr:root//*[@propa > 0]",
             "/jcr:root//*[@propa > '0']",

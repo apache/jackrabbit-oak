@@ -22,6 +22,7 @@ import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.jetbrains.annotations.Nullable;
 
+@Deprecated(forRemoval=true, since="1.74.0")
 public class DefaultSolrServerProvider implements SolrServerProvider {
 
     private SolrClient solrServer;

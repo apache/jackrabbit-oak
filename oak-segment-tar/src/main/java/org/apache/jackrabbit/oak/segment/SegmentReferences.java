@@ -18,13 +18,13 @@
 package org.apache.jackrabbit.oak.segment;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 /**
  * Represents a list of segment IDs referenced from a segment.
@@ -35,7 +35,7 @@ public interface SegmentReferences extends Iterable<SegmentId> {
     static @NotNull SegmentReferences fromSegmentData(@NotNull SegmentData data, @NotNull SegmentIdProvider idProvider) {
         final int referencedSegmentIdCount = data.getSegmentReferencesCount();
 
-        checkState(referencedSegmentIdCount + 1 < 0xffff, "Segment cannot have more than 0xffff references");
+        Validate.checkState(referencedSegmentIdCount + 1 < 0xffff, "Segment cannot have more than 0xffff references");
 
         // We need to keep SegmentId references (as opposed to e.g. UUIDs)
         // here as frequently resolving the segment ids via the segment id

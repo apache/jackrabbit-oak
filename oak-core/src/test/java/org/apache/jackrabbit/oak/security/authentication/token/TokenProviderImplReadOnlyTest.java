@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import javax.jcr.GuestCredentials;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -33,6 +32,8 @@ import org.junit.Test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+
+import java.util.Map;
 
 public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
 
@@ -79,7 +80,7 @@ public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
         String userId = getTestUser().getID();
         readOnlyRoot.refresh();
 
-        assertNull(readOnlyTp.createToken(userId, ImmutableMap.of()));
+        assertNull(readOnlyTp.createToken(userId, Map.of()));
     }
 
     @Test
@@ -87,7 +88,7 @@ public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
         // make sure user already has a token-parent node.
         generateToken();
         // now generate a new token with the read-only root
-        assertNull(readOnlyTp.createToken(getTestUser().getID(), ImmutableMap.of()));
+        assertNull(readOnlyTp.createToken(getTestUser().getID(), Map.of()));
     }
 
     @Test

@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.fixture;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
@@ -29,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.RdbConnectionUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
@@ -40,22 +40,13 @@ public class DocumentRdbFixture extends NodeStoreFixture {
 
     private final Map<NodeStore, DataSource> dataSources = new ConcurrentHashMap<NodeStore, DataSource>();
 
-    private String jdbcUrl;
-
-    private final String fname = (new File("target")).isDirectory() ? "target/" : "";
-
-    private final String pUrl = System.getProperty("rdb.jdbc-url", "jdbc:h2:file:./{fname}oaktest");
-
-    private final String pUser = System.getProperty("rdb.jdbc-user", "sa");
-
-    private final String pPasswd = System.getProperty("rdb.jdbc-passwd", "");
+    private static final String jdbcUrl = RdbConnectionUtils.mapJdbcURL();
 
     @Override
     public NodeStore createNodeStore() {
         String prefix = "T" + Long.toHexString(System.currentTimeMillis());
         RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
-        this.jdbcUrl = pUrl.replace("{fname}", fname);
-        DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, pUser, pPasswd);
+        DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, RdbConnectionUtils.USERNAME, RdbConnectionUtils.PASSWD);
         //do not reuse the whiteboard
         setWhiteboard(new DefaultWhiteboard());
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
@@ -83,6 +74,6 @@ public class DocumentRdbFixture extends NodeStoreFixture {
 
     @Override
     public String toString() {
-        return "DocumentNodeStore[RDB] on " + Objects.toString(this.jdbcUrl, this.pUrl);
+        return "DocumentNodeStore[RDB] on " + Objects.toString(this.jdbcUrl);
     }
 }

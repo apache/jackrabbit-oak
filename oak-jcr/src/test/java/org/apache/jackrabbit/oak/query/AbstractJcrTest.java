@@ -19,9 +19,8 @@
 package org.apache.jackrabbit.oak.query;
 
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.junit.After;
 import org.junit.Before;
 

@@ -27,14 +27,17 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Tests the spellcheck support.
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
+@Deprecated(forRemoval=true, since="1.74.0")
 public class SpellcheckTest extends AbstractQueryTest {
 
     public void testSpellcheckSql() throws Exception {
@@ -93,7 +96,7 @@ public class SpellcheckTest extends AbstractQueryTest {
     }
 
     static List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
-        List<String> results = Lists.newArrayList();
+        List<String> results = new ArrayList<>();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
             Row row = it.nextRow();

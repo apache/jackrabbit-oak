@@ -20,7 +20,6 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -40,6 +39,7 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
@@ -126,21 +126,21 @@ public class AutoMembershipTest extends AbstractExternalTest {
                         new AppConfigurationEntry(
                                 GuestLoginModule.class.getName(),
                                 OPTIONAL,
-                                ImmutableMap.of()),
+                                Map.of()),
                         new AppConfigurationEntry(
                                 TokenLoginModule.class.getName(),
                                 SUFFICIENT,
-                                ImmutableMap.of()),
+                                Map.of()),
                         new AppConfigurationEntry(
                                 ExternalLoginModule.class.getName(),
                                 SUFFICIENT,
-                                ImmutableMap.of(
+                                Map.of(
                                         ExternalLoginModule.PARAM_SYNC_HANDLER_NAME, syncConfig.getName(),
                                         ExternalLoginModule.PARAM_IDP_NAME, idp.getName())),
                         new AppConfigurationEntry(
                                 LoginModuleImpl.class.getName(),
                                 SUFFICIENT,
-                                ImmutableMap.of())
+                                Map.of())
                 };
             }
         };

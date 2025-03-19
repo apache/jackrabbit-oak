@@ -20,9 +20,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Locale;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
@@ -35,7 +35,10 @@ import org.jetbrains.annotations.Nullable;
  * An {@link OakSolrConfiguration} specified via a given {@link org.apache.jackrabbit.oak.spi.state.NodeState}.
  * For each of the supported properties a default is provided if either the
  * property doesn't exist in the node or if the value is <code>null</code>
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
+@Deprecated(forRemoval=true, since="1.74.0")
 public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
 
     private final NodeState definition;
@@ -240,7 +243,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
     @Override
     public String toString() {
         return "OakSolrNodeStateConfiguration{" +
-                "definitionChildren=" + Iterables.toString(definition.getChildNodeNames()) +
+                "definitionChildren=" + IterableUtils.toString(definition.getChildNodeNames()) +
                 '}';
     }
 

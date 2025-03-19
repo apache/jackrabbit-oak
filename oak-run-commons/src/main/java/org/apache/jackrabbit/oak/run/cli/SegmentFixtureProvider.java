@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.run.cli;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.InvalidFileStoreVersionException;

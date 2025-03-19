@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -36,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
@@ -76,7 +76,7 @@ public class VersionablePathHookTest extends AbstractSecurityTest  {
 
             @Override
             public @NotNull Iterable<? extends PropertyState> getProperties() {
-                return ImmutableList.of(PropertyStates.createProperty(JCR_VERSIONHISTORY, "someValue"));
+                return List.of(PropertyStates.createProperty(JCR_VERSIONHISTORY, "someValue"));
             }
 
             @Override

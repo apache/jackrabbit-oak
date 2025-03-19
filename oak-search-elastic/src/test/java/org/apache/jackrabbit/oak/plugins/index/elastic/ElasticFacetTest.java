@@ -27,8 +27,7 @@ import javax.jcr.Repository;
 public class ElasticFacetTest extends FacetCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING, "elastic_test_");
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     protected Repository createJcrRepository() {
         indexOptions = new ElasticIndexOptions();

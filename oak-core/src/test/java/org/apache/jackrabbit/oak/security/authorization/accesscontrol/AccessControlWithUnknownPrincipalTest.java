@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -36,6 +35,7 @@ import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.junit.Assert.assertEquals;
@@ -49,7 +49,7 @@ public class AccessControlWithUnknownPrincipalTest extends AbstractAccessControl
 
     @Parameterized.Parameters(name = "ImportBehavior={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] {ImportBehavior.IGNORE , ImportBehavior.NAME_IGNORE},
                 new Object[] {ImportBehavior.BESTEFFORT, ImportBehavior.NAME_BESTEFFORT},
                 new Object[] {ImportBehavior.ABORT, ImportBehavior.NAME_ABORT}

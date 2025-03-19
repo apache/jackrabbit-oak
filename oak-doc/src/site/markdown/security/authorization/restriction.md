@@ -363,8 +363,8 @@ The time-based `RestrictionPattern` used by the example provider above.
 ###### Example Non-OSGI Setup
 
     RestrictionProvider rProvider = CompositeRestrictionProvider.newInstance(new MyRestrictionProvider(), ...);
-    Map<String, RestrictionProvider> authorizMap = ImmutableMap.of(PARAM_RESTRICTION_PROVIDER, rProvider);
-    ConfigurationParameters config =  ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)));
+    Map<String, RestrictionProvider> authorizMap = Map.of(PARAM_RESTRICTION_PROVIDER, rProvider);
+    ConfigurationParameters config =  ConfigurationParameters.of(Map.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)));
     SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(config).build();
     Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 

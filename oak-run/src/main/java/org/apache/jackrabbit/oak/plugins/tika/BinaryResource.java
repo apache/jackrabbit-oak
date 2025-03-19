@@ -16,23 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
-
-import org.apache.jackrabbit.guava.common.io.ByteSource;
 
 import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.Nullable;
 
 class BinaryResource {
-    private final ByteSource byteSource;
+    private final BlobStoreByteSource byteSource;
     private final String mimeType;
     private final String encoding;
     private final String path;
     private final String blobId;
 
-    public BinaryResource(ByteSource byteSource,
+    public BinaryResource(BlobStoreByteSource byteSource,
                           @Nullable String mimeType,
                           @Nullable String encoding,
                           String path,
@@ -44,7 +41,7 @@ class BinaryResource {
         this.blobId = requireNonNull(blobId, "BlobId must be specified");
     }
 
-    public ByteSource getByteSource() {
+    public BlobStoreByteSource getByteSource() {
         return byteSource;
     }
 

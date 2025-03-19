@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -41,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.addChild;
@@ -89,7 +88,7 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters acConfig = ConfigurationParameters.of(
                 PermissionConstants.PARAM_READ_PATHS, READ_PATHS);
-        return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));
+        return ConfigurationParameters.of(Map.of(AuthorizationConfiguration.NAME, acConfig));
     }
 
 

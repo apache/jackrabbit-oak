@@ -29,7 +29,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
@@ -243,7 +243,7 @@ public class ReadPropertyTest extends AbstractEvaluationTest {
 
     private void assertMixinTypes(Node node, String... mixins)
             throws RepositoryException {
-        Set<String> expected = CollectionUtils.toSet(mixins);
+        Set<String> expected = SetUtils.toSet(mixins);
         Set<String> actual = new HashSet<>();
         if (node.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
             for (Value v : node.getProperty(JcrConstants.JCR_MIXINTYPES).getValues()) {

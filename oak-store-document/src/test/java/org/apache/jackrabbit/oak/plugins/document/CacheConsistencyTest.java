@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +29,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
@@ -106,7 +106,7 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
 
     private static final class TestStore extends MongoDocumentStore {
 
-        final Map<Thread, Semaphore> semaphores = Maps.newConcurrentMap();
+        final Map<Thread, Semaphore> semaphores = new ConcurrentHashMap<>();
 
         TestStore(MongoClient client, MongoDatabase db, DocumentMK.Builder builder) {
             super(client, db, builder);

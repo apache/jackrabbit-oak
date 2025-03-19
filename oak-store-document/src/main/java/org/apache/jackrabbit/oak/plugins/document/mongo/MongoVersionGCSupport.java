@@ -26,15 +26,13 @@ import static com.mongodb.client.model.Projections.include;
 import static com.mongodb.client.model.Sorts.ascending;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.lt;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PATH;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
@@ -52,8 +50,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCursor;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -67,14 +67,12 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.Versio
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
 import com.mongodb.client.FindIterable;
@@ -144,7 +142,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query).batchSize(batchSize);
 
-        return CloseableIterable.wrap(transform(cursor,
+        return CloseableIterable.wrap(IterableUtils.transform(cursor,
                 input -> store.convertFromDBObject(NODES, input)));
     }
 
@@ -244,31 +242,47 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * @param fromModified the lower bound modified timestamp in millis (inclusive)
      * @param toModified   the upper bound modified timestamp in millis (exclusive)
      * @param limit        the limit of documents to return
-     * @param fromId       the lower bound {@link NodeDocument#ID}
+     * @param fromId       the lower bound {@link NodeDocument#ID} (exclusive)
      * @return matching documents.
      */
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
                                                   @NotNull final String fromId, @NotNull Set<String> includedPathPrefixes,
                                                   @NotNull Set<String> excludedPathPrefixes) {
+        LOG.info("getModifiedDocs fromModified: {}, toModified: {}, limit: {}, fromId: {}, includedPathPrefixes: {}, excludedPathPrefixes: {}",
+                fromModified, toModified, limit, fromId, includedPathPrefixes, excludedPathPrefixes);
+
+        final long fromModifiedQuery;
+        if (MIN_ID_VALUE.equals(fromId)) {
+            // If fromId is MIN_ID_VALUE, round fromModified to 5 second resolution
+            fromModifiedQuery = getModifiedInSecs(fromModified);
+        } else {
+            // If fromId is not MIN_ID_VALUE, don't round fromModified to 5 second resolution
+            fromModifiedQuery = TimeUnit.MILLISECONDS.toSeconds(fromModified);
+        }
+
         // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
         final Bson query = or(
                 withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
-                        and(eq(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), gt(ID, fromId))),
+                        and(eq(MODIFIED_IN_SECS, fromModifiedQuery), gt(ID, fromId))),
                 withIncludeExcludes(includedPathPrefixes, excludedPathPrefixes,
-                        and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
+                        and(gt(MODIFIED_IN_SECS, fromModifiedQuery), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
 
         // first sort by _modified and then by _id
         final Bson sort = ascending(MODIFIED_IN_SECS, ID);
 
         logQueryExplain("fullGC query explain details, hint : {} - explain : {}", query, modifiedIdHint);
+        if (LOG.isDebugEnabled()) {
+            BsonDocument bson = query.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
+            LOG.debug("getModifiedDocs : query is {}", bson);
+        }
 
         final FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query)
                 .hint(modifiedIdHint)
                 .sort(sort)
                 .limit(limit);
-        return wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
+        return wrap(IterableUtils.transform(cursor, input -> store.convertFromDBObject(NODES, input)));
     }
 
     /**
@@ -332,11 +346,11 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             // of the query as part of OAK-8351 does), it nevertheless 
             // makes any future similar problem more visible than long running
             // queries alone (15min is still long).
-            Iterable<NodeDocument> iterable = filter(transform(getNodeCollection().find(query)
+            Iterable<NodeDocument> iterable = IterableUtils.filter(IterableUtils.transform(getNodeCollection().find(query)
                     .maxTime(15, TimeUnit.MINUTES).hint(hint),
                     input -> store.convertFromDBObject(NODES, input)),
                     input -> !isDefaultNoBranchSplitNewerThan(input, sweepRevs));
-            allResults = concat(allResults, iterable);
+            allResults = IterableUtils.chainedIterable(allResults, iterable);
         }
         return allResults;
     }
@@ -393,8 +407,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     private List<Bson> createQueries(Set<SplitDocType> gcTypes,
                                  RevisionVector sweepRevs,
                                  long oldestRevTimeStamp) {
-        List<Bson> result = Lists.newArrayList();
-        List<Bson> orClauses = Lists.newArrayList();
+        List<Bson> result = new ArrayList<>();
+        List<Bson> orClauses = new ArrayList<>();
         for(SplitDocType type : gcTypes) {
             if (DEFAULT_NO_BRANCH != type) {
                 orClauses.add(Filters.eq(SD_TYPE, type.typeCode()));
@@ -416,7 +430,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     private List<Bson> queriesForDefaultNoBranch(RevisionVector sweepRevs, long maxRevTimeInSecs) {
         // default_no_branch split type is special because we can
         // only remove those older than sweep rev
-        List<Bson> result = Lists.newArrayList();
+        List<Bson> result = new ArrayList<>();
         for (Revision r : sweepRevs) {
             if (lastDefaultNoBranchDeletionRevs != null) {
                 Revision dr = lastDefaultNoBranchDeletionRevs.getRevision(r.getClusterId());
@@ -463,7 +477,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 .forEach((Block<BasicDBObject>) doc -> ids.add(getID(doc)));
 
         StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
-        Joiner.on(System.getProperty("line.separator")).appendTo(sb, ids);
+        sb.append(String.join(System.getProperty("line.separator"), ids));
         LOG.debug(sb.toString());
     }
 

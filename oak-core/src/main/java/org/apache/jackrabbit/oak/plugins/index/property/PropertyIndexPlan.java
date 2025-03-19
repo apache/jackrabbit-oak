@@ -21,11 +21,14 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_N
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
@@ -42,14 +45,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Plan for querying a given property index using a given filter.
  */
 public class PropertyIndexPlan {
-    
+
     static final Logger LOG = LoggerFactory.getLogger(PropertyIndexPlan.class);
 
     /**
@@ -85,9 +86,9 @@ public class PropertyIndexPlan {
     private final PathFilter pathFilter;
 
     private final boolean unique;
-    
+
     private final boolean deprecated;
-    
+
     PropertyIndexPlan(String name, NodeState root, NodeState definition,
                       Filter filter){
         this(name, root, definition, filter, Mounts.defaultMountInfoProvider());
@@ -98,7 +99,7 @@ public class PropertyIndexPlan {
         this.name = name;
         this.unique = definition.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME);
         this.definition = definition;
-        this.properties = CollectionUtils.toSet(definition.getNames(PROPERTY_NAMES));
+        this.properties = SetUtils.toSet(definition.getNames(PROPERTY_NAMES));
         pathFilter = PathFilter.from(definition.builder());
         this.strategies = getStrategies(definition, mountInfoProvider);
         this.filter = filter;
@@ -108,7 +109,7 @@ public class PropertyIndexPlan {
         this.matchesAllTypes = !definition.hasProperty(DECLARING_NODE_TYPES);
         this.deprecated = definition.getBoolean(IndexConstants.INDEX_DEPRECATED);
         this.matchesNodeTypes =
-                matchesAllTypes || CollectionUtils.toStream(types).anyMatch(filter.getSupertypes()::contains);
+                matchesAllTypes || StreamUtils.toStream(types).anyMatch(filter.getSupertypes()::contains);
 
         ValuePattern valuePattern = new ValuePattern(definition);
 
@@ -211,12 +212,11 @@ public class PropertyIndexPlan {
             LOG.warn("This index is deprecated: {}; it is used for query {} called by {}. " +
                     "Please change the query or the index definitions.", name, filter, caller);
         }
-        List<Iterable<String>> iterables = Lists.newArrayList();
+        List<Iterable<String>> iterables = new ArrayList<>();
         for (IndexStoreStrategy s : strategies) {
             iterables.add(s.query(filter, name, definition, values));
         }
-        Cursor cursor = Cursors.newPathCursor(Iterables.concat(iterables),
-                settings);
+        Cursor cursor = Cursors.newPathCursor(IterableUtils.chainedIterable(iterables), settings);
         if (depth > 1) {
             cursor = Cursors.newAncestorCursor(cursor, depth - 1, settings);
         }

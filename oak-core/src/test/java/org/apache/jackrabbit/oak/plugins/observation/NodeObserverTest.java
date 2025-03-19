@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -28,8 +27,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -63,7 +60,7 @@ public class NodeObserverTest {
         builder.getChildNode("m").getChildNode("n").setChildNode("new").setProperty("p", "3");
         nodeObserver.contentChanged(builder.getNodeState(), CommitInfo.EMPTY);
 
-        assertEquals(ImmutableMap.of("/m/n/new", Set.of("p")), nodeObserver.added);
+        assertEquals(Map.of("/m/n/new", Set.of("p")), nodeObserver.added);
         assertTrue(nodeObserver.deleted.isEmpty());
         assertTrue(nodeObserver.changed.isEmpty());
         assertTrue(nodeObserver.properties.isEmpty());
@@ -76,7 +73,7 @@ public class NodeObserverTest {
         nodeObserver.contentChanged(builder.getNodeState(), CommitInfo.EMPTY);
 
         assertTrue(nodeObserver.added.isEmpty());
-        assertEquals(ImmutableMap.of("/m/n/o", Set.of("q")), nodeObserver.deleted);
+        assertEquals(Map.of("/m/n/o", Set.of("q")), nodeObserver.deleted);
         assertTrue(nodeObserver.changed.isEmpty());
         assertTrue(nodeObserver.properties.isEmpty());
     }
@@ -89,8 +86,8 @@ public class NodeObserverTest {
 
         assertTrue(nodeObserver.added.isEmpty());
         assertTrue(nodeObserver.deleted.isEmpty());
-        assertEquals(ImmutableMap.of("/m/n", Set.of("p")), nodeObserver.changed);
-        assertEquals(ImmutableMap.of("/m/n", ImmutableMap.of("extra", "42")), nodeObserver.properties);
+        assertEquals(Map.of("/m/n", Set.of("p")), nodeObserver.changed);
+        assertEquals(Map.of("/m/n", Map.of("extra", "42")), nodeObserver.properties);
     }
 
     @Test

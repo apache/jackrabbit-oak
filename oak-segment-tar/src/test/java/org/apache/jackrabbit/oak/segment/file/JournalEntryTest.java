@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -25,11 +24,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
@@ -70,7 +68,7 @@ public class JournalEntryTest {
         fileStore.close();
 
         File journal = new File(tempFolder.getRoot(), "journal.log");
-        List<String> lines = Files.readLines(journal, Charset.defaultCharset());
+        List<String> lines = Files.readAllLines(journal.toPath());
         assertFalse(lines.isEmpty());
 
         String line = lines.get(0);

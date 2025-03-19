@@ -16,19 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Strings;
 
 /**
  * Contains download options for downloading a data record directly from a
@@ -96,7 +93,7 @@ public class DataRecordDownloadOptions {
         this.mediaType = mediaType;
         this.characterEncoding = characterEncoding;
         this.fileName = fileName;
-        this.dispositionType = Strings.isNullOrEmpty(dispositionType) ?
+        this.dispositionType = StringUtils.isEmpty(dispositionType) ?
                 DISPOSITION_TYPE_INLINE :
                 dispositionType;
         this.domainOverrideIgnored = domainOverrideIgnored;
@@ -114,11 +111,11 @@ public class DataRecordDownloadOptions {
      */
     @Nullable
     public String getContentTypeHeader() {
-        if (Strings.isNullOrEmpty(contentTypeHeader)) {
-            if (!Strings.isNullOrEmpty(mediaType)) {
-                contentTypeHeader = Strings.isNullOrEmpty(characterEncoding) ?
+        if (StringUtils.isEmpty(contentTypeHeader)) {
+            if (!StringUtils.isEmpty(mediaType)) {
+                contentTypeHeader = StringUtils.isEmpty(characterEncoding) ?
                         mediaType :
-                        Joiner.on("; charset=").join(mediaType, characterEncoding);
+                        mediaType + "; charset=" + characterEncoding;
             }
         }
         return contentTypeHeader;
@@ -138,10 +135,10 @@ public class DataRecordDownloadOptions {
      */
     @Nullable
     public String getContentDispositionHeader() {
-        if (Strings.isNullOrEmpty(contentDispositionHeader)) {
-            if (!Strings.isNullOrEmpty(fileName)) {
+        if (StringUtils.isEmpty(contentDispositionHeader)) {
+            if (!StringUtils.isEmpty(fileName)) {
                 String dispositionType = this.dispositionType;
-                if (Strings.isNullOrEmpty(dispositionType)) {
+                if (StringUtils.isEmpty(dispositionType)) {
                     dispositionType = DISPOSITION_TYPE_INLINE;
                 }
                 contentDispositionHeader = formatContentDispositionHeader(dispositionType, fileName, rfc8187Encode(fileName));

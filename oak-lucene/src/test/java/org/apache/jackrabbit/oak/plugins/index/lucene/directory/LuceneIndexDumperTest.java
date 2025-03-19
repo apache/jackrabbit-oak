@@ -38,15 +38,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class LuceneIndexDumperTest {
-    private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
-    private NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
+    private final NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
+    private final NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Test
     public void directoryDump() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
 
         long size = 0;
 

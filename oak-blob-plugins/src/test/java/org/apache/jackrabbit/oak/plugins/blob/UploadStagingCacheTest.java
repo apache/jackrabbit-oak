@@ -20,9 +20,13 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -38,11 +42,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import ch.qos.logback.classic.Level;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
@@ -51,8 +50,10 @@ import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
@@ -144,7 +145,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertFalse(future.isPresent());
 
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
-        assertEquals(0, Iterators.size(stagingCache.getAllIdentifiers()));
+        assertEquals(0, IteratorUtils.size(stagingCache.getAllIdentifiers()));
         assertEquals(0, stagingCache.getStats().getMaxTotalWeight());
     }
 
@@ -211,7 +212,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // assert file retrieved from staging cache
         File ret = stagingCache.getIfPresent(ID_PREFIX + 0);
-        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()), ret));
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(0, 4 * 1024), folder.newFile()), ret));
 
         assertEquals(1, stagingCache.getStats().getLoadCount());
         assertEquals(1, stagingCache.getStats().getLoadSuccessCount());
@@ -227,7 +228,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         // Now uploaded
         ret = stagingCache.getIfPresent(ID_PREFIX + 0);
         assertNull(ret);
-        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
             secondTimeUploader.read(ID_PREFIX + 0)));
     }
 
@@ -337,7 +338,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // Try 2nd upload again
         Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 1, f2);
-        futures = Lists.newArrayList();
+        futures = new ArrayList<>();
         if (future.isPresent()) {
             futures.add(future.get());
         }
@@ -368,7 +369,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // Should not return anything
         idsIter = stagingCache.getAllIdentifiers();
-        assertEquals(0, Iterators.size(idsIter));
+        assertEquals(0, IteratorUtils.size(idsIter));
     }
 
     /**
@@ -435,7 +436,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         ListeningExecutorService executorService =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
 
-        List<ListenableFuture<Integer>> futures = Lists.newArrayList();
+        List<ListenableFuture<Integer>> futures = new ArrayList<>();
         CountDownLatch moveLatch = new CountDownLatch(1);
         init(1, new TestStagingUploader(folder.newFolder(), moveLatch), null);
 
@@ -501,7 +502,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // Get a handle to the file and open stream
         File file = stagingCache.getIfPresent(ID_PREFIX + 0);
-        final InputStream fStream = Files.asByteSource(file).openStream();
+        final InputStream fStream = new FileInputStream(file);
 
         // task to copy the steam to a file simulating read from the stream
         File temp = folder.newFile();
@@ -519,7 +520,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         copyThreadLatch.countDown();
         future1.get();
 
-        assertTrue(Files.equal(temp, uploader.read(ID_PREFIX + 0)));
+        assertTrue(FileUtils.contentEquals(temp, uploader.read(ID_PREFIX + 0)));
     }
 
     /**
@@ -575,9 +576,9 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
             e.printStackTrace();
         }
 
-        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 0)));
-        assertTrue(Files.equal(copyToFile(randomStream(diff, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(diff, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + diff)));
     }
 
@@ -601,7 +602,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         waitFinish(futures);
 
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
-        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 0)));
         assertCacheStats(stagingCache, 0, 0, 1, 1);
     }
@@ -641,11 +642,11 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 3));
 
         // Initial files should have been uploaded
-        assertTrue(Files.equal(copyToFile(randomStream(1, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(1, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 1)));
-        assertTrue(Files.equal(copyToFile(randomStream(2, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(2, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 2)));
-        assertTrue(Files.equal(copyToFile(randomStream(3, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(3, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 3)));
         assertCacheStats(stagingCache, 0, 0, 3, 4);
     }
@@ -676,7 +677,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         waitFinish(futures);
 
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
-        assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(0, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 0)));
 
         assertUpgrade(pendingUploadsFile);
@@ -692,7 +693,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         // Create pre-upgrade load
         File home = folder.newFolder();
         File pendingUploadsFile = new File(home, DataStoreCacheUpgradeUtils.UPLOAD_MAP);
-        createGibberishLoad(home, pendingUploadsFile);
+        createGibberishLoad(pendingUploadsFile);
 
         LogCustomizer lc = LogCustomizer.forLogger(DataStoreCacheUpgradeUtils.class.getName())
             .filter(Level.WARN)
@@ -710,25 +711,21 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         String id = ID_PREFIX + 1;
         copyToFile(randomStream(1, 4 * 1024), getFile(id, root));
         String name = id.substring(0, 2) + "/" + id.substring(2, 4) + "/" + id;
-        Map<String, Long> pendingUploads = Maps.newHashMap();
+        Map<String, Long> pendingUploads = new HashMap<>();
         pendingUploads.put(name, System.currentTimeMillis());
         serializeMap(pendingUploads, pendingUploadFile);
     }
 
 
-    private void createGibberishLoad(File home, File pendingUploadFile) throws IOException {
-        BufferedWriter writer = null;
-        try {
-            writer = Files.newWriter(pendingUploadFile, StandardCharsets.UTF_8);
+    private void createGibberishLoad(File pendingUploadFile) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(pendingUploadFile, StandardCharsets.UTF_8))) {
             FileIOUtils.writeAsLine(writer, "jerhgiuheirghoeoorqehgsjlwjpfkkwpkf", false);
-        } finally {
-            Closeables.close(writer, true);
         }
     }
 
     private void assertUpgrade(File pendingUploadFile) throws IOException {
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 1));
-        assertTrue(Files.equal(copyToFile(randomStream(1, 4 * 1024), folder.newFile()),
+        assertTrue(FileUtils.contentEquals(copyToFile(randomStream(1, 4 * 1024), folder.newFile()),
             uploader.read(ID_PREFIX + 1)));
         assertFalse(pendingUploadFile.exists());
     }
@@ -814,7 +811,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         throws IOException {
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
-        List<ListenableFuture<Integer>> futures = Lists.newArrayList();
+        List<ListenableFuture<Integer>> futures = new ArrayList<>();
         if (future.isPresent()) {
             futures.add(future.get());
         }

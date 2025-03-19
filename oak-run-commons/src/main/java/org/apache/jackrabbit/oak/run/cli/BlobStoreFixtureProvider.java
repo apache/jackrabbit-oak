@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.Closeable;
@@ -24,14 +23,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
@@ -40,6 +38,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions.Type;
@@ -69,7 +68,7 @@ public class BlobStoreFixtureProvider {
             S3DataStore s3ds = new S3DataStore();
             Properties props = loadConfig(bsopts.getS3ConfigPath());
             s3ds.setProperties(props);
-            File homeDir =  Files.createTempDir();
+            File homeDir = Files.createTempDirectory(BlobStoreFixtureProvider.class.getSimpleName() + "-").toFile();
             closer.register(asCloseable(homeDir));
             populate(s3ds, asMap(props), false);
             s3ds.init(homeDir.getAbsolutePath());
@@ -79,7 +78,7 @@ public class BlobStoreFixtureProvider {
             String cfgPath = bsopts.getAzureConfigPath();
             Properties props = loadConfig(cfgPath);
             azureds.setProperties(props);
-            File homeDir =  Files.createTempDir();
+            File homeDir = Files.createTempDirectory(BlobStoreFixtureProvider.class.getSimpleName() + "-").toFile();
             populate(azureds, asMap(props), false);
             azureds.init(homeDir.getAbsolutePath());
             closer.register(asCloseable(homeDir));
@@ -166,7 +165,7 @@ public class BlobStoreFixtureProvider {
     }
 
     private static Map<String, ?> asMap(Properties props) {
-        Map<String, Object> map = Maps.newHashMap();
+        Map<String, Object> map = new HashMap<>();
         for (Object key : props.keySet()) {
             map.put((String)key, props.get(key));
         }

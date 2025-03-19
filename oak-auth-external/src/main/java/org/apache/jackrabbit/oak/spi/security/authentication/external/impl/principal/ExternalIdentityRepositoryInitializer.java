@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Exter
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import java.util.List;
 
 /**
  * Implementation of the {@code RepositoryInitializer} interface responsible for
@@ -54,12 +54,12 @@ class ExternalIdentityRepositoryInitializer implements RepositoryInitializer {
         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
         if (enforceUniqueIds && !index.hasChildNode("externalId")) {
             NodeBuilder definition = IndexUtils.createIndexDefinition(index, "externalId", true, true,
-                    ImmutableList.of(ExternalIdentityConstants.REP_EXTERNAL_ID), null);
+                    List.of(ExternalIdentityConstants.REP_EXTERNAL_ID), null);
             definition.setProperty("info", "Oak index assuring uniqueness of rep:externalId properties.");
         }
         if (!index.hasChildNode("externalPrincipalNames")) {
             NodeBuilder definition = IndexUtils.createIndexDefinition(index, "externalPrincipalNames", true, false,
-                    ImmutableList.of(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES), null);
+                    List.of(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES), null);
             definition.setProperty("info",
                     "Oak index used by the principal management provided by the external authentication module.");
         }

@@ -31,6 +31,7 @@ import static org.junit.Assume.assumeTrue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,8 @@ import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -61,8 +63,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 public class NodeStoreTest extends OakBaseTest {
     private NodeState root;
@@ -459,7 +459,7 @@ public class NodeStoreTest extends OakBaseTest {
         if (fixture == NodeStoreFixtures.SEGMENT_TAR || fixture == NodeStoreFixtures.MEMORY_NS 
                 || fixture == NodeStoreFixtures.COMPOSITE_MEM || fixture == NodeStoreFixtures.COMPOSITE_SEGMENT
                 || fixture == NodeStoreFixtures.COW_DOCUMENT || fixture == NodeStoreFixtures.SEGMENT_AWS
-                || fixture == NodeStoreFixtures.SEGMENT_AZURE) {
+                || fixture == NodeStoreFixtures.SEGMENT_AZURE_V8 || fixture == NodeStoreFixtures.SEGMENT_AZURE) {
             assertTrue(x.moveTo(x, "xx"));
             assertFalse(x.exists());
             assertFalse(test.hasChildNode("x"));
@@ -559,14 +559,14 @@ public class NodeStoreTest extends OakBaseTest {
     public void checkpoints() throws Exception {
         assumeTrue(fixture != NodeStoreFixtures.SEGMENT_TAR);
         int numCps = 3;
-        Map<String, String> info = Maps.newHashMap();
+        Map<String, String> info = new HashMap<>();
         Set<String> cps = new HashSet<>();
         for (int i = 0; i < numCps; i++) {
             info.put("key", "" + i);
             cps.add(store.checkpoint(TimeUnit.HOURS.toMillis(1), info));
         }
         assertEquals(numCps, cps.size());
-        assertEquals(cps, CollectionUtils.toSet(store.checkpoints()));
+        assertEquals(cps, SetUtils.toSet(store.checkpoints()));
         Set<String> keys = new HashSet<>();
         for (String cp : cps) {
             info = store.checkpointInfo(cp);
@@ -578,7 +578,7 @@ public class NodeStoreTest extends OakBaseTest {
             String cp = cps.iterator().next();
             cps.remove(cp);
             store.release(cp);
-            assertEquals(cps.size(), Iterables.size(store.checkpoints()));
+            assertEquals(cps.size(), IterableUtils.size(store.checkpoints()));
         }
     }
 

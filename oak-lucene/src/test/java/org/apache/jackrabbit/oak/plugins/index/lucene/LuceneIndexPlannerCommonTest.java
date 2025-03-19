@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexPlannerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReader;
@@ -154,7 +153,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();
@@ -226,7 +225,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();
@@ -271,7 +270,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         ;
         NodeState defn = idxBuilder.build();
 
-        List<Document> docs = Lists.newArrayList();
+        List<Document> docs = new ArrayList<>();
         Document doc;
         for (int i = 0; i < 60; i++) {
             doc = new Document();

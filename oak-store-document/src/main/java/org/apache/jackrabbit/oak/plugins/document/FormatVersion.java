@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
@@ -98,7 +97,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
      * @return well known format versions.
      */
     public static Iterable<FormatVersion> values() {
-        return ImmutableList.of(V0, V1_0, V1_2, V1_4, V1_6, V1_8);
+        return List.of(V0, V1_0, V1_2, V1_4, V1_6, V1_8);
     }
 
     /**
@@ -187,7 +186,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
             // never downgrade
             throw unableToWrite("Version " + this + " cannot read " + v);
         }
-        List<Integer> active = Lists.newArrayList();
+        List<Integer> active = new ArrayList<>();
         for (ClusterNodeInfoDocument d : ClusterNodeInfoDocument.all(store)) {
             if (d.isActive()) {
                 active.add(d.getClusterId());
@@ -199,7 +198,7 @@ public final class FormatVersion implements Comparable<FormatVersion> {
         if (v == V0) {
             UpdateOp op = new UpdateOp(VERSION_ID, true);
             op.set(PROP_VERSION, toString());
-            if (!store.create(SETTINGS, Lists.newArrayList(op))) {
+            if (!store.create(SETTINGS, List.of(op))) {
                 throw concurrentUpdate();
             }
         } else {

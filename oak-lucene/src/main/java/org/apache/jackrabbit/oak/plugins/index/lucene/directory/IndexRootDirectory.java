@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
@@ -29,17 +28,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -48,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * Represents the root directory on file system used for storing index copy locally.
@@ -99,7 +97,7 @@ public class IndexRootDirectory {
             String version = String.valueOf(definition.getReindexCount());
             File indexDir = new File(baseFolder, version);
             if (!indexDir.exists()){
-                checkState(indexDir.mkdirs(), "Not able to create folder [%s]", indexDir);
+                Validate.checkState(indexDir.mkdirs(), "Not able to create folder [%s]", indexDir);
             }
             return indexDir;
         } else {
@@ -110,7 +108,7 @@ public class IndexRootDirectory {
             //Create a base folder <index node name>-<uid>
             //and add a readme file having index info
             if (!baseFolder.exists()){
-                checkState(baseFolder.mkdir(), "Not able to create folder [%s]", baseFolder);
+                Validate.checkState(baseFolder.mkdir(), "Not able to create folder [%s]", baseFolder);
                 File readMe = new File(baseFolder, INDEX_METADATA_FILE_NAME);
                 IndexMeta meta = new IndexMeta(indexPath, getTime());
                 meta.writeTo(readMe);
@@ -119,7 +117,7 @@ public class IndexRootDirectory {
             //Create index folder under that
             File indexFolder = new File(baseFolder, getFSSafeName(dirName));
             if (!indexFolder.exists()) {
-                checkState(indexFolder.mkdir(), "Not able to create folder [%s]", indexFolder);
+                Validate.checkState(indexFolder.mkdir(), "Not able to create folder [%s]", indexFolder);
             }
 
             return indexFolder;
@@ -191,12 +189,12 @@ public class IndexRootDirectory {
      * The resulting file name would be truncated to MAX_NAME_LENGTH
      */
     static String getIndexFolderBaseName(String indexPath) {
-        List<String> elements = Lists.newArrayList(PathUtils.elements(indexPath));
+        List<String> elements = ListUtils.toList(PathUtils.elements(indexPath));
         Collections.reverse(elements);
         List<String> result = new ArrayList<>(2);
 
         //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
-        for (String e : Iterables.limit(elements, 3)) {
+        for (String e : IterableUtils.limit(elements, 3)) {
             if ("oak:index".equals(e)) {
                 continue;
             }
@@ -205,7 +203,7 @@ public class IndexRootDirectory {
         }
 
         Collections.reverse(result);
-        String name = Joiner.on('_').join(result);
+        String name = String.join("_", result);
         if (name.length() > MAX_NAME_LENGTH){
             name = name.substring(0, MAX_NAME_LENGTH);
         }
@@ -222,13 +220,13 @@ public class IndexRootDirectory {
     private Map<String, List<LocalIndexDir>> getIndexesPerPath() throws IOException {
         File[] dirs = indexRootDir.listFiles(LOCAL_DIR_FILTER);
 
-        ListMultimap<String, LocalIndexDir> pathToDirMap = ArrayListMultimap.create();
+        ListValuedMap<String, LocalIndexDir> pathToDirMap = new ArrayListValuedHashMap<>();
         for (File indexDir : dirs){
             LocalIndexDir localIndexDir = new LocalIndexDir(indexDir);
             pathToDirMap.get(localIndexDir.getJcrPath()).add(localIndexDir);
         }
 
-        Map<String, List<LocalIndexDir>> result = Maps.newTreeMap();
+        Map<String, List<LocalIndexDir>> result = new TreeMap<>();
         for (Map.Entry<String, Collection<LocalIndexDir>> e : pathToDirMap.asMap().entrySet()){
             List<LocalIndexDir> sortedDirs = new ArrayList<>(e.getValue());
             Collections.sort(sortedDirs, Collections.<LocalIndexDir>reverseOrder());

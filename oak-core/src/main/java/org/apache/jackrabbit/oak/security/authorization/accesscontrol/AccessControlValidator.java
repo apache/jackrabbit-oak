@@ -25,13 +25,13 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -243,7 +243,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     @NotNull
     private static String checkValidPrincipal(@NotNull Tree aceNode) throws CommitFailedException {
         String principalName = TreeUtil.getString(aceNode, REP_PRINCIPAL_NAME);
-        if (Strings.isNullOrEmpty(principalName)) {
+        if (StringUtils.isEmpty(principalName)) {
             throw accessViolation(8, "Missing principal name at " + aceNode.getPath());
         }
         // validity of principal is only a JCR specific contract and will not be
@@ -270,7 +270,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     @NotNull
     private static Iterable<String> getPrivilegeNames(@NotNull Tree aceNode) throws CommitFailedException {
         Iterable<String> privilegeNames = TreeUtil.getNames(aceNode, REP_PRIVILEGES);
-        if (Iterables.isEmpty(privilegeNames)) {
+        if (IterableUtils.isEmpty(privilegeNames)) {
             throw accessViolation(9, "Missing privileges at " + aceNode.getPath());
         }
         return privilegeNames;
@@ -297,7 +297,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private static void checkMixinTypes(Tree parentTree) throws CommitFailedException {
         Iterable<String> mixinNames = TreeUtil.getNames(parentTree, JcrConstants.JCR_MIXINTYPES);
-        if (Iterables.contains(mixinNames, MIX_REP_REPO_ACCESS_CONTROLLABLE)) {
+        if (IterableUtils.contains(mixinNames, MIX_REP_REPO_ACCESS_CONTROLLABLE)) {
             checkValidRepoAccessControlled(parentTree);
         }
     }

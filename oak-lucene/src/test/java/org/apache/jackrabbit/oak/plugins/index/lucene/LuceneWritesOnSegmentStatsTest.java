@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
@@ -30,7 +29,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -373,19 +371,5 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
             long sizeOfFSIndex = FileUtils.sizeOfDirectory(new File(indexPath));
             System.out.println("Index on FS size : " + FileUtils.byteCountToDisplaySize(sizeOfFSIndex));
         }
-    }
-
-    private long dumpFileStoreTo(File to) throws IOException {
-        if (!to.exists()) {
-            assert to.mkdirs();
-        }
-        for (File f : DIRECTORY.listFiles()) {
-            Files.copy(f, new File(to.getPath(), f.getName()));
-        }
-
-        long sizeOfDirectory = FileUtils.sizeOfDirectory(to);
-
-        to.deleteOnExit();
-        return sizeOfDirectory;
     }
 }

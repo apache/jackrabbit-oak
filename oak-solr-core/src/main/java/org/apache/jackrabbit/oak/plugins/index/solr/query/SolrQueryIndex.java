@@ -20,14 +20,11 @@ import java.io.IOException;
 import java.util.*;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.cursor.PathCursor;
@@ -71,7 +68,10 @@ import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitial
 
 /**
  * A Solr based {@link QueryIndex}
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
+@Deprecated(forRemoval=true, since="1.74.0")
 public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFulltextQueryIndex {
 
     public static final String TYPE = "solr";
@@ -262,7 +262,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
         return new AbstractIterator<SolrResultRow>() {
             public Collection<FacetField> facetFields = new LinkedList<FacetField>();
             private final Set<String> seenPaths = new HashSet<>();
-            private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
+            private final Deque<SolrResultRow> queue = new ArrayDeque<>();
             private int offset = 0;
             private boolean noDocs = false;
             private long numFound = 0;
@@ -779,7 +779,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     String value;
                     if (fieldValues != null && fieldValues.size() > 0) {
                         if (fieldValues.size() > 1) {
-                            value = Iterables.toString(fieldValues);
+                            value = IterableUtils.toString(fieldValues);
                         } else {
                             Object fieldValue = currentRow.doc.getFieldValue(columnName);
                             if (fieldValue != null) {
@@ -789,7 +789,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                             }
                         }
                     } else {
-                        value = Iterables.toString(Collections.emptyList());
+                        value = IterableUtils.toString(Collections.emptyList());
                     }
                     return PropertyValues.newString(value);
                 }

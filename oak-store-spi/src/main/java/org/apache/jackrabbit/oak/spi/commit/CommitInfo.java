@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.StringJoiner;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.jetbrains.annotations.NotNull;
@@ -180,12 +180,12 @@ public final class CommitInfo {
 
     @Override
     public String toString() {
-        return toStringHelper(this).omitNullValues()
-                .add("sessionId", sessionId)
-                .add("userId", userId)
-                .add("external", external)
-                .add("date", date)
-                .add("info", info)
+        return new StringJoiner(", ", CommitInfo.class.getSimpleName() + "[", "]")
+                .add("sessionId=" + sessionId)
+                .add("userId=" + userId)
+                .add("external=" + external)
+                .add("date=" + date)
+                .add("info=" + info)
                 .toString();
     }
 

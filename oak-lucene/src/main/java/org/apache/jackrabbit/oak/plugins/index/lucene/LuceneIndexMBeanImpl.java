@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
@@ -48,6 +48,7 @@ import javax.management.openmbean.TabularType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsopDiff;
@@ -94,7 +95,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
@@ -354,7 +354,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             }
         }
         log.info("Checked index consistency in {}. Check result {}", watch, results);
-        return Iterables.toArray(results, String.class);
+        return IterableUtils.toArray(results, String.class);
     }
 
     @Override
@@ -579,7 +579,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             }
         }
         if (maxPathLimitBreachedAtLevel < 0) {
-            return Iterables.toArray(paths, String.class);
+            return IterableUtils.toArray(paths, String.class);
         }
 
         //If max limit for path is reached then we can safely
@@ -595,7 +595,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 }
             }
         }
-        return Iterables.toArray(result, String.class);
+        return IterableUtils.toArray(result, String.class);
     }
 
     /**

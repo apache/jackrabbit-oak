@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -339,7 +338,7 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testAddModifiableToUnmodifiable() {
-        PrivilegeBits pb = PrivilegeBits.getInstance(PropertyStates.createProperty("any", Longs.asList(1, 16, 512), Type.LONGS));
+        PrivilegeBits pb = PrivilegeBits.getInstance(PropertyStates.createProperty("any", List.of(1L, 16L, 512L), Type.LONGS));
         pb.unmodifiable().add(READ_NODES_PRIVILEGE_BITS.modifiable());
     }
 

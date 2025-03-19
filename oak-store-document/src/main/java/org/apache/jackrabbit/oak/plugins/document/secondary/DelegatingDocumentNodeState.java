@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
 import org.apache.jackrabbit.oak.plugins.document.Path;
@@ -32,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.util.function.Predicate;
 
@@ -154,7 +154,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     @NotNull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return Iterables.filter(delegate.getProperties(), NOT_META_PROPS::test);
+        return IterableUtils.filter(delegate.getProperties(), NOT_META_PROPS::test);
     }
 
     @Override
@@ -171,14 +171,14 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return Iterables.transform(delegate.getChildNodeEntries(),
+        return IterableUtils.transform(delegate.getChildNodeEntries(),
                 input -> new MemoryChildNodeEntry(input.getName(), decorate(input.getName(), input.getNodeState())));
     }
 
     @NotNull
     @Override
     public NodeBuilder builder() {
-        checkState(!getPath().isRoot(), "Builder cannot be opened for root " +
+        Validate.checkState(!getPath().isRoot(), "Builder cannot be opened for root " +
                 "path for state of type [%s]", delegate.getClass());
         return new MemoryNodeBuilder(this);
     }
@@ -193,7 +193,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     @Override
     public long getPropertyCount() {
-        return Iterables.size(getProperties());
+        return IterableUtils.size(getProperties());
     }
 
     @Override

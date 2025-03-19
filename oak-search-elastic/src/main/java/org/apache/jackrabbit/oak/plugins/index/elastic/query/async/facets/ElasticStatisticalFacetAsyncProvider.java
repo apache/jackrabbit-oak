@@ -16,24 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.mapping.FieldType;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -72,19 +75,23 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
-        this.facetFields = elasticRequestHandler.facetFields().collect(Collectors.toSet());
-
-        BoolQuery.Builder builder = elasticRequestHandler.baseQueryBuilder();
-        builder.should(sb -> sb.functionScore(fsb ->
-                fsb.functions(f -> f.randomScore(rsb -> rsb.seed("" + randomSeed).field(FieldNames.PATH)))
-        ));
+        this.facetFields = elasticRequestHandler.facetFields().
+                map(ElasticIndexUtils::fieldName).
+                collect(Collectors.toSet());
 
         SearchRequest searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
                 .trackTotalHits(thb -> thb.enabled(true))
                 .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(facetFields)))))
-                .query(Query.of(qb -> qb.bool(builder.build())))
+                .query(Query.of(qb -> qb.bool(elasticRequestHandler.baseQueryBuilder().build())))
                 .aggregations(elasticRequestHandler.aggregations())
                 .size(sampleSize)
+                .sort(s ->
+                        s.field(fs -> fs.field(
+                                ElasticIndexDefinition.PATH_RANDOM_VALUE)
+                                // this will handle the case when the field is not present in the index
+                                .unmappedType(FieldType.Integer)
+                        )
+                )
         );
 
         LOG.trace("Kicking search query with random sampling {}", searchRequest);
@@ -124,7 +131,8 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
             throw new IllegalStateException("Error while waiting for facets", e);
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);
-        return facets != null ? facets.get(FulltextIndex.parseFacetField(columnName)) : null;
+        String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
+        return facets != null ? facets.get(field) : null;
     }
 
     private void processHit(Hit<ObjectNode> searchHit) {

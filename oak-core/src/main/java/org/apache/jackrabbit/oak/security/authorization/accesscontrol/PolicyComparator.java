@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
@@ -53,7 +52,7 @@ final class PolicyComparator implements Comparator<AccessControlPolicy> {
         } else {
             int depth1 = PathUtils.getDepth(p1);
             int depth2 = PathUtils.getDepth(p2);
-            return (depth1 == depth2) ? p1.compareTo(p2) : Ints.compare(depth1, depth2);
+            return (depth1 == depth2) ? p1.compareTo(p2) : Integer.compare(depth1, depth2);
         }
     }
 }

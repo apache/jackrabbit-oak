@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ProtectionConfig;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
@@ -58,8 +59,8 @@ public class ProtectionConfigImpl implements ProtectionConfig {
 
     @Activate
     protected void activate(Map<String, Object> properties) {
-        propertyNames = ImmutableSet.copyOf(PropertiesUtil.toStringArray(properties.get("propertyNames"), new String[0]));
-        nodeNames = ImmutableSet.copyOf(PropertiesUtil.toStringArray(properties.get("nodeNames"), new String[0]));
+        propertyNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(PropertiesUtil.toStringArray(properties.get("propertyNames"), new String[0])));
+        nodeNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(PropertiesUtil.toStringArray(properties.get("nodeNames"), new String[0])));
     }
     
     @Override

@@ -21,9 +21,14 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,9 +37,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
@@ -45,10 +50,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.io.Files.move;
-import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.emptyIterator;
@@ -267,7 +268,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             Iterable<DataRecord> refRecords = datastore.getAllMetadataRecords(fileNamePrefix);
 
             // Download all the corresponding files for the records
-            List<File> refFiles = newArrayList(transform(refRecords, input -> {
+            List<File> refFiles = ListUtils.toList(IterableUtils.transform(refRecords, input -> {
                     InputStream inputStream = null;
                     try {
                         inputStream = input.getStream();
@@ -394,7 +395,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         public void track(File recs) throws IOException {
             lock.lock();
             try {
-                append(Lists.newArrayList(recs), delFile, false);
+                append(new ArrayList<>(Arrays.asList(recs)), delFile, false);
                 sort(delFile);
             } finally {
                 lock.unlock();
@@ -448,7 +449,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                     }
                 }
 
-                move(removed, delFile);
+                Files.move(removed.toPath(), delFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 LOG.trace("removed active delete records");
             } finally {
                 lock.unlock();
@@ -651,7 +652,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                 }
 
                 File blobRecs = getBlobRecordsFile();
-                move(temp, blobRecs);
+                Files.move(temp.toPath(), blobRecs.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 LOG.trace("removed records");
             } finally {
                 refLock.unlock();
@@ -672,7 +673,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             close();
 
             processFile = new File(rootDir, prefix + IN_PROCESS.getFileNameSuffix());
-            writer = newWriter(processFile, StandardCharsets.UTF_8);
+            writer = new BufferedWriter(new FileWriter(processFile, StandardCharsets.UTF_8));
             LOG.info("Created new process file and writer over {} ", processFile.getAbsolutePath());
         }
 
@@ -688,7 +689,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             File added = createTempFile("added", null);
             writeStrings(recs, added, false);
             // Merge the file with the references
-            merge(Lists.newArrayList(added), false);
+            merge(new ArrayList<>(Arrays.asList(added)), false);
         }
 
         /**
@@ -699,7 +700,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
          */
         protected void addRecords(File recs) throws IOException {
             // Merge the file with the references
-            merge(Lists.newArrayList(recs), false);
+            merge(new ArrayList<>(Arrays.asList(recs)), false);
         }
 
         /**
@@ -735,7 +736,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
                     LOG.trace("Trying a copy file operation");
                     try {
                         if (renamed.createNewFile()) {
-                            Files.copy(processFile, renamed);
+                            Files.copy(processFile.toPath(), renamed.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             generations.add(renamed);
                             LOG.info("{} File copied to {}", processFile.getAbsolutePath(),
                                 renamed.getAbsolutePath());

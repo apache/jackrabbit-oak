@@ -36,12 +36,12 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
@@ -141,8 +141,8 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
                     status = String.format("stats cannot be determined as number of values exceed the max limit of " +
                             "[%d]. Estimated value count [%d]", maxValueCount, childNodeCount);
                 } else {
-                    String[] values = Iterables.toArray(
-                            Iterables.limit(data.getChildNodeNames(), maxValueCount),
+                    String[] values = IterableUtils.toArray(
+                            IterableUtils.limit(data.getChildNodeNames(), maxValueCount),
                             String.class
                     );
 
@@ -199,7 +199,7 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
         }
 
         if (maxPathLimitBreachedAtLevel < 0) {
-            return Iterables.toArray(paths, String.class);
+            return IterableUtils.toArray(paths, String.class);
         }
 
         //If max limit for path is reached then we can safely
@@ -215,7 +215,7 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
                 }
             }
         }
-        return Iterables.toArray(result, String.class);
+        return IterableUtils.toArray(result, String.class);
     }
 
     @SuppressWarnings("unchecked")

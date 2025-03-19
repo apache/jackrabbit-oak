@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.run;
 
 import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
-import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static java.io.File.createTempFile;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.FileUtils.forceDelete;
@@ -32,24 +31,21 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
@@ -68,6 +64,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
@@ -331,11 +328,11 @@ public class DataStoreCheckCommand implements Command {
     private static String decodeId(String id) {
         List<String> list = Splitter.on(System.getProperty("file.separator")).trimResults().omitEmptyStrings().splitToList(id);
         String pathStrippedId = list.get(list.size() -1);
-        return Joiner.on("").join(Splitter.on(DASH).omitEmptyStrings().trimResults().splitToList(pathStrippedId));
+        return String.join("", Splitter.on(DASH).omitEmptyStrings().trimResults().splitToList(pathStrippedId));
     }
 
     static class FileRegister implements Closeable {
-        Map<OptionSpec, File> opFiles = Maps.newHashMap();
+        Map<OptionSpec, File> opFiles = new HashMap<>();
         String suffix = String.valueOf(System.currentTimeMillis());
         OptionSet options;
 
@@ -427,11 +424,8 @@ public class DataStoreCheckCommand implements Command {
 
     private static void retrieveBlobReferences(GarbageCollectableBlobStore blobStore, BlobReferenceRetriever marker,
         File marked, String dsType, boolean isVerbose) throws IOException {
-        final BufferedWriter writer = Files.newWriter(marked, StandardCharsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
-        boolean threw = true;
-        try {
-            final Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(marked, StandardCharsets.UTF_8))) {
             final GarbageCollectableBlobStore finalBlobStore = blobStore;
 
             System.out.println("Starting dump of blob references");
@@ -449,7 +443,8 @@ public class DataStoreCheckCommand implements Command {
                                 if (isVerbose) {
                                     id = encodeId(id, dsType);
                                 }
-                                String combinedId = delimJoiner.join(id, escapeLineBreak(nodeId));
+                                String combinedId = nodeId == null ?
+                                        id : String.join(DELIM, id, escapeLineBreak(nodeId));
                                 count.getAndIncrement();
                                 writeAsLine(writer, combinedId, false);
                             }
@@ -460,13 +455,11 @@ public class DataStoreCheckCommand implements Command {
                 }
             );
             writer.flush();
+            writer.close();
             sort(marked, idComparator);
 
             System.out.println(count.get() + " blob references found");
             System.out.println("Finished in " + watch.elapsed(TimeUnit.SECONDS) + " seconds");
-            threw = false;
-        } finally {
-            close(writer, threw);
         }
     }
 
@@ -488,7 +481,6 @@ public class DataStoreCheckCommand implements Command {
         private final String dsType;
         private final File references;
         private final NodeStore nodeStore;
-        private final Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
 
         public NodeTraverser(NodeStore nodeStore, String dsType) throws IOException {
             this.references = File.createTempFile("traverseref", null);
@@ -533,7 +525,7 @@ public class DataStoreCheckCommand implements Command {
         }
 
         private String getLine(String id, String path) {
-            return delimJoiner.join(encodeId(id, dsType), escapeLineBreak(path));
+            return path != null ? String.join(DELIM, encodeId(id, dsType), escapeLineBreak(path)) : id;
         }
 
         private void traverseChildren(NodeState state, String path, BufferedWriter writer, AtomicInteger count) {
@@ -544,14 +536,11 @@ public class DataStoreCheckCommand implements Command {
         }
 
         public void traverse(String ... paths) throws IOException {
-            BufferedWriter writer = null;
             final AtomicInteger count = new AtomicInteger();
-            boolean threw = true;
             System.out.println("Starting dump of blob references by traversing");
             Stopwatch watch = createStarted();
 
-            try {
-                writer = Files.newWriter(references, StandardCharsets.UTF_8);
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(references, StandardCharsets.UTF_8))) {
                 if (paths.length == 0) {
                     traverseChildren(nodeStore.getRoot(), "/", writer, count);
                 } else {
@@ -566,13 +555,11 @@ public class DataStoreCheckCommand implements Command {
                 }
 
                 writer.flush();
+                writer.close();
                 sort(references, idComparator);
 
                 System.out.println(count.get() + " blob references found");
                 System.out.println("Finished in " + watch.elapsed(TimeUnit.SECONDS) + " seconds");
-                threw = false;
-            } finally {
-                Closeables.close(writer, threw);
             }
         }
 

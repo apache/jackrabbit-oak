@@ -28,9 +28,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -42,6 +39,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -150,7 +149,7 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
     }
 
     CugPermissionProvider createCugPermissionProvider(@NotNull Set<String> supportedPaths, @NotNull Principal... principals) {
-        return new CugPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals), supportedPaths, getConfig(AuthorizationConfiguration.class).getContext(), getRootProvider(), getTreeProvider());
+        return new CugPermissionProvider(root, root.getContentSession().getWorkspaceName(), Set.of(principals), supportedPaths, getConfig(AuthorizationConfiguration.class).getContext(), getRootProvider(), getTreeProvider());
     }
 
     void createTrees(@NotNull Tree tree, @NotNull String... names) throws AccessDeniedException {
@@ -180,7 +179,7 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
         // - /content/aa/bb : allow testGroup, deny everyone
         // - /content/a/b/c : allow everyone,  deny testGroup (isolated)
         // - /content2      : allow everyone,  deny testGroup (isolated)
-        Map<String, Principal> m = ImmutableMap.of(
+        Map<String, Principal> m = Map.of(
                 "/content/a", testGroupPrincipal,
                 "/content/aa/bb", testGroupPrincipal,
                 "/content/a/b/c", EveryonePrincipal.getInstance(),
@@ -224,7 +223,7 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
 
     static void createCug(@NotNull Root root, @NotNull String path, @NotNull String principalName) throws RepositoryException {
         Tree tree = root.getTree(path);
-        Preconditions.checkState(tree.exists());
+        Validate.checkState(tree.exists());
 
         TreeUtil.addMixin(tree, MIX_REP_CUG_MIXIN, root.getTree(NODE_TYPES_PATH), null);
         TreeUtil.addChild(tree, REP_CUG_POLICY, NT_REP_CUG_POLICY).setProperty(REP_PRINCIPAL_NAMES, Set.of(principalName), Type.STRINGS);
@@ -270,7 +269,7 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
                 assertFalse(tree.hasProperty(HIDDEN_NESTED_CUGS));
             } else {
                 assertTrue(tree.hasProperty(HIDDEN_NESTED_CUGS));
-                assertEquals(ImmutableSet.copyOf(expectedNestedPaths), ImmutableSet.copyOf(tree.getProperty(HIDDEN_NESTED_CUGS).getValue(Type.PATHS)));
+                assertEquals(Set.of(expectedNestedPaths), SetUtils.toSet(tree.getProperty(HIDDEN_NESTED_CUGS).getValue(Type.PATHS)));
 
                 assertTrue(tree.hasProperty(HIDDEN_TOP_CUG_CNT));
                 assertEquals(Long.valueOf(expectedNestedPaths.length), tree.getProperty(HIDDEN_TOP_CUG_CNT).getValue(Type.LONG));
@@ -283,7 +282,7 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
             assertFalse(tree.hasProperty(HIDDEN_NESTED_CUGS));
         } else {
             assertTrue(tree.hasProperty(HIDDEN_NESTED_CUGS));
-            assertEquals(ImmutableSet.copyOf(expectedNestedPaths), ImmutableSet.copyOf(tree.getProperty(HIDDEN_NESTED_CUGS).getValue(Type.PATHS)));
+            assertEquals(Set.of(expectedNestedPaths), SetUtils.toSet(tree.getProperty(HIDDEN_NESTED_CUGS).getValue(Type.PATHS)));
         }
     }
 

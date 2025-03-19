@@ -19,15 +19,16 @@ package org.apache.jackrabbit.oak.security.user;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -55,13 +56,15 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, CONFIG));
+        return ConfigurationParameters.of(Map.of(UserConfiguration.NAME, CONFIG));
     }
 
     @NotNull
     private List<String> getHistory(@NotNull User user) throws RepositoryException {
         Iterable<String> history = TreeUtil.getStrings(root.getTree(user.getPath()).getChild(REP_PWD), REP_PWD_HISTORY);
-        return (history == null) ? Collections.emptyList() : ImmutableList.copyOf(history).reverse();
+        List<String> result = history == null ? Collections.emptyList() : ListUtils.toList(history);
+        Collections.reverse(result);
+        return result;
     }
 
     /**
@@ -216,7 +219,7 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
         User user = getTestUser();
         Tree userTree = root.getTree(user.getPath());
 
-        List<ConfigurationParameters> configs = ImmutableList.of(
+        List<ConfigurationParameters> configs = List.of(
                 ConfigurationParameters.EMPTY,
                 ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, PASSWORD_HISTORY_DISABLED_SIZE),
                 ConfigurationParameters.of(PARAM_PASSWORD_HISTORY_SIZE, -1),
@@ -260,8 +263,8 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
 
         // only the configured max-size number of entries in the history must be
         // checked. additional entries in the history must be ignored
-        Iterables.skip(oldPwds, 6);
-        history.updatePasswordHistory(userTree, oldPwds.iterator().next());
+        ListIterator<String> listIterator = oldPwds.listIterator(6);
+        history.updatePasswordHistory(userTree, listIterator.next());
 
         // after chaning the pwd again however the rep:pwdHistory property must
         // only contain the max-size number of passwords

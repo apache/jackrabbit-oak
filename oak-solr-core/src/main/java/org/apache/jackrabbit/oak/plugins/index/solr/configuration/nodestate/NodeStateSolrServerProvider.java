@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrClient;
@@ -27,7 +27,10 @@ import org.apache.solr.client.solrj.SolrClient;
  * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} using configuration stored in a repository
  * node named "server" as a child of a {@code oak:queryIndexDefinition} node (e.g. under /../a/b/solrIndex/server)
  * having {@code type = solr}
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
+@Deprecated(forRemoval=true, since="1.74.0")
 public class NodeStateSolrServerProvider implements SolrServerProvider {
 
     private final NodeState nodeState;
@@ -83,7 +86,7 @@ public class NodeStateSolrServerProvider implements SolrServerProvider {
     @Override
     public String toString() {
         return "NodeStateSolrServerProvider{" +
-                "nodeStateChildren=" + Iterables.toString(nodeState.getChildNodeNames()) +
+                "nodeStateChildren=" + IterableUtils.toString(nodeState.getChildNodeNames()) +
                 ", provider=" + provider +
                 '}';
     }

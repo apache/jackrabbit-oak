@@ -19,13 +19,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -339,7 +339,7 @@ public class MeasureMemory {
     }
 
     static DocumentNodeState generateNode(int propertyCount, List<PropertyState> extraProps) {
-        List<PropertyState> props = Lists.newArrayList();
+        List<PropertyState> props = new ArrayList<>();
         props.addAll(extraProps);
         for (int i = 0; i < propertyCount; i++) {
             String key = "property" + i;
@@ -350,7 +350,7 @@ public class MeasureMemory {
     }
 
     static DocumentNodeState generateNodeWithBinaryProperties(int propertyCount) {
-        List<PropertyState> props = Lists.newArrayList();
+        List<PropertyState> props = new ArrayList<>();
         for (int i = 0; i < propertyCount; i++) {
             props.add(STORE.createPropertyState("binary" + i, new String(BLOB_VALUE)));
         }

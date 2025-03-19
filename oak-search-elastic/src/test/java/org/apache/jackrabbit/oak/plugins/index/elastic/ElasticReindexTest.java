@@ -63,8 +63,7 @@ public class ElasticReindexTest {
     protected int DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS = 5;
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     private Session adminSession;
     private QueryManager qe;

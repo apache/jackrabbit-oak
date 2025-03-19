@@ -23,7 +23,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -272,14 +271,14 @@ class SimpleExcerptProvider {
             }
         }
     }
-    
+
     private static int indexOfSearchText(String text, String searchStr, int fromIndex) {
         if (CASE_SENSITIVE_HIGHLIGHT) {
             return text.indexOf(searchStr, fromIndex);
         }
         return indexOfIgnoreCase(text, searchStr, fromIndex);
     }
-    
+
     public static int indexOfIgnoreCase(String str, String searchStr, int startPos) {
         // This is not very efficient, specially as we create the pattern each time.
         // An alternative is to use apache commons lang StringUtils.indexOfIgnoreCase,

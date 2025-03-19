@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -27,12 +27,12 @@ import org.junit.Test;
 
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.Calendar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -57,10 +57,10 @@ public class IndexUtilsTest {
         assertNull(IndexUtils.getAsyncLaneName(EMPTY_NODE, "/fooIndex"));
 
         NodeBuilder builder = EMPTY_NODE.builder();
-        builder.setProperty("async", newArrayList("async2", "sync"), Type.STRINGS);
+        builder.setProperty("async", List.of("async2", "sync"), Type.STRINGS);
         assertEquals("async2", IndexUtils.getAsyncLaneName(builder.getNodeState(), "/fooIndex"));
 
-        builder.setProperty("async", newArrayList("async3"), Type.STRINGS);
+        builder.setProperty("async", List.of("async3"), Type.STRINGS);
         assertEquals("async3", IndexUtils.getAsyncLaneName(builder.getNodeState(), "/fooIndex"));
     }
 

@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
-import org.apache.jackrabbit.guava.common.primitives.Chars;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
@@ -58,7 +58,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 
@@ -158,7 +157,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         Filter filter = plan.getFilter();
         IndexNode index = acquireIndexNode(plan);
-        checkState(index != null, "The fulltext index of type %s index is not available", getType());
+        Validate.checkState(index != null, "The fulltext index of type %s index is not available", getType());
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
             StringBuilder sb = new StringBuilder();
@@ -185,7 +184,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         PlanResult pr = getPlanResult(plan);
         if (pr.hasPropertyIndexResult()) {
             FulltextIndexPlanner.PropertyIndexResult pres = pr.getPropertyIndexResult();
-            sb.append("    synchronousPropertyCondition: ").append(pres.propertyName);
+            sb.append("    propertyCondition: ").append(pres.propertyName);
             if (!pres.propertyName.equals(pres.pr.propertyName)) {
                 sb.append("[").append(pres.pr.propertyName).append("]");
             }
@@ -280,7 +279,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     /**
      * Following chars are used as operators in Lucene Query and should be escaped
      */
-    private static final char[] QUERY_OPERATORS = {':' , '/', '!', '&', '|', '='};
+    private static final String QUERY_OPERATORS =
+            new String(new char[] {':', '/', '!', '&', '|', '='});
 
     /**
      * Following logic is taken from org.apache.jackrabbit.core.query.lucene.JackrabbitQueryParser#parse(java.lang.String)
@@ -307,7 +307,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                     escaped = false;
                 }
                 rewritten.append(c);
-            } else if (Chars.contains(QUERY_OPERATORS, c)) {
+            } else if (QUERY_OPERATORS.indexOf(c) >= 0) {
                 rewritten.append('\\').append(c);
             } else {
                 if (escaped) {

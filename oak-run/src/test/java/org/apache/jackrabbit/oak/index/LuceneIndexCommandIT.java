@@ -16,20 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
-
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.junit.Before;
 import org.junit.Test;
 
-import static java.nio.charset.Charset.defaultCharset;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -65,8 +62,9 @@ public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
         assertTrue(info.exists());
         assertTrue(defns.exists());
 
-        assertThat(Files.toString(info, defaultCharset()), containsString("/oak:index/uuid"));
-        assertThat(Files.toString(info, defaultCharset()), containsString("/oak:index/fooIndex"));
+        String s =  new String(Files.readAllBytes(info.toPath()), StandardCharsets.UTF_8);
+        assertThat(s, containsString("/oak:index/uuid"));
+        assertThat(s, containsString("/oak:index/fooIndex"));
     }
 
     @Test
@@ -93,8 +91,9 @@ public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
 
         assertTrue(info.exists());
 
-        assertThat(Files.toString(info, defaultCharset()), not(containsString("/oak:index/uuid")));
-        assertThat(Files.toString(info, defaultCharset()), containsString("/oak:index/fooIndex"));
+        String s =  new String(Files.readAllBytes(info.toPath()), StandardCharsets.UTF_8);
+        assertThat(s, not(containsString("/oak:index/uuid")));
+        assertThat(s, containsString("/oak:index/fooIndex"));
     }
 
     @Test
@@ -122,7 +121,8 @@ public class LuceneIndexCommandIT extends LuceneAbstractIndexCommandTest {
         assertFalse(new File(outDir, IndexCommand.INDEX_DEFINITIONS_JSON).exists());
         assertTrue(report.exists());
 
-        assertThat(Files.toString(report, defaultCharset()), containsString("/oak:index/fooIndex"));
+        String s =  new String(Files.readAllBytes(report.toPath()), StandardCharsets.UTF_8);
+        assertThat(s, containsString("/oak:index/fooIndex"));
     }
 
     @Test

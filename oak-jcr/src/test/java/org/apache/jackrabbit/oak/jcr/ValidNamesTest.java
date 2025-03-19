@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.ItemExistsException;
 import javax.jcr.NamespaceException;
@@ -44,8 +45,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 public class ValidNamesTest extends AbstractRepositoryTest {
 
     @Rule
@@ -53,7 +52,7 @@ public class ValidNamesTest extends AbstractRepositoryTest {
     
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
-    private static final Map<NodeStoreFixture, NodeStore> STORES = Maps.newConcurrentMap();
+    private static final Map<NodeStoreFixture, NodeStore> STORES = new ConcurrentHashMap<>();
 
     private Repository repo;
     private Session session;

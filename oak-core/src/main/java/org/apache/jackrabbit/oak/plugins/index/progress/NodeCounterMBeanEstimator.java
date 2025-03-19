@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.index.progress;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -92,8 +91,8 @@ public class NodeCounterMBeanEstimator implements NodeCountEstimator {
                     return;
                 }
 
-                Iterables.addAll(includes, PathFilter.getStrings(idxState.getProperty(PROP_INCLUDED_PATHS), Set.of()));
-                Iterables.addAll(excludes, PathFilter.getStrings(idxState.getProperty(PROP_EXCLUDED_PATHS), Set.of()));
+                PathFilter.getStrings(idxState.getProperty(PROP_INCLUDED_PATHS), Set.of()).forEach(includes::add);
+                PathFilter.getStrings(idxState.getProperty(PROP_EXCLUDED_PATHS), Set.of()).forEach(excludes::add);
             }
 
             if (includes.isEmpty()) {

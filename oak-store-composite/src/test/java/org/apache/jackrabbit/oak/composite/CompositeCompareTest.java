@@ -18,9 +18,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -35,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -101,7 +99,7 @@ public class CompositeCompareTest {
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList(); 
+        List<MountedNodeStore> mounts = new ArrayList<>(); 
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 
@@ -136,7 +134,7 @@ public class CompositeCompareTest {
         NodeStore globalStore = new MemoryNodeStore();
         NodeStore libsStore = new MemoryNodeStore();
 
-        List<MountedNodeStore> mounts = Lists.newArrayList();
+        List<MountedNodeStore> mounts = new ArrayList<>();
         mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
         CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
 

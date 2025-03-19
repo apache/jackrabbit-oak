@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.json;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
@@ -26,14 +25,15 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.jetbrains.annotations.NotNull;
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -188,11 +188,14 @@ public class JsonSerializer {
     private Iterable<? extends ChildNodeEntry> getChildNodeEntries(NodeState node, String basePath) {
         PropertyState order = node.getProperty(":childOrder");
         if (order != null) {
-            List<String> names = ImmutableList.copyOf(order.getValue(NAMES));
+            List<String> names = Collections.unmodifiableList(ListUtils.toList(order.getValue(NAMES)));
             List<ChildNodeEntry> entries = new ArrayList<>(names.size());
             for (String name : names) {
                 try {
-                    entries.add(new MemoryChildNodeEntry(name, node.getChildNode(name)));
+                    NodeState childNode = node.getChildNode(name);
+                    if (childNode.exists()) {
+                        entries.add(new MemoryChildNodeEntry(name, childNode));
+                    }
                 } catch (Throwable t) {
                     if (catchExceptions) {
                         String message = "Cannot read node " + basePath + "/" + name + " : " + t.getMessage();
@@ -300,13 +303,13 @@ public class JsonSerializer {
 
         private static final Pattern EVERYTHING = Pattern.compile(".*");
 
-        private final List<Pattern> nodeIncludes = newArrayList(EVERYTHING);
+        private final List<Pattern> nodeIncludes = new ArrayList<>(Arrays.asList(EVERYTHING));
 
-        private final List<Pattern> nodeExcludes = newArrayList();
+        private final List<Pattern> nodeExcludes = new ArrayList<>();
 
-        private final List<Pattern> propertyIncludes = newArrayList(EVERYTHING);
+        private final List<Pattern> propertyIncludes = new ArrayList<>(Arrays.asList(EVERYTHING));
 
-        private final List<Pattern> propertyExcludes = newArrayList();
+        private final List<Pattern> propertyExcludes = new ArrayList<>();
 
         JsonFilter(String filter) {
             JsopTokenizer tokenizer = new JsopTokenizer(filter);
@@ -318,8 +321,8 @@ public class JsonSerializer {
                 String key = tokenizer.readString();
                 tokenizer.read(':');
 
-                List<Pattern> includes = newArrayList();
-                List<Pattern> excludes = newArrayList();
+                List<Pattern> includes = new ArrayList<>();
+                List<Pattern> excludes = new ArrayList<>();
                 readPatterns(tokenizer, includes, excludes);
 
                 if (key.equals("nodes")) {

@@ -34,12 +34,10 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PR
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.StreamSupport;
+import java.util.stream.Stream;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
@@ -136,8 +134,8 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
                 NodeState oursNS = conflictInfo.getChildNode(OURS);
                 NodeState baseNS = conflictInfo.getChildNode(BASE);
 
-                Set<String> candidates = Sets.union(CollectionUtils.toSet(oursNS.getChildNodeNames()),
-                        CollectionUtils.toSet(baseNS.getChildNodeNames()));
+                Set<String> candidates = Stream.concat(StreamUtils.toStream(oursNS.getChildNodeNames()),
+                        StreamUtils.toStream(baseNS.getChildNodeNames())).collect(toSet());
                 for (String name : candidates) {
                     NodeState ours = oursNS.getChildNode(name);
                     NodeState base = baseNS.getChildNode(name);
@@ -227,7 +225,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base);
     }
 
-    private final Map<ConflictType, PropertyConflictHandler> propertyConflictHandlers = ImmutableMap.of(
+    private final Map<ConflictType, PropertyConflictHandler> propertyConflictHandlers = Map.of(
         ADD_EXISTING_PROPERTY, new PropertyConflictHandler() {
             @Override
             public Resolution resolve(PropertyState ours, PropertyState theirs, PropertyState base) {
@@ -285,7 +283,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
         }
     );
 
-    private final Map<ConflictType, NodeConflictHandler> nodeConflictHandlers = ImmutableMap.of(
+    private final Map<ConflictType, NodeConflictHandler> nodeConflictHandlers = Map.of(
         ADD_EXISTING_NODE, new NodeConflictHandler() {
             @Override
             public Resolution resolve(String name, NodeState ours, NodeState theirs, NodeState base) {

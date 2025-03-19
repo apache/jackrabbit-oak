@@ -91,4 +91,4 @@ read-only status is surfaced via `Session.hasCapability`. See [OAK-6563][OAK-656
 
 ## Bootstrapping
 
-In order to bootstrap/initialize the NodeStore which later is used as non-default mount, one needs to start Oak without the Composite NodeStore first. Only then it is possible to populate the NodeStore later acting as non-default mount (as only then it one can write to it).
+In order to bootstrap/initialize the NodeStore which later is used as non-default mount, one needs to start Oak without the Composite NodeStore first. Only then it is possible to populate the NodeStore later acting as non-default mount (as only then one can write to it).

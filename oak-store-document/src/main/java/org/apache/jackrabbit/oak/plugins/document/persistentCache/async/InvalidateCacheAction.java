@@ -18,9 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache.async;
 
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 
 /**
@@ -71,6 +70,6 @@ class InvalidateCacheAction<K extends CacheValue, V extends CacheValue>
 
     @Override
     public String toString() {
-        return new StringBuilder("InvalidateCacheAction").append(Iterables.toString(keys)).toString();
+        return new StringBuilder("InvalidateCacheAction").append(IterableUtils.toString(keys)).toString();
     }
 }

@@ -20,7 +20,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler;
@@ -74,7 +74,7 @@ public class ChildOrderConflictHandler implements PartialConflictHandler {
     }
 
     private static void merge(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
-        Set<String> theirOrder = CollectionUtils.toSet(theirs.getValue(Type.NAMES));
+        Set<String> theirOrder = SetUtils.toSet(theirs.getValue(Type.NAMES));
         PropertyBuilder<String> merged = PropertyBuilder.array(Type.NAME).assignFrom(theirs);
 
         // Append child node names from ours that are not in theirs

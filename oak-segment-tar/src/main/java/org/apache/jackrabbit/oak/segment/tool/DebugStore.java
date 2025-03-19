@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.tool;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.segment.RecordType.NODE;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore;
 
 import java.io.File;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +33,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Queues;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordUsageAnalyser;
 import org.apache.jackrabbit.oak.segment.Segment;
@@ -119,7 +117,7 @@ public class DebugStore {
     }
 
     private static void debugFileStore(ReadOnlyFileStore store) {
-        Map<SegmentId, List<SegmentId>> idmap = Maps.newHashMap();
+        Map<SegmentId, List<SegmentId>> idmap = new HashMap<>();
         int dataCount = 0;
         long dataSize = 0;
         int bulkCount = 0;
@@ -146,7 +144,7 @@ public class DebugStore {
         System.out.println(analyser.toString());
 
         Set<SegmentId> garbage = new HashSet<>(idmap.keySet());
-        Queue<SegmentId> queue = Queues.newArrayDeque();
+        Queue<SegmentId> queue = new ArrayDeque<>();
         queue.add(store.getRevisions().getHead().getSegmentId());
         while (!queue.isEmpty()) {
             SegmentId id = queue.remove();
@@ -173,7 +171,7 @@ public class DebugStore {
     }
 
     private static void analyseSegment(final Segment segment, final RecordUsageAnalyser analyser) {
-        final List<RecordId> ids = newArrayList();
+        final List<RecordId> ids = new ArrayList<>();
 
         segment.forEachRecord((number, type, offset) -> {
             if (type == NODE) {

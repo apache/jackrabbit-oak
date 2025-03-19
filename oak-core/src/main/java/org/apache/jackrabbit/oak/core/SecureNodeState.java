@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -28,8 +29,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -78,7 +77,7 @@ class SecureNodeState extends AbstractNodeState {
             if (treePermission.canReadProperties()) {
                 propertyCount = state.getPropertyCount();
             } else {
-                propertyCount = count(filter(
+                propertyCount = count(IterableUtils.filter(
                         state.getProperties(),
                         new ReadablePropertyPredicate()::test));
             }
@@ -91,7 +90,7 @@ class SecureNodeState extends AbstractNodeState {
         if (treePermission.canReadProperties()) {
             return state.getProperties();
         } else {
-            return filter(
+            return IterableUtils.filter(
                     state.getProperties(),
                     new ReadablePropertyPredicate()::test);
         }
@@ -144,10 +143,10 @@ class SecureNodeState extends AbstractNodeState {
             // everything is readable including ac-content -> no secure wrapper needed
             return state.getChildNodeEntries();
         } else if (treePermission.canRead()) {
-            Iterable<ChildNodeEntry> readable = transform(
+            Iterable<ChildNodeEntry> readable = IterableUtils.transform(
                     state.getChildNodeEntries(),
                     new WrapChildEntryFunction()::apply);
-            return filter(readable, new IterableNodePredicate()::test);
+            return IterableUtils.filter(readable, new IterableNodePredicate()::test);
         } else {
             return emptyList();
        }

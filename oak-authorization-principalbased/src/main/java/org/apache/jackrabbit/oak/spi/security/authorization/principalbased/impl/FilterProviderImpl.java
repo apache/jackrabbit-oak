@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
@@ -46,8 +46,7 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implementation of the {@link org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter} interface that
@@ -74,8 +73,8 @@ public class FilterProviderImpl implements FilterProvider {
 
     private String oakPath;
 
-    private final Map<String, String> validatedPrincipalNamesPathMap = Maps.newConcurrentMap();
-    private final Map<String, String> unsupportedPrincipalNames = Maps.newConcurrentMap();
+    private final Map<String, String> validatedPrincipalNamesPathMap = new ConcurrentHashMap<>();
+    private final Map<String, String> unsupportedPrincipalNames = new ConcurrentHashMap<>();
 
     /**
      * Constructor to use outside OSGi containers
@@ -123,12 +122,12 @@ public class FilterProviderImpl implements FilterProvider {
     }
 
     private void setPath(@NotNull String path) {
-        checkState(isValidPath(path), "Configured path must be a valid absolute path.");
+        Validate.checkState(isValidPath(path), "Configured path must be a valid absolute path.");
         oakPath = path;
     }
 
     private static boolean isValidPath(@Nullable String path) {
-        return !Strings.isNullOrEmpty(path) && PathUtils.isAbsolute(path);
+        return !StringUtils.isEmpty(path) && PathUtils.isAbsolute(path);
     }
     //-------------------------------------------------------------< Filter >---
 

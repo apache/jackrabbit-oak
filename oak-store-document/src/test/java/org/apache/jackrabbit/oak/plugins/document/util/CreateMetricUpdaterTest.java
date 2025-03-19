@@ -20,7 +20,8 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
+import java.util.List;
+
 import static org.apache.jackrabbit.oak.plugins.document.Collection.BLOBS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -84,10 +85,10 @@ public class CreateMetricUpdaterTest extends BaseUpdaterTest {
 
     @Test
     public void updateNodesWithPreviousDocId() {
-        cMUWithoutThrottling.update(NODES, 100, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(NODES, 100, List.of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithoutThrottling(1, 1, 100);
 
-        cMUWithThrottling.update(NODES, 100, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(NODES, 100, List.of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithThrottling(1, 1, 100);
     }
 
@@ -99,17 +100,17 @@ public class CreateMetricUpdaterTest extends BaseUpdaterTest {
 
     @Test
     public void updateNodesEmptyList() {
-        cMUWithoutThrottling.update(NODES, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(NODES, 100, List.of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithoutThrottling(0, 0, 0);
     }
 
     @Test
     public void updateNonNodesJournalCollection() {
-        cMUWithoutThrottling.update(BLOBS, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(BLOBS, 100, List.of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithoutThrottling(0, 0, 0);
         assertJournalWithoutThrottling(0, 0);
 
-        cMUWithThrottling.update(CLUSTER_NODES, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(CLUSTER_NODES, 100, List.of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertNodesWithThrottling(0, 0, 0);
         assertJournalWithThrottling(0, 0);
     }
@@ -134,10 +135,10 @@ public class CreateMetricUpdaterTest extends BaseUpdaterTest {
 
     @Test
     public void updateWithJournalEmptyList() {
-        cMUWithThrottling.update(JOURNAL, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithThrottling.update(JOURNAL, 100, List.of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertJournalWithThrottling(0, 100);
 
-        cMUWithoutThrottling.update(JOURNAL, 100, of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
+        cMUWithoutThrottling.update(JOURNAL, 100, List.of(), true, isNodesCollectionUpdated(), getCreateStatsConsumer(), c -> c == JOURNAL, getJournalStatsConsumer());
         assertJournalWithoutThrottling(0, 100);
     }
 

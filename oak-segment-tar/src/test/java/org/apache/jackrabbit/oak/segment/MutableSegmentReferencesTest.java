@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.junit.Test;
 
@@ -100,12 +98,12 @@ public class MutableSegmentReferencesTest {
         MemoryStore store = new MemoryStore();
         SegmentId first = store.getSegmentIdProvider().newDataSegmentId();
         SegmentId second = store.getSegmentIdProvider().newDataSegmentId();
-        List<SegmentId> ids = newArrayList(first, second);
+        List<SegmentId> ids = List.of(first, second);
 
         MutableSegmentReferences table = new MutableSegmentReferences();
         table.addOrReference(first);
         table.addOrReference(second);
-        assertTrue(elementsEqual(ids, table));
+        assertTrue(IterableUtils.elementsEqual(ids, table));
     }
 
 }

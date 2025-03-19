@@ -22,8 +22,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -268,8 +266,9 @@ class CommitBuilder {
         requireNonNull(revision);
 
         Revision from = this.revision;
-        Map<Path, UpdateOp> operations = Maps.transformValues(
-                this.operations, op -> rewrite(op, from, revision));
+        Map<Path, UpdateOp> operations = this.operations.entrySet()
+                .stream()
+                .collect(LinkedHashMap::new, (m,e)->m.put(e.getKey(), rewrite(e.getValue(), from, revision)), LinkedHashMap::putAll);
         return new Commit(nodeStore, revision, baseRevision, startRevisions,
                 operations, addedNodes, removedNodes, nodesWithBinaries,
                 bundledNodes);
@@ -316,7 +315,7 @@ class CommitBuilder {
     }
 
     private static UpdateOp rewrite(UpdateOp up, Revision from, Revision to) {
-        Map<UpdateOp.Key, UpdateOp.Operation> changes = Maps.newHashMap();
+        Map<UpdateOp.Key, UpdateOp.Operation> changes = new HashMap<>();
         for (Map.Entry<UpdateOp.Key, UpdateOp.Operation> entry : up.getChanges().entrySet()) {
             UpdateOp.Key k = entry.getKey();
             UpdateOp.Operation op = entry.getValue();

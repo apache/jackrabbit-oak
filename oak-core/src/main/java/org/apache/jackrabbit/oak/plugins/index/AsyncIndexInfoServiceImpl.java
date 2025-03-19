@@ -20,12 +20,13 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
@@ -101,7 +102,7 @@ public class AsyncIndexInfoServiceImpl implements AsyncIndexInfoService {
 
     @Override
     public Map<String, Long> getIndexedUptoPerLane(NodeState root) {
-        ImmutableMap.Builder<String, Long> builder = new ImmutableMap.Builder<String, Long>();
+        Map<String, Long> builder = new HashMap<>();
         NodeState async = getAsyncState(root);
         for (PropertyState ps : async.getProperties()) {
             String name = ps.getName();
@@ -110,7 +111,7 @@ public class AsyncIndexInfoServiceImpl implements AsyncIndexInfoService {
                 builder.put(name, lastIndexedTo);
             }
         }
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
     private NodeState getAsyncState(NodeState root) {

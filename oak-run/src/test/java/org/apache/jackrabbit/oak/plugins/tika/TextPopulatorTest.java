@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
@@ -38,11 +34,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -101,7 +95,7 @@ public class TextPopulatorTest {
     }
 
     private List<Field> createLuceneDocument(@NotNull String path, String ... values) {
-        List<Field> fields = Lists.newArrayList();
+        List<Field> fields = new ArrayList<>();
         for (String value : values) {
             if (value != null) {
                 fields.add(FieldFactory.newFulltextField(value, true));
@@ -269,11 +263,11 @@ public class TextPopulatorTest {
     }
 
     private static class FakeBinaryResourceProvider implements BinaryResourceProvider {
-        private List<BinaryResource> binaries = Lists.newArrayList();
+        private List<BinaryResource> binaries = new ArrayList<>();
 
         FakeBinaryResourceProvider(String ... paths) {
             for (String path : paths) {
-                binaries.add(new BinaryResource(new StringByteSource(""), null, null, path, getBlobId(path)));
+                binaries.add(new BinaryResource(new TestDataSource(""), null, null, path, getBlobId(path)));
             }
         }
 
@@ -290,19 +284,6 @@ public class TextPopulatorTest {
                     return binaries.iterator();
                 }
             };
-        }
-    }
-
-    private static class StringByteSource extends ByteSource {
-        private final String data;
-
-        StringByteSource(String data) {
-            this.data = data;
-        }
-
-        @Override
-        public InputStream openStream() {
-            return new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         }
     }
 }

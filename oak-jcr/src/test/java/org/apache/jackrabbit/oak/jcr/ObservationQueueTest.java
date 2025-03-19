@@ -40,10 +40,7 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -52,6 +49,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.cluster.AbstractClusterTest;
@@ -88,11 +86,11 @@ public class ObservationQueueTest extends AbstractClusterTest {
     private static final int NUM_CHILDREN = 100;
 
     private List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<Throwable>());
-    private List<Session> sessions = Lists.newArrayList();
-    private List<Thread> writers = Lists.newArrayList();
-    private List<Thread> readers = Lists.newArrayList();
-    private List<Thread> observers = Lists.newArrayList();
-    private List<Thread> loggers = Lists.newArrayList();
+    private List<Session> sessions = new ArrayList<>();
+    private List<Thread> writers = new ArrayList<>();
+    private List<Thread> readers = new ArrayList<>();
+    private List<Thread> observers = new ArrayList<>();
+    private List<Thread> loggers = new ArrayList<>();
 
     @BeforeClass
     public static void dropDB() {
@@ -108,7 +106,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
 
     @Test
     public void heavyLoad() throws Throwable {
-        List<Whiteboard> whiteboards = Lists.newArrayList(w1, w2);
+        List<Whiteboard> whiteboards = List.of(w1, w2);
         Iterator<Repository> repos = Iterators.cycle(r1, r2);
         AtomicLong commitCounter = new AtomicLong();
         for (int i = 0; i < NUM_WRITERS; i++) {
@@ -127,14 +125,14 @@ public class ObservationQueueTest extends AbstractClusterTest {
             Session s = loginUser(repos.next());
             observers.add(new Thread(new Observer(s, queueLength)));
         }
-        for (Thread t : Iterables.concat(writers, readers, observers, loggers)) {
+        for (Thread t : IterableUtils.chainedIterable(writers, readers, observers, loggers)) {
             t.start();
         }
-        for (Thread t : Iterables.concat(writers, readers)) {
+        for (Thread t : IterableUtils.chainedIterable(writers, readers)) {
             t.join();
         }
         LOG.info("Writes stopped. Waiting for observers...");
-        for (Thread t : Iterables.concat(observers, loggers)) {
+        for (Thread t : IterableUtils.chainedIterable(observers, loggers)) {
             t.join();
         }
         for (Throwable t : exceptions) {
@@ -204,7 +202,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
         @Override
         void perform() throws Exception {
             s.refresh(false);
-            List<Node> nodes = Lists.newArrayList();
+            List<Node> nodes = new ArrayList<>();
             for (NodeIterator it = s.getRootNode().getNodes(); it.hasNext(); ) {
                 Node n = it.nextNode();
                 if (n.getName().startsWith("session-")) {
@@ -341,7 +339,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
 
         @Override
         void perform() throws Exception {
-            List<String> stats = Lists.newArrayList();
+            List<String> stats = new ArrayList<>();
             for (Whiteboard w : whiteboards) {
                 stats.add(queueStats(w));
             }
@@ -371,7 +369,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
                 micros += bean.getMicrosecondsPerEventDelivery();
                 numListeners++;
             }
-            List<String> stats = Lists.newArrayList();
+            List<String> stats = new ArrayList<>();
             stats.add(String.valueOf(len));
             stats.add(String.valueOf(ext));
             stats.add(String.valueOf(micros / numListeners));

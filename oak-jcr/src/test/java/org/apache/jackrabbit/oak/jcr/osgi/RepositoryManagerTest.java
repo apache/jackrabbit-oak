@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.jcr.osgi;
 
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -88,9 +87,9 @@ public class RepositoryManagerTest {
         context.registerService(SecurityProvider.class, new OpenSecurityProvider());
         context.registerService(NodeStore.class, new MemoryNodeStore());
         context.registerService(IndexEditorProvider.class, new PropertyIndexEditorProvider(),
-                ImmutableMap.<String, Object>of("type", "property"));
+                Map.of("type", "property"));
         context.registerService(IndexEditorProvider.class, new ReferenceEditorProvider(),
-                ImmutableMap.<String, Object>of("type", "reference"));
+                Map.of("type", "reference"));
     }
 
 }

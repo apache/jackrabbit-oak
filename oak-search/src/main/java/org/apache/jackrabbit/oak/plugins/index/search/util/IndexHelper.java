@@ -18,14 +18,14 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static javax.jcr.PropertyType.TYPENAME_BINARY;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -59,7 +59,7 @@ public class IndexHelper {
      * Nodes that represent content that should not be tokenized (like UUIDs,
      * etc)
      */
-    private final static Set<String> NOT_TOKENIZED = CollectionUtils.toSet(JCR_UUID);
+    private final static Set<String> NOT_TOKENIZED = SetUtils.toSet(JCR_UUID);
 
     static {
         NOT_TOKENIZED.addAll(USER_PROPERTY_NAMES);

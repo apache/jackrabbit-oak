@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asClosea
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -31,8 +32,6 @@ import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.NodeStoreWithFileStore;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 public class SegmentTarFactory implements NodeStoreFactory {
 

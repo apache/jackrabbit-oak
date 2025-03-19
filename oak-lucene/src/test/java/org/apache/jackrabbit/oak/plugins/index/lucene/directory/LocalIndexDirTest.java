@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -68,7 +67,7 @@ public class LocalIndexDirTest {
         LocalIndexDir dir2 = new LocalIndexDir(createDirWithIndexMetaFile(new IndexMeta("/a/b/c", 200)));
         LocalIndexDir dir3 = new LocalIndexDir(createDirWithIndexMetaFile(new IndexMeta("/a", 300)));
 
-        List<LocalIndexDir> dirs = Lists.newArrayList();
+        List<LocalIndexDir> dirs = new ArrayList<>();
         dirs.add(dir2);
         dirs.add(dir);
         dirs.add(dir3);

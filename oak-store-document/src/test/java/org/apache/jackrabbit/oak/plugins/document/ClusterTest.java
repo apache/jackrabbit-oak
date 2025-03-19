@@ -23,15 +23,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.client.MongoDatabase;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -51,7 +50,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -65,7 +63,7 @@ public class ClusterTest {
 
     private static final boolean MONGO_DB = false;
 
-    private List<DocumentMK> mks = Lists.newArrayList();
+    private List<DocumentMK> mks = new ArrayList<>();
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
 
@@ -417,7 +415,7 @@ public class ClusterTest {
 
     @Test
     public void fromExternalChange() throws Exception {
-        final List<DocumentNodeState> rootStates1 = Lists.newArrayList();
+        final List<DocumentNodeState> rootStates1 = new ArrayList<>();
         DocumentNodeStore ns1 = createMK(1, 0).getNodeStore();
         ns1.addObserver(new Observer() {
             @Override
@@ -426,7 +424,7 @@ public class ClusterTest {
                 rootStates1.add((DocumentNodeState) root);
             }
         });
-        final List<DocumentNodeState> rootStates2 = Lists.newArrayList();
+        final List<DocumentNodeState> rootStates2 = new ArrayList<>();
         DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
         ns2.addObserver(new Observer() {
             @Override

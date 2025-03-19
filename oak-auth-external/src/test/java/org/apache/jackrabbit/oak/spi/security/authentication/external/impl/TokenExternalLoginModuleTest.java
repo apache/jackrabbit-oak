@@ -22,7 +22,6 @@ import javax.jcr.Credentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -89,7 +88,7 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
     @Test
     public void testTokenCreation() throws Exception {
         Credentials creds = createTestCredentials();
-        assertTrue(credentialsSupport.setAttributes(creds, ImmutableMap.<String, Object>of(".token", "")));
+        assertTrue(credentialsSupport.setAttributes(creds, Map.of(".token", "")));
 
         String expectedUserId = credentialsSupport.getUserId(creds);
 
@@ -112,7 +111,7 @@ public class TokenExternalLoginModuleTest extends CustomCredentialsSupportTest {
     @Test
     public void testTokenLogin() throws Exception {
         Credentials creds = createTestCredentials();
-        assertTrue(credentialsSupport.setAttributes(creds, ImmutableMap.<String, Object>of(".token", "")));
+        assertTrue(credentialsSupport.setAttributes(creds, Map.of(".token", "")));
 
         String expectedUserId = credentialsSupport.getUserId(creds);
 

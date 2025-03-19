@@ -44,7 +44,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -85,7 +86,6 @@ import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.read.ListAppender;
 import ch.qos.logback.core.spi.FilterReply;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * Test the Property2 index mechanism.
@@ -319,7 +319,7 @@ public class PropertyIndexTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value, Filter filter) {
-        return CollectionUtils.toSet(lookup.query(filter, name, value == null ? null
+        return SetUtils.toSet(lookup.query(filter, name, value == null ? null
                 : PropertyValues.newString(value)));
     }
 
@@ -1039,8 +1039,8 @@ public class PropertyIndexTest {
         NodeState indexedState = getNode(indexed, "/oak:index/foo/" + getNodeForMount(defMount) + "/abc");
         assertTrue(indexedState.exists());
         Iterable<String> values = indexedState.getStrings("entry");
-        assertEquals(1, Iterables.size(values));
-        assertEquals("/content", Iterables.getFirst(values, null));
+        assertEquals(1, IterableUtils.size(values));
+        assertEquals("/content", IterableUtils.getFirst(values, null));
 
         Mount roMount = mip.getMountByName("foo");
         assertFalse(getNode(indexed, "/oak:index/foo/" + getNodeForMount(roMount)).exists());
@@ -1087,7 +1087,7 @@ public class PropertyIndexTest {
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         Iterable<String> result = lookup.query(f, name, PropertyValues.newString(value));
-        return Iterables.size(result);
+        return IterableUtils.size(result);
     }
 
     private NodeState createTestData(int entryCount) throws CommitFailedException {

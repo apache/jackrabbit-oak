@@ -24,9 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -170,13 +168,13 @@ public class FlatFileStoreIteratorTest {
             assertEquals(1, fitr.getBufferSize());
 
             // read remaining entries to trigger release of resources
-            Iterators.size(fitr);
+            IteratorUtils.size(fitr);
         }
     }
 
     @Test
     public void bufferEstimatesMemory() {
-        List<NodeStateEntry> nseList = Lists.newArrayList(
+        List<NodeStateEntry> nseList = List.of(
                 new NodeStateEntryBuilder(EmptyNodeState.EMPTY_NODE, "/a").withMemUsage(20).build(),
                 new NodeStateEntryBuilder(EmptyNodeState.EMPTY_NODE, "/a/b").withMemUsage(30).build()
         );
@@ -204,7 +202,7 @@ public class FlatFileStoreIteratorTest {
             {
                 // 100 MB limit
                 int mb = 100;
-                List<NodeStateEntry> list = Lists.newArrayList(root, e100MB, e1Byte);
+                List<NodeStateEntry> list = List.of(root, e100MB, e1Byte);
                 FlatFileStoreIterator fitr = newInMemoryFlatFileStore(list.iterator(), Set.of(), mb);
                 NodeState rootNS = fitr.next().getNodeState();
                 NodeState aNS = rootNS.getChildNode("a");//default is 100MB, this should work
@@ -220,7 +218,7 @@ public class FlatFileStoreIteratorTest {
                 int mb = 1;
                 System.setProperty(BUFFER_MEM_LIMIT_CONFIG_NAME, "1");
 
-                List<NodeStateEntry> list = Lists.newArrayList(root, e1MB, e1Byte);
+                List<NodeStateEntry> list = List.of(root, e1MB, e1Byte);
                 FlatFileStoreIterator fitr = newInMemoryFlatFileStore(list.iterator(), Set.of(), mb);
                 NodeState rootNS = fitr.next().getNodeState();
                 NodeState aNS = rootNS.getChildNode("a");//configured limit is 10 bytes, this should work
@@ -236,7 +234,7 @@ public class FlatFileStoreIteratorTest {
                 // negative value for unbounded buffer
                 int mb = -1;
 
-                List<NodeStateEntry> list = Lists.newArrayList(root, e100MB, e1Byte);
+                List<NodeStateEntry> list = List.of(root, e100MB, e1Byte);
                 FlatFileStoreIterator fitr = newInMemoryFlatFileStore(list.iterator(), Set.of(), mb);
                 NodeState rootNS = fitr.next().getNodeState();
                 NodeState aNS = rootNS.getChildNode("a");

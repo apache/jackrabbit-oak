@@ -20,22 +20,19 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleE
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
-
 public class IndexMBeanRegistration implements Registration {
 
     private final Whiteboard whiteboard;
-    private final List<Registration> regs = Lists.newArrayList();
+    private final List<Registration> regs = new ArrayList<>();
 
     public IndexMBeanRegistration(Whiteboard whiteboard) {
         this.whiteboard = whiteboard;
@@ -43,7 +40,7 @@ public class IndexMBeanRegistration implements Registration {
 
     public void registerAsyncIndexer(AsyncIndexUpdate task, long delayInSeconds) {
         task.setIndexMBeanRegistration(this);
-        Map<String, Object> config = ImmutableMap.<String, Object>of(
+        Map<String, Object> config = Map.of(
                 AsyncIndexUpdate.PROP_ASYNC_NAME, task.getName(),
                 "scheduler.name", AsyncIndexUpdate.class.getName() + "-" + task.getName()
         );

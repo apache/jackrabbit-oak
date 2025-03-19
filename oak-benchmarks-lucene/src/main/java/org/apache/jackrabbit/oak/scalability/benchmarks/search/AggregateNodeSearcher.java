@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,6 +26,7 @@ import javax.jcr.*;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -103,7 +102,7 @@ public class AggregateNodeSearcher extends SearchScalabilityBenchmark {
 
     private List<String> getRelatedUsers(Session session, Authorizable user)
         throws RepositoryException {
-        List<String> targets = Lists.newArrayList();
+        List<String> targets = new ArrayList<>();
         Node relRootNode =
             session.getNode(user.getPath() + "/" + ScalabilityNodeRelationshipSuite.RELATIONSHIPS);
         NodeIterator children = relRootNode.getNodes();

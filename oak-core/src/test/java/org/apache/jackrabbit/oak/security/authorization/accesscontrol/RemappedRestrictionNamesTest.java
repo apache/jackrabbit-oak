@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
@@ -43,7 +42,7 @@ import static org.junit.Assert.assertTrue;
 
 public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
 
-    private static final Map<String, String> LOCAL_NAME_MAPPINGS = ImmutableMap.of(
+    private static final Map<String, String> LOCAL_NAME_MAPPINGS = Map.of(
             "a","internal",
             "b","http://www.jcp.org/jcr/1.0",
             "c","http://jackrabbit.apache.org/oak/ns/1.0"
@@ -78,7 +77,7 @@ public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
     @Test
     public void testAddEntryWithSingleValueRestriction() throws Exception {
         String jcrGlobName = getNamePathMapper().getJcrName(REP_GLOB);
-        Map<String, Value> rest = ImmutableMap.of(jcrGlobName, getValueFactory(root).createValue("*"));
+        Map<String, Value> rest = Map.of(jcrGlobName, getValueFactory(root).createValue("*"));
         assertTrue(acl.addEntry(testPrincipal, privs, false, rest));
 
         List<ACE> entries = acl.getEntries();
@@ -91,7 +90,7 @@ public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
     public void testAddEntryWithMVRestriction() throws Exception {
         String jcrItemNames = getNamePathMapper().getJcrName(REP_ITEM_NAMES);
         Value[] valArray = new Value[] {getValueFactory(root).createValue("myItemName", PropertyType.NAME)};
-        Map<String, Value[]> rest = ImmutableMap.of(jcrItemNames, valArray);
+        Map<String, Value[]> rest = Map.of(jcrItemNames, valArray);
         assertTrue(acl.addEntry(testPrincipal, privs, false, null, rest));
 
         List<ACE> entries = acl.getEntries();
