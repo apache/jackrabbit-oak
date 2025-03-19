@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
@@ -67,7 +67,7 @@ public class ElasticMetricHandler {
      * @param enabled a boolean indicating whether the Elastic metric is enabled (true) or disabled (false)
      */
     public void markEnabled(boolean enabled) {
-        meter.apply(ENABLED, Collections.emptyMap()).mark(enabled ? 1 : 0);
+        meter.apply(ENABLED, Map.of()).mark(enabled ? 1 : 0);
     }
 
     /**
@@ -80,8 +80,8 @@ public class ElasticMetricHandler {
      * @param index the index passed as metric label
      * @param isRootQuery if {@code false} only {@code QUERY_INTERNAL_RATE} gets incremented
      */
-    public void markQuery(String index, boolean isRootQuery) {
-        Map<String, String> labels = Collections.singletonMap("index", index);
+    public void markQuery(@NotNull String index, boolean isRootQuery) {
+        Map<String, String> labels = Map.of("index", index);
         if (isRootQuery) {
             meter.apply(QUERY_RATE, labels).mark();
         }
@@ -98,8 +98,8 @@ public class ElasticMetricHandler {
      * @param timedOut Elastic could time out while returning partial results. When {@code true} these
      *                 occurrences get tracked
      */
-    public void measureQuery(String index, int hits, long serverTimeMs, long totalTimeMs, boolean timedOut) {
-        Map<String, String> labels = Collections.singletonMap("index", index);
+    public void measureQuery(@NotNull String index, int hits, long serverTimeMs, long totalTimeMs, boolean timedOut) {
+        Map<String, String> labels = Map.of("index", index);
         histogram.apply(QUERY_HITS, labels).update(hits);
         timer.apply(QUERY_SERVER_TIME, labels).update(serverTimeMs, TimeUnit.MILLISECONDS);
         timer.apply(QUERY_TOTAL_TIME, labels).update(totalTimeMs, TimeUnit.MILLISECONDS);
@@ -114,8 +114,8 @@ public class ElasticMetricHandler {
      * @param index the index passed as metric label
      * @param totalTimeMs the total execution time
      */
-    public void measureFailedQuery(String index, long totalTimeMs) {
-        Map<String, String> labels = Collections.singletonMap("index", index);
+    public void measureFailedQuery(@NotNull String index, long totalTimeMs) {
+        Map<String, String> labels = Map.of("index", index);
         meter.apply(QUERY_FAILED_RATE, labels).mark();
         timer.apply(QUERY_TOTAL_TIME, labels).update(totalTimeMs, TimeUnit.MILLISECONDS);
     }
@@ -126,8 +126,8 @@ public class ElasticMetricHandler {
      * @param index the index passed as metric label
      * @param numDocs the current number of documents. Only top level documents are tracked
      */
-    public void markDocuments(String index, long numDocs) {
-        Map<String, String> labels = Collections.singletonMap("index", index);
+    public void markDocuments(@NotNull String index, long numDocs) {
+        Map<String, String> labels = Map.of("index", index);
         histogram.apply(INDEX_DOCUMENTS, labels).update(numDocs);
     }
 
@@ -138,8 +138,8 @@ public class ElasticMetricHandler {
      * @param primarySize   the primary shards size
      * @param storeSize     the total size in bytes. The value includes potential replicas
      */
-    public void markSize(String index, long primarySize, long storeSize) {
-        Map<String, String> labels = Collections.singletonMap("index", index);
+    public void markSize(@NotNull String index, long primarySize, long storeSize) {
+        Map<String, String> labels = Map.of("index", index);
         histogram.apply(INDEX_SIZE, labels).update(primarySize);
         histogram.apply(INDEX_WITH_REPLICAS_SIZE, labels).update(storeSize);
     }
