@@ -206,8 +206,8 @@ public class RevisionsCommand implements Command {
                     .withRequiredArg().ofType(Integer.class).defaultsTo(10000);
             fullGcMaxAge = parser.accepts("fullGcMaxAge", "The maximum age of the document in seconds " +
                             "to be considered for Full GC i.e. Version Garbage Collector (Full GC) logic will only consider those " +
-                            "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge)")
-                    .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toMillis(1));
+                            "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge). Default: 86400 (one day)")
+                    .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toSeconds(1));
         }
 
         public RevisionsOptions parse(String[] args) {
