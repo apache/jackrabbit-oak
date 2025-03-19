@@ -110,7 +110,7 @@ public class ConfigUtil {
      * the jcr:content/@jcr:data property to get the binary content
      */
     @Nullable
-    public static Blob getBlob(NodeState state, String resourceName){
+    public static Blob getBlob(NodeState state, String resourceName) {
         NodeState contentNode = state.getChildNode(JcrConstants.JCR_CONTENT);
         checkArgument(contentNode.exists(), "Was expecting to find jcr:content node to read resource %s", resourceName);
         PropertyState property = contentNode.getProperty(JcrConstants.JCR_DATA);

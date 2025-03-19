@@ -95,6 +95,39 @@ public class ElasticIndexHelperTest {
         ElasticIndexHelper.createIndexRequest("prefix.path", definition);
     }
 
+    @Test
+    public void analyzerWithEmptyTokenizer() {
+        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("idxRule");
+        indexRule.property("foo").type("String").useInSimilarity();
+
+        Tree analyzer = builder.getBuilderTree().addChild("analyzers");
+        Tree defaultAnalyzer = analyzer.addChild("default");
+        defaultAnalyzer.setProperty(FulltextIndexConstants.ANL_CLASS, "org.apache.lucene.analysis.en.EnglishAnalyzer");
+        defaultAnalyzer.addChild("tokenizer");
+        defaultAnalyzer.addChild("filter");
+
+        NodeState nodeState = builder.build();
+        ElasticIndexDefinition definition =
+                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+        ElasticIndexHelper.createIndexRequest("prefix.path", definition);
+    }
+
+    @Test
+    public void analyzerWithEmptyDefault() {
+        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("idxRule");
+        indexRule.property("foo").type("String").useInSimilarity();
+
+        Tree analyzer = builder.getBuilderTree().addChild("analyzers");
+        analyzer.addChild("default");
+
+        NodeState nodeState = builder.build();
+        ElasticIndexDefinition definition =
+                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+        ElasticIndexHelper.createIndexRequest("prefix.path", definition);
+    }
+
     @Test()
     public void indexSettingsAreCorrectlySet() {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();

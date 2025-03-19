@@ -55,6 +55,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,13 @@ public class ElasticCustomAnalyzer {
             NodeState defaultAnalyzer = state.getChildNode(FulltextIndexConstants.ANL_DEFAULT);
             if (defaultAnalyzer.exists()) {
                 IndexSettingsAnalysis.Builder builder = new IndexSettingsAnalysis.Builder();
-                Map<String, Object> analyzer = convertNodeState(defaultAnalyzer);
+                Map<String, Object> analyzer;
+                try {
+                    analyzer = convertNodeState(defaultAnalyzer);
+                } catch (IOException e) {
+                    LOG.warn("Can not load analyzer; using an empty configuration", e);
+                    analyzer = Map.of();
+                }
                 String builtIn = defaultAnalyzer.getString(FulltextIndexConstants.ANL_CLASS);
                 if (builtIn == null) {
                     builtIn = defaultAnalyzer.getString(FulltextIndexConstants.ANL_NAME);
@@ -107,11 +114,14 @@ public class ElasticCustomAnalyzer {
 
                     // content params, usually stop words
                     for (ChildNodeEntry nodeEntry : defaultAnalyzer.getChildNodeEntries()) {
+                        List<String> list;
                         try {
-                            analyzer.put(normalize(nodeEntry.getName()), loadContent(nodeEntry.getNodeState(), nodeEntry.getName(), NOOP_TRANSFORMATION));
+                            list = loadContent(nodeEntry.getNodeState(), nodeEntry.getName(), NOOP_TRANSFORMATION);
                         } catch (IOException e) {
-                            throw new IllegalStateException("Unable to load content for node entry " + nodeEntry.getName(), e);
+                            LOG.warn("Unable to load analyzer content for entry '" + nodeEntry.getName() + "'; using empty list", e);
+                            list = List.of();
                         }
+                        analyzer.put(normalize(nodeEntry.getName()), list);
                     }
 
                     builder.analyzer(analyzerName, new Analyzer(null, JsonData.of(analyzer)));
@@ -145,8 +155,22 @@ public class ElasticCustomAnalyzer {
 
     @NotNull
     private static TokenizerDefinition loadTokenizer(NodeState state) {
-        String name = normalize(Objects.requireNonNull(state.getString(FulltextIndexConstants.ANL_NAME)));
-        Map<String, Object> args = convertNodeState(state);
+        String name;
+        Map<String, Object> args;
+        if (!state.exists()) {
+            LOG.warn("No tokenizer specified; the standard with an empty configuration");
+            name = "Standard";
+            args = new HashMap<String, Object>();
+        } else {
+            name = Objects.requireNonNull(state.getString(FulltextIndexConstants.ANL_NAME));
+            try {
+                args = convertNodeState(state);
+            } catch (IOException e) {
+                LOG.warn("Can not load tokenizer; using an empty configuration", e);
+                args = new HashMap<String, Object>();
+            }
+        }
+        name = normalize(name);
         args.put(ANALYZER_TYPE, name);
         return new TokenizerDefinition(name, JsonData.of(args));
     }
@@ -228,7 +252,12 @@ public class ElasticCustomAnalyzer {
     }
 
     private static List<String> loadContent(NodeState file, String name, ContentTransformer transformer) throws IOException {
-        Blob blob = ConfigUtil.getBlob(file, name);
+        Blob blob;
+        try {
+            blob = ConfigUtil.getBlob(file, name);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            throw new IOException("Could not load " + name, e);
+        }
         try (Reader content = new InputStreamReader(Objects.requireNonNull(blob).getNewStream(), StandardCharsets.UTF_8)) {
             try (BufferedReader br = new BufferedReader(content)) {
                 return br.lines()
@@ -264,11 +293,25 @@ public class ElasticCustomAnalyzer {
         return name;
     }
 
-    private static Map<String, Object> convertNodeState(NodeState state) {
-        return convertNodeState(state, List.of(), List.of());
+    private static Map<String, Object> convertNodeState(NodeState state) throws IOException {
+        try {
+            return convertNodeState(state, List.of(), List.of());
+        } catch (IllegalStateException e) {
+            // convert runtime exception back to checked exception
+            throw new IOException("Can not convert", e);
+        }
     }
 
-    private static Map<String, Object> convertNodeState(NodeState state, List<ParameterTransformer> transformers, List<String> preloadedContent) {
+    /**
+     * Read analyzer configuration.
+     *
+     * @param state the node state
+     * @param transformers
+     * @param preloadedContent
+     * @return
+     * @throws IllegalStateException
+     */
+    private static Map<String, Object> convertNodeState(NodeState state, List<ParameterTransformer> transformers, List<String> preloadedContent) throws IllegalStateException {
         Map<String, Object> luceneParams = StreamSupport.stream(Spliterators.spliteratorUnknownSize(state.getProperties().iterator(), Spliterator.ORDERED), false)
                 .filter(ElasticCustomAnalyzer::isPropertySupported)
                 .collect(Collectors.toMap(PropertyState::getName, ps -> {
@@ -280,6 +323,8 @@ public class ElasticCustomAnalyzer {
                                 return loadContent(state.getChildNode(v.trim()), v.trim(),
                                         CONTENT_TRANSFORMERS.getOrDefault(ps.getName(), NOOP_TRANSFORMATION)).stream();
                             } catch (IOException e) {
+                                // convert checked exception to runtime exception to runtime exception,
+                                // because the stream API doesn't support checked exceptions
                                 throw new IllegalStateException(e);
                             }
                         }).collect(Collectors.toList()));
