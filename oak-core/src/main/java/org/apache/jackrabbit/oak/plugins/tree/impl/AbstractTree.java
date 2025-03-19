@@ -30,6 +30,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
@@ -120,7 +122,7 @@ public abstract class AbstractTree implements Tree {
         NodeBuilder nodeBuilder = getNodeBuilder();
         PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
         if (order != null && order.getType() == NAMES) {
-            return new OrderedChildnameIterable(order.getValue(NAMES), nodeBuilder.getChildNodeNames());
+            return IteratorUtils.toIterable(new OrderedChildnameIterator(order.getValue(NAMES), nodeBuilder.getChildNodeNames()));
         } else {
             return nodeBuilder.getChildNodeNames();
         }

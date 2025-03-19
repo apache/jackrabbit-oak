@@ -68,45 +68,45 @@ public class OrderedChildnameIterableTest {
         }
     }
 
-    List<String> iterableToList(Iterable<String> iter) {
+    List<String> iteratorToList(Iterator<String> iter) {
         List<String> result = new ArrayList<>();
-        iter.iterator().forEachRemaining(result::add);
+        iter.forEachRemaining(result::add);
         return result;
     }
 
     @Test
     public void noOrderedChildren() {
         // all children are returned in their order
-        OrderedChildnameIterable iterable = new OrderedChildnameIterable(List.of(),ALL_CHILDREN);
-        Assert.assertEquals(ALL_CHILDREN, iterableToList(iterable));
+        OrderedChildnameIterator iterable = new OrderedChildnameIterator(List.of(),ALL_CHILDREN);
+        Assert.assertEquals(ALL_CHILDREN, iteratorToList(iterable));
     }
 
     @Test
     public void orderedChildren() {
         // only 2 child nodes ordered, return them up front
-        OrderedChildnameIterable iterable = new OrderedChildnameIterable(List.of("4","5"),ALL_CHILDREN);
-        Assert.assertEquals(List.of("4","5","1","2","3"), iterableToList(iterable));
+        OrderedChildnameIterator iterable = new OrderedChildnameIterator(List.of("4","5"),ALL_CHILDREN);
+        Assert.assertEquals(List.of("4","5","1","2","3"), iteratorToList(iterable));
     }
 
     @Test
     public void orderedChildrenWithNonExistingOrderedChild() {
         // the ordered list contains non-existing childnames, which are not part of children list
-        OrderedChildnameIterable iterable = new OrderedChildnameIterable(List.of("4","nonexisting1","5","nonexisting2"),ALL_CHILDREN);
-        Assert.assertEquals(List.of("4","5","1","2","3"), iterableToList(iterable));
+        OrderedChildnameIterator iterable = new OrderedChildnameIterator(List.of("4","nonexisting1","5","nonexisting2"),ALL_CHILDREN);
+        Assert.assertEquals(List.of("4","5","1","2","3"), iteratorToList(iterable));
     }
 
     @Test
     public void orderedChildrenWithOnlyNonExistingOrderedChild() {
         // the ordered list contains non-existing childnames, which are not part of children list
-        OrderedChildnameIterable iterable = new OrderedChildnameIterable(List.of("nonexisting"),ALL_CHILDREN);
-        Assert.assertEquals(List.of("1","2","3","4","5"), iterableToList(iterable));
+        OrderedChildnameIterator iterable = new OrderedChildnameIterator(List.of("nonexisting"),ALL_CHILDREN);
+        Assert.assertEquals(List.of("1","2","3","4","5"), iteratorToList(iterable));
     }
 
     @Test
     public void onlyOrderedChildrenAvailable() {
         // the orderedChildren property is populated, but no children are available
-        OrderedChildnameIterable iterable = new OrderedChildnameIterable(List.of("1","2"),List.of());
-        Assert.assertEquals(List.of(), iterableToList(iterable));
+        OrderedChildnameIterator iterable = new OrderedChildnameIterator(List.of("1","2"),List.of());
+        Assert.assertEquals(List.of(), iteratorToList(iterable));
     }
 
     @Test
@@ -114,11 +114,9 @@ public class OrderedChildnameIterableTest {
         // Create tracking iterable for allChildren
         TrackingIterable trackingAllChildren = new TrackingIterable(ALL_CHILDREN);
 
-        OrderedChildnameIterable iterable = new OrderedChildnameIterable(
+        OrderedChildnameIterator iterator = new OrderedChildnameIterator(
             List.of("4", "1"),
             trackingAllChildren);
-
-        Iterator<String> iterator = iterable.iterator();
 
         // Get first element ("4")
         Assert.assertTrue(iterator.hasNext());
