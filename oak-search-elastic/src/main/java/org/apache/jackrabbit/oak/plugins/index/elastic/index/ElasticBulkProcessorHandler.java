@@ -281,7 +281,7 @@ public class ElasticBulkProcessorHandler {
      * <p>
      * Note: Closing an index will have the side-effect of flushing all pending operations for all indexes registered
      * with the bulk processor. This should be transparent for the user, but it may mean that this method would take
-     * longer to return than if it was flusing only the operations for the index being closed.
+     * longer to return than if it was flushing only the operations for the index being closed.
      *
      * @return {@code true} if at least one update was performed, {@code false} otherwise
      * @throws IOException if an error happened while processing the bulk requests
