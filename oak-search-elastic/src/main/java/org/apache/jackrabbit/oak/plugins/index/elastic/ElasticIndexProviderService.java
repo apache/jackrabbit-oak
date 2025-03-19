@@ -161,19 +161,22 @@ public class ElasticIndexProviderService {
 
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
+        metricHandler = new ElasticMetricHandler(statisticsProvider);
         boolean disabled = Boolean.parseBoolean(System.getProperty(OAK_ELASTIC_PREFIX + PROP_DISABLED, Boolean.toString(config.disabled())));
         if (disabled) {
             LOG.info("Component disabled by configuration");
+            metricHandler.markEnabled(false);
             return;
         }
+
+        elasticConnection = getElasticConnection(config);
+        boolean isElasticAvailable = elasticConnection.isAvailable();
+        metricHandler.markEnabled(isElasticAvailable);
 
         whiteboard = new OsgiWhiteboard(bundleContext);
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);
-
-        elasticConnection = getElasticConnection(config);
-        metricHandler = new ElasticMetricHandler(statisticsProvider);
         indexTracker = new ElasticIndexTracker(elasticConnection, metricHandler);
 
         // register observer needed for index tracking
@@ -195,7 +198,11 @@ public class ElasticIndexProviderService {
 
         registerIndexProvider(bundleContext);
         registerIndexEditor(bundleContext);
-        registerIndexCleaner(config);
+        if (isElasticAvailable) {
+            registerIndexCleaner(config);
+        } else {
+            LOG.warn("The Elastic cluster at {} is not reachable. The index cleaner job has not been enabled", elasticConnection);
+        }
     }
 
     @Deactivate
@@ -216,10 +223,6 @@ public class ElasticIndexProviderService {
     }
 
     private void registerIndexCleaner(Config contextConfig) {
-        if (!elasticConnection.isAvailable()) {
-            LOG.warn("The Elastic cluster at {} is not reachable. The index cleaner job has not been enabled", elasticConnection);
-            return;
-        }
         if (contextConfig.remoteIndexCleanupFrequency() <= 0) {
             LOG.info("Index Cleaner disabled by configuration");
             return;

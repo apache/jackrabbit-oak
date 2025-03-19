@@ -34,6 +34,8 @@ import java.util.function.BiFunction;
  */
 public class ElasticMetricHandler {
 
+    private static final String ENABLED = "ELASTIC_ENABLED";
+
     private static final String QUERY_RATE = "ELASTIC_QUERY_RATE";
     private static final String QUERY_INTERNAL_RATE = "ELASTIC_QUERY_INTERNAL_RATE";
 
@@ -57,6 +59,15 @@ public class ElasticMetricHandler {
         meter = statsProviderUtil.getMeterStats();
         histogram = statsProviderUtil.getHistoStats();
         timer = statsProviderUtil.getTimerStats();
+    }
+
+    /**
+     * Marks the Elastic metric as enabled or disabled.
+     *
+     * @param enabled a boolean indicating whether the Elastic metric is enabled (true) or disabled (false)
+     */
+    public void markEnabled(boolean enabled) {
+        meter.apply(ENABLED, Collections.emptyMap()).mark(enabled ? 1 : 0);
     }
 
     /**
