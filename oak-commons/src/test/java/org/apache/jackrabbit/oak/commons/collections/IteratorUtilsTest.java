@@ -365,4 +365,53 @@ public class IteratorUtilsTest {
         TestObject result = IteratorUtils.get(data.iterator(), 1);
         Assert.assertEquals("obj2", result.toString());
     }
+
+    @Test
+    public void testGetLastWithMultipleElements() {
+        Iterator<String> iterator = Arrays.asList("one", "two", "three").iterator();
+        Assert.assertEquals("three", IteratorUtils.getLast(iterator));
+        Assert.assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testGetLastWithSingleElement() {
+        Iterator<Integer> intIterator = List.of(1).iterator();
+        Assert.assertEquals(Integer.valueOf(1), IteratorUtils.getLast(intIterator));
+        Assert.assertFalse(intIterator.hasNext());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testGetLastWithNullIterator() {
+        IteratorUtils.getLast(null);
+    }
+
+    @Test(expected = NoSuchElementException.class)
+    public void testGetLastWithEmptyIterator() {
+        IteratorUtils.getLast(Collections.emptyIterator());
+    }
+
+    @Test
+    public void testGetLastWithDifferentTypes() {
+        class TestObject {
+            private final String value;
+
+            TestObject(String value) {
+                this.value = value;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                TestObject that = (TestObject) o;
+                return value.equals(that.value);
+            }
+        }
+
+        TestObject obj1 = new TestObject("first");
+        TestObject obj2 = new TestObject("last");
+        Iterator<TestObject> objectIterator = Arrays.asList(obj1, obj2).iterator();
+        Assert.assertEquals(obj2, IteratorUtils.getLast(objectIterator));
+        Assert.assertFalse(objectIterator.hasNext());
+    }
 }
