@@ -32,8 +32,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -105,9 +103,7 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     public MemoryDocumentStore(boolean maintainModCount) {
-        metadata = ImmutableMap.<String,String>builder()
-                        .put("type", "memory")
-                        .build();
+        metadata = Map.of("type", "memory");
         this.maintainModCount = maintainModCount;
     }
 
@@ -229,10 +225,10 @@ public class MemoryDocumentStore implements DocumentStore {
         Lock lock = rwLock.writeLock();
         lock.lock();
         try {
-            Maps.filterValues(map, doc -> {
-                    Long modified = Utils.asLong((Number) doc.get(indexedProperty));
-                    return startValue < modified && modified < endValue;
-                }).clear();
+            map.entrySet().removeIf(entry -> {
+                Long modified = Utils.asLong((Number) entry.getValue().get(indexedProperty));
+                return startValue < modified && modified < endValue;
+            });
         } finally {
             lock.unlock();
         }
@@ -456,12 +452,11 @@ public class MemoryDocumentStore implements DocumentStore {
     @NotNull
     @Override
     public Map<String, String> getStats() {
-        return ImmutableMap.<String, String>builder()
-                .put(Collection.NODES.toString(), String.valueOf(nodes.size()))
-                .put(Collection.CLUSTER_NODES.toString(), String.valueOf(clusterNodes.size()))
-                .put(Collection.SETTINGS.toString(), String.valueOf(settings.size()))
-                .put(Collection.JOURNAL.toString(), String.valueOf(externalChanges.size()))
-                .build();
+        return Map.of(
+                Collection.NODES.toString(), String.valueOf(nodes.size()),
+                Collection.CLUSTER_NODES.toString(), String.valueOf(clusterNodes.size()),
+                Collection.SETTINGS.toString(), String.valueOf(settings.size()),
+                Collection.JOURNAL.toString(), String.valueOf(externalChanges.size()));
     }
 
     @Override

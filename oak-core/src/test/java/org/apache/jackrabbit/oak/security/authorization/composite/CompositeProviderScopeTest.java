@@ -16,18 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -72,7 +70,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
 
-    private static List<String> PATH_OUTSIDE_SCOPE = ImmutableList.of(ROOT_PATH, TEST_PATH, TEST_CHILD_PATH);
+    private static List<String> PATH_OUTSIDE_SCOPE = List.of(ROOT_PATH, TEST_PATH, TEST_CHILD_PATH);
 
     private CompositePermissionProvider cppTestUser;
     private CompositePermissionProvider cppAdminUser;
@@ -288,7 +286,7 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
             String[] actions = defActionsGranted.get(p);
 
             if (testProvider.isSupported(p)) {
-                Set<String> expected = CollectionUtils.toSet(actions);
+                Set<String> expected = SetUtils.toSet(actions);
                 expected.removeAll(denied);
 
                 boolean canSetProperty = TreeLocation.create(readOnlyRoot, p).getProperty() != null;
@@ -438,14 +436,14 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testTreePermissionCanRead() throws Exception {
-        Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
-                put(ROOT_PATH, false).
-                put(TEST_PATH, true).
-                put(TEST_A_PATH, true).
-                put(TEST_A_B_PATH, true).
-                put(TEST_A_B_C_PATH, false).
-                put(TEST_A_B_C_PATH + "/nonexisting", false).
-                build();
+        // order is relevant here
+        Map<String, Boolean> readMap = new LinkedHashMap<>();
+        readMap.put(ROOT_PATH, false);
+        readMap.put(TEST_PATH, true);
+        readMap.put(TEST_A_PATH, true);
+        readMap.put(TEST_A_B_PATH, true);
+        readMap.put(TEST_A_B_C_PATH, false);
+        readMap.put(TEST_A_B_C_PATH + "/nonexisting", false);
 
         TreePermission parentPermission = TreePermission.EMPTY;
         for (String nodePath : readMap.keySet()) {
@@ -461,14 +459,14 @@ public class CompositeProviderScopeTest extends AbstractCompositeProviderTest {
 
     @Test
     public void testTreePermissionCanReadProperty() throws Exception {
-        Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
-                put(ROOT_PATH, false).
-                put(TEST_PATH, true).
-                put(TEST_A_PATH, true).
-                put(TEST_A_B_PATH, true).
-                put(TEST_A_B_C_PATH, true).
-                put(TEST_A_B_C_PATH + "/nonexisting", true).
-                build();
+        // order is relevant here
+        Map<String, Boolean> readMap = new LinkedHashMap<>();
+        readMap.put(ROOT_PATH, false);
+        readMap.put(TEST_PATH, true);
+        readMap.put(TEST_A_PATH, true);
+        readMap.put(TEST_A_B_PATH, true);
+        readMap.put(TEST_A_B_C_PATH, true);
+        readMap.put(TEST_A_B_C_PATH + "/nonexisting", true);
 
         TreePermission parentPermission = TreePermission.EMPTY;
         for (String nodePath : readMap.keySet()) {

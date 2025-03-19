@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.71-SNAPSHOT</version>
+    <version>1.77-SNAPSHOT</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -94,6 +94,7 @@
         <configuration>
           <excludes>
             <exclude>release.properties</exclude>
+            <exclude>CONTRIBUTING.md</exclude>
             <exclude>.git/**</exclude>
             <exclude>.idea/**</exclude>
             <exclude>.gitignore</exclude>
@@ -280,6 +281,39 @@ An announcement mail template can be found at:
                  <version>1.8.1</version>
                </dependency>
             </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>pedantic</id>
+      <build>
+        <plugins>
+          <!-- create aggregate HTML reports on unit and integration tests -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-report-plugin</artifactId>
+            <inherited>false</inherited>
+            <configuration>
+              <aggregate>true</aggregate>
+              <linkXRef>false</linkXRef>
+            </configuration>
+            <executions>
+              <execution>
+                <id>aggregate-ut-reports</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>report-only</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>aggregate-it-reports</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>failsafe-report-only</goal>
+                </goals>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>

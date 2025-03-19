@@ -29,16 +29,15 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
@@ -170,9 +169,9 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         DataIdentifier d10 = new DataIdentifier("d-10");
         DataIdentifier d20 = new DataIdentifier("d-20");
         DataIdentifier d30 = new DataIdentifier("d-30");
-        List<DataIdentifier> dis = ImmutableList.of(d10, d20, d30);
-        List<DataRecord> recs = Lists.newArrayList(
-            Iterables.transform(dis, input -> new TimeDataRecord(input)));
+        List<DataIdentifier> dis = List.of(d10, d20, d30);
+        List<DataRecord> recs = ListUtils.toList(
+            IterableUtils.transform(dis, input -> new TimeDataRecord(input)));
         OakFileDataStore mockedDS = mock(OakFileDataStore.class);
         when(mockedDS.getAllRecords()).thenReturn(recs.iterator());
         when(mockedDS.getRecord(new DataIdentifier("d-10"))).thenReturn(new TimeDataRecord(d10));
@@ -182,7 +181,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
 
         Set<String> expected = Set.of("d-10","d-20");
         Iterator<String> chunks = ds.getAllChunkIds(25);
-        assertEquals(expected, CollectionUtils.toSet(chunks));
+        assertEquals(expected, SetUtils.toSet(chunks));
     }
 
     @Test

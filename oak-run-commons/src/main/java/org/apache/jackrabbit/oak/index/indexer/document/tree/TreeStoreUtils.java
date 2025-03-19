@@ -67,7 +67,7 @@ public class TreeStoreUtils {
                 String fileName = args[1];
                 try (BufferedReader lineReader = new BufferedReader(
                         new FileReader(fileName, StandardCharsets.UTF_8))) {
-                    int count = 0;
+                    long count = 0;
                     long start = System.nanoTime();
                     while (true) {
                         String line = lineReader.readLine();

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -40,13 +39,13 @@ import java.util.Map;
  */
 class ExternalIdentityValidatorProvider extends ValidatorProvider implements ExternalIdentityConstants {
 
-    private static final Map<Integer, String> ERROR_MSGS = ImmutableMap.<Integer, String>builder()
-            .put(70, "Attempt to create, modify or remove the system property 'rep:externalPrincipalNames'")
-            .put(71, "Property 'rep:externalPrincipalNames' must be multi-valued of type STRING.")
-            .put(72, "Property 'rep:externalPrincipalNames' requires 'rep:externalId' to be present on the Node.")
-            .put(73, "Property 'rep:externalId' cannot be removed as long as 'rep:externalPrincipalNames' is present.")
-            .put(74, "Attempt to add, modify or remove the system maintained property 'rep:externalId'.")
-            .put(75, "Property 'rep:externalId' may only have a single value of type STRING.").build();
+    private static final Map<Integer, String> ERROR_MSGS = Map.of(
+            70, "Attempt to create, modify or remove the system property 'rep:externalPrincipalNames'",
+            71, "Property 'rep:externalPrincipalNames' must be multi-valued of type STRING.",
+            72, "Property 'rep:externalPrincipalNames' requires 'rep:externalId' to be present on the Node.",
+            73, "Property 'rep:externalId' cannot be removed as long as 'rep:externalPrincipalNames' is present.",
+            74, "Attempt to add, modify or remove the system maintained property 'rep:externalId'.",
+            75, "Property 'rep:externalId' may only have a single value of type STRING.");
 
     private final boolean isSystem;
     private final boolean protectedExternalIds;

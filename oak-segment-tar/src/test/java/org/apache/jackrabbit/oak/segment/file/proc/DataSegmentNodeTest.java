@@ -28,10 +28,10 @@ import static org.mockito.Mockito.when;
 import java.io.InputStream;
 import java.util.Optional;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend.Segment;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -159,13 +159,13 @@ public class DataSegmentNodeTest {
     @Test
     public void shouldExposeReferences() {
         NodeState n = new DataSegmentNode(mockBackend(), "s", mockSegment());
-        assertTrue(Iterables.contains(n.getChildNodeNames(), "references"));
+        assertTrue(IterableUtils.contains(n.getChildNodeNames(), "references"));
     }
 
     @Test
     public void shouldExposeRecordsNode() {
         NodeState n = new DataSegmentNode(mockBackend(), "s", mockSegment());
-        assertTrue(Iterables.contains(n.getChildNodeNames(), "records"));
+        assertTrue(IterableUtils.contains(n.getChildNodeNames(), "records"));
     }
 
 }

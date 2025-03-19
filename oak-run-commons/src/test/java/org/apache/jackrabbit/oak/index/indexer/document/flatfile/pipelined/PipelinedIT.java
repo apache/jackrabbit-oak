@@ -65,8 +65,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentCodec.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.NodeDocumentCodec.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.assertMetrics;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.contentDamPathFilter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
@@ -74,6 +72,8 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_FILTERED_PATH;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -433,14 +433,15 @@ public class PipelinedIT {
         try (MongoTestBackend rwStore = createNodeStore(false)) {
             DocumentNodeStore rwNodeStore = rwStore.documentNodeStore;
             contentBuilder.accept(rwNodeStore);
-            MongoTestBackend roStore = createNodeStore(true);
+            try (MongoTestBackend roStore = createNodeStore(true)) {
 
-            PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
-            File file = pipelinedStrategy.createSortedStoreFile();
+                PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
+                File file = pipelinedStrategy.createSortedStoreFile();
 
-            assertTrue(file.exists());
-            assertEquals(expected, Files.readAllLines(file.toPath()));
-            assertMetrics(statsProvider);
+                assertTrue(file.exists());
+                assertEquals(expected, Files.readAllLines(file.toPath()));
+                assertMetrics(statsProvider);
+            }
         }
     }
 
@@ -543,15 +544,17 @@ public class PipelinedIT {
         Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
         List<PathFilter> pathFilters = null;
 
-        MongoTestBackend rwStore = createNodeStore(false);
-        @NotNull NodeBuilder rootBuilder = rwStore.documentNodeStore.getRoot().builder();
-        // This property does not fit in the reserved memory, but must still be processed without errors
-        String longString = RandomStringUtils.random((int) (10 * FileUtils.ONE_MB), true, true);
-        @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
-        contentDamBuilder.child("2021").child("01").setProperty("p1", "v202101");
-        contentDamBuilder.child("2022").child("01").setProperty("p1", longString);
-        contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
-        rwStore.documentNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        String longString = RandomStringUtils.insecure().next((int) (10 * FileUtils.ONE_MB), true, true);
+
+        try (MongoTestBackend rwStore = createNodeStore(false)) {
+            @NotNull NodeBuilder rootBuilder = rwStore.documentNodeStore.getRoot().builder();
+            // This property does not fit in the reserved memory, but must still be processed without errors
+            @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
+            contentDamBuilder.child("2021").child("01").setProperty("p1", "v202101");
+            contentDamBuilder.child("2022").child("01").setProperty("p1", longString);
+            contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
+            rwStore.documentNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
 
         List<String> expected = List.of(
                 "/|{}",
@@ -565,13 +568,14 @@ public class PipelinedIT {
                 "/content/dam/2023/01|{\"p1\":\"v202301\"}"
         );
 
-        MongoTestBackend roStore = createNodeStore(true);
-        PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
+        try (MongoTestBackend roStore = createNodeStore(true)) {
+            PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
 
-        File file = pipelinedStrategy.createSortedStoreFile();
-        assertTrue(file.exists());
-        assertArrayEquals(expected.toArray(new String[0]), Files.readAllLines(file.toPath()).toArray(new String[0]));
-        assertMetrics(statsProvider);
+            File file = pipelinedStrategy.createSortedStoreFile();
+            assertTrue(file.exists());
+            assertArrayEquals(expected.toArray(new String[0]), Files.readAllLines(file.toPath()).toArray(new String[0]));
+            assertMetrics(statsProvider);
+        }
     }
 
 
@@ -679,8 +683,8 @@ public class PipelinedIT {
         }
     }
 
-    private MongoTestBackend createNodeStore(boolean b) {
-        return PipelineITUtil.createNodeStore(b, connectionFactory, builderProvider);
+    private MongoTestBackend createNodeStore(boolean readOnly) {
+        return PipelineITUtil.createNodeStore(readOnly, connectionFactory, builderProvider);
     }
 
     private PipelinedStrategy createStrategy(MongoTestBackend roStore) {

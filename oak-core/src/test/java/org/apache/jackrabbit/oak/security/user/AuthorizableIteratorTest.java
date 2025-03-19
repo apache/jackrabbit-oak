@@ -16,20 +16,21 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -99,32 +100,32 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
     
     @Test
     public void testFilterDuplicates() throws Exception {
-        List<Authorizable> l = ImmutableList.of(getTestUser());
-        assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
-        assertEquals(2, Iterators.size(AuthorizableIterator.create(false, l.iterator(), l.iterator())));
+        List<Authorizable> l = List.of(getTestUser());
+        assertEquals(1, IteratorUtils.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
+        assertEquals(2, IteratorUtils.size(AuthorizableIterator.create(false, l.iterator(), l.iterator())));
         
         // duplications are determined base on authorizableID
         Authorizable a = when(mock(Authorizable.class).getID()).thenReturn(getTestUser().getID()).getMock();
-        assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), Iterators.singletonIterator(a))));
+        assertEquals(1, IteratorUtils.size(AuthorizableIterator.create(true, l.iterator(), Iterators.singletonIterator(a))));
     }
 
     @Test
     public void testFilterDuplicatesHandlesNull() throws Exception {
-        List<User> l = Lists.newArrayList(getTestUser(), null, getTestUser());
-        assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
+        List<User> l = Arrays.asList(getTestUser(), null, getTestUser());
+        assertEquals(1, IteratorUtils.size(AuthorizableIterator.create(true, l.iterator(), l.iterator())));
     }
 
     @Test
     public void testFilterDuplicatesGetIdFails() throws Exception {
         Authorizable a = when(mock(Authorizable.class).getID()).thenThrow(new RepositoryException()).getMock();
 
-        List<Authorizable> l = ImmutableList.of(getTestUser(), a);
-        assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), Collections.emptyIterator())));
+        List<Authorizable> l = List.of(getTestUser(), a);
+        assertEquals(1, IteratorUtils.size(AuthorizableIterator.create(true, l.iterator(), Collections.emptyIterator())));
     }
 
     @Test
     public void testGetSize3() throws Exception {
-        List<User> l = Lists.newArrayList(getTestUser());
+        List<User> l = List.of(getTestUser());
 
         // size cannot be computed from regular iterators
         assertEquals(-1, AuthorizableIterator.create(false, l.iterator(), l.iterator()).getSize());

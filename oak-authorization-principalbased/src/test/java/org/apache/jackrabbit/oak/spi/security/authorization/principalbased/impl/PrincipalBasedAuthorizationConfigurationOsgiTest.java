@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
 import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
@@ -40,6 +39,7 @@ import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -55,31 +55,31 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPr
 
     @Test(expected = ReferenceViolationException.class)
     public void testMissingMandatoryReferences() {
-        context.registerInjectActivateService(pbac, ImmutableMap.of());
+        context.registerInjectActivateService(pbac, Map.of());
     }
 
     @Test(expected = ReferenceViolationException.class)
     public void testMissingMountInfoProviderReference() {
-        context.registerInjectActivateService(new FilterProviderImpl(), ImmutableMap.of("path", SUPPORTED_PATH));
+        context.registerInjectActivateService(new FilterProviderImpl(), Map.of("path", SUPPORTED_PATH));
         context.registerInjectActivateService(pbac);
     }
 
     @Test(expected = ReferenceViolationException.class)
     public void testMissingFilterProviderReference() {
         context.registerInjectActivateService(new MountInfoProviderService());
-        context.registerInjectActivateService(pbac, ImmutableMap.of());
+        context.registerInjectActivateService(pbac, Map.of());
     }
 
     @Test
     public void testMountCollidingWithFilterRoot() {
         FilterProviderImpl fp = new FilterProviderImpl();
-        context.registerInjectActivateService(fp, ImmutableMap.of("path", SUPPORTED_PATH));
+        context.registerInjectActivateService(fp, Map.of("path", SUPPORTED_PATH));
 
         MountInfoProviderService mipService = new MountInfoProviderService();
-        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths", new String[] {SUPPORTED_PATH + "/some/subtree", "/etc"}));
+        context.registerInjectActivateService(mipService, Map.of("mountedPaths", new String[] {SUPPORTED_PATH + "/some/subtree", "/etc"}));
 
         try {
-            context.registerInjectActivateService(pbac, ImmutableMap.of());
+            context.registerInjectActivateService(pbac, Map.of());
         } catch (RuntimeException e) {
             assertTrue(e.getCause() instanceof IllegalStateException);
         }
@@ -88,42 +88,42 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPr
     @Test
     public void testMountMatchingFilterRoot() {
         FilterProviderImpl fp = new FilterProviderImpl();
-        context.registerInjectActivateService(fp, ImmutableMap.of("path", SUPPORTED_PATH));
+        context.registerInjectActivateService(fp, Map.of("path", SUPPORTED_PATH));
 
         MountInfoProviderService mipService = new MountInfoProviderService();
-        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths", new String[] {SUPPORTED_PATH}));
+        context.registerInjectActivateService(mipService, Map.of("mountedPaths", new String[] {SUPPORTED_PATH}));
 
-        context.registerInjectActivateService(pbac, ImmutableMap.of());
+        context.registerInjectActivateService(pbac, Map.of());
     }
 
     @Test
     public void testMountAboveFilterRoot() {
         FilterProviderImpl fp = new FilterProviderImpl();
-        context.registerInjectActivateService(fp, ImmutableMap.of("path", SUPPORTED_PATH));
+        context.registerInjectActivateService(fp, Map.of("path", SUPPORTED_PATH));
 
         MountInfoProviderService mipService = new MountInfoProviderService();
-        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths", new String[] {Text.getRelativeParent(SUPPORTED_PATH, 1)}));
+        context.registerInjectActivateService(mipService, Map.of("mountedPaths", new String[] {Text.getRelativeParent(SUPPORTED_PATH, 1)}));
 
-        context.registerInjectActivateService(pbac, ImmutableMap.of());
+        context.registerInjectActivateService(pbac, Map.of());
     }
 
     @Test
     public void testMountsElsewhere() {
         FilterProviderImpl fp = new FilterProviderImpl();
-        context.registerInjectActivateService(fp, ImmutableMap.of("path", SUPPORTED_PATH));
+        context.registerInjectActivateService(fp, Map.of("path", SUPPORTED_PATH));
 
         MountInfoProviderService mipService = new MountInfoProviderService();
-        context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths", new String[] {"/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH}));
+        context.registerInjectActivateService(mipService, Map.of("mountedPaths", new String[] {"/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH}));
 
-        context.registerInjectActivateService(pbac, ImmutableMap.of());
+        context.registerInjectActivateService(pbac, Map.of());
     }
 
     @Test
     public void testEnableAggregationFilter() throws Exception {
-        context.registerInjectActivateService(new FilterProviderImpl(), ImmutableMap.of("path", SUPPORTED_PATH));
-        context.registerInjectActivateService(new MountInfoProviderService(), ImmutableMap.of("mountedPaths", new String[] {"/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH}));
+        context.registerInjectActivateService(new FilterProviderImpl(), Map.of("path", SUPPORTED_PATH));
+        context.registerInjectActivateService(new MountInfoProviderService(), Map.of("mountedPaths", new String[] {"/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH}));
 
-        context.registerInjectActivateService(pbac, ImmutableMap.of(Constants.PARAM_ENABLE_AGGREGATION_FILTER, true));
+        context.registerInjectActivateService(pbac, Map.of(Constants.PARAM_ENABLE_AGGREGATION_FILTER, true));
         assertNotNull(context.getService(AggregationFilter.class));
 
         context.registerInjectActivateService(new AuthorizationConfigurationImpl());
@@ -135,7 +135,7 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPr
         context.registerInjectActivateService(new TreeProviderService());
         context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
 
-        context.registerInjectActivateService(new SecurityProviderRegistration(), ImmutableMap.of("requiredServicePids", new String[0]));
+        context.registerInjectActivateService(new SecurityProviderRegistration(), Map.of("requiredServicePids", new String[0]));
         SecurityProvider securityProvider = context.getService(SecurityProvider.class);
         assertNotNull(securityProvider);
 

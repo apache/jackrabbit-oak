@@ -115,7 +115,7 @@ or to simplify you can use one of the existing `IndexUtils#createIndexDefinition
 
     {
       NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
-      IndexUtils.createIndexDefinition(index, "myProp", true, false, ImmutableList.of("myProp"), null);
+      IndexUtils.createIndexDefinition(index, "myProp", true, false, List.of("myProp"), null);
     }
 
 #### <a name="reindexing"></a> Reindexing

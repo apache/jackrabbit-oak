@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.atomic;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -49,7 +49,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
@@ -214,7 +213,7 @@ public class AtomicCounterEditorTest {
     }
     
     private static NodeBuilder setMixin(@NotNull final NodeBuilder builder) {
-        return requireNonNull(builder).setProperty(JCR_MIXINTYPES, of(MIX_ATOMIC_COUNTER), NAMES);
+        return requireNonNull(builder).setProperty(JCR_MIXINTYPES, List.of(MIX_ATOMIC_COUNTER), NAMES);
     }
     
     

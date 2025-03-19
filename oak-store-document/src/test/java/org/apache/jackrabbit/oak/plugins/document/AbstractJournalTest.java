@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -43,7 +41,7 @@ import static org.junit.Assert.fail;
 public abstract class AbstractJournalTest {
 
     protected TestBuilder builder;
-    protected List<DocumentMK> mks = Lists.newArrayList();
+    protected List<DocumentMK> mks = new ArrayList<>();
     protected Random random;
 
     @Before

@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.metric;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -29,7 +29,6 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import javax.management.MBeanServer;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -92,9 +91,9 @@ public class StatisticsProviderFactory {
      */
     @Reference(cardinality = ReferenceCardinality.OPTIONAL)
     private MBeanServer server;
-    
+
     private StatisticsProvider statisticsProvider;
-    private List<ServiceRegistration> regs = Lists.newArrayList();
+    private List<ServiceRegistration> regs = new ArrayList<>();
     private ScheduledExecutorService executor;
     private BundleContext bundleContext;
 

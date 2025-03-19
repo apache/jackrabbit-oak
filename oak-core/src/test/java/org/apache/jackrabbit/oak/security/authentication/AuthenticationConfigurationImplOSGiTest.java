@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.osgi.OsgiUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
@@ -27,8 +25,10 @@ import org.osgi.framework.Constants;
 
 import javax.jcr.SimpleCredentials;
 
+import java.util.Map;
+import java.util.Objects;
+
 import static org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration.PARAM_APP_NAME;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class AuthenticationConfigurationImplOSGiTest extends AbstractSecurityTest {
@@ -54,6 +54,16 @@ public class AuthenticationConfigurationImplOSGiTest extends AbstractSecurityTes
         ConfigurationParameters expected = ConfigurationParameters.of(
                 PARAM_APP_NAME, "name",
                 Constants.SERVICE_PID, authenticationConfiguration.getClass().getName());
-        assertTrue(Maps.difference(expected, authenticationConfiguration.getParameters()).areEqual());
+        assertTrue(areEqual(expected, authenticationConfiguration.getParameters()));
+    }
+
+    // helper methods
+    private boolean areEqual(Map<String, Object> first, Map<String, Object> second) {
+        if (first.size() != second.size()) {
+            return false;
+        }
+
+        return first.entrySet().stream()
+                .allMatch(e -> Objects.equals(e.getValue(), second.get(e.getKey())));
     }
 }

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,8 +31,9 @@ import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -40,12 +42,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Suppliers;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import static java.util.Objects.requireNonNull;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.filter;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DOC_SIZE_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
@@ -110,7 +109,7 @@ class SplitOperations {
         this.headRevision = requireNonNull(headRev).getRevision(context.getClusterId());
         this.numRevsThreshold = numRevsThreshold;
         this.nodeExistsAtHeadRevision = Suppliers.memoize(() -> doc.getLiveRevision(context, headRev,
-                        Maps.<Revision, String>newHashMap(),
+                        new HashMap<>(),
                         new LastRevs(headRev)) != null);
     }
 
@@ -153,12 +152,12 @@ class SplitOperations {
         if (!considerSplit()) {
             return Collections.emptyList();
         }
-        splitOps = Lists.newArrayList();
+        splitOps = new ArrayList<>();
         mostRecentRevs = new HashSet<>();
         splitRevs = new HashSet<>();
-        garbage = Maps.newHashMap();
+        garbage = new HashMap<>();
         changes = new HashSet<>();
-        committedChanges = Maps.newHashMap();
+        committedChanges = new HashMap<>();
         
         collectLocalChanges(committedChanges, changes);
 
@@ -228,7 +227,7 @@ class SplitOperations {
     }
 
     private boolean hasBinaryPropertyForSplit(Iterable<String> values) {
-        return doc.hasBinary() && CollectionUtils.toStream(values).map(binarySize).anyMatch(BINARY_FOR_SPLIT_THRESHOLD);
+        return doc.hasBinary() && StreamUtils.toStream(values).map(binarySize).anyMatch(BINARY_FOR_SPLIT_THRESHOLD);
     }
 
     /**
@@ -411,7 +410,7 @@ class SplitOperations {
      * @return histogram of the height of the previous documents.
      */
     private Map<Integer, List<Range>> getPreviousDocsHistogram() {
-        Map<Integer, List<Range>> prevHisto = Maps.newHashMap();
+        Map<Integer, List<Range>> prevHisto = new HashMap<>();
         for (Map.Entry<Revision, Range> entry : doc.getPreviousRanges().entrySet()) {
             Revision rev = entry.getKey();
             if (rev.getClusterId() != context.getClusterId()) {
@@ -438,7 +437,7 @@ class SplitOperations {
     private void collectLocalChanges(
             Map<String, NavigableMap<Revision, String>> committedLocally,
             Set<Revision> changes) {
-        for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED::test)) {
+        for (String property : doc.keySet().stream().filter(PROPERTY_OR_DELETED).collect(Collectors.toSet())) {
             NavigableMap<Revision, String> splitMap
                     = new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE);
             committedLocally.put(property, splitMap);

@@ -29,11 +29,11 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -92,7 +92,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Iterable<String> privilegeNames) {
-        if (Iterables.isEmpty(privilegeNames)) {
+        if (IterableUtils.isEmpty(privilegeNames)) {
             return PrivilegeBits.EMPTY;
         }
 
@@ -117,7 +117,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         if (!validateNames) {
             return getBits(privilegeNames);
         }
-        if (Iterables.isEmpty(privilegeNames)) {
+        if (IterableUtils.isEmpty(privilegeNames)) {
             return PrivilegeBits.EMPTY;
         }
         PrivilegeBits bits = PrivilegeBits.getInstance();
@@ -163,7 +163,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Privilege[] privileges, @NotNull final NameMapper nameMapper) {
-        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges),
+        return getBits(IterableUtils.filter(IterableUtils.transform(Arrays.asList(privileges),
                 privilege -> nameMapper.getOakNameOrNull(privilege.getName())), x -> x != null));
     }
 

@@ -19,10 +19,9 @@ package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RoleStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
@@ -40,7 +39,6 @@ import org.osgi.service.component.annotations.Reference;
 import java.io.File;
 import java.io.IOException;
 import java.util.Hashtable;
-import java.util.Properties;
 
 @Component(
         configurationPolicy = ConfigurationPolicy.REQUIRE,

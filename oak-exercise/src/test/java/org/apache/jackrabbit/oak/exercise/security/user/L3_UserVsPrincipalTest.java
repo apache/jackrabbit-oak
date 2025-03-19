@@ -23,7 +23,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -139,7 +138,7 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
 
     @Test
     public void testLookup() throws RepositoryException {
-        Map<String, Object[]> resultMap = ImmutableMap.of(
+        Map<String, Object[]> resultMap = Map.of(
                 testId, new Object[]{null, null, null},
                 testPrincipal.getName(), new Object[]{null, null, null},
                 testGroupId, new Object[]{null, null},

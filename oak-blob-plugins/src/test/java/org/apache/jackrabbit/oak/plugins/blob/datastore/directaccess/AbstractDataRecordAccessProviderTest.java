@@ -27,6 +27,7 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -34,6 +35,7 @@ import java.util.Properties;
 import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -45,11 +47,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
-import static org.apache.jackrabbit.guava.common.io.ByteStreams.toByteArray;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -166,7 +163,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
             assertEquals(200, conn.getResponseCode());
 
             testStream.reset();
-            assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
+            assertTrue(Arrays.equals(testStream.readAllBytes(), conn.getInputStream().readAllBytes()));
         }
         finally {
             if (null != record) {
@@ -182,21 +179,21 @@ public abstract class AbstractDataRecordAccessProviderTest {
                 StandardCharsets.ISO_8859_1.encode(umlautFilename).array(),
                 StandardCharsets.ISO_8859_1
         );
-        List<String> fileNames = Lists.newArrayList(
+        List<String> fileNames = List.of(
                 "image.png",
                 "beautiful landscape.png",
                 "\"filename-with-double-quotes\".png",
                 "filename-with-one\"double-quote.jpg",
                 umlautFilename
                 );
-        List<String> iso_8859_1_fileNames = Lists.newArrayList(
+        List<String> iso_8859_1_fileNames = List.of(
                 "image.png",
                 "beautiful landscape.png",
                 "\\\"filename-with-double-quotes\\\".png",
                 "filename-with-one\\\"double-quote.jpg",
                 umlautFilename_ISO_8859_1
         );
-        List<String> rfc8187_fileNames = Lists.newArrayList(
+        List<String> rfc8187_fileNames = List.of(
                 "image.png",
                 "beautiful%20landscape.png",
                 "%22filename-with-double-quotes%22.png",
@@ -241,7 +238,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
                 );
 
                 testStream.reset();
-                assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
+                assertTrue(Arrays.equals(testStream.readAllBytes(), conn.getInputStream().readAllBytes()));
             }
         }
         finally {
@@ -303,7 +300,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
         assertTrue(uploadContext.getMaxPartSize() >= uploadContext.getMinPartSize());
         assertTrue(uploadContext.getMaxPartSize() <= getProviderMaxPartSize());
         assertTrue((uploadContext.getMaxPartSize() * uploadContext.getUploadURIs().size()) >= ONE_MB);
-        assertFalse(Strings.isNullOrEmpty(uploadContext.getUploadToken()));
+        assertFalse(StringUtils.isEmpty(uploadContext.getUploadToken()));
     }
 
     @Test
@@ -374,7 +371,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
     @Test
     public void testInititateDirectUploadURIListSizes() throws DataRecordUploadException {
         DataRecordAccessProvider ds = getDataStore();
-        for (InitUploadResult res : Lists.newArrayList(
+        for (InitUploadResult res : List.of(
                 // 20MB upload and 10 URIs requested => should result in 2 URIs (10MB each)
                 new InitUploadResult() {
                     @Override public long getUploadSize() { return TWENTY_MB; }
@@ -496,7 +493,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
     @Test
     public void testCompleteDirectUploadRequiresValidToken() throws DataRecordUploadException, DataStoreException {
-        for (String token : Lists.newArrayList("", "abc", "abc#123")) {
+        for (String token : List.of("", "abc", "abc#123")) {
             try {
                 getDataStore().completeDataRecordUpload(token);
                 fail();
@@ -562,7 +559,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
     @Test
     public void testSinglePutDirectUploadIT() throws DataRecordUploadException, DataStoreException, IOException {
         DataRecordAccessProvider ds = getDataStore();
-        for (InitUploadResult res : Lists.newArrayList(
+        for (InitUploadResult res : List.of(
                 new InitUploadResult() {
                     @Override public long getUploadSize() { return ONE_MB; }
                     @Override public int getMaxNumURIs() { return 10; }
@@ -587,7 +584,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
                 DataRecord retrievedRecord = doGetRecord((DataStore) ds, uploadedRecord.getIdentifier());
                 assertNotNull(retrievedRecord);
                 uploadStream.reset();
-                assertTrue(Arrays.equals(toByteArray(uploadStream), toByteArray(retrievedRecord.getStream())));
+                assertTrue(Arrays.equals(uploadStream.readAllBytes(), retrievedRecord.getStream().readAllBytes()));
             }
             finally {
                 if (null != uploadedRecord) {
@@ -598,7 +595,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
     }
 
     protected Map<String, String> parseQueryString(URI uri) {
-        Map<String, String> parsed = Maps.newHashMap();
+        Map<String, String> parsed = new HashMap<>();
         String query = uri.getQuery();
         try {
             for (String pair : query.split("&")) {

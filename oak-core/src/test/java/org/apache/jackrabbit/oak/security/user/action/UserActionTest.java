@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.action;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
@@ -35,6 +34,7 @@ import org.junit.Test;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import java.security.Principal;
+import java.util.List;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -50,7 +50,7 @@ public class UserActionTest extends AbstractSecurityTest {
     private UserAction userAction = mock(UserAction.class);
     private ClearProfileAction clearProfileAction = new ClearProfileAction();
 
-    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(userAction, clearProfileAction);
+    private final AuthorizableActionProvider actionProvider = securityProvider -> List.of(userAction, clearProfileAction);
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {

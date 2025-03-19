@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -42,6 +40,7 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertFalse;
@@ -61,7 +60,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
                         PrivilegeConstants.JCR_ADD_CHILD_NODES,
                         PrivilegeConstants.JCR_REMOVE_NODE), true,
                 Collections.emptyMap(),
-                ImmutableMap.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
+                Map.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
                         vf.createValue("a", PropertyType.NAME),
                         vf.createValue("b", PropertyType.NAME),
                         vf.createValue("c", PropertyType.NAME)}));
@@ -71,12 +70,12 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
     public void testRead() {
         Root testRoot = testSession.getLatestRoot();
 
-        List<String> visible = ImmutableList.of("/a", "/a/d/b", "/a/d/b/e/c");
+        List<String> visible = List.of("/a", "/a/d/b", "/a/d/b/e/c");
         for (String p : visible) {
             assertTrue(testRoot.getTree(p).exists());
         }
 
-        List<String> invisible = ImmutableList.of("/", "/a/d", "/a/d/b/e", "/a/d/b/e/c/f");
+        List<String> invisible = List.of("/", "/a/d", "/a/d/b/e", "/a/d/b/e/c/f");
         for (String p : invisible) {
             assertFalse(testRoot.getTree(p).exists());
         }
@@ -91,7 +90,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
     public void testAddProperty() throws Exception {
         Root testRoot = testSession.getLatestRoot();
 
-        List<String> paths = ImmutableList.of("/a", "/a/d/b", "/a/d/b/e/c");
+        List<String> paths = List.of("/a", "/a/d/b", "/a/d/b/e/c");
         for (String p : paths) {
             Tree t = testRoot.getTree(p);
             t.setProperty("b", "anyvalue");
@@ -132,7 +131,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
     public void testAddChild() throws Exception {
         Root testRoot = testSession.getLatestRoot();
 
-        List<String> paths = ImmutableList.of("/a", "/a/d/b", "/a/d/b/e/c");
+        List<String> paths = List.of("/a", "/a/d/b", "/a/d/b/e/c");
         for (String p : paths) {
             Tree t = testRoot.getTree(p);
             TreeUtil.addChild(t, "c", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -143,7 +142,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
     @Test
     public void testRemoveTree() {
         Root testRoot = testSession.getLatestRoot();
-        List<String> paths = ImmutableList.of("/a/d/b/e/c", "/a/d/b", "/a");
+        List<String> paths = List.of("/a/d/b/e/c", "/a/d/b", "/a");
         for (String p : paths) {
             try {
                 testRoot.getTree(p).remove();
@@ -169,7 +168,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
         root.commit();
 
         Root testRoot = testSession.getLatestRoot();
-        List<String> paths = ImmutableList.of("/a/d/b/e/c", "/a/d/b");
+        List<String> paths = List.of("/a/d/b/e/c", "/a/d/b");
         for (String p : paths) {
             testRoot.getTree(p).remove();
             testRoot.commit();
@@ -197,7 +196,7 @@ public class ItemNameRestrictionTest extends AbstractRestrictionTest {
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ), true);
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_USER_MANAGEMENT), true,
                     Collections.emptyMap(),
-                    ImmutableMap.of (AccessControlConstants.REP_ITEM_NAMES, new Value[] {
+                    Map.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {
                                             vf.createValue(UserConstants.REP_MEMBERS, PropertyType.NAME)}));
             acMgr.setPolicy(acl.getPath(), acl);
             root.commit();

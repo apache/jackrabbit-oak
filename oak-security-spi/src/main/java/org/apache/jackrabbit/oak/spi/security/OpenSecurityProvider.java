@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenAuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAuthorizationConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * Rudimentary {@code SecurityProvider} implementation that allow every subject
@@ -44,7 +45,7 @@ public class OpenSecurityProvider implements SecurityProvider {
     @NotNull
     @Override
     public Iterable<? extends SecurityConfiguration> getConfigurations() {
-        return ImmutableList.of(new OpenAuthenticationConfiguration(), new OpenAuthorizationConfiguration());
+        return List.of(new OpenAuthenticationConfiguration(), new OpenAuthorizationConfiguration());
     }
 
     @NotNull

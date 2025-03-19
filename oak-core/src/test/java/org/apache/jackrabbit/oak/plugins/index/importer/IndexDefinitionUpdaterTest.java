@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import java.io.File;
@@ -27,13 +26,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
@@ -96,7 +94,7 @@ public class IndexDefinitionUpdaterTest {
     @Test (expected = IllegalArgumentException.class)
     public void invalidJson() throws Exception{
         Map<String, Object> map = new HashMap<>();
-        map.put("a", ImmutableMap.of("a2", "b2"));
+        map.put("a", Map.of("a2", "b2"));
         String json = JSONObject.toJSONString(map);
         applyJson(json);
     }
@@ -145,7 +143,7 @@ public class IndexDefinitionUpdaterTest {
         NodeBuilder idxBuilder = updater.apply(builder, "/oak:index/barIndex");
 
         PropertyState childOrder = builder.getChildNode("oak:index").getProperty(":childOrder");
-        List<String> names = ImmutableList.copyOf(childOrder.getValue(Type.NAMES));
+        List<String> names = ListUtils.toList(childOrder.getValue(Type.NAMES));
 
         assertEquals(asList("fooIndex", "barIndex"), names);
 

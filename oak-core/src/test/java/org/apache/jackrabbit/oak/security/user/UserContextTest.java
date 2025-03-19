@@ -21,14 +21,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -147,7 +146,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testParentNotDefinesProperty() {
-        for (String propName : Iterables.concat(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
+        for (String propName : IterableUtils.chainedIterable(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
             PropertyState property = PropertyStates.createProperty(propName, "value");
 
             for (String ntName : new String[] {NodeTypeConstants.NT_OAK_UNSTRUCTURED, NT_REP_AUTHORIZABLE_FOLDER}) {
@@ -222,11 +221,11 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testPropertyDefinesLocation() {
-        Map<String, Collection<String>> m = ImmutableMap.of(
+        Map<String, Collection<String>> m = Map.of(
                 NT_REP_GROUP, GROUP_PROPERTY_NAMES,
                 NT_REP_USER, USER_PROPERTY_NAMES,
                 NT_REP_PASSWORD, PWD_PROPERTY_NAMES,
-                NT_REP_MEMBER_REFERENCES, ImmutableList.of(REP_MEMBERS)
+                NT_REP_MEMBER_REFERENCES, List.of(REP_MEMBERS)
         );
 
         m.forEach((key, value) -> {
@@ -264,7 +263,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testNonExistingTreeDefinesLocation2() {
-        for (String name : Iterables.concat(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
+        for (String name : IterableUtils.chainedIterable(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
             String path = "/some/path/endingWith/reservedName/" + name;
 
             for (String ntName : NT_NAMES) {
@@ -281,7 +280,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testNoTreeDefinesLocationReservedEnding() {
-        for (String name : Iterables.concat(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
+        for (String name : IterableUtils.chainedIterable(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
             String path = "/some/path/endingWith/reservedName/" + name;
             TreeLocation location = Mockito.mock(TreeLocation.class);
             when(location.getPath()).thenReturn(path);
@@ -303,7 +302,7 @@ public class UserContextTest implements UserConstants {
 
     @Test
     public void testNotDefinesLocation() {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 PathUtils.ROOT_PATH,
                 NodeTypeConstants.NODE_TYPES_PATH,
                 "/content",

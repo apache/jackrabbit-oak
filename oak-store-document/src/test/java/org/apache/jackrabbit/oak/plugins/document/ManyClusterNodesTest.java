@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -29,7 +28,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.junit.Assert.assertTrue;
 
@@ -44,7 +42,7 @@ public class ManyClusterNodesTest {
 
     private DocumentStore ds;
 
-    private List<DocumentNodeStore> stores = newArrayList();
+    private List<DocumentNodeStore> stores = new ArrayList<>();
 
     @Before
     public void before() throws Exception {
@@ -70,9 +68,9 @@ public class ManyClusterNodesTest {
             NodeBuilder builder = ns.getRoot().builder();
             NodeBuilder test = builder.child("test");
             PropertyState p = test.getProperty("p");
-            List<String> values = newArrayList();
+            List<String> values = new ArrayList<>();
             if (p != null) {
-                Iterables.addAll(values, p.getValue(Type.STRINGS));
+                p.getValue(Type.STRINGS).forEach(values::add);
             }
             values.add(value);
             test.setProperty("p", values, Type.STRINGS);

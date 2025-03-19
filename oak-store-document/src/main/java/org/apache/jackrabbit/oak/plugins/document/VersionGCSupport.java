@@ -24,7 +24,6 @@ import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Stream.concat;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.stream.Collectors.toList;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
@@ -39,9 +38,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -49,8 +50,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 public class VersionGCSupport {
 
@@ -101,14 +100,23 @@ public class VersionGCSupport {
                                                   @NotNull final String fromId,
                                                   @NotNull final Set<String> includePaths,
                                                   @NotNull final Set<String> excludePaths) {
+        final long fromModifiedQuery;
+        if (MIN_ID_VALUE.equals(fromId)) {
+            // If fromId is MIN_ID_VALUE, round fromModified to 5 second resolution
+            fromModifiedQuery = getModifiedInSecs(fromModified);
+        } else {
+            // If fromId is not MIN_ID_VALUE, don't round fromModified to 5 second resolution
+            fromModifiedQuery = TimeUnit.MILLISECONDS.toSeconds(fromModified);
+        }
+
         // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
         final Stream<NodeDocument> s1 = StreamSupport.stream(getSelectedDocuments(store,
                 MODIFIED_IN_SECS, 1, fromId, includePaths, excludePaths).spliterator(), false)
-                .filter(input -> modifiedEqualsTo(input, fromModified));
+                .filter(input -> modifiedEqualsToExactTime(input, fromModifiedQuery));
 
         final Stream<NodeDocument> s2 = StreamSupport.stream(getSelectedDocuments(store,
                 MODIFIED_IN_SECS, 1, includePaths, excludePaths).spliterator(), false)
-                .filter(input -> modifiedGreaterThan(input, fromModified) && modifiedLessThan(input, toModified));
+                .filter(input -> modifiedGreaterThanExactTime(input, fromModifiedQuery) && modifiedLessThan(input, toModified));
 
         return concat(s1, s2)
                 .sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2))
@@ -121,14 +129,14 @@ public class VersionGCSupport {
         return modified != null && modified.compareTo(getModifiedInSecs(time)) >= 0;
     }
 
-    private boolean modifiedGreaterThan(final NodeDocument doc, final long time) {
+    private boolean modifiedGreaterThanExactTime(final NodeDocument doc, final long time) {
         Long modified = doc.getModified();
-        return modified != null && modified.compareTo(getModifiedInSecs(time)) > 0;
+        return modified != null && modified.compareTo(time) > 0;
     }
 
-    private boolean modifiedEqualsTo(final NodeDocument doc, final long time) {
+    private boolean modifiedEqualsToExactTime(final NodeDocument doc, final long time) {
         Long modified = doc.getModified();
-        return modified != null && modified.compareTo(getModifiedInSecs(time)) == 0;
+        return modified != null && modified.compareTo(time) == 0;
     }
 
     private boolean modifiedLessThan(final NodeDocument doc, final long time) {
@@ -174,7 +182,7 @@ public class VersionGCSupport {
     protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
                                                      final RevisionVector sweepRevs,
                                                      final long oldestRevTimeStamp) {
-        return filter(getAllDocuments(store),
+        return IterableUtils.filter(getAllDocuments(store),
                 doc -> gcTypes.contains(doc.getSplitDocType())
                         && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
                         && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs));
@@ -296,7 +304,7 @@ public class VersionGCSupport {
         if (doc.getSplitDocType() != SplitDocType.DEFAULT_NO_BRANCH) {
             return false;
         }
-        Revision r = Iterables.getFirst(doc.getAllChanges(), null);
+        Revision r = IterableUtils.getFirst(doc.getAllChanges(), null);
         return r != null && sweepRevs.isRevisionNewer(r);
     }
 }

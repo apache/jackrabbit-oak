@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -27,7 +26,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -167,7 +167,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 throw new AccessControlException("Unexpected primary type of node rep:cugPolicy.");
             } else {
                 // remove the rep:CugMixin if it has been explicitly added upon setPolicy
-                Set<String> mixins = CollectionUtils.toSet(TreeUtil.getNames(tree, JCR_MIXINTYPES));
+                Set<String> mixins = SetUtils.toSet(TreeUtil.getNames(tree, JCR_MIXINTYPES));
                 if (mixins.remove(MIX_REP_CUG_MIXIN)) {
                     tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
                 } else {
@@ -229,7 +229,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             return new AccessControlPolicy[0];
         }
         Root r = getLatestRoot();
-        Set<String> candidates = collectEffectiveCandidates(r, Iterables.transform(principals, Principal::getName));
+        Set<String> candidates = collectEffectiveCandidates(r, IterableUtils.transform(principals, Principal::getName));
         if (candidates.isEmpty()) {
             return new AccessControlPolicy[0];
         } else {
@@ -368,7 +368,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             String path = eval.remove();
             Tree t = immutableRoot.getTree(path);
             if (PathUtils.denotesRoot(path)) {
-                Iterables.addAll(eval, nestedCugPaths(t));
+                nestedCugPaths(t).forEach(eval::add);
             }
             if (CugUtil.isSupportedPath(path, supportedPaths)) {
                 Tree cug = CugUtil.getCug(t);
@@ -377,7 +377,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                     if (!Collections.disjoint(ImmutableSet.copyOf(principalNames), ImmutableSet.copyOf(pNames.getValue(Type.STRINGS)))) {
                         candidates.add(path);
                     }
-                    Iterables.addAll(eval, nestedCugPaths(cug));
+                    nestedCugPaths(cug).forEach(eval::add);
                 }
             }
         }

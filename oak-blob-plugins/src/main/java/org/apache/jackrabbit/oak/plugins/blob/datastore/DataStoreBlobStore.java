@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -77,11 +78,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 
 /**
  * BlobStore wrapper for DataStore. Wraps Jackrabbit 2 DataStore and expose them as BlobStores
@@ -307,7 +304,7 @@ public class DataStoreBlobStore
     public void close() throws DataStoreException {
         // If marked as shared transient then delete the repository marker in close
         if (SHARED_TRANSIENT) {
-            if (!Strings.isNullOrEmpty(getRepositoryId())) {
+            if (!org.apache.commons.lang3.StringUtils.isEmpty(getRepositoryId())) {
                 deleteMetadataRecord(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(getRepositoryId()));
             }
         }
@@ -325,15 +322,13 @@ public class DataStoreBlobStore
 
     @Override
     public String writeBlob(InputStream stream, BlobOptions options) throws IOException {
-        boolean threw = true;
-        try {
+        requireNonNull(stream);
+        try (stream) {
             long start = System.nanoTime();
 
-            requireNonNull(stream);
             DataRecord dr = writeStream(stream, options);
             String id = getBlobId(dr);
             updateTracker(id);
-            threw = false;
 
             stats.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, dr.getLength());
             stats.uploadCompleted(id);
@@ -342,10 +337,6 @@ public class DataStoreBlobStore
         } catch (DataStoreException e) {
             stats.uploadFailed();
             throw new IOException(e);
-        } finally {
-            //DataStore does not closes the stream internally
-            //So close the stream explicitly
-            Closeables.close(stream, threw);
         }
     }
 
@@ -366,15 +357,10 @@ public class DataStoreBlobStore
         //This is inefficient as repeated calls for same blobId would involve opening new Stream
         //instead clients should directly access the stream from DataRecord by special casing for
         //BlobStore which implements DataStore
-        InputStream stream = getInputStream(encodedBlobId);
-        boolean threw = true;
-        try {
-            ByteStreams.skipFully(stream, pos);
+        try (InputStream stream = getInputStream(encodedBlobId)) {
+            IOUtils.skipFully(stream, pos);
             int readCount = stream.read(buff, off, length);
-            threw = false;
             return readCount;
-        } finally {
-            Closeables.close(stream, threw);
         }
     }
 
@@ -441,13 +427,9 @@ public class DataStoreBlobStore
                     @Override
                     public byte[] call() throws Exception {
                         boolean threw = true;
-                        InputStream stream = getStream(blobId.blobId);
-                        try {
+                        try (InputStream stream = getStream(blobId.blobId)) {
                             byte[] result = IOUtils.toByteArray(stream);
-                            threw = false;
                             return result;
-                        } finally {
-                            Closeables.close(stream, threw);
                         }
                     }
                 });
@@ -530,14 +512,14 @@ public class DataStoreBlobStore
     @Override
     public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         return (chunkIds.size() == countDeleteChunks(chunkIds, maxLastModifiedTime));
-    }    
-    
+    }
+
     @Override
     public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         int count = 0;
         if (delegate instanceof MultiDataStoreAware) {
             try {
-                List<String> deleted = Lists.newArrayListWithExpectedSize(512);
+                List<String> deleted = new ArrayList<>(512);
                 for (String chunkId : chunkIds) {
                     long start = System.nanoTime();
 

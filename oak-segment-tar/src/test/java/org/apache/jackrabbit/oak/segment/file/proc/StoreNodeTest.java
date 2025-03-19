@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -41,7 +41,7 @@ public class StoreNodeTest {
         Backend backend = mock(Backend.class);
         when(backend.getTarNames()).thenReturn(names);
 
-        assertEquals(names, CollectionUtils.toSet(new StoreNode(backend).getChildNodeNames()));
+        assertEquals(names, SetUtils.toSet(new StoreNode(backend).getChildNodeNames()));
     }
 
     @Test

@@ -37,8 +37,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 /**
  * Defines variation in the capabilities of different RDBs.
  */
@@ -205,7 +203,7 @@ public enum RDBDocumentStoreDB {
     DB2("DB2", RDBCommonVendorSpecificCode.DB2) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
-            return RDBJDBCTools.versionCheck(md, 10, 5, description);
+            return RDBJDBCTools.versionCheck(md, 11, 5, 4, 26, description);
         }
 
         @Override
@@ -703,7 +701,7 @@ public enum RDBDocumentStoreDB {
     }
 
     public List<String> getIndexCreationStatements(String tableName, int level) {
-        List<String> result = Lists.newArrayList();
+        List<String> result = new ArrayList<>();
         result.add("create index " + tableName + "_MOD on " + tableName + " (MODIFIED)");
         if (level == 2) {
             result.add("create index " + tableName + "_VSN on " + tableName + " (VERSION)");

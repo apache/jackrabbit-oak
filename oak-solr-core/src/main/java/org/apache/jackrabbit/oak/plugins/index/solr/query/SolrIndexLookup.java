@@ -35,7 +35,10 @@ import static org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitial
 
 /**
  * Lookup for Solr indexes to be used for a given {@link Filter}.
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
+@Deprecated(forRemoval=true, since="1.74.0")
 class SolrIndexLookup {
 
     private static final Logger log = LoggerFactory.getLogger(SolrIndexLookup.class);

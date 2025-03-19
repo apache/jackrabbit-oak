@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrincipalSetPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
@@ -38,6 +36,7 @@ import javax.jcr.security.AccessControlException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -110,7 +109,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
         CugPolicyImpl cugPolicy = createCugPolicy(duplication);
         assertEquals(1, cugPolicy.getPrincipals().size());
-        assertEquals(1, Iterables.size(cugPolicy.getPrincipalNames()));
+        assertEquals(1, IterableUtils.size(cugPolicy.getPrincipalNames()));
     }
 
     @Test
@@ -242,7 +241,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     @Test
     public void testGetPathWithRemapping() {
         String oakPath = "/oak:testPath";
-        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("quercus", "http://jackrabbit.apache.org/oak/ns/1.0")));
+        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, Map.of("quercus", "http://jackrabbit.apache.org/oak/ns/1.0")));
 
         CugPolicy empty = new CugPolicyImpl(oakPath, mapper, principalManager, ImportBehavior.ABORT, exclude);
         assertEquals("/quercus:testPath", empty.getPath());
@@ -266,14 +265,14 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
         Principal excluded = getExcludedPrincipal();
         assertTrue(cug.addPrincipals(EveryonePrincipal.getInstance(), excluded));
-        assertFalse(Iterables.contains(cug.getPrincipalNames(), excluded.getName()));
+        assertFalse(IterableUtils.contains(cug.getPrincipalNames(), excluded.getName()));
     }
 
     @Test
     public void testExcludedPrincipalAddedBefore() {
         Principal excluded = getExcludedPrincipal();
         CugPolicyImpl cug = createCugPolicy(ImportBehavior.ABORT, Collections.singleton(excluded));
-        assertTrue(Iterables.contains(cug.getPrincipalNames(), excluded.getName()));
+        assertTrue(IterableUtils.contains(cug.getPrincipalNames(), excluded.getName()));
     }
 
     @Test

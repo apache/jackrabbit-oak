@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -40,12 +39,12 @@ public abstract class AbstractAutoMembershipTest  extends AbstractExternalAuthTe
     static final String AUTOMEMBERSHIP_GROUP_ID_3 = "autoMembershipGroupId_3";
     static final String NON_EXISTING_GROUP_ID = "nonExistingGroupId";
     
-    static final Map<String, String[]> MAPPING = ImmutableMap.of(
+    static final Map<String, String[]> MAPPING = Map.of(
             IDP_VALID_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_1, AUTOMEMBERSHIP_GROUP_ID_2},
             IDP_INVALID_AM, new String[] {NON_EXISTING_GROUP_ID},
             IDP_MIXED_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_1, NON_EXISTING_GROUP_ID});
 
-    static final Map<String, String[]> MAPPING_GROUP = ImmutableMap.of(
+    static final Map<String, String[]> MAPPING_GROUP = Map.of(
             IDP_VALID_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_3},
             IDP_INVALID_AM, new String[] {NON_EXISTING_GROUP_ID},
             IDP_MIXED_AM, new String[] {AUTOMEMBERSHIP_GROUP_ID_3, NON_EXISTING_GROUP_ID}); 

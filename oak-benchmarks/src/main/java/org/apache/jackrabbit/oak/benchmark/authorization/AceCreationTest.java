@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
+import java.util.Map;
 import java.util.Random;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -24,7 +25,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.benchmark.AbstractTest;
@@ -108,7 +108,7 @@ public class AceCreationTest extends AbstractTest {
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acManager, nodePath);
 
         for (int i = 0; i < count; i++) {
-            ImmutableMap<String, Value> restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, session.getValueFactory().createValue(i + ""));
+            Map<String, Value> restrictions = Map.of(AccessControlConstants.REP_GLOB, session.getValueFactory().createValue(i + ""));
             acl.addEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acManager, Privilege.JCR_ADD_CHILD_NODES), true, restrictions);
         }
 

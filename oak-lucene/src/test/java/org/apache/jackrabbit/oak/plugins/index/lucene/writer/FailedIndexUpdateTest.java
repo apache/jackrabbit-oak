@@ -16,17 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -60,6 +58,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -233,8 +232,8 @@ public class FailedIndexUpdateTest {
 
     static class LocalDirectoryTrackingIndexCopier extends IndexCopier {
 
-        private final Map<String, CopyOnWriteDirectory> dirs = Maps.newHashMap();
-        private final Map<String, File> dirPaths = Maps.newHashMap();
+        private final Map<String, CopyOnWriteDirectory> dirs = new HashMap<>();
+        private final Map<String, File> dirPaths = new HashMap<>();
         private final Set<File> reindexingDirPaths = new HashSet<>();
 
         LocalDirectoryTrackingIndexCopier(Executor executor, File indexRootDir) throws IOException {

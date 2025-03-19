@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -76,19 +75,19 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
         // - /content2      : allow everyone,  deny testGroup (isolated)
         setupCugsAndAcls();
 
-        readAccess = ImmutableList.of(
+        readAccess = List.of(
                 SUPPORTED_PATH,
                 "/content/subtree",
                 "/content/aa");
 
-        noReadAccess = ImmutableList.of(
+        noReadAccess = List.of(
                 UNSUPPORTED_PATH,  /* no access */
                 "/content2",       /* granted by cug only */
                 "/content/a",      /* granted by ace, denied by cug */
                 "/content/aa/bb"   /* granted by ace, denied by cug */
         );
 
-        for (String path : Iterables.concat(readAccess, noReadAccess)) {
+        for (String path : IterableUtils.chainedIterable(readAccess, noReadAccess)) {
             addVersionContent(path);
         }
 

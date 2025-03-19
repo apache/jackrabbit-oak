@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
@@ -43,6 +42,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -50,8 +50,7 @@ import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
 
@@ -62,6 +61,7 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -130,6 +130,7 @@ import org.slf4j.LoggerFactory;
         configurationPid = {Configuration.PID})
 public class DocumentNodeStoreService {
 
+    public static final boolean DEFAULT_INVISIBLE_FOR_DISCOVERY = false;
     private static final long MB = 1024 * 1024;
     static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     static final int DEFAULT_CACHE = (int) (DEFAULT_MEMORY_CACHE_SIZE / MB);
@@ -148,6 +149,9 @@ public class DocumentNodeStoreService {
     public static final String CLASSIC_RGC_EXPR = "0 0 2 * * ?";
     public static final long DEFAULT_RGC_TIME_LIMIT_SECS = 3*60*60; // default is 3 hours
     public static final double DEFAULT_RGC_DELAY_FACTOR = 0;
+    public static final double DEFAULT_FGC_DELAY_FACTOR = 2;
+    public static final int DEFAULT_FGC_BATCH_SIZE = 1000;
+    public static final int DEFAULT_FGC_PROGRESS_SIZE = 10000;
     private static final String DESCRIPTION = "oak.nodestore.description";
     static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
     static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
@@ -161,6 +165,11 @@ public class DocumentNodeStoreService {
      * Revisions older than this time would be garbage collected
      */
     static final long DEFAULT_VER_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
+
+    /**
+     * Nodes older than this time would be garbage collected by Full GC
+     */
+    static final long DEFAULT_FULL_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
 
 
     /**
@@ -198,6 +207,15 @@ public class DocumentNodeStoreService {
      * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
      */
     private static final String FT_NAME_EMBEDDED_VERIFICATION = "FT_EMBEDDED_VERIFICATION_OAK-10633";
+
+    /** OAK-11246 : default millis for perflogger info */
+    static final long DEFAULT_PERFLOGGER_INFO_MILLIS = Long.MAX_VALUE;
+  
+    /**
+     * Feature toggle name to enable the prev-no-prop cache.
+     * prev-no-prop refers to previous document not containing a particular property key.
+     */
+    private static final String FT_NAME_PREV_NO_PROP_CACHE = "FT_PREV_NO_PROP_OAK-11184";
 
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
@@ -238,6 +256,7 @@ public class DocumentNodeStoreService {
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
+    private Feature prevNoPropCacheFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -276,6 +295,7 @@ public class DocumentNodeStoreService {
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
         docStoreEmbeddedVerificationFeature = Feature.newFeature(FT_NAME_EMBEDDED_VERIFICATION, whiteboard);
+        prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -374,8 +394,12 @@ public class DocumentNodeStoreService {
             loggingGCMonitor = new LoggingGCMonitor(vgcLogger);
         }
         mkBuilder.setGCMonitor(new DelegatingGCMonitor(
-                newArrayList(gcMonitor, loggingGCMonitor)));
+                List.of(gcMonitor, loggingGCMonitor)));
         mkBuilder.setRevisionGCMaxAge(TimeUnit.SECONDS.toMillis(config.versionGcMaxAgeInSecs()));
+
+        DocumentNodeStore.configurePerfLogger(config.perfLoggerInfoMillis());
+        DocumentNodeStoreBranch.configurePerfLogger(config.perfLoggerInfoMillis());
+        AbstractDocumentNodeState.configurePerfLogger(config.perfLoggerInfoMillis());
 
         nodeStore = mkBuilder.build();
 
@@ -485,7 +509,9 @@ public class DocumentNodeStoreService {
                         config.nodeCachePercentage(),
                         config.prevDocCachePercentage(),
                         config.childrenCachePercentage(),
-                        config.diffCachePercentage()).
+                        config.diffCachePercentage(),
+                        config.prevNoPropCachePercentage()).
+                setClusterInvisible(config.invisibleForDiscovery()).
                 setCacheSegmentCount(config.cacheSegmentCount()).
                 setCacheStackMoveDistance(config.cacheStackMoveDistance()).
                 setBundlingDisabled(config.bundlingDisabled()).
@@ -497,15 +523,21 @@ public class DocumentNodeStoreService {
                 setCancelInvalidationFeature(cancelInvalidationFeature).
                 setDocStoreFullGCFeature(docStoreFullGCFeature).
                 setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
+                setPrevNoPropCacheFeature(prevNoPropCacheFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setFullGCEnabled(config.fullGCEnabled()).
                 setFullGCIncludePaths(config.fullGCIncludePaths()).
                 setFullGCExcludePaths(config.fullGCExcludePaths()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
                 setFullGCMode(config.fullGCMode()).
+                setFullGcMaxAgeMillis(TimeUnit.SECONDS.toMillis(config.fullGcMaxAgeInSecs())).
+                setFullGCBatchSize(config.fullGCBatchSize()).
+                setFullGCProgressSize(config.fullGCProgressSize()).
+                setFullGCDelayFactor(config.fullGCDelayFactor()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setRecoveryDelayMillis(config.recoveryDelayMillis()).
+                setPerfloggerInfoMillis(config.perfLoggerInfoMillis()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 
                     private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
@@ -541,10 +573,10 @@ public class DocumentNodeStoreService {
                 setJournalGCMaxAge(config.journalGCMaxAge()).
                 setNodeCachePathPredicate(createCachePredicate());
 
-        if (!Strings.isNullOrEmpty(persistentCache)) {
+        if (!StringUtils.isEmpty(persistentCache)) {
             builder.setPersistentCache(persistentCache);
         }
-        if (!Strings.isNullOrEmpty(journalCache)) {
+        if (!StringUtils.isEmpty(journalCache)) {
             builder.setJournalCache(journalCache);
         }
 
@@ -578,7 +610,7 @@ public class DocumentNodeStoreService {
 
         Set<Path> paths = new HashSet<>();
         for (String p : config.persistentCacheIncludes()) {
-            p = p != null ? Strings.emptyToNull(p.trim()) : null;
+            p = p != null ? org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(p.trim()) : null;
             if (p != null) {
                 paths.add(Path.fromString(p));
             }
@@ -597,7 +629,7 @@ public class DocumentNodeStoreService {
     }
 
     private boolean isNodeStoreProvider() {
-        return !Strings.isNullOrEmpty(config.role());
+        return !StringUtils.isEmpty(config.role());
     }
 
     private boolean isContinuousRevisionGC() {
@@ -610,7 +642,7 @@ public class DocumentNodeStoreService {
     private String getVersionGCExpression() {
         String defaultExpr = CONTINUOUS_RGC_EXPR;
         String expr = config.versionGCExpression();
-        if (Strings.isNullOrEmpty(expr)) {
+        if (StringUtils.isEmpty(expr)) {
             expr = defaultExpr;
         }
         // validate expression
@@ -645,25 +677,8 @@ public class DocumentNodeStoreService {
             journalPropertyHandlerFactory.stop();
         }
 
-        if (prefetchFeature != null) {
-            prefetchFeature.close();
-        }
-
-        if (docStoreThrottlingFeature != null) {
-            docStoreThrottlingFeature.close();
-        }
-
-        if (cancelInvalidationFeature != null) {
-            cancelInvalidationFeature.close();
-        }
-
-        if (docStoreFullGCFeature != null) {
-            docStoreFullGCFeature.close();
-        }
-
-        if (docStoreEmbeddedVerificationFeature != null) {
-            docStoreEmbeddedVerificationFeature.close();
-        }
+        closeFeatures(prefetchFeature, docStoreThrottlingFeature, cancelInvalidationFeature, docStoreFullGCFeature,
+                docStoreEmbeddedVerificationFeature, prevNoPropCacheFeature);
 
         unregisterNodeStore();
     }
@@ -767,6 +782,19 @@ public class DocumentNodeStoreService {
         if (nodeStore != null){
             nodeStore.setNodeStateCache(DocumentNodeStateCache.NOOP);
         }
+    }
+
+    /**
+     * Closes the given varargs of features.
+     * <p>
+     * This method iterates over the provided varargs of features and closes each one
+     * that is not null.
+     * </p>
+     *
+     * @param features a varargs of {@link Feature} objects to be closed.
+     */
+    private void closeFeatures(@NotNull final Feature... features) {
+        Arrays.stream(features).filter(Objects::nonNull).forEach(Feature::close);
     }
 
     private void unregisterNodeStore() {
@@ -946,7 +974,7 @@ public class DocumentNodeStoreService {
 
     private String resolvePath(String value, String defaultValue) {
         String path = value;
-        if (Strings.isNullOrEmpty(value)) {
+        if (StringUtils.isEmpty(value)) {
             path = defaultValue;
         }
         if ("-".equals(path)) {
@@ -959,7 +987,7 @@ public class DocumentNodeStoreService {
 
     private String getRepositoryHome() {
         String repoHome = config.repository_home();
-        if (Strings.isNullOrEmpty(repoHome)) {
+        if (StringUtils.isEmpty(repoHome)) {
             repoHome = DEFAULT_PROP_HOME;
         }
         return repoHome;

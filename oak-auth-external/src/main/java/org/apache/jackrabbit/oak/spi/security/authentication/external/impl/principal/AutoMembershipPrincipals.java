@@ -21,7 +21,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +33,8 @@ import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -211,7 +213,7 @@ final class AutoMembershipPrincipals {
     }
 
     private Map<Principal, Group> collectGlobalAutoMembershipPrincipals(@NotNull String idpName) {
-        Map<Principal, Group> map = Maps.newHashMap();
+        Map<Principal, Group> map = new HashMap<>();
         if (!principalMap.containsKey(idpName)) {
             String[] vs = autoMembershipMapping.get(idpName);
             if (vs != null) {
@@ -220,7 +222,7 @@ final class AutoMembershipPrincipals {
                 }
             }
             // only cache the principal instance but not the group (tree might become disconnected)
-            principalMap.put(idpName, ImmutableSet.copyOf(map.keySet()));
+            principalMap.put(idpName, Collections.unmodifiableSet(SetUtils.toLinkedSet(map.keySet())));
         } else {
             // resolve Group objects from cached principals
             principalMap.get(idpName).forEach(groupPrincipal -> {

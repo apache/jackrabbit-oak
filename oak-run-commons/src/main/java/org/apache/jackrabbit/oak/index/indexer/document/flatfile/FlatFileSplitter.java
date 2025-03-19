@@ -69,13 +69,13 @@ public class FlatFileSplitter {
     private final File flatFile;
     private final NodeStateEntryReader entryReader;
     private final Compression algorithm;
-    private final Set<IndexDefinition> indexDefinitions;
+    private final List<IndexDefinition> indexDefinitions;
     private Set<String> splitNodeTypeNames;
 
     static Predicate<File> IS_SPLIT = path -> path.getParent().endsWith(SPLIT_DIR_NAME);
     
     public FlatFileSplitter(File flatFile, File workdir, NodeTypeInfoProvider infoProvider, NodeStateEntryReader entryReader,
-            Set<IndexDefinition> indexDefinitions) {
+            List<IndexDefinition> indexDefinitions) {
         this.flatFile = flatFile;
         this.indexDefinitions = indexDefinitions;
         this.workDir = new File(workdir, SPLIT_DIR_NAME);

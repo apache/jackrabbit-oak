@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.run;
 
 import static com.mongodb.MongoURI.MONGODB_PREFIX;
@@ -23,7 +22,6 @@ import static java.util.Objects.isNull;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.populate;
-import static org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode.DISABLED;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -33,9 +31,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +51,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -68,9 +69,6 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
 
@@ -299,7 +297,7 @@ class Utils {
             String cfgPath = s3dsConfig.value(options);
             Properties props = loadAndTransformProps(cfgPath);
             s3ds.setProperties(props);
-            File homeDir =  Files.createTempDir();
+            File homeDir = Files.createTempDirectory(Utils.class.getSimpleName() + "-").toFile();
             closer.register(asCloseable(homeDir));
             s3ds.init(homeDir.getAbsolutePath());
             delegate = s3ds;
@@ -308,13 +306,13 @@ class Utils {
             String cfgPath = azureBlobDSConfig.value(options);
             Properties props = loadAndTransformProps(cfgPath);
             azureds.setProperties(props);
-            File homeDir =  Files.createTempDir();
+            File homeDir = Files.createTempDirectory(Utils.class.getSimpleName() + "-").toFile();
             azureds.init(homeDir.getAbsolutePath());
             closer.register(asCloseable(homeDir));
             delegate = azureds;
         } else if (options.has(nods)){
             delegate = new DummyDataStore();
-            File homeDir =  Files.createTempDir();
+            File homeDir = Files.createTempDirectory(Utils.class.getSimpleName() + "-").toFile();
             delegate.init(homeDir.getAbsolutePath());
             closer.register(asCloseable(homeDir));
         }
@@ -401,7 +399,7 @@ class Utils {
     }
 
     private static Map<String, ?> asMap(Properties props) {
-        Map<String, Object> map = Maps.newHashMap();
+        Map<String, Object> map = new HashMap<>();
         for (Object key : props.keySet()) {
             map.put((String)key, props.get(key));
         }

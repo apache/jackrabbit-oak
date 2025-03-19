@@ -20,10 +20,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.lucene.document.Document;
@@ -112,7 +112,7 @@ class SecureSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts 
             this.labelAndValues = labelAndValues;
             inaccessibleCounts = new long[labelAndValues.length];
 
-            Map<String, Integer> map = Maps.newHashMap();
+            Map<String, Integer> map = new HashMap<>();
             for (int i = 0; i < labelAndValues.length; i++) {
                 LabelAndValue lv = labelAndValues[i];
                 map.put(lv.label, i);

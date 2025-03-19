@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -36,7 +31,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
@@ -209,7 +205,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         for (String v : values) {
             list.add(valueFactory.createValue(v, PropertyType.NAME));
         }
-        return ImmutableMap.of(name, list.toArray(new Value[0]));
+        return Map.of(name, list.toArray(new Value[0]));
     }
 
     @NotNull
@@ -617,8 +613,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertArrayEquals(new Privilege[0], acMgr.getPrivileges(null, testPrincipals));
         assertArrayEquals(new Privilege[0], acMgr.getPrivileges("/", testPrincipals));
         assertEquals(
-                ImmutableSet.copyOf(testPrivileges),
-                ImmutableSet.copyOf(acMgr.getPrivileges(testPath, testPrincipals)));
+                Set.of(testPrivileges),
+                Set.of(acMgr.getPrivileges(testPath, testPrincipals)));
     }
 
     //--------------------------------------< getApplicablePolicies(String) >---
@@ -644,7 +640,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     @Test
     public void testGetApplicablePoliciesOnAccessControllable() throws Exception {
         Tree node = root.getTree(testPath);
-        node.setProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+        node.setProperty(JcrConstants.JCR_MIXINTYPES, List.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
 
         AccessControlPolicyIterator itr = acMgr.getApplicablePolicies(testPath);
 
@@ -787,7 +783,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         Tree aclNode = root.getTree(testPath + '/' + REP_POLICY);
         Tree aceNode = TreeUtil.addChild(aclNode, "testACE", NT_REP_DENY_ACE);
         aceNode.setProperty(REP_PRINCIPAL_NAME, "invalidPrincipal");
-        aceNode.setProperty(REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_READ), Type.NAMES);
+        aceNode.setProperty(REP_PRIVILEGES, List.of(PrivilegeConstants.JCR_READ), Type.NAMES);
 
         // reading policies with unknown principal name should not fail.
         AccessControlPolicy[] policies = acMgr.getPolicies(testPath);
@@ -868,7 +864,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     public void testGetPoliciesLimitsPrincipalLookup() throws Exception {
         ACL policy = TestUtility.getApplicablePolicy(acMgr, testPath);
         policy.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ));
-        policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_CHILD_NODES), true, ImmutableMap.of(REP_GLOB, getValueFactory(root).createValue("")));
+        policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_CHILD_NODES), true, Map.of(REP_GLOB, getValueFactory(root).createValue("")));
         policy.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_NODE));
         acMgr.setPolicy(policy.getPath(), policy);
 
@@ -1173,15 +1169,15 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(NT_REP_GRANT_ACE, TreeUtil.getPrimaryTypeName(ace));
         assertEquals(testPrincipal.getName(), TreeUtil.getString(ace, REP_PRINCIPAL_NAME));
         assertEquals(
-                CollectionUtils.toSet(testPrivileges),
-                CollectionUtils.toSet(privilegesFromNames(TreeUtil.getStrings(ace, REP_PRIVILEGES))));
+                SetUtils.toSet(testPrivileges),
+                SetUtils.toSet(privilegesFromNames(TreeUtil.getStrings(ace, REP_PRIVILEGES))));
         assertFalse(ace.hasChild(REP_RESTRICTIONS));
 
         Tree ace2 = children.next();
         assertEquals(NT_REP_DENY_ACE, TreeUtil.getPrimaryTypeName(ace2));
         assertEquals(EveryonePrincipal.NAME, requireNonNull(ace2.getProperty(REP_PRINCIPAL_NAME)).getValue(Type.STRING));
         Privilege[] privs = privilegesFromNames(TreeUtil.getNames(ace2, REP_PRIVILEGES));
-        assertEquals(CollectionUtils.toSet(testPrivileges), CollectionUtils.toSet(privs));
+        assertEquals(SetUtils.toSet(testPrivileges), SetUtils.toSet(privs));
         assertTrue(ace2.hasChild(REP_RESTRICTIONS));
         Tree restr = ace2.getChild(REP_RESTRICTIONS);
         assertEquals("*/something", requireNonNull(restr.getProperty(REP_GLOB)).getValue(Type.STRING));
@@ -1360,7 +1356,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(4, acl.getAccessControlEntries().length);
 
         Iterable<Tree> aceTrees = root.getTree(testPath).getChild(REP_POLICY).getChildren();
-        String[] aceNodeNames = Iterables.toArray(Iterables.transform(aceTrees, Tree::getName), String.class);
+        String[] aceNodeNames = IterableUtils.toArray(IterableUtils.transform(aceTrees, Tree::getName), String.class);
         assertArrayEquals(new String[]{"allow", "allow1", "deny2", "deny3"}, aceNodeNames);
     }
 
@@ -1374,7 +1370,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         root.commit();
 
         assertEquals(Set.of(JcrConstants.MIX_LOCKABLE, MIX_REP_ACCESS_CONTROLLABLE),
-                ImmutableSet.copyOf(TreeUtil.getNames(root.getTree(testPath), JcrConstants.JCR_MIXINTYPES)));
+                SetUtils.toSet(TreeUtil.getNames(root.getTree(testPath), JcrConstants.JCR_MIXINTYPES)));
     }
 
     //--------------------------< removePolicy(String, AccessControlPolicy) >---
@@ -1488,7 +1484,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetApplicablePoliciesByPrincipal() throws Exception {
-        List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+        List<Principal> principals = List.of(testPrincipal, EveryonePrincipal.getInstance());
         for (Principal principal : principals) {
             AccessControlPolicy[] applicable = acMgr.getApplicablePolicies(principal);
             assertPolicies(applicable, 1);
@@ -1518,7 +1514,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetPoliciesByPrincipal() throws Exception {
-        List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+        List<Principal> principals = List.of(testPrincipal, EveryonePrincipal.getInstance());
         for (Principal principal : principals) {
             assertPolicies(acMgr.getPolicies(principal), 0);
         }
@@ -1721,7 +1717,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         // different ways to create the principal-set to make sure the filtering
         // doesn't rely on principal equality but rather on the name.
-        List<Principal> principals = ImmutableList.of(
+        List<Principal> principals = List.of(
                 testPrincipal,
                 new PrincipalImpl(testPrincipal.getName()),
                 () -> testPrincipal.getName());
@@ -1748,7 +1744,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         Tree testTree = r.getTree(testPath);
         Tree ace = TreeUtil.addChild(testTree, "ace", NT_REP_GRANT_ACE);
         ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
-        ace.setProperty(REP_PRIVILEGES, ImmutableList.of(JCR_READ), Type.NAMES);
+        ace.setProperty(REP_PRIVILEGES, List.of(JCR_READ), Type.NAMES);
 
         QueryEngine qe = mockQueryEngine(ace);
         when(r.getQueryEngine()).thenReturn(qe);
@@ -1768,7 +1764,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         Tree aclWithWrongType = TreeUtil.addChild(testTree, REP_POLICY, NT_OAK_UNSTRUCTURED);
         Tree ace = TreeUtil.addChild(aclWithWrongType, "ace", NT_REP_GRANT_ACE);
         ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
-        ace.setProperty(REP_PRIVILEGES, ImmutableList.of(JCR_READ), Type.NAMES);
+        ace.setProperty(REP_PRIVILEGES, List.of(JCR_READ), Type.NAMES);
 
         QueryEngine qe = mockQueryEngine(ace);
         when(r.getQueryEngine()).thenReturn(qe);
@@ -1780,7 +1776,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     
     private static QueryEngine mockQueryEngine(@NotNull Tree aceTree) throws Exception {
         ResultRow row = when(mock(ResultRow.class).getTree(null)).thenReturn(aceTree).getMock();
-        Iterable rows = ImmutableList.of(row);
+        Iterable rows = List.of(row);
         Result res = mock(Result.class);
         when(res.getRows()).thenReturn(rows).getMock();
         QueryEngine qe = mock(QueryEngine.class);
@@ -1797,7 +1793,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         Tree testTree = r.getTree(testPath);
         Tree ace = TreeUtil.addChild(testTree, "ace", NT_REP_GRANT_ACE);
         ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
-        ace.setProperty(REP_PRIVILEGES, ImmutableList.of(JCR_READ), Type.NAMES);
+        ace.setProperty(REP_PRIVILEGES, List.of(JCR_READ), Type.NAMES);
 
         QueryEngine qe = mock(QueryEngine.class);
         when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenThrow(new ParseException("test", 0));
@@ -1839,14 +1835,14 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         ACL acl = (ACL) policies[0];
 
         Value nodePathValue = getValueFactory().createValue(testPath, PropertyType.PATH);
-        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, ImmutableMap.of(REP_NODE_PATH, nodePathValue)));
+        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, Map.of(REP_NODE_PATH, nodePathValue)));
 
         // entry with * glob has already been created in the setup
-        Map<String, Value> restrictions = ImmutableMap.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*"));
+        Map<String, Value> restrictions = Map.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*"));
         assertFalse(acl.addEntry(testPrincipal, testPrivileges, true, restrictions));
 
         // entry with different glob -> should be added
-        restrictions = ImmutableMap.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*/a/b"));
+        restrictions = Map.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*/a/b"));
         assertTrue(acl.addEntry(testPrincipal, testPrivileges, false, restrictions));
 
         acMgr.setPolicy(acl.getPath(), acl);
@@ -2131,7 +2127,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
                        @NotNull RestrictionProvider restrictionProvider,
                        @NotNull NamePathMapper namePathMapper,
                        @NotNull JackrabbitAccessControlEntry... entry) {
-            this(jcrPath, restrictionProvider, namePathMapper, Lists.newArrayList(entry));
+            this(jcrPath, restrictionProvider, namePathMapper, List.of(entry));
         }
 
         @Override

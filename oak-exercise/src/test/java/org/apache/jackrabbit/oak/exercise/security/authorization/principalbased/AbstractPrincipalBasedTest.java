@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.principalbased;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -25,6 +23,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
@@ -159,14 +159,14 @@ abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     @Nullable
     static PrincipalAccessControlList getApplicablePrincipalAccessControlList(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal principal) throws Exception {
-        Set<JackrabbitAccessControlPolicy> applicable = ImmutableSet.copyOf(acMgr.getApplicablePolicies(principal));
-        PrincipalAccessControlList acl = (PrincipalAccessControlList) Iterables.find(applicable, accessControlPolicy -> accessControlPolicy instanceof PrincipalAccessControlList, null);
+        Set<JackrabbitAccessControlPolicy> applicable = Set.of(acMgr.getApplicablePolicies(principal));
+        PrincipalAccessControlList acl = (PrincipalAccessControlList) IterableUtils.find(applicable, accessControlPolicy -> accessControlPolicy instanceof PrincipalAccessControlList);
         return acl;
     }
 
     @NotNull
     ContentSession getTestSession(@NotNull Principal... principals) throws Exception {
-        Subject subject = new Subject(true, ImmutableSet.copyOf(principals), Set.of(), Set.of());
-        return Subject.doAsPrivileged(subject, (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null);
+        Subject subject = new Subject(true, Set.of(principals), Set.of(), Set.of());
+        return Java23Subject.doAsPrivileged(subject, (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null);
     }
 }

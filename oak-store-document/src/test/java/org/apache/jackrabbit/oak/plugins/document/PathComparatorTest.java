@@ -19,12 +19,9 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import static org.junit.Assert.assertEquals;
 
@@ -44,7 +41,7 @@ public class PathComparatorTest {
 
         paths.sort(PathComparator.INSTANCE);
 
-        List<Path> expected = Lists.newArrayList(
+        List<Path> expected = List.of(
                 p("/bar/qux"), p("/foo/bar"), p("/bar"), p("/foo"), p("/"));
 
         assertEquals(expected, paths);

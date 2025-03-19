@@ -23,6 +23,7 @@ import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -39,7 +40,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -104,7 +104,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         //Only 2 entries /a and /a/d would be invalidated
         // '/' would have been added to cache in start of backgroundRead
         //itself
-        assertEquals(initialCacheSizeC1 + totalPaths - 2, size(ds(c1).getNodeDocumentCache().keys()));
+        assertEquals(initialCacheSizeC1 + totalPaths - 2, IterableUtils.size(ds(c1).getNodeDocumentCache().keys()));
     }
 
     @Test
@@ -144,8 +144,8 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
     }
 
-    private int getCurrentCacheSize(DocumentNodeStore ds){
-        return size(ds(ds).getNodeDocumentCache().keys());
+    private int getCurrentCacheSize(DocumentNodeStore ds) {
+        return IterableUtils.size(ds(ds).getNodeDocumentCache().keys());
     }
 
     private static void refreshHead(DocumentNodeStore store) {

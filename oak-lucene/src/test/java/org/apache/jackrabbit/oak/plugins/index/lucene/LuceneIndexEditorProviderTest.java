@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
@@ -39,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.junit.Test;
 
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -130,7 +129,7 @@ public class LuceneIndexEditorProviderTest {
 
     private CommitInfo newCommitInfo() {
         CommitInfo info = new CommitInfo("admin", "s1",
-                ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
+                Map.of(CommitContext.NAME, new SimpleCommitContext()));
         return info;
     }
 

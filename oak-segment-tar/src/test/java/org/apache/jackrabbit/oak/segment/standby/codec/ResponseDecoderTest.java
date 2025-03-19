@@ -14,11 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.standby.codec;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.elementsEqual;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.segment.standby.StandbyTestUtils.createBlobChunkBuffer;
@@ -32,12 +29,14 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -176,7 +175,7 @@ public class ResponseDecoderTest {
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
-        assertTrue(elementsEqual(asList("b", "c"), response.getReferences()));
+        assertTrue(IterableUtils.elementsEqual(asList("b", "c"), response.getReferences()));
     }
 
     @Test
@@ -206,7 +205,7 @@ public class ResponseDecoderTest {
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
-        assertTrue(elementsEqual(newArrayList("b"), response.getReferences()));
+        assertTrue(IterableUtils.elementsEqual(List.of("b"), response.getReferences()));
     }
 
     @Test
@@ -222,7 +221,7 @@ public class ResponseDecoderTest {
         channel.writeInbound(buf);
         GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
         assertEquals("a", response.getSegmentId());
-        assertTrue(elementsEqual(emptyList(), response.getReferences()));
+        assertTrue(IterableUtils.elementsEqual(emptyList(), response.getReferences()));
     }
 
     @Test

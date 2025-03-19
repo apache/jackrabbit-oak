@@ -25,7 +25,10 @@ import org.jetbrains.annotations.Nullable;
 /**
  * A Solr configuration holding all the possible customizable parameters that
  * can be leveraged for an Oak search index.
+ * <p>
+ * @deprecated Solr support is deprecated and will be removed in a future version of Oak; see <a href=https://issues.apache.org/jira/browse/OAK-11314 target=_blank>Jira ticket OAK-11314</a> for more information.
  */
+@Deprecated(forRemoval=true, since="1.74.0")
 public interface OakSolrConfiguration {
 
     /**
@@ -180,5 +183,23 @@ public interface OakSolrConfiguration {
          * if no commits should be sent (relying on auto(soft)commit on the instance itself)
          */
         AUTO
+    }
+
+    /**
+     * Enum to designate the type of the Solr server.
+     */
+    enum ServerType {
+        /**
+         * no server
+         */
+        none,
+        /**
+         * embedded server
+         */
+        embedded,
+        /**
+         * remote server
+         */
+        remote
     }
 }

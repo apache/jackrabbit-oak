@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.fixture;
 
 import java.io.Closeable;
@@ -25,15 +24,16 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -241,7 +241,7 @@ public abstract class BlobStoreFixture implements Closeable{
 
     public static Map<String, Object> loadAndTransformProps(String cfgPath) throws IOException {
         Dictionary dict = ConfigurationHandler.read(new FileInputStream(cfgPath));
-        Map<String, Object> props = Maps.newHashMap();
+        Map<String, Object> props = new HashMap<>();
         Enumeration keys = dict.keys();
         while (keys.hasMoreElements()) {
             String key = (String) keys.nextElement();
@@ -253,15 +253,15 @@ public abstract class BlobStoreFixture implements Closeable{
     public static Map<String, ?> getConfig() {
         // try loading the props from the config file if configured
         String cfgFile = System.getProperty("ds.config");
-        Map<String, Object> result = Maps.newHashMap();
-        if (!Strings.isNullOrEmpty(cfgFile)) {
+        Map<String, Object> result = new HashMap<>();
+        if (!StringUtils.isEmpty(cfgFile)) {
             try {
                 result = loadAndTransformProps(cfgFile);
             } catch (IOException e) {
             }
         }
 
-        for (Map.Entry<String, ?> e : Maps.fromProperties(System.getProperties()).entrySet()) {
+        for (Map.Entry<String, ?> e : MapUtils.fromProperties(System.getProperties()).entrySet()) {
             String key = e.getKey();
             if (key.startsWith("ds.") || key.startsWith("bs.")) {
                 key = key.substring(3); //length of bs.

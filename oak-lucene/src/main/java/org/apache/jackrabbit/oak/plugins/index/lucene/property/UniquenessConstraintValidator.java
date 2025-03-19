@@ -25,12 +25,12 @@ import java.util.Set;
 
 import org.apache.jackrabbit.guava.common.collect.HashMultimap;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Multimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -88,7 +88,7 @@ public class UniquenessConstraintValidator {
     }
 
     private Iterable<String> getIndexedPaths(String propertyRelativePath, String value) {
-        return Iterables.concat(
+        return IterableUtils.chainedIterable(
                 firstStore.getIndexedPaths(propertyRelativePath, value),
                 secondStore.getIndexedPaths(propertyRelativePath, value)
         );

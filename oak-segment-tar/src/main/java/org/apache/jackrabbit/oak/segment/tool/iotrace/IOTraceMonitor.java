@@ -18,7 +18,6 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.collect.Queues.newConcurrentLinkedQueue;
 import static java.lang.String.join;
 
 import java.io.File;
@@ -31,7 +30,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.jetbrains.annotations.NotNull;
@@ -44,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
 public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
     @NotNull
     private final AtomicReference<List<String>> context =
-            new AtomicReference<>(ImmutableList.of());
+            new AtomicReference<>(List.of());
 
     @NotNull
     private final IOTraceWriter traceWriter;
@@ -53,7 +51,7 @@ public class IOTraceMonitor extends IOMonitorAdapter implements Flushable {
     private final Lock ioLock = new ReentrantLock();
 
     @NotNull
-    private final ConcurrentLinkedQueue<IOEvent> ioEvents = newConcurrentLinkedQueue();
+    private final ConcurrentLinkedQueue<IOEvent> ioEvents = new ConcurrentLinkedQueue<>();
 
     /**
      * Create a new instance writing to {@code traceWriter} with additional context fields.

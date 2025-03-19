@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.commit;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -195,7 +194,7 @@ public class MoveTrackerTest {
 
     @Test
     public void testSingleMove() {
-        Map<String, String> moves = ImmutableMap.of(
+        Map<String, String> moves = Map.of(
                 "/a/b/c", "/d/e/f",
                 "/aa/bb/cc", "/aa/f/cc"
         );
@@ -212,7 +211,7 @@ public class MoveTrackerTest {
 
     @Test
     public void testIndependantMoves() {
-        Map<String, String> m = ImmutableMap.of(
+        Map<String, String> m = Map.of(
                 "/a/b/c", "/d/e/f",
                 "/aa/bb/cc", "/aa/f/cc"
         );

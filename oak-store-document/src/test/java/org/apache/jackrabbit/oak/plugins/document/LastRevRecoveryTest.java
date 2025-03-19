@@ -19,13 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -38,7 +37,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
@@ -141,7 +139,7 @@ public class LastRevRecoveryTest {
         LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(sharedStore, ds1);
 
         //Do not pass y1 but still y1 should be updated
-        recovery.recover(Lists.newArrayList(x1, z1), c2Id);
+        recovery.recover(List.of(x1, z1), c2Id);
 
         //Post recovery the lastRev should be updated for /x/y and /x
         assertEquals(head2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
@@ -162,7 +160,7 @@ public class LastRevRecoveryTest {
 
         // reset clusterNodes entry to simulate a crash
         sharedStore.remove(CLUSTER_NODES, clusterId);
-        sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(doc)));
+        sharedStore.create(CLUSTER_NODES, List.of(updateOpFromDocument(doc)));
 
         // 'wait' until lease expires
         clock.waitUntil(doc.getLeaseEndTime() + 1);
@@ -170,7 +168,7 @@ public class LastRevRecoveryTest {
         // run recovery on ds2
         LastRevRecoveryAgent agent = new LastRevRecoveryAgent(sharedStore, ds2);
         Iterable<Integer> clusterIds = agent.getRecoveryCandidateNodes();
-        assertTrue(Iterables.contains(clusterIds, c1Id));
+        assertTrue(IterableUtils.contains(clusterIds, c1Id));
         assertEquals("must not recover any documents",
                 0, agent.recover(c1Id));
     }
@@ -188,7 +186,7 @@ public class LastRevRecoveryTest {
 
         // reset clusterNodes entry to simulate a crash
         sharedStore.remove(CLUSTER_NODES, clusterId);
-        sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(doc)));
+        sharedStore.create(CLUSTER_NODES, List.of(updateOpFromDocument(doc)));
 
         // 'wait' until lease expires
         clock.waitUntil(doc.getLeaseEndTime() + 1);
@@ -221,7 +219,7 @@ public class LastRevRecoveryTest {
 
         // reset clusterNodes entry to simulate a crash
         sharedStore.remove(CLUSTER_NODES, clusterId);
-        sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(doc)));
+        sharedStore.create(CLUSTER_NODES, List.of(updateOpFromDocument(doc)));
 
         // 'wait' until lease expires
         clock.waitUntil(doc.getLeaseEndTime() + 1);
@@ -261,7 +259,7 @@ public class LastRevRecoveryTest {
 
         // reset clusterNodes entry to simulate a crash of ds1
         sharedStore.remove(CLUSTER_NODES, clusterId);
-        sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(info1)));
+        sharedStore.create(CLUSTER_NODES, List.of(updateOpFromDocument(info1)));
 
         // 'wait' until lease expires
         clock.waitUntil(info1.getLeaseEndTime() + 1);
@@ -277,7 +275,7 @@ public class LastRevRecoveryTest {
         ds2.dispose();
         // reset clusterNodes entry
         sharedStore.remove(CLUSTER_NODES, String.valueOf(c2Id));
-        sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(info2)));
+        sharedStore.create(CLUSTER_NODES, List.of(updateOpFromDocument(info2)));
         // 'wait' until ds2's lease expires
         clock.waitUntil(info2.getLeaseEndTime() + 1);
 
@@ -312,7 +310,7 @@ public class LastRevRecoveryTest {
 
         // reset clusterNodes entry to simulate a crash of ds1
         sharedStore.remove(CLUSTER_NODES, clusterId);
-        sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(info1)));
+        sharedStore.create(CLUSTER_NODES, List.of(updateOpFromDocument(info1)));
 
         // remove the sweep revision as well
         UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
@@ -329,7 +327,7 @@ public class LastRevRecoveryTest {
         // run recovery on ds2 for ds1
         LastRevRecoveryAgent agent = new LastRevRecoveryAgent(sharedStore, ds2);
         Iterable<Integer> clusterIds = agent.getRecoveryCandidateNodes();
-        assertTrue(Iterables.contains(clusterIds, c1Id));
+        assertTrue(IterableUtils.contains(clusterIds, c1Id));
         // nothing to recover
         assertEquals("must not recover any documents",
                 0, agent.recover(c1Id));
@@ -351,7 +349,7 @@ public class LastRevRecoveryTest {
 
         // reset clusterNodes entry to simulate a crash of ds1
         sharedStore.remove(CLUSTER_NODES, clusterId);
-        sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(info1)));
+        sharedStore.create(CLUSTER_NODES, List.of(updateOpFromDocument(info1)));
 
         // 'wait' until lease expires
         clock.waitUntil(info1.getLeaseEndTime() + 1);

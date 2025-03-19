@@ -25,8 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.StringBasedBlob;
@@ -156,14 +154,8 @@ public final class Conversions {
         return new Converter() {
             @Override
             public String toString() {
-                try {
-                    InputStream in = value.getNewStream();
-                    try {
-                        return new String(ByteStreams.toByteArray(in), StandardCharsets.UTF_8);
-                    }
-                    finally {
-                        in.close();
-                    }
+                try (InputStream in = value.getNewStream()) {
+                    return new String(in.readAllBytes(), StandardCharsets.UTF_8);
                 }
                 catch (IOException e) {
                     throw new IllegalArgumentException(e);

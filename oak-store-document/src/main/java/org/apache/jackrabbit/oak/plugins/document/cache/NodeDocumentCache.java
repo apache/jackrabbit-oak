@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isLeafPrevio
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -35,15 +36,13 @@ import java.util.function.Predicate;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Cache for the NodeDocuments. This class is thread-safe and uses the provided NodeDocumentLock.
@@ -324,18 +323,18 @@ public class NodeDocumentCache implements Closeable {
      * @return keys stored in cache
      */
     public Iterable<CacheValue> keys() {
-        return Iterables.concat(nodeDocumentsCache.asMap().keySet(), prevDocumentsCache.asMap().keySet());
+        return IterableUtils.chainedIterable(nodeDocumentsCache.asMap().keySet(), prevDocumentsCache.asMap().keySet());
     }
 
     /**
      * @return values stored in cache
      */
     public Iterable<NodeDocument> values() {
-        return Iterables.concat(nodeDocumentsCache.asMap().values(), prevDocumentsCache.asMap().values());
+        return IterableUtils.chainedIterable(nodeDocumentsCache.asMap().values(), prevDocumentsCache.asMap().values());
     }
 
     public Iterable<CacheStats> getCacheStats() {
-        return Lists.newArrayList(nodeDocumentsCacheStats, prevDocumentsCacheStats);
+        return Arrays.asList(nodeDocumentsCacheStats, prevDocumentsCacheStats);
     }
 
     @Override

@@ -34,7 +34,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.internal.connection.MongoWriteConcernWithResponseException;
 
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.Document;
@@ -42,7 +42,7 @@ import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 /**
  * Provides static utility methods for MongoDB.
@@ -138,7 +138,7 @@ class MongoUtils {
      */
     static boolean hasIndex(MongoCollection<?> collection, String... fields)
             throws MongoException {
-        Set<String> uniqueFields = CollectionUtils.toSet(fields);
+        Set<String> uniqueFields = SetUtils.toSet(fields);
         for (Document info : collection.listIndexes()) {
             Document key = (Document) info.get("key");
             Set<String> indexFields = new HashSet<>(key.keySet());

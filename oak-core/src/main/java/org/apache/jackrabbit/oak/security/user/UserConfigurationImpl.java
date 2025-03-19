@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -46,6 +45,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachePrincipalFactory;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
@@ -178,7 +179,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
                         "until the principal cache expires (NOTE: currently only respected for principal resolution " +
                         "with the internal system session such as used for login). If not set or equal/lower than zero " +
                         "no caches are created/evaluated.")
-        long cacheExpiration() default UserPrincipalProvider.EXPIRATION_NO_CACHE;
+        long cacheExpiration() default CacheConfiguration.EXPIRATION_NO_CACHE;
         
         @AttributeDefinition(
                 name = "Principal Cache Stale Time",
@@ -187,12 +188,18 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
                         "zero no stale cache is returned and group principals are read from the persistence without being cached. " +
                         "This configuration option only takes effect if the principal cache is enabled with a " +
                         "'Principal Cache Expiration' value greater than zero.")
-        long cacheMaxStale() default UserPrincipalProvider.NO_STALE_CACHE;
+        long cacheMaxStale() default CacheConfiguration.NO_STALE_CACHE;
 
         @AttributeDefinition(
                 name = "RFC7613 Username Comparison Profile",
                 description = "Enable the UsercaseMappedProfile defined in RFC7613 for username comparison.")
         boolean enableRFC7613UsercaseMappedProfile() default false;
+
+        @AttributeDefinition(
+                name = "Allow Disable Anonymous User",
+                description = "By default the anonymous user can be disabled. By changing this option to false trying "
+                        + "to disable the anonymous user will throw an exception.")
+        boolean allowDisableAnonymous() default true;
     }
 
     private static final UserAuthenticationFactory DEFAULT_AUTH_FACTORY = new UserAuthenticationFactoryImpl();
@@ -266,13 +273,13 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()), new CacheValidatorProvider(principals, getTreeProvider()));
+        return List.of(new UserValidatorProvider(getParameters(), getRootProvider(), getTreeProvider()), new CacheValidatorProvider(principals, getTreeProvider()));
     }
 
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
-        return ImmutableList.of(new RepMembersConflictHandler(), new CacheConflictHandler());
+        return List.of(new RepMembersConflictHandler(), new CacheConflictHandler());
     }
 
     @NotNull
@@ -311,7 +318,20 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     public PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new UserPrincipalProvider(root, this, namePathMapper);
     }
-    
+
+    @Override
+    public CachedMembershipReader getCachedMembershipReader(@NotNull Root root,
+            @NotNull CachePrincipalFactory cachePrincipalFactory,
+            @NotNull String propName,
+            @NotNull String expirationPropName) {
+        CacheConfiguration cacheConfig = CacheConfiguration.fromUserConfiguration(this, propName, expirationPropName);
+        if (cacheConfig.isCacheEnabled()) {
+            return new CachedPrincipalMembershipReader(cacheConfig, root, cachePrincipalFactory);
+        } else {
+            return null;
+        }
+    }
+
     @NotNull
     private BlobAccessProvider getBlobAccessProvider() {
         BlobAccessProvider provider = blobAccessProvider;

@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
@@ -45,7 +44,7 @@ public class PasswordUtilTest {
 
     @Before
     public void before() throws Exception {
-        plainPasswords = ImmutableList.of(
+        plainPasswords = List.of(
                 "pw",
                 "PassWord123",
                 "_",
@@ -235,7 +234,7 @@ public class PasswordUtilTest {
 
     @Test
     public void testIsSameMisplacedAlgorithm() {
-        List<String> broken = ImmutableList.of("}{pw", "{pw", "{pw}");
+        List<String> broken = List.of("}{pw", "{pw", "{pw}");
         for (String hash : broken) {
             assertFalse(PasswordUtil.isSame(hash, "pw"));
         }

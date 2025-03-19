@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.util.Collection;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class BundledDocumentDiffer {
     private final DocumentNodeStore nodeStore;
@@ -102,7 +102,7 @@ public class BundledDocumentDiffer {
         } else if (BundlorUtils.isBundledChild(state)) {
             //In case of bundle child determine the bundling root
             //and from there traverse down to the actual child node
-            checkState(BundlorUtils.isBundledChild(state));
+            Validate.checkState(BundlorUtils.isBundledChild(state));
             String bundlingPath = state.getString(DocumentBundlor.META_PROP_BUNDLING_PATH);
             Path bundlingRootPath = state.getPath().getAncestor(PathUtils.getDepth(bundlingPath));
             DocumentNodeState bundlingRoot = nodeStore.getNode(bundlingRootPath, state.getLastRevision());

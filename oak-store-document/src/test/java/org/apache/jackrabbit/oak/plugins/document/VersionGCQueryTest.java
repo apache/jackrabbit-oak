@@ -24,11 +24,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -113,7 +112,7 @@ public class VersionGCQueryTest {
         assertEquals(11, stats.deletedDocGCCount);
         assertEquals(10, stats.splitDocGCCount);
         assertEquals(0, prevDocIds.size());
-        assertEquals(1, Iterables.size(Utils.getAllDocuments(store)));
+        assertEquals(1, IterableUtils.size(Utils.getAllDocuments(store)));
     }
 
     @Test
@@ -134,8 +133,8 @@ public class VersionGCQueryTest {
             merge(builder);
             ns.runBackgroundOperations();
         }
-        int numPrevDocs = Iterators.size(store.find(Collection.NODES, id).getAllPreviousDocs());
-        assertEquals(1, Iterators.size(Utils.getRootDocument(store).getAllPreviousDocs()));
+        int numPrevDocs = IteratorUtils.size(store.find(Collection.NODES, id).getAllPreviousDocs());
+        assertEquals(1, IteratorUtils.size(Utils.getRootDocument(store).getAllPreviousDocs()));
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
@@ -149,7 +148,7 @@ public class VersionGCQueryTest {
         // but only does find calls for previous docs of /test
         assertEquals(numPrevDocs, prevDocIds.size());
         // at the end only the root document remains
-        assertEquals(1, Iterables.size(Utils.getAllDocuments(store)));
+        assertEquals(1, IterableUtils.size(Utils.getAllDocuments(store)));
     }
 
     private NodeState merge(NodeBuilder builder) throws CommitFailedException {

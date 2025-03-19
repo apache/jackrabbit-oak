@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -42,7 +42,7 @@ class GlobsPattern implements RestrictionPattern {
     private final GlobPattern[] patterns;
 
     GlobsPattern(@NotNull String path, @NotNull Iterable<String> restrictions)  {
-        ArrayList<GlobPattern> l = new ArrayList<>(Iterables.size(restrictions));
+        ArrayList<GlobPattern> l = new ArrayList<>(IterableUtils.size(restrictions));
         restrictions.forEach(restriction -> {
             if (restriction != null) {
                 l.add(GlobPattern.create(path, restriction));

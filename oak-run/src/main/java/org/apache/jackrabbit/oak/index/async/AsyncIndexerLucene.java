@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.async;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
 import org.apache.jackrabbit.oak.index.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 
@@ -47,8 +46,7 @@ public class AsyncIndexerLucene extends AsyncIndexerBase {
     @Override
     public IndexEditorProvider getIndexEditorProvider() {
         try {
-            return CompositeIndexEditorProvider
-                    .compose(Arrays.asList(createLuceneEditorProvider(), new NodeCounterEditorProvider()));
+            return CompositeIndexEditorProvider.compose(createLuceneEditorProvider(), new NodeCounterEditorProvider());
         } catch (IOException e) {
             log.error("Exception while initializing IndexEditorProvider", e);
             return null;

@@ -43,12 +43,12 @@ public class FSDirectoryFactoryTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
-    private NodeState root = INITIAL_CONTENT;
-    private NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
+    private final NodeState root = INITIAL_CONTENT;
+    private final NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
 
     @Test
     public void singleIndex() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, idx.getNodeState(), "/fooIndex").build();
         FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
 
         Directory dir = factory.newInstance(defn, idx, ":data", false);
@@ -64,8 +64,8 @@ public class FSDirectoryFactoryTest {
 
     @Test
     public void multiIndexWithSimilarPaths() throws Exception{
-        LuceneIndexDefinition defn1 = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/content/a/en_us/oak:index/fooIndex").build();
-        LuceneIndexDefinition defn2 = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/content/b/en_us/oak:index/fooIndex").build();
+        LuceneIndexDefinition defn1 = LuceneIndexDefinition.newLuceneBuilder(root, idx.getNodeState(), "/content/a/en_us/oak:index/fooIndex").build();
+        LuceneIndexDefinition defn2 = LuceneIndexDefinition.newLuceneBuilder(root, idx.getNodeState(), "/content/b/en_us/oak:index/fooIndex").build();
 
         FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
         factory.newInstance(defn1, idx, ":data", false).close();
@@ -81,7 +81,7 @@ public class FSDirectoryFactoryTest {
 
     @Test
     public void reuseExistingDir() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, idx.getNodeState(), "/fooIndex").build();
         FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
 
         Directory dir = factory.newInstance(defn, idx, ":data", false);
@@ -98,7 +98,7 @@ public class FSDirectoryFactoryTest {
 
     @Test
     public void directoryMapping() throws Exception{
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/fooIndex").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, idx.getNodeState(), "/fooIndex").build();
         FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
 
         Directory dir1 = factory.newInstance(defn, idx, ":data", false);

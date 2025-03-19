@@ -18,14 +18,13 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import org.apache.jackrabbit.guava.common.io.Files;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 
 import java.io.IOException;
+import java.nio.file.Files;
 
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -39,19 +38,17 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 public class AzureSegmentStoreExplorerBackend extends AbstractSegmentTarExplorerBackend {
     private final String path;
     private SegmentNodeStorePersistence persistence;
-    private final AzureStorageCredentialManager azureStorageCredentialManager;
 
     public AzureSegmentStoreExplorerBackend(String path) {
         this.path = path;
-        this.azureStorageCredentialManager = new AzureStorageCredentialManager();
     }
 
     @Override
     public void open() throws IOException {
-        this.persistence = newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path, azureStorageCredentialManager);
+        this.persistence = newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path);
 
         try {
-            this.store = fileStoreBuilder(Files.createTempDir())
+            this.store = fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile())
                     .withCustomPersistence(persistence)
                     .buildReadOnly();
         } catch (InvalidFileStoreVersionException e) {
@@ -63,7 +60,6 @@ public class AzureSegmentStoreExplorerBackend extends AbstractSegmentTarExplorer
     @Override
     public void close() {
         super.close();
-        azureStorageCredentialManager.close();
     }
 
     @Override

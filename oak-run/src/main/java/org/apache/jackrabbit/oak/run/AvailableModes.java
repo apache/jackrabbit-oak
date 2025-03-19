@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.exporter.NodeStateExportCommand;
 import org.apache.jackrabbit.oak.index.IndexCommand;
 import org.apache.jackrabbit.oak.index.merge.IndexDiffCommand;
@@ -27,53 +25,62 @@ import org.apache.jackrabbit.oak.index.merge.IndexStoreCommand;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 public final class AvailableModes {
     // list of available Modes for the tool
-    public static final Modes MODES = new Modes(
-        ImmutableMap.<String, Command>builder()
-            .put("backup", new BackupCommand())
-            .put("check", new CheckCommand())
-            .put("checkpoints", new CheckpointsCommand())
-            .put("clusternodes", new ClusterNodesCommand())
-            .put("compact", new CompactCommand())
-            .put("composite-prepare", new CompositePrepareCommand())
-            .put("console", new ConsoleCommand())
-            .put(DataStoreCommand.NAME, new DataStoreCommand())
-            .put(DataStoreCopyCommand.NAME, new DataStoreCopyCommand())
-            .put("datastorecacheupgrade", new DataStoreCacheUpgradeCommand())
-            .put("datastorecheck", new DataStoreCheckCommand())
-            .put("debug", new DebugCommand())
-            .put(DocumentStoreCheckCommand.NAME, new DocumentStoreCheckCommand())
-            .put("explore", new ExploreCommand())
-            .put(NodeStateExportCommand.NAME, new NodeStateExportCommand())
-            .put(FlatFileCommand.NAME, new FlatFileCommand())
-            .put(FrozenNodeRefsByScanningCommand.NAME, new FrozenNodeRefsByScanningCommand())
-            .put(FrozenNodeRefsUsingIndexCommand.NAME, new FrozenNodeRefsUsingIndexCommand())
-            .put("garbage", new GarbageCommand())
-            .put("help", new HelpCommand())
-            .put("history", new HistoryCommand())
-            .put("index-diff", new IndexDiffCommand())
-            .put("index-merge", new IndexMergeCommand())
-            .put(IndexStoreCommand.INDEX_STORE, new IndexStoreCommand())
-            .put(IndexCommand.NAME, new IndexCommand())
-            .put(IOTraceCommand.NAME, new IOTraceCommand())
-            .put(JsonIndexCommand.INDEX, new JsonIndexCommand())
-            .put(PersistentCacheCommand.PERSISTENTCACHE, new PersistentCacheCommand())
-            .put("rdbddldump", new RDBDDLDumpCommand())
-            .put("recovery", new RecoveryCommand())
-            .put("recover-journal", new RecoverJournalCommand())
-            .put("revisions", new RevisionsCommand())
-            .put("repair", new RepairCommand())
-            .put("resetclusterid", new ResetClusterIdCommand())
-            .put("restore", new RestoreCommand())
-            .put("tarmkdiff", new FileStoreDiffCommand())
-            .put(ThreadDumpCommand.THREADDUMP, new ThreadDumpCommand())
-            .put("tika", new TikaCommand())
-            .put("unlockupgrade", new UnlockUpgradeCommand())
-            .put("upgrade", new UpgradeCommand())
-            .put("search-nodes", new SearchNodesCommand())
-            .put("segment-copy", new SegmentCopyCommand())
-            .put("server", new ServerCommand())
-            .put("purge-index-versions", new LucenePurgeOldIndexVersionCommand())
-            .build());
+    public static final Modes MODES = new Modes(createMap());
+
+    private static Map<String, Command> createMap() {
+        Map<String, Command> builder = new HashMap<>();
+        builder.put("backup", new BackupCommand());
+        builder.put("check", new CheckCommand());
+        builder.put("checkpoints", new CheckpointsCommand());
+        builder.put("clusternodes", new ClusterNodesCommand());
+        builder.put("compact", new CompactCommand());
+        builder.put("composite-prepare", new CompositePrepareCommand());
+        builder.put("console", new ConsoleCommand());
+        builder.put(DataStoreCommand.NAME, new DataStoreCommand());
+        builder.put(DataStoreCopyCommand.NAME, new DataStoreCopyCommand());
+        builder.put("datastorecacheupgrade", new DataStoreCacheUpgradeCommand());
+        builder.put("datastorecheck", new DataStoreCheckCommand());
+        builder.put("debug", new DebugCommand());
+        builder.put(DocumentStoreCheckCommand.NAME, new DocumentStoreCheckCommand());
+        builder.put("explore", new ExploreCommand());
+        builder.put(NodeStateExportCommand.NAME, new NodeStateExportCommand());
+        builder.put(FlatFileCommand.NAME, new FlatFileCommand());
+        builder.put(FrozenNodeRefsByScanningCommand.NAME, new FrozenNodeRefsByScanningCommand());
+        builder.put(FrozenNodeRefsUsingIndexCommand.NAME, new FrozenNodeRefsUsingIndexCommand());
+        builder.put("garbage", new GarbageCommand());
+        builder.put("help", new HelpCommand());
+        builder.put("history", new HistoryCommand());
+        builder.put("index-diff", new IndexDiffCommand());
+        builder.put("index-merge", new IndexMergeCommand());
+        builder.put(IndexStoreCommand.INDEX_STORE, new IndexStoreCommand());
+        builder.put(IndexCommand.NAME, new IndexCommand());
+        builder.put(IOTraceCommand.NAME, new IOTraceCommand());
+        builder.put(JsonIndexCommand.INDEX, new JsonIndexCommand());
+        builder.put(PersistentCacheCommand.PERSISTENTCACHE, new PersistentCacheCommand());
+        builder.put("rdbddldump", new RDBDDLDumpCommand());
+        builder.put("recovery", new RecoveryCommand());
+        builder.put("recover-journal", new RecoverJournalCommand());
+        builder.put("revisions", new RevisionsCommand());
+        builder.put("repair", new RepairCommand());
+        builder.put("resetclusterid", new ResetClusterIdCommand());
+        builder.put("restore", new RestoreCommand());
+        builder.put("tarmkdiff", new FileStoreDiffCommand());
+        builder.put(ThreadDumpCommand.THREADDUMP, new ThreadDumpCommand());
+        builder.put("tika", new TikaCommand());
+        builder.put("unlockupgrade", new UnlockUpgradeCommand());
+        builder.put("upgrade", new UpgradeCommand());
+        builder.put("search-nodes", new SearchNodesCommand());
+        builder.put("segment-copy", new SegmentCopyCommand());
+        builder.put("server", new ServerCommand());
+        builder.put("purge-index-versions", new LucenePurgeOldIndexVersionCommand());
+        builder.put("create-test-garbage", new CreateGarbageCommand());
+
+        return Collections.unmodifiableMap(builder);
+    }
 }

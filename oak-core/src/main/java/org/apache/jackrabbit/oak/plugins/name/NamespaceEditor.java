@@ -30,11 +30,10 @@ import static org.apache.jackrabbit.oak.plugins.name.Namespaces.isValidPrefix;
 import java.util.Locale;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
@@ -97,7 +96,7 @@ class NamespaceEditor extends DefaultEditor {
     }
 
     private static boolean containsValue(NodeState namespaces, String value) {
-        return Iterables.contains(namespaces.getChildNode(REP_NSDATA).getStrings(REP_URIS), value);
+        return IterableUtils.contains(namespaces.getChildNode(REP_NSDATA).getStrings(REP_URIS), value);
     }
 
     @Override

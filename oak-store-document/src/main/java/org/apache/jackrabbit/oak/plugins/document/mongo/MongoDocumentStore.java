@@ -37,15 +37,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import com.mongodb.Block;
 import com.mongodb.DBObject;
@@ -62,6 +60,11 @@ import com.mongodb.client.model.CreateCollectionOptions;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -94,7 +97,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
@@ -119,9 +121,6 @@ import com.mongodb.client.result.UpdateResult;
 import static java.util.Objects.isNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
-import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
 import static com.mongodb.client.model.Projections.include;
 import static java.lang.Integer.MAX_VALUE;
 import static java.util.Collections.emptyList;
@@ -328,10 +327,9 @@ public class MongoDocumentStore implements DocumentStore {
             status = new MongoStatus(connection, db.getName());
         }
         status.checkVersion();
-        metadata = ImmutableMap.<String,String>builder()
-                .put("type", "mongo")
-                .put("version", status.getVersion())
-                .build();
+        metadata = Map.of(
+                "type", "mongo",
+                "version", status.getVersion());
 
         this.nodeNameLimit = MongoUtils.getNodeNameLimit(status);
         this.connection = new MongoDBConnection(connection, db, status, builder.getMongoClock());
@@ -472,7 +470,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         if (mongoStatus.isVersion(4, 2)) {
             options.storageEngineOptions(MongoDBConfig.getCollectionStorageOptions(mongoStorageOptions));
-            if (!Iterables.tryFind(db.listCollectionNames(), s -> Objects.equals(collectionName, s)).isPresent()) {
+            if (StreamUtils.toStream(db.listCollectionNames()).noneMatch(s -> Objects.equals(collectionName, s))) {
                 db.createCollection(collectionName, options);
                 LOG.info("Creating Collection {}, with collection storage options", collectionName);
             }
@@ -528,7 +526,7 @@ public class MongoDocumentStore implements DocumentStore {
             result.queryCount++;
 
             int invalidated = nodesCache.invalidateOutdated(modStamps);
-            for (String id : filter(ids, x -> !modStamps.keySet().contains(x))) {
+            for (String id : IterableUtils.filter(ids, x -> !modStamps.keySet().contains(x))) {
                 nodesCache.invalidate(id);
                 invalidated++;
             }
@@ -777,7 +775,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
         }
         if (ex != null) {
-            throw handleException(ex, collection, Lists.newArrayList(fromKey, toKey));
+            throw handleException(ex, collection, List.of(fromKey, toKey));
         } else {
             // impossible to get here
             throw new IllegalStateException();
@@ -927,7 +925,7 @@ public class MongoDocumentStore implements DocumentStore {
         MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         Stopwatch watch = startWatch();
         try {
-            for(List<String> keyBatch : Lists.partition(keys, IN_CLAUSE_BATCH_SIZE)){
+            for(List<String> keyBatch : ListUtils.partitionList(keys, IN_CLAUSE_BATCH_SIZE)){
                 Bson query = Filters.in(Document.ID, keyBatch);
                 try {
                     execute(session -> {
@@ -960,8 +958,8 @@ public class MongoDocumentStore implements DocumentStore {
         MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         Stopwatch watch = startWatch();
         try {
-            List<String> batchIds = Lists.newArrayList();
-            List<Bson> batch = Lists.newArrayList();
+            List<String> batchIds = new ArrayList<>();
+            List<Bson> batch = new ArrayList<>();
             Iterator<Entry<String, Long>> it = toRemove.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<String, Long> entry = it.next();
@@ -1247,7 +1245,7 @@ public class MongoDocumentStore implements DocumentStore {
                     // in bulk mode wouldn't result in any performance gain
                     break;
                 }
-                for (List<UpdateOp> partition : Lists.partition(new ArrayList<>(operationsToCover.values()), bulkSize)) {
+                for (List<UpdateOp> partition : ListUtils.partitionList(new ArrayList<>(operationsToCover.values()), bulkSize)) {
                     Map<UpdateOp, T> successfulUpdates = bulkModify(collection, partition, oldDocs);
                     results.putAll(successfulUpdates);
                     operationsToCover.values().removeAll(successfulUpdates.keySet());
@@ -1262,7 +1260,7 @@ public class MongoDocumentStore implements DocumentStore {
                 results.put(op, findAndUpdate(collection, op));
             }
         } catch (MongoException e) {
-            throw handleException(e, collection, Iterables.transform(updateOps, UpdateOp::getId));
+            throw handleException(e, collection, IterableUtils.transform(updateOps, UpdateOp::getId));
         } finally {
             stats.doneFindAndModify(watch.elapsed(NANOSECONDS), collection, updateOps.stream().map(UpdateOp::getId).collect(toList()),
                     true, retryCount);
@@ -1345,7 +1343,7 @@ public class MongoDocumentStore implements DocumentStore {
                     // in bulk mode wouldn't result in any performance gain
                     break;
                 }
-                for (List<UpdateOp> partition : Lists.partition(Lists.newArrayList(operationsToCover.values()), bulkSize)) {
+                for (List<UpdateOp> partition : ListUtils.partitionList(new ArrayList<>(operationsToCover.values()), bulkSize)) {
                     Map<UpdateOp, T> successfulUpdates = bulkUpdate(collection, partition, oldDocs);
                     results.putAll(successfulUpdates);
                     operationsToCover.values().removeAll(successfulUpdates.keySet());
@@ -1363,13 +1361,13 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
         } catch (MongoException e) {
-            throw handleException(e, collection, Iterables.transform(updateOps,
+            throw handleException(e, collection, IterableUtils.transform(updateOps,
                     input -> input.getId()));
         } finally {
             stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
-                    collection, Lists.transform(updateOps, input -> input.getId()));
+                    collection, updateOps.stream().map(UpdateOp::getId).collect(Collectors.toList()));
         }
-        List<T> resultList = new ArrayList<T>(results.values());
+        List<T> resultList = new ArrayList<>(results.values());
         log("createOrUpdate returns", resultList);
         return resultList;
     }
@@ -1389,7 +1387,7 @@ public class MongoDocumentStore implements DocumentStore {
     private <T extends Document> Map<UpdateOp, T> bulkModify(final Collection<T> collection, final List<UpdateOp> updateOps,
                                                              final Map<String, T> oldDocs) {
         Map<String, UpdateOp> bulkOperations = createMap(updateOps);
-        Set<String> lackingDocs = difference(bulkOperations.keySet(), oldDocs.keySet());
+        Set<String> lackingDocs = SetUtils.difference(bulkOperations.keySet(), oldDocs.keySet());
         oldDocs.putAll(findDocuments(collection, lackingDocs));
 
         CacheChangesTracker tracker = null;
@@ -1399,7 +1397,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         try {
             final BulkRequestResult bulkResult = sendBulkRequest(collection, bulkOperations.values(), oldDocs, false);
-            final Set<String> potentiallyUpdatedDocsSet = difference(bulkOperations.keySet(), bulkResult.failedUpdates);
+            final Set<String> potentiallyUpdatedDocsSet = SetUtils.difference(bulkOperations.keySet(), bulkResult.failedUpdates);
 
             final Map<String, T> updatedDocsMap = new HashMap<>(potentiallyUpdatedDocsSet.size());
 
@@ -1477,7 +1475,7 @@ public class MongoDocumentStore implements DocumentStore {
                                                              List<UpdateOp> updateOperations,
                                                              Map<String, T> oldDocs) {
         Map<String, UpdateOp> bulkOperations = createMap(updateOperations);
-        Set<String> lackingDocs = difference(bulkOperations.keySet(), oldDocs.keySet());
+        Set<String> lackingDocs = SetUtils.difference(bulkOperations.keySet(), oldDocs.keySet());
         oldDocs.putAll(findDocuments(collection, lackingDocs));
 
         CacheChangesTracker tracker = null;
@@ -1489,14 +1487,14 @@ public class MongoDocumentStore implements DocumentStore {
             BulkRequestResult bulkResult = sendBulkRequest(collection, bulkOperations.values(), oldDocs, true);
 
             if (collection == Collection.NODES) {
-                List<NodeDocument> docsToCache = new ArrayList<NodeDocument>();
-                for (UpdateOp op : filterKeys(bulkOperations, x -> bulkResult.upserts.contains(x)).values()) {
+                List<NodeDocument> docsToCache = new ArrayList<>();
+                for (UpdateOp op : MapUtils.filterKeys(bulkOperations, bulkResult.upserts::contains).values()) {
                     NodeDocument doc = Collection.NODES.newDocument(this);
                     UpdateUtils.applyChanges(doc, op);
                     docsToCache.add(doc);
                 }
 
-                for (String key : difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
+                for (String key : SetUtils.difference(bulkOperations.keySet(), bulkResult.failedUpdates)) {
                     T oldDoc = oldDocs.get(key);
                     if (oldDoc != null && oldDoc != NodeDocument.NULL) {
                         NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));
@@ -1527,7 +1525,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private static Map<String, UpdateOp> createMap(List<UpdateOp> updateOps) {
-        return Maps.uniqueIndex(updateOps, input -> input.getId());
+        return updateOps.stream().collect(Collectors.toMap(UpdateOp::getId, Function.identity()));
     }
 
     private <T extends Document> Map<String, T> findDocuments(Collection<T> collection, Set<String> keys) {
@@ -1852,7 +1850,7 @@ public class MongoDocumentStore implements DocumentStore {
         fields.put(Document.MOD_COUNT, 1);
         fields.put(NodeDocument.MODIFIED_IN_SECS, 1);
 
-        Map<String, ModificationStamp> modCounts = Maps.newHashMap();
+        Map<String, ModificationStamp> modCounts = new HashMap<>();
 
         nodes.withReadPreference(ReadPreference.primary())
                 .find(Filters.in(Document.ID, keys)).projection(fields)
@@ -2032,7 +2030,7 @@ public class MongoDocumentStore implements DocumentStore {
             clusterNodesConnection.close();
         }
         try {
-            Closeables.close(throttlingMetricsUpdater, false);
+            IOUtils.close(throttlingMetricsUpdater);
         } catch (IOException e) {
             LOG.warn("Error occurred while closing throttlingMetricsUpdater", e);
         }
@@ -2056,14 +2054,14 @@ public class MongoDocumentStore implements DocumentStore {
     @NotNull
     @Override
     public Map<String, String> getStats() {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
-        List<MongoCollection<?>> all = ImmutableList.of(nodes, clusterNodes, settings, journal);
+        Map<String, String> builder = new HashMap<>();
+        List<MongoCollection<?>> all = List.of(nodes, clusterNodes, settings, journal);
         all.forEach(c -> toMapBuilder(builder,
                 connection.getDatabase().runCommand(
                     new BasicDBObject("collStats", c.getNamespace().getCollectionName()),
                         BasicDBObject.class),
                 c.getNamespace().getCollectionName()));
-        return builder.build();
+        return Collections.unmodifiableMap(builder);
     }
 
     long getMaxDeltaForModTimeIdxSecs() {
@@ -2325,7 +2323,7 @@ public class MongoDocumentStore implements DocumentStore {
         return handleException(ex, collection, Collections.singleton(id));
     }
 
-    private static void toMapBuilder(ImmutableMap.Builder<String, String> builder,
+    private static void toMapBuilder(Map<String, String> builder,
                                      BasicDBObject stats,
                                      String prefix) {
         stats.forEach((k, v) -> {

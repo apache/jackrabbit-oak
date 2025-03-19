@@ -20,11 +20,11 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.guava.common.base.MoreObjects;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.jetbrains.annotations.NotNull;
@@ -64,10 +64,11 @@ public final class AuthInfoImpl implements AuthInfo {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("userID", userID)
-            .add("attributes", attributes)
-            .add("principals", principals).toString();
+        return new StringJoiner(", ", AuthInfoImpl.class.getSimpleName() + "[", "]")
+                .add("userID=" + userID)
+                .add("attributes=" + attributes)
+                .add("principals=" + principals)
+                .toString();
     }
 
     //-----------------------------------------------------------< AuthInfo >---

@@ -28,8 +28,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -205,7 +204,7 @@ public class AtomicCounterEditor extends DefaultEditor {
                                 @Nullable Whiteboard board) {
         this.builder = requireNonNull(builder);
         this.path = path;
-        this.instanceId = Strings.isNullOrEmpty(instanceId) ? null : instanceId;
+        this.instanceId = StringUtils.isEmpty(instanceId) ? null : instanceId;
         this.executor = executor;
         this.store = store;
         this.board = board;
@@ -537,7 +536,7 @@ public class AtomicCounterEditor extends DefaultEditor {
     }
 
     private static CommitInfo createCommitInfo() {
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> info = Map.of(CommitContext.NAME, new SimpleCommitContext());
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 }

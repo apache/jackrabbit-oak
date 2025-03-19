@@ -16,19 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Assume;
@@ -56,7 +54,7 @@ public class LastRevSingleNodeRecoveryTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (mongo.isAvailable()) {
             fixtures.add(new Object[] {mongo});
@@ -183,7 +181,7 @@ public class LastRevSingleNodeRecoveryTest {
         // recover on self would recover too (testLastRevRestore)
         assertTrue(recoveryAgent.isRecoveryNeeded());
         Iterable<Integer> cids = recoveryAgent.getRecoveryCandidateNodes();
-        assertEquals(0, Iterables.size(cids));
+        assertEquals(0, IterableUtils.size(cids));
     }
     
     private void setupScenario() throws InterruptedException {

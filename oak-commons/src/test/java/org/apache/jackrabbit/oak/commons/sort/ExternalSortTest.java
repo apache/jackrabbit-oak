@@ -18,10 +18,8 @@ package org.apache.jackrabbit.oak.commons.sort;
 
 import net.jpountz.lz4.LZ4FrameInputStream;
 import net.jpountz.lz4.LZ4FrameOutputStream;
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.io.Files;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -34,6 +32,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -42,6 +41,7 @@ import java.io.OutputStreamWriter;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,7 +50,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -458,8 +457,8 @@ public class ExternalSortTest {
                                                                              File compressedFile) throws IOException {
         try (BufferedWriter bufferedWriter = new BufferedWriter(
                 new OutputStreamWriter(algorithm.getOutputStream(new FileOutputStream(compressedFile)),
-                        Charset.defaultCharset()));) {
-            Files.readLines(uncompressedInputFile, Charset.defaultCharset()).forEach(n -> {
+                        Charset.defaultCharset()))) {
+            Files.lines(uncompressedInputFile.toPath()).forEach(n -> {
                 try {
                     bufferedWriter.write(n + "\n");
                 } catch (IOException e) {
@@ -488,9 +487,9 @@ public class ExternalSortTest {
         Function<String, TestLine> stringToType = line -> line != null ? new TestLine(line) : null;
         Function<TestLine, String> typeToString = tl -> tl != null ? tl.line : null;
 
-        String testData = Joiner.on('\n').join(transform(testLines, tl -> tl.line));
+        String testData = String.join("\n", IterableUtils.transform(testLines, tl -> tl.line));
         File testFile = folder.newFile();
-        try (BufferedWriter bufferedWriter = Files.newWriter(testFile, charset)) {
+        try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(testFile, charset))) {
             bufferedWriter.write(testData);
         }
 
@@ -512,7 +511,7 @@ public class ExternalSortTest {
         Collections.sort(testLines);
 
         List<TestLine> linesFromSortedFile = new ArrayList<>();
-        Files.readLines(out, charset).forEach(line -> linesFromSortedFile.add(new TestLine(line)));
+        Files.lines(out.toPath()).forEach(line -> linesFromSortedFile.add(new TestLine(line)));
 
         assertEquals(testLines, linesFromSortedFile);
 
@@ -529,7 +528,7 @@ public class ExternalSortTest {
 
         @Override
         public int compareTo(TestLine o) {
-            return Ints.compare(value, o.value);
+            return Integer.compare(value, o.value);
         }
 
         @Override

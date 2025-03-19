@@ -19,8 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -125,7 +124,7 @@ public class IndexAugmentorFactoryTest {
             ids.add(f.stringValue());
         }
 
-        assertEquals(expected.length, Iterables.size(ids));
+        assertEquals(expected.length, IterableUtils.size(ids));
         assertThat(ids, CoreMatchers.hasItems(expected));
     }
 
@@ -157,7 +156,7 @@ public class IndexAugmentorFactoryTest {
                 ids.add(subQueryStr.substring(0, subQueryStr.indexOf(":1")));
             }
 
-            assertEquals(expected.length, Iterables.size(ids));
+            assertEquals(expected.length, IterableUtils.size(ids));
             assertThat(ids, CoreMatchers.hasItems(expected));
         }
     }
@@ -179,7 +178,7 @@ public class IndexAugmentorFactoryTest {
         @NotNull
         @Override
         public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
-            return Lists.newArrayList(id);
+            return List.of(id);
         }
 
         @NotNull

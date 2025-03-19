@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Arrays.sort;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.segment.MapRecord.SIZE_BITS;

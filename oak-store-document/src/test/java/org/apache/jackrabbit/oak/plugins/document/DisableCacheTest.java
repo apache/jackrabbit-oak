@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -45,7 +46,8 @@ public class DisableCacheTest {
         builder.memoryCacheDistribution(0,
                 DEFAULT_PREV_DOC_CACHE_PERCENTAGE,
                 DEFAULT_CHILDREN_CACHE_PERCENTAGE,
-                DEFAULT_DIFF_CACHE_PERCENTAGE);
+                DEFAULT_DIFF_CACHE_PERCENTAGE,
+                DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE);
         DocumentNodeStore nodeStore = builder.getNodeStore();
         Cache<PathRev, DocumentNodeState> cache = nodeStore.getNodeCache();
         assertEquals(0, cache.size());

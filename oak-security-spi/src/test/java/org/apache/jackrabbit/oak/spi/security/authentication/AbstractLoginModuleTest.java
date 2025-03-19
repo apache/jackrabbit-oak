@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -64,6 +62,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_CREDENTIALS;
 import static org.junit.Assert.assertEquals;
@@ -126,7 +126,7 @@ public class AbstractLoginModuleTest {
     @Test
     public void testInitializeWithOptions() {
         AbstractLoginModule lm = new TestLoginModule(TestCredentials.class);
-        Map<String, String> options = ImmutableMap.of("key", "value");
+        Map<String, String> options = Map.of("key", "value");
         lm.initialize(new Subject(), null, Collections.emptyMap(), options);
 
         assertNotSame(options, lm.options);
@@ -140,14 +140,14 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testLogout() throws Exception {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, ImmutableMap.of());
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, Map.of());
 
         assertFalse(loginModule.logout());
     }
 
     @Test
     public void testLogoutSuccessClearsSubject() throws Exception {
-        Subject subject = new Subject(false, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), Set.of(new TestCredentials()), Set.of());
+        Subject subject = new Subject(false, Set.of(new PrincipalImpl("pName")), Set.of(new TestCredentials()), Set.of());
         AbstractLoginModule loginModule = initLoginModule(subject);
 
         assertTrue(loginModule.logout());
@@ -158,7 +158,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testLogoutSuccessReadOnlySubject() throws Exception {
-        Subject subject = new Subject(true, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), Set.of(new TestCredentials()), Set.of());
+        Subject subject = new Subject(true, Set.of(new PrincipalImpl("pName")), Set.of(new TestCredentials()), Set.of());
         AbstractLoginModule loginModule = initLoginModule(subject);
 
         assertTrue(loginModule.logout());
@@ -169,14 +169,14 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testLogoutSubjectWithoutCredentials() throws Exception {
-        Subject subject = new Subject(false, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), Set.of("stringNotCredentials"), Set.of());
+        Subject subject = new Subject(false, Set.of(new PrincipalImpl("pName")), Set.of("stringNotCredentials"), Set.of());
         AbstractLoginModule loginModule = initLoginModule(subject);
         loginModule.logout();
 
         assertFalse(subject.getPublicCredentials().isEmpty());
         assertFalse(subject.getPrincipals().isEmpty());
 
-        subject = new Subject(false, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), Set.of(), Set.of());
+        subject = new Subject(false, Set.of(new PrincipalImpl("pName")), Set.of(), Set.of());
         loginModule = initLoginModule(subject);
         loginModule.logout();
 
@@ -209,7 +209,7 @@ public class AbstractLoginModuleTest {
 
         String userId = TestPrincipalProvider.getIDFromPrincipal(p);
         Set<? extends Principal> principals = pp.getPrincipals(userId);
-        Set<Principal> all = ImmutableSet.<Principal>builder().add(p).add(foreignPrincipal).addAll(principals).build();
+        Set<Principal> all = Stream.concat(Stream.of(p, foreignPrincipal), principals.stream()).collect(Collectors.toUnmodifiableSet());
 
 
         AuthInfo authInfo = new AuthInfoImpl(userId, null, all);
@@ -243,7 +243,7 @@ public class AbstractLoginModuleTest {
         Credentials foreign2 = new TokenCredentials("token");
 
         Subject subject = new Subject(true,
-                ImmutableSet.<Principal>of(new PrincipalImpl("pName")),
+                Set.of(new PrincipalImpl("pName")),
                 Set.of(creds, foreign1, foreign2), Set.of());
 
         AbstractLoginModule loginModule = initLoginModule(subject);
@@ -350,7 +350,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testAbort() throws LoginException {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, ImmutableMap.of());
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, Map.of());
 
         assertTrue(loginModule.abort());
     }
@@ -461,7 +461,7 @@ public class AbstractLoginModuleTest {
         subject.getPublicCredentials().add(new TestCredentials());
 
         AbstractLoginModule lm = new TestLoginModule(TestCredentials.class);
-        lm.initialize(subject, null, ImmutableMap.of(), null);
+        lm.initialize(subject, null, Map.of(), null);
 
         assertTrue(lm.getCredentials() instanceof TestCredentials);
     }
@@ -530,7 +530,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetSharedPreAuthLoginEmptySharedState() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, ImmutableMap.of());
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, Map.of());
         assertNull(loginModule.getSharedPreAuthLogin());
     }
 

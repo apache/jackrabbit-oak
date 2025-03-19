@@ -76,7 +76,7 @@ public class ElasticIndexer implements NodeStateIndexer {
 
     @Override
     public boolean shouldInclude(String path) {
-        return getFilterResult(path) != PathFilter.Result.EXCLUDE;
+        return definition.shouldInclude(path);
     }
 
     @Override
@@ -94,7 +94,7 @@ public class ElasticIndexer implements NodeStateIndexer {
     @Override
     public boolean index(NodeStateEntry entry) throws IOException, CommitFailedException {
 
-        if (getFilterResult(entry.getPath()) != PathFilter.Result.INCLUDE) {
+        if (definition.getFilterResult(entry.getPath()) != PathFilter.Result.INCLUDE) {
             return false;
         }
         IndexDefinition.IndexingRule indexingRule = definition.getApplicableIndexingRule(entry.getNodeState());
@@ -136,10 +136,6 @@ public class ElasticIndexer implements NodeStateIndexer {
         LOG.info("Statistics: {}", indexerStatisticsTracker.formatStats());
         binaryTextExtractor.logStats();
         indexWriter.close(System.currentTimeMillis());
-    }
-
-    private PathFilter.Result getFilterResult(String path) {
-        return definition.getPathFilter().filter(path);
     }
 
     private void writeToIndex(ElasticDocument doc, String path) throws IOException {

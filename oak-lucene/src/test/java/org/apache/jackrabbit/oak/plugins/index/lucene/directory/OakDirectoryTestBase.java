@@ -50,14 +50,14 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
@@ -156,7 +156,7 @@ abstract public class OakDirectoryTestBase {
         dir.close();
 
         dir = createDir(builder, true, "/foo");
-        assertEquals(fileNames, CollectionUtils.toSet(dir.listAll()));
+        assertEquals(fileNames, SetUtils.toSet(dir.listAll()));
     }
 
     @Test
@@ -172,7 +172,7 @@ abstract public class OakDirectoryTestBase {
         dir.close();
 
         dir = createDir(new ReadOnlyBuilder(builder.getNodeState()), false, "/foo");
-        Set<String> files =  CollectionUtils.toSet(dir.listAll());
+        Set<String> files =  SetUtils.toSet(dir.listAll());
         dir.close();
         assertEquals(fileNames, files);
     }
@@ -552,7 +552,7 @@ abstract public class OakDirectoryTestBase {
                                 new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
                                     @Override
                                     public void deleted(String blobId, Iterable<String> ids) {
-                                        deletedFiles.add(Iterables.getLast(ids));
+                                        deletedFiles.add(IterableUtils.getLast(ids));
                                     }
 
                                     @Override
@@ -596,7 +596,7 @@ abstract public class OakDirectoryTestBase {
                                 new ActiveDeletedBlobCollectorFactory.BlobDeletionCallback() {
                                     @Override
                                     public void deleted(String blobId, Iterable<String> ids) {
-                                        deletedFiles.add(Iterables.getLast(ids));
+                                        deletedFiles.add(IterableUtils.getLast(ids));
                                     }
 
                                     @Override

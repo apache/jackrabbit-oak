@@ -152,7 +152,7 @@ public final class ValuePatternUtil {
         if (value == null) {
             return null;
         }
-        Set<String> values = new HashSet<String>();
+        Set<String> values = new HashSet<>();
         for (String v : value.getValue(Type.STRINGS)) {
             if (!pattern.matches(v)) {
                 continue;

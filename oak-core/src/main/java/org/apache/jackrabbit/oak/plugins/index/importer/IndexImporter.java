@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -55,7 +55,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
@@ -79,7 +79,7 @@ public class IndexImporter {
     private final Map<String, IndexImporterProvider> importers = new HashMap<>();
     private final IndexerInfo indexerInfo;
     private final Map<String, File> indexes;
-    private final ListMultimap<String, IndexInfo> asyncLaneToIndexMapping;
+    private final ListValuedMap<String, IndexInfo> asyncLaneToIndexMapping;
     private final NodeState indexedState;
     private final IndexEditorProvider indexEditorProvider;
     private final AsyncIndexerLock indexerLock;
@@ -106,16 +106,16 @@ public class IndexImporter {
                          AsyncIndexerLock indexerLock, StatisticsProvider statisticsProvider, IndexingReporter indexingReporter) throws IOException {
         this.statisticsProvider = statisticsProvider;
         this.indexingReporter = indexingReporter;
-        checkArgument(indexDir.exists() && indexDir.isDirectory(), "Path [%s] does not point " +
-                "to existing directory", indexDir.getAbsolutePath());
+        checkArgument(indexDir.exists() && indexDir.isDirectory(),
+                "Path [%s] does not point to existing directory", indexDir.getAbsolutePath());
         this.nodeStore = nodeStore;
         this.indexDir = indexDir;
         this.indexEditorProvider = indexEditorProvider;
-        indexerInfo = IndexerInfo.fromDirectory(indexDir);
+        this.indexerInfo = IndexerInfo.fromDirectory(indexDir);
         this.indexerLock = indexerLock;
-        indexes = indexerInfo.getIndexes();
-        indexedState = requireNonNull(nodeStore.retrieve(indexerInfo.checkpoint), String.format("Cannot retrieve " +
-                "checkpointed state [%s]", indexerInfo.checkpoint));
+        this.indexes = indexerInfo.getIndexes();
+        this.indexedState = requireNonNull(nodeStore.retrieve(indexerInfo.checkpoint),
+                "Cannot retrieve checkpointed state [" + indexerInfo.checkpoint + "]");
         this.indexDefinitionUpdater = new IndexDefinitionUpdater(new File(indexDir, INDEX_DEFINITIONS_JSON));
         this.asyncLaneToIndexMapping = mapIndexesToLanes(indexes);
         this.indexPathsToUpdate = new HashSet<>();
@@ -127,7 +127,8 @@ public class IndexImporter {
 
     public void importIndex() throws IOException, CommitFailedException {
         try {
-            if (indexes.keySet().isEmpty()) {
+            indexingReporter.setIndexNames(List.copyOf(indexes.keySet()));
+            if (indexes.isEmpty()) {
                 LOG.warn("No indexes to import (possibly index definitions outside of a oak:index node?)");
             }
             LOG.info("Proceeding to import {} indexes from {}", indexes.keySet(), indexDir.getAbsolutePath());
@@ -178,10 +179,9 @@ public class IndexImporter {
                     mergeWithConcurrentCheck(nodeStore, builder);
                 });
             } catch (CommitFailedException commitFailedException) {
-                LOG.error("Unable to revert back index lanes for: "
-                                + indexPathsToUpdate.stream()
-                                .collect(StringBuilder::new, StringBuilder::append, (a, b) -> a.append(",").append(b)),
-                        commitFailedException);
+                LOG.error("Unable to revert back index lanes for: {}",
+                        indexPathsToUpdate.stream()
+                                .collect(StringBuilder::new, StringBuilder::append, (a, b) -> a.append(",").append(b)), commitFailedException);
                 throw e;
             }
         }
@@ -265,12 +265,12 @@ public class IndexImporter {
         boolean success = false;
         try {
             String checkpoint = getAsync().getString(laneName);
-            requireNonNull(checkpoint, String.format("No current checkpoint found for lane [%s]", laneName));
+            requireNonNull(checkpoint, "No current checkpoint found for lane [" + laneName + "]");
 
             //TODO Support case where checkpoint got lost or complete reindexing is done
 
             NodeState after = nodeStore.retrieve(checkpoint);
-            requireNonNull(after, String.format("No state found for checkpoint [%s] for lane [%s]", checkpoint, laneName));
+            requireNonNull(after, "No state found for checkpoint [" + checkpoint + "] for lane [" + laneName + "]");
             LOG.info("Proceeding to update imported indexes {} to checkpoint [{}] for lane [{}]",
                     indexInfos, checkpoint, laneName);
 
@@ -297,8 +297,8 @@ public class IndexImporter {
             updateIndexImporterState(builder, IndexImportState.IMPORT_INDEX_DATA, IndexImportState.BRING_INDEX_UPTODATE, false);
             mergeWithConcurrentCheck(nodeStore, builder);
             success = true;
-            LOG.info("Imported index is updated to repository state at checkpoint [{}] for " +
-                    "indexing lane [{}]", checkpoint, laneName);
+            LOG.info("Imported index is updated to repository state at checkpoint [{}] for indexing lane [{}]",
+                    checkpoint, laneName);
         } catch (CommitFailedException e) {
             LOG.error("Failed while performing bringIndexUpToDate and updating indexImportState from  [{}] to  [{}]",
                     IndexImportState.IMPORT_INDEX_DATA, IndexImportState.BRING_INDEX_UPTODATE);
@@ -375,12 +375,12 @@ public class IndexImporter {
 
     private IndexImporterProvider getImporter(String type) {
         IndexImporterProvider provider = importers.get(type);
-        return requireNonNull(provider, String.format("No IndexImporterProvider found for type [%s]", type));
+        return requireNonNull(provider, "No IndexImporterProvider found for type [" + type + "]");
     }
 
-    private ListMultimap<String, IndexInfo> mapIndexesToLanes(Map<String, File> indexes) {
+    private ListValuedMap<String, IndexInfo> mapIndexesToLanes(Map<String, File> indexes) {
         NodeState rootState = nodeStore.getRoot();
-        ListMultimap<String, IndexInfo> map = ArrayListMultimap.create();
+        ListValuedMap<String, IndexInfo> map = new ArrayListValuedHashMap<>();
         for (Map.Entry<String, File> e : indexes.entrySet()) {
             String indexPath = e.getKey();
 
@@ -391,7 +391,7 @@ public class IndexImporter {
             boolean newIndex = !NodeStateUtils.getNode(rootState, indexPath).exists();
 
             String type = indexState.getString(IndexConstants.TYPE_PROPERTY_NAME);
-            requireNonNull(type, String.format("No 'type' property found for index at path [%s]", indexPath));
+            requireNonNull(type, "No 'type' property found for index at path [" + indexPath + "]");
 
             String asyncName = getAsyncLaneName(indexPath, indexState);
             if (asyncName == null) {
@@ -448,8 +448,9 @@ public class IndexImporter {
 
     private void incrementReIndexCount(NodeBuilder definition) {
         long count = 0;
-        if (definition.hasProperty(REINDEX_COUNT)) {
-            count = definition.getProperty(REINDEX_COUNT).getValue(Type.LONG);
+        PropertyState reindexCountProp = definition.getProperty(REINDEX_COUNT);
+        if (reindexCountProp != null) {
+            count = reindexCountProp.getValue(Type.LONG);
         }
         definition.setProperty(REINDEX_COUNT, count + 1);
     }

@@ -29,9 +29,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
@@ -59,8 +58,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -593,7 +590,7 @@ public class FulltextIndexPlanner {
                 log.debug("Following relative property paths are not index: {}", relPaths);
                 return false;
             }
-            result.setParentPath(Iterables.getOnlyElement(relPaths, ""));
+            result.setParentPath(relPaths.stream().findAny().orElse(""));
 
             //Such non indexed path can possibly be evaluated via any rule on nt:base
             //which can possibly index everything
@@ -639,7 +636,7 @@ public class FulltextIndexPlanner {
      * @return list of properties which are included in query issued to Lucene
      */
     private List<String> planForRelativeProperties(Map<String, PropertyDefinition> relativePropDefns) {
-        Multimap<String, Map.Entry<String, PropertyDefinition>> relpaths = ArrayListMultimap.create();
+        MultiValuedMap<String, Map.Entry<String, PropertyDefinition>> relpaths = new ArrayListValuedHashMap<>();
         int maxSize = 0;
         String maxCountedParent = null;
 
@@ -701,8 +698,8 @@ public class FulltextIndexPlanner {
             return false;
         }
 
-        List<PropertyIndexResult> unique = newArrayList();
-        List<PropertyIndexResult> nonUnique = newArrayList();
+        List<PropertyIndexResult> unique = new ArrayList<>();
+        List<PropertyIndexResult> nonUnique = new ArrayList<>();
 
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = result.getPropertyName(pr);
@@ -1045,7 +1042,7 @@ public class FulltextIndexPlanner {
         public final String indexPath;
         public final IndexDefinition indexDefinition;
         public final IndexDefinition.IndexingRule indexingRule;
-        private final List<PropertyDefinition> sortedProperties = newArrayList();
+        private final List<PropertyDefinition> sortedProperties = new ArrayList<>();
 
         //Map of actual property name as present in our property definitions
         private final Map<String, PropertyDefinition> propDefns = new HashMap<>();

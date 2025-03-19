@@ -48,7 +48,7 @@ public class MergeIncrementalTreeStoreTest {
     public TemporaryFolder folder = new TemporaryFolder(new File(BUILD_TARGET_FOLDER));
 
     @Test
-    public void merge() throws IOException {
+    public void mergeWithoutTopUp() throws IOException {
         File baseDir = folder.newFolder("base");
         File baseFile = folder.newFile("base.gz");
         File baseMetadata = folder.newFile("base.metadata.gz");
@@ -139,7 +139,119 @@ public class MergeIncrementalTreeStoreTest {
         try (BufferedReader br = IndexStoreUtils.createReader(mergedMetadata, algorithm)) {
             for (String line : expectedMergedMetadataList) {
                 String actual = br.readLine();
-                System.out.println(actual);
+                // System.out.println(actual);
+                Assert.assertEquals(line, actual);
+            }
+            Assert.assertNull(br.readLine());
+        }
+    }
+
+    @Test
+    public void mergeWithTopUp() throws IOException {
+        File baseDir = folder.newFolder("base");
+        File baseFile = folder.newFile("base.gz");
+        File baseMetadata = folder.newFile("base.metadata.gz");
+
+        TreeStore base = new TreeStore("base", baseDir, null, 1);
+        base.init();
+        base.putNode("/tmp", "{prop1=\"foo\"}");
+        base.putNode("/tmp/a", "{prop2=\"foo\"}");
+        base.putNode("/tmp/a/b", "{prop3=\"foo\"}");
+        base.putNode("/tmp/b", "{prop1=\"foo\"}");
+        base.putNode("/tmp/b/c", "{prop2=\"foo\"}");
+        base.putNode("/tmp/c", "{prop3=\"foo\"}");
+        base.putNode("/tmp/z", "{prop=\"theEnd\"}");
+        base.close();
+
+        FilePacker.pack(baseDir, TreeSession.getFileNameRegex(), baseFile, true);
+
+        File increment = folder.newFile("inc.gz");
+        File incrementMetadata = folder.newFile("inc.metadata.gz");
+        File mergedFile = folder.newFile("merged.gz");
+        File mergedDir = folder.newFolder("merged");
+        File mergedMetadata = folder.newFile("merged.metadata.gz");
+
+        try (BufferedWriter baseBW = IndexStoreUtils.createWriter(baseMetadata, algorithm)) {
+            baseBW.write("{\"checkpoint\":\"" + "r0" + "\",\"storeType\":\"TreeStore\"," +
+                    "\"strategy\":\"" + "BaseFFSCreationStrategy" + "\"}");
+            baseBW.newLine();
+        }
+
+        try (BufferedWriter baseInc = IndexStoreUtils.createWriter(increment, algorithm)) {
+            baseInc.write("/tmp/a|{prop2=\"fooModified\"}|r1|M");
+            baseInc.newLine();
+            baseInc.write("/tmp/b|{prop1=\"foo\"}|r1|D");
+            baseInc.newLine();
+            baseInc.write("/tmp/b/c/d|{prop2=\"fooNew\"}|r1|A");
+            baseInc.newLine();
+            baseInc.write("/tmp/c|{prop3=\"fooModified\"}|r1|M");
+            baseInc.newLine();
+            baseInc.write("/tmp/d|{prop3=\"bar\"}|r1|A");
+            baseInc.newLine();
+            baseInc.write("/tmp/e|{prop3=\"bar\"}|r1|A");
+        }
+        try (BufferedWriter baseInc = IndexStoreUtils.createWriter(incrementMetadata, algorithm)) {
+            baseInc.write("{\"beforeCheckpoint\":\"" + "r0" + "\",\"afterCheckpoint\":\"" + "r1" + "\"," +
+                    "\"storeType\":\"" + "IncrementalFFSType" + "\"," +
+                    "\"strategy\":\"" + "pipelineStrategy" + "\"," +
+                    "\"preferredPaths\":[]}");
+            baseInc.newLine();
+        }
+
+        File topupFile = new File(folder.getRoot(), MergeIncrementalTreeStore.TOPUP_FILE);
+        try (BufferedWriter topUp = IndexStoreUtils.createWriter(topupFile, algorithm)) {
+            topUp.write("/tmp/a|{prop2=\"fooModified2\"}|r1|U");
+            topUp.newLine();
+            topUp.write("/tmp/f|{prop2=\"fooModified2\"}|r1|U");
+            topUp.newLine();
+            topUp.write("/tmp/g|{prop3=\"bar\"}|r1|R");
+            topUp.newLine();
+        }
+
+        List<String> expectedMergedList = new LinkedList<>();
+
+        expectedMergedList.add("/tmp|{prop1=\"foo\"}");
+        expectedMergedList.add("/tmp/a|{prop2=\"fooModified2\"}");
+        expectedMergedList.add("/tmp/a/b|{prop3=\"foo\"}");
+        expectedMergedList.add("/tmp/b/c|{prop2=\"foo\"}");
+        expectedMergedList.add("/tmp/b/c/d|{prop2=\"fooNew\"}");
+        expectedMergedList.add("/tmp/c|{prop3=\"fooModified\"}");
+        expectedMergedList.add("/tmp/d|{prop3=\"bar\"}");
+        expectedMergedList.add("/tmp/e|{prop3=\"bar\"}");
+        expectedMergedList.add("/tmp/f|{prop2=\"fooModified2\"}");
+        expectedMergedList.add("/tmp/z|{prop=\"theEnd\"}");
+
+        MergeIncrementalTreeStore merge = new MergeIncrementalTreeStore(
+                baseFile, increment, mergedFile, algorithm);
+        merge.doMerge();
+        List<String> expectedMergedMetadataList = new LinkedList<>();
+        expectedMergedMetadataList.add("{\"checkpoint\":\"" + "r1" + "\",\"storeType\":\"TreeStore\"," +
+                "\"strategy\":\"" + merge.getStrategyName() + "\",\"preferredPaths\":[]}");
+
+        FilePacker.unpack(mergedFile, mergedDir, true);
+        TreeStore merged = new TreeStore("merged", mergedDir, null, 1);
+        HashSet<String> paths = new HashSet<>();
+        int i = 0;
+        for (Entry<String, String> e : merged.getSession().entrySet()) {
+            String key = e.getKey();
+            if (e.getValue().isEmpty()) {
+                String[] parts = TreeStore.toParentAndChildNodeName(key);
+                String childEntry = TreeStore.toChildNodeEntry(parts[0], parts[1]);
+                assertTrue(paths.add(childEntry));
+                continue;
+            }
+            String expected = expectedMergedList.get(i++);
+            String actual = key + "|" + e.getValue();
+            Assert.assertEquals(expected, actual);
+        }
+        assertEquals(expectedMergedList.size(), i);
+        assertEquals(expectedMergedList.size(), paths.size());
+        merged.close();
+
+        try (BufferedReader br = IndexStoreUtils.createReader(mergedMetadata, algorithm)) {
+            for (String line : expectedMergedMetadataList) {
+                String actual = br.readLine();
+                // System.out.println(actual);
                 Assert.assertEquals(line, actual);
             }
             Assert.assertNull(br.readLine());

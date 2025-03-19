@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.junit.LogDumper;
 import org.apache.jackrabbit.oak.commons.junit.LogLevelModifier;
@@ -61,8 +59,8 @@ public class JournalTest extends AbstractJournalTest {
 
     class DiffingObserver implements Observer, Runnable, NodeStateDiff {
 
-        final List<DocumentNodeState> incomingRootStates1 = Lists.newArrayList();
-        final List<DocumentNodeState> diffedRootStates1 = Lists.newArrayList();
+        final List<DocumentNodeState> incomingRootStates1 = new ArrayList<>();
+        final List<DocumentNodeState> diffedRootStates1 = new ArrayList<>();
         
         DocumentNodeState oldRoot = null;
         
@@ -388,7 +386,7 @@ public class JournalTest extends AbstractJournalTest {
 
         if (!testConcurrency) {
             //Do not pass y1 but still y1 should be updated
-            recovery.recover(Lists.newArrayList(x1,z1), c2Id);
+            recovery.recover(List.of(x1,z1), c2Id);
     
             //Post recovery the lastRev should be updated for /x/y and /x
             assertEquals(head2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
@@ -421,7 +419,7 @@ public class JournalTest extends AbstractJournalTest {
                         try {
                             ready.countDown();
                             start.await();
-                            recovery.recover(Lists.newArrayList(x1,z1), c2Id);
+                            recovery.recover(List.of(x1,z1), c2Id);
                         } catch (DocumentStoreException e) {
                             if (e.getMessage().matches("Update of root document to _lastRev .* failed. Detected concurrent update")) {
                                 // we have to accept this exception to happen

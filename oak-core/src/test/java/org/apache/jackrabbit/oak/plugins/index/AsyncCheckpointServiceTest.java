@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.Clusterable;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -52,7 +51,7 @@ public class AsyncCheckpointServiceTest {
         String name1 = "checkpoint-async-test-1";
         String name2 = "checkpoint-async-test-2";
         String name3 = "checkpoint-async-test-3";
-        Map<String,Object> config1 = ImmutableMap.<String, Object>of(
+        Map<String,Object> config1 = Map.of(
                 "name", "checkpoint-async-test-1",
                 "enable", true,
                 "minConcurrentCheckpoints", 3L,
@@ -61,7 +60,7 @@ public class AsyncCheckpointServiceTest {
                 "timeIntervalBetweenCheckpoints", 60 * 15L
         );
 
-        Map<String,Object> config2 = ImmutableMap.<String, Object>of(
+        Map<String,Object> config2 = Map.of(
                 "name", "checkpoint-async-test-2",
                 "enable", false,
                 "minConcurrentCheckpoints", 3L,
@@ -70,7 +69,7 @@ public class AsyncCheckpointServiceTest {
                 "timeIntervalBetweenCheckpoints", 60 * 15L
         );
 
-        Map<String,Object> config3 = ImmutableMap.<String, Object>of(
+        Map<String,Object> config3 = Map.of(
                 "name", "checkpoint-async-test-3",
                 "enable", true,
                 "minConcurrentCheckpoints", 4L,

@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import java.security.Principal;
 import java.util.List;
+import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -72,7 +71,7 @@ public class PrivilegeConfigurationImplTest {
 
     @Test
     public void testGetValidators() {
-        List<? extends ValidatorProvider> l = configuration.getValidators("wspName", ImmutableSet.<Principal>of(), new MoveTracker());
+        List<? extends ValidatorProvider> l = configuration.getValidators("wspName", Set.of(), new MoveTracker());
         assertEquals(1, l.size());
         assertTrue(l.get(0) instanceof PrivilegeValidatorProvider);
     }

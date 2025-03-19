@@ -25,9 +25,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
@@ -44,8 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getAsyncLaneName;
 
@@ -171,7 +171,7 @@ public class LuceneIndexNodeManager {
                 SearcherHolder local = searcherHolder;
                 int tryCount = 0;
                 while (!local.searcher.getIndexReader().tryIncRef()) {
-                    checkState(++tryCount < 10, "Not able to " +
+                    Validate.checkState(++tryCount < 10, "Not able to " +
                             "get open searcher in %s attempts", tryCount);
                     local = searcherHolder;
                 }
@@ -193,7 +193,7 @@ public class LuceneIndexNodeManager {
     void close() throws IOException {
         lock.writeLock().lock();
         try {
-            checkState(!closed);
+            Validate.checkState(!closed);
             closed = true;
         } finally {
             lock.writeLock().unlock();
@@ -251,7 +251,7 @@ public class LuceneIndexNodeManager {
 
         IndexReader[] readerArr = new IndexReader[readers.size() + nrtReaders.size()];
         int i = 0;
-        for (LuceneIndexReader r : Iterables.concat(readers, nrtReaders)){
+        for (LuceneIndexReader r : IterableUtils.chainedIterable(readers, nrtReaders)){
             readerArr[i++] = r.getReader();
         }
         return new MultiReader(readerArr, false);

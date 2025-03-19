@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -61,7 +60,7 @@ public class LdapIdentityTest {
         Dn dn = when(mock(Dn.class).getName()).thenReturn("dn").getMock();
         when(entry.getDn()).thenReturn(dn);
 
-        Map<String, ExternalIdentityRef> groupRefs = ImmutableMap.of("gr", mock(ExternalIdentityRef.class));
+        Map<String, ExternalIdentityRef> groupRefs = Map.of("gr", mock(ExternalIdentityRef.class));
         when(idp.getDeclaredGroupRefs(ref, "dn")).thenReturn(groupRefs);
 
         Collection<ExternalIdentityRef> expected = groupRefs.values();

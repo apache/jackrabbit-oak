@@ -25,12 +25,12 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -77,7 +77,7 @@ public class LowerCaseImpl extends DynamicOperandImpl {
         }
         // TODO toLowerCase(): document the Turkish locale problem
         if (p.getType().isArray()) {
-            Iterable<String> lowerCase = transform(p.getValue(STRINGS),
+            Iterable<String> lowerCase = IterableUtils.transform(p.getValue(STRINGS),
                     input -> input.toLowerCase());
             return PropertyValues.newString(lowerCase);
         } else {
@@ -105,6 +105,13 @@ public class LowerCaseImpl extends DynamicOperandImpl {
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
         // "LOWER(x) IN (A, B)" implies x is not null
         operand.restrict(f, Operator.NOT_EQUAL, null);
+        if (!f.getQueryLimits().getOptimizeInRestrictionsForFunctions()) {
+            return;
+        }
+        String fn = getFunction(f.getSelector());
+        if (fn != null) {
+            f.restrictPropertyAsList(QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn, list);
+        }
     }
     
     @Override

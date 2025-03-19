@@ -28,7 +28,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureBlobContainerProvider;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
@@ -104,7 +103,7 @@ public class DataStoreUtils {
     public static void cleanup(File storeDir, Map<String, ?> config, String bucket) throws Exception {
         FileUtils.deleteQuietly(storeDir);
         if (config.containsKey(S3Constants.S3_BUCKET)) {
-            if (!Strings.isNullOrEmpty(bucket)) {
+            if (!StringUtils.isEmpty(bucket)) {
                 deleteBucket(bucket, config, new Date());
             }
         } else if (config.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME)
@@ -154,7 +153,7 @@ public class DataStoreUtils {
             log.warn("config not provided, cannot initialize blob container");
             return;
         }
-        if (Strings.isNullOrEmpty(containerName)) {
+        if (StringUtils.isEmpty(containerName)) {
             log.warn("container name is null or blank, cannot initialize blob container");
             return;
         }

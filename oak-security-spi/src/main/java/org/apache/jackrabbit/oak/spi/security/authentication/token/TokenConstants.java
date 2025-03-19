@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 public interface TokenConstants {
@@ -52,5 +51,5 @@ public interface TokenConstants {
      * Value of the {@link #TOKEN_ATTRIBUTE} property to trigger the creation of a new token.
      */
     String TOKEN_ATTRIBUTE_DO_CREATE = "";
-    
+
 }

@@ -50,8 +50,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 /**
  * Tests a BlobStore implementation.
  */
@@ -418,7 +416,7 @@ public abstract class AbstractBlobStoreTest {
     public void delete() throws Exception {
         Set<String> ids = createArtifacts();
 
-        store.deleteChunks(Lists.newArrayList(ids), 0);
+        store.deleteChunks(new ArrayList<>(ids), 0);
 
         Iterator<String> iter = store.getAllChunkIds(0);
         Set<String> ret = new HashSet<>();
@@ -433,7 +431,7 @@ public abstract class AbstractBlobStoreTest {
     public void deleteCount() throws Exception {
         Set<String> ids = createArtifacts();
 
-        long count = store.countDeleteChunks(Lists.newArrayList(ids), 0);
+        long count = store.countDeleteChunks(new ArrayList<>(ids), 0);
 
         Iterator<String> iter = store.getAllChunkIds(0);
         Set<String> ret = new HashSet<>();
@@ -463,7 +461,7 @@ public abstract class AbstractBlobStoreTest {
         while (iter.hasNext()) {
             chunks.add(iter.next());
         }
-        long count = store.countDeleteChunks(Lists.newArrayList(chunks), beforeUpdateTime);
+        long count = store.countDeleteChunks(new ArrayList<>(chunks), beforeUpdateTime);
         assertEquals("Deleted updated blobs", 0, count);
     }
 

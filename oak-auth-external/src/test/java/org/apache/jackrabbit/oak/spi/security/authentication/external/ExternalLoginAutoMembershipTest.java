@@ -26,8 +26,6 @@ import javax.jcr.ValueFactory;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -141,13 +139,13 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
 
     private static void registerSyncHandlerMapping(@NotNull OsgiContext ctx, @NotNull ExternalSetup setup) {
         String syncHandlerName = setup.sc.getName();
-        Map<String, Object> props = ImmutableMap.of(
+        Map<String, Object> props = Map.of(
                 DefaultSyncConfigImpl.PARAM_NAME, syncHandlerName,
                 DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, setup.sc.user().getDynamicMembership(),
                 DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP, setup.sc.user().getAutoMembership());
         ctx.registerService(SyncHandler.class, setup.sh, props);
 
-        Map<String, String> mappingProps = ImmutableMap.of(
+        Map<String, String> mappingProps = Map.of(
                 SyncHandlerMapping.PARAM_IDP_NAME, setup.idp.getName(),
                 SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncHandlerName);
         ctx.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {}, mappingProps);
@@ -343,7 +341,7 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
             }
 
             idpRegistration = whiteboard.register(ExternalIdentityProvider.class, idp, Collections.<String, Object>emptyMap());
-            shRegistration = whiteboard.register(SyncHandler.class, sh, ImmutableMap.of(
+            shRegistration = whiteboard.register(SyncHandler.class, sh, Map.of(
                             DefaultSyncConfigImpl.PARAM_NAME, sh.getName(),
                             DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, sc.user().getDynamicMembership(),
                             DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP, sc.user().getAutoMembership()));
@@ -377,7 +375,7 @@ public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
             return new AppConfigurationEntry(
                     ExternalLoginModule.class.getName(),
                     AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                    ImmutableMap.of(
+                    Map.of(
                             SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, sh.getName(),
                             SyncHandlerMapping.PARAM_IDP_NAME, idp.getName()
                     ));

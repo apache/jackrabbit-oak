@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.cow;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -27,9 +26,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Map;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableMap.of;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -82,22 +81,22 @@ public class COWNodeStoreTest {
 
     @Test
     public void checkpointsInCowMode() throws CommitFailedException {
-        String checkpoint1 = cowNodeStore.checkpoint(Long.MAX_VALUE, of("k", "v"));
+        String checkpoint1 = cowNodeStore.checkpoint(Long.MAX_VALUE, Map.of("k", "v"));
         cowNodeStore.enableCopyOnWrite();
 
         Map<String, String> info = cowNodeStore.checkpointInfo(checkpoint1);
-        assertEquals("The checkpoint is not inherited", of("k", "v"), info);
+        assertEquals("The checkpoint is not inherited", Map.of("k", "v"), info);
 
         NodeState root = cowNodeStore.getRoot();
         NodeBuilder builder = root.builder();
         builder.child("foo");
         cowNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        String checkpoint2 = cowNodeStore.checkpoint(Long.MAX_VALUE, of("k", "v2"));
+        String checkpoint2 = cowNodeStore.checkpoint(Long.MAX_VALUE, Map.of("k", "v2"));
         info = cowNodeStore.checkpointInfo(checkpoint2);
-        assertEquals("The new checkpoint is not available", of("k", "v2"), info);
+        assertEquals("The new checkpoint is not available", Map.of("k", "v2"), info);
         assertTrue("The retrieve() doesn't work for the new checkpoint", cowNodeStore.retrieve(checkpoint2).hasChildNode("foo"));
-        assertEquals(ImmutableList.of(checkpoint1, checkpoint2), cowNodeStore.checkpoints());
+        assertEquals(List.of(checkpoint1, checkpoint2), cowNodeStore.checkpoints());
 
         assertTrue("The new checkpoint shouldn't be stored in the main store", store.checkpointInfo(checkpoint2).isEmpty());
 

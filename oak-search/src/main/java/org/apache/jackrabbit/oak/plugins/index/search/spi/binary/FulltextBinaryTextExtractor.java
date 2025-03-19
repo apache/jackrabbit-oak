@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
-import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -172,7 +172,7 @@ public class FulltextBinaryTextExtractor {
                     getParser().parse(stream, handler, metadata, new ParseContext());
                 }
             } finally {
-                bytesRead = stream.getCount();
+                bytesRead = stream.getByteCount();
                 stream.close();
             }
         } catch (LinkageError e) {
@@ -240,9 +240,14 @@ public class FulltextBinaryTextExtractor {
         return parser;
     }
 
-    private boolean isSupportedMediaType(String type) {
+    boolean isSupportedMediaType(String type) {
+        // we need to initialize the fields separately
+        // to prevent null pointer exceptions if the method
+        // is called concurrently from multiple threads
         if (supportedMediaTypes == null) {
             supportedMediaTypes = getParser().getSupportedTypes(new ParseContext());
+        }
+        if (nonIndexedMediaType == null) {
             nonIndexedMediaType = getNonIndexedMediaTypes();
         }
         MediaType mediaType = MediaType.parse(type);

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -37,13 +39,13 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.conversions.Bson;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
+
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
 
 /**
  * Helper class to access package private method of DocumentNodeStore and other
@@ -68,11 +70,11 @@ public class DocumentNodeStoreHelper {
         System.out.println("Collected in " + sw.stop());
     }
 
-    public static VersionGarbageCollector createVersionGC(DocumentNodeStore nodeStore, VersionGCSupport gcSupport,
-                                                          boolean fullGCEnabled, boolean isFullGCDryRun,
-                                                          boolean embeddedVerification, int fullGCMode) {
-        return new VersionGarbageCollector(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification,
-                fullGCMode);
+    public static VersionGarbageCollector createVersionGC(final DocumentNodeStore nodeStore, final VersionGCSupport gcSupport,
+                                                          boolean isFullGCDryRun, final DocumentNodeStoreBuilder<?> builder) {
+        return new VersionGarbageCollector(nodeStore, gcSupport, isFullGCEnabled(builder), isFullGCDryRun,
+                isEmbeddedVerificationEnabled(builder), builder.getFullGCMode(), builder.getFullGCDelayFactor(),
+                builder.getFullGCBatchSize(), builder.getFullGCProgressSize(), builder.getFullGcMaxAgeMillis());
     }
 
     public static DocumentNodeState readNode(DocumentNodeStore documentNodeStore, Path path, RevisionVector rootRevision) {
@@ -85,7 +87,7 @@ public class DocumentNodeStoreHelper {
         long totalGarbage = 0;
         Iterable<NodeDocument> docs = getDocuments(store.getDocumentStore());
         PriorityQueue<BlobReferences> queue = new PriorityQueue<BlobReferences>(num, comparator);
-        List<Blob> blobs = Lists.newArrayList();
+        List<Blob> blobs = new ArrayList<>();
         long docCount = 0;
         for (NodeDocument doc : docs) {
             if (++docCount % 10000 == 0) {
@@ -101,7 +103,7 @@ public class DocumentNodeStoreHelper {
         }
 
         System.out.println();
-        List<BlobReferences> refs = Lists.newArrayList();
+        List<BlobReferences> refs = new ArrayList<>();
         refs.addAll(queue);
         Collections.sort(refs, Collections.reverseOrder(comparator));
         System.out.println("Total garbage size: " + FileUtils.byteCountToDisplaySize(totalGarbage));
@@ -116,7 +118,7 @@ public class DocumentNodeStoreHelper {
         long garbageSize = 0;
         int numBlobs = 0;
 
-        List<Blob> blobs = Lists.newArrayList();
+        List<Blob> blobs = new ArrayList<>();
         RevisionVector head = ns.getHeadRevision();
         boolean exists = doc.getNodeAtRevision(ns, head, null) != null;
         for (String key : doc.keySet()) {
@@ -153,7 +155,7 @@ public class DocumentNodeStoreHelper {
                     mds, Collection.NODES);
             Bson query = Filters.eq(NodeDocument.HAS_BINARY_FLAG, NodeDocument.HAS_BINARY_VAL);
             FindIterable<BasicDBObject> cursor = dbCol.find(query);
-            return Iterables.transform(cursor,
+            return IterableUtils.transform(cursor,
                     input -> MongoDocumentStoreHelper.convertFromDBObject(mds, Collection.NODES, input));
         } else {
             return Utils.getSelectedDocuments(store,
@@ -229,7 +231,7 @@ public class DocumentNodeStoreHelper {
 
         @Override
         public int compare(BlobReferences o1, BlobReferences o2) {
-            int c = Longs.compare(o1.garbageSize, o2.garbageSize);
+            int c = Long.compare(o1.garbageSize, o2.garbageSize);
             if (c != 0) {
                 return c;
             }

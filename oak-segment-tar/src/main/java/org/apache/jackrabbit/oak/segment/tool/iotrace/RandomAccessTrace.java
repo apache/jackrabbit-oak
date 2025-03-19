@@ -15,7 +15,6 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
 import static java.util.Objects.requireNonNull;
@@ -28,7 +27,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -73,7 +71,7 @@ public class RandomAccessTrace implements Trace {
         if(!paths.isEmpty()) {
             for (int c = 0; c < count; c++) {
                 String path = paths.get(rnd.nextInt(paths.size()));
-                context.accept(ImmutableList.of(path));
+                context.accept(List.of(path));
 
                 NodeState node = root;
                 for (String name : elements(getParentPath(path))) {

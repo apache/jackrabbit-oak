@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.run;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.charset.StandardCharsets;
@@ -38,13 +39,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -57,6 +53,7 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -199,10 +196,8 @@ public class DataStoreCommand implements Command {
             if (dataStoreOpts.dumpRefs()) {
                 log.info("Initiating dump of data store references");
                 final File referencesTemp = File.createTempFile("traverseref", null, new File(opts.getTempDirectory()));
-                final BufferedWriter writer = Files.newWriter(referencesTemp, StandardCharsets.UTF_8);
 
-                boolean threw = true;
-                try {
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(referencesTemp, StandardCharsets.UTF_8))) {
                     BlobReferenceRetriever retriever = getRetriever(fixture, dataStoreOpts, opts);
 
                     retriever.collectReferences(new ReferenceCollector() {
@@ -213,12 +208,11 @@ public class DataStoreCommand implements Command {
 
                                 while (idIter.hasNext()) {
                                     String id = idIter.next();
-                                    final Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
                                     // If --verbose is present, convert blob ID to a backend friendly format and
                                     // concat the path that has the ref. Otherwise simply add the ID to the o/p file
                                     // as it is.
                                     String line = dataStoreOpts.isVerbose() ?
-                                        VerboseIdLogger.encodeId(delimJoiner.join(id, escapeLineBreak(nodeId)),
+                                        VerboseIdLogger.encodeId(nodeId != null ? id + DELIM + escapeLineBreak(nodeId) : id,
                                             optionBean.getBlobStoreType()) :
                                         id;
                                     writeAsLine(writer, line, true);
@@ -230,7 +224,7 @@ public class DataStoreCommand implements Command {
                     });
 
                     writer.flush();
-                    threw = false;
+                    writer.close();
 
                     sort(referencesTemp, idComparator);
 
@@ -240,8 +234,6 @@ public class DataStoreCommand implements Command {
                     FileUtils.forceMkdir(parent);
 
                     FileUtils.copyFile(referencesTemp, references);
-                } finally {
-                    Closeables.close(writer, threw);
                 }
             } else if (dataStoreOpts.dumpIds()) {
                 log.info("Initiating dump of data store IDs");
@@ -318,7 +310,7 @@ public class DataStoreCommand implements Command {
             dataStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
         log.info("Repository files {}", repoFiles);
 
-        List<String> records = Lists.newArrayList();
+        List<String> records = new ArrayList<>();
         for (DataRecord repoRec : repoFiles) {
             String id =
                 SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getIdFromName(repoRec.getIdentifier().toString());
@@ -342,7 +334,7 @@ public class DataStoreCommand implements Command {
             if (id != null && id.equals(repositoryId)) {
                 isLocal = "*";
             }
-            records.add(Joiner.on("|").join(id, markerTime, refTime, isLocal));
+            records.add(String.join("|", id, Long.toString(markerTime), Long.toString(refTime), isLocal));
         }
         log.info("Metadata retrieved {}", records);
         return records;
@@ -424,7 +416,7 @@ public class DataStoreCommand implements Command {
     private static void logCliArgs(String[] args) {
         String[] filteredArgs = Arrays.stream(args).filter(str -> !str.startsWith("az:") && !str.startsWith("mongodb:"))
             .toArray(String[]::new);
-        log.info("Command line arguments used for datastore command [{}]", Joiner.on(' ').join(filteredArgs));
+        log.info("Command line arguments used for datastore command [{}]", String.join(" ", filteredArgs));
         List<String> inputArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
         if (!inputArgs.isEmpty()) {
             log.info("System properties and vm options passed {}", inputArgs);
@@ -550,8 +542,6 @@ public class DataStoreCommand implements Command {
             Splitter delimSplitter = Splitter.on("/").trimResults().omitEmptyStrings();
             List<String> pathElementList = delimSplitter.splitToList(inclusionRegex);
 
-            Joiner delimJoiner = Joiner.on("/").skipNulls();
-
             // Get the first pathElement from the regexPath
             String pathElement = pathElementList.get(0);
             // If the pathElement == *, get all child nodes and scan under them for the rest of the regex
@@ -561,7 +551,7 @@ public class DataStoreCommand implements Command {
                     // Remove the current Path Element from the regexPath
                     // and recurse on getInclusionListFromRegex with this childNodeState and the regexPath
                     // under the current pathElement
-                    String sub = delimJoiner.join(pathElementList.subList(1, pathElementList.size()));
+                    String sub = String.join("/", pathElementList.subList(1, pathElementList.size()));
                     getInclusionListFromRegex(rootState.getChildNode(nodeName), rootPathTemp, sub, inclusionNodeStates);
                 }
             } else {
@@ -585,7 +575,6 @@ public class DataStoreCommand implements Command {
                 return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
             }
         };
-        private final static Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
         private final static Splitter delimSplitter = Splitter.on(DELIM).trimResults().omitEmptyStrings();
 
         private final BlobStoreOptions optionBean;
@@ -640,9 +629,9 @@ public class DataStoreCommand implements Command {
          * @param line   can be either of the format b47b...#12311,/a/b/c or
          *               b47b...#12311
          * @param dsType
-         * @return In case of ref dump, concatanated encoded blob ref in a
+         * @return In case of ref dump, concatenated encoded blob ref in a
          * format understood by backing datastore impl and the path
-         * on which ref is present separated by delimJoiner
+         * on which ref is present separated by delimiters.
          * In case of id dump, just the encoded blob ids.
          */
         static String encodeId(String line, BlobStoreOptions.Type dsType) {
@@ -672,7 +661,7 @@ public class DataStoreCommand implements Command {
             // In case of blob ids dump, the list size would be 1 (Consisting of just the id)
             if (list.size() > 1) {
                 // Join back the encoded blob ref and the path on which the ref is present
-                return delimJoiner.join(blobId, EscapeUtils.unescapeLineBreaks(list.get(1)));
+                return String.join(DELIM, blobId, EscapeUtils.unescapeLineBreaks(list.get(1)));
             } else {
                 // return the encoded blob id
                 return blobId;
@@ -703,4 +692,3 @@ public class DataStoreCommand implements Command {
         System.out.println(dt);
     }
 }
-

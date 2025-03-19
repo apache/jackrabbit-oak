@@ -33,7 +33,7 @@ public class MemoryDiffCacheTest {
     public void limit() throws Exception {
         DiffCache cache = new MemoryDiffCache(builderProvider.newBuilder()
                 .setCacheSegmentCount(1)
-                .memoryCacheDistribution(0, 0, 0, 99));
+                .memoryCacheDistribution(0, 0, 0, 99, 0));
         RevisionVector from = new RevisionVector(Revision.newRevision(1));
         RevisionVector to = new RevisionVector(Revision.newRevision(1));
         DiffCache.Entry entry = cache.newEntry(from, to, false);

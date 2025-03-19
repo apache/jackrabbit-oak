@@ -16,16 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -33,8 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.lucene.store.Directory;
@@ -45,7 +44,6 @@ import org.apache.lucene.store.IndexOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static java.util.Arrays.stream;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
@@ -73,7 +71,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
     long waitOtherCopyTimeoutMillis = Long.getLong(WAIT_OTHER_COPY_SYSPROP_NAME, TimeUnit.SECONDS.toMillis(30));
 
-    private final ConcurrentMap<String, CORFileReference> files = newConcurrentMap();
+    private final ConcurrentMap<String, CORFileReference> files = new ConcurrentHashMap<>();
 
     public CopyOnReadDirectory(IndexCopier indexCopier, Directory remote, Directory local, boolean prefetch,
                                String indexPath, Executor executor) throws IOException {
@@ -168,7 +166,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         long start = PERF_LOGGER.start();
         long totalSize = 0;
         int copyCount = 0;
-        List<String> copiedFileNames = Lists.newArrayList();
+        List<String> copiedFileNames = new ArrayList<>();
         for (String name : remote.listAll()) {
             if (IndexCopier.REMOTE_ONLY.contains(name)) {
                 continue;

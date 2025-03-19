@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.standby;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -32,7 +31,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -210,7 +208,7 @@ public abstract class DataStoreTestBase extends TestBase {
         try (
             InputStream blobInputStream = b.getNewStream()
         ) {
-            ByteStreams.readFully(blobInputStream, testData);
+            IOUtils.readFully(blobInputStream, testData);
             assertArrayEquals(data, testData);
         }
     }
@@ -258,7 +256,7 @@ public abstract class DataStoreTestBase extends TestBase {
         try (
             InputStream blobInputStream = b.getNewStream()
         ) {
-            ByteStreams.readFully(blobInputStream, testData);
+            IOUtils.readFully(blobInputStream, testData);
             assertArrayEquals(data, testData);
         }
     }
@@ -468,7 +466,7 @@ public abstract class DataStoreTestBase extends TestBase {
         assertEquals(blobSize, b.length());
         byte[] testData = new byte[blobSize];
         try (InputStream blobInputStream = b.getNewStream()) {
-            ByteStreams.readFully(blobInputStream, testData);
+            IOUtils.readFully(blobInputStream, testData);
             assertArrayEquals(data, testData);
         }
     }

@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 
 /**
@@ -148,11 +150,46 @@ public class IndexDefMergerUtils {
             return cp;
         } else if (Objects.equals(ap, cp)) {
             return pp;
+        } else if (equalStringValues(ap, cp)) {
+            return pp;
         } else {
             conflicts.add("Could not merge value; path=" + path + " property=" + property + "; ancestor=" + ap + "; custom=" + cp
                     + "; product=" + pp);
             return ap;
         }
+    }
+
+    public static boolean equalStringValues(String a, String b) {
+        String aa = getStringOrStringFromSingleValueArray(a);
+        String bb = getStringOrStringFromSingleValueArray(b);
+        if (aa == null || bb == null) {
+            // a or b are not strings or single-valued array of strings
+            return false;
+        }
+        return Objects.equals(aa, bb);
+    }
+
+    public static String getStringOrStringFromSingleValueArray(String value) {
+        if (value == null) {
+            return null;
+        }
+        JsopTokenizer tokenizer = new JsopTokenizer(value);
+        if (tokenizer.matches(JsopReader.STRING)) {
+            return tokenizer.getEscapedToken();
+        }
+        if (!tokenizer.matches('[')) {
+            return null;
+        }
+        if (!tokenizer.matches(JsopReader.STRING)) {
+            // not a string
+            return null;
+        }
+        String jsonString = tokenizer.getEscapedToken();
+        if (!tokenizer.matches(']')) {
+            // not a single-element array
+            return null;
+        }
+        return jsonString;
     }
 
     private static JsonObject mergeChild(String path, String child, int level, JsonObject ancestor, JsonObject custom, JsonObject product,

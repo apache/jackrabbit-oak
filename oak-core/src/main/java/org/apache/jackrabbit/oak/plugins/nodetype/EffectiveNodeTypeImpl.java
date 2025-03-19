@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +37,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
 import org.jetbrains.annotations.NotNull;
@@ -44,8 +45,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * EffectiveNodeTypeImpl... TODO
@@ -56,7 +55,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
 
     private static final NodeTypeImpl[] NO_MIXINS = new NodeTypeImpl[0];
 
-    private final Map<String, NodeTypeImpl> nodeTypes = Maps.newLinkedHashMap();
+    private final Map<String, NodeTypeImpl> nodeTypes = new LinkedHashMap<>();
 
     private final ReadOnlyNodeTypeManager ntMgr;
 
@@ -175,25 +174,25 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getAutoCreateNodeDefinitions() {
-        return Iterables.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isAutoCreated());
+        return IterableUtils.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isAutoCreated());
     }
 
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getAutoCreatePropertyDefinitions() {
-        return Iterables.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isAutoCreated());
+        return IterableUtils.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isAutoCreated());
     }
 
     @NotNull
     @Override
     public Iterable<NodeDefinition> getMandatoryNodeDefinitions() {
-        return Iterables.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isMandatory());
+        return IterableUtils.filter(getNodeDefinitions(), nodeDefinition -> nodeDefinition.isMandatory());
     }
 
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getMandatoryPropertyDefinitions() {
-        return Iterables.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isMandatory());
+        return IterableUtils.filter(getPropertyDefinitions(), propertyDefinition -> propertyDefinition.isMandatory());
     }
 
     /**
@@ -205,7 +204,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getNamedNodeDefinitions(@NotNull final String oakName) {
-        return Iterables.concat(Iterables.transform(nodeTypes.values(),
+        return IterableUtils.chainedIterable(IterableUtils.transform(nodeTypes.values(),
                 input -> input.getDeclaredNamedNodeDefinitions(oakName)));
     }
 
@@ -218,7 +217,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getNamedPropertyDefinitions(@NotNull String oakName) {
-        List<PropertyDefinition> definitions = newArrayList();
+        List<PropertyDefinition> definitions = new ArrayList<>();
         for (NodeTypeImpl type : nodeTypes.values()) {
             definitions.addAll(type.getDeclaredNamedPropertyDefinitions(oakName));
         }
@@ -233,7 +232,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<NodeDefinition> getResidualNodeDefinitions() {
-        List<NodeDefinition> definitions = newArrayList();
+        List<NodeDefinition> definitions = new ArrayList<>();
         for (NodeTypeImpl type : nodeTypes.values()) {
             definitions.addAll(type.getDeclaredResidualNodeDefinitions());
         }
@@ -248,7 +247,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @NotNull
     @Override
     public Iterable<PropertyDefinition> getResidualPropertyDefinitions() {
-        List<PropertyDefinition> definitions = newArrayList();
+        List<PropertyDefinition> definitions = new ArrayList<>();
         for (NodeTypeImpl type : nodeTypes.values()) {
             definitions.addAll(type.getDeclaredResidualPropertyDefinitions());
         }

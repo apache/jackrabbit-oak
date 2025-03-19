@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -32,6 +30,7 @@ import org.junit.runners.Parameterized;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -74,7 +73,7 @@ public class OakStreamingIndexFileTest {
 
     @Parameterized.Parameters(name="{0}, {1}")
     public static Collection<Object[]> fixtures() throws Exception {
-        List<Object[]> modes = Lists.newArrayList();
+        List<Object[]> modes = new ArrayList<>();
         modes.add(new Object[]{COPY_BYTES, BYTE_WISE_READ});
         modes.add(new Object[]{COPY_BYTES, BATCH_READ});
         modes.add(new Object[]{WRITE_FILE, BYTE_WISE_READ});

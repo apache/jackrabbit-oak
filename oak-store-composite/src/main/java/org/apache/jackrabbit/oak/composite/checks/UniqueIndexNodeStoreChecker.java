@@ -48,8 +48,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 /**
  * Checker that ensures the consistency of unique entries in the various mounts
  * 
@@ -114,7 +112,7 @@ public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<Uniq
     static class Context {
         private final MountInfoProvider mip;
         private final Map<String, IndexCombination> combinations = new HashMap<>();
-        private final Map<String, MountedNodeStore> mountedNodeStoresByName = Maps.newHashMap();
+        private final Map<String, MountedNodeStore> mountedNodeStoresByName = new HashMap<>();
         
         Context(MountInfoProvider mip) {
             this.mip = mip;
@@ -150,7 +148,7 @@ public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<Uniq
     static class IndexCombination {
         private final ChildNodeEntry rootIndexDef;
         private final UniqueIndexNodeStoreChecker checker;
-        private final Map<Mount, NodeState> indexEntries = Maps.newHashMap();
+        private final Map<Mount, NodeState> indexEntries = new HashMap<>();
         private final List<Mount[]> checked = new ArrayList<>();
         // bounded as the ErrorHolder has a reasonable limit of entries before it fails immediately
         private final Set<String> reportedConflictingValues = new HashSet<>();

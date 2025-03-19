@@ -53,8 +53,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 /**
  * Randomized PermissionStore test. It generates a random structure (1110
  * nodes), samples 10% of the paths for setting 'user' allow read, for setting

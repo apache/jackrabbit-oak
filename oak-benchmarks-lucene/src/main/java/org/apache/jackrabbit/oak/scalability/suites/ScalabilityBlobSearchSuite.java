@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.scalability.suites;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -38,9 +36,8 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.VersionException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
@@ -51,7 +48,6 @@ import org.apache.jackrabbit.oak.benchmark.util.MimeType;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
-
 
 /**
  * The suite test will incrementally increase the load and execute searches.
@@ -147,11 +143,11 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
         if (INDEX) {
             OakIndexUtils.propertyIndexDefinition(session, NodeTypeConstants.JCR_MIMETYPE,
                 new String[] {NodeTypeConstants.JCR_MIMETYPE}, false,
-                (Strings.isNullOrEmpty(indexType) ? new String[0] : new String[] {indexType}));
+                (StringUtils.isEmpty(indexType) ? new String[0] : new String[] {indexType}));
             OakIndexUtils
                 .orderedIndexDefinition(session, NodeTypeConstants.JCR_LASTMODIFIED, ASYNC_INDEX,
                     new String[] {NodeTypeConstants.JCR_LASTMODIFIED}, false,
-                    (Strings.isNullOrEmpty(indexType) ? new String[0] : new String[] {indexType}),
+                    (StringUtils.isEmpty(indexType) ? new String[0] : new String[] {indexType}),
                     null);
         }
     }
@@ -166,7 +162,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
         }
 
         // recreate paths created in this run
-        searchPaths = newArrayList();
+        searchPaths = new ArrayList<>();
         readPaths = new ArrayList<>(READERS);
 
         // create the blob load for this iteration
@@ -283,7 +279,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
                 while (count < maxAssets) {
                     session.refresh(false);
 
-                    List<String> levels = Lists.newArrayList();
+                    List<String> levels = new ArrayList<>();
                     getParentLevels(count, maxAssets, levels);
 
                     String fileNamePrefix = getFileNamePrefix(levels);
@@ -348,7 +344,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
 
                 file.setProperty(CUSTOM_PATH_PROP, file.getPath());
                 String reference = getRandomReadPath();
-                if (!Strings.isNullOrEmpty(reference)) {
+                if (!StringUtils.isEmpty(reference)) {
                     file.setProperty(CUSTOM_REF_PROP, reference);
                 }
             } finally {

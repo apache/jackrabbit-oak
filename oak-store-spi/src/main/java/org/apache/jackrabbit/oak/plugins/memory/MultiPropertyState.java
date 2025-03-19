@@ -18,16 +18,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,7 +45,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      */
     protected MultiPropertyState(String name, Iterable<T> values) {
         super(name);
-        this.values = Lists.newArrayList(values);
+        this.values = ListUtils.toList(values);
     }
 
     /**
@@ -59,29 +59,29 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
     private <S> S  convertTo(Type<S> type) {
         switch (type.tag()) {
             case PropertyType.STRING:
-                return (S) Iterables.transform(values, value -> getConverter(value).toString());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toString());
             case PropertyType.BINARY:
-                return (S) Iterables.transform(values, value -> getConverter(value).toBinary());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toBinary());
             case PropertyType.LONG:
-                return (S) Iterables.transform(values, value -> getConverter(value).toLong());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toLong());
             case PropertyType.DOUBLE:
-                return (S) Iterables.transform(values, value -> getConverter(value).toDouble());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toDouble());
             case PropertyType.DATE:
-                return (S) Iterables.transform(values, value -> getConverter(value).toDate());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toDate());
             case PropertyType.BOOLEAN:
-                return (S) Iterables.transform(values, value -> getConverter(value).toBoolean());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toBoolean());
             case PropertyType.NAME:
-                return (S) Iterables.transform(values, value -> getConverter(value).toString());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toString());
             case PropertyType.PATH:
-                return (S) Iterables.transform(values, value -> getConverter(value).toString());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toString());
             case PropertyType.REFERENCE:
-                return (S) Iterables.transform(values, value -> getConverter(value).toString());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toString());
             case PropertyType.WEAKREFERENCE:
-                return (S) Iterables.transform(values, value -> getConverter(value).toString());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toString());
             case PropertyType.URI:
-                return (S) Iterables.transform(values, value -> getConverter(value).toString());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toString());
             case PropertyType.DECIMAL:
-                return (S) Iterables.transform(values, value -> getConverter(value).toDecimal());
+                return (S) IterableUtils.transform(values, value -> getConverter(value).toDecimal());
             default: throw new IllegalArgumentException("Unknown type:" + type);
         }
     }
@@ -95,7 +95,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
     @NotNull
     @Override
     public <S> S getValue(Type<S> type) {
-        checkState(type.isArray(), "Type must be an array type");
+        Validate.checkState(type.isArray(), "Type must be an array type");
         if (getType() == type) {
             return (S) values;
         }

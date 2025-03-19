@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.AccessCondition;
-import com.microsoft.azure.storage.Constants;
-import com.microsoft.azure.storage.RetryNoRetry;
-import com.microsoft.azure.storage.StorageErrorCode;
-import com.microsoft.azure.storage.StorageErrorCodeStrings;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobRequestOptions;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.azure.core.http.RequestConditions;
+import com.azure.core.util.Context;
+import com.azure.storage.blob.models.BlobErrorCode;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.specialized.BlobLeaseClient;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -53,9 +52,11 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private final Runnable shutdownHook;
 
-    private final CloudBlockBlob blob;
+    private final BlockBlobClient blockBlobClient;
 
-    private final ExecutorService executor;
+    private final BlobLeaseClient leaseClient;
+
+    private final Thread refresherThread;
 
     private final int timeoutSec;
 
@@ -64,15 +65,19 @@ public class AzureRepositoryLock implements RepositoryLock {
     private String leaseId;
 
     private volatile boolean doUpdate;
+    private static final String REFRESHER_THREAD_NAME = "AzureRepositoryLock-Refresher";
+    private boolean inError;
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController) {
-        this(blob, shutdownHook, writeAccessController, TIMEOUT_SEC);
+    public AzureRepositoryLock(BlockBlobClient blockBlobClient, BlobLeaseClient leaseClient, Runnable shutdownHook, WriteAccessController writeAccessController) {
+        this(blockBlobClient, leaseClient, shutdownHook, writeAccessController, TIMEOUT_SEC);
     }
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController, int timeoutSec) {
+    public AzureRepositoryLock(BlockBlobClient blockBlobClient, BlobLeaseClient leaseClient, Runnable shutdownHook, WriteAccessController writeAccessController, int timeoutSec) {
         this.shutdownHook = shutdownHook;
-        this.blob = blob;
-        this.executor = Executors.newSingleThreadExecutor();
+        this.blockBlobClient = blockBlobClient;
+        this.leaseClient =  leaseClient;
+        this.refresherThread = new Thread(this::refreshLease, REFRESHER_THREAD_NAME);
+        this.refresherThread.setDaemon(true);
         this.timeoutSec = timeoutSec;
         this.writeAccessController = writeAccessController;
 
@@ -87,13 +92,13 @@ public class AzureRepositoryLock implements RepositoryLock {
         Exception ex = null;
         do {
             try {
-                blob.openOutputStream().close();
+                blockBlobClient.getBlobOutputStream().close();
 
                 log.info("{} = {}", LEASE_DURATION_PROP, leaseDuration);
                 log.info("{} = {}", RENEWAL_INTERVAL_PROP, renewalInterval);
                 log.info("{} = {}", TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, timeToWaitBeforeWriteBlock);
 
-                leaseId = blob.acquireLease(leaseDuration, null);
+                leaseId = leaseClient.acquireLease(leaseDuration);
                 writeAccessController.enableWriting();
                 log.info("Acquired lease {}", leaseId);
             } catch (Exception e) {
@@ -116,25 +121,27 @@ public class AzureRepositoryLock implements RepositoryLock {
             log.error("Can't acquire the lease in {}s.", timeoutSec);
             throw new IOException(ex);
         } else {
-            executor.submit(this::refreshLease);
+            refresherThread.start();
             return this;
         }
     }
 
     private void refreshLease() {
+        log.info("Starting the lease renewal loop");
         doUpdate = true;
         long lastUpdate = 0;
+        setInError(false);
         while (doUpdate) {
             long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
             try {
                 if (timeSinceLastUpdate > renewalInterval) {
-
-                    BlobRequestOptions requestOptions = new BlobRequestOptions();
-                    requestOptions.setMaximumExecutionTimeInMs(LEASE_RENEWAL_TIMEOUT_MS);
-                    requestOptions.setRetryPolicyFactory(new RetryNoRetry());
-                    blob.renewLease(AccessCondition.generateLeaseCondition(leaseId), requestOptions, null);
+                    leaseId = leaseClient.renewLeaseWithResponse((RequestConditions) null, Duration.ofMillis(LEASE_RENEWAL_TIMEOUT_MS), Context.NONE).getValue();
 
                     writeAccessController.enableWriting();
+                    if (isInError()) {
+                        log.info("Lease renewal successful again.");
+                        setInError(false);
+                    }
                     lastUpdate = System.currentTimeMillis();
                 }
             } catch (Exception e) {
@@ -144,15 +151,14 @@ public class AzureRepositoryLock implements RepositoryLock {
                     writeAccessController.disableWriting();
                 }
 
-                if (e instanceof StorageException) {
-                    StorageException storageException = (StorageException) e;
-                    if (Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT
-                            , StorageErrorCode.SERVICE_INTERNAL_ERROR
-                            , StorageErrorCodeStrings.SERVER_BUSY
-                            , StorageErrorCodeStrings.INTERNAL_ERROR).contains(storageException.getErrorCode())) {
+                if (e instanceof BlobStorageException) {
+                    BlobStorageException storageException = (BlobStorageException) e;
+                    BlobErrorCode errorCode = storageException.getErrorCode();
+                    if (errorCode != null &&
+                        Set.of(BlobErrorCode.OPERATION_TIMED_OUT,
+                            BlobErrorCode.SERVER_BUSY,
+                            BlobErrorCode.INTERNAL_ERROR).contains(errorCode)) {
                         log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
-                    } else if (storageException.getHttpStatusCode() == Constants.HeaderConstants.HTTP_UNUSED_306) {
-                        log.warn("Client side error. Retry in progress ...", e);
                     } else {
                         log.warn("Could not renew lease due to storage exception. Retry in progress ... ", e);
                     }
@@ -162,21 +168,23 @@ public class AzureRepositoryLock implements RepositoryLock {
                     doUpdate = false;
                     return;
                 }
-            }
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                log.error("Interrupted the lease renewal loop", e);
+                waitABit(100);
+            } catch (Throwable t) {
+                if (!isInError()) {
+                    log.error("Unexpected error in the lease renewal loop, trying to recover", t);
+                    setInError(true);
+                }
+                waitABit(100);
             }
         }
+        log.info("Lease renewal loop exiting.");
     }
 
     @Override
     public void unlock() throws IOException {
         doUpdate = false;
-        executor.shutdown();
         try {
-            executor.awaitTermination(1, TimeUnit.MINUTES);
+            refresherThread.join(60000);
         } catch (InterruptedException e) {
             throw new IOException(e);
         } finally {
@@ -186,12 +194,29 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private void releaseLease() throws IOException {
         try {
-            blob.releaseLease(AccessCondition.generateLeaseCondition(leaseId));
-            blob.delete();
+            leaseClient.releaseLease();
+            blockBlobClient.delete();
             log.info("Released lease {}", leaseId);
             leaseId = null;
-        } catch (StorageException e) {
+        } catch (BlobStorageException e) {
             throw new IOException(e);
+        }
+    }
+
+    private void setInError(boolean inError) {
+        this.inError = inError;
+        refresherThread.setName(REFRESHER_THREAD_NAME + (inError ? "-InError" : ""));
+    }
+
+    private boolean isInError() {
+        return inError;
+    }
+
+    private void waitABit(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            // ignore
         }
     }
 }

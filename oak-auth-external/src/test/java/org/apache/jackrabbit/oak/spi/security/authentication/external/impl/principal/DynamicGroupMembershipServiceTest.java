@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
@@ -73,11 +72,11 @@ public class DynamicGroupMembershipServiceTest extends AbstractExternalAuthTest 
     }
     
     private static Map<String, String> getMappingParams() {
-        return ImmutableMap.of(PARAM_IDP_NAME, IDP_VALID_AM, PARAM_SYNC_HANDLER_NAME, "sh");
+        return Map.of(PARAM_IDP_NAME, IDP_VALID_AM, PARAM_SYNC_HANDLER_NAME, "sh");
     }
 
     private static Map<String, Object> getSyncHandlerParams(boolean enableDynamicGroups) {
-        return ImmutableMap.of(
+        return Map.of(
                 PARAM_USER_DYNAMIC_MEMBERSHIP, true,
                 PARAM_NAME, "sh",
                 PARAM_GROUP_DYNAMIC_GROUPS, enableDynamicGroups);

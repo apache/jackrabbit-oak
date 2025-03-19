@@ -21,8 +21,6 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -237,7 +235,7 @@ public class DocumentStoreCheckCommandTest {
         CommitHook hook = EmptyHook.INSTANCE;
         if (withIndexUpdate) {
             NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
-            IndexUtils.createIndexDefinition(index, "uuid", true, true, ImmutableList.of("jcr:uuid"), null);
+            IndexUtils.createIndexDefinition(index, "uuid", true, true, List.of("jcr:uuid"), null);
             hook = new EditorHook(new IndexUpdateProvider(new PropertyIndexEditorProvider()));
         }
         ns.merge(builder, hook, CommitInfo.EMPTY);

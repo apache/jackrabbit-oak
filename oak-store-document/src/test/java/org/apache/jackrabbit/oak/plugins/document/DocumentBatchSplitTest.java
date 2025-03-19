@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -40,8 +41,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -66,7 +65,7 @@ public class DocumentBatchSplitTest {
 
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();

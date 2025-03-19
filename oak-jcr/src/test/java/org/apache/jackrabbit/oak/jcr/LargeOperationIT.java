@@ -70,8 +70,6 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 
@@ -121,7 +119,7 @@ public class LargeOperationIT {
      */
     private static List<Integer> createSequence(int from, int to, int count) {
         double slope = pow(to / (double) from, 1 / ((double) count - 1));
-        List<Integer> seq = Lists.newArrayList();
+        List<Integer> seq = new ArrayList<>();
         int c = 0;
         int v = from;
         do {
@@ -133,7 +131,7 @@ public class LargeOperationIT {
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() throws Exception {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         SegmentTarFixture segmentFixture = new SegmentTarFixture();
         if (segmentFixture.isAvailable()) {
             fixtures.add(new Object[] {segmentFixture, SEGMENT_SCALES});
@@ -241,7 +239,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-commit", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator();
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -271,7 +269,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-copy", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -303,7 +301,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-move", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -330,7 +328,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-remove", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -362,7 +360,7 @@ public class LargeOperationIT {
     public void manySiblings() throws RepositoryException, InterruptedException {
         final Node n = session.getRootNode().addNode("many-siblings", "oak:Unstructured");
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -401,7 +399,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("pending-events", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             final Observer observer = new Observer(scale, 100);
             try {
@@ -436,7 +434,7 @@ public class LargeOperationIT {
         Future<Void> result = delayedEventHandling.start();
 
         try {
-            ArrayList<Double> executionTimes = Lists.newArrayList();
+            ArrayList<Double> executionTimes = new ArrayList<>();
             for (int scale : scales) {
                 ScalabilityTest test = new ScalabilityTest(scale) {
                     @Override

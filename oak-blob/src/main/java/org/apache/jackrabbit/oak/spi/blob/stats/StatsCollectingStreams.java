@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.blob.stats;
 
 import java.io.FilterInputStream;
@@ -24,7 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.io.CountingInputStream;
+import org.apache.commons.io.input.CountingInputStream;
 import org.jetbrains.annotations.NotNull;
 
 
@@ -48,7 +47,7 @@ public final class StatsCollectingStreams {
                 //be processing also as it moved further in stream. So that
                 //overhead would add to the download time
 
-                collector.downloaded(blobId, System.nanoTime() - startTime, TimeUnit.NANOSECONDS, cin.getCount());
+                collector.downloaded(blobId, System.nanoTime() - startTime, TimeUnit.NANOSECONDS, cin.getByteCount());
                 collector.downloadCompleted(blobId);
             }
         };

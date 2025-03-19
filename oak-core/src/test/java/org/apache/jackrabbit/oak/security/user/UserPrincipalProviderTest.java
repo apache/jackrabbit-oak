@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
@@ -280,7 +281,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
             Iterator<? extends Principal> principals = principalProvider.findPrincipals(null, SEARCH_TYPE_GROUP);
             Iterator filtered = Iterators.filter(principals, principal -> EveryonePrincipal.NAME.equals(principal.getName()));
-            assertEquals(1, Iterators.size(filtered));
+            assertEquals(1, IteratorUtils.size(filtered));
         } finally {
             if (everyoneGroup != null) {
                 everyoneGroup.remove();
@@ -308,6 +309,18 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
         Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
         UserPrincipalProvider upp = new UserPrincipalProvider(r, getUserConfiguration(), NamePathMapper.DEFAULT);
         Iterator<? extends Principal> it = upp.findPrincipals("a", false, PrincipalManager.SEARCH_TYPE_ALL, -1, -1);
+        assertNotNull(it);
+        assertFalse(it.hasNext());
+    }
+
+    @Test
+    public void testFindPrincipalsQueryFailsNullHint() throws ParseException {
+        QueryEngine qe = mock(QueryEngine.class);
+        when(qe.executeQuery(anyString(), anyString(), anyLong(), anyLong(), any(Map.class), any(Map.class))).thenThrow(new ParseException("err",0));
+
+        Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
+        UserPrincipalProvider upp = new UserPrincipalProvider(r, getUserConfiguration(), NamePathMapper.DEFAULT);
+        Iterator<? extends Principal> it = upp.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_ALL, -1, -1);
         assertNotNull(it);
         assertFalse(it.hasNext());
     }

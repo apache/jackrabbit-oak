@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.71-SNAPSHOT</version>
+    <version>1.77-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -60,6 +60,7 @@
                 org.apache.jackrabbit.oak.spi.security.privilege,
                 org.apache.jackrabbit.oak.spi.security.user,
                 org.apache.jackrabbit.oak.spi.security.user.action,
+                org.apache.jackrabbit.oak.spi.security.user.cache,
                 org.apache.jackrabbit.oak.spi.security.user.util,
                 org.apache.jackrabbit.oak.spi.xml
               </Export-Package>
@@ -151,6 +152,11 @@
       <artifactId>annotations</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+
     <!-- Test Dependencies -->
     <dependency>
       <groupId>junit</groupId>
@@ -174,6 +180,10 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-collections4</artifactId>
+      </dependency>
   </dependencies>
 
 </project>

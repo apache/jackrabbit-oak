@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -47,10 +46,9 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -180,7 +178,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     private static void writeItemDefinitions(@NotNull Tree nodeTypeTree, @Nullable List<? extends ItemDefinitionTemplate> itemDefTemplates,
                                              @NotNull String nodeName, @NotNull String primaryTypeName) throws RepositoryException {
         // first remove existing
-        for (Tree t : filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName)::test)) {
+        for (Tree t : IterableUtils.filter(nodeTypeTree.getChildren(), new SameNamePredicate(nodeName)::test)) {
             t.remove();
         }
         // now write definitions
@@ -298,7 +296,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     @Override
     public List<? extends PropertyDefinitionTemplate> getPropertyDefinitionTemplates() {
         if (propertyDefinitionTemplates == null) {
-            propertyDefinitionTemplates = Lists.newArrayList();
+            propertyDefinitionTemplates = new ArrayList<>();
         }
         return propertyDefinitionTemplates;
     }
@@ -316,7 +314,7 @@ class NodeTypeTemplateImpl extends NamedTemplate implements NodeTypeTemplate {
     @Override
     public List<? extends NodeDefinitionTemplate> getNodeDefinitionTemplates() {
         if (nodeDefinitionTemplates == null) {
-            nodeDefinitionTemplates = Lists.newArrayList();
+            nodeDefinitionTemplates = new ArrayList<>();
         }
         return nodeDefinitionTemplates;
     }

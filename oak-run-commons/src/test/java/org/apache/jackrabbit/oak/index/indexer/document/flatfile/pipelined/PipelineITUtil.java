@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.apache.jackrabbit.oak.plugins.document.TestUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -55,6 +57,12 @@ public class PipelineITUtil {
 
     private static final int LONG_PATH_TEST_LEVELS = 30;
     private static final String LONG_PATH_LEVEL_STRING = "Z12345678901234567890-Level_";
+
+    private final static Clock.Virtual clock = new Clock.Virtual();
+    static {
+        TestUtils.setRevisionClock(clock);
+    }
+
 
     static final List<String> EXPECTED_FFS = new ArrayList<>(List.of(
             "/|{}",
@@ -174,6 +182,7 @@ public class PipelineITUtil {
             builder.setReadOnlyMode();
         }
         builder.setAsyncDelay(1);
+        builder.clock(clock);
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
         return new MongoTestBackend(c.getMongoURI(), (MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c.getDatabase());
     }
@@ -186,6 +195,7 @@ public class PipelineITUtil {
             builder.setReadOnlyMode();
         }
         builder.setAsyncDelay(1);
+        builder.clock(clock);
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
         MongoDocumentStore mongoDocumentStore = (MongoDocumentStore) builder.getDocumentStore();
         // TODO: Resource not released

@@ -22,9 +22,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -83,7 +82,7 @@ public class FlatFileNodeStoreBuilderTest {
         when(mongoDocumentStore.isReadOnly()).thenReturn(true);
         FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
                 .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory)
-                .withIndexDefinitions(Set.of())
+                .withIndexDefinitions(List.of())
                 .withMongoDocumentStore(mongoDocumentStore);
         SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
         assertTrue(sortStrategy instanceof PipelinedStrategy);
@@ -213,13 +212,13 @@ public class FlatFileNodeStoreBuilderTest {
         }
     }
 
-    private static Set<IndexDefinition> mockIndexDefns() {
+    private static List<IndexDefinition> mockIndexDefns() {
         NodeStore store = new MemoryNodeStore();
         EditorHook hook = new EditorHook(
                 new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
         OakInitializer.initialize(store, new InitialContent(), hook);
 
-        Set<IndexDefinition> defns = new HashSet<>();
+        List<IndexDefinition> defns = new ArrayList<>();
         IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
         defnBuilder.indexRule("dam:Asset");
         defnBuilder.aggregateRule("dam:Asset");

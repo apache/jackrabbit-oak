@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import static org.junit.Assert.*;
 
 import java.util.Calendar;
+import java.util.List;
+
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -33,8 +34,6 @@ import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class PropertyStatesTest {
 
@@ -82,7 +81,7 @@ public class PropertyStatesTest {
     
     @Test
     public void multiPropertyStateTest() {
-        MultiStringPropertyState s = new MultiStringPropertyState("test", Lists.newArrayList("hello", "world"));
+        MultiStringPropertyState s = new MultiStringPropertyState("test", List.of("hello", "world"));
         assertEquals(Type.STRINGS, s.getType());
         assertEquals("test", s.getName());
         assertTrue(s.getValue(Type.STRINGS).iterator().hasNext());

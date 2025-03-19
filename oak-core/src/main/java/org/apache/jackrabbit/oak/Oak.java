@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
@@ -50,11 +48,6 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -63,8 +56,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
 import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditorProvider;
@@ -158,19 +154,19 @@ public class Oak {
 
     private final NodeStore store;
 
-    private final List<RepositoryInitializer> initializers = newArrayList();
+    private final List<RepositoryInitializer> initializers = new ArrayList<>();
 
     private AnnotatedQueryEngineSettings queryEngineSettings = new AnnotatedQueryEngineSettings();
 
-    private final List<QueryIndexProvider> queryIndexProviders = newArrayList();
+    private final List<QueryIndexProvider> queryIndexProviders = new ArrayList<>();
 
-    private final List<IndexEditorProvider> indexEditorProviders = newArrayList();
+    private final List<IndexEditorProvider> indexEditorProviders = new ArrayList<>();
 
-    private final List<CommitHook> commitHooks = newArrayList();
+    private final List<CommitHook> commitHooks = new ArrayList<>();
 
-    private final List<Observer> observers = Lists.newArrayList();
+    private final List<Observer> observers = new ArrayList<>();
 
-    private List<EditorProvider> editorProviders = newArrayList();
+    private List<EditorProvider> editorProviders = new ArrayList<>();
 
     private CompositeConflictHandler conflictHandler;
 
@@ -470,7 +466,7 @@ public class Oak {
         if (!editorProviders.isEmpty()) {
             commitHooks.add(new EditorHook(
                     CompositeEditorProvider.compose(editorProviders)));
-            editorProviders = newArrayList();
+            editorProviders = new ArrayList<>();
         }
     }
 
@@ -588,6 +584,10 @@ public class Oak {
             LOG.info("Registered improved cost feature: " + QueryEngineSettings.FT_NAME_IMPROVED_IS_NULL_COST);
             closer.register(improvedIsNullCostFeature);
             queryEngineSettings.setImprovedIsNullCostFeature(improvedIsNullCostFeature);
+            Feature optimizeInRestrictionsForFunctions = newFeature(QueryEngineSettings.FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS, whiteboard);
+            LOG.info("Registered optimize in restrictions for functions feature: " + QueryEngineSettings.FT_OPTIMIZE_IN_RESTRICTIONS_FOR_FUNCTIONS);
+            closer.register(optimizeInRestrictionsForFunctions);
+            queryEngineSettings.setOptimizeInRestrictionsForFunctions(optimizeInRestrictionsForFunctions);
         }
 
         return this;
@@ -663,7 +663,7 @@ public class Oak {
         if (this.asyncTasks == null) {
             asyncTasks = new HashMap<String, Long>();
         }
-        checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
+        Validate.checkState(delayInSeconds > 0, "delayInSeconds value must be > 0");
         asyncTasks.put(AsyncIndexUpdate.checkValidName(name), delayInSeconds);
         return this;
     }
@@ -703,7 +703,7 @@ public class Oak {
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
-        Iterable<WorkspaceInitializer> workspaceInitializers = Iterables.transform(securityProvider.getConfigurations(),
+        Iterable<WorkspaceInitializer> workspaceInitializers = IterableUtils.transform(securityProvider.getConfigurations(),
                 sc -> {
                         WorkspaceInitializer wi = sc.getWorkspaceInitializer();
                         if (wi instanceof QueryIndexProviderAware) {
@@ -730,7 +730,7 @@ public class Oak {
 
         final RepoStateCheckHook repoStateCheckHook = new RepoStateCheckHook();
         closer.register(repoStateCheckHook);
-        final List<Registration> regs = Lists.newArrayList();
+        final List<Registration> regs = new ArrayList<>();
         closer.register( () -> new CompositeRegistration(regs).unregister() );
         regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
 
@@ -987,6 +987,10 @@ public class Oak {
             settings.setImprovedIsNullCostFeature(feature);
         }
 
+        public void setOptimizeInRestrictionsForFunctions(@Nullable Feature feature) {
+            settings.setOptimizeInRestrictionsForFunctions(feature);
+        }
+
         @Override
         public void setQueryValidatorPattern(String key, String pattern, String comment, boolean failQuery) {
             settings.getQueryValidator().setPattern(key, pattern, comment, failQuery);
@@ -1031,20 +1035,20 @@ public class Oak {
         @Deprecated
         public static final OakDefaultComponents INSTANCE = new OakDefaultComponents();
 
-        private final Iterable<CommitHook> commitHooks = ImmutableList.of(new VersionHook());
+        private final Iterable<CommitHook> commitHooks = List.of(new VersionHook());
 
-        private  final Iterable<RepositoryInitializer> repositoryInitializers = ImmutableList
+        private  final Iterable<RepositoryInitializer> repositoryInitializers = List
                 .of(new InitialContent());
 
-        private  final Iterable<EditorProvider> editorProviders = ImmutableList.of(
+        private  final Iterable<EditorProvider> editorProviders = List.of(
                 new ItemSaveValidatorProvider(), new NameValidatorProvider(), new NamespaceEditorProvider(),
                 new TypeEditorProvider(), new ConflictValidatorProvider(), new ChangeCollectorProvider());
 
-        private  final Iterable<IndexEditorProvider> indexEditorProviders = ImmutableList.of(
+        private  final Iterable<IndexEditorProvider> indexEditorProviders = List.of(
                 new ReferenceEditorProvider(), new PropertyIndexEditorProvider(), new NodeCounterEditorProvider(),
                 new OrderedPropertyIndexEditorProvider());
 
-        private  final Iterable<QueryIndexProvider> queryIndexProviders = ImmutableList
+        private  final Iterable<QueryIndexProvider> queryIndexProviders = List
                 .of(new ReferenceIndexProvider(), new PropertyIndexProvider(), new NodeTypeIndexProvider());
 
         private  final SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().build();

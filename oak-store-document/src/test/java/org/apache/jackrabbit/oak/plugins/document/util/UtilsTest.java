@@ -22,12 +22,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
@@ -49,11 +47,14 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
@@ -311,6 +312,45 @@ public class UtilsTest {
     }
 
     @Test
+    public void prevNoPropDisabledByDefault() {
+        assertPrevNoPropDisabled(newDocumentNodeStoreBuilder());
+    }
+
+    @Test
+    public void prevNoPropDisabled() {
+        assertPrevNoPropDisabled(newDocumentNodeStoreBuilder()
+                .setPrevNoPropCacheFeature(createFeature(false)));
+    }
+
+    private void assertPrevNoPropDisabled(DocumentNodeStoreBuilder<?> builder) {
+        assertNotNull(builder);
+        @Nullable
+        Feature feature = builder.getPrevNoPropCacheFeature();
+        if (feature != null) {
+            assertFalse(feature.isEnabled());
+        }
+        assertEquals(0, builder.getPrevNoPropCacheSize());
+        assertNull(builder.buildPrevNoPropCache());
+    }
+
+    @Test
+    public void prevNoPropEnabled() {
+        DocumentNodeStoreBuilder<?> b =
+                newDocumentNodeStoreBuilder().setPrevNoPropCacheFeature(createFeature(true));
+        assertNotNull(b);
+        assertTrue(b.getPrevNoPropCacheFeature().isEnabled());
+        assertEquals(DEFAULT_MEMORY_CACHE_SIZE * DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE / 100,
+                b.getPrevNoPropCacheSize());
+        assertNotNull(b.buildPrevNoPropCache());
+    }
+
+    public static Feature createFeature(boolean enabled) {
+        Feature f = mock(Feature.class);
+        when(f.isEnabled()).thenReturn(enabled);
+        return f;
+    }
+
+    @Test
     public void getDepthFromId() throws Exception{
         assertEquals(1, Utils.getDepthFromId("1:/x"));
         assertEquals(2, Utils.getDepthFromId("2:/x"));
@@ -391,7 +431,7 @@ public class UtilsTest {
             }
             store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-            assertEquals(1001 /* root + 1000 children */, Iterables.size(
+            assertEquals(1001 /* root + 1000 children */, IterableUtils.size(
                     Utils.getAllDocuments(store.getDocumentStore())));
         } finally {
             store.dispose();
@@ -401,34 +441,34 @@ public class UtilsTest {
     @Test
     public void getMaxExternalRevisionTime() {
         int localClusterId = 1;
-        List<Revision> revs = ImmutableList.of();
+        List<Revision> revs = Collections.emptyList();
         long revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(Long.MIN_VALUE, revTime);
 
-        revs = ImmutableList.of(Revision.fromString("r1-0-1"));
+        revs = List.of(Revision.fromString("r1-0-1"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(Long.MIN_VALUE, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r1-0-1"),
                 Revision.fromString("r2-0-2"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r3-0-1"),
                 Revision.fromString("r2-0-2"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r1-0-1"),
                 Revision.fromString("r2-0-2"),
                 Revision.fromString("r2-0-3"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r1-0-1"),
                 Revision.fromString("r3-0-2"),
                 Revision.fromString("r2-0-3"));

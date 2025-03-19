@@ -27,10 +27,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageCredentialManager;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -53,12 +52,10 @@ class SegmentTarFixtureProvider {
 
         FileStoreBuilder builder;
         if (segmentStoreType == ToolUtils.SegmentStoreType.AZURE) {
-            final AzureStorageCredentialManager azureStorageCredentialManager = new AzureStorageCredentialManager();
             SegmentNodeStorePersistence segmentNodeStorePersistence =
-                ToolUtils.newSegmentNodeStorePersistence(segmentStoreType, pathOrUri, azureStorageCredentialManager);
+                ToolUtils.newSegmentNodeStorePersistence(segmentStoreType, pathOrUri);
             File tempDir = Files.createTempDirectory("azure-segment-store").toFile();
             closer.register(() -> FileUtils.deleteQuietly(tempDir));
-            closer.register(azureStorageCredentialManager);
             builder = fileStoreBuilder(tempDir).withCustomPersistence(segmentNodeStorePersistence);
         } else {
             builder = fileStoreBuilder(new File(pathOrUri)).withMaxFileSize(256);

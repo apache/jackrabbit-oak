@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.List;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -123,7 +123,7 @@ public class PrivilegeContextTest {
 
     @Test
     public void testDefinesLocation() {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 PrivilegeConstants.PRIVILEGES_PATH,
                 PrivilegeConstants.PRIVILEGES_PATH + "/child",
                 PrivilegeConstants.PRIVILEGES_PATH + "/another/child"
@@ -139,7 +139,7 @@ public class PrivilegeContextTest {
 
     @Test
     public void testNotDefinesLocation() {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 PathUtils.ROOT_PATH,
                 PrivilegeConstants.PRIVILEGES_PATH + "sibling",
                 "/some/other/path",

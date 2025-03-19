@@ -16,15 +16,17 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobRange;
+import com.azure.storage.blob.models.BlobRequestConditions;
+import com.azure.storage.blob.models.BlobStorageException;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 import static java.lang.Math.min;
@@ -35,7 +37,9 @@ public class ReverseFileReader {
 
     private int bufferSize;
 
-    private final CloudBlob blob;
+    private final BlobContainerClient blobContainerClient;
+
+    private final BlobItem blob;
 
     private byte[] buffer;
 
@@ -43,14 +47,15 @@ public class ReverseFileReader {
 
     private int fileOffset;
 
-    public ReverseFileReader(CloudBlob blob) throws StorageException {
-        this (blob, BUFFER_SIZE);
+    public ReverseFileReader(BlobContainerClient blobContainerClient, BlobItem blob) throws BlobStorageException {
+        this(blobContainerClient, blob, BUFFER_SIZE);
     }
 
-    public ReverseFileReader(CloudBlob blob, int bufferSize) throws StorageException {
+    public ReverseFileReader(BlobContainerClient blobContainerClient, BlobItem blob, int bufferSize) throws BlobStorageException {
+        this.blobContainerClient = blobContainerClient;
         this.blob = blob;
-        if (blob.exists()) {
-            this.fileOffset = (int) blob.getProperties().getLength();
+        if (blobContainerClient.getBlobClient(blob.getName()).exists()) {
+            this.fileOffset = blob.getProperties().getContentLength().intValue();
         } else {
             this.fileOffset = 0;
         }
@@ -67,12 +72,11 @@ public class ReverseFileReader {
         if (buffer.length > 0) {
             fileOffset -= buffer.length;
             try {
-                OperationContext opContext = new OperationContext();
-                HashMap<String, String> userHeaders = new HashMap<>();
-                userHeaders.put("If-Match", "*");
-                opContext.setUserHeaders(userHeaders);
-                blob.downloadRangeToByteArray(fileOffset, Long.valueOf(buffer.length), buffer, 0, null, null, opContext);
-            } catch (StorageException e) {
+                BlobRange blobRange = new BlobRange(Long.valueOf(fileOffset), Long.valueOf(buffer.length));
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream(buffer.length);
+                blobContainerClient.getBlobClient(blob.getName()).downloadStreamWithResponse(outputStream, blobRange, null, new BlobRequestConditions().setIfMatch("*"), false, null, null);
+                buffer = outputStream.toByteArray();
+            } catch (BlobStorageException e) {
                 throw new IOException(e);
             }
         }

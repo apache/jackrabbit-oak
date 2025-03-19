@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import static java.util.Collections.singletonList;
@@ -66,7 +65,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 
 public class PropertyIndexCleaner implements Runnable{
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -310,7 +309,7 @@ public class PropertyIndexCleaner implements Runnable{
     }
 
     private static CommitInfo createCommitInfo() {
-        Map<String, Object> info = ImmutableMap.of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> info = Map.of(CommitContext.NAME, new SimpleCommitContext());
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 

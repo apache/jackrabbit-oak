@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.migration.version;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -122,7 +122,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
 
     private static boolean updateFrozenMixins(NodeBuilder builder) {
         if (builder.hasProperty(JCR_FROZENMIXINTYPES)) {
-            final Set<String> mixins = CollectionUtils.toSet(builder.getProperty(JCR_FROZENMIXINTYPES).getValue(NAMES));
+            final Set<String> mixins = SetUtils.toSet(builder.getProperty(JCR_FROZENMIXINTYPES).getValue(NAMES));
             if (mixins.remove(MIX_SIMPLE_VERSIONABLE)) {
                 mixins.add(MIX_VERSIONABLE);
                 builder.setProperty(nameProperty(JCR_FROZENMIXINTYPES, mixins));

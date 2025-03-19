@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.run;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 
 /**
  * Contains one particular reference to an nt:frozenNode.
@@ -48,7 +48,7 @@ public class FrozenNodeRef {
             // could at some point change and this '7' no longer be correct - but so far it is and it's faster this way
             return false;
         }
-        boolean containsJcrFrozenNodeName = Iterables.contains(PathUtils.elements(uuidRefPath), "jcr:frozenNode");
+        boolean containsJcrFrozenNodeName = IterableUtils.contains(PathUtils.elements(uuidRefPath), "jcr:frozenNode");
         if (!containsJcrFrozenNodeName) {
             // TODO: we could consider NOT continuing here, as we might opt to store frozenNodes
             // under another parent than 'jcr:frozenNode' - but so far that's how it is and it's faster

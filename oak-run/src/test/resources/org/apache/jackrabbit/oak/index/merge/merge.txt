@@ -1,6 +1,13 @@
 {"tests":
 [
 {
+  "ancestor": {"includedPaths": ["/content/a"]},
+  "custom": {"includedPaths": "/content/a"},
+  "product": {"includedPaths": ["/content/a", "/content/b"]},
+  "expected": {"includedPaths": ["/content/a", "/content/b"], "merges": ["/oak:index/test-2", "/oak:index/test-1-custom-1"]
+  }
+},
+{
   "ancestor": {"value": 1, "a-old": 0},
   "custom": {"value": 2, "b-new": 3},
   "product": {"value": 1, "c-new": 4},

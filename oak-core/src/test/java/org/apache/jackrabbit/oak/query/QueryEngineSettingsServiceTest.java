@@ -16,15 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.query;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
@@ -52,7 +50,7 @@ public class QueryEngineSettingsServiceTest {
     );
 
     private QueryEngineSettingsService settingsService = new QueryEngineSettingsService();
-    private Map<String, String> sysPropValues = Maps.newHashMap();
+    private Map<String, String> sysPropValues = new HashMap<>();
 
     @Before
     public void setUp(){
@@ -76,7 +74,7 @@ public class QueryEngineSettingsServiceTest {
         QueryEngineSettings settings = new QueryEngineSettings();
         context.registerService(QueryEngineSettingsMBean.class, settings);
 
-        Map<String, Object> config = Maps.newHashMap();
+        Map<String, Object> config = new HashMap<>();
         config.put(QueryEngineSettingsService.QUERY_LIMIT_READS, 100);
         config.put(QueryEngineSettingsService.QUERY_LIMIT_IN_MEMORY, 142);
         config.put(QueryEngineSettingsService.QUERY_FAIL_TRAVERSAL, true);
@@ -127,7 +125,7 @@ public class QueryEngineSettingsServiceTest {
         QueryEngineSettings settings = new QueryEngineSettings();
         context.registerService(QueryEngineSettingsMBean.class, settings);
 
-        Map<String, Object> config = Maps.newHashMap();
+        Map<String, Object> config = new HashMap<>();
         config.put(QueryEngineSettingsService.QUERY_LIMIT_READS, 100);
         config.put(QueryEngineSettingsService.QUERY_LIMIT_IN_MEMORY, 142);
         config.put(QueryEngineSettingsService.QUERY_FAIL_TRAVERSAL, true);

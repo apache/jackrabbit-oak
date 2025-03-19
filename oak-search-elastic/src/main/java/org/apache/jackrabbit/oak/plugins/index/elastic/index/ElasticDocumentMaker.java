@@ -21,6 +21,10 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -34,11 +38,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 
 public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticDocumentMaker.class);
+    private static final int BLOB_LENGTH_DIVISOR = 4;
+
+    private static final LogSilencer LOG_SILENCER = new LogSilencer(Duration.ofSeconds(10).toMillis(), 10);
+    private static final String LOG_KEY_COULD_NOT_CONVERT_PROPERTY = "Could not convert property";
+    private static final String LOG_KEY_SIMILARITY_BINARIES_WRONG_DIMENSION = "Similarity binaries wrong dimension";
 
     public ElasticDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                 @NotNull IndexDefinition definition,
@@ -48,7 +58,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected ElasticDocument initDoc() {
-        return new ElasticDocument(path);
+        return new ElasticDocument(path, (int) definition.getDefinitionNodeState().getLong(ElasticIndexDefinition.PROP_INDEX_NAME_SEED));
     }
 
     @Override
@@ -56,6 +66,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         // Evaluate path restrictions is enabled by default in elastic. Always index ancestors.
         // When specifically disabled, we will keep indexing it, but the field won't be used at query time
         doc.indexAncestors(path);
+        doc.setLastUpdated(System.currentTimeMillis());
         return doc;
     }
 
@@ -106,7 +117,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     protected void indexSuggestValue(ElasticDocument doc, String value) {
         if (value != null) {
             String v = value.trim();
-            if (v.length() > 0) {
+            if (!v.isEmpty()) {
                 doc.addSuggest(v);
             }
         }
@@ -116,7 +127,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     protected void indexSpellcheckValue(ElasticDocument doc, String value) {
         if (value != null) {
             String v = value.trim();
-            if (v.length() > 0) {
+            if (!v.isEmpty()) {
                 doc.addSpellcheck(v);
             }
         }
@@ -126,7 +137,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     protected void indexFulltextValue(ElasticDocument doc, String value) {
         if (value != null) {
             String v = value.trim();
-            if (v.length() > 0) {
+            if (!v.isEmpty()) {
                 doc.addFulltext(v);
             }
         }
@@ -141,12 +152,33 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         return pd.isRegexp || !pd.analyzed;
     }
 
+    /**
+     * ElasticDocument can be updated. If a property gets deleted from the node, we need to add it to the list of properties to remove.
+     * This is needed to remove the property from the index. See @{link ElasticBulkProcessorHandler#updateDocument} for more details.
+     */
     @Override
-    protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
+    protected boolean addTypedFields(ElasticDocument doc, PropertyState property, String pname, PropertyDefinition pd) {
+        boolean added = super.addTypedFields(doc, property, pname, pd);
+        if (!added) {
+            doc.removeProperty(pname);
+        }
+        return added;
+    }
+
+    @Override
+    protected void indexTypedProperty(ElasticDocument doc, PropertyState property, String propertyName, PropertyDefinition pd, int i) {
         // Get the Type tag from the defined index definition here - and not from the actual persisted property state - this way in case
         // If the actual property value is different from the property type defined in the index definition/mapping - this will try to convert the property if possible,
         // otherwise will log a warning and not try and add the property to index. If we try and index incompatible data types (like String to Date),
         // we would get an exception while indexing the node on elastic search and other properties for the node will also don't get indexed. (See OAK-9665).
+        String fieldName = ElasticIndexUtils.fieldName(propertyName);
+        if (pd.isRegexp) {
+            ElasticPropertyDefinition epd = (ElasticPropertyDefinition) pd;
+            if (epd.isFlattened()) {
+                fieldName = FieldNames.FLATTENED_FIELD_PREFIX +
+                        ElasticIndexUtils.fieldName(epd.nodeName) + "." + fieldName;
+            }
+        }
         int tag = pd.getType();
         Object f;
         try {
@@ -162,13 +194,15 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
                 f = property.getValue(Type.STRING, i);
             }
 
-            doc.addProperty(pname, f);
+            doc.addProperty(fieldName, f);
         } catch (Exception e) {
-            LOG.warn(
-                    "[{}] Ignoring property. Could not convert property {} of type {} to type {} for path {}",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+            if (!LOG_SILENCER.silence(LOG_KEY_COULD_NOT_CONVERT_PROPERTY)) {
+                LOG.warn(
+                        "[{}] Ignoring property. Could not convert property {} (field {}) of type {} to type {} for path {}. Error: {}",
+                        getIndexName(), propertyName, fieldName,
+                        Type.fromTag(property.getType().tag(), false),
+                        Type.fromTag(tag, false), path, e.toString());
+            }
         }
     }
 
@@ -207,7 +241,7 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     @Override
     protected boolean indexSimilarityTag(ElasticDocument doc, PropertyState property) {
         String val = property.getValue(Type.STRING);
-        if (val.length() > 0) {
+        if (!val.isEmpty()) {
             doc.addSimilarityTag(val);
             return true;
         }
@@ -217,13 +251,15 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
     @Override
     protected void indexSimilarityBinaries(ElasticDocument doc, PropertyDefinition pd, Blob blob) throws IOException {
         // without this check, if the vector size is not correct, the entire document will be skipped
-        if (pd.getSimilaritySearchDenseVectorSize() == blob.length() / 8) {
+        if (pd.getSimilaritySearchDenseVectorSize() == blob.length() / BLOB_LENGTH_DIVISOR) {
             // see https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch
             // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
-            doc.addSimilarityField(pd.name, blob);
+            doc.addSimilarityField(ElasticIndexUtils.fieldName(pd.name), blob);
         } else {
-            LOG.warn("[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
-                    getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(), blob.length() / 8);
+            if (!LOG_SILENCER.silence(LOG_KEY_SIMILARITY_BINARIES_WRONG_DIMENSION)) {
+                LOG.warn("[{}] Ignoring binary property {} for path {}. Expected dimension is {} but got {}",
+                        getIndexName(), pd.name, this.path, pd.getSimilaritySearchDenseVectorSize(), blob.length() / BLOB_LENGTH_DIVISOR);
+            }
         }
     }
 
@@ -240,8 +276,8 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected boolean indexDynamicBoost(ElasticDocument doc, String parent, String nodeName, String token, double boost) {
-        if (token.length() > 0) {
-            doc.addDynamicBoostField(nodeName, token, boost);
+        if (!token.isEmpty()) {
+            doc.addDynamicBoostField(ElasticIndexUtils.fieldName(nodeName), token, boost);
             return true;
         }
         return false;

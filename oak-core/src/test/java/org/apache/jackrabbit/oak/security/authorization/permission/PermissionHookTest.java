@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -30,7 +27,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -67,6 +65,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -456,7 +455,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         // verify that the permission provider still exposes the correct privilege
         // (jcr:all) for the given childPath irrespective of the dynamic nature of
         // the privilege bits in the persisted permission entry.
-        Set<Principal> principalSet = ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
+        Set<Principal> principalSet = Set.of(EveryonePrincipal.getInstance());
         PermissionProvider permissionProvider = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), principalSet);
         Tree childTree = root.getTree(childPath);
         assertTrue(permissionProvider.hasPrivileges(childTree, PrivilegeConstants.JCR_ALL));
@@ -506,7 +505,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
         acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
-        acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ), false, ImmutableMap.of(REP_GLOB, getValueFactory(root).createValue("/*/jcr:content")));
+        acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ), false, Map.of(REP_GLOB, getValueFactory(root).createValue("/*/jcr:content")));
         acMgr.setPolicy(childPath, acl);
         root.commit();
 
@@ -674,7 +673,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             addACE(cc.getPath(), testPrincipal, JCR_READ);
             root.commit();
 
-            Set<String> paths = CollectionUtils.toSet(aPath, bPath, cPath);
+            Set<String> paths = SetUtils.toSet(aPath, bPath, cPath);
             paths.add(testPath);
 
             assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
@@ -727,7 +726,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
             addACE(cc.getPath(), testPrincipal, JCR_READ);
             root.commit();
 
-            Set<String> paths = CollectionUtils.toSet(aPath, bPath, cPath);
+            Set<String> paths = SetUtils.toSet(aPath, bPath, cPath);
             paths.add(testPath);
 
             assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
@@ -796,9 +795,9 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
         principalPermissionStore = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(testPrincipal.getName());
         assertEquals(2, principalPermissionStore.getChildrenCount(10));
-        Iterable<String> paths = Iterables.transform(principalPermissionStore.getChildren(), tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
+        Iterable<String> paths = IterableUtils.transform(principalPermissionStore.getChildren(), tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
 
-        assertEquals(Set.of(testPath, t.getPath()), ImmutableSet.copyOf(paths));
+        assertEquals(Set.of(testPath, t.getPath()), SetUtils.toSet(paths));
     }
 
     @Test
@@ -817,7 +816,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
         NodeState child = mock(NodeState.class);
         Iterable newCnes = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
-        Iterable cnes = Iterables.concat(newCnes, before.getChildNodeEntries());
+        Iterable cnes = IterableUtils.chainedIterable(newCnes, before.getChildNodeEntries());
         when(after.getChildNodeEntries()).thenReturn(cnes);
         when(after.getChildNode(":hidden")).thenReturn(child);
 
@@ -837,13 +836,13 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
         NodeState child = mock(NodeState.class);
         Iterable hidden = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
-        Iterable cnes = Iterables.concat(hidden, nodeState.getChildNodeEntries());
+        Iterable cnes = IterableUtils.chainedIterable(hidden, nodeState.getChildNodeEntries());
         when(before.getChildNodeEntries()).thenReturn(cnes);
         when(before.getChildNode(":hidden")).thenReturn(child);
 
         NodeState child2 = when(mock(NodeState.class).exists()).thenReturn(true).getMock();
         hidden = Collections.singleton(new MemoryChildNodeEntry(":hidden", child2));
-        cnes = Iterables.concat(hidden, nodeState.getChildNodeEntries());
+        cnes = IterableUtils.chainedIterable(hidden, nodeState.getChildNodeEntries());
         when(after.getChildNodeEntries()).thenReturn(cnes);
         when(after.getChildNode(":hidden")).thenReturn(child2);
 
@@ -862,7 +861,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
         NodeState child = mock(NodeState.class);
         Iterable deletedCnes = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
-        Iterable cnes = Iterables.concat(deletedCnes, after.getChildNodeEntries());
+        Iterable cnes = IterableUtils.chainedIterable(deletedCnes, after.getChildNodeEntries());
         when(before.getChildNodeEntries()).thenReturn(cnes);
         when(before.getChildNode(":hidden")).thenReturn(child);
 

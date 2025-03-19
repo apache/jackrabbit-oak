@@ -28,8 +28,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorP
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import java.util.Collections;
-
 /*
 Out of band indexer for Elasticsearch. Provides support to index segment store for  given index definitions or reindex existing indexes
  */
@@ -57,7 +55,7 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
     @Override
     protected IndexEditorProvider createIndexEditorProvider() {
         IndexEditorProvider elastic = createElasticEditorProvider();
-        return CompositeIndexEditorProvider.compose(Collections.singletonList(elastic));
+        return CompositeIndexEditorProvider.compose(elastic);
     }
 
     private IndexEditorProvider createElasticEditorProvider() {

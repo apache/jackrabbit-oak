@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.asPredicate;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -44,12 +45,12 @@ import java.util.function.Predicate;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.collections.CollectionUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
@@ -176,7 +177,7 @@ public class TypeEditor extends DefaultEditor {
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || CollectionUtils.toStream(mixins).anyMatch(typesToCheck::contains);
+                || StreamUtils.toStream(mixins).anyMatch(typesToCheck::contains);
         this.parent = null;
         this.nodeName = null;
         this.types = requireNonNull(types);
@@ -196,7 +197,7 @@ public class TypeEditor extends DefaultEditor {
         this.checkThisNode =
                 typesToCheck == null
                 || typesToCheck.contains(primary)
-                || CollectionUtils.toStream(mixins).anyMatch(typesToCheck::contains);
+                || StreamUtils.toStream(mixins).anyMatch(typesToCheck::contains);
         this.parent = requireNonNull(parent);
         this.nodeName = requireNonNull(name);
         this.types = parent.types;
@@ -330,7 +331,7 @@ public class TypeEditor extends DefaultEditor {
             @Nullable EffectiveType parent, @Nullable String name,
             @Nullable String primary, @NotNull Iterable<String> mixins)
             throws CommitFailedException {
-        List<NodeState> list = Lists.newArrayList();
+        List<NodeState> list = new ArrayList<>();
 
         NodeState type = (primary == null) ? null : types.getChildNode(primary);
         if (type == null || !type.exists()) {
@@ -441,21 +442,23 @@ public class TypeEditor extends DefaultEditor {
     }
 
     private static boolean mixinsChanged(NodeState before, Iterable<String> after) {
-        List<String> pre = Lists.newArrayList(before.getNames(JCR_MIXINTYPES));
+        List<String> pre = ListUtils.toList(before.getNames(JCR_MIXINTYPES));
         Collections.sort(pre);
-        List<String> post = Lists.newArrayList(after);
+        List<String> post = ListUtils.toList(after);
         Collections.sort(post);
         if (pre.isEmpty() && post.isEmpty()) {
             return false;
         } else if (pre.isEmpty() || post.isEmpty()) {
             return true;
         } else {
-            return !Iterables.elementsEqual(pre, post);
+            return !IterableUtils.elementsEqual(pre, post);
         }
     }
 
     private void checkNodeTypeConstraints(NodeState after) throws CommitFailedException {
         EffectiveType effective = getEffective();
+
+        // check mandatory properties
 
         Set<String> properties = effective.getMandatoryProperties();
         for (PropertyState ps : after.getProperties()) {
@@ -464,15 +467,19 @@ public class TypeEditor extends DefaultEditor {
         }
         // verify the presence of all mandatory items
         if (!properties.isEmpty()) {
-            constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
+            constraintViolation(21, "Mandatory properties '" + properties + "' not found in a new node of type '" + effective + "'");
         }
 
-        List<String> names = Lists.newArrayList(after.getChildNodeNames());
+        // check mandatory child nodes
+
+        List<String> names = ListUtils.toList(after.getChildNodeNames());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
-                constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");
+                constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node of type '" + effective + "'");
             }
         }
+
+        // of the child node names left after above check, verify that these are allowed by the node type
 
         for (String name : names) {
             if (!NodeStateUtils.isHidden(name)) {

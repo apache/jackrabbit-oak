@@ -25,8 +25,9 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import java.util.StringJoiner;
+
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
@@ -140,7 +141,9 @@ public abstract class TreeLocation {
 
     @Override
     public String toString() {
-        return toStringHelper(this).add("path", getPath()).toString();
+        return new StringJoiner(", ", TreeLocation.class.getSimpleName() + "[", "]")
+                .add("path=" + getPath())
+                .toString();
     }
 
     /**

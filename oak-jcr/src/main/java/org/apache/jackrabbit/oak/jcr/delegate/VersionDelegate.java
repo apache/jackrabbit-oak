@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -28,8 +29,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * {@code VersionDelegate}...
@@ -63,7 +62,7 @@ public class VersionDelegate extends NodeDelegate {
             throw new RepositoryException("Inconsistent version storage. " +
                     "Version does not have a " + JCR_PREDECESSORS + " property.");
         }
-        List<VersionDelegate> predecessors = Lists.newArrayList();
+        List<VersionDelegate> predecessors = new ArrayList<>();
         VersionManagerDelegate vMgr = VersionManagerDelegate.create(sessionDelegate);
         for (String id : p.getMultiState().getValue(Type.REFERENCES)) {
             predecessors.add(vMgr.getVersionByIdentifier(id));

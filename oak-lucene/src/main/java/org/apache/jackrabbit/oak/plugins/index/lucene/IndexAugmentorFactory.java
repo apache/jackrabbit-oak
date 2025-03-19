@@ -16,25 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.References;
-import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
@@ -48,18 +44,27 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("UnusedDeclaration")
-@Component
-@Service(value = IndexAugmentorFactory.class)
-@References({
-        @Reference(name = "IndexFieldProvider",
-                policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                referenceInterface = IndexFieldProvider.class),
-        @Reference(name = "FulltextQueryTermsProvider",
-                policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-                referenceInterface = FulltextQueryTermsProvider.class)
-})
+@Component(
+        service = { IndexAugmentorFactory.class },
+        reference = {
+                @Reference(
+                        name = "IndexFieldProvider",
+                        bind = "bindIndexFieldProvider",
+                        unbind = "unbindIndexFieldProvider",
+                        policy = ReferencePolicy.DYNAMIC,
+                        cardinality = ReferenceCardinality.MULTIPLE,
+                        service = IndexFieldProvider.class
+                ),
+                @Reference(
+                        name = "FulltextQueryTermsProvider",
+                        bind = "bindFulltextQueryTermsProvider",
+                        unbind = "unbindFulltextQueryTermsProvider",
+                        policy = ReferencePolicy.DYNAMIC,
+                        cardinality = ReferenceCardinality.MULTIPLE,
+                        service = FulltextQueryTermsProvider.class
+                )
+        }
+)
 public class IndexAugmentorFactory {
 
     private static final PerfLogger PERFLOG = new PerfLogger(
@@ -72,8 +77,8 @@ public class IndexAugmentorFactory {
     private volatile Map<String, CompositeFulltextQueryTermsProvider> fulltextQueryTermsProviderMap;
 
     public IndexAugmentorFactory() {
-        indexFieldProviders = Sets.newIdentityHashSet();
-        fulltextQueryTermsProviders = Sets.newIdentityHashSet();
+        indexFieldProviders = SetUtils.newIdentityHashSet();
+        fulltextQueryTermsProviders = SetUtils.newIdentityHashSet();
 
         resetState();
     }
@@ -125,7 +130,7 @@ public class IndexAugmentorFactory {
             }
         }
 
-        Map<String, CompositeIndexFieldProvider> providerMap = Maps.newHashMap();
+        Map<String, CompositeIndexFieldProvider> providerMap = new HashMap<>();
         for (String nodeType : providerMultimap.keySet()) {
             List<IndexFieldProvider> providers = providerMultimap.get(nodeType);
             CompositeIndexFieldProvider compositeIndexFieldProvider =
@@ -133,7 +138,7 @@ public class IndexAugmentorFactory {
             providerMap.put(nodeType, compositeIndexFieldProvider);
         }
 
-        indexFieldProviderMap = ImmutableMap.copyOf(providerMap);
+        indexFieldProviderMap = Collections.unmodifiableMap(providerMap);
     }
 
     private void refreshFulltextQueryTermsProviders() {
@@ -146,7 +151,7 @@ public class IndexAugmentorFactory {
             }
         }
 
-        Map<String, CompositeFulltextQueryTermsProvider> providerMap = Maps.newHashMap();
+        Map<String, CompositeFulltextQueryTermsProvider> providerMap = new HashMap<>();
         for (String nodeType : providerMultimap.keySet()) {
             List<FulltextQueryTermsProvider> providers = providerMultimap.get(nodeType);
             CompositeFulltextQueryTermsProvider compositeFulltextQueryTermsProvider =
@@ -154,7 +159,7 @@ public class IndexAugmentorFactory {
             providerMap.put(nodeType, compositeFulltextQueryTermsProvider);
         }
 
-        fulltextQueryTermsProviderMap = ImmutableMap.copyOf(providerMap);
+        fulltextQueryTermsProviderMap = Collections.unmodifiableMap(providerMap);
     }
 
     private void resetState() {
@@ -179,14 +184,14 @@ public class IndexAugmentorFactory {
 
         CompositeIndexFieldProvider(String nodeType, List<IndexFieldProvider> providers) {
             this.nodeType = nodeType;
-            this.providers = ImmutableList.copyOf(providers);
+            this.providers = List.copyOf(providers);
         }
 
         @NotNull
         @Override
         public List<Field> getAugmentedFields(final String path,
                                               final NodeState document, final NodeState indexDefinition) {
-            List<Field> fields = Lists.newArrayList();
+            List<Field> fields = new ArrayList<>();
             for (IndexFieldProvider indexFieldProvider : providers) {
                 final long start = PERFLOG.start();
                 Iterable<Field> providedFields = indexFieldProvider.getAugmentedFields(path, document, indexDefinition);
@@ -213,12 +218,12 @@ public class IndexAugmentorFactory {
 
         CompositeFulltextQueryTermsProvider(String nodeType, List<FulltextQueryTermsProvider> providers) {
             this.nodeType = nodeType;
-            this.providers = ImmutableList.copyOf(providers);
+            this.providers = List.copyOf(providers);
         }
 
         @Override
         public Query getQueryTerm(final String text, final Analyzer analyzer, NodeState indexDefinition) {
-            List<Query> subQueries = Lists.newArrayList();
+            List<Query> subQueries = new ArrayList<>();
             for (FulltextQueryTermsProvider fulltextQueryTermsProvider : providers) {
                 final long start = PERFLOG.start();
                 Query subQuery = fulltextQueryTermsProvider.getQueryTerm(text, analyzer, indexDefinition);

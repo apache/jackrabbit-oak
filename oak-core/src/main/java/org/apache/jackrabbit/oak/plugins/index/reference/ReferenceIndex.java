@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.lang.Double.POSITIVE_INFINITY;
 import static javax.jcr.PropertyType.REFERENCE;
 import static javax.jcr.PropertyType.WEAKREFERENCE;
@@ -34,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
@@ -45,9 +44,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Provides a QueryIndex that does lookups for node references based on a custom
@@ -98,7 +94,7 @@ class ReferenceIndex implements QueryIndex {
         // not an appropriate index
         return POSITIVE_INFINITY;
     }
-    
+
     private static boolean isEqualityRestrictionOnType(PropertyRestriction pr, int propertyType) {
         if (pr.propertyType != propertyType) {
             return false;
@@ -130,17 +126,17 @@ class ReferenceIndex implements QueryIndex {
         if (!indexRoot.exists()) {
             return newPathCursor(new ArrayList<String>(), filter.getQueryLimits());
         }
-        List<Iterable<String>> iterables = Lists.newArrayList();
+        List<Iterable<String>> iterables = new ArrayList<>();
         for (IndexStoreStrategy s : getStrategies(indexRoot, mountInfoProvider, index)) {
             iterables.add(s.query(filter, index + "("
                     + uuid + ")", indexRoot, Set.of(uuid)));
         }
-        Iterable<String> paths = Iterables.concat(iterables);
+        Iterable<String> paths = IterableUtils.chainedIterable(iterables);
 
         if (!"*".equals(name)) {
-            paths = filter(paths, path -> name.equals(getName(path)));
+            paths = IterableUtils.filter(paths, path -> name.equals(getName(path)));
         }
-        paths = transform(paths, path -> getParentPath(path));
+        paths = IterableUtils.transform(paths, path -> getParentPath(path));
         return newPathCursor(paths, filter.getQueryLimits());
     }
 

@@ -24,7 +24,6 @@ import java.util.Set;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -55,7 +54,7 @@ public class ExternalLoginDynamicMembershipTest extends ExternalLoginTest {
 
         // now register the sync-handler with the dynamic membership config
         // in order to enable dynamic membership with the external principal configuration
-        Map<String, Boolean> props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership());
+        Map<String, Boolean> props = Map.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership());
         context.registerService(SyncHandler.class, WhiteboardUtils.getService(whiteboard, SyncHandler.class), props);
     }
 

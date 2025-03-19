@@ -18,13 +18,14 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
@@ -49,7 +50,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
 /**
@@ -109,7 +109,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
         String errorMsg = "Failed to initialize user content.";
         try {
             Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
-            checkState(rootTree.exists());
+            Validate.checkState(rootTree.exists());
             Tree index = TreeUtil.getOrAddChild(rootTree, IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
 
             if (!index.hasChild("authorizableId")) {
@@ -142,7 +142,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
                 boolean omitPw = params.getConfigValue(PARAM_OMIT_ADMIN_PW, false);
                 userManager.createUser(adminId, (omitPw) ? null : adminId);
             }
-            String anonymousId = Strings.emptyToNull(params.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID, String.class));
+            String anonymousId = StringUtils.emptyToNull(params.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID, String.class));
             if (anonymousId != null && userManager.getAuthorizable(anonymousId) == null) {
                 userManager.createUser(anonymousId, null);
             }

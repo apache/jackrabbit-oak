@@ -773,6 +773,24 @@ the `machine` and `instance` fields. This behaviour is new and was introduced
 with Oak 1.10. Previous versions ignore entries that do not match the
 environment and would create a new entry.
 
+Note that while this behavior is usually beneficial, there are circumstances
+under which it may lead to very slow startup times for cluster nodes that try
+to acquire a node ID that has not been shut down gracefully and has been
+inactive for a long time. This is due to synchronous recovery operations that
+are necessary to guarantee the consistency of the cluster (for details see
+[Recovery for a cluster node ID](#recovery-for-a-cluster-node-id)).
+
+To avoid that, the maximum duration of the synchronous recovery may be
+limited using the system property `oak.documentMK.syncRecoveryTimeoutMillis`.
+A positive value will specify this maximum duration in milliseconds, while a
+negative value doesn't limit the recovery time. The default is `-1`.
+If the duration is exceeded, the node will no longer try to reuse the ID
+and pick one that doesn't need recovery.
+
+Note that this feature has been specifically designed for unusual Oak
+deployments (requiring significantly longer lease timeouts) and is not
+recommended for general use. 
+
 ### <a name="update-lease-for-a-cluster-node-id"></a> Update lease for a cluster node ID
 
 Each running cluster node updates the `leaseEnd` time of the cluster node ID

@@ -30,7 +30,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,8 +47,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -77,11 +77,11 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
 
     protected RepositoryImpl repository;
 
-    protected List<Session> sessions = Lists.newArrayList();
+    protected List<Session> sessions = new ArrayList<>();
 
     private static Calendar betweenHistories;
 
-    private static Map<String, String> pathToVersionHistory = Maps.newHashMap();
+    private static Map<String, String> pathToVersionHistory = new HashMap<>();
 
     /**
      * Home directory of source repository.

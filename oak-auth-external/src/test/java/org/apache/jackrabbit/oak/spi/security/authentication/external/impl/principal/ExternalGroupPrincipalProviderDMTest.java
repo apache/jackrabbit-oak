@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -50,6 +49,7 @@ import java.text.ParseException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -79,7 +79,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
 
     @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { true, DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, "Dynamic Groups Enabled, Membership-Nesting-Depth=1" },
                 new Object[] { true, DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+2, "Dynamic Groups Enabled, Membership-Nesting-Depth=2" },
                 new Object[] { false, DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT, "Dynamic Groups NOT Enabled" });
@@ -175,7 +175,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         String extId = new ExternalIdentityRef(testGroup.getID(), idp.getName()).getString();
         testGroup.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, getValueFactory(root).createValue(extId));
 
-        Map<String, String> nameType = ImmutableMap.of(
+        Map<String, String> nameType = Map.of(
                 UserConstants.REP_MEMBERS, UserConstants.NT_REP_MEMBERS,
                 UserConstants.REP_MEMBERS_LIST, UserConstants.NT_REP_MEMBER_REFERENCES_LIST);
         
@@ -330,7 +330,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
         
         Iterator<Group> groups = principalProvider.getMembership(user, false);
         if (dynamicGroupsEnabled) {
-            assertEquals(getExpectedNumberOfGroups(), Iterators.size(groups));
+            assertEquals(getExpectedNumberOfGroups(), IteratorUtils.size(groups));
         } else {
             assertFalse(groups.hasNext());
         }
@@ -343,7 +343,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
 
         Iterator<Group> groups = principalProvider.getMembership(user, true);
         if (dynamicGroupsEnabled) {
-            assertEquals(getExpectedNumberOfGroups(), Iterators.size(groups));
+            assertEquals(getExpectedNumberOfGroups(), IteratorUtils.size(groups));
         } else {
             assertFalse(groups.hasNext());
         }

@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -30,11 +31,11 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.wrap;
@@ -146,7 +147,7 @@ public class FilteringNodeStateTest {
         { // access via getProperty()
             final PropertyState childOrder = decorated.getProperty(OAK_CHILD_ORDER);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
-            assertEquals(newArrayList("football"), newArrayList(values));
+            assertEquals(List.of("football"), ListUtils.toList(values));
         }
 
         { // access via getProperties()
@@ -156,9 +157,9 @@ public class FilteringNodeStateTest {
                     return OAK_CHILD_ORDER.equals(propertyState.getName());
                 }
             };
-            final PropertyState childOrder = Iterables.find(decorated.getProperties(), isChildOrderProperty::test);
+            final PropertyState childOrder = IterableUtils.find(decorated.getProperties(), isChildOrderProperty::test);
             final Iterable<String> values = childOrder.getValue(Type.STRINGS);
-            assertEquals(newArrayList("football"), newArrayList(values));
+            assertEquals(List.of("football"), ListUtils.toList(values));
         }
     }
 
@@ -329,11 +330,11 @@ public class FilteringNodeStateTest {
 
     private void assertExistingChildNodeName(NodeState decorated, String name) {
         final Iterable<String> childNodeNames = decorated.getChildNodeNames();
-        assertTrue("should list child \"" + name + "\"", Iterables.contains(childNodeNames, name));
+        assertTrue("should list child \"" + name + "\"", IterableUtils.contains(childNodeNames, name));
     }
 
     private void assertMissingChildNodeName(NodeState decorated, String name) {
         final Iterable<String> childNodeNames = decorated.getChildNodeNames();
-        assertFalse("should not list child \"" + name + "\"", Iterables.contains(childNodeNames, name));
+        assertFalse("should not list child \"" + name + "\"", IterableUtils.contains(childNodeNames, name));
     }
 }

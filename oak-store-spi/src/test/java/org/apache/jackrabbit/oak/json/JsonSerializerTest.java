@@ -16,26 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.json;
 
-import java.util.Arrays;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
 
 public class JsonSerializerTest {
 
@@ -45,14 +40,17 @@ public class JsonSerializerTest {
         builder.child("a");
         builder.child("b");
         builder.child("c");
-        List<String> expectedOrder = Arrays.asList("a", "c", "b");
-        builder.setProperty(":childOrder", expectedOrder, Type.NAMES);
+        builder.child("d");
+        builder.setProperty(":childOrder", List.of("a", "c", "b", "d"), Type.NAMES);
+
+        // A removed child should not be included in the output
+        builder.getChildNode("c").remove();
 
         NodeState state = builder.getNodeState();
         String json = serialize(state);
 
         JsopReader reader = new JsopTokenizer(json);
-        List<String> childNames = Lists.newArrayList();
+        List<String> childNames = new ArrayList<>();
         reader.read('{');
         do {
             String key = reader.readString();
@@ -64,7 +62,7 @@ public class JsonSerializerTest {
 
         } while (reader.matches(','));
 
-        assertEquals(expectedOrder, childNames);
+        assertEquals(List.of("a", "b", "d"), childNames);
     }
 
     private String serialize(NodeState nodeState){

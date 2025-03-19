@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.security.authentication.monitor.LoginModuleMonitorImpl;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -100,7 +100,7 @@ public class AuthenticationConfigurationImplTest {
 
         StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
         Iterable<Monitor<?>> monitors = authConfiguration.getMonitors(statisticsProvider);
-        assertEquals(1, Iterables.size(monitors));
+        assertEquals(1, IterableUtils.size(monitors));
 
         Monitor<?> m = monitors.iterator().next();
         assertTrue(m instanceof LoginModuleMonitorImpl);

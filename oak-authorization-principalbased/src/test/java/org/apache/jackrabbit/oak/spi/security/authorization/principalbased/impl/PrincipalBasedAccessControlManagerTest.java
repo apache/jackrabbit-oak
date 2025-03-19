@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -25,6 +23,7 @@ import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -49,7 +48,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.MIX_REP_PRINCIPAL_BASED_MIXIN;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_PRINCIPAL_POLICY;
@@ -520,7 +518,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
     }
 
     private void assertPrivileges(@NotNull Privilege[] privs, @NotNull String... expectedOakPrivNames) throws Exception {
-        assertEquals(ImmutableSet.copyOf(privilegesFromNames(expectedOakPrivNames)), ImmutableSet.copyOf(privs));
+        assertEquals(Set.of(privilegesFromNames(expectedOakPrivNames)), Set.of(privs));
     }
     
     @Test
@@ -556,7 +554,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(principals, new String[0]);
         AccessControlPolicy[] expected = acMgr.getEffectivePolicies(principals);
         
-        assertArrayEquals(expected, ImmutableList.copyOf(effective).toArray(new AccessControlPolicy[0]));
+        assertArrayEquals(expected, (ListUtils.toList(effective).toArray()));
     }
 
     @Test
@@ -569,7 +567,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         String[] paths = readablePaths.stream().map(oakPath -> namePathMapper.getJcrPath(oakPath)).distinct().toArray(String[]::new);
         assertEquals(3, paths.length);
         
-        List<AccessControlPolicy> effective = ImmutableList.copyOf(acMgr.getEffectivePolicies(Collections.singleton(validPrincipal), paths));
+        List<AccessControlPolicy> effective = ListUtils.toList(acMgr.getEffectivePolicies(Collections.singleton(validPrincipal), paths));
 
         assertEquals(1, effective.size());
         assertEquals(ReadPolicy.INSTANCE, effective.get(0));
