@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
@@ -39,16 +38,14 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 public class AzureSegmentStoreExplorerBackend extends AbstractSegmentTarExplorerBackend {
     private final String path;
     private SegmentNodeStorePersistence persistence;
-    private final AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8;
 
     public AzureSegmentStoreExplorerBackend(String path) {
         this.path = path;
-        this.azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8();
     }
 
     @Override
     public void open() throws IOException {
-        this.persistence = newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path, azureStorageCredentialManagerV8);
+        this.persistence = newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path);
 
         try {
             this.store = fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile())
@@ -63,7 +60,6 @@ public class AzureSegmentStoreExplorerBackend extends AbstractSegmentTarExplorer
     @Override
     public void close() {
         super.close();
-        azureStorageCredentialManagerV8.close();
     }
 
     @Override

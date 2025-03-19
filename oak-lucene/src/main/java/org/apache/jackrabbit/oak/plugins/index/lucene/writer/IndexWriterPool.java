@@ -84,6 +84,7 @@ public class IndexWriterPool {
     private long updateCount = 0;
     private long deleteCount = 0;
     private long totalEnqueueTimeNanos = 0;
+    private long enqueuingDelayMessageLastLoggedMillis = 0;
 
     private static class OperationBatch {
         final long sequenceNumber;
@@ -379,14 +380,19 @@ public class IndexWriterPool {
             if (seqNumber % 1000 == 0) {
                 LOG.info("Enqueuing batch {}, size: {}", seqNumber, batch.size());
             }
-            long start = System.nanoTime();
+            long enqueuingStartNanos = System.nanoTime();
             queue.put(new OperationBatch(seqNumber, batch.toArray(new Operation[0])));
-            long durationNanos = System.nanoTime() - start;
-            long durationMillis = durationNanos / 1_000_000;
+            long enqueuingEndNanos = System.nanoTime();
+            long durationNanos = enqueuingEndNanos - enqueuingStartNanos;
             totalEnqueueTimeNanos += durationNanos;
-            if (durationMillis > 1) {
-                LOG.info("Enqueuing batch delayed. Seq number: {}, size: {}. Delay: {} ms",
-                        seqNumber, batch.size(), durationMillis);
+            long durationMillis = durationNanos / 1_000_000;
+            if (durationMillis > 10) {
+                long currentTimeMillis = enqueuingEndNanos / 1_000_000;
+                if (currentTimeMillis - enqueuingDelayMessageLastLoggedMillis > TimeUnit.SECONDS.toMillis(10)) {
+                    LOG.info("Enqueuing batch delayed. Seq number: {}, size: {}. Delay: {} ms (These messages are logged every 10 seconds)",
+                            seqNumber, batch.size(), durationMillis);
+                    enqueuingDelayMessageLastLoggedMillis = currentTimeMillis;
+                }
             }
             batch.clear();
             return seqNumber;

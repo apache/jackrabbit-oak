@@ -19,24 +19,19 @@ package org.apache.jackrabbit.oak.segment.azure.tool;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createArchiveManager;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createCloudBlobDirectory;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createAzurePersistence;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.decorateWithCache;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newFileStore;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
 
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobListDetails;
+import com.azure.storage.blob.models.ListBlobsOptions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobListingDetails;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import com.microsoft.azure.storage.blob.ListBlobItem;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
-import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -53,7 +48,6 @@ import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 
 /**
@@ -79,6 +73,10 @@ public class AzureCompact {
 
         private String targetPath;
 
+        private String rootPrefix;
+
+        private String targetRootPrefix;
+
         private boolean force;
 
         private long gcLogInterval = 150000;
@@ -99,9 +97,9 @@ public class AzureCompact {
 
         private int garbageThresholdPercentage;
 
-        private CloudBlobDirectory sourceCloudBlobDirectory;
+        private BlobContainerClient sourceBlobContainerClient;
 
-        private CloudBlobDirectory destinationCloudBlobDirectory;
+        private BlobContainerClient destinationBlobContainerClient;
 
         private Builder() {
             // Prevent external instantiation.
@@ -128,6 +126,30 @@ public class AzureCompact {
          */
         public Builder withTargetPath(String targetPath) {
             this.targetPath = requireNonNull(targetPath);
+            return this;
+        }
+
+        /**
+         * The root directory to an existing segment store.
+         *
+         * @param rootPrefix
+         *               the directory to an existing segment store.
+         * @return the builder
+         */
+        public Builder withRootPrefix(String rootPrefix) {
+            this.rootPrefix = rootPrefix;
+            return this;
+        }
+
+        /**
+         * The root directory to the target segment store.
+         *
+         * @param targetRootPrefix
+         *                  the root directory to the target segmen store.
+         * @return this builder
+         */
+        public Builder withTargetRootPrefix(String targetRootPrefix) {
+            this.targetRootPrefix = targetRootPrefix;
             return this;
         }
 
@@ -253,13 +275,13 @@ public class AzureCompact {
             return this;
         }
 
-        public Builder withSourceCloudBlobDirectory(CloudBlobDirectory sourceCloudBlobDirectory) {
-            this.sourceCloudBlobDirectory = requireNonNull(sourceCloudBlobDirectory);
+        public Builder withSourceBlobContainerClient(BlobContainerClient sourceBlobContainerClient) {
+            this.sourceBlobContainerClient = requireNonNull(sourceBlobContainerClient);
             return this;
         }
 
-        public Builder withDestinationCloudBlobDirectory(CloudBlobDirectory destinationCloudBlobDirectory) {
-            this.destinationCloudBlobDirectory = requireNonNull(destinationCloudBlobDirectory);
+        public Builder withDestinationBlobContainerClient(BlobContainerClient destinationBlobContainerClient) {
+            this.destinationBlobContainerClient = requireNonNull(destinationBlobContainerClient);
             return this;
         }
 
@@ -269,7 +291,7 @@ public class AzureCompact {
          * @return an instance of {@link Runnable}.
          */
         public AzureCompact build() {
-            if (sourceCloudBlobDirectory == null || destinationCloudBlobDirectory == null) {
+            if (sourceBlobContainerClient == null || destinationBlobContainerClient == null) {
                 requireNonNull(path);
                 requireNonNull(targetPath);
             }
@@ -282,6 +304,10 @@ public class AzureCompact {
     private final String path;
 
     private final String targetPath;
+
+    private final String rootPrefix;
+
+    private final String targetRootPrefix;
 
     private final int segmentCacheSize;
 
@@ -303,14 +329,15 @@ public class AzureCompact {
 
     private final int garbageThresholdPercentage;
 
-    private final CloudBlobDirectory sourceCloudBlobDirectory;
+    private final BlobContainerClient sourceBlobContainerClient;
 
-    private final CloudBlobDirectory destinationCloudBlobDirectory;
-    private final AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8;
+    private final BlobContainerClient destinationBlobContainerClient;
 
     private AzureCompact(Builder builder) {
         this.path = builder.path;
         this.targetPath = builder.targetPath;
+        this.rootPrefix = builder.rootPrefix;
+        this.targetRootPrefix = builder.targetRootPrefix;
         this.segmentCacheSize = builder.segmentCacheSize;
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
@@ -321,22 +348,26 @@ public class AzureCompact {
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
         this.garbageThresholdGb = builder.garbageThresholdGb;
         this.garbageThresholdPercentage = builder.garbageThresholdPercentage;
-        this.sourceCloudBlobDirectory = builder.sourceCloudBlobDirectory;
-        this.destinationCloudBlobDirectory = builder.destinationCloudBlobDirectory;
-        this.azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8();
+        this.sourceBlobContainerClient = builder.sourceBlobContainerClient;
+        this.destinationBlobContainerClient = builder.destinationBlobContainerClient;
     }
 
-    public int run() throws IOException, StorageException, URISyntaxException {
+    public int run() throws IOException, URISyntaxException {
         Stopwatch watch = Stopwatch.createStarted();
 
         SegmentNodeStorePersistence roPersistence;
         SegmentNodeStorePersistence rwPersistence;
-        if (sourceCloudBlobDirectory != null && destinationCloudBlobDirectory != null) {
-            roPersistence = new AzurePersistenceV8(sourceCloudBlobDirectory);
-            rwPersistence = new AzurePersistenceV8(destinationCloudBlobDirectory);
+        BlobContainerClient targetContainer;
+        if (sourceBlobContainerClient != null && destinationBlobContainerClient != null) {
+            roPersistence = new AzurePersistence(sourceBlobContainerClient, rootPrefix);
+            rwPersistence = new AzurePersistence(destinationBlobContainerClient, targetRootPrefix);
+            targetContainer = destinationBlobContainerClient;
         } else {
-            roPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, path, azureStorageCredentialManagerV8);
-            rwPersistence = newSegmentNodeStorePersistence(SegmentStoreType.AZURE, targetPath, azureStorageCredentialManagerV8);
+            roPersistence = createAzurePersistence(path);
+
+            AzurePersistence rwAzurePersistence = createAzurePersistence(targetPath);
+            targetContainer = rwAzurePersistence.getReadBlobContainerClient();
+            rwPersistence = rwAzurePersistence;
         }
 
         if (persistentCachePath != null) {
@@ -348,8 +379,8 @@ public class AzureCompact {
         SegmentArchiveManager roArchiveManager = createArchiveManager(roPersistence);
         SegmentArchiveManager rwArchiveManager = createArchiveManager(rwPersistence);
 
-        System.out.printf("Compacting %s\n", path != null ? path : sourceCloudBlobDirectory.getUri().toString());
-        System.out.printf(" to %s\n", targetPath != null ? targetPath : destinationCloudBlobDirectory.getUri().toString());
+        System.out.printf("Compacting %s\n", path != null ? path : sourceBlobContainerClient.getBlobContainerUrl());
+        System.out.printf(" to %s\n", targetPath != null ? targetPath : destinationBlobContainerClient.getBlobContainerUrl());
         System.out.printf("    before\n");
         List<String> beforeArchives = Collections.emptyList();
         try {
@@ -359,14 +390,6 @@ public class AzureCompact {
         }
 
         printArchives(System.out, beforeArchives);
-
-        CloudBlobContainer targetContainer = null;
-        if (targetPath != null) {
-            CloudBlobDirectory targetDirectory = createCloudBlobDirectory(targetPath.substring(3), azureStorageCredentialManagerV8);
-            targetContainer = targetDirectory.getContainer();
-        } else {
-            targetContainer = destinationCloudBlobDirectory.getContainer();
-        }
 
         GCGeneration gcGeneration = null;
         String root = null;
@@ -424,8 +447,6 @@ public class AzureCompact {
         long newSize = printTargetRepoSizeInfo(targetContainer);
         persistGCJournal(rwPersistence, newSize, gcGeneration, root);
 
-        // close azure storage credential manager
-        azureStorageCredentialManagerV8.close();
         return 0;
     }
 
@@ -456,13 +477,14 @@ public class AzureCompact {
         return true;
     }
 
-    private long printTargetRepoSizeInfo(CloudBlobContainer container) {
-        System.out.printf("Calculating the size of container %s\n", container.getName());
+    private long printTargetRepoSizeInfo(BlobContainerClient blobContainerClient) {
+        System.out.printf("Calculating the size of container %s\n", blobContainerClient.getBlobContainerName());
         long size = 0;
-        for (ListBlobItem i : container.listBlobs(null, true, EnumSet.of(BlobListingDetails.METADATA), null, null)) {
-            if (i instanceof CloudBlob) {
-                size += ((CloudBlob) i).getProperties().getLength();
-            }
+        ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
+        listBlobsOptions.setDetails(new BlobListDetails().setRetrieveMetadata(true));
+
+        for (BlobItem blobItem : blobContainerClient.listBlobs(listBlobsOptions, null)) {
+            size += blobItem.getProperties().getContentLength();
         }
         System.out.printf("The size is: %d MB \n", size / 1024 / 1024);
         return size;

@@ -21,12 +21,12 @@ import com.microsoft.azure.storage.SharedAccessAccountPermissions;
 import com.microsoft.azure.storage.SharedAccessAccountPolicy;
 import com.microsoft.azure.storage.SharedAccessAccountResourceType;
 import com.microsoft.azure.storage.SharedAccessAccountService;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.upgrade.cli.CliUtils;
@@ -122,7 +122,7 @@ public class SegmentAzureFactoryTest {
                 assertEquals(1, nodeStore.getFileStore().getSegmentCount());
             } finally {
                 closer.close();
-                cleanup(uri, azureStorageCredentialManagerV8);
+                cleanup(uri);
             }
         }
     }
@@ -149,16 +149,16 @@ public class SegmentAzureFactoryTest {
                 assertEquals(1, nodeStore.getFileStore().getSegmentCount());
             } finally {
                 closer.close();
-                cleanup(uri, azureStorageCredentialManagerV8);
+                cleanup(uri);
             }
         }
     }
 
-    private void cleanup(String uri, AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8) {
+    private void cleanup(String uri) {
         uri = uri + "/" + DIR;
         try {
-            CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(uri, ENVIRONMENT, azureStorageCredentialManagerV8);
-            AzureUtilitiesV8.deleteAllBlobs(cloudBlobDirectory);
+            AzurePersistence azurePersistence = ToolUtils.createAzurePersistence(uri, ENVIRONMENT);
+            AzureUtilities.deleteAllEntries(azurePersistence.getReadBlobContainerClient(), null);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

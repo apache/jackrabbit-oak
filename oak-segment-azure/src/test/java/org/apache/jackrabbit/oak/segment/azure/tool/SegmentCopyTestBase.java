@@ -231,7 +231,7 @@ public abstract class SegmentCopyTestBase {
     }
 
     protected SegmentNodeStorePersistence getTarPersistence() {
-        return newSegmentNodeStorePersistence(SegmentStoreType.TAR, folder.getRoot().getAbsolutePath(), null);
+        return newSegmentNodeStorePersistence(SegmentStoreType.TAR, folder.getRoot().getAbsolutePath());
     }
 
     protected SegmentNodeStorePersistence getAzurePersistence() throws Exception {

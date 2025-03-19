@@ -27,7 +27,6 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -86,22 +85,20 @@ class FileStoreDiffCommand implements Command {
             }
         } else {
             if (pathOrURI.startsWith("az:")) {
-                try (AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8()) {
-                    SegmentNodeStorePersistence azurePersistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, pathOrURI, azureStorageCredentialManagerV8);
-                    ReadOnlyFileStore store = fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile())
-                            .withCustomPersistence(azurePersistence).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
-                    statusCode = Diff.builder()
-                            .withPath(pathOrURI)
-                            .withReadOnlyFileStore(store)
-                            .withOutput(out)
-                            .withInterval(interval)
-                            .withIncremental(incremental)
-                            .withFilter(path)
-                            .withIgnoreMissingSegments(ignoreSNFEs)
-                            .withRevisionsProcessor(ToolUtils::readRevisions)
-                            .build()
-                            .run();
-                }
+                SegmentNodeStorePersistence azurePersistence = ToolUtils.newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, pathOrURI);
+                ReadOnlyFileStore store = fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile())
+                        .withCustomPersistence(azurePersistence).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
+                statusCode = Diff.builder()
+                        .withPath(pathOrURI)
+                        .withReadOnlyFileStore(store)
+                        .withOutput(out)
+                        .withInterval(interval)
+                        .withIncremental(incremental)
+                        .withFilter(path)
+                        .withIgnoreMissingSegments(ignoreSNFEs)
+                        .withRevisionsProcessor(ToolUtils::readRevisions)
+                        .build()
+                        .run();
             } else {
                 ReadOnlyFileStore store = fileStoreBuilder(new File(pathOrURI)).withBlobStore(newBasicReadOnlyBlobStore()).buildReadOnly();
                 statusCode = Diff.builder()

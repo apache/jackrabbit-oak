@@ -53,6 +53,10 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     protected WriteAccessController writeAccessController = new WriteAccessController();
 
+    public AzurePersistence(BlobContainerClient blobContainerClient, String rootPrefix) {
+        this(blobContainerClient, blobContainerClient, blobContainerClient, rootPrefix);
+    }
+
     public AzurePersistence(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient noRetryBlobContainerClient, String rootPrefix) {
         this(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefix, null);
     }

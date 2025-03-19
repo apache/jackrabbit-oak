@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
-import org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8;
+import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -43,8 +41,7 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
     private final BlobStore blobStore;
     private FileStore fs;
     private File tmpDir;
-    private AzurePersistenceV8 azurePersistenceV8;
-    private final AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8;
+    private AzurePersistence azurePersistence;
 
     public SegmentAzureServicePrincipalNodeStoreContainer() {
         this(null);
@@ -52,21 +49,20 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
 
     public SegmentAzureServicePrincipalNodeStoreContainer(BlobStore blobStore) {
         this.blobStore = blobStore;
-        this.azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8();
     }
 
 
     @Override
     public NodeStore open() throws IOException {
         try {
-            azurePersistenceV8 = createAzurePersistence();
+            azurePersistence = createAzurePersistence();
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
 
         tmpDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
-                .withCustomPersistence(azurePersistenceV8).withMemoryMapping(false);
+                .withCustomPersistence(azurePersistence).withMemoryMapping(false);
         if (blobStore != null) {
             builder.withBlobStore(blobStore);
         }
@@ -80,14 +76,13 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
         return new FileStoreUtils.NodeStoreWithFileStore(SegmentNodeStoreBuilders.builder(fs).build(), fs);
     }
 
-    private AzurePersistenceV8 createAzurePersistence() {
-        if (azurePersistenceV8 != null) {
-            return azurePersistenceV8;
+    private AzurePersistence createAzurePersistence() {
+        if (azurePersistence != null) {
+            return azurePersistence;
         }
-        String path = String.format(AZURE_SEGMENT_STORE_PATH, ENVIRONMENT.getVariable(AzureUtilitiesV8.AZURE_ACCOUNT_NAME),
+        String path = String.format(AZURE_SEGMENT_STORE_PATH, ENVIRONMENT.getVariable(AzureUtilities.AZURE_ACCOUNT_NAME),
                 CONTAINER_NAME, DIR);
-        CloudBlobDirectory cloudBlobDirectory = ToolUtils.createCloudBlobDirectory(path, ENVIRONMENT, azureStorageCredentialManagerV8);
-        return new AzurePersistenceV8(cloudBlobDirectory);
+        return ToolUtils.createAzurePersistence(path, ENVIRONMENT);
     }
 
     @Override
@@ -99,16 +94,13 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
         if (tmpDir != null) {
             tmpDir.delete();
         }
-        if (azureStorageCredentialManagerV8 != null) {
-            azureStorageCredentialManagerV8.close();
-        }
     }
 
     @Override
     public void clean() throws IOException {
-        AzurePersistenceV8 azurePersistenceV8 = createAzurePersistence();
+        AzurePersistence azurePersistence = createAzurePersistence();
         try {
-            AzureUtilitiesV8.deleteAllBlobs(azurePersistenceV8.getSegmentstoreDirectory());
+            AzureUtilities.deleteAllEntries(azurePersistence.getReadBlobContainerClient(), null);
         } catch (Exception e) {
             throw new IOException(e);
         }
@@ -116,7 +108,7 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
 
     @Override
     public String getDescription() {
-        return "az:" + String.format(AZURE_SEGMENT_STORE_PATH, ENVIRONMENT.getVariable(AzureUtilitiesV8.AZURE_ACCOUNT_NAME),
+        return "az:" + String.format(AZURE_SEGMENT_STORE_PATH, ENVIRONMENT.getVariable(AzureUtilities.AZURE_ACCOUNT_NAME),
                 CONTAINER_NAME, DIR);
     }
 }
