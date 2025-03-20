@@ -202,6 +202,7 @@ public class ElasticCustomAnalyzer {
         int i = 0;
         //Need to read children in order
         Tree tree = TreeFactory.createReadOnlyTree(state);
+        String wordDelimiterFilterKey = null;
         for (Tree t : tree.getChildren()) {
             NodeState child = state.getChildNode(t.getName());
 
@@ -276,7 +277,20 @@ public class ElasticCustomAnalyzer {
             if (skipEntry) {
                 continue;
             }
-            filters.put(name + "_" + i, factory.apply(name, JsonData.of(args)));
+            String key = name + "_" + i;
+            filters.put(key, factory.apply(name, JsonData.of(args)));
+            if (name.equals("word_delimiter")) {
+                wordDelimiterFilterKey = key;
+            } else if (name.equals("synonym")) {
+                if (wordDelimiterFilterKey != null) {
+                    // re-order the synonyms filter _before_ the word delimiter, to avoid
+                    // "Token filter [word_delimiter_1] cannot be used to parse synonyms"
+                    i++;
+                    String newKey = key = "word_delimiter_" + i;
+                    filters.put(newKey, filters.remove(wordDelimiterFilterKey));
+                    wordDelimiterFilterKey = newKey;
+                }
+            }
             i++;
         }
         return filters;

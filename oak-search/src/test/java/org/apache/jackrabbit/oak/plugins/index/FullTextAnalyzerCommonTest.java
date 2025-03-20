@@ -1114,8 +1114,8 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             Tree defaultAnalyzers = analyzers.addChild(FulltextIndexConstants.ANL_DEFAULT);
             Tree tokenizer = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_TOKENIZER);
             tokenizer.setProperty(FulltextIndexConstants.ANL_NAME, "NGram");
-            tokenizer.setProperty("maxGramSize", 2);
-            tokenizer.setProperty("minGramSize", 3);
+            tokenizer.setProperty("minGramSize", 2);
+            tokenizer.setProperty("maxGramSize", 3);
         });
 
         Tree content = root.getTree("/").addChild("content");
@@ -1129,6 +1129,61 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             assertQuery("select * from [nt:base] where contains(*, 'ba')", List.of("/content/bar"));
             assertQuery("select * from [nt:base] where contains(*, 'bar')", List.of("/content/bar"));
             assertQuery("select * from [nt:base] where contains(*, 'art')", List.of("/content/bar"));
+            // not found with Elasticsearch, but found with Lucene
+            // assertQuery("select * from [nt:base] where contains(*, 'foo bar')", List.of("/content/bar"));
+        });
+    }
+
+    // OAK-11568
+    @Test
+    public void analyzerWithPatternTokenizer() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree analyzers = idx.addChild(FulltextIndexConstants.ANALYZERS);
+            Tree defaultAnalyzers = analyzers.addChild(FulltextIndexConstants.ANL_DEFAULT);
+            Tree tokenizer = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_TOKENIZER);
+            tokenizer.setProperty(FulltextIndexConstants.ANL_NAME, "pattern");
+            tokenizer.setProperty("pattern", "[^\\p{L}\\d-_]");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "foo bar");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where contains(*, 'foo')", List.of("/content/bar"));
+        });
+    }
+
+    // OAK-11568
+    @Test
+    public void analyzerWithWordDelimiterAndSynonyms() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree analyzers = idx.addChild(FulltextIndexConstants.ANALYZERS);
+            Tree defaultAnalyzers = analyzers.addChild(FulltextIndexConstants.ANL_DEFAULT);
+            Tree tokenizer = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_TOKENIZER);
+            tokenizer.setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree filters = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            filters.addChild("LowerCase");
+            // internally, this is re-ordered _after_ the synonyms filter
+            filters.addChild("WordDelimiter");
+            Tree synonym = filters.addChild("Synonym");
+            synonym.setProperty("format", "solr");
+            synonym.setProperty("ignoreCase", true);
+            synonym.setProperty("synonyms", "synonyms.txt");
+            Tree synonymTxt = synonym.addChild("synonyms.txt");
+            Tree content = synonymTxt.addChild("jcr:content");
+            content.setProperty("jcr:data", "find => replace\n");
+            content.setProperty("jcr:mimeType", "text/plain");
+            filters.addChild("PorterStem");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "replace");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where contains(*, 'find')", List.of("/content/bar"));
         });
     }
 
