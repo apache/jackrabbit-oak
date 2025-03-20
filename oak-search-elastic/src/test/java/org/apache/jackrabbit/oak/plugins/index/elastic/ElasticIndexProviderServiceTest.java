@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -51,7 +52,13 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProvid
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class ElasticIndexProviderServiceTest {
 
@@ -68,12 +75,17 @@ public class ElasticIndexProviderServiceTest {
 
     private Whiteboard wb;
 
+    private final MeterStats spyElasticEnabledMetric = spy(MeterStats.class);
+
     @Before
     public void setUp() {
+        reset(spyElasticEnabledMetric);
+        StatisticsProvider spyStatsProvider = mock(StatisticsProvider.class);
+        when(spyStatsProvider.getMeter(eq("ELASTIC_ENABLED"), any())).thenReturn(spyElasticEnabledMetric);
         MountInfoProvider mip = Mounts.newBuilder().build();
         context.registerService(MountInfoProvider.class, mip);
         context.registerService(NodeStore.class, new MemoryNodeStore());
-        context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+        context.registerService(StatisticsProvider.class, spyStatsProvider);
         context.registerService(AsyncIndexInfoService.class, mock(AsyncIndexInfoService.class));
 
         wb = new OsgiWhiteboard(context.bundleContext());
@@ -83,6 +95,8 @@ public class ElasticIndexProviderServiceTest {
     @Test
     public void defaultSetup() {
         MockOsgi.activate(service, context.bundleContext());
+
+        verify(spyElasticEnabledMetric).mark(eq(0L));
 
         assertNotNull(context.getService(QueryIndexProvider.class));
         assertNotNull(context.getService(IndexEditorProvider.class));
@@ -98,6 +112,8 @@ public class ElasticIndexProviderServiceTest {
     public void withElasticSetup() {
         MockOsgi.activate(service, context.bundleContext(), getElasticConfig());
 
+        verify(spyElasticEnabledMetric).mark(eq(1L));
+
         assertNotNull(context.getService(QueryIndexProvider.class));
         assertNotNull(context.getService(IndexEditorProvider.class));
 
@@ -112,6 +128,8 @@ public class ElasticIndexProviderServiceTest {
         props.put("remoteIndexCleanupFrequency", 600);
         MockOsgi.activate(service, context.bundleContext(), props);
 
+        verify(spyElasticEnabledMetric).mark(eq(1L));
+
         assertNotNull(context.getService(QueryIndexProvider.class));
         assertNotNull(context.getService(IndexEditorProvider.class));
 
@@ -123,6 +141,8 @@ public class ElasticIndexProviderServiceTest {
     @Test
     public void disabled() {
         MockOsgi.activate(service, context.bundleContext(), Map.of(PROP_DISABLED, true));
+
+        verify(spyElasticEnabledMetric).mark(eq(0L));
 
         assertNull(context.getService(QueryIndexProvider.class));
         assertNull(context.getService(IndexEditorProvider.class));
