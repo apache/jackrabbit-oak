@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import co.elastic.clients.elasticsearch._types.analysis.Analyzer;
 import co.elastic.clients.elasticsearch._types.analysis.CharFilterDefinition;
 import co.elastic.clients.elasticsearch._types.analysis.CustomAnalyzer;
+import co.elastic.clients.elasticsearch._types.analysis.NGramTokenizer;
 import co.elastic.clients.elasticsearch._types.analysis.TokenFilterDefinition;
 import co.elastic.clients.elasticsearch._types.analysis.TokenizerDefinition;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
@@ -172,8 +173,26 @@ public class ElasticCustomAnalyzer {
             }
         }
         name = normalize(name);
+        if ("n_gram".equals(name)) {
+            // OAK-11568
+            // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-ngram-tokenizer.html
+            Integer minGramSize = getIntegerSetting(args, "minGramSize", 2);
+            Integer maxGramSize = getIntegerSetting(args, "maxGramSize", 3);
+            TokenizerDefinition ngram = TokenizerDefinition.of(t -> t.ngram(
+                    NGramTokenizer.of(n -> n.minGram(minGramSize).maxGram(maxGramSize))));
+            return ngram;
+        }
         args.put(ANALYZER_TYPE, name);
         return new TokenizerDefinition(name, JsonData.of(args));
+    }
+
+    private static Integer getIntegerSetting(Map<String, Object> args, String name, Integer defaultValue) {
+        Object value = args.getOrDefault(name, defaultValue);
+        if (!(value instanceof Integer)) {
+            LOG.warn("Setting {} value {} is not an integer; using default: {}", name, value, defaultValue);
+            return defaultValue;
+        }
+        return (Integer) value;
     }
 
     private static <FD> LinkedHashMap<String, FD> loadFilters(NodeState state,

@@ -1092,7 +1092,7 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
 
             defaultAnalyzers.addChild(FulltextIndexConstants.ANL_TOKENIZER)
                 .setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
-            Tree filters = analyzers.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree filters = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_FILTERS);
             filters.setOrderableChildren(true);
             filters.addChild("LowerCase");
         });
@@ -1103,6 +1103,32 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
 
         assertEventually(() -> {
             assertQuery("select * from [nt:base] where CONTAINS(*, 'foo')", List.of("/content/bar"));
+        });
+    }
+
+    // OAK-11568
+    @Test
+    public void analyzerWithNGramTokenizer() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree analyzers = idx.addChild(FulltextIndexConstants.ANALYZERS);
+            Tree defaultAnalyzers = analyzers.addChild(FulltextIndexConstants.ANL_DEFAULT);
+            Tree tokenizer = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_TOKENIZER);
+            tokenizer.setProperty(FulltextIndexConstants.ANL_NAME, "NGram");
+            tokenizer.setProperty("maxGramSize", 2);
+            tokenizer.setProperty("minGramSize", 3);
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "foob bart");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where contains(*, 'fo')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where contains(*, 'foo')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where contains(*, 'oob')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where contains(*, 'ba')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where contains(*, 'bar')", List.of("/content/bar"));
+            assertQuery("select * from [nt:base] where contains(*, 'art')", List.of("/content/bar"));
         });
     }
 
