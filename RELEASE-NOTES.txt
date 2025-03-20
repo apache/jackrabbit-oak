@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.21
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.22
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.21 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.22 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,59 +15,38 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.21
+Changes in Oak 1.22.22
 ----------------------
-
-Technical task
-
-    [OAK-6769] - Convert oak-search-mt to OSGi R7 annotations
-    [OAK-10708] - DocumentNodeStore: error-log failures to update the journal
-    [OAK-10709] - Deprecate oak-search-mt
-    [OAK-10786] - oak-lucene: use copy of lucene-core 4.7.2 source code
-    [OAK-10787] - oak-lucene: backport fix for lucene-core vulnerability
 
 Bug
 
-    [OAK-10544] - oak-jcr: remapping a namespace prefix leaves namespace resolver in broken state
-    [OAK-10611] - o.a.j.o.namepath.JcrPathParser does not handle invalid characters correctly
-    [OAK-10621] - o.a.j.o.namepath.JcrPathParser does not accept indexed expanded names
-    [OAK-10624] - o.a.j.o.namepath.JcrPathParser does not accept some valid local names containing '{' or '}'
-    [OAK-10719] - oak-lucene uses Lucene version that can throw a StackOverflowException
-    [OAK-10767] - oak-it-osgi unnecessarily deploys commons-collections to the test environment
-    [OAK-10775] - LeaseUpdateSocketTimeoutIT still wants a mongo:4.2 image
-    [OAK-10876] - Oak 1.22 does not compile with JDK 11 anymore
-    [OAK-10985] - Index definution with a property rule having valueExcludedPrefixes not getting considered for like condition on that property
+    [OAK-10653] - BasicDocumentStoreTest: handle DocumentStoreException on ds.create
+    [OAK-10838] - oak-lucene: maven install fails in oak-lucene due to baseline check
+    [OAK-10957] - oak-run datastorecheck broken for AWS since 1.22.14
+    [OAK-11279] - Backport CVE fixes for oak-solr-osgi to 1.22
 
 Improvement
 
-    [OAK-10783] - VersionableEditor: misleading WARN message when creating version history
-    [OAK-10810] - Remove redundant call to StringCache.get in Path.fromString()
+    [OAK-10760] - oak-core should check namespace registry consistency on startup
 
 Task
 
-    [OAK-8993] - oak-auth-external and oak-auth-ldap are not covered by oak-it-osgi
-    [OAK-10596] - Improve the test coverage of o.a.j.o.namepath.JcrPathParser
-    [OAK-10616] - Make error messages from o.a.j.o.namepath.JcrNameParser/JcrPathParser consistent and less misleading
-    [OAK-10684] - update maven-shade-plugin version to 3.5.2
-    [OAK-10690] - Update docs and test config for recommended MongoDB version (5.0)
+    [OAK-10103] - oak-store-document: remove deprecated SystemPropertySupplier
     [OAK-10694] - Remove oak-search-mt
-    [OAK-10700] - update testcontainer dependency to 1.19.7
-    [OAK-10730] - Log MongoException previously swallowed
-    [OAK-10754] - webapp: update Tomcat dependency to 9.0.87
-    [OAK-10785] - update maven-shade-plugin version to 3.5.3
-    [OAK-10793] - Update Logback version to 1.2.13
-    [OAK-10797] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.16
-    [OAK-10815] - Update jacoco plugin to 0.8.12
-    [OAK-10816] - Update spotbugs plugin to 4.8.5.0
-    [OAK-10820] - webapp: update Tomcat dependency to 9.0.89
-    [OAK-10923] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.26.2
-    [OAK-10929] - Update commons-codec dependency to 1.17.0
-    [OAK-10932] - lucene: update commons-exec test dependency to 1.4.0
-    [OAK-10944] - oak-auth-ldap: update commons-pool2 dependency to 2.12.0
-    [OAK-10949] - blob-cloud, segment-aws: update aws SDK to 1.12.761 (dependencies reference vulnerable amazon ion-java version)
-    [OAK-10959] - webapp: update Tomcat dependency to 9.0.90
-    [OAK-10960] - blob-cloud, segment: update netty version to 4.1.111
-    [OAK-11003] - Update commons-codec dependency to 1.17.1
+    [OAK-10755] - commons: deprecate use of slf4j.event.Level in SystemPropertySupplier API (and make it 'internal')
+    [OAK-11126] - Upgrade maven-versions-plugin to 2.17.1
+    [OAK-11168] - update mongo-driver version to 3.12.14
+    [OAK-11196] - oak-auth-ldap: update mina dependency to 2.1.8
+    [OAK-11217] - Fix issue with CopyObject Request
+    [OAK-11265] - Datastore checkConsistency() via JMX is not working
+    [OAK-11266] - Create a new mode GCP for Blob cloud
+    [OAK-11286] - blob-cloud, segment: update netty version to 4.1.115
+    [OAK-11305] - Use single delete call for renaming keys in GCP
+    [OAK-11306] - GCP bucket cleanup post test not working
+    [OAK-11310] - Fix S3 test cases in oak-blob-cloud
+    [OAK-11329] - oak-auth-ldap: update mina dependency to 2.1.10
+    [OAK-11419] - oak-store-document - persistent cache: remove unused UDP/TCP broadcasters
+    [OAK-11611] - blob-cloud, segment: update netty version to 4.1.119
 
 
 In addition to the above-mentioned changes, this release contains
