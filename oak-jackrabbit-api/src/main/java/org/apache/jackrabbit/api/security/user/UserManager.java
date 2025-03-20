@@ -167,12 +167,12 @@ public interface UserManager {
     Iterator<Authorizable> findAuthorizables(@NotNull Query query) throws RepositoryException;
 
     /**
-     * Creates an User for the given userID / password pair; neither of the
-     * specified parameters can be <code>null</code>.<br>
+     * Creates a user for the given userID / password pair. 
+     * <br>
      * Same as {@link #createUser(String,String,Principal,String)} where
      * the specified userID is equal to the principal name and the intermediate
      * path is <code>null</code>.
-     *
+     
      * @param userID The ID of the new user.
      * @param password The initial password of this user.
      * @return The new <code>User</code>.
@@ -184,11 +184,15 @@ public interface UserManager {
     User createUser(@NotNull String userID, @Nullable String password) throws AuthorizableExistsException, RepositoryException;
 
     /**
-     * Creates an User for the given parameters. If the implementation is not
+     * Creates a user for the given parameters. If the implementation is not
      * able to deal with the <code>intermediatePath</code> that parameter should
      * be ignored.
-     * Except for the <code>intermediatePath</code>, neither of the specified
+     * Except for the <code>intermediatePath</code> and <code>password</code>, neither of the specified
      * parameters can be <code>null</code>.
+     * <p>
+     * The given password may be {@code null} however the behavior
+     * of such users depend on the implementation (usually those users cannot be used for authentication but only for impersonation).
+     * Consider using {@link #createSystemUser(String, String)} rather than creating a user with a {@code null} password with this method.
      *
      * @param userID The ID of the new user.
      * @param password The initial password of the new user.
@@ -201,6 +205,8 @@ public interface UserManager {
      * in use or another Authorizable with the same principal name exists.
      * @throws RepositoryException If the current Session is
      * not allowed to create users or some another error occurs.
+     * 
+     * @see #createSystemUser(String, String)
      */
     @NotNull
     User createUser(@NotNull String userID, @Nullable String password, @NotNull Principal principal,
