@@ -65,6 +65,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private final Map<String, List<FulltextIndex.Facet>> allFacets = new HashMap<>();
     private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
     private Map<String, List<FulltextIndex.Facet>> facets;
+    private final SearchRequest searchRequest;
     private final CountDownLatch latch = new CountDownLatch(1);
     private int sampled;
     private long totalHits;
@@ -79,7 +80,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 map(ElasticIndexUtils::fieldName).
                 collect(Collectors.toSet());
 
-        SearchRequest searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
+        this.searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
                 .trackTotalHits(thb -> thb.enabled(true))
                 .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(facetFields)))))
                 .query(Query.of(qb -> qb.bool(elasticRequestHandler.baseQueryBuilder().build())))
@@ -101,7 +102,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         searchFuture.whenCompleteAsync((searchResponse, throwable) -> {
             try {
                 if (throwable != null) {
-                    LOG.error("Error while retrieving sample documents", throwable);
+                    LOG.error("Error while retrieving sample documents. Search request: {}", searchRequest, throwable);
                 } else {
                     List<Hit<ObjectNode>> searchHits = searchResponse.hits().hits();
                     this.sampled = searchHits != null ? searchHits.size() : 0;
@@ -124,6 +125,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         try {
             boolean completed = latch.await(15, TimeUnit.SECONDS);
             if (!completed) {
+                LOG.error("Timed out while waiting for facets. Search request: {}", searchRequest);
                 throw new IllegalStateException("Timed out while waiting for facets");
             }
         } catch (InterruptedException e) {
