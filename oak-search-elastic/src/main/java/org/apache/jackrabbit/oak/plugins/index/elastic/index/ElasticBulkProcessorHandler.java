@@ -185,7 +185,7 @@ public class ElasticBulkProcessorHandler {
             LOG.warn("Index already registered: {}", indexName);
         } else {
             registeredIndexes.computeIfAbsent(indexName, indexNameFinal -> {
-                LOG.warn("Registering index: {}", indexNameFinal);
+                LOG.info("Registering index: {}", indexNameFinal);
                 PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
                 boolean isRealTime;
                 if (async == null) {
