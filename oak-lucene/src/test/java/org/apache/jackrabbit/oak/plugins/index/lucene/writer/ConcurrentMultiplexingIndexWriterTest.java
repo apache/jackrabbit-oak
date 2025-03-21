@@ -26,8 +26,8 @@ import java.io.File;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
@@ -44,54 +44,53 @@ public class ConcurrentMultiplexingIndexWriterTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private NodeState root = INITIAL_CONTENT;
-    private NodeBuilder builder = EMPTY_NODE.builder();
-    private LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
-    private MountInfoProvider mip = Mounts.newBuilder()
+    private final NodeState root = INITIAL_CONTENT;
+    private final NodeBuilder builder = EMPTY_NODE.builder();
+    private final LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    private final MountInfoProvider mip = Mounts.newBuilder()
             .mount("foo", "/libs", "/apps")
             .readOnlyMount("ro", "/ro-tree")
             .build();
-    private LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
+    private final LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
 
     @Test
     public void concurrentWrite() throws Exception{
-        LuceneIndexWriterFactory factory = newDirectoryFactory();
-        final LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
-        
         int THREAD_COUNT = 100;
         final int LOOP_COUNT = 10;
         ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
         CountDownLatch startLatch = new CountDownLatch(1);
         CountDownLatch doneLatch = new CountDownLatch(THREAD_COUNT);
         Exception[] firstException = new Exception[1];
-        
-        for (int i = 0; i < THREAD_COUNT; i++) {
-            executorService.submit(() -> {
-                try {
-                    // wait for the signal
-                    startLatch.await(); 
-                    for (int j = 0; j < LOOP_COUNT; j++) {
-                        writer.updateDocument("/libs/config", newDoc("/libs/config"));
+
+        try (LuceneIndexWriterFactory factory = newDirectoryFactory()) {
+            LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
+            for (int i = 0; i < THREAD_COUNT; i++) {
+                executorService.submit(() -> {
+                    try {
+                        // wait for the signal
+                        startLatch.await();
+                        for (int j = 0; j < LOOP_COUNT; j++) {
+                            writer.updateDocument("/libs/config", newDoc("/libs/config"));
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } catch (Exception e) {
+                        firstException[0] = e;
+                    } finally {
+                        doneLatch.countDown();
                     }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } catch (Exception e) {
-                    firstException[0] = e;
-                } finally {
-                    doneLatch.countDown();
-                }
-            });
+                });
+            }
+            // signal
+            startLatch.countDown();
+            doneLatch.await();
+            writer.close(0);
         }
-        // signal
-        startLatch.countDown();
-        doneLatch.await();
-        executorService.shutdown();
-        executorService.awaitTermination(10, TimeUnit.SECONDS);
+        new ExecutorCloser(executorService).close();
         if (firstException[0] != null) {
             throw firstException[0];
         }
-        writer.close(0);
-    }    
+    }
 
     private LuceneIndexWriterFactory newDirectoryFactory(){
         return newDirectoryFactory(mip);
