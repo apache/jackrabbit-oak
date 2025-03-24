@@ -71,7 +71,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;
@@ -473,7 +472,7 @@ public class RepositorySidegrade {
         }
         excludes.add("/:async");
 
-        final Set<String> merges = union(Collections.unmodifiableSet(SetUtils.toLinkedSet(this.mergePaths)), Set.of("/jcr:system"));
+        final Set<String> merges = SetUtils.union(Collections.unmodifiableSet(SetUtils.toLinkedSet(this.mergePaths)), Set.of("/jcr:system"));
         NodeStateCopier.builder()
             .include(includes)
             .exclude(excludes.build())

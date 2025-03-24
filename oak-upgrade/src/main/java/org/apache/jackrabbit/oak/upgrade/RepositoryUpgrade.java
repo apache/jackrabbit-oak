@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.ALL;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.NONE;
@@ -940,8 +939,8 @@ public class RepositoryUpgrade {
     private String copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot, String workspaceName)
             throws RepositoryException {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        final Set<String> excludes = union(Collections.unmodifiableSet(SetUtils.toLinkedSet(this.excludePaths)), Set.of("/jcr:system/jcr:versionStorage"));
-        final Set<String> merges = union(Collections.unmodifiableSet(SetUtils.toLinkedSet(this.mergePaths)), Set.of("/jcr:system"));
+        final Set<String> excludes = SetUtils.union(Collections.unmodifiableSet(SetUtils.toLinkedSet(this.excludePaths)), Set.of("/jcr:system/jcr:versionStorage"));
+        final Set<String> merges = SetUtils.union(Collections.unmodifiableSet(SetUtils.toLinkedSet(this.mergePaths)), Set.of("/jcr:system"));
 
         logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes, merges);
 
