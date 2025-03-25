@@ -73,18 +73,14 @@ public class OrderedChildnameIterator implements Iterator<String>{
 
     /**
      * Consume the next element from the orderedChild list and validates that it's actually present
-     * @return the next ordered child or  {code null} if all ordered children have already been returned
+     * @return the next ordered child or {code null} if all ordered children have already been returned
      */
-    @SuppressWarnings("java:S2589")
     private String getNextOrderedChild() {
-        String current = null;
         // check that this element is actually present in the allChildren iterable
-        while (current == null && orderedChildren.hasNext()) {
-            current = orderedChildren.next();
+        while (orderedChildren.hasNext()) {
+            String current = orderedChildren.next();
             if (isOrderedChildPresent(current)) {
                 return current;
-            } else {
-                current = null; // skip this element, as it's not present in the allChildren iterator
             }
         }
         return null;
