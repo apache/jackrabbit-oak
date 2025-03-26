@@ -150,8 +150,11 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
      */
     @Override
     protected boolean isFulltextValuePersistedAtNode(PropertyDefinition pd) {
-        return pd.isRegexp || !pd.analyzed ||
-                (pd.getType() == Type.DATE.tag()) || (pd.getType() == Type.BOOLEAN.tag() || pd.getType() == Type.LONG.tag() || pd.getType() == Type.DOUBLE.tag());
+        return pd.isRegexp || !pd.analyzed
+                || pd.getType() == Type.DATE.tag()
+                || pd.getType() == Type.BOOLEAN.tag()
+                || pd.getType() == Type.LONG.tag()
+                || pd.getType() == Type.DOUBLE.tag();
     }
 
     /**
