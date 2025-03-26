@@ -325,6 +325,37 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
                 assertQuery("//*[jcr:contains(., 'jpg')]", XPATH, List.of("/test/a")));
     }
 
+    @Test
+    public void fulltextWithMalformedFields() throws Exception {
+        setup(builder -> {
+            builder.indexRule("nt:base").property("string_field").type("String").analyzed().nodeScopeIndex();
+            builder.indexRule("nt:base").property("date_field").type("Date").analyzed().nodeScopeIndex();
+            builder.indexRule("nt:base").property("long_field").type("Long").analyzed().nodeScopeIndex();
+            builder.indexRule("nt:base").property("double_field").type("Double").analyzed().nodeScopeIndex();
+            builder.indexRule("nt:base").property("bool_field").type("Boolean").analyzed().nodeScopeIndex();
+        }, idx -> {
+        }, "string_field", "date_field", "long_field", "double_field", "bool_field");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("string_field", "foo");
+        test.addChild("b").setProperty("date_field", "2025-bar");
+        test.addChild("c").setProperty("long_field", "123-bar");
+        test.addChild("d").setProperty("double_field", "456.78-bar");
+        test.addChild("e").setProperty("bool_field", "true-bar");
+
+        root.commit();
+
+        assertEventually(() -> {
+                    assertQuery("//*[jcr:contains(., 'foo')]", XPATH, List.of("/test/a"));
+                    assertQuery("//*[jcr:contains(., '2025')]", XPATH, List.of("/test/b"));
+                    assertQuery("//*[jcr:contains(., '123')]", XPATH, List.of("/test/c"));
+                    assertQuery("//*[jcr:contains(., '456.78')]", XPATH, List.of("/test/d"));
+                    assertQuery("//*[jcr:contains(., 'true')]", XPATH, List.of("/test/e"));
+                }
+        );
+    }
+
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
                 ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
