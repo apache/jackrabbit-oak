@@ -208,19 +208,17 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * @param hint   the hint for the query, or null
      */
     private void logQueryExplain(String logMsg, @NotNull Bson query, Bson hint) {
-        if (LOG.isTraceEnabled()) {
-            final long timeSinceLastLog = System.currentTimeMillis() - lastExplainLogMs;
-            if (timeSinceLastLog < EXPLAIN_LOG_INTERVAL_MS) {
-                // then don't log
-                return;
-            }
-            final BasicDBObject explainResult = MongoUtils.explain(store.getDatabase(),
-                    getNodeCollection(), query, hint);
-            final BasicDBObject winningPlan = MongoUtils.getWinningPlan(explainResult);
-            final BasicDBObject result = winningPlan == null ? explainResult : winningPlan;
-            LOG.trace(logMsg, hint, result);
-            lastExplainLogMs = System.currentTimeMillis();
+        final long timeSinceLastLog = System.currentTimeMillis() - lastExplainLogMs;
+        if (timeSinceLastLog < EXPLAIN_LOG_INTERVAL_MS) {
+            // then don't log
+            return;
         }
+        final BasicDBObject explainResult = MongoUtils.explain(store.getDatabase(),
+                getNodeCollection(), query, hint);
+        final BasicDBObject winningPlan = MongoUtils.getWinningPlan(explainResult);
+        final BasicDBObject result = winningPlan == null ? explainResult : winningPlan;
+        LOG.trace(logMsg, hint, result);
+        lastExplainLogMs = System.currentTimeMillis();
     }
 
     /**
@@ -265,7 +263,10 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         // first sort by _modified and then by _id
         final Bson sort = ascending(MODIFIED_IN_SECS, ID);
 
-        logQueryExplain("fullGC query explain details, hint : {} - explain : {}", query, modifiedIdHint);
+        if (LOG.isTraceEnabled()) {
+            logQueryExplain("fullGC query explain details, hint : {} - explain : {}", query, modifiedIdHint);
+        }
+
         if (LOG.isDebugEnabled()) {
             BsonDocument bson = query.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
             LOG.debug("getModifiedDocs : query is {}", bson);
