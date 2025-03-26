@@ -26,7 +26,6 @@ import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,7 +65,8 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
             final SimpleCredentials sc = (SimpleCredentials) credentials;
-            return Maps.asMap(Collections.unmodifiableSet(SetUtils.toLinkedSet(sc.getAttributeNames())), sc::getAttribute);
+            return Maps.asMap(ImmutableSet.copyOf(sc.getAttributeNames()),
+                    input -> sc.getAttribute(input));
         } else {
             return Collections.emptyMap();
         }

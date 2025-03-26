@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -203,7 +202,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 privilegeNames = bitsToNames.get(pb);
             } else {
                 privilegeNames = collectPrivilegeNames(privilegesTree, pb);
-                bitsToNames.put(pb, Collections.unmodifiableSet(SetUtils.toLinkedSet(privilegeNames)));
+                bitsToNames.put(pb, ImmutableSet.copyOf(privilegeNames));
             }
             return privilegeNames;
         }
@@ -252,7 +251,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 return extractAggregatedPrivileges(Collections.singleton(privName));
             }
         } else {
-            Set<String> pNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(privilegeNames));
+            Set<String> pNames = ImmutableSet.copyOf(privilegeNames);
             if (NON_AGGREGATE_PRIVILEGES.containsAll(pNames)) {
                 return pNames;
             } else {

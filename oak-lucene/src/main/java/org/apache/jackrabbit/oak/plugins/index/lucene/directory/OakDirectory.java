@@ -20,7 +20,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -342,7 +341,7 @@ public class OakDirectory extends Directory {
         if (fileNames == null){
             fileNames = directoryBuilder.getChildNodeNames();
         }
-        Set<String> result = Collections.unmodifiableSet(SetUtils.toLinkedSet(fileNames));
+        Set<String> result = ImmutableSet.copyOf(fileNames);
         PERF_LOGGER.end(start, 100, "Directory listing performed. Total {} files", result.size());
         return result;
     }
