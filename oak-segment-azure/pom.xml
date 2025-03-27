@@ -59,7 +59,6 @@
                             io.netty.channel.epoll;resolution:=optional,
                             io.netty.handler.codec.*;resolution:=optional,
                             org.objectweb.asm;resolution:=optional,
-                            org.codehaus.stax2;resolution:=optional,
                             !org.apache.jackrabbit.oak.segment*,
                             !com.google.*,
                             !android.os,
@@ -103,7 +102,8 @@
                             json-smart,
                             content-type,
                             accessors-smart,
-                            nimbus-jose-jwt
+                            nimbus-jose-jwt,
+                            stax2-api
                         </Embed-Dependency>
                         <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
                         <_plugin />
