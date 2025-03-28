@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.repoinit.BundlingConfigInitializer;
+import org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.secondary.SecondaryStoreCache;

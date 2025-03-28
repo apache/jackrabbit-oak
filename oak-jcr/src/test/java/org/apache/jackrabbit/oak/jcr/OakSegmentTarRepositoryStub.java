@@ -24,7 +24,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.document.repoinit.BundlingConfigInitializer;
+import org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;

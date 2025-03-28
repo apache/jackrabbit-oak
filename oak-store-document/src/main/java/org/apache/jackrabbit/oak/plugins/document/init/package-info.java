@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 @org.osgi.annotation.versioning.Version("1.0.0")
-package org.apache.jackrabbit.oak.plugins.document.repoinit;
+package org.apache.jackrabbit.oak.plugins.document.init;

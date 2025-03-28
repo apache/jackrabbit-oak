@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.document.repoinit;
+package org.apache.jackrabbit.oak.plugins.document.init;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledTypesRegistry;
