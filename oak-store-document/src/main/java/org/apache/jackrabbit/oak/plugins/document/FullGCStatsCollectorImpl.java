@@ -21,12 +21,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.GCPhase;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.GaugeStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.DEFAULT;
@@ -95,13 +97,13 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     private static String METRICS_QUALIFIED_NAME_PREFIX;
 
     // FullGC OSGi config stats
-    private final CounterStats enabled;
-    private final CounterStats mode;
-    private final CounterStats delayFactor;
-    private final CounterStats batchSize;
-    private final CounterStats progressSize;
-    private final CounterStats embeddedVerificationEnabled;
-    private final CounterStats maxAge;
+    private GaugeStats<Boolean> enabled;
+    private GaugeStats<Integer> mode;
+    private GaugeStats<Double> delayFactor;
+    private GaugeStats<Integer> batchSize;
+    private GaugeStats<Integer> progressSize;
+    private GaugeStats<Boolean> embeddedVerificationEnabled;
+    private GaugeStats<Long> maxAge;
 
     FullGCStatsCollectorImpl(StatisticsProvider provider) {
         this(provider, false);
@@ -134,15 +136,6 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
 
         counter = counter(provider, COUNTER);
         failureCounter = counter(provider, FAILURE_COUNTER);
-
-        // FullGC OSGi config stats
-        enabled = counter(provider, ENABLED);
-        mode = counter(provider, MODE);
-        delayFactor = counter(provider, DELAY_FACTOR);
-        batchSize = counter(provider, BATCH_SIZE);
-        progressSize = counter(provider, PROGRESS_SIZE);
-        embeddedVerificationEnabled = counter(provider, EMBEDDED_VERIFICATION_ENABLED);
-        maxAge = counter(provider, MAX_AGE);
     }
 
     //---------------------< FullGCStatsCollector >-------------------------
@@ -218,63 +211,61 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     }
 
     @Override
-    public void enabled() {
-        enabled.inc();
+    public void enabled(boolean enabled) {
+        this.enabled = gauge(provider, ENABLED, () -> enabled);
     }
 
     @Override
     public void mode(int mode) {
-        this.mode.inc(mode);
+        this.mode = gauge(provider, MODE, () -> mode);
     }
 
     @Override
-    public void verificationEnabled() {
-        embeddedVerificationEnabled.inc();
+    public void verificationEnabled(boolean verificationEnabled) {
+        this.embeddedVerificationEnabled = gauge(provider, EMBEDDED_VERIFICATION_ENABLED, () -> verificationEnabled);
     }
 
     @Override
     public void delayFactor(double delayFactor) {
-        this.delayFactor.inc((long) delayFactor);
+        this.delayFactor = gauge(provider, DELAY_FACTOR, () -> delayFactor);
     }
 
     @Override
-    public void batchSize(long batchSize) {
-        this.batchSize.inc(batchSize);
+    public void batchSize(int batchSize) {
+        this.batchSize = gauge(provider, BATCH_SIZE, () -> batchSize);
     }
 
     @Override
-    public void progressSize(long progressSize) {
-        this.progressSize.inc(progressSize);
+    public void progressSize(int progressSize) {
+        this.progressSize = gauge(provider, PROGRESS_SIZE, () -> progressSize);
     }
 
     @Override
     public void maxAge(long maxAge) {
-        this.maxAge.inc(maxAge);
+        this.maxAge = gauge(provider, MAX_AGE, () -> maxAge);
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("FullGCStatsCollectorImpl{");
-        sb.append("enabled=").append(enabled.getCount());
-        sb.append(", mode=").append(mode.getCount());
-        sb.append(", delayFactor=").append(delayFactor.getCount());
-        sb.append(", batchSize=").append(batchSize.getCount());
-        sb.append(", progressSize=").append(progressSize.getCount());
-        sb.append(", embeddedVerificationEnabled=").append(embeddedVerificationEnabled.getCount());
-        sb.append(", maxAge=").append(maxAge.getCount());
-        sb.append(", readDoc=").append(readDoc.getCount());
-        sb.append(", candidateRevisions=").append(mapToString(candidateRevisions));
-        sb.append(", candidateInternalRevisions=").append(mapToString(candidateInternalRevisions));
-        sb.append(", candidateProperties=").append(mapToString(candidateProperties));
-        sb.append(", candidateDocuments=").append(mapToString(candidateDocuments));
-        sb.append(", deletedOrphanNode=").append(deletedOrphanNode.getCount());
-        sb.append(", deletedProperty=").append(deletedProperty.getCount());
-        sb.append(", deletedUnmergedBC=").append(deletedUnmergedBC.getCount());
-        sb.append(", updatedDoc=").append(updatedDoc.getCount());
-        sb.append(", skippedDoc=").append(skippedDoc.getCount());
-        sb.append('}');
-        return sb.toString();
+        return "FullGCStatsCollectorImpl{" +
+                "enabled=" + enabled.getValue() +
+                ", mode=" + mode.getValue() +
+                ", delayFactor=" + delayFactor.getValue() +
+                ", batchSize=" + batchSize.getValue() +
+                ", progressSize=" + progressSize.getValue() +
+                ", embeddedVerificationEnabled=" + embeddedVerificationEnabled.getValue() +
+                ", maxAge=" + maxAge.getValue() +
+                ", readDoc=" + readDoc.getCount() +
+                ", candidateRevisions=" + mapToString(candidateRevisions) +
+                ", candidateInternalRevisions=" + mapToString(candidateInternalRevisions) +
+                ", candidateProperties=" + mapToString(candidateProperties) +
+                ", candidateDocuments=" + mapToString(candidateDocuments) +
+                ", deletedOrphanNode=" + deletedOrphanNode.getCount() +
+                ", deletedProperty=" + deletedProperty.getCount() +
+                ", deletedUnmergedBC=" + deletedUnmergedBC.getCount() +
+                ", updatedDoc=" + updatedDoc.getCount() +
+                ", skippedDoc=" + skippedDoc.getCount() +
+                '}';
     }
 
     //----------------------------< internal >----------------------------------
@@ -304,6 +295,10 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
 
     private static CounterStats counter(StatisticsProvider provider, String name) {
         return provider.getCounterStats(qualifiedName(name), METRICS_ONLY);
+    }
+
+    private static <T> GaugeStats<T> gauge(StatisticsProvider provider, String name, Supplier<T> value) {
+        return provider.getGauge(qualifiedName(name), value);
     }
 
     private static String qualifiedName(String metricName) {

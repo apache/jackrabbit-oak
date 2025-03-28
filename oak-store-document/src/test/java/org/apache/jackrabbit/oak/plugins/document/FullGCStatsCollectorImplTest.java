@@ -19,11 +19,12 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
-import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.GaugeStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.junit.After;
 import org.junit.Test;
@@ -60,6 +61,7 @@ import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImp
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.SKIPPED_DOC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.UPDATED_DOC;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Unit Cases for {@link FullGCStatsCollectorImpl}
@@ -173,66 +175,102 @@ public class FullGCStatsCollectorImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void getEnabled() throws IllegalAccessException {
-        final Counter c = getCounter(ENABLED);
-        long count = c.getCount();
-        stats.enabled();
-        assertEquals(count + 1, c.getCount());
-        assertEquals(count + 1, ((CounterStats) readField(stats, "enabled", true)).getCount());
+        stats.enabled(true);
+        final Gauge<Boolean> gauge = getGauge(ENABLED);
+        assertTrue(gauge.getValue());
+        assertTrue(((GaugeStats<Boolean>) readField(stats, "enabled", true)).getValue());
+
+        // since it is gauge, updating won't change the value.
+        stats.enabled(false);
+        final Gauge<Boolean> updated = getGauge(ENABLED);
+        assertTrue(updated.getValue());
+
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void getMode() throws IllegalAccessException {
-        final Counter c = getCounter(MODE);
-        long count = c.getCount();
         stats.mode(4);
-        assertEquals(count + 4, c.getCount());
-        assertEquals(count + 4, ((CounterStats) readField(stats, "mode", true)).getCount());
+        final Gauge<Integer> gauge = getGauge(MODE);
+        assertEquals(4, (int)gauge.getValue());
+        assertEquals(4, (int)((GaugeStats<Integer>) readField(stats, "mode", true)).getValue());
+
+        // update the value
+        stats.mode(5);
+        final Gauge<Integer> updated = getGauge(MODE);
+        assertEquals(4, (int)updated.getValue());
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void getDelayFactor() throws IllegalAccessException {
-        final Counter c = getCounter(DELAY_FACTOR);
-        long count = c.getCount();
         stats.delayFactor(4.0);
-        assertEquals(count + 4, c.getCount());
-        assertEquals(count + 4, ((CounterStats) readField(stats, "delayFactor", true)).getCount());
+        final Gauge<Double> gauge = getGauge(DELAY_FACTOR);
+        assertEquals(4.0, gauge.getValue(), 0.01);
+        assertEquals(4.0, ((GaugeStats<Double>) readField(stats, "delayFactor", true)).getValue(), 0.01);
+
+        // update the value
+        stats.delayFactor(5.0);
+        final Gauge<Double> updated = getGauge(DELAY_FACTOR);
+        assertEquals(4.0, updated.getValue(), 0.01);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void getBatchSize() throws IllegalAccessException {
-        final Counter c = getCounter(BATCH_SIZE);
-        long count = c.getCount();
         stats.batchSize(400);
-        assertEquals(count + 400, c.getCount());
-        assertEquals(count + 400, ((CounterStats) readField(stats, "batchSize", true)).getCount());
+        final Gauge<Integer> gauge = getGauge(BATCH_SIZE);
+        assertEquals(400, (int)gauge.getValue());
+        assertEquals(400, (int)((GaugeStats<Integer>) readField(stats, "batchSize", true)).getValue());
+
+        // update the value
+        stats.batchSize(500);
+        final Gauge<Integer> updated = getGauge(BATCH_SIZE);
+        assertEquals(400, (int)updated.getValue());
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void getProgressSize() throws IllegalAccessException {
-        final Counter c = getCounter(PROGRESS_SIZE);
-        long count = c.getCount();
         stats.progressSize(4000);
-        assertEquals(count + 4000, c.getCount());
-        assertEquals(count + 4000, ((CounterStats) readField(stats, "progressSize", true)).getCount());
+        final Gauge<Integer> gauge = getGauge(PROGRESS_SIZE);
+        assertEquals(4000, (int)gauge.getValue());
+        assertEquals(4000, (int)((GaugeStats<Integer>) readField(stats, "progressSize", true)).getValue());
+
+        // update the value
+        stats.progressSize(5000);
+        final Gauge<Integer> updated = getGauge(PROGRESS_SIZE);
+        assertEquals(4000, (int)updated.getValue());
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void getEmbeddedVerificationEnabled() throws IllegalAccessException {
-        final Counter c = getCounter(EMBEDDED_VERIFICATION_ENABLED);
-        long count = c.getCount();
-        stats.verificationEnabled();
-        assertEquals(count + 1, c.getCount());
-        assertEquals(count + 1, ((CounterStats) readField(stats, "embeddedVerificationEnabled", true)).getCount());
+        stats.verificationEnabled(true);
+        final Gauge<Boolean> gauge = getGauge(EMBEDDED_VERIFICATION_ENABLED);
+        assertTrue(gauge.getValue());
+        assertTrue(((GaugeStats<Boolean>) readField(stats, "embeddedVerificationEnabled", true)).getValue());
+
+        // update the value
+        stats.verificationEnabled(false);
+        final Gauge<Boolean> updated = getGauge(EMBEDDED_VERIFICATION_ENABLED);
+        assertTrue(updated.getValue());
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void getMaxAge() throws IllegalAccessException {
-        final Counter c = getCounter(MAX_AGE);
-        long count = c.getCount();
         stats.maxAge(86400);
-        assertEquals(count + 86400, c.getCount());
-        assertEquals(count + 86400, ((CounterStats) readField(stats, "maxAge", true)).getCount());
+        final Gauge<Long> gauge = getGauge(MAX_AGE);
+        assertEquals(86400L, (long)gauge.getValue());
+        assertEquals(86400L, (long)((GaugeStats<Long>) readField(stats, "maxAge", true)).getValue());
+
+        // update the value
+        stats.maxAge(980000);
+        final Gauge<Long> updated = getGauge(MAX_AGE);
+        assertEquals(86400L, (long)updated.getValue());
     }
 
     // helper methods
@@ -251,6 +289,11 @@ public class FullGCStatsCollectorImplTest {
 
     private Counter getCounter(String name) {
         return statsProvider.getRegistry().getCounters().get(FULL_GC + "." + name);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Gauge<T> getGauge(String name) {
+        return (Gauge<T>) statsProvider.getRegistry().getGauges().get(FULL_GC + "." + name);
     }
 
 }

@@ -104,11 +104,13 @@ public interface FullGCStatsCollector {
 
     // FullGC OSGi config stats
     /**
-     * Indicates that the FullGC process is enabled.
+     * Sets whether the FullGC process is enabled.
      * <p>
-     * This method is called to signal that the FullGC process is active and ready to perform garbage collection.
+     * This method is called to signal whether the FullGC process is active and ready to perform garbage collection.
+     *
+     * @param enabled true if FullGC is enabled, false otherwise
      */
-    void enabled();
+    void enabled(boolean enabled);
 
     /**
      * Sets the mode for the FullGC process.
@@ -120,12 +122,14 @@ public interface FullGCStatsCollector {
     void mode(int mode);
 
     /**
-     * Indicates that the embedded verification process is enabled for FullGC.
+     * Sets whether the embedded verification process is enabled for FullGC.
      * <p>
-     * This method is called to signal that the verification process is active and ready to perform embedded verification
+     * This method is called to signal whether the verification process is active and ready to perform embedded verification
      * during the FullGC process.
+     *
+     * @param verificationEnabled true if verification is enabled, false otherwise
      */
-    void verificationEnabled();
+    void verificationEnabled(boolean verificationEnabled);
 
     /**
      * Sets the delay factor for the FullGC process.
@@ -143,7 +147,7 @@ public interface FullGCStatsCollector {
      *
      * @param batchSize the batch size to set for the FullGC process
      */
-    void batchSize(long batchSize);
+    void batchSize(int batchSize);
 
     /**
      * Sets the progress size for the FullGC process.
@@ -152,7 +156,7 @@ public interface FullGCStatsCollector {
      *
      * @param progressSize the progress size to set for the FullGC process
      */
-    void progressSize(long progressSize);
+    void progressSize(int progressSize);
 
     /**
      * Sets the maximum age for the FullGC process (in millis).
