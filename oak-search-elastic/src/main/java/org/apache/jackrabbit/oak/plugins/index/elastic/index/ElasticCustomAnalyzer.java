@@ -200,8 +200,11 @@ public class ElasticCustomAnalyzer {
                                                               BiFunction<String, JsonData, FD> factory) {
         LinkedHashMap<String, FD> filters = new LinkedHashMap<>();
         int i = 0;
-        //Need to read children in order
+        // Need to read children in order
         Tree tree = TreeFactory.createReadOnlyTree(state);
+
+        // We need to remember that a "WordDelimiter" was configured,
+        // because we have to remove it if a synonyms filter is configured as well
         String wordDelimiterFilterKey = null;
         for (Tree t : tree.getChildren()) {
             NodeState child = state.getChildNode(t.getName());
@@ -211,11 +214,11 @@ public class ElasticCustomAnalyzer {
             List<ParameterTransformer> transformers;
             boolean skipEntry = false;
             try {
-                Class<? extends AbstractAnalysisFactory> tff = lookup.apply(t.getName());
+                Class<? extends AbstractAnalysisFactory> analysisFactory = lookup.apply(t.getName());
 
                 List<String> unsupportedParameters =
                         UNSUPPORTED_LUCENE_PARAMETERS.entrySet().stream()
-                                .filter(k -> k.getKey().isAssignableFrom(tff))
+                                .filter(k -> k.getKey().isAssignableFrom(analysisFactory))
                                 .map(Map.Entry::getValue)
                                 .findFirst().orElseGet(Collections::emptyList);
                 Map<String, String> luceneArgs = StreamSupport.stream(child.getProperties().spliterator(), false)
@@ -223,7 +226,7 @@ public class ElasticCustomAnalyzer {
                         .filter(ps -> !unsupportedParameters.contains(ps.getName()))
                         .collect(Collectors.toMap(PropertyState::getName, ps -> ps.getValue(Type.STRING)));
 
-                AbstractAnalysisFactory luceneFactory = tff.getConstructor(Map.class).newInstance(luceneArgs);
+                AbstractAnalysisFactory luceneFactory = analysisFactory.getConstructor(Map.class).newInstance(luceneArgs);
                 if (luceneFactory instanceof AbstractWordsFileFilterFactory) {
                     AbstractWordsFileFilterFactory wordsFF = ((AbstractWordsFileFilterFactory) luceneFactory);
                     // this will parse/load the content handling different formats, comments, etc
@@ -238,9 +241,9 @@ public class ElasticCustomAnalyzer {
                     }
                 }
 
-                name = normalize((String) tff.getField("NAME").get(null));
+                name = normalize((String) analysisFactory.getField("NAME").get(null));
                 transformers = LUCENE_ELASTIC_TRANSFORMERS.entrySet().stream()
-                        .filter(k -> k.getKey().isAssignableFrom(tff))
+                        .filter(k -> k.getKey().isAssignableFrom(analysisFactory))
                         .map(Map.Entry::getValue)
                         .collect(Collectors.toList());
             } catch (Exception e) {
@@ -253,6 +256,21 @@ public class ElasticCustomAnalyzer {
             }
 
             Map<String, Object> args = convertNodeState(child, transformers, content);
+
+            if (name.equals("word_delimiter")) {
+                // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-word-delimiter-tokenfilter.html
+                // We recommend using the word_delimiter_graph instead of the word_delimiter filter.
+                // The word_delimiter filter can produce invalid token graphs.
+                LOG.info("Replacing the word delimiter filter with the word delimiter graph");
+                name = "word_delimiter_graph";
+            }
+            if (name.equals("hyphenation_compound_word")) {
+                name = "hyphenation_decompounder";
+                String hypenator = args.getOrDefault("hyphenator", "").toString();
+                LOG.info("Using the hyphenation_decompounder: " + hypenator);
+                args.put("hyphenation_patterns_path", "analysis/hyphenation_patterns.xml");
+                args.put("word_list", List.of());
+            }
 
             // stemmer in elastic don't have language based configurations. They all stay under the stemmer config with
             // a language parameter
@@ -279,16 +297,12 @@ public class ElasticCustomAnalyzer {
             }
             String key = name + "_" + i;
             filters.put(key, factory.apply(name, JsonData.of(args)));
-            if (name.equals("word_delimiter")) {
+            if (name.equals("word_delimiter_graph")) {
                 wordDelimiterFilterKey = key;
             } else if (name.equals("synonym")) {
                 if (wordDelimiterFilterKey != null) {
-                    // re-order the synonyms filter _before_ the word delimiter, to avoid
-                    // "Token filter [word_delimiter_1] cannot be used to parse synonyms"
-                    i++;
-                    String newKey = key = "word_delimiter_" + i;
-                    filters.put(newKey, filters.remove(wordDelimiterFilterKey));
-                    wordDelimiterFilterKey = newKey;
+                    LOG.info("Removing word delimiter because there is a synonyms filter as well: " + wordDelimiterFilterKey);
+                    filters.remove(wordDelimiterFilterKey);
                 }
             }
             i++;

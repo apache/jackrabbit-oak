@@ -192,7 +192,16 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             LOG.error("Failed to create index {}: {}", indexName, e.toString());
             throw e;
         }
-        LOG.debug("Creating Index with request {}", request);
+        if (LOG.isDebugEnabled()) {
+            int old = JsonpUtils.maxToStringLength();
+            try {
+                // temporarily increase the length, to avoid truncation
+                JsonpUtils.maxToStringLength(1_000_000);
+                LOG.debug("Creating Index with request {}", request);
+            } finally {
+                JsonpUtils.maxToStringLength(old);
+            }
+        }
         // create the new index
         try {
             final CreateIndexResponse response = esClient.create(request);

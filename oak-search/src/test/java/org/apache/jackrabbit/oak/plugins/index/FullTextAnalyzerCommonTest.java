@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -1173,8 +1174,51 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             synonym.setProperty("synonyms", "synonyms.txt");
             Tree synonymTxt = synonym.addChild("synonyms.txt");
             Tree content = synonymTxt.addChild("jcr:content");
-            content.setProperty("jcr:data", "find => replace\n");
+            content.setProperty("jcr:data", "find => replace\n" +
+                    "madison => mad");
             content.setProperty("jcr:mimeType", "text/plain");
+            filters.addChild("PorterStem");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "replacing wi-fi Madison Square Garden email abc@def.com");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where contains(*, 'find')", List.of("/content/bar"));
+        });
+    }
+
+    // OAK-11568
+    @Test
+    @Ignore
+    public void analyzerWithHyphenationCompoundWord() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree analyzers = idx.addChild(FulltextIndexConstants.ANALYZERS);
+            Tree defaultAnalyzers = analyzers.addChild(FulltextIndexConstants.ANL_DEFAULT);
+            Tree tokenizer = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_TOKENIZER);
+            tokenizer.setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree filters = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            filters.addChild("Standard");
+            filters.addChild("LowerCase");
+            Tree synFilter = addFilter(filters, "Synonym");
+            synFilter.setProperty("synonyms", "syn.txt");
+            synFilter.addChild("syn.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "plane, airplane, aircraft\n" +
+                            "flies=>scars\n" +
+                            // this rule is incorrect: "term: + was completely eliminated by analyzer"
+                            // by default, the configuration has to be lenient and not fail on such cases
+                            "plus,+,addition");
+            Tree hyphenation = filters.addChild("HyphenationCompoundWord");
+            hyphenation.setProperty("hyphenator", "de.xml");
+            Tree deXml = hyphenation.addChild("de.xml");
+            Tree deXmlContent = deXml.addChild("jcr:content");
+            deXmlContent.setProperty("jcr:data", "<...>");
+            deXmlContent.setProperty("jcr:mimeType", "application/xml");
+            filters.addChild("GermanLightStem");
+            filters.addChild("FrenchLightStem");
+            filters.addChild("ItalianLightStem");
             filters.addChild("PorterStem");
         });
 
