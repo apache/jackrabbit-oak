@@ -20,69 +20,97 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Ticker;
 import org.junit.Test;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 
-
 public class FormattingUtilsTest {
 
-    private static class TestTicker extends Ticker {
+    // simple test clock implementation where the time can be set
+    private static class TestClock extends Clock {
+
         private long time = 0;
+
         @Override
-        public long read() {
+        public long millis() {
             return time;
         }
-        public void set(long nanos) {
-            time = nanos;
+
+        public void set(long millis) {
+            time = millis;
+        }
+
+        @Override
+        public ZoneId getZone() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public java.time.Clock withZone(ZoneId zone) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Instant instant() {
+            return Instant.ofEpochSecond(time);
         }
     }
-    private final TestTicker ticker = new TestTicker();
-    private final Stopwatch sw = Stopwatch.createStarted(ticker);
+
+    private final TestClock clock = new TestClock();
+
+    private final Stopwatch sw = Stopwatch.createStarted(new Ticker() {
+        @Override
+        public long read() {
+            return TimeUnit.MILLISECONDS.toNanos(clock.millis());
+        }
+    });
 
     @Test
     public void formatToSeconds() {
         testFormatToSeconds("00:00:00", 0);
-        testFormatToSeconds("00:00:59", TimeUnit.MILLISECONDS.toNanos(59_567));
-        testFormatToSeconds("00:01:00", TimeUnit.MILLISECONDS.toNanos(60_567));
-        testFormatToSeconds("00:59:00", TimeUnit.MINUTES.toNanos(59));
-        testFormatToSeconds("01:00:00", TimeUnit.MINUTES.toNanos(60));
-        testFormatToSeconds("23:00:00", TimeUnit.HOURS.toNanos(23));
-        testFormatToSeconds("24:00:00", TimeUnit.HOURS.toNanos(24));
-        testFormatToSeconds("48:00:00", TimeUnit.HOURS.toNanos(48));
-        testFormatToSeconds("23:59:59", TimeUnit.HOURS.toNanos(23) +
-                TimeUnit.MINUTES.toNanos(59) +
-                TimeUnit.SECONDS.toNanos(59) +
-                TimeUnit.MILLISECONDS.toNanos(999)
+        testFormatToSeconds("00:00:59", TimeUnit.MILLISECONDS.toMillis(59_567));
+        testFormatToSeconds("00:01:00", TimeUnit.MILLISECONDS.toMillis(60_567));
+        testFormatToSeconds("00:59:00", TimeUnit.MINUTES.toMillis(59));
+        testFormatToSeconds("01:00:00", TimeUnit.MINUTES.toMillis(60));
+        testFormatToSeconds("23:00:00", TimeUnit.HOURS.toMillis(23));
+        testFormatToSeconds("24:00:00", TimeUnit.HOURS.toMillis(24));
+        testFormatToSeconds("48:00:00", TimeUnit.HOURS.toMillis(48));
+        testFormatToSeconds("23:59:59", TimeUnit.HOURS.toMillis(23) +
+                TimeUnit.MINUTES.toMillis(59) +
+                TimeUnit.SECONDS.toMillis(59) +
+                TimeUnit.MILLISECONDS.toMillis(999)
         );
-        testFormatToSeconds("-00:01:00", -TimeUnit.SECONDS.toNanos(60));
+        testFormatToSeconds("-00:01:00", -TimeUnit.SECONDS.toMillis(60));
     }
 
-    private void testFormatToSeconds(String expected, long nanos) {
-        ticker.set(nanos);
+    private void testFormatToSeconds(String expected, long millis) {
+        clock.set(millis);
         assertEquals(expected, FormattingUtils.formatToSeconds(sw));
     }
 
     @Test
     public void formatToMillis() {
         testFormatToMillis("00:00:00.000", 0);
-        testFormatToMillis("00:00:59.567", TimeUnit.MILLISECONDS.toNanos(59_567));
-        testFormatToMillis("00:01:00.567", TimeUnit.MILLISECONDS.toNanos(60_567));
-        testFormatToMillis("00:59:00.000", TimeUnit.MINUTES.toNanos(59));
-        testFormatToMillis("01:00:00.000", TimeUnit.MINUTES.toNanos(60));
-        testFormatToMillis("23:00:00.000", TimeUnit.HOURS.toNanos(23));
-        testFormatToMillis("24:00:00.000", TimeUnit.HOURS.toNanos(24));
-        testFormatToMillis("48:00:00.000", TimeUnit.HOURS.toNanos(48));
-        testFormatToMillis("23:59:59.999", TimeUnit.HOURS.toNanos(23) +
-                TimeUnit.MINUTES.toNanos(59) +
-                TimeUnit.SECONDS.toNanos(59) +
-                TimeUnit.MILLISECONDS.toNanos(999)
+        testFormatToMillis("00:00:59.567", TimeUnit.MILLISECONDS.toMillis(59_567));
+        testFormatToMillis("00:01:00.567", TimeUnit.MILLISECONDS.toMillis(60_567));
+        testFormatToMillis("00:59:00.000", TimeUnit.MINUTES.toMillis(59));
+        testFormatToMillis("01:00:00.000", TimeUnit.MINUTES.toMillis(60));
+        testFormatToMillis("23:00:00.000", TimeUnit.HOURS.toMillis(23));
+        testFormatToMillis("24:00:00.000", TimeUnit.HOURS.toMillis(24));
+        testFormatToMillis("48:00:00.000", TimeUnit.HOURS.toMillis(48));
+        testFormatToMillis("23:59:59.999", TimeUnit.HOURS.toMillis(23) +
+                TimeUnit.MINUTES.toMillis(59) +
+                TimeUnit.SECONDS.toMillis(59) +
+                TimeUnit.MILLISECONDS.toMillis(999)
         );
-        testFormatToMillis("-00:01:00.000", -TimeUnit.SECONDS.toNanos(60));
+        testFormatToMillis("-00:01:00.000", -TimeUnit.SECONDS.toMillis(60));
     }
 
-    private void testFormatToMillis(String expected, long nanos) {
-        ticker.set(nanos);
+    private void testFormatToMillis(String expected, long millis) {
+        clock.set(millis);
         assertEquals(expected, FormattingUtils.formatToMillis(sw));
     }
 
