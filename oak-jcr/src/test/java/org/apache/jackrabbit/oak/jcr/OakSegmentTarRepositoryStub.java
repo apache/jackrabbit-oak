@@ -24,7 +24,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -72,7 +71,7 @@ public class OakSegmentTarRepositoryStub extends BaseRepositoryStub {
      * {@link Jcr} builder before the repository is created. This default
      * implementation set query engine settings as returned by
      * {@link #getQueryEngineSettings()} and adds a
-     * {@link BundlingConfigInitializer}.
+     * {@link org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer}.
      *
      * @param jcr the builder.
      * @param whiteboard the oak whiteboard
