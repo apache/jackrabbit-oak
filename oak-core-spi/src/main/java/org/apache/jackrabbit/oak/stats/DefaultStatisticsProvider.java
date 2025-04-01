@@ -63,12 +63,8 @@ public final class DefaultStatisticsProvider implements StatisticsProvider {
 
     @Override
     public <T> GaugeStats<T> getGauge(String name, Supplier<T> supplier) {
-        SimpleStats<T> stats = statsMeters.get(name);
-        if (stats == null) {
-            stats = new SimpleStats(new AtomicLong(), SimpleStats.Type.GAUGE, supplier.get());
-            statsMeters.put(name, stats);
-        }
-        return stats;
+        return statsMeters.computeIfAbsent(name,
+                k -> new SimpleStats<>(new AtomicLong(), SimpleStats.Type.GAUGE, supplier.get()));
     }
 
     private synchronized SimpleStats getStats(String type, boolean resetValueEachSecond, SimpleStats.Type statsType,

@@ -113,7 +113,7 @@ public class MetricStatisticsProviderTest {
     }
 
     @Test
-    public void gauge() throws Exception {
+    public void gauge() {
         GaugeStats<String> gaugeStats = statsProvider.getGauge("test", () -> "value");
 
         assertNotNull(gaugeStats);
@@ -121,6 +121,7 @@ public class MetricStatisticsProviderTest {
 
         // updating gauge is not possible
         gaugeStats = statsProvider.getGauge("test", () -> "value2");
+        assertNotNull(gaugeStats);
         assertEquals("value", statsProvider.getRegistry().getGauges().get("test").getValue());
 
     }
