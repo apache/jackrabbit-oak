@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.stats;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.time.Instant;
 import java.time.ZoneId;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -68,14 +69,51 @@ public class ClockTest {
     }
 
     @Test
+    public void testGetDate() {
+        Clock c = Clock.SIMPLE;
+
+        long t1 = c.millis();
+        long t2 = c.getDate().getTime();
+        long t3 = c.millis();
+
+        assertTrue(t1 <= t2);
+        assertTrue(t2 <= t3);
+    }
+
+    @Test
+    public void testWaitUntilSimple() throws InterruptedException {
+        testClockWaitUntil(Clock.SIMPLE);
+    }
+
+    @Test
+    public void testWaitUntilAccurate() throws InterruptedException {
+        testClockWaitUntil(Clock.ACCURATE);
+    }
+
+    @Test
+    public void testWaitUntilVirtual() throws InterruptedException {
+        testClockWaitUntil(new Clock.Virtual());
+    }
+
+    private void testClockWaitUntil(Clock c) throws InterruptedException {
+        long start = c.millis();
+        long until = start + 100;
+        c.waitUntil(until);
+
+        assertTrue(c.millis() - start >= 100);
+    }
+
+    @Test
     public void testClockJavaTime() {
         Clock c = Clock.SIMPLE;
 
         long t1 = c.millis();
         long t2 = c.getTime();
         long t3 = c.millis();
+        Instant i4 = c.instant();
         assertTrue(t1 <= t2);
         assertTrue(t2 <= t3);
+        assertTrue(t3 <= i4.toEpochMilli());
 
         java.time.Clock c2 = c.withZone(ZoneId.of("Z"));
         assertEquals(c2.getZone(), c.getZone());
