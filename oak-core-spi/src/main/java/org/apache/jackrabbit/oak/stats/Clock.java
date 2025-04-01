@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.stats;
 
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+
 import java.io.Closeable;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -45,7 +47,7 @@ public abstract class Clock extends java.time.Clock {
      * the effect of an inaccurate system clock.
      */
     private static final int SIMPLE_CLOCK_NOISE =
-            Integer.getInteger("simple.clock.noise", 0);
+        SystemPropertySupplier.create("simple.clock.noise", 0).get();
 
     /**
      * Millisecond granularity of the {@link #ACCURATE} clock.
@@ -54,15 +56,15 @@ public abstract class Clock extends java.time.Clock {
      * code that relies on millisecond timestamps.
      */
     private static final long ACCURATE_CLOCK_GRANULARITY =
-            Long.getLong("accurate.clock.granularity", 1);
+            SystemPropertySupplier.create("accurate.clock.granularity", 1L).get();
 
     /**
      * Millisecond update interval of the {@link Fast} clock. Configurable
-     * by the "fast.clock.interval" system property to to make it easier
+     * by the "fast.clock.interval" system property to make it easier
      * to test the effect of different update frequencies.
      */
     static final long FAST_CLOCK_INTERVAL =
-            Long.getLong("fast.clock.interval", 10);
+            SystemPropertySupplier.create("fast.clock.interval", 10L).get();
 
     private long monotonic = 0;
 
