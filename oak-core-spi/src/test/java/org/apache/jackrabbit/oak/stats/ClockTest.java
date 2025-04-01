@@ -68,7 +68,7 @@ public class ClockTest {
     }
 
     @Test
-    public void testClockJavaTime() throws InterruptedException {
+    public void testClockJavaTime() {
         Clock c = Clock.SIMPLE;
 
         long t1 = c.millis();
