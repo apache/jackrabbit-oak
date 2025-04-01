@@ -131,6 +131,16 @@ public class ClockTest {
         assertEquals(c2.getZone(), c.getZone());
     }
 
+    @Test
+    public void testNonTicking() {
+        NonTickingTestClock ntc = new NonTickingTestClock();
+        assertEquals(0, ntc.millis());
+        ntc.setTime(1000);
+        assertEquals(1000, ntc.millis());
+        ntc.setTime(500);
+        assertEquals(500, ntc.millis());
+    }
+
     private void testClockDrift(Clock clock) throws InterruptedException {
 
         long drift = clock.getTime() - System.currentTimeMillis();
