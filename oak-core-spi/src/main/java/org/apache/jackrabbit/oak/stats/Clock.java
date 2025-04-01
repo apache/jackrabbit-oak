@@ -76,8 +76,20 @@ public abstract class Clock extends java.time.Clock {
      * @see System#currentTimeMillis()
      * @see java.time.Clock#millis()
      * @return current time in milliseconds since the epoch
+     * @deprecated use {@linkplain #millis()} instead
      */
     public abstract long getTime();
+
+    /**
+     * Returns the current time in milliseconds since the epoch.
+     *
+     * @see System#currentTimeMillis()
+     * @return current time in milliseconds since the epoch
+     */
+    @Override
+    public long millis() {
+        return getTime();
+    }
 
     /**
      * Returns a monotonically increasing timestamp based on the current time.
