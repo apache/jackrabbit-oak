@@ -137,6 +137,18 @@ public class RDBDocumentNodeStoreBuilder
     }
 
     @Override
+    public boolean isFullGCAuditLoggingEnabled() {
+        // fullGC is non supported for RDB
+        return false;
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setFullGCAuditLoggingEnabled(boolean b) {
+        // fullGC is non supported for RDB
+        return thisBuilder();
+    }
+
+    @Override
     public Set<String> getFullGCIncludePaths() {
         return of();
     }

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.stats;
 
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+
 import java.io.Closeable;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -29,7 +31,12 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Mechanism for keeping track of time at millisecond accuracy.
  * <p>
- * As of Oak 1.20, this extends from {@link java.time.Clock}.
+ * This extends from {@link java.time.Clock}. Consumers of clocks
+ * are advised to use that interface, unless the additional features
+ * of this class are needed.
+ * <p>
+ * Note that implementations of this class in general do not support
+ * the timezone related features of {@linkplain java.time.Clock}.
  */
 public abstract class Clock extends java.time.Clock {
 
@@ -40,7 +47,7 @@ public abstract class Clock extends java.time.Clock {
      * the effect of an inaccurate system clock.
      */
     private static final int SIMPLE_CLOCK_NOISE =
-            Integer.getInteger("simple.clock.noise", 0);
+        SystemPropertySupplier.create("simple.clock.noise", 0).get();
 
     /**
      * Millisecond granularity of the {@link #ACCURATE} clock.
@@ -49,15 +56,15 @@ public abstract class Clock extends java.time.Clock {
      * code that relies on millisecond timestamps.
      */
     private static final long ACCURATE_CLOCK_GRANULARITY =
-            Long.getLong("accurate.clock.granularity", 1);
+            SystemPropertySupplier.create("accurate.clock.granularity", 1L).get();
 
     /**
      * Millisecond update interval of the {@link Fast} clock. Configurable
-     * by the "fast.clock.interval" system property to to make it easier
+     * by the "fast.clock.interval" system property to make it easier
      * to test the effect of different update frequencies.
      */
     static final long FAST_CLOCK_INTERVAL =
-            Long.getLong("fast.clock.interval", 10);
+            SystemPropertySupplier.create("fast.clock.interval", 10L).get();
 
     private long monotonic = 0;
 
@@ -69,8 +76,20 @@ public abstract class Clock extends java.time.Clock {
      * @see System#currentTimeMillis()
      * @see java.time.Clock#millis()
      * @return current time in milliseconds since the epoch
+     * @deprecated use {@linkplain #millis()} instead
      */
     public abstract long getTime();
+
+    /**
+     * Returns the current time in milliseconds since the epoch.
+     *
+     * @see System#currentTimeMillis()
+     * @return current time in milliseconds since the epoch
+     */
+    @Override
+    public long millis() {
+        return getTime();
+    }
 
     /**
      * Returns a monotonically increasing timestamp based on the current time.
@@ -159,6 +178,19 @@ public abstract class Clock extends java.time.Clock {
             Thread.sleep(timestamp - now);
             now = getTimeIncreasing();
         }
+    }
+
+    /**
+     * Waits for the given delta in ms. The current thread
+     * is suspended until the {@link #getTimeIncreasing()} method returns
+     * a time that's equal or greater than the start time plus the given
+     * delta.
+     *
+     * @param delta time in milliseconds to wait for
+     * @throws InterruptedException if the wait was interrupted
+     */
+    public void waitFor(long delta) throws InterruptedException {
+        waitUntil(getTime() + delta);
     }
 
     @Override
@@ -307,12 +339,8 @@ public abstract class Clock extends java.time.Clock {
         private final ScheduledFuture<?> future;
 
         public Fast(ScheduledExecutorService executor) {
-            future = executor.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    time = ACCURATE.getTime();
-                }
-            }, FAST_CLOCK_INTERVAL, FAST_CLOCK_INTERVAL, TimeUnit.MILLISECONDS);
+            future = executor.scheduleAtFixedRate(() ->
+                    time = ACCURATE.getTime(), FAST_CLOCK_INTERVAL, FAST_CLOCK_INTERVAL, TimeUnit.MILLISECONDS);
         }
 
         @Override
@@ -357,5 +385,5 @@ public abstract class Clock extends java.time.Clock {
         public String toString() {
             return "Clock.Virtual";
         }
-    };
+    }
 }

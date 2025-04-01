@@ -902,7 +902,8 @@ public class ElasticRequestHandler {
                 .query(rewriteQueryText(text))
                 .defaultOperator(Operator.And)
                 .type(TextQueryType.CrossFields)
-                .tieBreaker(0.5d);
+                .tieBreaker(0.5d)
+                .lenient(true);
         if (FieldNames.FULLTEXT.equals(fieldName)) {
             for (PropertyDefinition pd : pr.indexingRule.getNodeScopeAnalyzedProps()) {
                 qsqBuilder.fields(ElasticIndexUtils.fieldName(pd.name) + "^" + pd.boost);

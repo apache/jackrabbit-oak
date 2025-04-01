@@ -97,6 +97,7 @@ public class ElasticDocument {
                         map -> {
                             Object existingValue = map.get(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE);
                             if (existingValue instanceof Set) {
+                                @SuppressWarnings("unchecked")
                                 Set<Object> existingSet = (Set<Object>) existingValue;
                                 existingSet.add(value);
                             } else {
@@ -134,6 +135,7 @@ public class ElasticDocument {
         if (existingValue == null) {
             finalValue = value;
         } else if (existingValue instanceof Set) {
+            @SuppressWarnings("unchecked")
             Set<Object> existingSet = (Set<Object>) existingValue;
             existingSet.add(value);
             finalValue = existingSet;

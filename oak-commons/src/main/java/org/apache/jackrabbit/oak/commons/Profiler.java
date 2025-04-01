@@ -57,6 +57,7 @@ public class Profiler implements Runnable {
             "sun," +
             "com.sun.," +
             "com.mongodb.," +
+            "org.apache.jackrabbit.oak.commons.Profiler.," +
             "org.bson.,"
             ).split(",");
     private final String[] ignorePackages = (
@@ -380,7 +381,11 @@ public class Profiler implements Runnable {
 
     private void processList(List<Object[]> list) {
         for (Object[] dump : list) {
-            if (startsWithAny(dump[0].toString(), ignoreThreads)) {
+            String el = dump[0].toString();
+            if (el.startsWith("app//")) {
+                el = el.substring("app//".length());
+            }
+            if (startsWithAny(el, ignoreThreads)) {
                 continue;
             }
             StringBuilder buff = new StringBuilder();
@@ -388,7 +393,7 @@ public class Profiler implements Runnable {
             String last = null;
             boolean packageCounts = false;
             for (int j = 0, i = 0; i < dump.length && j < depth; i++) {
-                String el = dump[i].toString();
+                el = dump[i].toString();
                 if (el.startsWith("app//")) {
                     el = el.substring("app//".length());
                 }

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import co.elastic.clients.elasticsearch._types.analysis.Analyzer;
 import co.elastic.clients.elasticsearch._types.analysis.CharFilterDefinition;
 import co.elastic.clients.elasticsearch._types.analysis.CustomAnalyzer;
+import co.elastic.clients.elasticsearch._types.analysis.NGramTokenizer;
 import co.elastic.clients.elasticsearch._types.analysis.TokenFilterDefinition;
 import co.elastic.clients.elasticsearch._types.analysis.TokenizerDefinition;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.CharFilterFactory;
 import org.apache.lucene.analysis.TokenFilterFactory;
+import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
 import org.apache.lucene.analysis.en.AbstractWordsFileFilterFactory;
 import org.apache.lucene.util.ResourceLoader;
 import org.jetbrains.annotations.NotNull;
@@ -55,6 +57,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +100,13 @@ public class ElasticCustomAnalyzer {
             NodeState defaultAnalyzer = state.getChildNode(FulltextIndexConstants.ANL_DEFAULT);
             if (defaultAnalyzer.exists()) {
                 IndexSettingsAnalysis.Builder builder = new IndexSettingsAnalysis.Builder();
-                Map<String, Object> analyzer = convertNodeState(defaultAnalyzer);
+                Map<String, Object> analyzer;
+                try {
+                    analyzer = convertNodeState(defaultAnalyzer);
+                } catch (IOException e) {
+                    LOG.warn("Can not load analyzer; using an empty configuration", e);
+                    analyzer = Map.of();
+                }
                 String builtIn = defaultAnalyzer.getString(FulltextIndexConstants.ANL_CLASS);
                 if (builtIn == null) {
                     builtIn = defaultAnalyzer.getString(FulltextIndexConstants.ANL_NAME);
@@ -107,11 +116,14 @@ public class ElasticCustomAnalyzer {
 
                     // content params, usually stop words
                     for (ChildNodeEntry nodeEntry : defaultAnalyzer.getChildNodeEntries()) {
+                        List<String> list;
                         try {
-                            analyzer.put(normalize(nodeEntry.getName()), loadContent(nodeEntry.getNodeState(), nodeEntry.getName(), NOOP_TRANSFORMATION));
+                            list = loadContent(nodeEntry.getNodeState(), nodeEntry.getName(), NOOP_TRANSFORMATION);
                         } catch (IOException e) {
-                            throw new IllegalStateException("Unable to load content for node entry " + nodeEntry.getName(), e);
+                            LOG.warn("Unable to load analyzer content for entry '" + nodeEntry.getName() + "'; using empty list", e);
+                            list = List.of();
                         }
+                        analyzer.put(normalize(nodeEntry.getName()), list);
                     }
 
                     builder.analyzer(analyzerName, new Analyzer(null, JsonData.of(analyzer)));
@@ -145,10 +157,42 @@ public class ElasticCustomAnalyzer {
 
     @NotNull
     private static TokenizerDefinition loadTokenizer(NodeState state) {
-        String name = normalize(Objects.requireNonNull(state.getString(FulltextIndexConstants.ANL_NAME)));
-        Map<String, Object> args = convertNodeState(state);
+        String name;
+        Map<String, Object> args;
+        if (!state.exists()) {
+            LOG.warn("No tokenizer specified; the standard with an empty configuration");
+            name = "Standard";
+            args = new HashMap<String, Object>();
+        } else {
+            name = Objects.requireNonNull(state.getString(FulltextIndexConstants.ANL_NAME));
+            try {
+                args = convertNodeState(state);
+            } catch (IOException e) {
+                LOG.warn("Can not load tokenizer; using an empty configuration", e);
+                args = new HashMap<String, Object>();
+            }
+        }
+        name = normalize(name);
+        if ("n_gram".equals(name)) {
+            // OAK-11568
+            // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-ngram-tokenizer.html
+            Integer minGramSize = getIntegerSetting(args, "minGramSize", 2);
+            Integer maxGramSize = getIntegerSetting(args, "maxGramSize", 3);
+            TokenizerDefinition ngram = TokenizerDefinition.of(t -> t.ngram(
+                    NGramTokenizer.of(n -> n.minGram(minGramSize).maxGram(maxGramSize))));
+            return ngram;
+        }
         args.put(ANALYZER_TYPE, name);
         return new TokenizerDefinition(name, JsonData.of(args));
+    }
+
+    private static Integer getIntegerSetting(Map<String, Object> args, String name, Integer defaultValue) {
+        Object value = args.getOrDefault(name, defaultValue);
+        if (!(value instanceof Integer)) {
+            LOG.warn("Setting {} value {} is not an integer; using default: {}", name, value, defaultValue);
+            return defaultValue;
+        }
+        return (Integer) value;
     }
 
     private static <FD> LinkedHashMap<String, FD> loadFilters(NodeState state,
@@ -156,20 +200,25 @@ public class ElasticCustomAnalyzer {
                                                               BiFunction<String, JsonData, FD> factory) {
         LinkedHashMap<String, FD> filters = new LinkedHashMap<>();
         int i = 0;
-        //Need to read children in order
+        // Need to read children in order
         Tree tree = TreeFactory.createReadOnlyTree(state);
+
+        // We need to remember that a "WordDelimiter" was configured,
+        // because we have to remove it if a synonyms filter is configured as well
+        String wordDelimiterFilterKey = null;
         for (Tree t : tree.getChildren()) {
             NodeState child = state.getChildNode(t.getName());
 
             String name;
             List<String> content = null;
             List<ParameterTransformer> transformers;
+            boolean skipEntry = false;
             try {
-                Class<? extends AbstractAnalysisFactory> tff = lookup.apply(t.getName());
+                Class<? extends AbstractAnalysisFactory> analysisFactory = lookup.apply(t.getName());
 
                 List<String> unsupportedParameters =
                         UNSUPPORTED_LUCENE_PARAMETERS.entrySet().stream()
-                                .filter(k -> k.getKey().isAssignableFrom(tff))
+                                .filter(k -> k.getKey().isAssignableFrom(analysisFactory))
                                 .map(Map.Entry::getValue)
                                 .findFirst().orElseGet(Collections::emptyList);
                 Map<String, String> luceneArgs = StreamSupport.stream(child.getProperties().spliterator(), false)
@@ -177,17 +226,24 @@ public class ElasticCustomAnalyzer {
                         .filter(ps -> !unsupportedParameters.contains(ps.getName()))
                         .collect(Collectors.toMap(PropertyState::getName, ps -> ps.getValue(Type.STRING)));
 
-                AbstractAnalysisFactory luceneFactory = tff.getConstructor(Map.class).newInstance(luceneArgs);
+                AbstractAnalysisFactory luceneFactory = analysisFactory.getConstructor(Map.class).newInstance(luceneArgs);
                 if (luceneFactory instanceof AbstractWordsFileFilterFactory) {
                     AbstractWordsFileFilterFactory wordsFF = ((AbstractWordsFileFilterFactory) luceneFactory);
                     // this will parse/load the content handling different formats, comments, etc
                     wordsFF.inform(new NodeStateResourceLoader(child));
                     content = wordsFF.getWords().stream().map(w -> new String(((char[]) w))).collect(Collectors.toList());
                 }
+                if (luceneFactory instanceof MappingCharFilterFactory) {
+                    MappingCharFilterFactory map = (MappingCharFilterFactory) luceneFactory;
+                    if (map.getOriginalArgs().isEmpty()) {
+                        skipEntry = true;
+                        LOG.warn("Empty CharFilter mapping: ignoring");
+                    }
+                }
 
-                name = normalize((String) tff.getField("NAME").get(null));
+                name = normalize((String) analysisFactory.getField("NAME").get(null));
                 transformers = LUCENE_ELASTIC_TRANSFORMERS.entrySet().stream()
-                        .filter(k -> k.getKey().isAssignableFrom(tff))
+                        .filter(k -> k.getKey().isAssignableFrom(analysisFactory))
                         .map(Map.Entry::getValue)
                         .collect(Collectors.toList());
             } catch (Exception e) {
@@ -200,6 +256,21 @@ public class ElasticCustomAnalyzer {
             }
 
             Map<String, Object> args = convertNodeState(child, transformers, content);
+
+            if (name.equals("word_delimiter")) {
+                // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-word-delimiter-tokenfilter.html
+                // We recommend using the word_delimiter_graph instead of the word_delimiter filter.
+                // The word_delimiter filter can produce invalid token graphs.
+                LOG.info("Replacing the word delimiter filter with the word delimiter graph");
+                name = "word_delimiter_graph";
+            }
+            if (name.equals("hyphenation_compound_word")) {
+                name = "hyphenation_decompounder";
+                String hypenator = args.getOrDefault("hyphenator", "").toString();
+                LOG.info("Using the hyphenation_decompounder: " + hypenator);
+                args.put("hyphenation_patterns_path", "analysis/hyphenation_patterns.xml");
+                args.put("word_list", List.of());
+            }
 
             // stemmer in elastic don't have language based configurations. They all stay under the stemmer config with
             // a language parameter
@@ -221,14 +292,31 @@ public class ElasticCustomAnalyzer {
             }
             args.put(ANALYZER_TYPE, name);
 
-            filters.put(name + "_" + i, factory.apply(name, JsonData.of(args)));
+            if (skipEntry) {
+                continue;
+            }
+            String key = name + "_" + i;
+            filters.put(key, factory.apply(name, JsonData.of(args)));
+            if (name.equals("word_delimiter_graph")) {
+                wordDelimiterFilterKey = key;
+            } else if (name.equals("synonym")) {
+                if (wordDelimiterFilterKey != null) {
+                    LOG.info("Removing word delimiter because there is a synonyms filter as well: " + wordDelimiterFilterKey);
+                    filters.remove(wordDelimiterFilterKey);
+                }
+            }
             i++;
         }
         return filters;
     }
 
     private static List<String> loadContent(NodeState file, String name, ContentTransformer transformer) throws IOException {
-        Blob blob = ConfigUtil.getBlob(file, name);
+        Blob blob;
+        try {
+            blob = ConfigUtil.getBlob(file, name);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            throw new IOException("Could not load " + name, e);
+        }
         try (Reader content = new InputStreamReader(Objects.requireNonNull(blob).getNewStream(), StandardCharsets.UTF_8)) {
             try (BufferedReader br = new BufferedReader(content)) {
                 return br.lines()
@@ -264,11 +352,25 @@ public class ElasticCustomAnalyzer {
         return name;
     }
 
-    private static Map<String, Object> convertNodeState(NodeState state) {
-        return convertNodeState(state, List.of(), List.of());
+    private static Map<String, Object> convertNodeState(NodeState state) throws IOException {
+        try {
+            return convertNodeState(state, List.of(), List.of());
+        } catch (IllegalStateException e) {
+            // convert runtime exception back to checked exception
+            throw new IOException("Can not convert", e);
+        }
     }
 
-    private static Map<String, Object> convertNodeState(NodeState state, List<ParameterTransformer> transformers, List<String> preloadedContent) {
+    /**
+     * Read analyzer configuration.
+     *
+     * @param state the node state
+     * @param transformers
+     * @param preloadedContent
+     * @return
+     * @throws IllegalStateException
+     */
+    private static Map<String, Object> convertNodeState(NodeState state, List<ParameterTransformer> transformers, List<String> preloadedContent) throws IllegalStateException {
         Map<String, Object> luceneParams = StreamSupport.stream(Spliterators.spliteratorUnknownSize(state.getProperties().iterator(), Spliterator.ORDERED), false)
                 .filter(ElasticCustomAnalyzer::isPropertySupported)
                 .collect(Collectors.toMap(PropertyState::getName, ps -> {
@@ -280,6 +382,8 @@ public class ElasticCustomAnalyzer {
                                 return loadContent(state.getChildNode(v.trim()), v.trim(),
                                         CONTENT_TRANSFORMERS.getOrDefault(ps.getName(), NOOP_TRANSFORMATION)).stream();
                             } catch (IOException e) {
+                                // convert checked exception to runtime exception to runtime exception,
+                                // because the stream API doesn't support checked exceptions
                                 throw new IllegalStateException(e);
                             }
                         }).collect(Collectors.toList()));

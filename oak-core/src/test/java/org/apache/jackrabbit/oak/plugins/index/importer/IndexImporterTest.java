@@ -25,6 +25,7 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -77,6 +78,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_DISABL
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock.NOOP_LOCK;
+import static org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher.ASYNC_PREVIOUS;
 import static org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
@@ -140,6 +142,50 @@ public class IndexImporterTest {
 
         NodeState idxb = NodeStateUtils.getNode(store.getRoot(), "/idx-b");
         assertEquals(AsyncLaneSwitcher.getTempLaneName("async"), idxb.getString(ASYNC_PROPERTY_NAME));
+    }
+
+    @Test
+    public void switchLanesLuceneToElastic() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("idx-a").setProperty("type", "elasticsearch");
+        builder.child("idx-a").setProperty("async", "elastic-async");
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        createIndexDirs("/idx-a");
+
+        builder.child("idx-a").setProperty("type", "lucene");
+        builder.child("idx-a").setProperty("async", asList("async", "nrt"), Type.STRINGS);
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+        importer.switchLanes();
+
+        NodeState idxa = NodeStateUtils.getNode(store.getRoot(), "/idx-a");
+        assertEquals(AsyncLaneSwitcher.getTempLaneName("elastic-async"), idxa.getString(ASYNC_PROPERTY_NAME));
+        assertEquals(idxa.getStrings(ASYNC_PREVIOUS), List.of("elastic-async"));
+    }
+
+    @Test
+    public void switchLanesElasticToLucene() throws Exception{
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("idx-a").setProperty("type", "lucene");
+        builder.child("idx-a").setProperty("async", List.of("async"), Type.STRINGS);
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        createIndexDirs("/idx-a");
+
+        builder.child("idx-a").setProperty("type", "elasticsearch");
+        builder.child("idx-a").setProperty("async", List.of("elastic-async"), Type.STRINGS);
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+        importer.switchLanes();
+
+        NodeState idxa = NodeStateUtils.getNode(store.getRoot(), "/idx-a");
+        assertEquals(AsyncLaneSwitcher.getTempLaneName("async"), idxa.getString(ASYNC_PROPERTY_NAME));
+        assertEquals(idxa.getStrings(ASYNC_PREVIOUS), List.of("async"));
     }
 
     @Test(expected = NullPointerException.class)

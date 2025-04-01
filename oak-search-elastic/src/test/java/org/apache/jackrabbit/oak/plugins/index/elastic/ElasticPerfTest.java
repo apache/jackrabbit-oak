@@ -167,12 +167,11 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
 
     private void testQuery(String query, String language) throws Exception {
         Result result = executeQuery(query, language, NO_BINDINGS);
-        Iterable<ResultRow> it = (Iterable<ResultRow>) result.getRows();
-        Iterator<ResultRow> iterator = it.iterator();
+        Iterator<? extends ResultRow> iterator = result.getRows().iterator();
         long start = LOG_PERF.startForInfoLog("Getting result rows");
         int i = 0;
         while (iterator.hasNext()) {
-            ResultRow row = iterator.next();
+            iterator.next();
             i++;
         }
         LOG_PERF.end(start, -1,-1, "{} Results fetched", i);

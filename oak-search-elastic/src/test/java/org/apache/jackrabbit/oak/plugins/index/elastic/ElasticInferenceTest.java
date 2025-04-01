@@ -145,12 +145,13 @@ public class ElasticInferenceTest extends ElasticAbstractQueryTest {
         for (String path : paths) {
             URL json = this.getClass().getResource("/inference" + path + ".json");
             if (json != null) {
-                Map<String, Object> map = mapper.readValue(json, Map.class);
+                @SuppressWarnings("unchecked")
+                Map<String, Collection<Double>> map = mapper.readValue(json, Map.class);
                 ObjectNode updateDoc = mapper.createObjectNode();
                 ObjectNode inferenceNode = updateDoc.putObject(ElasticIndexDefinition.INFERENCE);
                 ArrayNode embeddingsNode = inferenceNode.putObject("embeddings").putArray("value");
                 inferenceNode.putObject("metadata").put("updatedAt", Instant.now().toEpochMilli());
-                for (Double d : (Collection<Double>) map.get("embedding")) {
+                for (Double d : map.get("embedding")) {
                     embeddingsNode.add(d);
                 }
                 updateDocument(index, path, updateDoc);
