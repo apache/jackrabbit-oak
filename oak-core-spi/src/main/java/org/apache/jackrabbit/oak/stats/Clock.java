@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.stats;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 
 import java.io.Closeable;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Date;
@@ -72,11 +73,14 @@ public abstract class Clock extends java.time.Clock {
 
     /**
      * Returns the current time in milliseconds since the epoch.
+     * <p>
+     * Users of this class should use {@link java.time.Clock#millis()} instead.
+     * <em>This</em> abstract method remains here for cases where this
+     * class is extended.
      *
      * @see System#currentTimeMillis()
      * @see java.time.Clock#millis()
      * @return current time in milliseconds since the epoch
-     * @deprecated use {@linkplain #millis()} instead
      */
     public abstract long getTime();
 
@@ -115,7 +119,7 @@ public abstract class Clock extends java.time.Clock {
      * Returns a strictly increasing timestamp based on the current time.
      * This method is like {@link #getTimeMonotonic()}, with the exception
      * that two calls of this method will never return the same timestamp.
-     * Instead this method will explicitly wait until the current time
+     * Instead, this method will explicitly wait until the current time
      * increases beyond any previously returned value. Note that the wait
      * may last long if this method is called frequently from many concurrent
      * thread or if the system time is adjusted backwards. The caller should
@@ -191,6 +195,19 @@ public abstract class Clock extends java.time.Clock {
      */
     public void waitFor(long delta) throws InterruptedException {
         waitUntil(getTime() + delta);
+    }
+
+    /**
+     * Waits for the given duration. The current thread
+     * is suspended until the {@link #getTimeIncreasing()} method returns
+     * a time that's equal or greater than the start time plus the given
+     * delta.
+     *
+     * @param delta Duration to wait for
+     * @throws InterruptedException if the wait was interrupted
+     */
+    public void waitFor(Duration delta) throws InterruptedException {
+        waitUntil(getTime() + delta.toMillis());
     }
 
     @Override
@@ -305,7 +322,7 @@ public abstract class Clock extends java.time.Clock {
 
             // Last clock sync was over 10s ago or the nanosecond timer has
             // drifted more than 100ms from the wall clock, so it's best to
-            // to a hard sync with no smoothing.
+            // do a hard sync with no smoothing.
             if (nowms >= ms + 1000) {
                 ms = nowms;
                 ns = nowns;
@@ -360,7 +377,7 @@ public abstract class Clock extends java.time.Clock {
 
     /**
      * A virtual clock that has no connection to the actual system time.
-     * Instead the clock maintains an internal counter that's incremented
+     * Instead, the clock maintains an internal counter that's incremented
      * atomically whenever the current time is requested. This guarantees
      * that the reported time signal is always strictly increasing.
      */
