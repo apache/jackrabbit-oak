@@ -119,7 +119,7 @@ public abstract class Clock extends java.time.Clock {
      * Returns a strictly increasing timestamp based on the current time.
      * This method is like {@link #getTimeMonotonic()}, with the exception
      * that two calls of this method will never return the same timestamp.
-     * Instead this method will explicitly wait until the current time
+     * Instead, this method will explicitly wait until the current time
      * increases beyond any previously returned value. Note that the wait
      * may last long if this method is called frequently from many concurrent
      * thread or if the system time is adjusted backwards. The caller should
@@ -322,7 +322,7 @@ public abstract class Clock extends java.time.Clock {
 
             // Last clock sync was over 10s ago or the nanosecond timer has
             // drifted more than 100ms from the wall clock, so it's best to
-            // to a hard sync with no smoothing.
+            // do a hard sync with no smoothing.
             if (nowms >= ms + 1000) {
                 ms = nowms;
                 ns = nowns;
@@ -377,7 +377,7 @@ public abstract class Clock extends java.time.Clock {
 
     /**
      * A virtual clock that has no connection to the actual system time.
-     * Instead the clock maintains an internal counter that's incremented
+     * Instead, the clock maintains an internal counter that's incremented
      * atomically whenever the current time is requested. This guarantees
      * that the reported time signal is always strictly increasing.
      */
