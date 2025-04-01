@@ -18,48 +18,16 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.base.Ticker;
+import org.apache.jackrabbit.oak.stats.NonTickingTestClock;
 import org.junit.Test;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 
 public class FormattingUtilsTest {
 
-    // simple test clock implementation where the time can be set
-    private static class TestClock extends Clock {
-
-        private long time = 0;
-
-        @Override
-        public long millis() {
-            return time;
-        }
-
-        public void set(long millis) {
-            time = millis;
-        }
-
-        @Override
-        public ZoneId getZone() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public java.time.Clock withZone(ZoneId zone) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Instant instant() {
-            return Instant.ofEpochSecond(time);
-        }
-    }
-
-    private final TestClock clock = new TestClock();
+    private final NonTickingTestClock clock = new NonTickingTestClock();
 
     private final Stopwatch sw = Stopwatch.createStarted(new Ticker() {
         @Override
@@ -87,7 +55,7 @@ public class FormattingUtilsTest {
     }
 
     private void testFormatToSeconds(String expected, long millis) {
-        clock.set(millis);
+        clock.setTime(millis);
         assertEquals(expected, FormattingUtils.formatToSeconds(sw));
     }
 
@@ -110,7 +78,7 @@ public class FormattingUtilsTest {
     }
 
     private void testFormatToMillis(String expected, long millis) {
-        clock.set(millis);
+        clock.setTime(millis);
         assertEquals(expected, FormattingUtils.formatToMillis(sw));
     }
 

@@ -156,7 +156,7 @@ public class IndexTrackerTest {
         assertEquals(0, badIdxInfo.getFailedAccessCount());
 
         //5. Move clock forward
-        clock.waitUntil(clock.millis() + tracker.getBadIndexTracker().getRecheckIntervalMillis() + 1);
+        clock.waitFor(tracker.getBadIndexTracker().getRecheckIntervalMillis() + 1);
 
         //Now index access must be attempted again
         indexNode = tracker.acquireIndexNode("/oak:index/foo");

@@ -20,7 +20,6 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.CountRequest;
 import co.elastic.clients.elasticsearch.core.CountResponse;
-import org.apache.jackrabbit.guava.common.base.Ticker;
 import org.apache.jackrabbit.guava.common.cache.LoadingCache;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
@@ -31,7 +30,6 @@ import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.plugins.index.TestUtil.assertEventually;
 import static org.junit.Assert.assertEquals;
@@ -104,7 +102,7 @@ public class ElasticIndexStatisticsTest {
         verifyNoMoreInteractions(elasticClientMock);
 
         // move cache time ahead of 2 minutes, cache reload time expired
-        clock.waitUntil(clock.millis() + Duration.ofMinutes(2).toMillis());
+        clock.waitFor(Duration.ofMinutes(2).toMillis());
         // old value is returned, read fresh data from elastic in background
         assertEquals(100, indexStatistics.numDocs());
 
@@ -123,14 +121,14 @@ public class ElasticIndexStatisticsTest {
         when(countResponse.count()).thenReturn(5000L);
 
         // move cache time ahead of 15 minutes, cache value expired
-        clock.waitUntil(clock.millis() + Duration.ofMinutes(15).toMillis());
+        clock.waitFor(Duration.ofMinutes(15).toMillis());
 
         // cache miss, read data from elastic
         assertEquals(5000, indexStatistics.numDocs());
         verify(elasticClientMock, times(3)).count(any(CountRequest.class));
 
         // move cache time ahead of 30 minutes, cache value expired
-        clock.waitUntil(clock.millis() + Duration.ofMinutes(30).toMillis());
+        clock.waitFor(Duration.ofMinutes(30).toMillis());
 
         // cache miss, read data using an elastic query
         assertEquals(5000, indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf))));
@@ -144,19 +142,4 @@ public class ElasticIndexStatisticsTest {
         assertEquals(5000, indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf.boost(100F)))));
         verify(elasticClientMock, times(5)).count(any(CountRequest.class));
     }
-
-    private static class MutableTicker extends Ticker {
-
-        private long nanoOffset = 0;
-
-        @Override
-        public long read() {
-            return systemTicker().read() + nanoOffset;
-        }
-
-        public void tick(Duration duration) {
-            nanoOffset = duration.toNanos();
-        }
-    }
-
 }
