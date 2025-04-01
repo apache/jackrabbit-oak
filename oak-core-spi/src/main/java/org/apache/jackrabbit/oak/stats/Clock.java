@@ -314,12 +314,8 @@ public abstract class Clock extends java.time.Clock {
         private final ScheduledFuture<?> future;
 
         public Fast(ScheduledExecutorService executor) {
-            future = executor.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    time = ACCURATE.getTime();
-                }
-            }, FAST_CLOCK_INTERVAL, FAST_CLOCK_INTERVAL, TimeUnit.MILLISECONDS);
+            future = executor.scheduleAtFixedRate(() ->
+                    time = ACCURATE.getTime(), FAST_CLOCK_INTERVAL, FAST_CLOCK_INTERVAL, TimeUnit.MILLISECONDS);
         }
 
         @Override
@@ -364,5 +360,5 @@ public abstract class Clock extends java.time.Clock {
         public String toString() {
             return "Clock.Virtual";
         }
-    };
+    }
 }
