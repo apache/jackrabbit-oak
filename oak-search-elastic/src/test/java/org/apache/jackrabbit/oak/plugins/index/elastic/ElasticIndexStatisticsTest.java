@@ -102,7 +102,7 @@ public class ElasticIndexStatisticsTest {
         verifyNoMoreInteractions(elasticClientMock);
 
         // move cache time ahead of 2 minutes, cache reload time expired
-        clock.waitFor(Duration.ofMinutes(2).toMillis());
+        clock.waitFor(Duration.ofMinutes(2));
         // old value is returned, read fresh data from elastic in background
         assertEquals(100, indexStatistics.numDocs());
 
@@ -121,14 +121,14 @@ public class ElasticIndexStatisticsTest {
         when(countResponse.count()).thenReturn(5000L);
 
         // move cache time ahead of 15 minutes, cache value expired
-        clock.waitFor(Duration.ofMinutes(15).toMillis());
+        clock.waitFor(Duration.ofMinutes(15));
 
         // cache miss, read data from elastic
         assertEquals(5000, indexStatistics.numDocs());
         verify(elasticClientMock, times(3)).count(any(CountRequest.class));
 
         // move cache time ahead of 30 minutes, cache value expired
-        clock.waitFor(Duration.ofMinutes(30).toMillis());
+        clock.waitFor(Duration.ofMinutes(30));
 
         // cache miss, read data using an elastic query
         assertEquals(5000, indexStatistics.getDocCountFor(Query.of(qf -> qf.matchAll(mf -> mf))));
