@@ -293,6 +293,19 @@ public class FullGCStatsCollectorImplTest {
         assertTrue(stats.toString().contains("mode=4"));
     }
 
+    @Test
+    public void getFullGcOsgiConfigsDefaults() {
+
+        // update the value
+        assertTrue(stats.toString().contains("maxAge=0"));
+        assertTrue(stats.toString().contains("enabled=false"));
+        assertTrue(stats.toString().contains("embeddedVerificationEnabled=false"));
+        assertTrue(stats.toString().contains("progressSize=0"));
+        assertTrue(stats.toString().contains("batchSize=0"));
+        assertTrue(stats.toString().contains("delayFactor=0.0"));
+        assertTrue(stats.toString().contains("mode=0"));
+    }
+
     // helper methods
 
     private void assertTimer(long expected, String name) {

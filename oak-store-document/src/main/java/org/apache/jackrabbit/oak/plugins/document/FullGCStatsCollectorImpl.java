@@ -248,13 +248,13 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     @Override
     public String toString() {
         return "FullGCStatsCollectorImpl{" +
-                "enabled=" + enabled.getValue() +
-                ", mode=" + mode.getValue() +
-                ", delayFactor=" + delayFactor.getValue() +
-                ", batchSize=" + batchSize.getValue() +
-                ", progressSize=" + progressSize.getValue() +
-                ", embeddedVerificationEnabled=" + embeddedVerificationEnabled.getValue() +
-                ", maxAge=" + maxAge.getValue() +
+                "enabled=" + getValue(enabled, "false") +
+                ", mode=" + getValue(mode, "0") +
+                ", delayFactor=" + getValue(delayFactor, "0.0") +
+                ", batchSize=" + getValue(batchSize, "0") +
+                ", progressSize=" + getValue(progressSize, "0") +
+                ", embeddedVerificationEnabled=" + getValue(embeddedVerificationEnabled, "false") +
+                ", maxAge=" + getValue(maxAge, "0") +
                 ", readDoc=" + readDoc.getCount() +
                 ", candidateRevisions=" + mapToString(candidateRevisions) +
                 ", candidateInternalRevisions=" + mapToString(candidateInternalRevisions) +
@@ -308,4 +308,9 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     private MeterStats getMeter(Map<GCPhase, MeterStats> map, GCPhase phase, String name) {
         return map.computeIfAbsent(phase, p -> meter(provider, name + "." + p.name()));
     }
+
+    private String getValue(final GaugeStats<?> gaugeStats, final String defaultValue) {
+        return gaugeStats != null ? String.valueOf(gaugeStats.getValue()) : defaultValue;
+    }
+
 }
