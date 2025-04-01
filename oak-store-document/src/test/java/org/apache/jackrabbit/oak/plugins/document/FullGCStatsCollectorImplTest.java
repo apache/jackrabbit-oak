@@ -273,6 +273,26 @@ public class FullGCStatsCollectorImplTest {
         assertEquals(86400L, (long)updated.getValue());
     }
 
+    @Test
+    public void getFullGcOsgiConfigs() {
+        stats.maxAge(86400);
+        stats.enabled(true);
+        stats.verificationEnabled(false);
+        stats.progressSize(4000);
+        stats.batchSize(500);
+        stats.delayFactor(5.0);
+        stats.mode(4);
+
+        // update the value
+        assertTrue(stats.toString().contains("maxAge=86400"));
+        assertTrue(stats.toString().contains("enabled=true"));
+        assertTrue(stats.toString().contains("embeddedVerificationEnabled=false"));
+        assertTrue(stats.toString().contains("progressSize=4000"));
+        assertTrue(stats.toString().contains("batchSize=500"));
+        assertTrue(stats.toString().contains("delayFactor=5.0"));
+        assertTrue(stats.toString().contains("mode=4"));
+    }
+
     // helper methods
 
     private void assertTimer(long expected, String name) {
