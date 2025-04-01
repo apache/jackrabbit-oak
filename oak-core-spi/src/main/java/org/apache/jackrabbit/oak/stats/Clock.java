@@ -29,7 +29,12 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Mechanism for keeping track of time at millisecond accuracy.
  * <p>
- * As of Oak 1.20, this extends from {@link java.time.Clock}.
+ * This extends from {@link java.time.Clock}. Consumers of clocks
+ * are advised to use that interface, unless the additional features
+ * of this class are needed.
+ * <p>
+ * Note that implementations of this class in general do not support
+ * the timezone related features of {@linkplain java.time.Clock}.
  */
 public abstract class Clock extends java.time.Clock {
 
