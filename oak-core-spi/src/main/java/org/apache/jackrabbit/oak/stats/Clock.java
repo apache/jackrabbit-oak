@@ -180,6 +180,19 @@ public abstract class Clock extends java.time.Clock {
         }
     }
 
+    /**
+     * Waits for the given delta in ms. The current thread
+     * is suspended until the {@link #getTimeIncreasing()} method returns
+     * a time that's equal or greater than the start time plus the given
+     * delta.
+     *
+     * @param delta time in milliseconds to wait for
+     * @throws InterruptedException if the wait was interrupted
+     */
+    public void waitFor(long delta) throws InterruptedException {
+        waitUntil(getTime() + delta);
+    }
+
     @Override
     public ZoneId getZone() {
         return ZoneId.of("Z");

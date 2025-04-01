@@ -83,24 +83,36 @@ public class ClockTest {
     @Test
     public void testWaitUntilSimple() throws InterruptedException {
         testClockWaitUntil(Clock.SIMPLE);
+        testClockWaitFor(Clock.SIMPLE);
     }
 
     @Test
     public void testWaitUntilAccurate() throws InterruptedException {
         testClockWaitUntil(Clock.ACCURATE);
+        testClockWaitFor(Clock.ACCURATE);
     }
 
     @Test
     public void testWaitUntilVirtual() throws InterruptedException {
         testClockWaitUntil(new Clock.Virtual());
+        testClockWaitFor(new Clock.Virtual());
     }
 
     private void testClockWaitUntil(Clock c) throws InterruptedException {
         long start = c.millis();
-        long until = start + 100;
+        long delta = 100;
+        long until = start + delta;
         c.waitUntil(until);
 
-        assertTrue(c.millis() - start >= 100);
+        assertTrue(c.millis() - start >= delta);
+    }
+
+    private void testClockWaitFor(Clock c) throws InterruptedException {
+        long start = c.millis();
+        long delta = 100;
+        c.waitFor(delta);
+
+        assertTrue(c.millis() - start >= delta);
     }
 
     @Test
