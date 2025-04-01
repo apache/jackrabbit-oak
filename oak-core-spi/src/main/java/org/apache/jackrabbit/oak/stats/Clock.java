@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.stats;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 
 import java.io.Closeable;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Date;
@@ -72,11 +73,14 @@ public abstract class Clock extends java.time.Clock {
 
     /**
      * Returns the current time in milliseconds since the epoch.
+     * <p>
+     * Users of this class should use {@link java.time.Clock#millis()} instead.
+     * <em>This</em> abstract method remains here for cases where this
+     * class is extended.
      *
      * @see System#currentTimeMillis()
      * @see java.time.Clock#millis()
      * @return current time in milliseconds since the epoch
-     * @deprecated use {@linkplain #millis()} instead
      */
     public abstract long getTime();
 
@@ -191,6 +195,19 @@ public abstract class Clock extends java.time.Clock {
      */
     public void waitFor(long delta) throws InterruptedException {
         waitUntil(getTime() + delta);
+    }
+
+    /**
+     * Waits for the given duration. The current thread
+     * is suspended until the {@link #getTimeIncreasing()} method returns
+     * a time that's equal or greater than the start time plus the given
+     * delta.
+     *
+     * @param delta Duration to wait for
+     * @throws InterruptedException if the wait was interrupted
+     */
+    public void waitFor(Duration delta) throws InterruptedException {
+        waitUntil(getTime() + delta.toMillis());
     }
 
     @Override

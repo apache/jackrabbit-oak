@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.stats;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.concurrent.Executors;
@@ -111,6 +112,11 @@ public class ClockTest {
         long start = c.millis();
         long delta = 100;
         c.waitFor(delta);
+
+        assertTrue(c.millis() - start >= delta);
+
+        start = c.millis();
+        c.waitFor(Duration.ofMillis(100));
 
         assertTrue(c.millis() - start >= delta);
     }
