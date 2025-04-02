@@ -141,6 +141,7 @@ public class DocumentNodeStoreService {
     static final boolean DEFAULT_FULL_GC_ENABLED = false;
     static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
     static final int DEFAULT_FULL_GC_MODE = 0;
+    static final int DEFAULT_FULL_GC_GENERATION = 0;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
@@ -530,6 +531,7 @@ public class DocumentNodeStoreService {
                 setFullGCExcludePaths(config.fullGCExcludePaths()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
                 setFullGCMode(config.fullGCMode()).
+                setFullGCGeneration(config.fullGCGeneration()).
                 setFullGcMaxAgeMillis(TimeUnit.SECONDS.toMillis(config.fullGcMaxAgeInSecs())).
                 setFullGCBatchSize(config.fullGCBatchSize()).
                 setFullGCProgressSize(config.fullGCProgressSize()).

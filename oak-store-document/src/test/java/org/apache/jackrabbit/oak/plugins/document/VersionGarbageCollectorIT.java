@@ -1789,7 +1789,7 @@ public class VersionGarbageCollectorIT {
             }
         };
 
-        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE)));
+        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE), 0));
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);

@@ -653,7 +653,8 @@ public final class DocumentNodeStore
         this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport(), isFullGCEnabled(builder), false,
                 isEmbeddedVerificationEnabled(builder), builder.getFullGCMode(), builder.getFullGCDelayFactor(),
-                builder.getFullGCBatchSize(), builder.getFullGCProgressSize(), builder.getFullGcMaxAgeMillis());
+                builder.getFullGCBatchSize(), builder.getFullGCProgressSize(), builder.getFullGcMaxAgeMillis(),
+                builder.getFullGCGeneration());
         this.versionGarbageCollector.setStatisticsProvider(builder.getStatisticsProvider());
         this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
         this.versionGarbageCollector.setFullGCPaths(builder.getFullGCIncludePaths(), builder.getFullGCExcludePaths());
