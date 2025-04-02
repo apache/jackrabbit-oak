@@ -137,7 +137,10 @@ final class AutoMembershipPrincipals {
         }
 
         // to test for inherited membership collect automembership-ids and loop auto-membership groups
-        Set<String> automembershipIds = new HashSet<>(Arrays.asList(autoMembershipMapping.get(idpName)));
+        Set<String> automembershipIds = new HashSet<>();
+        if (autoMembershipMapping.containsKey(idpName)) {
+            automembershipIds.addAll(Arrays.asList(autoMembershipMapping.get(idpName)));
+        }
         AutoMembershipConfig config = autoMembershipConfigMap.get(idpName);
         if (config != null) {
             automembershipIds.addAll(config.getAutoMembership(authorizable));

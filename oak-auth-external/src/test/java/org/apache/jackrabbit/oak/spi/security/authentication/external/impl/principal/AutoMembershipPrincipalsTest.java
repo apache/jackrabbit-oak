@@ -53,6 +53,8 @@ import static org.mockito.Mockito.when;
 
 public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
     
+    private static final String IDP_NOT_MAPPED = "idp4";
+    
     private AutoMembershipPrincipals amp;
     private final Authorizable authorizable = mock(Authorizable.class);
     
@@ -366,6 +368,12 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         Group nested = userManager.createGroup("nestedGroup");
         nested.addMember(testGroup);
         assertFalse(amp.isInheritedMember(IDP_VALID_AM, nested, authorizable));
+    }
+
+    @Test
+    public void testNotMappedIsNotInheritedMember() throws Exception {
+        Group testGroup = getTestGroup();
+        assertFalse(amp.isInheritedMember(IDP_NOT_MAPPED, testGroup, authorizable));
     }
     
     @Test
