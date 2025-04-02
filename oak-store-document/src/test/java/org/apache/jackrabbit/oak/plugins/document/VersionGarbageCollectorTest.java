@@ -43,6 +43,20 @@ public class VersionGarbageCollectorTest {
     }
 
     @Test
+    public void testResetFullGcIfGenChangeWithFullGcDisabled() {
+        // Setup: ensure no settings document exists
+        final Document doc = Mockito.mock(Document.class);
+        Mockito.when(doc.get(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP)).thenReturn(5);
+        Mockito.when(ds.find(SETTINGS, SETTINGS_COLLECTION_ID)).thenReturn(doc);
+
+        // Execute
+        vgc = new VersionGarbageCollector(ns, gcSupport, false, false, true, 3, 0.0, 100, 1000, 86400, 2);
+
+        // no database query if generation is default value.
+        Mockito.verifyNoInteractions(ds);
+    }
+
+    @Test
     public void testResetFullGcIfGenChangeWithDefaultValue() {
         // Setup: ensure no settings document exists
         Mockito.when(ds.find(SETTINGS, SETTINGS_COLLECTION_ID)).thenReturn(null);

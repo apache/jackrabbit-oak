@@ -304,7 +304,7 @@ public class VersionGarbageCollector {
         this.options = new VersionGCOptions();
 
         setFullGcMode(fullGCMode);
-        long fullGcGen = resetFullGcIfGenChange(fullGcGeneration);
+        long fullGcGen = fullGCEnabled ? resetFullGcIfGenChange(fullGcGeneration) : fullGcGeneration;
         AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode: {}, maxFullGcAgeInMillis: {}, batchSize: {}, progressSize: {}, delayFactor: {}, fullGcGeneration: {}",
                 fullGcMode, fullGcMaxAgeInMillis, fullGCBatchSize, fullGCProgressSize, fullGCDelayFactor, fullGcGen);
     }
