@@ -199,7 +199,7 @@ public class VersionGarbageCollector {
 
         if (fullGcGen == DEFAULT_FULL_GC_GENERATION) {
             // generation hasn't been set yet, no need to make any change to make this backward compatible
-            LOG.debug("Full GC generation is set to default value {}. No action needed.", fullGcGen);
+            LOG.info("Full GC generation is set to default value {}. No action needed.", fullGcGen);
             return fullGcGen;
         }
 
@@ -225,7 +225,7 @@ public class VersionGarbageCollector {
         // Compare with the previous generation
         long prevFullGcGen = ((Number) prevFullGcGenObj).longValue();
         if (prevFullGcGen >= fullGcGen) {
-            LOG.debug("Full GC generation {} is less than or equal to the previously saved value {}.", fullGcGen, prevFullGcGen);
+            LOG.info("Full GC generation {} is less than or equal to the previously saved value {}.", fullGcGen, prevFullGcGen);
             return prevFullGcGen;
         } else {
             LOG.info("Found a new generation of FullGC {}, resetting the Old gen {} values.", fullGcGen, prevFullGcGen);
