@@ -40,24 +40,30 @@ public class InferenceConfig {
 
     /**
      * Loads configuration from the given NodeState
+     *
      * @param nodeState NodeState representing :inferenceConfig node
      * @return InferenceConfiguration instance
      */
     public InferenceConfig(NodeState nodeState) {
-        
-        // Read enabled flag
-        PropertyState enabledProp = nodeState.getProperty("enabled");
+
+        // Semantic search enabled or not.
+        PropertyState enabledProp = nodeState.getProperty(InferenceConstants.ENABLED);
         this.enabled = enabledProp != null && enabledProp.getValue(Type.BOOLEAN);
+        this.indexConfigs = new HashMap<>();
 
         // Read index configurations
         for (String indexName : nodeState.getChildNodeNames()) {
-            if (nodeState.getChildNode(indexName).hasProperty("type")
-                    && ("InferenceIndexConfig").equals(nodeState.getChildNode(indexName).getProperty("InferenceIndexConfig").getValue(Type.STRING))) {
-                NodeState indexNode = nodeState.getChildNode(indexName);
+            if (isValidInferenceIndexConfig(nodeState, indexName)) {
                 this.indexConfigs.put(indexName, new InferenceIndexConfig(nodeState.getChildNode(indexName)));
             }
         }
     }
+
+    private static boolean isValidInferenceIndexConfig(NodeState nodeState, String indexName) {
+        return nodeState.getChildNode(indexName).hasProperty("type")
+                && InferenceConstants.INFERENCE_INDEX_CONFIG.equals(nodeState.getChildNode(indexName).getProperty(InferenceConstants.INFERENCE_INDEX_CONFIG).getValue(Type.STRING));
+    }
+
 
     public boolean isEnabled() {
         return enabled;

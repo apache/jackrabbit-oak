@@ -25,6 +25,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Configuration class for Inference Model settings.
  */
 public class InferenceModelConfig {
+    public static final String MODEL = "model";
+    public static final String EMBEDDING_SERVICE_URL = "embeddingServiceUrl";
+    public static final String SIMILARITY_THRESHOLD = "similarityThreshold";
+    public static final String INFERENCE_PAYLOAD = "inferencePayload";
+    public static final String INFERENCE_MODEL_CONFIG = "InferenceModelConfig";
+    public static final String MIN_TERMS = "minTerms";
+    public static final String IS_DEFAULT = "isDefault";
+    public static final String ENABLED = "enabled";
+    public static final String HEADER = "header";
+
     private final String model;
     private final String embeddingServiceUrl;
     private final double similarityThreshold;
@@ -36,15 +46,15 @@ public class InferenceModelConfig {
     private final InferencePayload payload;
 
     public InferenceModelConfig(NodeState nodeState) {
-        this.model = nodeState.getProperty("model").getValue(Type.STRING);
-        this.embeddingServiceUrl = nodeState.getProperty("embeddingServiceUrl").getValue(Type.STRING);
-        this.similarityThreshold = nodeState.getProperty("similarityThreshold").getValue(Type.DOUBLE);
-        this.minTerms = nodeState.getProperty("minTerms").getValue(Type.LONG);
-        this.isDefault = nodeState.getProperty("isDefault").getValue(Type.BOOLEAN);
-        this.enabled = nodeState.getProperty("enabled").getValue(Type.BOOLEAN);
-        this.header = new InferenceHeaderPayload(nodeState.getChildNode("header"));
-        this.payload = new InferencePayload(nodeState.getChildNode("inferencepayload"));
-        this.type = "InferenceModelConfig";
+        this.model = nodeState.getProperty(MODEL).getValue(Type.STRING);
+        this.embeddingServiceUrl = nodeState.getProperty(EMBEDDING_SERVICE_URL).getValue(Type.STRING);
+        this.similarityThreshold = nodeState.getProperty(SIMILARITY_THRESHOLD).getValue(Type.DOUBLE);
+        this.minTerms = nodeState.getProperty(MIN_TERMS).getValue(Type.LONG);
+        this.isDefault = nodeState.getProperty(IS_DEFAULT).getValue(Type.BOOLEAN);
+        this.enabled = nodeState.getProperty(ENABLED).getValue(Type.BOOLEAN);
+        this.header = new InferenceHeaderPayload(nodeState.getChildNode(HEADER));
+        this.payload = new InferencePayload(nodeState.getChildNode(INFERENCE_PAYLOAD));
+        this.type = INFERENCE_MODEL_CONFIG;
     }
 
     // Getters
@@ -78,15 +88,15 @@ public class InferenceModelConfig {
 
     @Override
     public String toString() {
-        return "InferenceModelConfig{" +
-                "model='" + model + '\'' +
-                ", embeddingServiceUrl='" + embeddingServiceUrl + '\'' +
-                ", similarityThreshold=" + similarityThreshold +
-                ", minTerms=" + minTerms +
-                ", isDefault=" + isDefault +
-                ", enabled=" + enabled +
-                ", header=" + header +
-                ", payload=" + payload +
+        return INFERENCE_MODEL_CONFIG +"{" +
+                MODEL +"='" + model + '\'' +
+                ", "+ EMBEDDING_SERVICE_URL +"='" + embeddingServiceUrl + '\'' +
+                ", "+ SIMILARITY_THRESHOLD + similarityThreshold +
+                ", "+ MIN_TERMS +"=" + minTerms +
+                ", "+ IS_DEFAULT +"=" + isDefault +
+                ", "+ ENABLED +"=" + enabled +
+                ", "+ HEADER +"=" + header +
+                ", "+ INFERENCE_PAYLOAD +"=" + payload +
                 '}';
     }
 }

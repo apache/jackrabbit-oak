@@ -30,6 +30,9 @@ import java.util.Objects;
  * Represents the configuration structure for inference-enabled indexes.
  */
 public class InferenceIndexConfig {
+    public static final String INFERENCE_INDEX_CONFIG = "InferenceIndexConfig";
+    public static final String ENRICHER_CONFIG = "enricherConfig";
+    public static final String INFERENCE_MODEL_CONFIG = "inferenceModelConfig";
     /**
      * The enricher configuration as JSON string.
      */
@@ -40,8 +43,8 @@ public class InferenceIndexConfig {
     private final Map<String, InferenceModelConfig> inferenceModels;
 
     public InferenceIndexConfig(NodeState nodeState) {
-        this.enricherConfig = nodeState.hasProperty("enricherConfig") ? 
-            nodeState.getProperty("enricherConfig").getValue(Type.STRING) : null;
+        this.enricherConfig = nodeState.hasProperty(InferenceConstants.ENRICHER_CONFIG) ?
+            nodeState.getProperty(InferenceConstants.ENRICHER_CONFIG).getValue(Type.STRING) : null;
         this.inferenceModels = new HashMap<>();
         
         // Iterate through child nodes to find inference model configs
@@ -54,8 +57,8 @@ public class InferenceIndexConfig {
     }
 
     private boolean isInferenceModelConfig(NodeState nodeState) {
-        return nodeState.hasChildNode("type") &&
-               nodeState.getChildNode("type").getProperty("type").getValue(Type.STRING).equals("InferenceModelConfig");
+        return nodeState.hasProperty(InferenceConstants.INFERENCE_CONFIG_TYPE) &&
+               nodeState.getProperty(InferenceConstants.INFERENCE_CONFIG_TYPE).getValue(Type.STRING).equals(InferenceConstants.INFERENCE_MODEL_CONFIG);
     }
 
     /**
@@ -84,9 +87,9 @@ public class InferenceIndexConfig {
     }
     @Override
     public String toString() {
-        return "InferenceIndexConfig{" +
-                "enricherConfig='" + enricherConfig + '\'' +
-                ", inferenceModels=" + inferenceModels +
+        return INFERENCE_INDEX_CONFIG +"{" +
+                ENRICHER_CONFIG +"='" + enricherConfig + '\'' +
+                ", "+ INFERENCE_MODEL_CONFIG +"=" + inferenceModels +
                 '}';
     }
 } 
