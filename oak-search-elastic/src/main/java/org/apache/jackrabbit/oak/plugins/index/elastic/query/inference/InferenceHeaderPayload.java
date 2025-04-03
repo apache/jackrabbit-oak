@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -27,14 +26,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * Configuration for inference payload
  */
-public class InferencePayload {
-    NodeBuilder inferencePayloadBuilder;
-    String textKey;
-    public InferencePayload(NodeState nodeState) {
-        inferencePayloadBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
-        copyFirstLevelNodeState(nodeState, inferencePayloadBuilder);
-        textKey = inferencePayloadBuilder.getProperty("textKey").getValue(Type.STRING);
-        inferencePayloadBuilder.setProperty(textKey, "");
+public class InferenceHeaderPayload {
+    NodeBuilder inferenceHeaderPayloadBuilder;
+
+    public InferenceHeaderPayload(NodeState nodeState) {
+        inferenceHeaderPayloadBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+        copyFirstLevelNodeState(nodeState, inferenceHeaderPayloadBuilder);
     }
 
     private static void copyFirstLevelNodeState(NodeState source, NodeBuilder target) {
@@ -50,9 +47,10 @@ public class InferencePayload {
      * @param text
      * @return
      */
-    public String getInferencePayload(String text) {
-        inferencePayloadBuilder.setProperty(textKey, text);
-        return inferencePayloadBuilder.getNodeState().toString();
+    public String getInferenceHeaderPayload(String text) {
+        // inferencePayloadBuilder.setProperty(textKey, text);
+        // return inferencePayloadBuilder.getNodeState().toString();
+        return null;
     }
 
 } 
