@@ -939,8 +939,11 @@ public class RepositoryUpgrade {
     private String copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot, String workspaceName)
             throws RepositoryException {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        final Set<String> excludes = SetUtils.union(Collections.unmodifiableSet(SetUtils.toLinkedSet(this.excludePaths)), Set.of("/jcr:system/jcr:versionStorage"));
-        final Set<String> merges = SetUtils.union(Collections.unmodifiableSet(SetUtils.toLinkedSet(this.mergePaths)), Set.of("/jcr:system"));
+        final Set<String> excludes = SetUtils.toLinkedSet(this.excludePaths);
+        excludes.add("/jcr:system/jcr:versionStorage");
+
+        final Set<String> merges = SetUtils.toLinkedSet(this.mergePaths);
+        merges.add("/jcr:system");
 
         logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes, merges);
 

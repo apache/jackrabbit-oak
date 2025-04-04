@@ -472,7 +472,9 @@ public class RepositorySidegrade {
         }
         excludes.add("/:async");
 
-        final Set<String> merges = SetUtils.union(Collections.unmodifiableSet(SetUtils.toLinkedSet(this.mergePaths)), Set.of("/jcr:system"));
+        final Set<String> merges = SetUtils.toLinkedSet(this.mergePaths);
+        merges.add("/jcr:system");
+
         NodeStateCopier.builder()
             .include(includes)
             .exclude(excludes.build())
