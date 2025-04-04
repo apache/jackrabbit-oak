@@ -82,8 +82,16 @@ public class InferenceModelConfig {
         return enabled;
     }
 
+    public String getType() {
+        return type;
+    }
+
     public InferenceHeaderPayload getHeader() {
         return header;
+    }
+
+    public InferencePayload getPayload() {
+        return this.payload;
     }
 
     @Override

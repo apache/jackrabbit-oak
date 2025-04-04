@@ -61,7 +61,7 @@ public class InferenceConfig {
 
     private static boolean isValidInferenceIndexConfig(NodeState nodeState, String indexName) {
         return nodeState.getChildNode(indexName).hasProperty("type")
-                && InferenceConstants.INFERENCE_INDEX_CONFIG.equals(nodeState.getChildNode(indexName).getProperty(InferenceConstants.INFERENCE_INDEX_CONFIG).getValue(Type.STRING));
+                && InferenceConstants.INFERENCE_INDEX_CONFIG.equals(nodeState.getChildNode(indexName).getProperty(InferenceConstants.INFERENCE_CONFIG_TYPE).getValue(Type.STRING));
     }
 
 

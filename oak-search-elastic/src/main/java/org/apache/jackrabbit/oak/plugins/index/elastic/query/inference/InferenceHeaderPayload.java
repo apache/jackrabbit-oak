@@ -27,11 +27,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Configuration for inference payload
  */
 public class InferenceHeaderPayload {
-    NodeBuilder inferenceHeaderPayloadBuilder;
+    NodeState inferenceHeaderPayload;
 
     public InferenceHeaderPayload(NodeState nodeState) {
+        NodeBuilder inferenceHeaderPayloadBuilder;
         inferenceHeaderPayloadBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         copyFirstLevelNodeState(nodeState, inferenceHeaderPayloadBuilder);
+        inferenceHeaderPayload = inferenceHeaderPayloadBuilder.getNodeState();
     }
 
     private static void copyFirstLevelNodeState(NodeState source, NodeBuilder target) {
@@ -47,10 +49,15 @@ public class InferenceHeaderPayload {
      * @param text
      * @return
      */
-    public String getInferenceHeaderPayload(String text) {
+    public NodeState getInferenceHeaderPayload() {
         // inferencePayloadBuilder.setProperty(textKey, text);
         // return inferencePayloadBuilder.getNodeState().toString();
-        return null;
+        return inferenceHeaderPayload;
+    }
+
+    @Override
+    public String toString(){
+        return inferenceHeaderPayload.toString();
     }
 
 } 
