@@ -259,6 +259,9 @@ public class ElasticCustomAnalyzer {
 
             if (name.equals("standard")) {
                 // OAK-11638 ignore standard token filter
+                // https://www.elastic.co/guide/en/elasticsearch/reference/7.17/breaking-changes-7.0.html#standard-filter-removed
+                // "standard filter has been removed
+                // The standard token filter has been removed because it doesn’t change anything in the stream."
                 LOG.info("Ignore standard token filter");
                 skipEntry = true;
             } else if (name.equals("word_delimiter")) {
