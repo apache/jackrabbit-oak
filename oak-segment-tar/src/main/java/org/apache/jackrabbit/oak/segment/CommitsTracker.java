@@ -19,8 +19,10 @@
 package org.apache.jackrabbit.oak.segment;
 
 import java.lang.ref.WeakReference;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,7 +30,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -199,8 +200,7 @@ class CommitsTracker {
     }
 
     public Map<String, Long> getCommitsCountOthers() {
-        Map<String, Long> commitsOther = new ConcurrentLinkedHashMap.Builder<String, Long>()
-                .maximumWeightedCapacity(otherWritersLimit).build();
+        Map<String, Long> commitsOther = new LinkedHashMap(otherWritersLimit);
         long t = System.currentTimeMillis() - 60000;
         for (Commit commit : commits) {
             if (commit.getQueued() > t) {

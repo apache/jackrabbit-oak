@@ -32,10 +32,6 @@
 
     <name>Oak Segment Tar</name>
 
-    <properties>
-        <concurrentlinkedhashmap.version>1.4.2</concurrentlinkedhashmap.version>
-    </properties>
-
     <build>
         <plugins>
             <plugin>
@@ -331,15 +327,6 @@
             <version>${netty.version}</version>
             <scope>provided</scope>
         </dependency>
-
-		<!-- ConcurrentLinkedHashMap -->
-
-        <dependency>
-            <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
-            <artifactId>concurrentlinkedhashmap-lru</artifactId>
-            <version>${concurrentlinkedhashmap.version}</version>
-            <scope>provided</scope>
-	    </dependency>
 
         <!-- Dependencies on Oak testing modules -->
 
