@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -200,7 +201,7 @@ class CommitsTracker {
     }
 
     public Map<String, Long> getCommitsCountOthers() {
-        Map<String, Long> commitsOther = new LinkedHashMap(otherWritersLimit);
+        Map<String, Long> commitsOther = new LRUMap<>(otherWritersLimit);
         long t = System.currentTimeMillis() - 60000;
         for (Commit commit : commits) {
             if (commit.getQueued() > t) {
@@ -210,6 +211,6 @@ class CommitsTracker {
                 }
             }
         }
-        return commitsOther;
+        return Collections.unmodifiableMap(commitsOther);
     }
 }
