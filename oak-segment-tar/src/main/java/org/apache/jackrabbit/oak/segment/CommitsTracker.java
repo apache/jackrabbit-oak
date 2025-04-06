@@ -22,7 +22,6 @@ import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -197,10 +196,10 @@ class CommitsTracker {
                 }
             }
         }
-        return commitsPerGroup;
+        return Collections.unmodifiableMap(commitsPerGroup);
     }
 
-    public Map<String, Long> getCommitsCountOthers() {
+    public Map<String, Long> getCommitsCountOthersLastMinute() {
         Map<String, Long> commitsOther = new LRUMap<>(otherWritersLimit);
         long t = System.currentTimeMillis() - 60000;
         for (Commit commit : commits) {

@@ -132,7 +132,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
 
     @Override
     public TabularData getCommitsCountForOtherWriters() throws OpenDataException {
-        return createTabularDataFromCountMap(commitsTracker.getCommitsCountOthers(), "commitsPerWriter",
+        return createTabularDataFromCountMap(commitsTracker.getCommitsCountOthersLastMinute(), "commitsPerWriter",
                 "writerName");
     }
 
