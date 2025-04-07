@@ -1189,6 +1189,36 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         });
     }
 
+    // OAK-11638
+    @Test
+    public void analyzerWithStandardTokenFilter() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree analyzers = idx.addChild(FulltextIndexConstants.ANALYZERS);
+            Tree defaultAnalyzers = analyzers.addChild(FulltextIndexConstants.ANL_DEFAULT);
+            Tree tokenizer = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_TOKENIZER);
+            tokenizer.setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+            Tree filters = defaultAnalyzers.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.setOrderableChildren(true);
+            filters.addChild("Standard");
+            filters.addChild("LowerCase");
+            Tree synFilter = addFilter(filters, "Synonym");
+            synFilter.setProperty("synonyms", "syn.txt");
+            synFilter.addChild("syn.txt").addChild(JCR_CONTENT)
+                    .setProperty(JCR_DATA, "plane, airplane, aircraft\n" +
+                            "find=>replace");
+            filters.addChild("GermanLightStem");
+            filters.addChild("FrenchLightStem");
+            filters.addChild("ItalianLightStem");
+            filters.addChild("PorterStem");
+        });
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "replace");
+        root.commit();
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where contains(*, 'find')", List.of("/content/bar"));
+        });
+    }
+
     // OAK-11568
     @Test
     @Ignore
