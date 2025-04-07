@@ -25,8 +25,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.DestroyFailedException;
@@ -215,8 +213,10 @@ public abstract class AbstractLoginModule implements LoginModule {
     @Override
     public boolean logout() throws LoginException {
         boolean success = false;
-        Set<Object> creds = Stream.concat(subject.getPublicCredentials(Credentials.class).stream(), subject.getPublicCredentials(AuthInfo.class).stream())
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<Object> builder = new LinkedHashSet<>(subject.getPublicCredentials(Credentials.class));
+        builder.addAll(subject.getPublicCredentials(AuthInfo.class));
+        Set<Object> creds = Collections.unmodifiableSet(builder);
+
         if (!subject.getPrincipals().isEmpty() && !creds.isEmpty()) {
             // clear subject if not readonly
             if (!subject.isReadOnly()) {
