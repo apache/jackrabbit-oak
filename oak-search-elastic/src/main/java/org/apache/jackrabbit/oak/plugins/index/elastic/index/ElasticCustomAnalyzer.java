@@ -257,14 +257,20 @@ public class ElasticCustomAnalyzer {
 
             Map<String, Object> args = convertNodeState(child, transformers, content);
 
-            if (name.equals("word_delimiter")) {
+            if (name.equals("standard")) {
+                // OAK-11638 ignore standard token filter
+                // https://www.elastic.co/guide/en/elasticsearch/reference/7.17/breaking-changes-7.0.html#standard-filter-removed
+                // "standard filter has been removed
+                // The standard token filter has been removed because it doesn’t change anything in the stream."
+                LOG.info("Ignore standard token filter");
+                skipEntry = true;
+            } else if (name.equals("word_delimiter")) {
                 // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-word-delimiter-tokenfilter.html
                 // We recommend using the word_delimiter_graph instead of the word_delimiter filter.
                 // The word_delimiter filter can produce invalid token graphs.
                 LOG.info("Replacing the word delimiter filter with the word delimiter graph");
                 name = "word_delimiter_graph";
-            }
-            if (name.equals("hyphenation_compound_word")) {
+            } else if (name.equals("hyphenation_compound_word")) {
                 name = "hyphenation_decompounder";
                 String hypenator = args.getOrDefault("hyphenator", "").toString();
                 LOG.info("Using the hyphenation_decompounder: " + hypenator);
