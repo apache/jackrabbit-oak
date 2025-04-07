@@ -72,7 +72,7 @@ public class AzureSegmentStoreV8Test {
 
     private static final EnumSet<SharedAccessBlobPermissions> READ_ONLY = EnumSet.of(READ, LIST);
     private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
-    private static final Set<String> BLOBS = ImmutableSet.of("blob1", "blob2");
+    private static final ImmutableSet<String> BLOBS = ImmutableSet.of("blob1", "blob2");
 
     private CloudBlobContainer container;
     
