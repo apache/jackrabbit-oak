@@ -16,8 +16,13 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -44,7 +49,9 @@ final class Role {
 
     private Role(@NotNull Role base, long permissions, String... privilegeNames) {
         this.permissions = base.permissions|permissions;
-        this.privilegeNames = ImmutableSet.<String>builder().addAll(base.privilegeNames).add(privilegeNames).build();
+        this.privilegeNames = Collections.unmodifiableSet(
+                (Set<String>) Stream.concat(base.privilegeNames.stream(), Arrays.stream(privilegeNames))
+                        .collect(Collectors.toCollection(LinkedHashSet::new)));
     }
 
     boolean grants(long permissions) {

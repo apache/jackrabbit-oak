@@ -18,7 +18,10 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.AccessDeniedException;
@@ -71,12 +74,11 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     @NotNull
     @Override
     public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
-        ImmutableSet.Builder<Privilege> privs = ImmutableSet.builder();
+        Set<Privilege> privs = new LinkedHashSet<>();
         for (AccessControlManager acMgr : acMgrs) {
-            privs.add(acMgr.getSupportedPrivileges(absPath));
+            privs.addAll(Arrays.asList(acMgr.getSupportedPrivileges(absPath)));
         }
-        Set<Privilege> s = privs.build();
-        return s.toArray(new Privilege[0]);
+        return privs.toArray(new Privilege[0]);
     }
 
     @Override

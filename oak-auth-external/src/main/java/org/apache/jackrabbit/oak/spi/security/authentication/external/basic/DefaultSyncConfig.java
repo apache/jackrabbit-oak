@@ -18,10 +18,14 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -203,9 +207,9 @@ public class DefaultSyncConfig {
          */
         @NotNull
         public Set<String> getAutoMembership(@NotNull org.apache.jackrabbit.api.security.user.Authorizable authorizable) {
-            return ImmutableSet.<String>builder().
-                    addAll(autoMembershipConfig.getAutoMembership(authorizable)).
-                    addAll(getAutoMembership()).build();
+            return Collections.unmodifiableSet((Set<String>)
+                    Stream.concat(autoMembershipConfig.getAutoMembership(authorizable).stream(), getAutoMembership().stream())
+                            .collect(Collectors.toCollection(LinkedHashSet::new)));
         }
 
         /**

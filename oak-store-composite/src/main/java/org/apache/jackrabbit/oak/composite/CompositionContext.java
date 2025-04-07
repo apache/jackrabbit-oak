@@ -30,7 +30,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,10 +69,10 @@ class CompositionContext {
         this.prefetchNodeStore = globalStore instanceof PrefetchNodeStore ? (PrefetchNodeStore) globalStore : PrefetchNodeStore.NOOP;
         this.nonDefaultStores = nonDefaultStores;
 
-        ImmutableSet.Builder<MountedNodeStore> b = ImmutableSet.builder();
+        Set<MountedNodeStore> b = new LinkedHashSet<>();
         b.add(this.globalStore);
         b.addAll(this.nonDefaultStores);
-        allStores = b.build();
+        allStores = Collections.unmodifiableSet(b);
 
         this.nodeStoresByMount = allStores.stream().collect(Collectors.toMap(MountedNodeStore::getMount, Function.identity()));
         this.nodeStateMonitor = nodeStateMonitor;

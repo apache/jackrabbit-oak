@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -465,8 +466,7 @@ public class RepositorySidegrade {
 
     private void copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot) {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        ImmutableSet.Builder<String> excludes = new ImmutableSet.Builder<>();
-        excludes.addAll(excludePaths);
+        Set<String> excludes = new LinkedHashSet<>(excludePaths);
         if (!versionCopyConfiguration.isCopyAll()) {
             excludes.add("/jcr:system/jcr:versionStorage");
         }
@@ -477,7 +477,7 @@ public class RepositorySidegrade {
 
         NodeStateCopier.builder()
             .include(includes)
-            .exclude(excludes.build())
+            .exclude(Collections.unmodifiableSet(excludes))
             .merge(merges)
             .copy(sourceRoot, targetRoot);
 
