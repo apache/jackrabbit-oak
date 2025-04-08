@@ -374,7 +374,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 Tree cug = CugUtil.getCug(t);
                 PropertyState pNames = (cug == null) ? null : cug.getProperty(REP_PRINCIPAL_NAMES);
                 if (pNames != null) {
-                    if (!Collections.disjoint(ImmutableSet.copyOf(principalNames), ImmutableSet.copyOf(pNames.getValue(Type.STRINGS)))) {
+                    if (!Collections.disjoint(Collections.unmodifiableSet(SetUtils.toLinkedSet(principalNames)), Collections.unmodifiableSet(SetUtils.toLinkedSet(pNames.getValue(Type.STRINGS))))) {
                         candidates.add(path);
                     }
                     nestedCugPaths(cug).forEach(eval::add);

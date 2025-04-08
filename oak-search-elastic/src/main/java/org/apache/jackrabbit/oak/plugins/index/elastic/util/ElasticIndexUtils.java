@@ -107,7 +107,8 @@ public class ElasticIndexUtils {
         byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
         if (pathBytes.length > 512) {
             try {
-                return new String(MessageDigest.getInstance("SHA-256").digest(pathBytes));
+                return new String(MessageDigest.getInstance("SHA-256").digest(pathBytes),
+                        StandardCharsets.UTF_8);
             } catch (NoSuchAlgorithmException e) {
                 throw new IllegalStateException(e);
             }

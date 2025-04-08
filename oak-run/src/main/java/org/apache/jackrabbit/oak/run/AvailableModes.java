@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.exporter.NodeStateExportCommand;
 import org.apache.jackrabbit.oak.index.IndexCommand;
 import org.apache.jackrabbit.oak.index.merge.IndexDiffCommand;
 import org.apache.jackrabbit.oak.index.merge.IndexStoreCommand;
+import org.apache.jackrabbit.oak.index.merge.IndexStoreStatsCommand;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
 
@@ -58,7 +59,8 @@ public final class AvailableModes {
         builder.put("history", new HistoryCommand());
         builder.put("index-diff", new IndexDiffCommand());
         builder.put("index-merge", new IndexMergeCommand());
-        builder.put(IndexStoreCommand.INDEX_STORE, new IndexStoreCommand());
+        builder.put(IndexStoreCommand.NAME, new IndexStoreCommand());
+        builder.put(IndexStoreStatsCommand.NAME, new IndexStoreStatsCommand());
         builder.put(IndexCommand.NAME, new IndexCommand());
         builder.put(IOTraceCommand.NAME, new IOTraceCommand());
         builder.put(JsonIndexCommand.INDEX, new JsonIndexCommand());

@@ -400,4 +400,9 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             name = "Invisible for discovery",
             description = "Boolean value indicating whether the instance should be discoverable by the cluster. The default value is " + DocumentNodeStoreService.DEFAULT_INVISIBLE_FOR_DISCOVERY)
     boolean invisibleForDiscovery() default DocumentNodeStoreService.DEFAULT_INVISIBLE_FOR_DISCOVERY;
+
+    @AttributeDefinition(
+        name = "Enable Full GC Persistent Audit Logging",
+        description = "This parameter will enable/disable the saving of deleted document IDs and properties during FullGC into a persistent storage, e.g Mongo collection")
+    boolean fullGCAuditLoggingEnabled() default false;
 }
