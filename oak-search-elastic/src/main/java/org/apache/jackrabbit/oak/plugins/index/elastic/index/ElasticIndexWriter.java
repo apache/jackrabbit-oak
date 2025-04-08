@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
@@ -60,22 +61,34 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
     private final boolean reindex;
     private final String indexName;
+    private final InferenceConfig inferenceConfig;
 
     ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
                        @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull NodeBuilder definitionBuilder,
                        boolean reindex, CommitInfo commitInfo) {
+        this(indexTracker, elasticConnection, indexDefinition, definitionBuilder, reindex, commitInfo, null);
+    }
+
+    ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
+                       @NotNull ElasticConnection elasticConnection,
+                       @NotNull ElasticIndexDefinition indexDefinition,
+                       @NotNull NodeBuilder definitionBuilder,
+                       boolean reindex, CommitInfo commitInfo, InferenceConfig inferenceConfig) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
         this.reindex = reindex;
+        this.inferenceConfig = inferenceConfig;
 
         // We don't use stored index definitions with elastic. Every time a new writer gets created we
         // use the actual index name (based on the current seed) while reindexing, or the alias (pointing to the
         // old index until the new one gets enabled) during incremental reindexing
         if (this.reindex) {
             try {
+                // refresh inference config on any index reindex
+                inferenceConfig.refreshConfig();
                 long seed = indexDefinition.indexNameSeed == 0L ? UUID.randomUUID().getMostSignificantBits() : indexDefinition.indexNameSeed;
                 // merge gets called on node store later in the indexing flow
                 definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
@@ -113,7 +126,22 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                        @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull ElasticBulkProcessorHandler bulkProcessorHandler) {
-        this(indexTracker, elasticConnection, indexDefinition, bulkProcessorHandler, false);
+        this(indexTracker, elasticConnection, indexDefinition, bulkProcessorHandler, false, null);
+    }
+
+    @TestOnly
+    ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
+                       @NotNull ElasticConnection elasticConnection,
+                       @NotNull ElasticIndexDefinition indexDefinition,
+                       @NotNull ElasticBulkProcessorHandler bulkProcessorHandler,
+                       boolean reindex, InferenceConfig inferenceConfig) {
+        this.indexTracker = indexTracker;
+        this.elasticConnection = elasticConnection;
+        this.indexDefinition = indexDefinition;
+        this.bulkProcessorHandler = bulkProcessorHandler;
+        this.indexName = indexDefinition.getIndexAlias();
+        this.reindex = reindex;
+        this.inferenceConfig = inferenceConfig;
     }
 
     @TestOnly
@@ -122,12 +150,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull ElasticBulkProcessorHandler bulkProcessorHandler,
                        boolean reindex) {
-        this.indexTracker = indexTracker;
-        this.elasticConnection = elasticConnection;
-        this.indexDefinition = indexDefinition;
-        this.bulkProcessorHandler = bulkProcessorHandler;
-        this.indexName = indexDefinition.getIndexAlias();
-        this.reindex = reindex;
+        this(indexTracker, elasticConnection, indexDefinition, bulkProcessorHandler, false, null);
     }
 
     @Override
@@ -187,7 +210,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
         CreateIndexRequest request;
         try {
-            request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
+            request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition, inferenceConfig);
         } catch (Exception e) {
             LOG.error("Failed to create index {}: {}", indexName, e.toString());
             throw e;

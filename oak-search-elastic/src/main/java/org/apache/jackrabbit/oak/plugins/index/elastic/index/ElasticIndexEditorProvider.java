@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext;
@@ -42,6 +43,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     private final ElasticIndexTracker indexTracker;
     private final ElasticConnection elasticConnection;
     private final ExtractedTextCache extractedTextCache;
+    private final InferenceConfig inferenceConfig;
 
     public final static String OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY = "oak.index.elastic.writer.disable";
 
@@ -49,10 +51,17 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
 
     public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
                                       @NotNull ElasticConnection elasticConnection,
-                                      ExtractedTextCache extractedTextCache) {
+                                      ExtractedTextCache extractedTextCache, InferenceConfig inferenceConfig) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
+        this.inferenceConfig = inferenceConfig;
+    }
+
+    public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
+                                      @NotNull ElasticConnection elasticConnection,
+                                      ExtractedTextCache extractedTextCache) {
+        this(indexTracker, elasticConnection, extractedTextCache, null);
     }
 
     @Override
@@ -69,7 +78,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
             ElasticIndexDefinition indexDefinition =
                     new ElasticIndexDefinition(root, definition.getNodeState(), indexPath, elasticConnection.getIndexPrefix());
 
-            ElasticIndexWriterFactory writerFactory = new ElasticIndexWriterFactory(elasticConnection, indexTracker);
+            ElasticIndexWriterFactory writerFactory = new ElasticIndexWriterFactory(elasticConnection, indexTracker, inferenceConfig);
 
             ElasticIndexEditorContext context = new ElasticIndexEditorContext(root,
                     definition, indexDefinition,
@@ -149,4 +158,5 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
         public void markDirty() {
         }
     }
+
 }

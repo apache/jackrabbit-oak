@@ -89,7 +89,7 @@ public class InferenceIndexConfig {
     public String toString() {
         return INFERENCE_INDEX_CONFIG +"{" +
                 ENRICHER_CONFIG +"='" + enricherConfig + '\'' +
-                ", "+ INFERENCE_MODEL_CONFIG +"=" + inferenceModels +
+                ", "+ INFERENCE_MODEL_CONFIG  +"=" + inferenceModels +
                 '}';
     }
 } 

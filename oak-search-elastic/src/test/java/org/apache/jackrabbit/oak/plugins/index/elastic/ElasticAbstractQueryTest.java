@@ -32,15 +32,18 @@ import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -78,6 +81,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     protected long INDEX_CORRUPT_INTERVAL_IN_MILLIS = 100;
     protected NodeStore nodeStore;
     protected int DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS = 5;
+    private static final String inferenceConfigPath = "oak:index/inferenceConfig";
 
     @ClassRule
     public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);

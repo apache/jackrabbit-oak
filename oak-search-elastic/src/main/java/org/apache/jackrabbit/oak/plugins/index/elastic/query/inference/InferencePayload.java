@@ -28,13 +28,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Configuration for inference payload
  */
 public class InferencePayload {
+    public static final String TEXT_KEY = "textKey";
     NodeBuilder inferencePayloadBuilder;
-    String textKey;
+    String textKeyValue;
     public InferencePayload(NodeState nodeState) {
         inferencePayloadBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         copyFirstLevelNodeState(nodeState, inferencePayloadBuilder);
-        textKey = inferencePayloadBuilder.getProperty("textKey").getValue(Type.STRING);
-        inferencePayloadBuilder.setProperty(textKey, "");
+        textKeyValue = inferencePayloadBuilder.getProperty(TEXT_KEY).getValue(Type.STRING);
+        inferencePayloadBuilder.setProperty(textKeyValue, "");
+        inferencePayloadBuilder.removeProperty(TEXT_KEY);
     }
 
     private static void copyFirstLevelNodeState(NodeState source, NodeBuilder target) {
@@ -51,7 +53,7 @@ public class InferencePayload {
      * @return
      */
     public String getInferencePayload(String text) {
-        inferencePayloadBuilder.setProperty(textKey, text);
+        inferencePayloadBuilder.setProperty(textKeyValue, text);
         return inferencePayloadBuilder.getNodeState().toString();
     }
 

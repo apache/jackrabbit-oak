@@ -148,7 +148,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private static final String SIMILARITY_TAGS_BOOST = "similarityTagsBoost";
     private static final float SIMILARITY_TAGS_BOOST_DEFAULT = 0.5f;
 
-    protected static final String INFERENCE_CONFIG = "inference";
+    public static final String INFERENCE_CONFIG = "inference";
 
     private static final Function<Integer, Boolean> isAnalyzable;
 
@@ -264,6 +264,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         } else {
             this.inferenceDefinition = null;
         }
+
     }
 
     @Nullable
