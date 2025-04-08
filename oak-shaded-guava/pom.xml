@@ -106,7 +106,6 @@
               ${pref}.common.util.concurrent;version="50.0.0";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent.internal",
             </Export-Package>
             <Import-Package>
-              javax.annotation;resolution:=optional;version="[3.0,4)",
               javax.crypto;resolution:=optional,
               javax.crypto.spec;resolution:=optional,
               sun.misc;resolution:=optional
@@ -122,10 +121,6 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>${shaded.guava.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jetbrains</groupId>
-      <artifactId>annotations</artifactId>
     </dependency>
   </dependencies>
 </project>
