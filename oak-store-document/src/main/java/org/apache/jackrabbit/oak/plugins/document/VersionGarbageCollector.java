@@ -307,7 +307,9 @@ public class VersionGarbageCollector {
                 gcStats.finished(overall);
                 if (fullGCEnabled) {
                     fullGCStats.finished(overall);
-                    fullGCMetricsExporter.onIterationComplete();
+                    if (fullGCMetricsExporter != null) {
+                        fullGCMetricsExporter.onIterationComplete();
+                    }
                 }
                 if (overall.iterationCount > 1) {
                     gcMonitor.info("Revision garbage collection finished after {} iterations - aggregate statistics: {}",
