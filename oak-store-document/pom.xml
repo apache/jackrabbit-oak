@@ -49,7 +49,8 @@
             </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak.plugins.document.spi,
-              org.apache.jackrabbit.oak.plugins.document.spi.lease
+              org.apache.jackrabbit.oak.plugins.document.spi.lease,
+              org.apache.jackrabbit.oak.plugins.document.init
             </Export-Package>
             <Embed-Dependency>quartz;inline=org/quartz/CronExpression*|org/quartz/ValueSet*</Embed-Dependency>
           </instructions>
