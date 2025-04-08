@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -28,7 +29,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -98,7 +98,11 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
         assertFalse(aTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE));
 
         List<String> expected = List.of("/a/bb", "/a/b");
-        Iterable<String> childPaths = IterableUtils.transform(aTree.getChildren(), input -> input.getPath());
-        assertTrue(childPaths.toString(), IterableUtils.elementsEqual(expected, childPaths));
+
+        // Collect actual paths into a list
+        List<String> actual = new ArrayList<>();
+        aTree.getChildren().forEach( c -> actual.add(c.getPath()));
+
+        assertEquals("Child order should be maintained", expected, actual);
     }
 }
