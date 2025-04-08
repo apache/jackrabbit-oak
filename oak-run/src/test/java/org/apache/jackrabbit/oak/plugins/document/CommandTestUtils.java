@@ -20,9 +20,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 public class CommandTestUtils {
 
+    /**
+     * Runs the {@linkplain Runnable}, captures stdout, returns output with line ends normalized to "\"
+     */
     public static String captureSystemOut(Runnable r) {
         PrintStream old = System.out;
         try {
@@ -31,12 +35,16 @@ public class CommandTestUtils {
             System.setOut(ps);
             r.run();
             System.out.flush();
-            return baos.toString();
+            return baos.toString(StandardCharsets.UTF_8).
+                    replace(System.lineSeparator(), "\n");
         } finally {
             System.setOut(old);
         }
     }
 
+    /**
+     * Runs the {@linkplain Runnable}, captures stderr, returns output with line ends normalized to "\"
+     */
     public static String captureSystemErr(Runnable r) {
         PrintStream old = System.err;
         try {
@@ -45,7 +53,8 @@ public class CommandTestUtils {
             System.setErr(ps);
             r.run();
             System.err.flush();
-            return baos.toString();
+            return baos.toString(StandardCharsets.UTF_8).
+                    replace(System.lineSeparator(), "\n");
         } finally {
             System.setErr(old);
         }

@@ -185,6 +185,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private int fullGCBatchSize = DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
     private int fullGCProgressSize = DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
     private double fullGCDelayFactor = DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
+    private boolean fullGCAuditLoggingEnabled;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
@@ -315,6 +316,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean isFullGCEnabled() {
         return this.fullGCEnabled;
+    }
+
+    public T setFullGCAuditLoggingEnabled(boolean b) {
+        this.fullGCAuditLoggingEnabled = b;
+        return thisBuilder();
+    }
+
+    public boolean isFullGCAuditLoggingEnabled() {
+        return this.fullGCAuditLoggingEnabled;
     }
 
     public T setFullGCIncludePaths(@Nullable String[] includePaths) {

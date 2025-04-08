@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.hasItem;
@@ -30,7 +29,7 @@ import static org.junit.Assert.*;
 
 public class BadIndexTrackerTest {
 
-    private VirtualTicker ticker = new VirtualTicker();
+    private Clock clock = new Clock.Virtual();
     private BadIndexTracker tracker = new BadIndexTracker();
 
     @Test
@@ -56,17 +55,17 @@ public class BadIndexTrackerTest {
     @Test
     public void recheckDelay() throws Exception{
         tracker = new BadIndexTracker(100);
-        tracker.setTicker(ticker);
+        tracker.setClock(clock);
         tracker.markBadIndexForRead("foo", new Exception());
-        ticker.addTime(50, TimeUnit.MILLISECONDS);
+        clock.waitUntil(clock.millis() + 50);
 
         assertTrue(tracker.isIgnoredBadIndex("foo"));
 
-        ticker.addTime(30, TimeUnit.MILLISECONDS);
+        clock.waitUntil(clock.millis() + 30);
         assertTrue(tracker.isIgnoredBadIndex("foo"));
 
         //Now cross the threshold
-        ticker.addTime(30, TimeUnit.MILLISECONDS);
+        clock.waitUntil(clock.millis() + 30);
         assertFalse(tracker.isIgnoredBadIndex("foo"));
 
         //However index is still considered bad

@@ -168,7 +168,13 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         private final String asyncName;
         private final String path;
         private final long lastIndexerCycleCount = indexerCycleCount;
-        private final Stopwatch watch = Stopwatch.createStarted(new ClockTicker(clock));
+        private final Stopwatch watch = Stopwatch.createStarted(new Ticker() {
+            @Override
+            public long read() {
+                return TimeUnit.MILLISECONDS.toNanos(clock.millis());
+            }
+        });
+
         private String exception = "";
         private int failureCount;
         private int skippedCount;
@@ -310,19 +316,6 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }
-        }
-    }
-
-    private static class ClockTicker extends Ticker {
-        private final Clock clock;
-
-        public ClockTicker(Clock clock) {
-            this.clock = clock;
-        }
-
-        @Override
-        public long read() {
-            return TimeUnit.MILLISECONDS.toNanos(clock.getTime());
         }
     }
 }

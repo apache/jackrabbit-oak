@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.IOUtils;
+import com.mongodb.client.model.IndexOptions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
@@ -166,6 +167,8 @@ public class MongoDocumentStore implements DocumentStore {
      * which we block any data modification operation when system has been throttled.
      */
     public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
+
+    private static final @NotNull String BIN_COLLECTION = "bin";
     /**
      * nodeNameLimit for node name based on Mongo Version
      */
@@ -348,6 +351,9 @@ public class MongoDocumentStore implements DocumentStore {
 
         if (!readOnly) {
             ensureIndexes(db, status);
+            if (builder.isFullGCAuditLoggingEnabled()) {
+                ensureFullGcTTLIndex();
+            }
         }
 
         this.nodeLocks = new StripedNodeDocumentLocks();
@@ -463,6 +469,13 @@ public class MongoDocumentStore implements DocumentStore {
 
         // index on _modified for journal entries
         createIndex(journal, JournalEntry.MODIFIED, true, false, false);
+    }
+
+    private void ensureFullGcTTLIndex() {
+        //TTL index for full GC bin documents to expire after 90 days
+        //see https://issues.apache.org/jira/browse/OAK-11444
+        IndexOptions indexOptions = new IndexOptions().expireAfter(TimeUnit.DAYS.toSeconds(90), TimeUnit.SECONDS);
+        connection.getCollection(BIN_COLLECTION).createIndex(new org.bson.Document(MongoFullGcNodeBin.GC_COLLECTED_AT, 1), indexOptions);
     }
 
     private void createCollection(MongoDatabase db, String collectionName, MongoStatus mongoStatus) {
@@ -2009,6 +2022,10 @@ public class MongoDocumentStore implements DocumentStore {
     <T extends Document> MongoCollection<BasicDBObject> getDBCollection(Collection<T> collection,
                                                                         ReadPreference readPreference) {
         return getDBCollection(collection).withReadPreference(readPreference);
+    }
+
+    <T extends Document> MongoCollection<BasicDBObject> getBinCollection() {
+        return this.connection.getCollection(BIN_COLLECTION);
     }
 
     MongoDatabase getDatabase() {

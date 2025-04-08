@@ -82,37 +82,37 @@ public class ElasticIndexAggregationTest extends IndexAggregationCommonTest {
         assertEventually(() -> {
             String matchContentAll = "//element(*, nt:folder)[(jcr:contains(., 'dog'))]";
             assertThat(explainXPath(matchContentAll), containsString(
-                    "\"fields\":[\":fulltext\"],\"query\":\"dog\""));
+                    "\"fields\":[\":fulltext\"],\"lenient\":true,\"query\":\"dog\""));
             assertQuery(matchContentAll, "xpath", List.of("/content/myFolder"));
 
             String matchContentSimple = "//element(*, nt:folder)[(jcr:contains(myFile, 'dog'))]";
             assertThat(explainXPath(matchContentSimple), containsString(
-                    "\"fields\":[\":fulltext\"],\"query\":\"dog\""));
+                    "\"fields\":[\":fulltext\"],\"lenient\":true,\"query\":\"dog\""));
             assertQuery(matchContentSimple, "xpath", List.of("/content/myFolder"));
 
             String matchContent = " //element(*, nt:folder)[(jcr:contains(myFile, 'dog') or jcr:contains(myFile/@jcr:title, 'invalid') or jcr:contains(myFile/@jcr:description, 'invalid'))]";
             assertThat(explainXPath(matchContent), containsString(
-                    "\"fields\":[\":fulltext\"],\"query\":\"dog\""));
+                    "\"fields\":[\":fulltext\"],\"lenient\":true,\"query\":\"dog\""));
             assertQuery(matchContent, "xpath", List.of("/content/myFolder"));
 
             String matchTitle = " //element(*, nt:folder)[(jcr:contains(myFile, 'invalid') or jcr:contains(myFile/@jcr:title, 'title') or jcr:contains(myFile/@jcr:description, 'invalid'))]";
             assertThat(explainXPath(matchTitle), containsString(
-                    "\"fields\":[\":fulltext\"],\"query\":\"invalid\""));
+                    "\"fields\":[\":fulltext\"],\"lenient\":true,\"query\":\"invalid\""));
             assertQuery(matchTitle, "xpath", List.of("/content/myFolder"));
 
             String matchDesc = " //element(*, nt:folder)[(jcr:contains(myFile, 'invalid') or jcr:contains(myFile/@jcr:title, 'invalid') or jcr:contains(myFile/@jcr:description, 'description'))]";
             assertThat(explainXPath(matchDesc), containsString(
-                    "\"fields\":[\":fulltext\"],\"query\":\"invalid\""));
+                    "\"fields\":[\":fulltext\"],\"lenient\":true,\"query\":\"invalid\""));
             assertQuery(matchDesc, "xpath", List.of("/content/myFolder"));
 
             String matchNone = " //element(*, nt:folder)[(jcr:contains(myFile, 'invalid') or jcr:contains(myFile/@jcr:title, 'invalid') or jcr:contains(myFile/@jcr:description, 'invalid'))]";
             assertThat(explainXPath(matchNone), containsString(
-                    "\"fields\":[\":fulltext\"],\"query\":\"invalid\""));
+                    "\"fields\":[\":fulltext\"],\"lenient\":true,\"query\":\"invalid\""));
             assertQuery(matchNone, "xpath", List.of());
 
             String matchOnlyTitleOr = " //element(*, nt:folder)[(jcr:contains(myFile/@jcr:title, 'title') or jcr:contains(myFile/@jcr:title, 'unknown') )]";
             assertThat(explainXPath(matchOnlyTitleOr), containsString(
-                    "\"fields\":[\"jcr:title\"],\"query\":\"title\""));
+                    "\"fields\":[\"jcr:title\"],\"lenient\":true,\"query\":\"title\""));
             assertQuery(matchOnlyTitleOr, "xpath", List.of("/content/myFolder"));
         });
     }

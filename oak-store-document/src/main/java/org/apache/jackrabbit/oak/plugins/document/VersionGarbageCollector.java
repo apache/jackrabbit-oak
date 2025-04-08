@@ -1947,15 +1947,9 @@ public class VersionGarbageCollector {
                 }
                 if (!isFullGCDryRun) {
                     // only delete these in case it is not a dryRun
-
                     if (!orphanOrDeletedRemovalMap.isEmpty()) {
-                        // use remove() with the modified check to rule
-                        // out any further race-condition where this removal
-                        // races with a un-orphan/re-creation as a result of which
-                        // the node should now not be removed. The modified check
-                        // ensures a node would then not be removed
-                        // (and as a result the removedSize != map.size())
-                        final int removedSize = ds.remove(NODES, orphanOrDeletedRemovalMap);
+
+                        final int removedSize = versionStore.getFullGCBin().remove(orphanOrDeletedRemovalMap);
                         stats.updatedFullGCDocsCount += removedSize;
                         stats.deletedDocGCCount += removedSize;
                         stats.deletedOrphanNodesCount += removedSize;
@@ -1973,7 +1967,7 @@ public class VersionGarbageCollector {
                     }
 
                     if (!updateOpList.isEmpty()) {
-                        List<NodeDocument> oldDocs = ds.findAndUpdate(NODES, updateOpList);
+                        List<NodeDocument> oldDocs = versionStore.getFullGCBin().findAndUpdate(updateOpList);
 
 
                         int deletedProps = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropsCountMap.getOrDefault(d.getId(), 0)).sum();

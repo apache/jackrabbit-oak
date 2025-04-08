@@ -39,7 +39,7 @@ import joptsimple.OptionSpec;
 
 public class IndexStoreCommand implements Command {
     
-    public final static String INDEX_STORE = "index-store";
+    public final static String NAME = "index-store";
 
     @SuppressWarnings("unchecked")
     @Override
@@ -52,7 +52,7 @@ public class IndexStoreCommand implements Command {
                 "An index store file").ofType(File.class);        
         if (options.has(helpSpec)
                 || options.nonOptionArguments().isEmpty()) {
-            System.out.println("Mode: " + INDEX_STORE);
+            System.out.println("Mode: " + NAME);
             System.out.println();
             parser.printHelpOn(System.out);
             return;

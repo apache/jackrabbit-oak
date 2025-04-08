@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.commons.io.FilenameUtils;
-import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
@@ -50,13 +47,11 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 
-import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
@@ -130,8 +125,6 @@ public class ElasticIndexProviderService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexProviderService.class);
 
-    private static final String REPOSITORY_HOME = "repository.home";
-
     @Reference
     private StatisticsProvider statisticsProvider;
 
@@ -149,11 +142,10 @@ public class ElasticIndexProviderService {
 
     private ExtractedTextCache extractedTextCache;
 
-    private final List<ServiceRegistration> regs = new ArrayList<>();
+    private final List<ServiceRegistration<?>> regs = new ArrayList<>();
     private final List<Registration> oakRegs = new ArrayList<>();
 
     private Whiteboard whiteboard;
-    private File textExtractionDir;
 
     private ElasticConnection elasticConnection;
     private ElasticMetricHandler metricHandler;
@@ -161,19 +153,22 @@ public class ElasticIndexProviderService {
 
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
+        metricHandler = new ElasticMetricHandler(statisticsProvider);
         boolean disabled = Boolean.parseBoolean(System.getProperty(OAK_ELASTIC_PREFIX + PROP_DISABLED, Boolean.toString(config.disabled())));
         if (disabled) {
             LOG.info("Component disabled by configuration");
+            metricHandler.markEnabled(false);
             return;
         }
+
+        elasticConnection = getElasticConnection(config);
+        boolean isElasticAvailable = elasticConnection.isAvailable();
+        metricHandler.markEnabled(isElasticAvailable);
 
         whiteboard = new OsgiWhiteboard(bundleContext);
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);
-
-        elasticConnection = getElasticConnection(config);
-        metricHandler = new ElasticMetricHandler(statisticsProvider);
         indexTracker = new ElasticIndexTracker(elasticConnection, metricHandler);
 
         // register observer needed for index tracking
@@ -195,12 +190,16 @@ public class ElasticIndexProviderService {
 
         registerIndexProvider(bundleContext);
         registerIndexEditor(bundleContext);
-        registerIndexCleaner(config);
+        if (isElasticAvailable) {
+            registerIndexCleaner(config);
+        } else {
+            LOG.warn("The Elastic cluster at {} is not reachable. The index cleaner job has not been enabled", elasticConnection);
+        }
     }
 
     @Deactivate
     private void deactivate() {
-        for (ServiceRegistration reg : regs) {
+        for (ServiceRegistration<?> reg : regs) {
             reg.unregister();
         }
 
@@ -216,10 +215,6 @@ public class ElasticIndexProviderService {
     }
 
     private void registerIndexCleaner(Config contextConfig) {
-        if (!elasticConnection.isAvailable()) {
-            LOG.warn("The Elastic cluster at {} is not reachable. The index cleaner job has not been enabled", elasticConnection);
-            return;
-        }
         if (contextConfig.remoteIndexCleanupFrequency() <= 0) {
             LOG.info("Index Cleaner disabled by configuration");
             return;
@@ -242,63 +237,6 @@ public class ElasticIndexProviderService {
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
-//        oakRegs.add(registerMBean(whiteboard,
-//                TextExtractionStatsMBean.class,
-//                editorProvider.getExtractedTextCache().getStatsMBean(),
-//                TextExtractionStatsMBean.TYPE,
-//                "TextExtraction statistics"));
-    }
-
-    private void initializeExtractedTextCache(final Config config, StatisticsProvider statisticsProvider) {
-
-        extractedTextCache = new ExtractedTextCache(
-                config.extractedTextCacheSizeInMB() * ONE_MB,
-                config.extractedTextCacheExpiryInSecs(),
-                config.alwaysUsePreExtractedCache(),
-                textExtractionDir,
-                statisticsProvider);
-        if (extractedTextProvider != null) {
-            registerExtractedTextProvider(extractedTextProvider);
-        }
-        CacheStats stats = extractedTextCache.getCacheStats();
-        if (stats != null) {
-            oakRegs.add(registerMBean(whiteboard,
-                    CacheStatsMBean.class, stats,
-                    CacheStatsMBean.TYPE, stats.getName()));
-            LOG.info("Extracted text caching enabled with maxSize {} MB, expiry time {} secs",
-                    config.extractedTextCacheSizeInMB(), config.extractedTextCacheExpiryInSecs());
-        }
-    }
-
-    private void initializeTextExtractionDir(BundleContext bundleContext, Config config) {
-        String textExtractionDir = config.localTextExtractionDir();
-        if (textExtractionDir.trim().isEmpty()) {
-            String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
-            if (repoHome != null) {
-                textExtractionDir = FilenameUtils.concat(repoHome, "index");
-            }
-        }
-
-        if (textExtractionDir == null) {
-            throw new IllegalStateException(String.format("Text extraction directory cannot be determined as neither " +
-                    "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_TEXT_EXTRACTION_DIR, REPOSITORY_HOME));
-        }
-
-        this.textExtractionDir = new File(textExtractionDir);
-    }
-
-    private void registerExtractedTextProvider(PreExtractedTextProvider provider) {
-        if (extractedTextCache != null) {
-            if (provider != null) {
-                String usage = extractedTextCache.isAlwaysUsePreExtractedCache() ?
-                        "always" : "only during reindexing phase";
-                LOG.info("Registering PreExtractedTextProvider {} with extracted text cache. " +
-                        "It would be used {}", provider, usage);
-            } else {
-                LOG.info("Unregistering PreExtractedTextProvider with extracted text cache");
-            }
-            extractedTextCache.setExtractedTextProvider(provider);
-        }
     }
 
     private ElasticConnection getElasticConnection(Config contextConfig) {

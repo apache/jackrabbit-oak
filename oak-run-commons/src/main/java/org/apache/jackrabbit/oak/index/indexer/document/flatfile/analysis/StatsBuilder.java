@@ -34,54 +34,52 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.module
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.TopLargestBinaries;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeDataReader;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeLineReader;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeStreamReader;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeStreamReaderCompressed;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeTreeStoreReader;
 
 /**
  * Builder for commonly used statistics for flat file stores.
  */
 public class StatsBuilder {
 
-    private static final boolean ONLY_READ = false;
-
-    /**
-     * Read a flat file store and build statistics.
-     *
-     * @param args the file name
-     */
     public static void main(String... args) throws Exception {
         String fileName = null;
         String nodeNameFilter = null;
-        boolean stream = false;
-        boolean compressedStream = false;
+        boolean profiler = false;
         for(int i = 0; i<args.length; i++) {
             String a = args[i];
             if (a.equals("--fileName")) {
                 fileName = args[++i];
             } else if (a.equals("--nodeNameFilter")) {
                 nodeNameFilter = args[++i];
-            } else if (a.endsWith("--stream")) {
-                stream = true;
-            } else if (a.equals("--compressedStream")) {
-                compressedStream = true;
+            } else if (a.equals("--profiler")) {
+                profiler = true;
             }
         }
         if (fileName == null) {
             System.out.println("Command line arguments:");
             System.out.println("  --fileName <file name>     (flat file store file name; mandatory)");
             System.out.println("  --nodeNameFilter <filter>  (node name filter for binaries; optional)");
-            System.out.println("  --stream                   (use a stream file; optional)");
-            System.out.println("  --compressedStream         (use a compressed stream file; optional)");
+            System.out.println("  --profiler                 (enable the build-in profiler; optional)");
             return;
         }
+        buildStats(fileName, nodeNameFilter, profiler);
+    }
+
+    /**
+     * Read a flat file store and build statistics.
+     *
+     * @param fileName the file name
+     * @param nodeNameFilter the node names to filter
+     * @param profiler also run the profiler
+     */
+    public static void buildStats(String fileName, String nodeNameFilter, boolean profiler) throws IOException {
         System.out.println("Processing " + fileName);
         ListCollector collectors = new ListCollector();
         collectors.add(new NodeCount(1000, 1));
         PropertyStats ps = new PropertyStats(false, 1);
         collectors.add(ps);
         collectors.add(new NodeTypeCount());
-        if (nodeNameFilter != null) {
+        if (nodeNameFilter != null && !nodeNameFilter.isEmpty()) {
             collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySize(false, 1)));
             collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySize(true, 1)));
             collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySizeHistogram(1)));
@@ -94,18 +92,16 @@ public class StatsBuilder {
         collectors.add(new DistinctBinarySizeHistogram(1));
         collectors.add(new DistinctBinarySize(16, 16));
 
-        Profiler prof = new Profiler().startCollecting();
-        NodeDataReader reader;
-        if (compressedStream) {
-            reader = NodeStreamReaderCompressed.open(fileName);
-        } else if (stream) {
-            reader = NodeStreamReader.open(fileName);
-        } else {
-            reader = NodeLineReader.open(fileName);
+        Profiler prof = null;
+        if (profiler) {
+            prof = new Profiler().startCollecting();
         }
+        NodeDataReader reader = NodeTreeStoreReader.open(fileName);
         collect(reader, collectors);
 
-        System.out.println(prof.getTop(10));
+        if (profiler) {
+            System.out.println(prof.getTop(10));
+        }
         System.out.println();
         System.out.println("Results");
         System.out.println();
@@ -123,11 +119,13 @@ public class StatsBuilder {
             if (node == null) {
                 break;
             }
-            if (++lineCount % 1000000 == 0) {
-                System.out.println(lineCount + " lines; " + reader.getProgressPercent() + "%");
-            }
-            if (ONLY_READ) {
-                continue;
+            if (++lineCount % 1_000_000 == 0) {
+                String msg = lineCount + " entries";
+                int progressPercent = reader.getProgressPercent();
+                if (progressPercent != 0) {
+                    msg += "; " + progressPercent + "%";
+                }
+                System.out.println(msg);
             }
             if (last != null) {
                 while (last != null && last.getPathElements().size() >= node.getPathElements().size()) {

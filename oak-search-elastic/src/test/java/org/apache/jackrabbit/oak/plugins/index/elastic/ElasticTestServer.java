@@ -62,6 +62,7 @@ public class ElasticTestServer implements AutoCloseable {
         return CONTAINER;
     }
 
+    @SuppressWarnings("resource")
     private synchronized void setup() {
         String esDockerImageVersion = ELASTIC_DOCKER_IMAGE_VERSION != null ? ELASTIC_DOCKER_IMAGE_VERSION : Version.VERSION.toString();
         LOG.info("Elasticsearch test Docker image version: {}.", esDockerImageVersion);

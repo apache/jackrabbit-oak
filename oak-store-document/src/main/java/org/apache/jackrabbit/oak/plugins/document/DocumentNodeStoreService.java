@@ -534,6 +534,7 @@ public class DocumentNodeStoreService {
                 setFullGCBatchSize(config.fullGCBatchSize()).
                 setFullGCProgressSize(config.fullGCProgressSize()).
                 setFullGCDelayFactor(config.fullGCDelayFactor()).
+                setFullGCAuditLoggingEnabled(config.fullGCAuditLoggingEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setRecoveryDelayMillis(config.recoveryDelayMillis()).

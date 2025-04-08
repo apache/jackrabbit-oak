@@ -104,6 +104,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DEFAULT_EMBEDDED_VERIFICATION_ENABLED, config.embeddedVerificationEnabled());
         assertEquals(DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE, config.fullGcMaxAgeInSecs());
         assertEquals(CommitQueue.DEFAULT_SUSPEND_TIMEOUT, config.suspendTimeoutMillis());
+        assertFalse(config.fullGCAuditLoggingEnabled());
     }
 
     @Test
@@ -168,6 +169,13 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "fullGCBatchSize", batchSize);
         Configuration config = createConfiguration();
         assertEquals(batchSize, config.fullGCBatchSize());
+    }
+
+    @Test
+    public void fullGCAuditLoggingEnabled() throws Exception {
+        addConfigurationEntry(preset, "fullGCAuditLoggingEnabled", true);
+        Configuration config = createConfiguration();
+        assertTrue(config.fullGCAuditLoggingEnabled());
     }
 
     @Test
