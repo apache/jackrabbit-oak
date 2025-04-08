@@ -85,7 +85,7 @@ public class CommitsTrackerTest {
             commitTask.queued();
             assertNull(commitsTracker.getCurrentWriter());
             assertEquals(queued.size(), commitsTracker.getQueuedWritersMap().size());
-            assertEquals(0, commitsTracker.getCommitsCountOthers().size());
+            assertEquals(0, commitsTracker.getCommitsCountOthersLastMinute().size());
             assertTrue(commitsTracker.getCommitsCountPerGroupLastMinute().isEmpty());
         }
 
@@ -102,7 +102,7 @@ public class CommitsTrackerTest {
             commitTask.executed();
             assertNull(commitsTracker.getCurrentWriter());
             assertEquals(queued.size(), commitsTracker.getQueuedWritersMap().size());
-            assertEquals(min(OTHER_WRITERS_LIMIT, executed.size()), commitsTracker.getCommitsCountOthers().size());
+            assertEquals(min(OTHER_WRITERS_LIMIT, executed.size()), commitsTracker.getCommitsCountOthersLastMinute().size());
             assertTrue(commitsTracker.getCommitsCountPerGroupLastMinute().isEmpty());
         }
     }
@@ -131,6 +131,6 @@ public class CommitsTrackerTest {
             assertEquals(10, (long) groupCount);
         }
 
-        assertEquals(10, commitsTracker.getCommitsCountOthers().size());
+        assertEquals(10, commitsTracker.getCommitsCountOthersLastMinute().size());
     }
 }

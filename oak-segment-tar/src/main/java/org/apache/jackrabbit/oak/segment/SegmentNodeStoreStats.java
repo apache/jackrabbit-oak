@@ -132,7 +132,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
 
     @Override
     public TabularData getCommitsCountForOtherWriters() throws OpenDataException {
-        return createTabularDataFromCountMap(commitsTracker.getCommitsCountOthers(), "commitsPerWriter",
+        return createTabularDataFromCountMap(commitsTracker.getCommitsCountOthersLastMinute(), "commitsPerWriter",
                 "writerName");
     }
 
@@ -145,11 +145,9 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
         TabularDataSupport tabularData = new TabularDataSupport(new TabularType(typeName, "Most active writers",
                 commitsPerWriterRowType, new String[] { writerDescription }));
 
-        if (commitsCountMap.isEmpty()) {
-            commitsCountMap.put("N/A", 0L);
-        }
+        Map<String, Long> map = commitsCountMap.isEmpty() ? Map.of("N/A", 0L) : commitsCountMap;
 
-        commitsCountMap.entrySet().stream()
+        map.entrySet().stream()
                 .sorted(Comparator.<Entry<String, Long>> comparingLong(Entry::getValue).reversed()).map(e -> {
                     Map<String, Object> m = new HashMap<>();
                     m.put("count", e.getValue());
