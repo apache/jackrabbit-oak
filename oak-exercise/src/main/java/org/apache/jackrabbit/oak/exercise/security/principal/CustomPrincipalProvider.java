@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.jetbrains.annotations.NotNull;
