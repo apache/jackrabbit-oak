@@ -26,14 +26,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
- * A stop watch based either on a {@link Supplier} of nanoseconds, or a {@link java.time.Clock}.
+ * A stop watch based either on a {@link Supplier} of nanoseconds, or a {@link Clock}.
  * <p>
  * The accuracy of measurements depends on the precision of the time source, which likely depends on platform and
  * configuration.
  * <p>
  * Inspired by Guava's.
  */
-public class Stopwatch {
+public final class Stopwatch {
 
     private long startTime;
     private long accumulated;
@@ -55,7 +55,7 @@ public class Stopwatch {
     }
 
     /**
-     * @return a running stop watch, using the supplied provider.
+     * @return a running stop watch, using the supplied supplier.
      */
     public static Stopwatch createStarted(Supplier<Long> ticker) {
         return new Stopwatch(ticker).start();
@@ -66,8 +66,15 @@ public class Stopwatch {
      * <p>
      * Note that only {@link Clock#millis()} will be used, thus the watch will have ms precision at most.
      */
-    public static Stopwatch createStarted(java.time.Clock clock) {
+    public static Stopwatch createStarted(Clock clock) {
         return new Stopwatch(clockAsLongSupplier(clock)).start();
+    }
+
+    /**
+     * @return a non-running stop watch, using the supplied supplier.
+     */
+    public static Stopwatch createUnstarted(Supplier<Long> ticker) {
+        return new Stopwatch(ticker);
     }
 
     /**
@@ -132,12 +139,12 @@ public class Stopwatch {
      * @return elapsed time
      */
     public Duration elapsed() {
-        return Duration.ofMillis(elapsedNanos());
+        return Duration.ofNanos(elapsedNanos());
     }
 
     @Override
     public String toString() {
-        return java.time.Duration.ofNanos(elapsedNanos()).toString();
+        return Duration.ofNanos(elapsedNanos()).toString();
     }
 
     // private parts
