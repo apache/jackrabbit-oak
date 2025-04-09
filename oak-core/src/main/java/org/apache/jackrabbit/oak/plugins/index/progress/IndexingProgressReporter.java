@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 
 public class IndexingProgressReporter implements NodeTraversalCallback {
     private static final String REINDEX_MSG = "Reindexing";

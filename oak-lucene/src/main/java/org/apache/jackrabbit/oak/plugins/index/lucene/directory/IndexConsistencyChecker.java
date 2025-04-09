@@ -32,7 +32,7 @@ import java.util.List;
 import javax.jcr.PropertyType;
 
 import org.apache.commons.io.input.CountingInputStream;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;

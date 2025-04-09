@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.check;
 
 import java.util.concurrent.BlockingQueue;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;

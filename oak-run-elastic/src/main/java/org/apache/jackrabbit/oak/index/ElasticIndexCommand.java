@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;

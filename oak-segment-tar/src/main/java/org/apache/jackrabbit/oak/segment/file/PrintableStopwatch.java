@@ -18,9 +18,9 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import java.util.concurrent.TimeUnit;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A stopwatch that is also pretty-printable for usage in log messages.
