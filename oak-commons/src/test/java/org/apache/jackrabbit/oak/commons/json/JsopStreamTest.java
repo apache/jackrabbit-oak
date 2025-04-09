@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.commons.json;
 
 import junit.framework.TestCase;
-import org.apache.jackrabbit.oak.commons.StopWatch;
+import org.apache.jackrabbit.oak.commons.TestStopWatch;
 
 public class JsopStreamTest extends TestCase {
 
@@ -25,7 +25,7 @@ public class JsopStreamTest extends TestCase {
     public static void main(String... args) {
         for (int k = 0; k < 5; k++) {
             String s = "Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" ";
-            StopWatch timer = new StopWatch();
+            TestStopWatch timer = new TestStopWatch();
             JsopWriter w = k % 2 == 1 ? new JsopBuilder() : new JsopStream();
             for (int i = 0; i < 1000000; i++) {
                 w.value(s);
