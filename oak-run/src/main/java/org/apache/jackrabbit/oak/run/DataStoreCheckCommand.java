@@ -428,7 +428,7 @@ public class DataStoreCheckCommand implements Command {
             final GarbageCollectableBlobStore finalBlobStore = blobStore;
 
             System.out.println("Starting dump of blob references");
-            Stopwatch watch = createStarted();
+            Stopwatch watch = Stopwatch.createStarted();
 
             marker.collectReferences(
                 new ReferenceCollector() {
@@ -466,7 +466,7 @@ public class DataStoreCheckCommand implements Command {
         throws Exception {
 
         System.out.println("Starting dump of blob ids");
-        Stopwatch watch = createStarted();
+        Stopwatch watch = Stopwatch.createStarted();
 
         Iterator<String> blobIter = blobStore.getAllChunkIds(0);
         int count = writeStrings(blobIter, blob, false);
@@ -537,7 +537,7 @@ public class DataStoreCheckCommand implements Command {
         public void traverse(String ... paths) throws IOException {
             final AtomicInteger count = new AtomicInteger();
             System.out.println("Starting dump of blob references by traversing");
-            Stopwatch watch = createStarted();
+            Stopwatch watch = Stopwatch.createStarted();
 
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(references, StandardCharsets.UTF_8))) {
                 if (paths.length == 0) {
