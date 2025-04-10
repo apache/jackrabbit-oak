@@ -76,7 +76,6 @@ import org.apache.lucene.store.DataOutput;
  *         <li>If the eighth lowest-order bit is set (0x80), positions are omitted for the
  *             indexed field.</li>
  *       </ul>
- *    </li>
  *    <li>DocValuesBits: a byte containing per-document value types. The type
  *        recorded as two four-bit integers, with the high-order bits representing
  *        <code>norms</code> options, and the low-order bits representing 
@@ -87,7 +86,6 @@ import org.apache.lucene.store.DataOutput;
  *          <li>2: BinaryDocValues. ({@code DocValuesType#BINARY})</li>
  *          <li>3: SortedDocValues. ({@code DocValuesType#SORTED})</li>
  *        </ul>
- *    </li>
  *    <li>DocValuesGen is the generation count of the field's DocValues. If this is -1,
  *        there are no DocValues updates to that field. Anything above zero means there 
  *        are updates stored by {@link DocValuesFormat}.</li>

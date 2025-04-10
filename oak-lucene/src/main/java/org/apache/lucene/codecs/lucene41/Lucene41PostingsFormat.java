@@ -62,7 +62,6 @@ import org.apache.lucene.util.packed.PackedInts;
  *      that are all the same value are encoded in an optimized way.</p>
  *   <p>In VInt blocks, integers are encoded as {@link DataOutput#writeVInt VInt}:
  *      the block size is variable.</p>
- *   </li>
  *
  *   <li> 
  *   <b>Block structure</b>: 
@@ -77,14 +76,12 @@ import org.apache.lucene.util.packed.PackedInts;
  *      &lt;position, payload length&gt;, 
  *      &lt;position, offset start, offset length&gt;, and
  *      &lt;position, payload length, offsetstart, offset length&gt;.</p>
- *   </li>
  *
  *   <li>
  *   <b>Skipdata settings</b>: 
  *   <p>The structure of skip table is quite similar to previous version of Lucene. Skip interval is the 
  *      same as block size, and each skip entry points to the beginning of each block. However, for 
  *      the first block, skip data is omitted.</p>
- *   </li>
  *
  *   <li>
  *   <b>Positions, Payloads, and Offsets</b>: 
@@ -102,7 +99,6 @@ import org.apache.lucene.util.packed.PackedInts;
  *   <p>With this strategy, the majority of payload and offset data will be outside .pos file. 
  *      So for queries that require only position data, running on a full index with payloads and offsets, 
  *      this reduces disk pre-fetches.</p>
- *   </li>
  * </ul>
  *
  * <p>
@@ -222,7 +218,6 @@ import org.apache.lucene.util.packed.PackedInts;
  *           separately encode as packed blocks.</li>
  *     </ol>
  *     If frequencies are not omitted, PackedFreqBlock will be generated without d-gap step.
- *   </li>
  *   <li>VIntBlock stores remaining d-gaps (along with frequencies when possible) with a format 
  *       that encodes DocDelta and Freq:
  *       <p>DocDelta: if frequencies are indexed, this determines both the document
@@ -239,7 +234,6 @@ import org.apache.lucene.util.packed.PackedInts;
  *       <p>If frequencies were omitted ({@link IndexOptions#DOCS_ONLY}) it would be this
  *          sequence of VInts instead:</p>
  *       <p>7,4</p>
- *   </li>
  *   <li>PackedDocBlockNum is the number of packed blocks for current term's docids or frequencies. 
  *       In particular, PackedDocBlockNum = floor(DocFreq/PackedBlockSize) </li>
  *   <li>TrimmedDocFreq = DocFreq % PackedBlockSize == 0 ? DocFreq - 1 : DocFreq. 

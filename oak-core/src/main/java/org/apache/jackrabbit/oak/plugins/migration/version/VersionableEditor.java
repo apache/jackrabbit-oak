@@ -52,7 +52,6 @@ import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistory
  *         it can skip copying version histories and remove the
  *         {@code mix:versionable} mixin together with any related
  *         properties (see {@link VersionHistoryUtil#removeVersionProperties(NodeBuilder, TypePredicate)}).
- *     </li>
  * </ul>
  */
 public class VersionableEditor extends DefaultEditor {

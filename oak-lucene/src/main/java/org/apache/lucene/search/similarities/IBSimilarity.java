@@ -56,7 +56,6 @@ import org.apache.lucene.search.similarities.Normalization.NoNormalization;
  *             <li>{@link DistributionLL}: Log-logistic</li>
  *             <li>{@link DistributionLL}: Smoothed power-law</li>
  *         </ul>
- *     </li>
  *     <li>{@link Lambda}: &lambda;<sub>w</sub> parameter of the
  *         probability distribution
  *         <ul>
@@ -65,11 +64,9 @@ import org.apache.lucene.search.similarities.Normalization.NoNormalization;
  *             <li>{@link LambdaTTF}: <code>F<sub>w</sub>/N</code> or
  *                 average number of occurrences of w in the collection</li>
  *         </ul>
- *     </li>
  *     <li>{@link Normalization}: Term frequency normalization 
  *         <blockquote>Any supported DFR normalization (listed in
  *                      {@link DFRSimilarity})</blockquote>
- *     </li>
  * </ol>
  * <p>
  * @see DFRSimilarity

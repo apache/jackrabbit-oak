@@ -81,7 +81,6 @@ import org.apache.lucene.util.fst.FST; // javadocs
  *        {@link DocsEnum#advance(int)}. Larger values result in smaller indexes, greater 
  *        acceleration, but fewer accelerable cases, while smaller values result in bigger indexes, 
  *        less acceleration (in case of a small value for MaxSkipLevels) and more accelerable cases.
- *        </li>
  *    <li>MaxSkipLevels is the max. number of skip levels stored for each term in the .frq file. A 
  *        low value results in smaller indexes but less acceleration, a larger value results in 
  *        slightly larger indexes but greater acceleration. See format of .frq file for more 

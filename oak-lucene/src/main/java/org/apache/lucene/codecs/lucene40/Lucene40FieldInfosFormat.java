@@ -73,7 +73,6 @@ import org.apache.lucene.store.DataOutput; // javadoc
  *         <li>If the eighth lowest-order bit is set (0x80), positions are omitted for the
  *             indexed field.</li>
  *       </ul>
- *    </li>
  *    <li>DocValuesBits: a byte containing per-document value types. The type
  *        recorded as two four-bit integers, with the high-order bits representing
  *        <code>norms</code> options, and the low-order bits representing 
@@ -94,7 +93,6 @@ import org.apache.lucene.store.DataOutput; // javadoc
  *          <li>12: fixed-length sorted byte array values. ({@code Type#BYTES_FIXED_SORTED BYTES_FIXED_SORTED})</li>
  *          <li>13: variable-length sorted byte array values. ({@code Type#BYTES_VAR_SORTED BYTES_VAR_SORTED})</li>
  *        </ul>
- *    </li>
  *    <li>Attributes: a key-value map of codec-private attributes.</li>
  * </ul>
  *

@@ -150,7 +150,6 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *             to the list of required service IDs</li>
  *         <li>make sure the 'Authorization Composition Type' is set to AND</li>
  *     </ul>
- *     </li>
  *     <li>Wait for the {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider} to be successfully registered again.</li>
  * </ul>
  *

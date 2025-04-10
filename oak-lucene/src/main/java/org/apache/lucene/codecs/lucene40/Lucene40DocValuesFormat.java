@@ -123,7 +123,6 @@ import org.apache.lucene.util.packed.PackedInts;
  *    <li>{@code BYTES_VAR_STRAIGHT BYTES_VAR_STRAIGHT} in contrast to other straight 
  *        variants uses a <tt>.idx</tt> file to improve lookup perfromance. In contrast to 
  *        {@code BYTES_VAR_DEREF BYTES_VAR_DEREF} it doesn't apply deduplication of the document values.
- *    </li>
  * </ul>
  * <p>
  * Limitations:

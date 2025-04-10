@@ -138,35 +138,29 @@ import org.apache.lucene.util.BytesRef;
  *  To avoid this problem, a different document length normalization 
  *  factor is used, which normalizes to a vector equal to or larger 
  *  than the unit vector: <i>doc-len-norm(d)</i>.
- *  </li>
  *
  *  <li>At indexing, users can specify that certain documents are more
  *  important than others, by assigning a document boost.
  *  For this, the score of each document is also multiplied by its boost value
  *  <i>doc-boost(d)</i>.
- *  </li>
  *
  *  <li>Lucene is field based, hence each query term applies to a single
  *  field, document length normalization is by the length of the certain field,
  *  and in addition to document boost there are also document fields boosts.
- *  </li>
  *
  *  <li>The same field can be added to a document during indexing several times,
  *  and so the boost of that field is the multiplication of the boosts of
  *  the separate additions (or parts) of that field within the document.
- *  </li>
  *
  *  <li>At search time users can specify boosts to each query, sub-query, and
  *  each query term, hence the contribution of a query term to the score of
  *  a document is multiplied by the boost of that query term <i>query-boost(q)</i>.
- *  </li>
  *
  *  <li>A document may match a multi term query without containing all
  *  the terms of that query (this is correct for some of the queries),
  *  and users can further reward documents matching more query terms
  *  through a coordination factor, which is usually larger when
  *  more terms are matched: <i>coord-factor(q,d)</i>.
- *  </li>
  * </ul>
  *
  * <p>Under the simplifying assumption of a single field in the index,
@@ -218,7 +212,6 @@ import org.apache.lucene.util.BytesRef;
  * <ul>
  *  <li><i>Query-boost</i> for the query (actually for each query term)
  *  is known when search starts.
- *  </li>
  *
  *  <li>Query Euclidean norm <i>|V(q)|</i> can be computed when search starts,
  *  as it is independent of the document being scored.
@@ -242,14 +235,11 @@ import org.apache.lucene.util.BytesRef;
  *   There are other applications that may require this.
  *   And this is exactly what normalizing the query vector <i>V(q)</i>
  *   provides: comparability (to a certain extent) of two or more queries.
- *   </li>
  *
  *   <li>Applying query normalization on the scores helps to keep the
  *   scores around the unit vector, hence preventing loss of score data
  *   because of floating point precision limitations.
- *   </li>
  *  </ul>
- *  </li>
  *
  *  <li>Document length norm <i>doc-len-norm(d)</i> and document
  *  boost <i>doc-boost(d)</i> are known at indexing time.
@@ -257,7 +247,6 @@ import org.apache.lucene.util.BytesRef;
  *  is saved as a single value in the index: <i>norm(d)</i>.
  *  (In the equations below, <i>norm(t in d)</i> means <i>norm(field(t) in doc d)</i>
  *  where <i>field(t)</i> is the field associated with term <i>t</i>.)
- *  </li>
  * </ul>
  *
  * <p><i>Lucene's Practical Scoring Function</i> is derived from the above.
@@ -329,7 +318,6 @@ import org.apache.lucene.util.BytesRef;
  *        </tr>
  *      </table>
  *      <br>&nbsp;<br>
- *    </li>
  *
  *    <li>
  *      <A NAME="formula_idf"></A>
@@ -364,7 +352,6 @@ import org.apache.lucene.util.BytesRef;
  *        </tr>
  *      </table>
  *      <br>&nbsp;<br>
- *    </li>
  *
  *    <li>
  *      <A NAME="formula_coord"></A>
@@ -376,7 +363,6 @@ import org.apache.lucene.util.BytesRef;
  *      {@link #coord(int, int) coord(q,d)}
  *      by the Similarity in effect at search time.
  *      <br>&nbsp;<br>
- *    </li>
  *
  *    <li><b>
  *      <A NAME="formula_queryNorm"></A>
@@ -442,7 +428,6 @@ import org.apache.lucene.util.BytesRef;
  *      </table>
  *      <br>&nbsp;<br>
  *
- *    </li>
  *
  *    <li>
  *      <A NAME="formula_termBoost"></A>
@@ -458,7 +443,6 @@ import org.apache.lucene.util.BytesRef;
  *      and so the boost of a term in the query is accessible by calling the sub-query
  *      {@link org.apache.lucene.search.Query#getBoost() getBoost()}.
  *      <br>&nbsp;<br>
- *    </li>
  *
  *    <li>
  *      <A NAME="formula_norm"></A>
@@ -468,12 +452,10 @@ import org.apache.lucene.util.BytesRef;
  *        <li><b>Field boost</b> - set by calling
  *        {@link org.apache.lucene.document.Field#setBoost(float) field.setBoost()}
  *        before adding the field to a document.
- *        </li>
  *        <li><b>lengthNorm</b> - computed
  *        when the document is added to the index in accordance with the number of tokens
  *        of this field in the document, so that shorter fields contribute more to the score.
  *        LengthNorm is computed by the Similarity class in effect at indexing.
- *        </li>
  *      </ul>
  *      The {@link #computeNorm} method is responsible for
  *      combining all of these factors into a single float.
@@ -505,7 +487,6 @@ import org.apache.lucene.util.BytesRef;
  *      </table>
  *      Note that search time is too late to modify this <i>norm</i> part of scoring, 
  *      e.g. by using a different {@link Similarity} for search.
- *    </li>
  * </ol>
  *
  * @see org.apache.lucene.index.IndexWriterConfig#setSimilarity(Similarity)

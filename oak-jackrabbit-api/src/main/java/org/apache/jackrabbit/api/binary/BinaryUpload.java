@@ -80,7 +80,6 @@ import org.osgi.annotation.versioning.ProviderType;
  *         If {@code (fileSize / maxPartSize) > numUploadURIs}, then the client
  *         cannot proceed and will have to request a new set of URIs with the
  *         right fileSize as {@code maxSize}.
- *     </li>
  *     <li>
  *         Calculate the {@code partSize} and the number of URIs to use.
  *         <br>
@@ -103,7 +102,6 @@ import org.osgi.annotation.versioning.ProviderType;
  *                 provided upload URI to upload the entire binary, with
  *                 {@code partSize = fileSize}.  Note that it is not required to
  *                 use all of the URIs provided in {@code uploadURIs}.
- *             </li>
  *             <li>
  *                 If {@code fileSize / partSize == numUploadURIs}, all part
  *                 URIs must to be used. The {@code partSize} to use for all
@@ -112,7 +110,6 @@ import org.osgi.annotation.versioning.ProviderType;
  *                 It is also possible to simply use {@code maxPartSize} as the
  *                 value for {@code partSize} in this case, for every part
  *                 except the last.
- *             </li>
  *         </ol>
  *         Optionally, a client may select a different {@code partSize},
  *         for example if the client has more information about the
@@ -126,16 +123,13 @@ import org.osgi.annotation.versioning.ProviderType;
  *             (unless {@code maxPartSize = -1} meaning unlimited)</li>
  *             <li>{@code partSize > (fileSize / numUploadURIs)}</li>
  *         </ol>
- *     </li>
  *     <li>
  *         Upload: segment the binary into {@code partSize}, for each segment
  *         take the next URI from {@code uploadURIs} (strictly in order),
  *         proceed with a standard HTTP PUT for each, and for the last part use
  *         whatever segment size is left.
- *     </li>
  *     <li>
  *         If a segment fails during upload, retry (up to a certain timeout).
- *     </li>
  *     <li>
  *         After the upload has finished successfully, notify the application,
  *         for example through a complete request, passing the {@link
@@ -157,7 +151,6 @@ import org.osgi.annotation.versioning.ProviderType;
  *         Instead, simply restart the upload from the beginning by calling
  *         {@link JackrabbitValueFactory#initiateBinaryUpload(long, int)} when
  *         the situation preventing a successful upload has been resolved.
- *     </li>
  * </ol>
  *
  * <h2>Example JSON view</h2>
