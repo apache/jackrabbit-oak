@@ -25,10 +25,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Level;
 import org.apache.jackrabbit.oak.spi.state.NodeState;

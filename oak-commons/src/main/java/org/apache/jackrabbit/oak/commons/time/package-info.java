@@ -17,23 +17,12 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.progress;
+/**
+ * Internal ("private") utilities related to timing...
+ */
+@Internal(since = "1.0.0")
+@Version("1.0.0")
+package org.apache.jackrabbit.oak.commons.time;
+import org.apache.jackrabbit.oak.commons.annotations.Internal;
+import org.osgi.annotation.versioning.Version;
 
-import org.apache.jackrabbit.oak.commons.time.Stopwatch;
-
-import java.util.concurrent.TimeUnit;
-
-public class SimpleRateEstimator implements TraversalRateEstimator {
-    private final Stopwatch w = Stopwatch.createStarted();
-    private long count;
-
-    @Override
-    public void traversedNode() {
-        count++;
-    }
-
-    @Override
-    public double getNodesTraversedPerSecond() {
-        return (double) count / w.elapsed(TimeUnit.SECONDS);
-    }
-}

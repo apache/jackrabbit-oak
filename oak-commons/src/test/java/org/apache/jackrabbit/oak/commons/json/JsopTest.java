@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.commons.json;
 
 import junit.framework.TestCase;
-import org.apache.jackrabbit.oak.commons.StopWatch;
+import org.apache.jackrabbit.oak.commons.TestStopWatch;
 
 /**
  * Test the Jsop tokenizer and builder.
@@ -29,7 +29,7 @@ public class JsopTest extends TestCase {
         for (int k = 0; k < 5; k++) {
             // String s = "Hello World Hello World Hello World Hello World Hello World Hello World ";
             String s = "Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" ";
-            StopWatch timer = new StopWatch();
+            TestStopWatch timer = new TestStopWatch();
             int t2 = 0;
             for (int i = 0; i < 1000000; i++) {
                 t2 += JsopBuilder.encode(s).length();
