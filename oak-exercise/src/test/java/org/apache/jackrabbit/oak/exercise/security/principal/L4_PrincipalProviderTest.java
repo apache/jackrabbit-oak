@@ -64,9 +64,9 @@ import org.junit.Test;
  * - Complete the {@link CustomPrincipalProvider}
  *   stub and deploy the exercise bundle in a Sling base repository installation
  *   (e.g. Cq|Granite).
- *   > Try to identify the tools that allow you to explore your custom principals
- *   > Play with the dynamic group membership as you define it in the principal provider and verify that the subjects calculated upon login are correct
- *   > Play with the authorization part of the principal management granting/revoking access for one of your custom principals
+ *   + Try to identify the tools that allow you to explore your custom principals
+ *   + Play with the dynamic group membership as you define it in the principal provider and verify that the subjects calculated upon login are correct
+ *   + Play with the authorization part of the principal management granting/revoking access for one of your custom principals
  * </pre>
  *
  * @see org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider
