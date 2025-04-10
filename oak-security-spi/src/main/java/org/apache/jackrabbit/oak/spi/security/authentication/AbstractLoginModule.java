@@ -22,6 +22,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.Credentials;
@@ -36,7 +37,6 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -212,9 +212,10 @@ public abstract class AbstractLoginModule implements LoginModule {
     @Override
     public boolean logout() throws LoginException {
         boolean success = false;
-        Set<Object> creds = ImmutableSet.builder()
-                .addAll(subject.getPublicCredentials(Credentials.class))
-                .addAll(subject.getPublicCredentials(AuthInfo.class)).build();
+        Set<Object> builder = new LinkedHashSet<>(subject.getPublicCredentials(Credentials.class));
+        builder.addAll(subject.getPublicCredentials(AuthInfo.class));
+        Set<Object> creds = Collections.unmodifiableSet(builder);
+
         if (!subject.getPrincipals().isEmpty() && !creds.isEmpty()) {
             // clear subject if not readonly
             if (!subject.isReadOnly()) {

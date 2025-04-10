@@ -18,86 +18,62 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
-import java.io.BufferedInputStream;
-import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
 import javax.jcr.PropertyType;
 
-import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.PropertyValue;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
-
-import net.jpountz.lz4.LZ4FrameInputStream;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 /**
- * A reader for flat file stores.
+ * A reader for tree store files.
  */
-public class NodeLineReader implements NodeDataReader, Closeable {
+public class NodeTreeStoreReader implements NodeDataReader {
 
-    private final CountingInputStream countIn;
-    private final LineNumberReader reader;
+    private final TreeStore treeStore;
+    private final Iterator<String> pathIterator;
     private final long fileSize;
 
-    private NodeLineReader(CountingInputStream countIn, LineNumberReader reader, long fileSize) {
-        this.countIn = countIn;
-        this.reader = reader;
+    public static NodeDataReader open(String fileName) {
+        BlobStore blobStore = null;
+        NodeStateEntryReader entryReader = new NodeStateEntryReader(blobStore);
+        File file = new File(fileName);
+        TreeStore treeStore = new TreeStore("reader", file, entryReader, 32);
+        return new NodeTreeStoreReader(treeStore, file.length());
+    }
+
+    private NodeTreeStoreReader(TreeStore treeStore, long fileSize) {
+        this.treeStore = treeStore;
         this.fileSize = fileSize;
+        this.pathIterator = treeStore.iteratorOverPaths();
     }
 
-    public int getProgressPercent() {
-        if (fileSize == 0) {
-            return 100;
-        }
-        return (int) (100 * countIn.getByteCount() / fileSize);
+    @Override
+    public void close() throws IOException {
+        treeStore.close();
     }
 
-    public static NodeLineReader open(String fileName) throws IOException {
-        long fileSize = new File(fileName).length();
-        InputStream fileIn = new BufferedInputStream(new FileInputStream(fileName));
-        CountingInputStream countIn = new CountingInputStream(fileIn);
-        try {
-            InputStream in;
-            if (fileName.endsWith(".lz4")) {
-                in = new LZ4FrameInputStream(countIn);
-            } else {
-                in = countIn;
-            }
-            LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-            return new NodeLineReader(countIn, reader, fileSize);
-        } catch (IOException e) {
-            countIn.close();
-            throw e;
-        }
-    }
-
+    @Override
     public NodeData readNode() throws IOException {
-        String line = reader.readLine();
-        if (line == null) {
-            close();
+        if (!pathIterator.hasNext()) {
             return null;
         }
-        int pipeIndex = line.indexOf('|');
-        if (pipeIndex < 0) {
-            throw new IllegalArgumentException("Error: no pipe: " + line);
-        }
-        String path = line.substring(0, pipeIndex);
+        String path = pathIterator.next();
         List<String> pathElements = new ArrayList<>();
         PathUtils.elements(path).forEach(pathElements::add);
-        String nodeJson = line.substring(pipeIndex + 1);
+        String nodeJson = treeStore.getSession().get(path);
         return new NodeData(pathElements, parse(nodeJson));
     }
 
@@ -133,6 +109,32 @@ public class NodeLineReader implements NodeDataReader, Closeable {
             throw new IllegalArgumentException("Unexpected children " + json.getChildren());
         }
         return properties;
+    }
+
+    public static NodeProperty fromJsonArray(String key, String json) {
+        ArrayList<String> result = new ArrayList<>();
+        ValueType type = null;
+        JsopTokenizer tokenizer = new JsopTokenizer(json);
+        tokenizer.read('[');
+        if (!tokenizer.matches(']')) {
+            do {
+                String r = tokenizer.readRawValue();
+                PropertyValue v = getValue(r);
+                if (v == null) {
+                    throw new IllegalArgumentException("Array of empty arrays: " + json);
+                } else if (type != null && v.type != type) {
+                    throw new IllegalArgumentException("Unsupported mixed type: " + json);
+                }
+                result.add(v.value);
+                type = v.type;
+            } while (tokenizer.matches(','));
+            tokenizer.read(']');
+        }
+        tokenizer.read(JsopReader.END);
+        if (type == null) {
+            type = ValueType.STRING;
+        }
+        return new NodeProperty(key, type, result.toArray(new String[result.size()]), true);
     }
 
     /**
@@ -188,40 +190,14 @@ public class NodeLineReader implements NodeDataReader, Closeable {
         }
     }
 
-    public static NodeProperty fromJsonArray(String key, String json) {
-        ArrayList<String> result = new ArrayList<>();
-        ValueType type = null;
-        JsopTokenizer tokenizer = new JsopTokenizer(json);
-        tokenizer.read('[');
-        if (!tokenizer.matches(']')) {
-            do {
-                String r = tokenizer.readRawValue();
-                PropertyValue v = getValue(r);
-                if (v == null) {
-                    throw new IllegalArgumentException("Array of empty arrays: " + json);
-                } else if (type != null && v.type != type) {
-                    throw new IllegalArgumentException("Unsupported mixed type: " + json);
-                }
-                result.add(v.value);
-                type = v.type;
-            } while (tokenizer.matches(','));
-            tokenizer.read(']');
-        }
-        tokenizer.read(JsopReader.END);
-        if (type == null) {
-            type = ValueType.STRING;
-        }
-        return new NodeProperty(key, type, result.toArray(new String[result.size()]), true);
-    }
-
     @Override
     public long getFileSize() {
         return fileSize;
     }
 
     @Override
-    public void close() throws IOException {
-        reader.close();
+    public int getProgressPercent() {
+        return 0;
     }
 
 }

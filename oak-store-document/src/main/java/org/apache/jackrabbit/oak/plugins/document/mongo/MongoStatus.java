@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.MongoClient;
@@ -38,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,10 +45,7 @@ public class MongoStatus implements ServerMonitorListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoStatus.class);
 
-    private static final ImmutableSet<String> SERVER_DETAIL_FIELD_NAMES
-            = ImmutableSet.<String>builder()
-            .add("host", "process", "connections", "repl", "storageEngine", "mem")
-            .build();
+    private static final Set<String> SERVER_DETAIL_FIELD_NAMES = Set.of("host", "process", "connections", "repl", "storageEngine", "mem");
 
     private final MongoClient client;
 

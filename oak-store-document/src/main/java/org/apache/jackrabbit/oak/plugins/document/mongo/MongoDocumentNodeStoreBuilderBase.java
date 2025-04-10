@@ -172,7 +172,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     public VersionGCSupport createVersionGCSupport() {
         DocumentStore store = getDocumentStore();
         if (store instanceof MongoDocumentStore) {
-            return new MongoVersionGCSupport((MongoDocumentStore) store);
+            return new MongoVersionGCSupport((MongoDocumentStore) store, isFullGCAuditLoggingEnabled());
         } else {
             return super.createVersionGCSupport();
         }

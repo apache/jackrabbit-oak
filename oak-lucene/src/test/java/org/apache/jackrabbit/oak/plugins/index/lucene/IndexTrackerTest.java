@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -134,8 +133,8 @@ public class IndexTrackerTest {
         tracker = new IndexTracker();
         tracker.update(indexed);
 
-        VirtualTicker ticker = new VirtualTicker();
-        tracker.getBadIndexTracker().setTicker(ticker);
+        Clock clock = new Clock.Virtual();
+        tracker.getBadIndexTracker().setClock(clock);
 
         indexNode = tracker.acquireIndexNode("/oak:index/foo");
 
@@ -157,7 +156,7 @@ public class IndexTrackerTest {
         assertEquals(0, badIdxInfo.getFailedAccessCount());
 
         //5. Move clock forward
-        ticker.addTime(tracker.getBadIndexTracker().getRecheckIntervalMillis() + 1, TimeUnit.MILLISECONDS);
+        clock.waitFor(tracker.getBadIndexTracker().getRecheckIntervalMillis() + 1);
 
         //Now index access must be attempted again
         indexNode = tracker.acquireIndexNode("/oak:index/foo");

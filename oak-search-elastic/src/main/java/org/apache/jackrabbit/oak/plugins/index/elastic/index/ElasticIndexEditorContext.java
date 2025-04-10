@@ -40,7 +40,7 @@ class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocume
     }
 
     @Override
-    public IndexDefinition.Builder newDefinitionBuilder() {
+    public ElasticIndexDefinition.Builder newDefinitionBuilder() {
         return new ElasticIndexDefinition.Builder(((ElasticIndexDefinition) definition).getIndexPrefix());
     }
 

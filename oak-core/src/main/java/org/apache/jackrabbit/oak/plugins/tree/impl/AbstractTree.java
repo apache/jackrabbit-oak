@@ -24,17 +24,13 @@ import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
@@ -125,17 +121,7 @@ public abstract class AbstractTree implements Tree {
         NodeBuilder nodeBuilder = getNodeBuilder();
         PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
         if (order != null && order.getType() == NAMES) {
-            Set<String> names = SetUtils.toLinkedSet(nodeBuilder.getChildNodeNames());
-            List<String> ordered = new ArrayList<>(names.size());
-            for (String name : order.getValue(NAMES)) {
-                // only include names of child nodes that actually exist
-                if (names.remove(name)) {
-                    ordered.add(name);
-                }
-            }
-            // add names of child nodes that are not explicitly ordered
-            ordered.addAll(names);
-            return ordered;
+            return IteratorUtils.toIterable(new OrderedChildnameIterator(order.getValue(NAMES), nodeBuilder.getChildNodeNames()));
         } else {
             return nodeBuilder.getChildNodeNames();
         }

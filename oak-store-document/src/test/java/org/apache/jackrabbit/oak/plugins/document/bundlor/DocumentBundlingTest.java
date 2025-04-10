@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.plugins.document.RandomStream;
 import org.apache.jackrabbit.oak.plugins.document.TestNodeObserver;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
+import org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;

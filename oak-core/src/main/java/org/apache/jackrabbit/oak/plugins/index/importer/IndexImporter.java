@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock.LockToken;
 import org.apache.jackrabbit.oak.plugins.index.upgrade.IndexDisabler;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -58,6 +59,8 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 import static org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON;
 import static org.apache.jackrabbit.oak.plugins.index.importer.NodeStoreUtils.mergeWithConcurrentCheck;
@@ -67,6 +70,10 @@ public class IndexImporter {
      * Symbolic name use to indicate sync indexes
      */
     static final String ASYNC_LANE_SYNC = "sync";
+    /**
+     * Symbolic name use to indicate elasticsearch index type
+     */
+    static final String TYPE_ELASTICSEARCH = "elasticsearch";
     /*
      * System property name for flag for preserve checkpoint. If this is set to true, then checkpoint cleanup will be skipped.
      * Default is set to false.
@@ -200,6 +207,20 @@ public class IndexImporter {
                 if (!indexInfo.newIndex) {
                     NodeBuilder idxBuilder = NodeStoreUtils.childBuilder(builder, indexInfo.indexPath);
                     indexPathsToUpdate.add(indexInfo.indexPath);
+                    String idxBuilderType = idxBuilder.getString(TYPE_PROPERTY_NAME);
+
+                    // check if provided index definitions is of different type than existing one
+                    // also check if one of them is an elasticsearch type
+                    if (idxBuilderType != null &&
+                            !idxBuilderType.equals(indexInfo.type) &&
+                            (idxBuilderType.equals(TYPE_ELASTICSEARCH) || indexInfo.type.equals(TYPE_ELASTICSEARCH))) {
+
+                        LOG.info("Provided index [{}] has a different type compared to the existing index." +
+                                " Using lane from the index definition provided", indexInfo.indexPath);
+
+                        PropertyState asyncProperty = PropertyStates.createProperty(ASYNC_PROPERTY_NAME, List.of(indexInfo.asyncLaneName), Type.STRINGS);
+                        idxBuilder.setProperty(asyncProperty);
+                    }
                     AsyncLaneSwitcher.switchLane(idxBuilder, AsyncLaneSwitcher.getTempLaneName(indexInfo.asyncLaneName));
                 }
             }

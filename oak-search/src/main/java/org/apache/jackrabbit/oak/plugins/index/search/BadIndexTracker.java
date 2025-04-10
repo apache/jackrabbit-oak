@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import java.time.Clock;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +51,7 @@ public class BadIndexTracker {
     private final Map<String, BadIndexInfo> badIndexesForRead = new ConcurrentHashMap<>();
     private final Map<String, BadIndexInfo> badPersistedIndexes = new ConcurrentHashMap<>();
     private final long recheckIntervalMillis;
-    private Ticker ticker = Ticker.systemTicker();
+    private Clock clock = Clock.systemUTC();
     private int indexerCycleCount;
 
     public BadIndexTracker() {
@@ -143,8 +143,8 @@ public class BadIndexTracker {
         return recheckIntervalMillis;
     }
 
-    public void setTicker(Ticker ticker) {
-        this.ticker = ticker;
+    public void setClock(Clock clock) {
+        this.clock = clock;
     }
 
     public boolean hasBadIndexes(){
@@ -154,10 +154,20 @@ public class BadIndexTracker {
     public class BadIndexInfo {
         public final String path;
         final int lastIndexerCycleCount = indexerCycleCount;
-        private final long createdTime = TimeUnit.NANOSECONDS.toMillis(ticker.read());
+        private final long createdTime = clock.millis();
         private final boolean persistedIndex;
-        private final Stopwatch created = Stopwatch.createStarted(ticker);
-        private final Stopwatch watch = Stopwatch.createStarted(ticker);
+        private final Stopwatch created = Stopwatch.createStarted(new Ticker() {
+            @Override
+            public long read() {
+                return TimeUnit.MILLISECONDS.toNanos(clock.millis());
+            }
+        });
+        private final Stopwatch watch = Stopwatch.createStarted(new Ticker() {
+            @Override
+            public long read() {
+                return TimeUnit.MILLISECONDS.toNanos(clock.millis());
+            }
+        });
         private String exception;
         private int accessCount;
         private int failedAccessCount;

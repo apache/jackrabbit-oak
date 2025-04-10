@@ -147,6 +147,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Boolean> dryRun;
         final OptionSpec<Boolean> embeddedVerification;
         final OptionSpec<Integer> fullGcMode;
+        final OptionSpec<Boolean> fullGCAuditLoggingEnabled;
 
         RevisionsOptions(String usage) {
             super(usage);
@@ -208,6 +209,8 @@ public class RevisionsCommand implements Command {
                             "to be considered for Full GC i.e. Version Garbage Collector (Full GC) logic will only consider those " +
                             "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge). Default: 86400 (one day)")
                     .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toSeconds(1));
+            fullGCAuditLoggingEnabled = parser.accepts("fullGCAuditLoggingEnabled", "Enable audit logging for Full GC")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(FALSE);
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -306,6 +309,10 @@ public class RevisionsCommand implements Command {
         boolean doCompaction() {
             return options.has(compact);
         }
+
+        Boolean isFullGCAuditLoggingEnabled() {
+            return options.has(fullGCAuditLoggingEnabled);
+        }
     }
 
     @Override
@@ -375,6 +382,7 @@ public class RevisionsCommand implements Command {
         builder.setFullGCBatchSize(options.getFullGcBatchSize());
         builder.setFullGCProgressSize(options.getFullGcProgressSize());
         builder.setFullGcMaxAgeMillis(SECONDS.toMillis(options.getFullGcMaxAge()));
+        builder.setFullGCAuditLoggingEnabled(options.isFullGCAuditLoggingEnabled());
 
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
@@ -408,6 +416,7 @@ public class RevisionsCommand implements Command {
         System.out.println("FullGcProgressSize is : " + options.getFullGcProgressSize());
         System.out.println("FullGcMaxAgeInSecs is : " + options.getFullGcMaxAge());
         System.out.println("FullGcMaxAgeMillis is : " + builder.getFullGcMaxAgeMillis());
+        System.out.println("FullGCAuditLoggingEnabled is : " + options.isFullGCAuditLoggingEnabled());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
 
         VersionGCOptions gcOptions = gc.getOptions();

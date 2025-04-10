@@ -145,11 +145,16 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     /**
      * We store the value in :fulltext only when the {@link PropertyDefinition} has a regular expression (that means we
-     * were not able to create a ft property at mapping time) or the property is not analyzed.
+     * were not able to create a ft property at mapping time) or the property is not analyzed or the type could be ignored
+     * in case is malformed (eg: a date that cannot be parsed).
      */
     @Override
     protected boolean isFulltextValuePersistedAtNode(PropertyDefinition pd) {
-        return pd.isRegexp || !pd.analyzed;
+        return pd.isRegexp || !pd.analyzed
+                || pd.getType() == Type.DATE.tag()
+                || pd.getType() == Type.BOOLEAN.tag()
+                || pd.getType() == Type.LONG.tag()
+                || pd.getType() == Type.DOUBLE.tag();
     }
 
     /**
