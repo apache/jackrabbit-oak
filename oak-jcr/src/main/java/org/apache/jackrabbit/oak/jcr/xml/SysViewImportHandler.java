@@ -20,8 +20,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import java.util.UUID;
 
 import javax.jcr.InvalidSerializedDataException;
+import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -93,6 +95,42 @@ class SysViewImportHandler extends TargetImportHandler {
         }
     }
 
+    //TODO avoid code duplication (this is stolen from GlobalNameMapper)
+    private static boolean isExpandedName(String name) {
+        if (name.startsWith("{")) {
+            int brace = name.indexOf('}', 1);
+            if (brace != -1) {
+                String namespace = name.substring(1, brace);
+                // the empty namespace and "internal" are valid as well, otherwise it always contains a colon (as it is a URI)
+                // compare with RFC 3986, Section 3 (https://datatracker.ietf.org/doc/html/rfc3986#section-3)
+                if (namespace.isEmpty() || namespace.equals(NamespaceConstants.NAMESPACE_REP)|| namespace.indexOf(':') != -1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private NameInfo getNameInfo(String svName) throws RepositoryException {
+        if (isExpandedName(svName)) {
+            String namespaceUri = svName.substring(svName.indexOf("{") + 1, svName.indexOf("}"));
+            String localName = svName.substring(svName.indexOf("}") + 1);
+            NamespaceRegistry namespaceRegistry = sessionContext.getWorkspace().getNamespaceRegistry();
+            String prefix;
+            try {
+                prefix = namespaceRegistry.getPrefix(namespaceUri);
+            } catch (NamespaceException expected) {
+                // this is an expanded svName using an unregistered namespace
+                // we need to make up a prefix for the namespace
+                prefix = "ns_" + UUID.randomUUID().toString().substring(0, 8);
+                namespaceRegistry.registerNamespace(prefix, namespaceUri);
+            }
+            return new NameInfo(prefix, localName);
+        } else {
+            return new NameInfo(sessionContext.getJcrName(sessionContext.getOakName(svName)));
+        }
+    }
+    
     //-------------------------------------------------------< ContentHandler >
 
     @Override
@@ -123,7 +161,7 @@ class SysViewImportHandler extends TargetImportHandler {
             // push new ImportState instance onto the stack
             ImportState state = new ImportState();
             try {
-                state.nodeName = new NameInfo(svName).getRepoQualifiedName();
+                state.nodeName = getNameInfo(svName).getRepoQualifiedName();
             } catch (RepositoryException e) {
                 throw new SAXException(new InvalidSerializedDataException("illegal node name: " + svName, e));
             }
@@ -141,7 +179,7 @@ class SysViewImportHandler extends TargetImportHandler {
                         "missing mandatory sv:name attribute of element sv:property"));
             }
             try {
-                currentPropName = new NameInfo(svName);
+                currentPropName = getNameInfo(svName);
             } catch (RepositoryException e) {
                 throw new SAXException(new InvalidSerializedDataException("illegal property name: " + svName, e));
             }
