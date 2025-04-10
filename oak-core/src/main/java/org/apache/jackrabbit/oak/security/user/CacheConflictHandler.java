@@ -34,14 +34,14 @@ import org.slf4j.LoggerFactory;
  *<p>
  * The conflict handler deals with the following conflicts:
  * <ul>
- *     <li>{@code addExistingProperty}  : {@code Resolution.IGNORED}, We should not have add conflints, since the {@code rep:{@code rep:expiration}} node is created with the user</li>
- *     <li>{@code changeDeletedProperty}: {@code Resolution.IGNORED},</li>
- *     <li>{@code changeChangedProperty}: {@code Resolution.MERGED}, the properties with higher {@code rep:expiration} get merged</li>
- *     <li>{@code deleteChangedProperty}: {@code Resolution.IGNORED} .</li>
- *     <li>{@code deleteDeletedProperty}: {@code Resolution.IGNORED}.</li>
- *     <li>{@code changeDeletedNode}    : {@code Resolution.IGNORED}, .</li>
- *     <li>{@code deleteChangedNode}    : {@code Resolution.IGNORED}, </li>
- *     <li>{@code deleteDeletedNode}    : {@code Resolution.IGNORED}.</li>
+ *     <li>{@code addExistingProperty}  : {@code Resolution.IGNORED}, We should not have add conflints, since the {@code rep:{@code rep:expiration}} node is created with the user
+ *     <li>{@code changeDeletedProperty}: {@code Resolution.IGNORED},
+ *     <li>{@code changeChangedProperty}: {@code Resolution.MERGED}, the properties with higher {@code rep:expiration} get merged
+ *     <li>{@code deleteChangedProperty}: {@code Resolution.IGNORED} .
+ *     <li>{@code deleteDeletedProperty}: {@code Resolution.IGNORED}.
+ *     <li>{@code changeDeletedNode}    : {@code Resolution.IGNORED}, .
+ *     <li>{@code deleteChangedNode}    : {@code Resolution.IGNORED}, 
+ *     <li>{@code deleteDeletedNode}    : {@code Resolution.IGNORED}.
  * </ul>
  */
 

@@ -63,10 +63,10 @@ import org.apache.jackrabbit.guava.common.base.Splitter;
  *     <code>nodeLevels</code> - Comma separated string property that governs the number of number of
  *     different node relationships in the following order:
  *      <ul>
- *          <li>Users</li>
- *          <li>Groups</li>
- *          <li>User Relationships</li>
- *          <li>Activities</li>
+ *          <li>Users
+ *          <li>Groups
+ *          <li>User Relationships
+ *          <li>Activities
  *      </ul>
  *
  *     Defaults to 10,5,2,1.

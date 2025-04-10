@@ -56,13 +56,13 @@ import org.apache.lucene.search.Query;
  * DWPT updates a document it:
  * 
  * <ol>
- * <li>consumes a document and finishes its processing</li>
+ * <li>consumes a document and finishes its processing
  * <li>updates its private {@link DeleteSlice} either by calling
  * {@link #updateSlice(DeleteSlice)} or {@link #add(Term, DeleteSlice)} (if the
- * document has a delTerm)</li>
+ * document has a delTerm)
  * <li>applies all deletes in the slice to its private {@link BufferedUpdates}
- * and resets it</li>
- * <li>increments its internal document id</li>
+ * and resets it
+ * <li>increments its internal document id
  * </ol>
  * 
  * The DWPT also doesn't apply its current documents delete term until it has

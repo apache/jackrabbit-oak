@@ -36,12 +36,12 @@ import org.apache.lucene.search.TermStatistics;
  * types are introduced:
  * <ul>
  *   <li>{@link LMStats}, which defines a new statistic, the probability that
- *   the collection language model generates the current term;</li>
+ *   the collection language model generates the current term;
  *   <li>{@link CollectionModel}, which is a strategy interface for object that
- *   compute the collection language model {@code p(w|C)};</li>
+ *   compute the collection language model {@code p(w|C)};
  *   <li>{@link DefaultCollectionModel}, an implementation of the former, that
  *   computes the term probability as the number of occurrences of the term in the
- *   collection, divided by the total number of tokens.</li>
+ *   collection, divided by the total number of tokens.
  * </ul> 
  * 
  * @lucene.experimental

@@ -38,11 +38,11 @@ import org.apache.lucene.search.similarities.Normalization.NoNormalization;
  * -x<sup>q</sup><sub>w</sub> log Prob(X<sub>w</sub> &ge;
  * t<sup>d</sup><sub>w</sub> | &lambda;<sub>w</sub>)</em>, where
  * <ul>
- *   <li><em>x<sup>q</sup><sub>w</sub></em> is the query boost;</li>
+ *   <li><em>x<sup>q</sup><sub>w</sub></em> is the query boost;
  *   <li><em>X<sub>w</sub></em> is a random variable that counts the occurrences
- *   of word <em>w</em>;</li>
- *   <li><em>t<sup>d</sup><sub>w</sub></em> is the normalized term frequency;</li>
- *   <li><em>&lambda;<sub>w</sub></em> is a parameter.</li>
+ *   of word <em>w</em>;
+ *   <li><em>t<sup>d</sup><sub>w</sub></em> is the normalized term frequency;
+ *   <li><em>&lambda;<sub>w</sub></em> is a parameter.
  * </ul>
  * <p>The framework described in the paper has many similarities to the DFR
  * framework (see {@link DFRSimilarity}). It is possible that the two
@@ -53,16 +53,16 @@ import org.apache.lucene.search.similarities.Normalization.NoNormalization;
  *     <li>{@link Distribution}: Probabilistic distribution used to
  *         model term occurrence
  *         <ul>
- *             <li>{@link DistributionLL}: Log-logistic</li>
- *             <li>{@link DistributionLL}: Smoothed power-law</li>
+ *             <li>{@link DistributionLL}: Log-logistic
+ *             <li>{@link DistributionLL}: Smoothed power-law
  *         </ul>
  *     <li>{@link Lambda}: &lambda;<sub>w</sub> parameter of the
  *         probability distribution
  *         <ul>
  *             <li>{@link LambdaDF}: <code>N<sub>w</sub>/N</code> or average
- *                 number of documents where w occurs</li>
+ *                 number of documents where w occurs
  *             <li>{@link LambdaTTF}: <code>F<sub>w</sub>/N</code> or
- *                 average number of occurrences of w in the collection</li>
+ *                 average number of occurrences of w in the collection
  *         </ul>
  *     <li>{@link Normalization}: Term frequency normalization 
  *         <blockquote>Any supported DFR normalization (listed in

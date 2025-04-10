@@ -64,14 +64,14 @@ import org.osgi.annotation.versioning.ProviderType;
  * <h3>Variables used</h3>
  * <ul>
  *     <li>{@code fileSize}: the actual binary size (must be known at this
- *     point)</li>
- *     <li>{@code minPartSize}: the value from {@link #getMinPartSize()}</li>
- *     <li>{@code maxPartSize}: the value from {@link #getMaxPartSize()}</li>
+ *     point)
+ *     <li>{@code minPartSize}: the value from {@link #getMinPartSize()}
+ *     <li>{@code maxPartSize}: the value from {@link #getMaxPartSize()}
  *     <li>{@code numUploadURIs}: the number of entries in {@link
- *     #getUploadURIs()}</li>
- *     <li>{@code uploadURIs}: the entries in {@link #getUploadURIs()}</li>
+ *     #getUploadURIs()}
+ *     <li>{@code uploadURIs}: the entries in {@link #getUploadURIs()}
  *     <li>{@code partSize}: the part size to be used in the upload (to be
- *     determined in the algorithm)</li>
+ *     determined in the algorithm)
  * </ul>
  *
  * <h3>Steps</h3>
@@ -118,10 +118,10 @@ import org.osgi.annotation.versioning.ProviderType;
  *         different value may be chosen, under the condition that all
  *         of the following are true:
  *         <ol>
- *             <li>{@code partSize >= minPartSize}</li>
+ *             <li>{@code partSize >= minPartSize}
  *             <li>{@code partSize <= maxPartSize}
- *             (unless {@code maxPartSize = -1} meaning unlimited)</li>
- *             <li>{@code partSize > (fileSize / numUploadURIs)}</li>
+ *             (unless {@code maxPartSize = -1} meaning unlimited)
+ *             <li>{@code partSize > (fileSize / numUploadURIs)}
  *         </ol>
  *     <li>
  *         Upload: segment the binary into {@code partSize}, for each segment

@@ -44,29 +44,29 @@ import org.apache.lucene.store.DataOutput; // javadocs
  * Data types:
  * <p>
  * <ul>
- *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
- *   <li>SegSize --&gt; {@link DataOutput#writeInt Int32}</li>
- *   <li>SegVersion --&gt; {@link DataOutput#writeString String}</li>
- *   <li>Files --&gt; {@link DataOutput#writeStringSet Set&lt;String&gt;}</li>
- *   <li>Diagnostics --&gt; {@link DataOutput#writeStringStringMap Map&lt;String,String&gt;}</li>
- *   <li>IsCompoundFile --&gt; {@link DataOutput#writeByte Int8}</li>
+ *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
+ *   <li>SegSize --&gt; {@link DataOutput#writeInt Int32}
+ *   <li>SegVersion --&gt; {@link DataOutput#writeString String}
+ *   <li>Files --&gt; {@link DataOutput#writeStringSet Set&lt;String&gt;}
+ *   <li>Diagnostics --&gt; {@link DataOutput#writeStringStringMap Map&lt;String,String&gt;}
+ *   <li>IsCompoundFile --&gt; {@link DataOutput#writeByte Int8}
  * </ul>
  * Field Descriptions:
  * <p>
  * <ul>
- *   <li>SegVersion is the code version that created the segment.</li>
- *   <li>SegSize is the number of documents contained in the segment index.</li>
+ *   <li>SegVersion is the code version that created the segment.
+ *   <li>SegSize is the number of documents contained in the segment index.
  *   <li>IsCompoundFile records whether the segment is written as a compound file or
  *       not. If this is -1, the segment is not a compound file. If it is 1, the segment
- *       is a compound file.</li>
+ *       is a compound file.
  *   <li>Checksum contains the CRC32 checksum of all bytes in the segments_N file up
  *       until the checksum. This is used to verify integrity of the file on opening the
- *       index.</li>
+ *       index.
  *   <li>The Diagnostics Map is privately written by {@link IndexWriter}, as a debugging aid,
  *       for each segment it creates. It includes metadata like the current Lucene
  *       version, OS, Java version, why the segment was created (merge, flush,
- *       addIndexes), etc.</li>
- *   <li>Files is a list of files referred to by this segment.</li>
+ *       addIndexes), etc.
+ *   <li>Files is a list of files referred to by this segment.
  * </ul>
  * 
  * @see SegmentInfos

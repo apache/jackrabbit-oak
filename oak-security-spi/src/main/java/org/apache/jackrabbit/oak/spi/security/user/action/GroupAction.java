@@ -29,11 +29,11 @@ import javax.jcr.RepositoryException;
  * changes to a {@link Group}'s members:
  *
  * <ul>
- * <li>{@link #onMemberAdded(Group, Authorizable, Root, NamePathMapper)}</li>
- * <li>{@link #onMembersAdded(Group, Iterable, Iterable, Root, NamePathMapper)}</li>
- * <li>{@link #onMembersAddedContentId(Group, Iterable, Iterable, Root, NamePathMapper)} </li>
- * <li>{@link #onMemberRemoved(Group, Authorizable, Root, NamePathMapper)}</li>
- * <li>{@link #onMembersRemoved(Group, Iterable, Iterable, Root, NamePathMapper)}</li>
+ * <li>{@link #onMemberAdded(Group, Authorizable, Root, NamePathMapper)}
+ * <li>{@link #onMembersAdded(Group, Iterable, Iterable, Root, NamePathMapper)}
+ * <li>{@link #onMembersAddedContentId(Group, Iterable, Iterable, Root, NamePathMapper)} 
+ * <li>{@link #onMemberRemoved(Group, Authorizable, Root, NamePathMapper)}
+ * <li>{@link #onMembersRemoved(Group, Iterable, Iterable, Root, NamePathMapper)}
  * </ul>
  *
  * <p>

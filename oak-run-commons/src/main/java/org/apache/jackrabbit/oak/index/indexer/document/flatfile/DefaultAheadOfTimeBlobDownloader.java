@@ -63,8 +63,8 @@ import java.util.concurrent.atomic.LongAdder;
  * This AOT download is intended to run asynchronously with the indexing thread. It starts the following threads:
  * <ul>
  * <li>[scanner] - scans the FFS, searching for blobs to download. A blob is selected for download if it is a binary property
- * in a node whose name matches the suffix given as parameter to this class, and is non-inlined.</li>
- * <li>[downloader-n] - a configurable number of threads that download the blobs that were discovered by the scanner thread.</li>
+ * in a node whose name matches the suffix given as parameter to this class, and is non-inlined.
+ * <li>[downloader-n] - a configurable number of threads that download the blobs that were discovered by the scanner thread.
  * </ul>
  * The indexer should periodically call {@link #updateIndexed(long)} to inform the AOT downlaoder of the last line
  * indexed. This is necessary to keep the AOT downloader more or less in sync with the indexer, that is, to prevent it

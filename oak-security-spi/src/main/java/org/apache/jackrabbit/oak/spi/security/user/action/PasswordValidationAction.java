@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  *
  * <ul>
  *     <li><strong>constraint</strong>: a regular expression that can be compiled
- *     to a {@link java.util.regex.Pattern} defining validation rules for a password.</li>
+ *     to a {@link java.util.regex.Pattern} defining validation rules for a password.
  * </ul>
  *
  * <p>The password validation is executed on user creation and upon password

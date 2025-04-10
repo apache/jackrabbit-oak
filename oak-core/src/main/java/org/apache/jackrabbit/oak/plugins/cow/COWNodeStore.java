@@ -55,11 +55,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * <ul>
  *     <li>turning the CoW mode on and off requires cleaning up the
  *     <a href="https://jackrabbit.apache.org/oak/docs/query/lucene.html#copy-on-read">lucene
- *     indexing cache</a>,</li>
+ *     indexing cache</a>,
  *     <li>switching the CoW mode may result in repository inconsistencies
- *     (eg. if two merges belongs to the same logical commit sequence),</li>
+ *     (eg. if two merges belongs to the same logical commit sequence),
  *     <li>in the CoW mode the changes are stored in MemoryNodeStore, so it
- *     shouldn't be enabled for too long (otherwise it may exhaust the heap).</li>
+ *     shouldn't be enabled for too long (otherwise it may exhaust the heap).
  * </ul>
  */
 public class COWNodeStore implements NodeStore, Observable {

@@ -58,13 +58,13 @@ import java.util.concurrent.ConcurrentHashMap;
  *  <li>{@code reapOnRead = true}: This behaves identical to a {@link java.util.WeakHashMap}
  *  where it also cleans up the reference queue on every read operation ({@link #get(Object)},
  *  {@link #containsKey(Object)}, {@link #size()}, {@link #valueIterator()}), freeing map entries
- *  of already GCed keys.</li>
+ *  of already GCed keys.
  *  <li>{@code reapOnRead = false}: This mode does not call {@link #reap()} on every read
  *  operation. In this case, the reference queue is only cleaned up on write operations
  *  (like {@link #put(Object, Object)}). This is ideal for maps with few entries where
  *  the keys are unlikely be garbage collected, but there are lots of {@link #get(Object)}
  *  operations. The code can still call {@link #reap()} to manually clean up the queue without
- *  doing a write operation.</li>
+ *  doing a write operation.
  * </ul>
  *
  * @lucene.internal

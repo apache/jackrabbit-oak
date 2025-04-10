@@ -33,10 +33,10 @@ import org.jetbrains.annotations.Nullable;
  * specific way to execute additional validation or write tasks upon
  *
  * <ul>
- * <li>{@link #onCreate User creation},</li>
- * <li>{@link #onCreate Group creation},</li>
- * <li>{@link #onRemove Authorizable removal} and</li>
- * <li>{@link #onPasswordChange User password modification}.</li>
+ * <li>{@link #onCreate User creation},
+ * <li>{@link #onCreate Group creation},
+ * <li>{@link #onRemove Authorizable removal} and
+ * <li>{@link #onPasswordChange User password modification}.
  * </ul>
  *
  * <p>Please be aware, that in contrast to {@link org.apache.jackrabbit.oak.spi.commit.Validator}

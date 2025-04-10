@@ -60,14 +60,14 @@ import java.io.IOException;
  * </ul>
  * <p>Description:</p>
  * <ul>
- *   <li>Compound (.cfs) --&gt; Header, FileData <sup>FileCount</sup></li>
+ *   <li>Compound (.cfs) --&gt; Header, FileData <sup>FileCount</sup>
  *   <li>Compound Entry Table (.cfe) --&gt; Header, FileCount, &lt;FileName,
- *       DataOffset, DataLength&gt; <sup>FileCount</sup></li>
- *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
- *   <li>FileCount --&gt; {@link DataOutput#writeVInt VInt}</li>
- *   <li>DataOffset,DataLength --&gt; {@link DataOutput#writeLong UInt64}</li>
- *   <li>FileName --&gt; {@link DataOutput#writeString String}</li>
- *   <li>FileData --&gt; raw file data</li>
+ *       DataOffset, DataLength&gt; <sup>FileCount</sup>
+ *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
+ *   <li>FileCount --&gt; {@link DataOutput#writeVInt VInt}
+ *   <li>DataOffset,DataLength --&gt; {@link DataOutput#writeLong UInt64}
+ *   <li>FileName --&gt; {@link DataOutput#writeString String}
+ *   <li>FileData --&gt; raw file data
  * </ul>
  * <p>Notes:</p>
  * <ul>

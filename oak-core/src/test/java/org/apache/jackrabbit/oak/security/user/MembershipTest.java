@@ -40,10 +40,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
  * Tests large group and user graphs.
  *
  * <ul>
- * <li>{@link #NUM_USERS} users</li>
- * <li>{@link #NUM_GROUPS} groups</li>
- * <li>1 group with all users</li>
- * <li>1 user with all groups</li>
+ * <li>{@link #NUM_USERS} users
+ * <li>{@link #NUM_GROUPS} groups
+ * <li>1 group with all users
+ * <li>1 user with all groups
   * </ul>
  *
  * @since OAK 1.0

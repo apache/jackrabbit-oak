@@ -52,10 +52,10 @@ import org.slf4j.LoggerFactory;
  * <ul>
  *    <li><strong>groupPrivilegeNames</strong>: the value is expected to be a
  *    comma separated list of privileges that will be granted to the new group on
- *    the group node</li>
+ *    the group node
  *    <li><strong>userPrivilegeNames</strong>: the value is expected to be a
  *    comma separated list of privileges that will be granted to the new user on
- *    the user node.</li>
+ *    the user node.
  * </ul>
  * <p>Example configuration:
  * <pre>

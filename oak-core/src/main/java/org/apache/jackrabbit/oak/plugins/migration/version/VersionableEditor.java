@@ -47,7 +47,7 @@ import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistory
  * The VersionableEditor provides two possible ways to handle
  * versionable nodes:
  * <ul>
- *     <li>it can copy the version histories of versionable nodes, or</li>
+ *     <li>it can copy the version histories of versionable nodes, or
  *     <li>
  *         it can skip copying version histories and remove the
  *         {@code mix:versionable} mixin together with any related

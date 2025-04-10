@@ -30,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
  * about and react to the following changes to a {@link User}:
  *
  * <ul>
- * <li>{@link #onDisable(User, String, Root, NamePathMapper)}</li>
+ * <li>{@link #onDisable(User, String, Root, NamePathMapper)}
  * </ul>
  *
  * <p>

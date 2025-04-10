@@ -40,8 +40,8 @@ import org.apache.lucene.store.CompoundFileDirectory;
  * <p>
  * Files:
  * <ul>
- *   <li><tt>.nrm.cfs</tt>: {@link CompoundFileDirectory compound container}</li>
- *   <li><tt>.nrm.cfe</tt>: {@link CompoundFileDirectory compound entries}</li>
+ *   <li><tt>.nrm.cfs</tt>: {@link CompoundFileDirectory compound container}
+ *   <li><tt>.nrm.cfe</tt>: {@link CompoundFileDirectory compound entries}
  * </ul>
  * Norms are implemented as DocValues, so other than file extension, norms are 
  * written exactly the same way as {@link Lucene40DocValuesFormat DocValues}.

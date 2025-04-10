@@ -104,11 +104,11 @@ import org.apache.lucene.util.packed.PackedInts;
  * <p>
  * Files and detailed format:
  * <ul>
- *   <li><tt>.tim</tt>: <a href="#Termdictionary">Term Dictionary</a></li>
- *   <li><tt>.tip</tt>: <a href="#Termindex">Term Index</a></li>
- *   <li><tt>.doc</tt>: <a href="#Frequencies">Frequencies and Skip Data</a></li>
- *   <li><tt>.pos</tt>: <a href="#Positions">Positions</a></li>
- *   <li><tt>.pay</tt>: <a href="#Payloads">Payloads and Offsets</a></li>
+ *   <li><tt>.tim</tt>: <a href="#Termdictionary">Term Dictionary</a>
+ *   <li><tt>.tip</tt>: <a href="#Termindex">Term Index</a>
+ *   <li><tt>.doc</tt>: <a href="#Frequencies">Frequencies and Skip Data</a>
+ *   <li><tt>.pos</tt>: <a href="#Positions">Positions</a>
+ *   <li><tt>.pay</tt>: <a href="#Payloads">Payloads and Offsets</a>
  * </ul>
  *
  * <a name="Termdictionary" id="Termdictionary"></a>
@@ -127,17 +127,17 @@ import org.apache.lucene.util.packed.PackedInts;
  * and decoding the PostingsHeader and TermMetadata sections described here:</p>
  *
  * <ul>
- *   <li>PostingsHeader --&gt; Header, PackedBlockSize</li>
+ *   <li>PostingsHeader --&gt; Header, PackedBlockSize
  *   <li>TermMetadata --&gt; (DocFPDelta|SingletonDocID), PosFPDelta?, PosVIntBlockFPDelta?, PayFPDelta?, 
- *                            SkipFPDelta?</li>
- *   <li>Header, --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
- *   <li>PackedBlockSize, SingletonDocID --&gt; {@link DataOutput#writeVInt VInt}</li>
- *   <li>DocFPDelta, PosFPDelta, PayFPDelta, PosVIntBlockFPDelta, SkipFPDelta --&gt; {@link DataOutput#writeVLong VLong}</li>
+ *                            SkipFPDelta?
+ *   <li>Header, --&gt; {@link CodecUtil#writeHeader CodecHeader}
+ *   <li>PackedBlockSize, SingletonDocID --&gt; {@link DataOutput#writeVInt VInt}
+ *   <li>DocFPDelta, PosFPDelta, PayFPDelta, PosVIntBlockFPDelta, SkipFPDelta --&gt; {@link DataOutput#writeVLong VLong}
  * </ul>
  * <p>Notes:</p>
  * <ul>
  *    <li>Header is a {@link CodecUtil#writeHeader CodecHeader} storing the version information
- *        for the postings.</li>
+ *        for the postings.
  *    <li>PackedBlockSize is the fixed block size for packed blocks. In packed block, bit width is 
  *        determined by the largest integer. Smaller block size result in smaller variance among width 
  *        of integers hence smaller indexes. Larger block size result in more efficient bulk i/o hence
@@ -146,11 +146,11 @@ import org.apache.lucene.util.packed.PackedInts;
  *    <li>DocFPDelta determines the position of this term's TermFreqs within the .doc file. 
  *        In particular, it is the difference of file offset between this term's
  *        data and previous term's data (or zero, for the first term in the block).On disk it is 
- *        stored as the difference from previous value in sequence. </li>
+ *        stored as the difference from previous value in sequence. 
  *    <li>PosFPDelta determines the position of this term's TermPositions within the .pos file.
  *        While PayFPDelta determines the position of this term's &lt;TermPayloads, TermOffsets?&gt; within 
  *        the .pay file. Similar to DocFPDelta, it is the difference between two file positions (or 
- *        neglected, for fields that omit payloads and offsets).</li>
+ *        neglected, for fields that omit payloads and offsets).
  *    <li>PosVIntBlockFPDelta determines the position of this term's last TermPosition in last pos packed
  *        block within the .pos file. It is synonym for PayVIntBlockFPDelta or OffsetVIntBlockFPDelta. 
  *        This is actually used to indicate whether it is necessary to load following
@@ -162,10 +162,10 @@ import org.apache.lucene.util.packed.PackedInts;
  *    <li>SkipFPDelta determines the position of this term's SkipData within the .doc
  *        file. In particular, it is the length of the TermFreq data.
  *        SkipDelta is only stored if DocFreq is not smaller than SkipMinimum
- *        (i.e. 128 in Lucene41PostingsFormat).</li>
+ *        (i.e. 128 in Lucene41PostingsFormat).
  *    <li>SingletonDocID is an optimization when a term only appears in one document. In this case, instead
  *        of writing a file pointer to the .doc file (DocFPDelta), and then a VIntBlock at that location, the 
- *        single document ID is written to the term dictionary.</li>
+ *        single document ID is written to the term dictionary.
  * </ul>
  * </dd>
  * </dl>
@@ -191,31 +191,31 @@ import org.apache.lucene.util.packed.PackedInts;
  * each packed or VInt block, when the length of document list is larger than packed block size.</p>
  *
  * <ul>
- *   <li>docFile(.doc) --&gt; Header, &lt;TermFreqs, SkipData?&gt;<sup>TermCount</sup></li>
- *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
+ *   <li>docFile(.doc) --&gt; Header, &lt;TermFreqs, SkipData?&gt;<sup>TermCount</sup>
+ *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
  *   <li>TermFreqs --&gt; &lt;PackedBlock&gt; <sup>PackedDocBlockNum</sup>,  
- *                        VIntBlock? </li>
+ *                        VIntBlock? 
  *   <li>PackedBlock --&gt; PackedDocDeltaBlock, PackedFreqBlock?
  *   <li>VIntBlock --&gt; &lt;DocDelta[, Freq?]&gt;<sup>DocFreq-PackedBlockSize*PackedDocBlockNum</sup>
  *   <li>SkipData --&gt; &lt;&lt;SkipLevelLength, SkipLevel&gt;
- *       <sup>NumSkipLevels-1</sup>, SkipLevel&gt;, SkipDatum?</li>
- *   <li>SkipLevel --&gt; &lt;SkipDatum&gt; <sup>TrimmedDocFreq/(PackedBlockSize^(Level + 1))</sup></li>
+ *       <sup>NumSkipLevels-1</sup>, SkipLevel&gt;, SkipDatum?
+ *   <li>SkipLevel --&gt; &lt;SkipDatum&gt; <sup>TrimmedDocFreq/(PackedBlockSize^(Level + 1))</sup>
  *   <li>SkipDatum --&gt; DocSkip, DocFPSkip, &lt;PosFPSkip, PosBlockOffset, PayLength?, 
- *                        PayFPSkip?&gt;?, SkipChildLevelPointer?</li>
- *   <li>PackedDocDeltaBlock, PackedFreqBlock --&gt; {@link PackedInts PackedInts}</li>
+ *                        PayFPSkip?&gt;?, SkipChildLevelPointer?
+ *   <li>PackedDocDeltaBlock, PackedFreqBlock --&gt; {@link PackedInts PackedInts}
  *   <li>DocDelta, Freq, DocSkip, DocFPSkip, PosFPSkip, PosBlockOffset, PayByteUpto, PayFPSkip 
  *       --&gt; 
- *   {@link DataOutput#writeVInt VInt}</li>
- *   <li>SkipChildLevelPointer --&gt; {@link DataOutput#writeVLong VLong}</li>
+ *   {@link DataOutput#writeVInt VInt}
+ *   <li>SkipChildLevelPointer --&gt; {@link DataOutput#writeVLong VLong}
  * </ul>
  * <p>Notes:</p>
  * <ul>
  *   <li>PackedDocDeltaBlock is theoretically generated from two steps: 
  *     <ol>
  *       <li>Calculate the difference between each document number and previous one, 
- *           and get a d-gaps list (for the first document, use absolute value); </li>
+ *           and get a d-gaps list (for the first document, use absolute value); 
  *       <li>For those d-gaps from first one to PackedDocBlockNum*PackedBlockSize<sup>th</sup>, 
- *           separately encode as packed blocks.</li>
+ *           separately encode as packed blocks.
  *     </ol>
  *     If frequencies are not omitted, PackedFreqBlock will be generated without d-gap step.
  *   <li>VIntBlock stores remaining d-gaps (along with frequencies when possible) with a format 
@@ -235,7 +235,7 @@ import org.apache.lucene.util.packed.PackedInts;
  *          sequence of VInts instead:</p>
  *       <p>7,4</p>
  *   <li>PackedDocBlockNum is the number of packed blocks for current term's docids or frequencies. 
- *       In particular, PackedDocBlockNum = floor(DocFreq/PackedBlockSize) </li>
+ *       In particular, PackedDocBlockNum = floor(DocFreq/PackedBlockSize) 
  *   <li>TrimmedDocFreq = DocFreq % PackedBlockSize == 0 ? DocFreq - 1 : DocFreq. 
  *       We use this trick since the definition of skip entry is a little different from base interface.
  *       In {@link MultiLevelSkipListWriter}, skip data is assumed to be saved for
@@ -243,24 +243,24 @@ import org.apache.lucene.util.packed.PackedInts;
  *       in Lucene41PostingsFormat, the skip data is saved for skipInterval+1<sup>th</sup>, 
  *       2*skipInterval+1<sup>th</sup> ... posting (skipInterval==PackedBlockSize in this case). 
  *       When DocFreq is multiple of PackedBlockSize, MultiLevelSkipListWriter will expect one 
- *       more skip data than Lucene41SkipWriter. </li>
+ *       more skip data than Lucene41SkipWriter. 
  *   <li>SkipDatum is the metadata of one skip entry.
- *      For the first block (no matter packed or VInt), it is omitted.</li>
+ *      For the first block (no matter packed or VInt), it is omitted.
  *   <li>DocSkip records the document number of every PackedBlockSize<sup>th</sup> document number in
  *       the postings (i.e. last document number in each packed block). On disk it is stored as the 
- *       difference from previous value in the sequence. </li>
+ *       difference from previous value in the sequence. 
  *   <li>DocFPSkip records the file offsets of each block (excluding )posting at 
  *       PackedBlockSize+1<sup>th</sup>, 2*PackedBlockSize+1<sup>th</sup> ... , in DocFile. 
  *       The file offsets are relative to the start of current term's TermFreqs. 
- *       On disk it is also stored as the difference from previous SkipDatum in the sequence.</li>
+ *       On disk it is also stored as the difference from previous SkipDatum in the sequence.
  *   <li>Since positions and payloads are also block encoded, the skip should skip to related block first,
  *       then fetch the values according to in-block offset. PosFPSkip and PayFPSkip record the file 
  *       offsets of related block in .pos and .pay, respectively. While PosBlockOffset indicates
  *       which value to fetch inside the related block (PayBlockOffset is unnecessary since it is always
  *       equal to PosBlockOffset). Same as DocFPSkip, the file offsets are relative to the start of 
- *       current term's TermFreqs, and stored as a difference sequence.</li>
+ *       current term's TermFreqs, and stored as a difference sequence.
  *   <li>PayByteUpto indicates the start offset of the current payload. It is equivalent to
- *       the sum of the payload lengths in the current block up to PosBlockOffset</li>
+ *       the sum of the payload lengths in the current block up to PosBlockOffset
  * </ul>
  * </dd>
  * </dl>
@@ -272,47 +272,47 @@ import org.apache.lucene.util.packed.PackedInts;
  * <p>The .pos file contains the lists of positions that each term occurs at within documents. It also
  *    sometimes stores part of payloads and offsets for speedup.</p>
  * <ul>
- *   <li>PosFile(.pos) --&gt; Header, &lt;TermPositions&gt; <sup>TermCount</sup></li>
- *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
+ *   <li>PosFile(.pos) --&gt; Header, &lt;TermPositions&gt; <sup>TermCount</sup>
+ *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
  *   <li>TermPositions --&gt; &lt;PackedPosDeltaBlock&gt; <sup>PackedPosBlockNum</sup>,  
- *                            VIntBlock? </li>
+ *                            VIntBlock? 
  *   <li>VIntBlock --&gt; &lt;PositionDelta[, PayloadLength?], PayloadData?, 
  *                        OffsetDelta?, OffsetLength?&gt;<sup>PosVIntCount</sup>
- *   <li>PackedPosDeltaBlock --&gt; {@link PackedInts PackedInts}</li>
+ *   <li>PackedPosDeltaBlock --&gt; {@link PackedInts PackedInts}
  *   <li>PositionDelta, OffsetDelta, OffsetLength --&gt; 
- *       {@link DataOutput#writeVInt VInt}</li>
- *   <li>PayloadData --&gt; {@link DataOutput#writeByte byte}<sup>PayLength</sup></li>
+ *       {@link DataOutput#writeVInt VInt}
+ *   <li>PayloadData --&gt; {@link DataOutput#writeByte byte}<sup>PayLength</sup>
  * </ul>
  * <p>Notes:</p>
  * <ul>
  *   <li>TermPositions are order by term (terms are implicit, from the term dictionary), and position 
- *       values for each term document pair are incremental, and ordered by document number.</li>
+ *       values for each term document pair are incremental, and ordered by document number.
  *   <li>PackedPosBlockNum is the number of packed blocks for current term's positions, payloads or offsets. 
- *       In particular, PackedPosBlockNum = floor(totalTermFreq/PackedBlockSize) </li>
+ *       In particular, PackedPosBlockNum = floor(totalTermFreq/PackedBlockSize) 
  *   <li>PosVIntCount is the number of positions encoded as VInt format. In particular, 
- *       PosVIntCount = totalTermFreq - PackedPosBlockNum*PackedBlockSize</li>
+ *       PosVIntCount = totalTermFreq - PackedPosBlockNum*PackedBlockSize
  *   <li>The procedure how PackedPosDeltaBlock is generated is the same as PackedDocDeltaBlock 
- *       in chapter <a href="#Frequencies">Frequencies and Skip Data</a>.</li>
+ *       in chapter <a href="#Frequencies">Frequencies and Skip Data</a>.
  *   <li>PositionDelta is, if payloads are disabled for the term's field, the
  *       difference between the position of the current occurrence in the document and
  *       the previous occurrence (or zero, if this is the first occurrence in this
  *       document). If payloads are enabled for the term's field, then PositionDelta/2
  *       is the difference between the current and the previous position. If payloads
  *       are enabled and PositionDelta is odd, then PayloadLength is stored, indicating
- *       the length of the payload at the current term position.</li>
+ *       the length of the payload at the current term position.
  *   <li>For example, the TermPositions for a term which occurs as the fourth term in
  *       one document, and as the fifth and ninth term in a subsequent document, would
  *       be the following sequence of VInts (payloads disabled):
- *       <p>4, 5, 4</p></li>
+ *       <p>4, 5, 4</p>
  *   <li>PayloadData is metadata associated with the current term position. If
  *       PayloadLength is stored at the current position, then it indicates the length
  *       of this payload. If PayloadLength is not stored, then this payload has the same
- *       length as the payload at the previous position.</li>
+ *       length as the payload at the previous position.
  *   <li>OffsetDelta/2 is the difference between this position's startOffset from the
  *       previous occurrence (or zero, if this is the first occurrence in this document).
  *       If OffsetDelta is odd, then the length (endOffset-startOffset) differs from the
  *       previous occurrence and an OffsetLength follows. Offset data is only written for
- *       {@link IndexOptions#DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS}.</li>
+ *       {@link IndexOptions#DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS}.
  * </ul>
  * </dd>
  * </dl>
@@ -324,27 +324,27 @@ import org.apache.lucene.util.packed.PackedInts;
  * <p>The .pay file will store payloads and offsets associated with certain term-document positions. 
  *    Some payloads and offsets will be separated out into .pos file, for performance reasons.</p>
  * <ul>
- *   <li>PayFile(.pay): --&gt; Header, &lt;TermPayloads, TermOffsets?&gt; <sup>TermCount</sup></li>
- *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
+ *   <li>PayFile(.pay): --&gt; Header, &lt;TermPayloads, TermOffsets?&gt; <sup>TermCount</sup>
+ *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
  *   <li>TermPayloads --&gt; &lt;PackedPayLengthBlock, SumPayLength, PayData&gt; <sup>PackedPayBlockNum</sup>
  *   <li>TermOffsets --&gt; &lt;PackedOffsetStartDeltaBlock, PackedOffsetLengthBlock&gt; <sup>PackedPayBlockNum</sup>
- *   <li>PackedPayLengthBlock, PackedOffsetStartDeltaBlock, PackedOffsetLengthBlock --&gt; {@link PackedInts PackedInts}</li>
- *   <li>SumPayLength --&gt; {@link DataOutput#writeVInt VInt}</li>
- *   <li>PayData --&gt; {@link DataOutput#writeByte byte}<sup>SumPayLength</sup></li>
+ *   <li>PackedPayLengthBlock, PackedOffsetStartDeltaBlock, PackedOffsetLengthBlock --&gt; {@link PackedInts PackedInts}
+ *   <li>SumPayLength --&gt; {@link DataOutput#writeVInt VInt}
+ *   <li>PayData --&gt; {@link DataOutput#writeByte byte}<sup>SumPayLength</sup>
  * </ul>
  * <p>Notes:</p>
  * <ul>
  *   <li>The order of TermPayloads/TermOffsets will be the same as TermPositions, note that part of 
- *       payload/offsets are stored in .pos.</li>
+ *       payload/offsets are stored in .pos.
  *   <li>The procedure how PackedPayLengthBlock and PackedOffsetLengthBlock are generated is the 
  *       same as PackedFreqBlock in chapter <a href="#Frequencies">Frequencies and Skip Data</a>. 
- *       While PackedStartDeltaBlock follows a same procedure as PackedDocDeltaBlock.</li>
+ *       While PackedStartDeltaBlock follows a same procedure as PackedDocDeltaBlock.
  *   <li>PackedPayBlockNum is always equal to PackedPosBlockNum, for the same term. It is also synonym 
- *       for PackedOffsetBlockNum.</li>
+ *       for PackedOffsetBlockNum.
  *   <li>SumPayLength is the total length of payloads written within one block, should be the sum
- *       of PayLengths in one packed block.</li>
+ *       of PayLengths in one packed block.
  *   <li>PayLength in PackedPayLengthBlock is the length of each payload associated with the current 
- *       position.</li>
+ *       position.
  * </ul>
  * </dd>
  * </dl>

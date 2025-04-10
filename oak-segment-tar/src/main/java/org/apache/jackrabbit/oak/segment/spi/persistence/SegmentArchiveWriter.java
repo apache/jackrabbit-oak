@@ -32,13 +32,13 @@ import org.jetbrains.annotations.Nullable;
  * <ol>
  *     <li>phase 1:
  *         <ul>
- *             <li>{@link #writeSegment(long, long, byte[], int, int, int, int, boolean)}</li>
- *             <li>{@link #flush()}</li>
+ *             <li>{@link #writeSegment(long, long, byte[], int, int, int, int, boolean)}
+ *             <li>{@link #flush()}
  *         </ul>
- *         repeated in an unspecified order</li>
- *     <li>{@link #writeBinaryReferences(byte[])}</li>
- *     <li>{@link #writeGraph(byte[])} (optionally)</li>
- *     <li>{@link #close()}</li>
+ *         repeated in an unspecified order
+ *     <li>{@link #writeBinaryReferences(byte[])}
+ *     <li>{@link #writeGraph(byte[])} (optionally)
+ *     <li>{@link #close()}
  * </ol>
  * All the calls above are synchronized by the caller.
  * In the first phase of the writer lifecycle, the

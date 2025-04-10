@@ -44,11 +44,11 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
  * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
  * with support for operations that modify node types.
  * <ul>
- * <li>{@link #registerNodeType(NodeTypeDefinition, boolean)}</li>
- * <li>{@link #registerNodeTypes(NodeTypeDefinition[], boolean)}</li>
- * <li>{@link #unregisterNodeType(String)}</li>
- * <li>{@link #unregisterNodeTypes(String[])}</li>
- * <li>plus related template factory methods</li>
+ * <li>{@link #registerNodeType(NodeTypeDefinition, boolean)}
+ * <li>{@link #registerNodeTypes(NodeTypeDefinition[], boolean)}
+ * <li>{@link #unregisterNodeType(String)}
+ * <li>{@link #unregisterNodeTypes(String[])}
+ * <li>plus related template factory methods
  * </ul>
  * Calling any of the above methods will result in a {@link #refresh()} callback
  * to e.g. inform an associated session that it should refresh to make the
@@ -61,8 +61,8 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
  * also want to override the default implementation of
  * {@link ReadOnlyNodeTypeManager} for the following methods:
  * <ul>
- * <li>{@link #getValueFactory()}</li>
- * <li>{@link ReadOnlyNodeTypeManager#getNamePathMapper()}</li>
+ * <li>{@link #getValueFactory()}
+ * <li>{@link ReadOnlyNodeTypeManager#getNamePathMapper()}
  * </ul>
  */
 public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {

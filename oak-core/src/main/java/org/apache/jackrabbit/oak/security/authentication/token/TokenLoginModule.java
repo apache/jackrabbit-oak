@@ -62,12 +62,12 @@ import org.slf4j.LoggerFactory;
  *
  * <ol>
  *     <li>Try to retrieve {@link TokenCredentials} credentials (see also
- *     {@link AbstractLoginModule#getCredentials()})</li>
+ *     {@link AbstractLoginModule#getCredentials()})
  *     <li>Validates the credentials based on the functionality provided by
- *     {@link TokenAuthentication#authenticate(javax.jcr.Credentials)}</li>
+ *     {@link TokenAuthentication#authenticate(javax.jcr.Credentials)}
  *     <li>Upon success it retrieves {@code userId} from the {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo}
- *     and calculates the principals associated with that user,</li>
- *     <li>and finally puts the credentials on the shared state.</li>
+ *     and calculates the principals associated with that user,
+ *     <li>and finally puts the credentials on the shared state.
  * </ol>
  *
  * If no {@code TokenProvider} has been configured {@link #login()} or if

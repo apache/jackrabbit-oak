@@ -26,13 +26,13 @@ import org.jetbrains.annotations.NotNull;
  * <ol>
  * <li>The static {@link #INSTANCE} instance can be used as a "null object"
  * in cases where another commit hook has not been configured, thus avoiding
- * the need for extra code for such cases.</li>
+ * the need for extra code for such cases.
  * <li>Other commit hook implementations can extend this class and gain
  * improved forwards-compatibility to possible changes in the
  * {@link CommitHook} interface. For example if it is later decided that
  * new arguments are needed in the hook methods, this class is guaranteed
  * to implement any new method signatures in a way that falls gracefully
- * back to any earlier behavior.</li>
+ * back to any earlier behavior.
  * </ol>
  */
 public class EmptyHook implements CommitHook {

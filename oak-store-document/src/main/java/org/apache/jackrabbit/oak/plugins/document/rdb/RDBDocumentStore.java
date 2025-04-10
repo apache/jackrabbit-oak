@@ -103,13 +103,13 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
  * simplify testing, and <em>that</em> code specifically supports these
  * databases:
  * <ul>
- * <li>H2DB</li>
- * <li>Apache Derby</li>
- * <li>IBM DB2</li>
- * <li>PostgreSQL</li>
- * <li>MariaDB (MySQL)</li>
- * <li>Microsoft SQL Server</li>
- * <li>Oracle</li>
+ * <li>H2DB
+ * <li>Apache Derby
+ * <li>IBM DB2
+ * <li>PostgreSQL
+ * <li>MariaDB (MySQL)
+ * <li>Microsoft SQL Server
+ * <li>Oracle
  * </ul>
  * 
  * <h3 id="apidocs.table-layout">Table Layout</h3>
@@ -216,9 +216,9 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
  * <p>
  * Databases need to be configured so that:
  * <ul>
- * <li>Text fields support all Unicode code points,</li>
- * <li>Collation of text fields happens by Unicode code point,</li>
- * <li>and BLOBs need to support at least 16 MB.</li>
+ * <li>Text fields support all Unicode code points,
+ * <li>Collation of text fields happens by Unicode code point,
+ * <li>and BLOBs need to support at least 16 MB.
  * </ul>
  * <p>
  * See the
