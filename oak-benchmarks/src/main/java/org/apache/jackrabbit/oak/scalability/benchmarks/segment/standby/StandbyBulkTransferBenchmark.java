@@ -23,7 +23,7 @@ import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.management.MBeanServer;
