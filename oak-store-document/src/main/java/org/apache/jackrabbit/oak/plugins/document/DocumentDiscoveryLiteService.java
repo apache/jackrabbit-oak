@@ -59,7 +59,6 @@ import org.slf4j.LoggerFactory;
  * the following states:
  * <ul>
  * <li>active: the instance is currently running and has an up-to-date lease
- * </li>
  * <li>deactivating: the instance failed to update the lease recently thus a
  * recovery is happening - or it has just finished and the local instance is yet
  * to do a backgroundRead before it has finished reading the crashed/shutdown

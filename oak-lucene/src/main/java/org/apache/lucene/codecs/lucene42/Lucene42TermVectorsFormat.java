@@ -116,7 +116,6 @@ import org.apache.lucene.util.packed.PackedInts;
  * <li>Terms: term bytes</li>
  * <li>Payloads: payload bytes (if the field has payloads)</li>
  * </ul>
- * </li>
  * <li><a name="vector_index" id="vector_index"></a>
  * <p>An index file (extension <tt>.tvx</tt>).</p>
  * <ul>
@@ -124,7 +123,6 @@ import org.apache.lucene.util.packed.PackedInts;
  * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
  * <li>ChunkIndex: See {@link CompressingStoredFieldsIndexWriter}</li>
  * </ul>
- * </li>
  * </ol>
  * @lucene.experimental
  */

@@ -79,7 +79,6 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
  *         + aS              [rep:AuthorizableFolder]
  * ->        + aSmith        [rep:User]
  * </pre>
- * </li>
  * <li>The node name is calculated from the specified authorizable ID according
  * to the logic provided by the configured {@link AuthorizableNodeName}
  * implementation. If no name generator is present in the configuration

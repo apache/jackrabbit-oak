@@ -60,17 +60,13 @@ import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
  * <li>
  *     <code>fileWriters</code> - Controls the number of concurrent background threads for writing blobs.
  *     Defaults to 0.
- * </li>
  * <li>
  *     <code>fileReaders</code> - Controls the number of concurrent background threads for reading blobs.
  *     Defaults to 1.
- * </li>
  * <li>
  *     <code>fileSize</code> - Controls the size in KB of the blobs. Defaults to 1.
- * </li>
  * <li>
  *     <code>maxAssets</code> - Controls the max child nodes created under a node. Defaults to 500.
- * </li>
  * </ul>
  */
 public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {

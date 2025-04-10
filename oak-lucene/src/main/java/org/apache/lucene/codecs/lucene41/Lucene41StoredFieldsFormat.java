@@ -108,7 +108,6 @@ import org.apache.lucene.util.packed.PackedInts;
  * <li>In case documents are incompressible, CompressedDocs will be less than
  * 0.5% larger than Docs.</li>
  * </ul>
- * </li>
  * <li><a name="field_index" id="field_index"></a>
  * <p>A fields index file (extension <tt>.fdx</tt>).</p>
  * <ul>
@@ -116,7 +115,6 @@ import org.apache.lucene.util.packed.PackedInts;
  * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
  * <li>ChunkIndex: See {@link CompressingStoredFieldsIndexWriter}</li>
  * </ul>
- * </li>
  * </ol>
  * <p><b>Known limitations</b></p>
  * <p>This {@link StoredFieldsFormat} does not support individual documents

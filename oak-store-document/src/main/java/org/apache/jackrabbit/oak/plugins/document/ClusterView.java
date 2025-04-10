@@ -82,7 +82,6 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
  * ids that are all in the process of deactivating and for which therefore some
  * data might still be making its way to the local instance. So any changes that
  * were done by instances that are deactivating might not yet be visible locally
- * </li>
  * <li>deactive = deactive instance ids: this is the list of instance ids that
  * are not running nor do they have any data pending to become visible by the
  * local instance</li>

@@ -70,7 +70,6 @@ import org.apache.jackrabbit.guava.common.base.Splitter;
  *      </ul>
  *
  *     Defaults to 10,5,2,1.
- * </li>
  * </ul>
  *
  */

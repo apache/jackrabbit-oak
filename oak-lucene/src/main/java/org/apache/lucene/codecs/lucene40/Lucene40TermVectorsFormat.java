@@ -53,7 +53,6 @@ import org.apache.lucene.store.IOContext;
  *   <li>DocumentPosition --&gt; {@link DataOutput#writeLong UInt64} (offset in the .tvd file)</li>
  *   <li>FieldPosition --&gt; {@link DataOutput#writeLong UInt64} (offset in the .tvf file)</li>
  * </ul>
- * </li>
  * <li><a name="tvd" id="tvd"></a>
  * <p>The Document or .tvd file.</p>
  * <p>This contains, for each document, the number of fields, a list of the fields
@@ -71,7 +70,6 @@ import org.apache.lucene.store.IOContext;
  *   <li>FieldPositions --&gt; &lt;FieldPositionDelta&gt; <sup>NumFields-1</sup></li>
  *   <li>FieldPositionDelta --&gt; {@link DataOutput#writeVLong VLong}</li>
  * </ul>
- * </li>
  * <li><a name="tvf" id="tvf"></a>
  * <p>The Field or .tvf file.</p>
  * <p>This file contains, for each field that has a term vector stored, a list of
@@ -118,7 +116,6 @@ import org.apache.lucene.store.IOContext;
  * <li>Offsets are stored as delta encoded VInts. The first VInt is the
  * startOffset, the second is the endOffset.</li>
  * </ul>
- * </li>
  * </ol>
  */
 public class Lucene40TermVectorsFormat extends TermVectorsFormat {

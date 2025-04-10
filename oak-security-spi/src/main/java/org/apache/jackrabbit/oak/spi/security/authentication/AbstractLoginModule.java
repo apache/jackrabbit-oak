@@ -85,7 +85,6 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * <li>options: The configuration options of this login module as specified
  * in the {@link javax.security.auth.login.Configuration}.</li>
  * </ul>
- * </li>
  * <li>{@link LoginModule#logout() Logout}:
  * If the authenticated subject is not empty this logout implementation
  * attempts to clear both principals and public credentials and returns

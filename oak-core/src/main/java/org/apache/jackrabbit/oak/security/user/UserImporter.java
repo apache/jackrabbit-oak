@@ -97,10 +97,8 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
  * <ul>
  * <li>The importer will only be initialized if the user manager exposed by
  * the session is an instance of {@code UserManagerImpl}.
- * </li>
  * <li>The importer will only be initialized if the editing session starting
  * this import is the same as the UserManager's Session instance.
- * </li>
  * <li>The jcr:uuid property of user and groups is defined to represent the
  * hashed authorizable id as calculated by the UserManager. This importer
  * is therefore not able to handle imports with
@@ -132,7 +130,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
  * <li>{@link ImportBehavior#NAME_ABORT abort}: The import is immediately
  * aborted with a ConstraintViolationException. (<strong>default</strong>)</li>
  * </ul>
- * </li>
  * </ul>
  */
 class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, UserConstants {

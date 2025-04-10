@@ -54,7 +54,6 @@ import org.apache.lucene.store.IOContext;
  * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
  * <li>FieldValuesPosition --&gt; {@link DataOutput#writeLong Uint64}</li>
  * </ul>
- * </li>
  * <li>
  * <p><a name="field_data" id="field_data"></a>The field data, or <tt>.fdt</tt> file.</p>
  * <p>This contains the stored fields of each document, as follows:</p>
@@ -78,12 +77,10 @@ import org.apache.lucene.store.IOContext;
  * <li>3&lt;&lt;3: Value is Int as Float (as of {@link Float#intBitsToFloat(int)}</li>
  * <li>4&lt;&lt;3: Value is Long as Double (as of {@link Double#longBitsToDouble(long)}</li>
  * </ul>
- * </li>
  * </ul>
  * <li>Value --&gt; String | BinaryValue | Int | Long (depending on Bits)</li>
  * <li>BinaryValue --&gt; ValueSize, &lt;{@link DataOutput#writeByte Byte}&gt;^ValueSize</li>
  * <li>ValueSize --&gt; {@link DataOutput#writeVInt VInt}</li>
- * </li>
  * </ul>
  * </ol>
  * @lucene.experimental */
