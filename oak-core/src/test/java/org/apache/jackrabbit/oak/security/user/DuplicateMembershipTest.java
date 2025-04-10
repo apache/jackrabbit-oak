@@ -28,6 +28,8 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -70,8 +72,8 @@ public class DuplicateMembershipTest extends AbstractSecurityTest {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
         when(dmp.coversAllMembers(any(Group.class))).thenReturn(true);
         // mock iterators with duplicate entries
-        when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(Iterators.forArray(member, member));
-        when(dmp.getMembership(any(Authorizable.class), anyBoolean())).thenReturn(Iterators.forArray(group, group));
+        when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(List.of(member, member).iterator());
+        when(dmp.getMembership(any(Authorizable.class), anyBoolean())).thenReturn(List.of(group, group).iterator());
         return dmp;
     }
     
