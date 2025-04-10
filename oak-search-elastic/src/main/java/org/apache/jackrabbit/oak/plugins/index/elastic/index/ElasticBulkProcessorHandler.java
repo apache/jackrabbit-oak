@@ -388,7 +388,7 @@ public class ElasticBulkProcessorHandler {
             errors.addAll(globalSuppressedErrorCauses);
             String overflowMessage = (errors.size() >= MAX_SUPPRESSED_ERROR_CAUSES) ?
                     ". (Too many failed operations in last bulk request, including only " + errors.size() + " errors)" : "";
-            IOException ioe = new IOException("Exception while indexing. See suppressed for details" + overflowMessage);
+            IOException ioe = new IOException("Exception while indexing " + indexInfo.indexName + ". See suppressed for details" + overflowMessage);
             errors.stream().map(ec -> new IllegalStateException(ec.reason())).forEach(ioe::addSuppressed);
             throw ioe;
         }
