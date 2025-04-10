@@ -84,7 +84,7 @@ public class ElasticBulkProcessorHandlerTest {
         Assert.assertNotNull(indexInfo);
         Assert.assertFalse(indexInfo.isRealTime);
 
-        bulkProcessorHandler.closeIndex("index");
+        bulkProcessorHandler.flushIndex("index");
         bulkProcessorHandler.close();
     }
 
@@ -99,7 +99,7 @@ public class ElasticBulkProcessorHandlerTest {
     }
 
     @Test
-    public void didNotCloseIndex() throws IOException {
+    public void didNotFlushIndex() throws IOException {
         when(definitionNodeStateMock.getProperty(eq("async"))).thenReturn(null);
         ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(elasticConnectionMock);
         bulkProcessorHandler.registerIndex("index", indexDefinitionMock, definitionBuilder, commitInfo, true);
@@ -124,7 +124,7 @@ public class ElasticBulkProcessorHandlerTest {
         Assert.assertThrows(IllegalStateException.class,
                 () -> bulkProcessorHandler.delete("index", "id"));
         Assert.assertThrows(IllegalStateException.class,
-                () -> bulkProcessorHandler.closeIndex("index"));
+                () -> bulkProcessorHandler.flushIndex("index"));
     }
 
     @Test
@@ -139,7 +139,7 @@ public class ElasticBulkProcessorHandlerTest {
         ElasticBulkProcessorHandler.IndexInfo indexInfo = bulkProcessorHandler.getIndexInfo("index");
         Assert.assertNotNull(indexInfo);
         Assert.assertTrue(indexInfo.isRealTime);
-        bulkProcessorHandler.closeIndex("index");
+        bulkProcessorHandler.flushIndex("index");
         bulkProcessorHandler.close();
     }
 
@@ -155,7 +155,7 @@ public class ElasticBulkProcessorHandlerTest {
         Assert.assertNotNull(indexInfo);
         Assert.assertTrue(indexInfo.isRealTime);
 
-        bulkProcessorHandler.closeIndex("index");
+        bulkProcessorHandler.flushIndex("index");
         bulkProcessorHandler.close();
     }
 
@@ -175,8 +175,8 @@ public class ElasticBulkProcessorHandlerTest {
         Assert.assertNotNull(indexInfo2);
         Assert.assertFalse(indexInfo2.isRealTime);
 
-        Assert.assertFalse(bulkProcessorHandler.closeIndex("index1"));
-        Assert.assertFalse(bulkProcessorHandler.closeIndex("index2"));
+        Assert.assertFalse(bulkProcessorHandler.flushIndex("index1"));
+        Assert.assertFalse(bulkProcessorHandler.flushIndex("index2"));
         bulkProcessorHandler.close();
     }
 }

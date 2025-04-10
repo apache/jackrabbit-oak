@@ -274,20 +274,20 @@ public class ElasticBulkProcessorHandler {
     }
 
     /**
-     * Closes an index. The underlying bulk ingestor will be flushed, to ensure that all pending operations for this
+     * Flushes an index. The underlying bulk ingestor will be flushed, to ensure that all pending operations for this
      * index are sent to the server. If this index was registered with waitForESAcknowledgement set to true, then this
      * method will wait until we receive an acknowledgement from the server for all the operations up to when this
      * method was called.
      * <p>
-     * Note: Closing an index will have the side-effect of flushing all pending operations for all indexes registered
+     * Note: Flushing an index will have the side effect of flushing all pending operations for all indexes registered
      * with the bulk processor. This should be transparent for the user, but it may mean that this method would take
      * longer to return than if it was flushing only the operations for the index being closed.
      *
      * @return {@code true} if at least one update was performed, {@code false} otherwise
      * @throws IOException if an error happened while processing the bulk requests
      */
-    public boolean closeIndex(String indexName) throws IOException {
-        LOG.info("Closing index: {}", indexName);
+    public boolean flushIndex(String indexName) throws IOException {
+        LOG.debug("Flushing index: {}", indexName);
         checkOpen();
         // TODO: Must wait for all operations for this index to complete
         IndexInfo indexInfo = registeredIndexes.remove(indexName);
@@ -349,9 +349,7 @@ public class ElasticBulkProcessorHandler {
         }
 
         checkFailuresForIndex(indexInfo);
-        if (LOG.isTraceEnabled()) {
-            LOG.trace("Bulk identifier -> update status = {}", registeredIndexes);
-        }
+        LOG.trace("Bulk identifier -> update status = {}", registeredIndexes);
         return indexInfo.indexModified;
     }
 
@@ -486,7 +484,7 @@ public class ElasticBulkProcessorHandler {
         @Override
         public void afterBulk(long executionId, BulkRequest request, List<OperationContext> contexts, BulkResponse response) {
             try {
-                LOG.debug("Bulk with id {} processed in {} ms", executionId, response.took() / 1_000_000);
+                LOG.debug("Bulk with id {} processed in {} ms", executionId, response.took());
                 if (LOG.isTraceEnabled()) {
                     LOG.trace(response.toString());
                 }

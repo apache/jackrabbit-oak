@@ -127,7 +127,7 @@ public class ElasticIndexWriterTest {
     public void closeIndex() throws IOException {
         indexWriter.close(System.currentTimeMillis());
         // Closes the index but not the bulk processor
-        verify(bulkProcessorHandlerMock).closeIndex(eq(indexAlias));
+        verify(bulkProcessorHandlerMock).flushIndex(eq(indexAlias));
         verify(bulkProcessorHandlerMock, never()).close();
     }
 

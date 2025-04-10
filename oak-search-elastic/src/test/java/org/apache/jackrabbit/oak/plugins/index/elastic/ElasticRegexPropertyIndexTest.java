@@ -125,7 +125,7 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
             Throwable cause = e.getCause();
             String msg = cause.getMessage();
             assertTrue("Unexpected exception type. Expected IOException. Was " + cause, cause instanceof IOException);
-            assertTrue(msg, msg.contains("Exception while indexing."));
+            assertTrue(msg, msg.contains("Exception while indexing "));
             // Typically, the root cause is "Limit of total fields [1000] has been exceeded"
             // but something this is suppressed, and so we can not have an assertion on it
         }
