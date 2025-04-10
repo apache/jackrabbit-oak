@@ -122,7 +122,6 @@ import org.slf4j.LoggerFactory;
  *
  *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
  * {@code mvn test -Dtest=SegmentCompactionIT -Dtest.opts.memory=-Xmx4G}
- * </p>
  *
  * <p>TODO Leverage longevity test support from OAK-2771 once we have it.</p>
  */

@@ -46,12 +46,10 @@ import org.junit.Test;
  * The test is <b>disabled</b> by default, to run it you need to set the
  * {@code CacheWeightsTest} system property:<br>
  * {@code mvn clean test -Dtest=CacheWeightEstimator -Dtest.opts.memory=-Xmx2G}
- * </p>
  * <p>
  * To collect the results check the
  * {@code org.apache.jackrabbit.oak.segment.CacheWeightsTest-output.txt} file:<br>
  * {@code cat target/surefire-reports/org.apache.jackrabbit.oak.segment.CacheWeightEstimator-output.txt}
- * </p>
  */
 public class CacheWeightEstimator {
 

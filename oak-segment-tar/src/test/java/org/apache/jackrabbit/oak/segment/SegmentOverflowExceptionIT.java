@@ -54,11 +54,9 @@ import org.slf4j.LoggerFactory;
  * command line specify {@code -Dtest=SegmentOverflowExceptionIT} to enable it. Use {@code -Dtimeout=t}
  * to specify a different timeout {@code t} in milliseconds. Use {@code -Dmax-repo-size=s} to specify
  * a maximal repository size {@code s} in megabytes above which to stop the test.
- * </p>
  *
  *<p>If you only want to run this test:<br>
  * {@code mvn verify -DfailIfNoTests=false -DskipTests -PintegrationTesting -Dtest=SegmentOverflowExceptionIT}
- * </p>
  */
 public class SegmentOverflowExceptionIT {
     private static final Logger LOG = LoggerFactory

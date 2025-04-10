@@ -49,21 +49,18 @@ import org.slf4j.LoggerFactory;
  * <li>must have the <code>type</code> property set to <b><code>property</code></b></li>
  * <li>contains the <code>propertyNames</code> property that indicates what property will be stored in the index</li>
  * </ul>
- * </p>
  * <p>
  * Optionally you can specify
  * <ul> 
  * <li> a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code></li>
  * <li> that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property</li>
  * </ul>
- * </p>
  * <p>
  * Notes:
  * <ul>
  * <li> <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value</li>
  * <li> <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.</li>
  * </ul>
- * </p>
  * 
  * <pre>
  * <code>

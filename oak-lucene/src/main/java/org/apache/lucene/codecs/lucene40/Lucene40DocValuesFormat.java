@@ -57,7 +57,6 @@ import org.apache.lucene.util.packed.PackedInts;
  * entries within the compound file. In the case of dereferenced/sorted types, the <tt>.dat</tt>
  * actually contains only the unique values, and an additional <tt>.idx</tt> file contains
  * pointers to these unique values.
- * </p>
  * Formats:
  * <ul>
  *    <li>{@code VAR_INTS} .dat --&gt; Header, PackedType, MinValue, 

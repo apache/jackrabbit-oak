@@ -39,11 +39,9 @@ import javax.jcr.RepositoryException;
  * <p>
  * Please consult the parent interface {@link AuthorizableAction} for details on persisting changes,
  * configuring actions and the API through which actions are invoked.
- * </p>
  *
  * <p>
  * For convenience, an {@link AbstractGroupAction} is provided.
- * </p>
  * @since OAK 1.6
  */
 public interface GroupAction extends AuthorizableAction {

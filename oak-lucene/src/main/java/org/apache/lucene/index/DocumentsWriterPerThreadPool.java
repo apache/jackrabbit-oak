@@ -42,7 +42,6 @@ import org.apache.lucene.util.SetOnce;
  * Once a {@link DocumentsWriterPerThread} is selected for flush the thread pool
  * is reusing the flushing {@link DocumentsWriterPerThread}s ThreadState with a
  * new {@link DocumentsWriterPerThread} instance.
- * </p>
  */
 abstract class DocumentsWriterPerThreadPool implements Cloneable {
   

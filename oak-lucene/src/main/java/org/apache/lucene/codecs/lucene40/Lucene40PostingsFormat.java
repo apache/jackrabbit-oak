@@ -53,7 +53,6 @@ import org.apache.lucene.util.fst.FST; // javadocs
  *   <li><tt>.frq</tt>: <a href="#Frequencies">Frequencies</a></li>
  *   <li><tt>.prx</tt>: <a href="#Positions">Positions</a></li>
  * </ul>
- * </p>
  * <p>
  * <a name="Termdictionary" id="Termdictionary"></a>
  * <h3>Term Dictionary</h3>
@@ -63,7 +62,6 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * and pointers to the frequencies, positions and
  * skip data in the .frq and .prx files.
  * See {@link BlockTreeTermsWriter} for more details on the format.
- * </p>
  *
  * <p>NOTE: The term dictionary can plug into different postings implementations:
  * the postings writer/reader are actually responsible for encoding 
@@ -180,7 +178,6 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * referencing the corresponding SkipData entry in level-1. In the example has
  * entry 15 on level 1 a pointer to entry 15 on level 0 and entry 31 on level 1 a
  * pointer to entry 31 on level 0.
- * </p>
  * <a name="Positions" id="Positions"></a>
  * <h3>Positions</h3>
  * <p>The .prx file contains the lists of positions that each term occurs at

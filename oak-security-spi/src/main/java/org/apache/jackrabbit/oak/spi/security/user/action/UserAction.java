@@ -36,7 +36,6 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * See {@link AuthorizableAction} for details on persisting changes,
  * configuring actions and the API through which actions are invoked.
- * </p>
  *
  * @since OAK 1.10
  */

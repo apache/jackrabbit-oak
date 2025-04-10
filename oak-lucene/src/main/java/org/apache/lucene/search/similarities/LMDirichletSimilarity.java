@@ -40,7 +40,6 @@ import org.apache.lucene.search.Explanation;
  * contain the term, but with fewer occurrences than predicted by the collection
  * language model. The Lucene implementation returns {@code 0} for such
  * documents.
- * </p>
  * 
  * @lucene.experimental
  */

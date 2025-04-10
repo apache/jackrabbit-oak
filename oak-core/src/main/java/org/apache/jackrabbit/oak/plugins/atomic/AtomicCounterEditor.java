@@ -58,7 +58,6 @@ import org.slf4j.LoggerFactory;
  * Manages a node as <em>Atomic Counter</em>: a node which will handle at low level a protected
  * property ({@link #PROP_COUNTER}) in an atomic way. This will represent an increment or decrement
  * of a counter in the case, for example, of <em>Likes</em> or <em>Voting</em>.
- * </p>
  * 
  * <p>
  * Whenever you add a {@link NodeTypeConstants#MIX_ATOMIC_COUNTER} mixin to a node it will turn it
@@ -66,11 +65,9 @@ import org.slf4j.LoggerFactory;
  * you'll need to set the {@code oak:increment} one ({@link #PROP_INCREMENT}). Please note that the
  * <strong>{@code oak:incremement} will never be saved</strong>, only the {@code oak:counter} will
  * be amended accordingly.
- * </p>
  * 
  * <p>
  * So in order to deal with the counter from a JCR point of view you'll do something as follows
- * </p>
  * 
  * <pre>
  *  Session session = ...
@@ -106,25 +103,21 @@ import org.slf4j.LoggerFactory;
  * The related jira ticket is <a href="https://issues.apache.org/jira/browse/OAK-2472">OAK-2472</a>.
  * In a nutshell when you save an {@code oak:increment} behind the scene it takes its value and
  * increment an internal counter. There will be an individual counter for each cluster node.
- * </p>
  * 
  * <p>
  * Then it will consolidate all the internal counters into a single one: {@code oak:counter}. The
  * consolidation process can happen either synchronously or asynchronously. Refer to
  * {@link #AtomicCounterEditor(NodeBuilder, String, ScheduledExecutorService, NodeStore, Whiteboard)}
  * for details on when it consolidate one way or the other.
- * </p>
  * 
  * <p>
  * <strong>synchronous</strong>. It means the consolidation, sum of all the internal counters, will
  * happen in the same thread. During the lifecycle of the same commit.
- * </p>
  * 
  * <p>
  * <strong>asynchronous</strong>. It means the internal counters will be set during the same commit;
  * but it will eventually schedule a separate thread in which will retry some times to consolidate
  * them.
- * </p>
  */
 public class AtomicCounterEditor extends DefaultEditor {
     /**

@@ -69,7 +69,6 @@ import org.apache.lucene.util.StringHelper;
  * {@link org.apache.lucene.index.IndexDeletionPolicy IndexDeletionPolicy}
  * is in use). This file lists each segment by name and has details about the
  * codec and generation of deletes.
- * </p>
  * <p>There is also a file <tt>segments.gen</tt>. This file contains
  * the current generation (the <tt>_N</tt> in <tt>segments_N</tt>) of the index.
  * This is used only as a fallback in case the current generation cannot be
@@ -86,7 +85,6 @@ import org.apache.lucene.util.StringHelper;
  *    &lt;SegName, SegCodec, DelGen, DeletionCount, FieldInfosGen, UpdatesFiles&gt;<sup>SegCount</sup>, 
  *    CommitUserData, Checksum
  * </ul>
- * </p>
  * Data types:
  * <p>
  * <ul>
@@ -97,7 +95,6 @@ import org.apache.lucene.util.StringHelper;
  *   <li>CommitUserData --&gt; {@link DataOutput#writeStringStringMap Map&lt;String,String&gt;}</li>
  *   <li>UpdatesFiles --&gt; {@link DataOutput#writeStringSet(Set) Set&lt;String&gt;}</li>
  * </ul>
- * </p>
  * Field Descriptions:
  * <p>
  * <ul>
@@ -123,7 +120,6 @@ import org.apache.lucene.util.StringHelper;
  *       means there are updates to fieldInfos stored by {@link FieldInfosFormat}.</li>
  *   <li>UpdatesFiles stores the list of files that were updated in that segment.</li>
  * </ul>
- * </p>
  * 
  * @lucene.experimental
  */

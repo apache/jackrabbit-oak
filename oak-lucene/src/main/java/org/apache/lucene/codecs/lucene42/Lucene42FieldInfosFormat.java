@@ -49,7 +49,6 @@ import org.apache.lucene.store.DataOutput; // javadoc
  *   <li>FieldNumber --&gt; {@link DataOutput#writeInt VInt}</li>
  *   <li>Attributes --&gt; {@link DataOutput#writeStringStringMap Map&lt;String,String&gt;}</li>
  * </ul>
- * </p>
  * Field Descriptions:
  * <ul>
  *   <li>FieldsCount: the number of fields in this file.</li>

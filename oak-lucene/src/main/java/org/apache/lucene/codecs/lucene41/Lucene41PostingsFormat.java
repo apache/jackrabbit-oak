@@ -104,7 +104,6 @@ import org.apache.lucene.util.packed.PackedInts;
  *      this reduces disk pre-fetches.</p>
  *   </li>
  * </ul>
- * </p>
  *
  * <p>
  * Files and detailed format:
@@ -115,7 +114,6 @@ import org.apache.lucene.util.packed.PackedInts;
  *   <li><tt>.pos</tt>: <a href="#Positions">Positions</a></li>
  *   <li><tt>.pay</tt>: <a href="#Payloads">Payloads and Offsets</a></li>
  * </ul>
- * </p>
  *
  * <a name="Termdictionary" id="Termdictionary"></a>
  * <dl>
@@ -127,7 +125,6 @@ import org.apache.lucene.util.packed.PackedInts;
  * and pointers to the frequencies, positions, payload and
  * skip data in the .doc, .pos, and .pay files.
  * See {@link BlockTreeTermsWriter} for more details on the format.
- * </p>
  *
  * <p>NOTE: The term dictionary can plug into different postings implementations:
  * the postings writer/reader are actually responsible for encoding 
@@ -357,7 +354,6 @@ import org.apache.lucene.util.packed.PackedInts;
  * </ul>
  * </dd>
  * </dl>
- * </p>
  *
  * @lucene.experimental
  */

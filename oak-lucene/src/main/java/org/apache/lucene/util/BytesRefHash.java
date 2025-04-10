@@ -47,7 +47,6 @@ import org.apache.lucene.util.ByteBlockPool.DirectAllocator;
  * Note: The maximum capacity {@link BytesRef} instance passed to
  * {@link #add(BytesRef)} must not be longer than {@link ByteBlockPool#BYTE_BLOCK_SIZE}-2. 
  * The internal storage is limited to 2GB total byte storage.
- * </p>
  * 
  * @lucene.internal
  */

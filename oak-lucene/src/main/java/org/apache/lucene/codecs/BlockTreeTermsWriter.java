@@ -100,7 +100,6 @@ import org.apache.lucene.util.packed.PackedInts;
  * field along with per-term statistics (such as docfreq)
  * and per-term metadata (typically pointers to the postings list
  * for that term in the inverted index).
- * </p>
  *
  * <p>The .tim is arranged in blocks: with blocks containing
  * a variable number of entries (by default 25-48), where

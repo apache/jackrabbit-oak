@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
  *
  *<p>If you only want to run this test:<br>
  * {@code mvn verify -Dsurefire.skip.ut=true -PintegrationTesting -Dit.test=SegmentReferenceLimitTestIT -DSegmentReferenceLimitTestIT=true}
- * </p>
  */
 public class SegmentReferenceLimitTestIT {
 

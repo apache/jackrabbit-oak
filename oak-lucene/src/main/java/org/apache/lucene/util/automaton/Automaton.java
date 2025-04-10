@@ -79,7 +79,6 @@ import org.apache.lucene.util.RamUsageEstimator;
  * wish to use the same Automaton from multiple threads. In general it is instead
  * recommended to use a {@link RunAutomaton} for multithreaded matching: it is immutable, 
  * thread safe, and much faster.  
- * </p>
  * @lucene.experimental
  */
 public class Automaton implements Cloneable {

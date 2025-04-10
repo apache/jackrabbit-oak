@@ -51,7 +51,6 @@ import org.apache.lucene.store.DataOutput;
  *   <li>Attributes --&gt; {@link DataOutput#writeStringStringMap Map&lt;String,String&gt;}</li>
  *   <li>DocValuesGen --&gt; {@link DataOutput#writeLong(long) Int64}</li>
  * </ul>
- * </p>
  * Field Descriptions:
  * <ul>
  *   <li>FieldsCount: the number of fields in this file.</li>

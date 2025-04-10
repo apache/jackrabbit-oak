@@ -41,7 +41,6 @@ import org.apache.lucene.store.DataOutput; // javadocs
  * <ul>
  *   <li><tt>.si</tt>: Header, SegVersion, SegSize, IsCompoundFile, Diagnostics, Attributes, Files
  * </ul>
- * </p>
  * Data types:
  * <p>
  * <ul>
@@ -52,7 +51,6 @@ import org.apache.lucene.store.DataOutput; // javadocs
  *   <li>Diagnostics, Attributes --&gt; {@link DataOutput#writeStringStringMap Map&lt;String,String&gt;}</li>
  *   <li>IsCompoundFile --&gt; {@link DataOutput#writeByte Int8}</li>
  * </ul>
- * </p>
  * Field Descriptions:
  * <p>
  * <ul>
@@ -71,7 +69,6 @@ import org.apache.lucene.store.DataOutput; // javadocs
  *   <li>Attributes: a key-value map of codec-private attributes.</li>
  *   <li>Files is a list of files referred to by this segment.</li>
  * </ul>
- * </p>
  * 
  * @see SegmentInfos
  * @lucene.experimental
