@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
@@ -116,7 +117,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     static final int UPDATE_LIMIT = Integer.getInteger("update.limit", DEFAULT_UPDATE_LIMIT);
 
-    protected Supplier<DocumentStore> documentStoreSupplier = () -> new MemoryDocumentStore();
+    protected Supplier<DocumentStore> documentStoreSupplier = Suppliers.ofInstance(new MemoryDocumentStore());
     protected Supplier<BlobStore> blobStoreSupplier;
     private DiffCache diffCache;
     private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
