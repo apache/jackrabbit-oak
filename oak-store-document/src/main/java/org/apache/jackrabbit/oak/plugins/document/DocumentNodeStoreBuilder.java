@@ -118,7 +118,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     static final int UPDATE_LIMIT = Integer.getInteger("update.limit", DEFAULT_UPDATE_LIMIT);
 
     protected Supplier<DocumentStore> documentStoreSupplier = Suppliers.memoize(() -> new MemoryDocumentStore());
-    protected Supplier<BlobStore> blobStoreSupplier = Suppliers.memoize(() -> new MemoryBlobStore());
+    protected Supplier<BlobStore> blobStoreSupplier;
     private DiffCache diffCache;
     private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
     private int asyncDelay = 1000;
@@ -539,6 +539,9 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public BlobStore getBlobStore() {
+        if (blobStoreSupplier == null) {
+            blobStoreSupplier = () -> new MemoryBlobStore();
+        }
         BlobStore blobStore = blobStoreSupplier.get();
         configureBlobStore(blobStore);
         return blobStore;
