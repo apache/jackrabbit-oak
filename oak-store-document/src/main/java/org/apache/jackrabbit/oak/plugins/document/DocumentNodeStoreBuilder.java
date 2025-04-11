@@ -20,7 +20,6 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
@@ -117,7 +116,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     static final int UPDATE_LIMIT = Integer.getInteger("update.limit", DEFAULT_UPDATE_LIMIT);
 
-    protected Supplier<DocumentStore> documentStoreSupplier = ofInstance(new MemoryDocumentStore());
+    protected Supplier<DocumentStore> documentStoreSupplier = () -> new MemoryDocumentStore();
     protected Supplier<BlobStore> blobStoreSupplier;
     private DiffCache diffCache;
     private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
@@ -512,7 +511,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      * @return this
      */
     public T setDocumentStore(DocumentStore documentStore) {
-        this.documentStoreSupplier = ofInstance(documentStore);
+        this.documentStoreSupplier = () -> documentStore;
         return thisBuilder();
     }
 
@@ -534,13 +533,13 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      * @return this
      */
     public T setBlobStore(BlobStore blobStore) {
-        this.blobStoreSupplier = ofInstance(blobStore);
+        this.blobStoreSupplier = () -> blobStore;
         return thisBuilder();
     }
 
     public BlobStore getBlobStore() {
         if (blobStoreSupplier == null) {
-            blobStoreSupplier = ofInstance(new MemoryBlobStore());
+            blobStoreSupplier = () -> new MemoryBlobStore();
         }
         BlobStore blobStore = blobStoreSupplier.get();
         configureBlobStore(blobStore);
