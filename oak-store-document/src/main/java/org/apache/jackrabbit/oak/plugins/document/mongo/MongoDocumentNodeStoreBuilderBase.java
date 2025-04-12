@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.concurrent.TimeUnit;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;

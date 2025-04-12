@@ -19,7 +19,11 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import com.codahale.metrics.MetricRegistry;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -59,6 +63,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -481,8 +486,12 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return requireNonNull(indexHelper.getService(MongoDocumentStore.class));
     }
 
-    private MongoClientURI getMongoClientURI() {
-        return requireNonNull(indexHelper.getService(MongoClientURI.class));
+    private ConnectionString getMongoClientURI() {
+        return requireNonNull(indexHelper.getService(ConnectionString.class));
+    }
+
+    private MongoDatabase getMongoDatabase() {
+        return requireNonNull(indexHelper.getService(MongoDatabase.class));
     }
 
     private void configureEstimators(IndexingProgressReporter progressReporter) {
@@ -502,7 +511,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     private long getEstimatedDocumentCount() {
         MongoConnection mongoConnection = indexHelper.getService(MongoConnection.class);
         if (mongoConnection != null) {
-            return mongoConnection.getDatabase().getCollection("nodes").count();
+            MongoCollection<Document> nodesCollection = mongoConnection.getDatabase().getCollection("nodes");
+            return nodesCollection.countDocuments();
         }
         return 0;
     }

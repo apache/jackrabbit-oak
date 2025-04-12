@@ -19,7 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
@@ -110,7 +111,7 @@ public class FlatFileNodeStoreBuilder {
     private long minModified;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
-    private MongoClientURI mongoClientURI;
+    private ConnectionString mongoClientURI;
     private boolean withAheadOfTimeBlobDownloading = false;
 
     public enum SortStrategyType {
@@ -189,7 +190,12 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    /**
+    public FlatFileNodeStoreBuilder withMongoClientURI(ConnectionString mongoClientURI) {
+        this.mongoClientURI = mongoClientURI;
+        return this;
+    }
+    
+     /**
      * Use the given lower bound of the "_modified" property, when using the document node
      * store.
      *
@@ -203,6 +209,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withMongoClientURI(MongoClientURI mongoClientURI) {
         this.mongoClientURI = mongoClientURI;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withMongoDatabase(MongoDatabase mongoDatabase) {
+        this.mongoDatabase = mongoDatabase;
         return this;
     }
 

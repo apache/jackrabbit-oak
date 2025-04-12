@@ -25,12 +25,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import org.apache.commons.lang3.reflect.MethodUtils;
-import com.mongodb.MongoClient;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreTestHelper;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -156,18 +155,6 @@ public class DocumentNodeStoreServiceTest {
     }
 
     @Test
-    public void keepAlive() throws Exception {
-        Map<String, Object> config = newConfig(repoHome);
-        config.put(DocumentNodeStoreServiceConfiguration.PROP_SO_KEEP_ALIVE, true);
-        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
-        MockOsgi.activate(service, context.bundleContext());
-        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
-        MongoDocumentStore mds = getMongoDocumentStore(store);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertTrue(client.getMongoClientOptions().isSocketKeepAlive());
-    }
-
-    @Test
     public void continuousRGCDefault() throws Exception {
         Map<String, Object> config = newConfig(repoHome);
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
@@ -222,8 +209,6 @@ public class DocumentNodeStoreServiceTest {
         DocumentNodeStore store = context.getService(DocumentNodeStore.class);
         MongoDocumentStore mds = getMongoDocumentStore(store);
         assertNotNull(mds);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertTrue(client.getMongoClientOptions().isSocketKeepAlive());
     }
 
     @Test
@@ -238,11 +223,6 @@ public class DocumentNodeStoreServiceTest {
         MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
 
         MockOsgi.activate(service, context.bundleContext());
-
-        DocumentNodeStore store = context.getService(DocumentNodeStore.class);
-        MongoDocumentStore mds = getMongoDocumentStore(store);
-        MongoClient client = MongoDocumentStoreTestHelper.getClient(mds);
-        assertFalse(client.getMongoClientOptions().isSocketKeepAlive());
     }
 
     @Test

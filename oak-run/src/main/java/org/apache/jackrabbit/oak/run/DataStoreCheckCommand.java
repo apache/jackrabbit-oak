@@ -44,9 +44,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Closeables;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -181,9 +186,9 @@ public class DataStoreCheckCommand implements Command {
             NodeStore nodeStore = null;
             if (options.has(store)) {
                 String source = options.valueOf(store);
-                if (source.startsWith(MongoURI.MONGODB_PREFIX)) {
-                    MongoClientURI uri = new MongoClientURI(source);
-                    MongoClient client = new MongoClient(uri);
+                if (source.startsWith("mongodb://")) {
+                    ConnectionString uri = new ConnectionString(source);
+                    MongoClient client = MongoClients.create(uri);
                     DocumentNodeStore docNodeStore =
                         newMongoDocumentNodeStoreBuilder().setMongoDB(client, uri.getDatabase()).build();
                     closer.register(Utils.asCloseable(docNodeStore));

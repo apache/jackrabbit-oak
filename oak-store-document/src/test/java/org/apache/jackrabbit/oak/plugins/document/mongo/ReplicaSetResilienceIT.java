@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeThat;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -31,12 +36,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+<<<<<<< HEAD
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.ServerAddress;
 
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
+=======
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+>>>>>>> OAK-9447: Upgrade Mongo java driver to 5.2 (#1787)
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -49,12 +58,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeThat;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ServerDescription;
+import com.mongodb.connection.ServerType;
 
 /**
  * A long running resilience IT. The test sets up a three node replica set and
@@ -215,11 +225,29 @@ public class ReplicaSetResilienceIT {
             for (MongodProcess p : executables.values()) {
                 seeds.add(p.getAddress());
             }
-            try (MongoClient c = new MongoClient(seeds,
-                    new MongoClientOptions.Builder().requiredReplicaSetName("rs").build())) {
+            
+            String replicaSetName = "rs";
+            
+            MongoClientSettings settings = MongoClientSettings.builder()
+                    .applyToClusterSettings(builder -> 
+                        builder.hosts(seeds).requiredReplicaSetName(replicaSetName)
+                    )
+                    .build();
+            
+            try (MongoClient c = MongoClients.create(settings)) {
                 ServerAddress address = null;
                 for (int i = 0; i < 5; i++) {
-                    address = c.getReplicaSetStatus().getMaster();
+                    ClusterDescription clusterDescription = c.getClusterDescription();
+                    
+                    for (Iterator<ServerDescription> iterator = clusterDescription.getServerDescriptions().iterator(); iterator.hasNext();) {
+                        ServerDescription sd = iterator.next();
+                        
+                        if (ServerType.REPLICA_SET_PRIMARY.equals(sd.getType())) {
+                            address = sd.getAddress();
+                            break;
+                        }
+                    }
+                    
                     if (address == null) {
                         LOG.info("Primary unavailable. Waiting one second...");
                         try {

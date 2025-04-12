@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static com.mongodb.MongoURI.MONGODB_PREFIX;
 import static java.util.Arrays.asList;
 import static java.util.Objects.isNull;
 import static java.util.Optional.empty;
@@ -69,8 +68,10 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
+import com.mongodb.ConnectionString;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -182,7 +183,7 @@ class Utils {
             System.exit(1);
         }
 
-        if (src.startsWith(MongoURI.MONGODB_PREFIX) || src.startsWith("jdbc")) {
+        if (src.startsWith("mongodb://") || src.startsWith("jdbc")) {
             DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
             if (builder != null) {
                 if (readOnlyMode) {
@@ -216,7 +217,7 @@ class Utils {
 
     static Optional<MongoConnection> getMongoConnection(final NodeStoreOptions options, final Closer closer) {
         String src = options.getStoreArg();
-        if (isNull(src) || !src.startsWith(MONGODB_PREFIX)) {
+        if (isNull(src) || !src.startsWith("mongodb://")) {
             return empty();
         }
 
@@ -233,7 +234,7 @@ class Utils {
             System.exit(1);
         }
         DocumentNodeStoreBuilder<?> builder;
-        if (src.startsWith(MONGODB_PREFIX)) {
+        if (src.startsWith("mongodb://")) {
             MongoConnection mongo = getMongoConnection(closer, src);
             builder = newMongoDocumentNodeStoreBuilder().setMongoDB(mongo.getMongoClient(), mongo.getDBName());
         } else if (src.startsWith("jdbc")) {
@@ -260,12 +261,12 @@ class Utils {
     }
 
     private static MongoConnection getMongoConnection(Closer closer, String src) {
-        MongoClientURI uri = new MongoClientURI(src);
+        ConnectionString uri = new ConnectionString(src);
         if (uri.getDatabase() == null) {
-            System.err.println("Database missing in MongoDB URI: " + uri.getURI());
+            System.err.println("Database missing in MongoDB URI: " + uri);
             System.exit(1);
         }
-        MongoConnection mongo = new MongoConnection(uri.getURI());
+        MongoConnection mongo = new MongoConnection(src);
         closer.register(asCloseable(mongo));
         return mongo;
     }

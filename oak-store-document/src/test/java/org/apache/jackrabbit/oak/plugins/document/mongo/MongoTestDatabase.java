@@ -17,25 +17,24 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
+import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.conversions.Bson;
+import org.jetbrains.annotations.NotNull;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.ChangeStreamIterable;
 import com.mongodb.client.ClientSession;
+import com.mongodb.client.ListCollectionNamesIterable;
 import com.mongodb.client.ListCollectionsIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoIterable;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.CreateViewOptions;
-
-import org.bson.Document;
-import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.conversions.Bson;
-import org.jetbrains.annotations.NotNull;
 
 public class MongoTestDatabase implements MongoDatabase {
 
@@ -194,7 +193,7 @@ public class MongoTestDatabase implements MongoDatabase {
 
     @NotNull
     @Override
-    public MongoIterable<String> listCollectionNames() {
+    public ListCollectionNamesIterable listCollectionNames() {
         return db.listCollectionNames();
     }
 
@@ -212,7 +211,7 @@ public class MongoTestDatabase implements MongoDatabase {
 
     @NotNull
     @Override
-    public MongoIterable<String> listCollectionNames(@NotNull ClientSession clientSession) {
+    public ListCollectionNamesIterable listCollectionNames(@NotNull ClientSession clientSession) {
         return db.listCollectionNames(clientSession);
     }
 
@@ -365,5 +364,17 @@ public class MongoTestDatabase implements MongoDatabase {
                                                           @NotNull List<? extends Bson> pipeline,
                                                           @NotNull Class<TResult> tResultClass) {
         return db.aggregate(clientSession, pipeline, tResultClass);
+    }
+
+    @Override
+    public Long getTimeout(TimeUnit timeUnit) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public MongoDatabase withTimeout(long timeout, TimeUnit timeUnit) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }
