@@ -1,10 +1,10 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
+ * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * the License.  You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -177,8 +177,7 @@ public class MongoDBExceptionTest {
     public void multiCreateOrUpdate16MBDoc() {
 
         List<UpdateOp> updateOps = new ArrayList<>();
-        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName())
-                .create();
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
         customizer.starting();
         String id1 = "/test";
         String id2 = "/foo";
@@ -202,8 +201,7 @@ public class MongoDBExceptionTest {
             fail("DocumentStoreException expected");
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString(exceptionMsg));
-            String log = customizer.getLogs()
-                    .toString();
+            String log = customizer.getLogs().toString();
             assertTrue("Message doesn't contain the id", log.contains(id1));
         }
         customizer.finished();
@@ -213,8 +211,7 @@ public class MongoDBExceptionTest {
     public void create16MBDoc() {
 
         List<UpdateOp> updateOps = new ArrayList<>();
-        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName())
-                .create();
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
         customizer.starting();
         String id1 = "/test";
         String id2 = "/foo";
@@ -228,8 +225,7 @@ public class MongoDBExceptionTest {
         updateOps.add(op1);
         updateOps.add(op2);
         assertFalse(store.create(Collection.NODES, updateOps));
-        String log = customizer.getLogs()
-                .toString();
+        String log = customizer.getLogs().toString();
         assertTrue("Message doesn't contain the id", log.contains(id2));
     }
 
