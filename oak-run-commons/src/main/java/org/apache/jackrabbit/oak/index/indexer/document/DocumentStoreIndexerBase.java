@@ -486,10 +486,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return requireNonNull(indexHelper.getService(ConnectionString.class));
     }
 
-    private MongoDatabase getMongoDatabase() {
-        return requireNonNull(indexHelper.getService(MongoDatabase.class));
-    }
-
     private void configureEstimators(IndexingProgressReporter progressReporter) {
         StatisticsProvider statsProvider = indexHelper.getStatisticsProvider();
         if (statsProvider instanceof MetricStatisticsProvider) {

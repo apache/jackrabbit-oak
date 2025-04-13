@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.concurrent.TimeUnit;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoClientSettings.Builder;
 import com.mongodb.ReadConcernLevel;
 import com.mongodb.client.ClientSession;
@@ -26,8 +29,8 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
-import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,22 +66,19 @@ final class MongoDBConnection {
     static MongoDBConnection newMongoDBConnection(@NotNull String uri,
                                                   @NotNull String name,
                                                   @NotNull MongoClock clock,
-                                                  int socketTimeout,
-                                                  boolean socketKeepAlive) {
+                                                  int socketTimeout) {
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
 
-        ConnectionString connectionString = new ConnectionString(uri);
-        Builder options = MongoConnection.getDefaultBuilder();
-        options.applyConnectionString(connectionString);
-        options.applyToServerSettings(builder -> builder.addServerMonitorListener(serverMonitorListener));
+        MongoClientSettings.Builder options = MongoConnection.getDefaultBuilder();
+        options.applyConnectionString(new ConnectionString(uri));
+        options.applyToServerSettings(builder ->
+                builder.addServerMonitorListener(serverMonitorListener)
+        );
         options.applyToSocketSettings(builder -> {
-            // It's not possible anymore setting keepalive, it was deprecated since at least 3.6.0 version
-            // builder.keepAlive(socketKeepAlive);
             if (socketTimeout > 0) {
                 builder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS);
             }
         });
-
         MongoClient client = MongoClients.create(options.build());
 
         MongoStatus status = new MongoStatus(client, name);

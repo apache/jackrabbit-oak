@@ -137,6 +137,7 @@ public class DocumentNodeStoreService {
     static final int DEFAULT_CACHE = (int) (DEFAULT_MEMORY_CACHE_SIZE / MB);
     static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     static final String DEFAULT_DB = "oak";
+    @Deprecated
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
     static final boolean DEFAULT_FULL_GC_ENABLED = false;
@@ -516,6 +517,7 @@ public class DocumentNodeStoreService {
                         config.childrenCachePercentage(),
                         config.diffCachePercentage(),
                         config.prevNoPropCachePercentage()).
+                setClusterInvisible(config.invisibleForDiscovery()).
                 setCacheSegmentCount(config.cacheSegmentCount()).
                 setCacheStackMoveDistance(config.cacheStackMoveDistance()).
                 setBundlingDisabled(config.bundlingDisabled()).
@@ -527,6 +529,7 @@ public class DocumentNodeStoreService {
                 setCancelInvalidationFeature(cancelInvalidationFeature).
                 setDocStoreFullGCFeature(docStoreFullGCFeature).
                 setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
+                setPrevNoPropCacheFeature(prevNoPropCacheFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setFullGCEnabled(config.fullGCEnabled()).
                 setFullGCIncludePaths(config.fullGCIncludePaths()).
@@ -534,10 +537,11 @@ public class DocumentNodeStoreService {
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
                 setFullGCMode(config.fullGCMode()).
                 setFullGcMaxAgeMillis(TimeUnit.SECONDS.toMillis(config.fullGcMaxAgeInSecs())).
-		        setFullGCProgressSize(config.fullGCProgressSize()).
-		        setFullGCDelayFactor(config.fullGCDelayFactor()).
-		        setFullGCAuditLoggingEnabled(config.fullGCAuditLoggingEnabled()).
-		        setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
+                setFullGCBatchSize(config.fullGCBatchSize()).
+                setFullGCProgressSize(config.fullGCProgressSize()).
+                setFullGCDelayFactor(config.fullGCDelayFactor()).
+                setFullGCAuditLoggingEnabled(config.fullGCAuditLoggingEnabled()).
+                setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setRecoveryDelayMillis(config.recoveryDelayMillis()).
                 setPerfloggerInfoMillis(config.perfLoggerInfoMillis()).

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.Objects;
 import java.util.Set;
-import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.MoreObjects;
@@ -47,11 +46,10 @@ import org.jetbrains.annotations.NotNull;
  */
 public class MongoConnection {
 
+    public static final String MONGODB_PREFIX = "mongodb://";
+
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
-
-    // TODO why using a non-sense "w"? values for w should those listed in the head comment of WriteConcern...
-    private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
 
     private static final Set<ReadConcernLevel> REPLICA_RC = Set.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final ConnectionString mongoURI;
@@ -115,7 +113,7 @@ public class MongoConnection {
 
     /**
      *
-     * @return the {@link MongoClientURI} for this connection
+     * @return the {@link ConnectionString} for this connection
      */
     public ConnectionString getMongoURI() {
         return mongoURI;
@@ -188,7 +186,6 @@ public class MongoConnection {
                 .add("connectionsPerHost", poolSettings.getMaxSize())
                 .add("connectTimeout", socketSettings.getConnectTimeout(java.util.concurrent.TimeUnit.MILLISECONDS))
                 .add("socketTimeout", socketSettings.getReadTimeout(java.util.concurrent.TimeUnit.MILLISECONDS))
-                .add("socketKeepAlive", "Unavailable in MongoClientSettings")
                 .add("maxWaitTime", poolSettings.getMaxWaitTime(java.util.concurrent.TimeUnit.MILLISECONDS))
                 .add("heartbeatFrequency", serverSettings.getHeartbeatFrequency(java.util.concurrent.TimeUnit.MILLISECONDS))
                 .add("threadsAllowedToBlockForConnectionMultiplier", "Handled via maxSize in connection pool")

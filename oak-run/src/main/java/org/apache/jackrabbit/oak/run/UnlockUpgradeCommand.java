@@ -72,7 +72,7 @@ class UnlockUpgradeCommand implements Command {
         DocumentStore store = null;
         try {
             String uri = nonOptions.get(0);
-            if (uri.startsWith("mongodb://")) {
+            if (uri.startsWith(MongoConnection.MONGODB_PREFIX)) {
                 ConnectionString clientURI = new ConnectionString(uri);
                 if (clientURI.getDatabase() == null) {
                     System.err.println("Database missing in MongoDB URI: " + clientURI);

@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import org.apache.commons.lang3.reflect.MethodUtils;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;

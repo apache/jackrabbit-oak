@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
@@ -181,7 +182,7 @@ public class DataStoreCheckCommand implements Command {
             NodeStore nodeStore = null;
             if (options.has(store)) {
                 String source = options.valueOf(store);
-                if (source.startsWith("mongodb://")) {
+                if (source.startsWith(MongoConnection.MONGODB_PREFIX)) {
                     ConnectionString uri = new ConnectionString(source);
                     MongoClient client = MongoClients.create(uri);
                     DocumentNodeStore docNodeStore =

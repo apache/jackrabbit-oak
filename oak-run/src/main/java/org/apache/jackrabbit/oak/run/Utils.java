@@ -180,7 +180,7 @@ class Utils {
             System.exit(1);
         }
 
-        if (src.startsWith("mongodb://") || src.startsWith("jdbc")) {
+        if (src.startsWith(MongoConnection.MONGODB_PREFIX) || src.startsWith("jdbc")) {
             DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
             if (builder != null) {
                 if (readOnlyMode) {
@@ -214,7 +214,7 @@ class Utils {
 
     static Optional<MongoConnection> getMongoConnection(final NodeStoreOptions options, final Closer closer) {
         String src = options.getStoreArg();
-        if (isNull(src) || !src.startsWith("mongodb://")) {
+        if (isNull(src) || !src.startsWith(MongoConnection.MONGODB_PREFIX)) {
             return empty();
         }
 
@@ -231,7 +231,7 @@ class Utils {
             System.exit(1);
         }
         DocumentNodeStoreBuilder<?> builder;
-        if (src.startsWith("mongodb://")) {
+        if (src.startsWith(MongoConnection.MONGODB_PREFIX)) {
             MongoConnection mongo = getMongoConnection(closer, src);
             builder = newMongoDocumentNodeStoreBuilder().setMongoDB(mongo.getMongoClient(), mongo.getDBName());
         } else if (src.startsWith("jdbc")) {

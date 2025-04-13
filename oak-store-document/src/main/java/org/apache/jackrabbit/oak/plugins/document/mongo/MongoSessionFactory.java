@@ -67,6 +67,7 @@ class MongoSessionFactory {
         }
 
         @Override
+        @NotNull
         public ClientSessionOptions getOptions() {
             return session.getOptions();
         }
@@ -77,16 +78,19 @@ class MongoSessionFactory {
         }
 
         @Override
+        @NotNull
         public Object getOriginator() {
             return session.getOriginator();
         }
 
         @Override
+        @NotNull
         public ServerSession getServerSession() {
             return session.getServerSession();
         }
 
         @Override
+        @NotNull
         public BsonTimestamp getOperationTime() {
             return session.getOperationTime();
         }
@@ -102,6 +106,7 @@ class MongoSessionFactory {
         }
 
         @Override
+        @NotNull
         public BsonDocument getClusterTime() {
             return session.getClusterTime();
         }
@@ -166,7 +171,7 @@ class MongoSessionFactory {
         }
 
         @Override
-        public void setRecoveryToken(BsonDocument recoveryToken) {
+        public void setRecoveryToken(@NotNull BsonDocument recoveryToken) {
             session.setRecoveryToken(recoveryToken);
         }
 
@@ -182,7 +187,7 @@ class MongoSessionFactory {
         }
 
         @Override
-        public void setTransactionContext(ServerAddress address, Object transactionContext) {
+        public void setTransactionContext(@NotNull ServerAddress address, @NotNull Object transactionContext) {
             session.setTransactionContext(address, transactionContext);
 
         }
@@ -210,7 +215,7 @@ class MongoSessionFactory {
         }
 
         @Override
-        public void notifyOperationInitiated(Object operation) {
+        public void notifyOperationInitiated(@NotNull Object operation) {
             session.notifyOperationInitiated(operation);
         }
     }

@@ -112,7 +112,6 @@ public class FlatFileNodeStoreBuilder {
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
     private ConnectionString mongoClientURI;
-    private MongoDatabase mongoDatabase;
     private boolean withAheadOfTimeBlobDownloading = false;
 
     public enum SortStrategyType {
@@ -191,7 +190,7 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-     /**
+    /**
      * Use the given lower bound of the "_modified" property, when using the document node
      * store.
      *
@@ -205,11 +204,6 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withMongoClientURI(ConnectionString mongoClientURI) {
         this.mongoClientURI = mongoClientURI;
-        return this;
-    }
-
-    public FlatFileNodeStoreBuilder withMongoDatabase(MongoDatabase mongoDatabase) {
-        this.mongoDatabase = mongoDatabase;
         return this;
     }
 

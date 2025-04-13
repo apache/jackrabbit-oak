@@ -2225,7 +2225,6 @@ public class MongoDocumentStore implements DocumentStore {
                  .applyConnectionString(connectionString)
                  .build();
             ReadPreference readPref = settings.getReadPreference();
-
             if (!readPref.equals(nodes.getReadPreference())) {
                 nodes = nodes.withReadPreference(readPref);
                 LOG.info("Using ReadPreference {} ", readPref);
