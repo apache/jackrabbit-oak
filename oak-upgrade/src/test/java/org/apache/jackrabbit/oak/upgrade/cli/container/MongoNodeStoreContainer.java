@@ -78,7 +78,7 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
             ConnectionString uri = new ConnectionString(MONGO_URI + "?connectTimeoutMS=3000");
             mongo = MongoClients.create(uri);
             MongoIterable<String> listDatabaseNames = mongo.listDatabaseNames();
-            
+
             // To do real call to mongo and so test its availability we need to call iterator on just returned result
             for (Iterator<String> iterator = listDatabaseNames.iterator(); iterator.hasNext();) {
                 // do nothing...

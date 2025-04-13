@@ -1860,10 +1860,10 @@ public class MongoDocumentStore implements DocumentStore {
 
         Map<String, ModificationStamp> modCounts = new HashMap<>();
 
-        nodes.withReadPreference(ReadPreference.primary())
-                .find(Filters.in(Document.ID, keys))
-                .projection(fields)
-                .forEach((Consumer<? super BasicDBObject>) obj -> {
+        nodes.withReadPreference(ReadPreference.primary()).
+                find(Filters.in(Document.ID, keys)).
+                projection(fields).
+                forEach((Consumer<? super BasicDBObject>) obj -> {
                     String id = (String) obj.get(Document.ID);
                     Long modCount = Utils.asLong((Number) obj.get(Document.MOD_COUNT));
                     if (modCount == null) {

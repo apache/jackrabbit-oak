@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 
 import com.codahale.metrics.MetricRegistry;
 import com.mongodb.ConnectionString;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closer;
@@ -63,7 +62,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -511,8 +509,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     private long getEstimatedDocumentCount() {
         MongoConnection mongoConnection = indexHelper.getService(MongoConnection.class);
         if (mongoConnection != null) {
-            MongoCollection<Document> nodesCollection = mongoConnection.getDatabase().getCollection("nodes");
-            return nodesCollection.countDocuments();
+            return mongoConnection.getDatabase().getCollection("nodes").countDocuments();
         }
         return 0;
     }

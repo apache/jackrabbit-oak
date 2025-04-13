@@ -113,7 +113,7 @@ public class MongoConnectionTest {
         }
         MongoClient client = mock(MongoClient.class);
         when(client.getClusterDescription()).thenReturn(description);
-        
+
         return client;
     }
 }
