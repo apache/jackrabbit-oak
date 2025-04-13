@@ -532,7 +532,7 @@ public class DocumentNodeStoreService {
                 setFullGCIncludePaths(config.fullGCIncludePaths()).
                 setFullGCExcludePaths(config.fullGCExcludePaths()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
-                setFullGCMode(config.fullGCMode())
+                setFullGCMode(config.fullGCMode()).
                 setFullGcMaxAgeMillis(TimeUnit.SECONDS.toMillis(config.fullGcMaxAgeInSecs())).
 		        setFullGCProgressSize(config.fullGCProgressSize()).
 		        setFullGCDelayFactor(config.fullGCDelayFactor()).
