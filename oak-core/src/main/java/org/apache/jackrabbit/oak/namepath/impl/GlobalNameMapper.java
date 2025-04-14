@@ -143,11 +143,11 @@ public class GlobalNameMapper implements NameMapper {
         int colon = oakName.indexOf(':');
         if (colon > 0) {
             String oakPrefix = oakName.substring(0, colon);
+            uri = getNamespacesProperty(oakPrefix);
             // local mapping must take precedence...
-            uri = getSessionLocalMappings().get(oakPrefix);
             if (uri == null) {
-                // ...over global mappings
-                uri = getNamespacesProperty(oakPrefix);
+                // ...over local mappings
+                uri = getSessionLocalMappings().get(oakPrefix);
             }
             if (uri == null) {
                 throw new IllegalStateException(

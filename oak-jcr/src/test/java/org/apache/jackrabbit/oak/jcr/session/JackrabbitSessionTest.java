@@ -86,9 +86,11 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         assertEquals("{}testroot", s.getExpandedName(testRootNode));
         Node n = testRootNode.addNode("test:bar");
         assertEquals("{http://www.apache.org/jackrabbit/test}bar", s.getExpandedName(n));
-        // now remap namespace uri
+        // now remap namespace uri - should not affect expanded name
+        assertEquals("prefix 'test' has unexpected mapping",
+                "http://www.apache.org/jackrabbit/test", s.getNamespaceURI("test"));
         s.setNamespacePrefix("test", "urn:foo");
-        assertEquals("{urn:foo}bar", s.getExpandedName(n));
+        assertEquals("{http://www.apache.org/jackrabbit/test}bar", s.getExpandedName(n));
         // use special namespace uri
         n = testRootNode.addNode("rep:bar");
         assertEquals("{internal}bar", s.getExpandedName(n));
@@ -98,8 +100,8 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         assertEquals("/{}testroot", s.getExpandedPath(testRootNode));
         Node n = testRootNode.addNode("test:bar").addNode("rep:bar");
         assertEquals("/{}testroot/{http://www.apache.org/jackrabbit/test}bar/{internal}bar", s.getExpandedPath(n));
-        // now remap namespace uri
+        // now remap namespace uri - should not affect expanded name
         s.setNamespacePrefix("test", "urn:foo");
-        assertEquals("/{}testroot/{urn:foo}bar/{internal}bar", s.getExpandedPath(n));
+        assertEquals("/{}testroot/{http://www.apache.org/jackrabbit/test}bar/{internal}bar", s.getExpandedPath(n));
     }
 }
