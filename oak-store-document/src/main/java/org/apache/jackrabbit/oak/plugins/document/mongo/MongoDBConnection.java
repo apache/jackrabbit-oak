@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoClientSettings.Builder;
 import com.mongodb.ReadConcernLevel;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;

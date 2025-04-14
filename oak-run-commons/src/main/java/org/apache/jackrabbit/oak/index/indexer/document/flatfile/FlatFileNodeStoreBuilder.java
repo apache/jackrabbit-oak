@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.mongodb.ConnectionString;
-import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;

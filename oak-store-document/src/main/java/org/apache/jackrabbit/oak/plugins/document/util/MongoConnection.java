@@ -237,13 +237,15 @@ public class MongoConnection {
      * @return the default write concern to use for Oak.
      */
     public static WriteConcern getDefaultWriteConcern(@NotNull MongoClient client) {
+        WriteConcern w;
         ClusterDescription clusterDescription = client.getClusterDescription();
 
         if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
-            return WriteConcern.MAJORITY;
+            w = WriteConcern.MAJORITY;
         } else {
-            return WriteConcern.ACKNOWLEDGED;
+            w = WriteConcern.ACKNOWLEDGED;
         }
+        return w;
     }
 
     /**
