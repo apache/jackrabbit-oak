@@ -166,4 +166,15 @@ public interface FullGCStatsCollector {
      * @param maxAge the maximum age to set for the FullGC process
      */
     void maxAge(long maxAge);
+
+    /**
+     * Sets the full garbage collection generation value.
+     * <p>
+     * This method is called to update the current full GC generation being tracked.
+     * The generation value is used to reset the full GC process when incremented,
+     * allowing it to run from the beginning with fresh state.
+     *
+     * @param generation the full GC generation value to set
+     */
+    void fullGCGeneration(long generation);
 }

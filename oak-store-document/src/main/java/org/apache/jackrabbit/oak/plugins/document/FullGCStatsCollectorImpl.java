@@ -68,6 +68,7 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     static final String PROGRESS_SIZE = "PROGRESS_SIZE";
     static final String EMBEDDED_VERIFICATION_ENABLED = "EMBEDDED_VERIFICATION_ENABLED";
     static final String MAX_AGE = "MAX_AGE";
+    static final String FULL_GC_GENERATION = "FULL_GC_GENERATION";
 
     private final StatisticsProvider provider;
 
@@ -104,6 +105,7 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     private GaugeStats<Integer> progressSize;
     private GaugeStats<Boolean> embeddedVerificationEnabled;
     private GaugeStats<Long> maxAge;
+    private GaugeStats<Long> fullGCGeneration;
 
     FullGCStatsCollectorImpl(StatisticsProvider provider) {
         this(provider, false);
@@ -246,6 +248,11 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     }
 
     @Override
+    public void fullGCGeneration(long generation) {
+        this.fullGCGeneration = gauge(provider, FULL_GC_GENERATION, () -> generation);
+    }
+
+    @Override
     public String toString() {
         return "FullGCStatsCollectorImpl{" +
                 "enabled=" + getValue(enabled, "false") +
@@ -255,6 +262,7 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
                 ", progressSize=" + getValue(progressSize, "0") +
                 ", embeddedVerificationEnabled=" + getValue(embeddedVerificationEnabled, "false") +
                 ", maxAge=" + getValue(maxAge, "0") +
+                ", fullGCGeneration=" + getValue(fullGCGeneration, "0") +
                 ", readDoc=" + readDoc.getCount() +
                 ", candidateRevisions=" + mapToString(candidateRevisions) +
                 ", candidateInternalRevisions=" + mapToString(candidateInternalRevisions) +

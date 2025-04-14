@@ -52,6 +52,7 @@ import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImp
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.FULL_GC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.FULL_GC_ACTIVE_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.FULL_GC_GENERATION;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.FULL_GC_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.FAILURE_COUNTER;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.MAX_AGE;
@@ -274,6 +275,20 @@ public class FullGCStatsCollectorImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    public void getFullGCGeneration() throws IllegalAccessException {
+        stats.fullGCGeneration(3);
+        final Gauge<Long> gauge = getGauge(FULL_GC_GENERATION);
+        assertEquals(3L, (long)gauge.getValue());
+        assertEquals(3L, (long)((GaugeStats<Long>) readField(stats, "fullGCGeneration", true)).getValue());
+
+        // update the value
+        stats.fullGCGeneration(5);
+        final Gauge<Long> updated = getGauge(FULL_GC_GENERATION);
+        assertEquals(3L, (long)updated.getValue());
+    }
+
+    @Test
     public void getFullGcOsgiConfigs() {
         stats.maxAge(86400);
         stats.enabled(true);
@@ -282,6 +297,7 @@ public class FullGCStatsCollectorImplTest {
         stats.batchSize(500);
         stats.delayFactor(5.0);
         stats.mode(4);
+        stats.fullGCGeneration(2);
 
         // update the value
         assertTrue(stats.toString().contains("maxAge=86400"));
@@ -291,6 +307,7 @@ public class FullGCStatsCollectorImplTest {
         assertTrue(stats.toString().contains("batchSize=500"));
         assertTrue(stats.toString().contains("delayFactor=5.0"));
         assertTrue(stats.toString().contains("mode=4"));
+        assertTrue(stats.toString().contains("fullGCGeneration=2"));
     }
 
     @Test
