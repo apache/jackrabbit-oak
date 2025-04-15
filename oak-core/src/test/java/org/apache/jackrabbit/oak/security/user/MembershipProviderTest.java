@@ -412,6 +412,6 @@ public class MembershipProviderTest extends MembershipBaseTest {
     }
     
     private static boolean contains(@NotNull Iterator<Tree> treeIterator, @NotNull Tree tree) {
-        return Iterators.contains(Iterators.transform(treeIterator, Tree::getPath), tree.getPath());
+        return IteratorUtils.contains(Iterators.transform(treeIterator, Tree::getPath), tree.getPath());
     }
 }

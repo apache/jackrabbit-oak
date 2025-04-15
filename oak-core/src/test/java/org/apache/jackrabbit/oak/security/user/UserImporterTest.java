@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.user.autosave.AutoSaveEnabledManager;
@@ -426,7 +427,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         refTracker.processedReference(unknownReferenceObj);
 
         importer.processReferences();
-        assertTrue(Iterators.contains(refTracker.getProcessedReferences(), unknownReferenceObj));
+        assertTrue(IteratorUtils.contains(refTracker.getProcessedReferences(), unknownReferenceObj));
     }
 
     //------------------------------------------------< propertiesCompleted >---

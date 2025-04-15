@@ -25,6 +25,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -202,7 +203,7 @@ public class PrincipalManagerImplTest {
 
     @Test
     public void testGetGroupMembershipEveryoneWithoutEveryone() {
-        assertFalse(Iterators.contains(principalMgr.getGroupMembership(EveryonePrincipal.getInstance()), EveryonePrincipal.getInstance()));
+        assertFalse(IteratorUtils.contains(principalMgr.getGroupMembership(EveryonePrincipal.getInstance()), EveryonePrincipal.getInstance()));
     }
 
     @Test
@@ -239,7 +240,7 @@ public class PrincipalManagerImplTest {
         for (Principal pcpl : testPrincipals) {
 
             PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName());
-            assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', Iterators.contains(it, pcpl));
+            assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', IteratorUtils.contains(it, pcpl));
         }
     }
 
@@ -248,10 +249,10 @@ public class PrincipalManagerImplTest {
         for (Principal pcpl : testPrincipals) {
             if (isGroup(pcpl)) {
                 PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName(), PrincipalManager.SEARCH_TYPE_GROUP);
-                assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', Iterators.contains(it, pcpl));
+                assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', IteratorUtils.contains(it, pcpl));
             } else {
                 PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName(), PrincipalManager.SEARCH_TYPE_NOT_GROUP);
-                assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', Iterators.contains(it, pcpl));
+                assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', IteratorUtils.contains(it, pcpl));
             }
         }
     }
@@ -262,10 +263,10 @@ public class PrincipalManagerImplTest {
         for (Principal pcpl : testPrincipals) {
             if (isGroup(pcpl)) {
                 PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName(), PrincipalManager.SEARCH_TYPE_GROUP);
-                assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', Iterators.contains(it, pcpl));
+                assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', IteratorUtils.contains(it, pcpl));
             } else {
                 PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName(), PrincipalManager.SEARCH_TYPE_NOT_GROUP);
-                assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', Iterators.contains(it, pcpl));
+                assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', IteratorUtils.contains(it, pcpl));
             }
         }
     }
@@ -274,7 +275,7 @@ public class PrincipalManagerImplTest {
     public void testFindPrincipalByTypeAll() {
         for (Principal pcpl : testPrincipals) {
             PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName(), PrincipalManager.SEARCH_TYPE_ALL);
-            assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', Iterators.contains(it, pcpl));
+            assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', IteratorUtils.contains(it, pcpl));
         }
     }
 
@@ -282,21 +283,21 @@ public class PrincipalManagerImplTest {
     public void testFindEveryone() {
         // untyped search -> everyone must be part of the result set
         PrincipalIterator it = principalMgr.findPrincipals(EveryonePrincipal.NAME);
-        assertTrue("findPrincipals does not find principal with filter '" + EveryonePrincipal.NAME + '\'', Iterators.contains(it, EveryonePrincipal.getInstance()));
+        assertTrue("findPrincipals does not find principal with filter '" + EveryonePrincipal.NAME + '\'', IteratorUtils.contains(it, EveryonePrincipal.getInstance()));
     }
 
     @Test
     public void testFindEveryoneTypeGroup() {
         // search group only -> everyone must be part of the result set
         PrincipalIterator it = principalMgr.findPrincipals(EveryonePrincipal.NAME, PrincipalManager.SEARCH_TYPE_GROUP);
-        assertTrue("findPrincipals does not find principal with filter '" + EveryonePrincipal.NAME + '\'', Iterators.contains(it, EveryonePrincipal.getInstance()));
+        assertTrue("findPrincipals does not find principal with filter '" + EveryonePrincipal.NAME + '\'', IteratorUtils.contains(it, EveryonePrincipal.getInstance()));
     }
 
     @Test
     public void testFindEveryoneTypeNonGroup() {
         // search non-group only -> everyone should not be part of the result set
         PrincipalIterator it = principalMgr.findPrincipals(EveryonePrincipal.NAME, PrincipalManager.SEARCH_TYPE_NOT_GROUP);
-        assertFalse("findPrincipals did find principal with filter '" + EveryonePrincipal.NAME + '\'', Iterators.contains(it, EveryonePrincipal.getInstance()));
+        assertFalse("findPrincipals did find principal with filter '" + EveryonePrincipal.NAME + '\'', IteratorUtils.contains(it, EveryonePrincipal.getInstance()));
     }
 
     @Test
