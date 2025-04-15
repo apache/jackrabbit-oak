@@ -135,8 +135,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Suppliers;
-
 /**
  * Implementation of a NodeStore on {@link DocumentStore}.
  */
@@ -653,7 +651,8 @@ public final class DocumentNodeStore
         this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport(), isFullGCEnabled(builder), false,
                 isEmbeddedVerificationEnabled(builder), builder.getFullGCMode(), builder.getFullGCDelayFactor(),
-                builder.getFullGCBatchSize(), builder.getFullGCProgressSize(), builder.getFullGcMaxAgeMillis());
+                builder.getFullGCBatchSize(), builder.getFullGCProgressSize(), builder.getFullGcMaxAgeMillis(),
+                builder.getFullGCGeneration());
         this.versionGarbageCollector.setStatisticsProvider(builder.getStatisticsProvider());
         this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
         this.versionGarbageCollector.setFullGCPaths(builder.getFullGCIncludePaths(), builder.getFullGCExcludePaths());
@@ -3803,11 +3802,11 @@ public final class DocumentNodeStore
         }
 
         private static Supplier<Integer> getDelay(DocumentNodeStore ns) {
-            int delay = 0;
             if (ns.getAsyncDelay() != 0) {
-                delay = (int) SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
+                return () -> (int) SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
+            } {
+                return () -> 0;
             }
-            return Suppliers.ofInstance(delay);
         }
     }
 
@@ -3818,7 +3817,7 @@ public final class DocumentNodeStore
 
         BackgroundPurgeOperation(DocumentNodeStore nodeStore, AtomicBoolean isDisposed) {
             // run every 60 secs
-            super(nodeStore, isDisposed, Suppliers.ofInstance(60000));
+            super(nodeStore, isDisposed, () -> 60000);
         }
 
         @Override
@@ -3855,7 +3854,7 @@ public final class DocumentNodeStore
             // the sweep2 is fine to run every 60sec by default as it is not time critical
             // to achieve this we're doing a Math.min(60sec, 60 * getAsyncDelay())
             super(nodeStore, isDisposed,
-                    Suppliers.ofInstance(Math.min(60000, 60 * nodeStore.getAsyncDelay())));
+                    () -> Math.min(60000, 60 * nodeStore.getAsyncDelay()));
             if (sweep2Lock < 0) {
                 throw new IllegalArgumentException("sweep2Lock must not be negative");
             }
@@ -3897,7 +3896,7 @@ public final class DocumentNodeStore
 
         BackgroundLeaseUpdate(DocumentNodeStore nodeStore,
                               AtomicBoolean isDisposed) {
-            super(nodeStore, isDisposed, Suppliers.ofInstance(INTERVAL_MS));
+            super(nodeStore, isDisposed, () -> INTERVAL_MS);
         }
 
         @Override
@@ -3928,7 +3927,7 @@ public final class DocumentNodeStore
 
         BackgroundClusterUpdate(DocumentNodeStore nodeStore,
                               AtomicBoolean isDisposed) {
-            super(nodeStore, isDisposed, Suppliers.ofInstance(1000));
+            super(nodeStore, isDisposed, () -> 1000);
         }
 
         @Override

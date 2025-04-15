@@ -28,7 +28,7 @@
   <packaging>bundle</packaging>
 
   <properties>
-    <shaded.guava.version>33.4.6-jre</shaded.guava.version>
+    <shaded.guava.version>33.4.7-jre</shaded.guava.version>
     <pref>org.apache.jackrabbit.guava</pref>
   </properties>
 

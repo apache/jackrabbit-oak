@@ -230,4 +230,24 @@ public class IteratorUtils {
             }
         }
     }
+
+    /**
+     * Checks if the given iterator contains the specified element.
+     * <p>
+     * This method iterates through the iterator, checking each element for equality with
+     * the specified object using {@link Objects#equals(Object, Object)}. The iteration stops
+     * once a match is found or the iterator is exhausted.
+     * <p>
+     * Note that this method will consume the iterator.
+     *
+     * @param <?> the type of objects in the iterator
+     * @param iterator the iterator to check, must not be null
+     * @param element the element to find, may be null
+     * @return {@code true} if the iterator contains the element, {@code false} otherwise
+     * @throws NullPointerException if the iterator is null
+     */
+    public static boolean contains(Iterator<?> iterator, Object element) {
+        Objects.requireNonNull(iterator, "Iterator must not be null");
+        return org.apache.commons.collections4.IteratorUtils.contains(iterator, element);
+    }
 }

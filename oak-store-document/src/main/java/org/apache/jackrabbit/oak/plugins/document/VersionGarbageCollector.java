@@ -83,11 +83,13 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_GENERATION;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.BRANCH_COMMITS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROOT;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.LOG;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
@@ -154,6 +156,11 @@ public class VersionGarbageCollector {
     static final String SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP = "fullGCDryRunTimeStamp";
 
     /**
+     * Property name to fullGcGeneration which is currently running
+     */
+    static final String SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP = "fullGCGeneration";
+
+    /**
      * Property name to _id till when last full-GC run happened in dryRun mode only
      */
     static final String SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP = "fullGCDryRunId";
@@ -172,6 +179,78 @@ public class VersionGarbageCollector {
      */
     static void setFullGcMode(int fullGcMode) {
         VersionGarbageCollector.fullGcMode = FullGCMode.getMode(fullGcMode);
+    }
+
+    /**
+     * Sets the full GC generation for this document store and performs a reset if needed.
+     * <p>
+     * This method checks the existing full GC generation stored in the settings document:
+     * <ul>
+     *   <li>If no document exists, the new generation value is persisted</li>
+     *   <li>If the previous generation isn't a number or null, resets full GC and persists the new value</li>
+     *   <li>If the new generation is higher than the previous one, resets full GC and updates the value</li>
+     *   <li>If the new generation is less than or equal to the previous one, only logs the information</li>
+     * </ul>
+     *
+     * @param fullGcGen The new full GC generation value to set
+     * @return the generation with which the full GC has started
+     */
+    long resetFullGcIfGenChange(final long fullGcGen) {
+
+        if (fullGcGen == DEFAULT_FULL_GC_GENERATION) {
+            // generation hasn't been set yet, no need to make any change to make this backward compatible
+            LOG.info("Full GC generation is set to default value {}. No action needed.", fullGcGen);
+            return fullGcGen;
+        }
+
+        final Document doc = ds.find(SETTINGS, SETTINGS_COLLECTION_ID);
+
+        if (doc == null) {
+            // No version gc document exists, must be a new environment
+            persistFullGcGen(fullGcGen);
+            return fullGcGen;
+        }
+
+        final Object prevFullGcGenObj = doc.get(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP);
+
+        // If no previous generation or not a Number, just persist the new value
+        if (!(prevFullGcGenObj instanceof Number)) {
+            // this could happen if the previous value was set to a non-numeric value i.e. (not present)
+            LOG.info("Full GC generation {} is not a valid number or null, resetting to {}.", prevFullGcGenObj, fullGcGen);
+            resetFullGC();
+            persistFullGcGen(fullGcGen);
+            return fullGcGen;
+        }
+
+        // Compare with the previous generation
+        long prevFullGcGen = ((Number) prevFullGcGenObj).longValue();
+        if (prevFullGcGen >= fullGcGen) {
+            LOG.info("Full GC generation {} is less than or equal to the previously saved value {}.", fullGcGen, prevFullGcGen);
+            return prevFullGcGen;
+        } else {
+            LOG.info("Found a new generation of FullGC {}, resetting the Old gen {} values.", fullGcGen, prevFullGcGen);
+            resetFullGC();
+            persistFullGcGen(fullGcGen);
+            return fullGcGen;
+        }
+    }
+
+    /**
+     * Persists the full garbage collection generation value to the settings document.
+     * <p>
+     * This method creates or updates a document in the settings collection with the
+     * specified full GC generation number. The generation value is used to track major
+     * changes in the garbage collection process across restarts or different cluster nodes.
+     * <p>
+     * When the system detects a higher generation number than previously stored, it will
+     * reset the full GC state before persisting the new generation value.
+     *
+     * @param fullGcGeneration The full garbage collection generation value to persist
+     */
+    private void persistFullGcGen(long fullGcGeneration) {
+        UpdateOp op = new UpdateOp(SETTINGS_COLLECTION_ID, true);
+        op.set(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP, fullGcGeneration);
+        ds.createOrUpdate(SETTINGS, op);
     }
 
     private final DocumentNodeStore nodeStore;
@@ -198,7 +277,7 @@ public class VersionGarbageCollector {
                             final boolean isFullGCDryRun,
                             final boolean embeddedVerification) {
         this(nodeStore, gcSupport, fullGCEnabled, isFullGCDryRun, embeddedVerification, DEFAULT_FULL_GC_MODE,
-                0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE));
+                0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE), 0);
     }
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
@@ -210,7 +289,8 @@ public class VersionGarbageCollector {
                             final double fullGCDelayFactor,
                             final int fullGCBatchSize,
                             final int fullGCProgressSize,
-                            final long fullGcMaxAgeInMillis) {
+                            final long fullGcMaxAgeInMillis,
+                            final long fullGcGeneration) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
@@ -224,8 +304,9 @@ public class VersionGarbageCollector {
         this.options = new VersionGCOptions();
 
         setFullGcMode(fullGCMode);
-        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode: {}, maxFullGcAgeInMillis: {}, batchSize: {}, progressSize: {}, delayFactor: {}",
-                fullGcMode, fullGcMaxAgeInMillis, fullGCBatchSize, fullGCProgressSize, fullGCDelayFactor);
+        long fullGcGen = fullGCEnabled ? resetFullGcIfGenChange(fullGcGeneration) : fullGcGeneration;
+        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode: {}, maxFullGcAgeInMillis: {}, batchSize: {}, progressSize: {}, delayFactor: {}, fullGcGeneration: {}",
+                fullGcMode, fullGcMaxAgeInMillis, fullGCBatchSize, fullGCProgressSize, fullGCDelayFactor, fullGcGen);
     }
 
     /**

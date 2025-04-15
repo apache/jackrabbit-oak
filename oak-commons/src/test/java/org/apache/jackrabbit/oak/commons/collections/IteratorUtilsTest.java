@@ -414,4 +414,48 @@ public class IteratorUtilsTest {
         Assert.assertEquals(obj2, IteratorUtils.getLast(objectIterator));
         Assert.assertFalse(objectIterator.hasNext());
     }
+
+    @Test
+    public void testContainsWithElementPresent() {
+        Iterator<String> iterator = Arrays.asList("a", "b", "c").iterator();
+        Assert.assertTrue(IteratorUtils.contains(iterator, "b"));
+        // Iterator shouldn't be consumed
+        Assert.assertTrue(iterator.hasNext());
+    }
+
+    @Test
+    public void testContainsWithElementNotPresent() {
+        Iterator<String> iterator = Arrays.asList("a", "b", "c").iterator();
+        Assert.assertFalse(IteratorUtils.contains(iterator, "z"));
+        // Iterator should be consumed
+        Assert.assertFalse(iterator.hasNext());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testContainsWithNullIterator() {
+        IteratorUtils.contains(null, "test");
+    }
+
+    @Test
+    public void testContainsWithEmptyIterator() {
+        Iterator<String> emptyIterator = Collections.emptyIterator();
+        Assert.assertFalse(IteratorUtils.contains(emptyIterator, "anything"));
+    }
+
+    @Test
+    public void testContainsWithNullElement() {
+        Iterator<String> iterator = Arrays.asList("a", null, "c").iterator();
+        Assert.assertTrue(IteratorUtils.contains(iterator, null));
+        // Iterator should be stopped after finding null
+        Assert.assertTrue(iterator.hasNext());
+    }
+
+    @Test
+    public void testContainsWithMultipleOccurrences() {
+        Iterator<String> iterator = Arrays.asList("a", "b", "b", "c").iterator();
+        Assert.assertTrue(IteratorUtils.contains(iterator, "b"));
+        // Iterator should stop at first occurrence
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertEquals("b", iterator.next());
+    }
 }
