@@ -144,7 +144,7 @@ public class GlobalNameMapper implements NameMapper {
         if (colon > 0) {
             String oakPrefix = oakName.substring(0, colon);
             uri = getNamespacesProperty(oakPrefix);
-            // local mapping must take precedence...
+            // global mapping must take precedence...
             if (uri == null) {
                 // ...over local mappings
                 uri = getSessionLocalMappings().get(oakPrefix);
