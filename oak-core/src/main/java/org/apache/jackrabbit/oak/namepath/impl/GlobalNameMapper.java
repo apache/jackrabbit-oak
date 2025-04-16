@@ -67,16 +67,17 @@ public class GlobalNameMapper implements NameMapper {
         return name.startsWith(":");
     }
 
+    private static boolean isValidNamespaceName(String namespace) {
+        // the empty namespace and "internal" are valid as well, otherwise it always contains a colon (as it is a URI)
+        // compare with RFC 3986, Section 3 (https://datatracker.ietf.org/doc/html/rfc3986#section-3)
+        return namespace.isEmpty() || namespace.equals(NamespaceConstants.NAMESPACE_REP) || namespace.contains(":");
+    }
+
     protected static boolean isExpandedName(String name) {
         if (name.startsWith("{")) {
             int brace = name.indexOf('}', 1);
             if (brace != -1) {
-                String namespace = name.substring(1, brace);
-                // the empty namespace and "internal" are valid as well, otherwise it always contains a colon (as it is a URI)
-                // compare with RFC 3986, Section 3 (https://datatracker.ietf.org/doc/html/rfc3986#section-3)
-                if (namespace.isEmpty() || namespace.equals(NamespaceConstants.NAMESPACE_REP)|| namespace.indexOf(':') != -1) {
-                    return true;
-                }
+                return isValidNamespaceName(name.substring(1, brace));
             }
         }
         return false;
@@ -157,7 +158,7 @@ public class GlobalNameMapper implements NameMapper {
             }
             localName = oakName.substring(colon + 1);
             // check namespace name for validity in Oak
-            if (!uri.equals(NAMESPACE_REP) || !uri.contains(":")) {
+            if (!isValidNamespaceName(uri)) {
                 throw new IllegalStateException(
                     new NamespaceException("Cannot determine expanded name for '" + oakName +
                         "' as registered namespace name '" + uri + "' is invalid"));
