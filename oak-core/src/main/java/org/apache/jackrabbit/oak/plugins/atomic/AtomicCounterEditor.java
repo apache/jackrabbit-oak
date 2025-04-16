@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -222,7 +223,7 @@ public class AtomicCounterEditor extends DefaultEditor {
         boolean process = false;
         PropertyState mixin = requireNonNull(builder).getProperty(JCR_MIXINTYPES);
         if (mixin != null && PROP_INCREMENT.equals(property.getName()) &&
-                Iterators.contains(mixin.getValue(NAMES).iterator(), MIX_ATOMIC_COUNTER)) {
+                IteratorUtils.contains(mixin.getValue(NAMES).iterator(), MIX_ATOMIC_COUNTER)) {
             if (LONG.equals(property.getType())) {
                 process = true;
             } else {
