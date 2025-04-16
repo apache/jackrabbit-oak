@@ -28,6 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getStrings;
 import static org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory.createReadOnlyRoot;
 import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.NAMESPACES_PATH;
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.NAMESPACE_REP;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_URIS;
@@ -35,6 +36,7 @@ import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_URI
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.Root;
@@ -154,6 +156,12 @@ public class GlobalNameMapper implements NameMapper {
                         "No namespace mapping found for " + oakName);
             }
             localName = oakName.substring(colon + 1);
+            // check namespace name for validity in Oak
+            if (!uri.equals(NAMESPACE_REP) || !uri.contains(":")) {
+                throw new IllegalStateException(
+                    new NamespaceException("Cannot determine expanded name for '" + oakName +
+                        "' as registered namespace name '" + uri + "' is invalid"));
+            }
         } else {
             uri = "";
             localName = oakName;

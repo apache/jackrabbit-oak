@@ -24,7 +24,9 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.Item;
+import javax.jcr.NamespaceException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 
@@ -94,6 +96,23 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         // use special namespace uri
         n = testRootNode.addNode("rep:bar");
         assertEquals("{internal}bar", s.getExpandedName(n));
+    }
+
+    public void testGetExpandedNameBrokenNamespace() throws RepositoryException {
+        // empty namespace uri
+        assertEquals("{}testroot", s.getExpandedName(testRootNode));
+
+        // register broken namespace name
+        s.getWorkspace().getNamespaceRegistry().registerNamespace("foo", "bar");
+        Node n = testRootNode.addNode("foo:qux");
+
+        try {
+            // there is no expanded name, thus we expect an exception here
+            s.getExpandedName(n);
+            fail("there is no expanded name in this case, so we expect the call to fail");
+        } catch (NamespaceException ex) {
+            // expected
+        }
     }
 
     public void testGetExpandedPath() throws RepositoryException {
