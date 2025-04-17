@@ -33,10 +33,13 @@ import static org.junit.Assert.assertNotEquals;
 
 public class NamespaceHelperPrototypeTest {
 
+    // map with 'optimal' prefix mappings; hard-wired should be ok
     private static final Map<String, String> KNOWN_PREFIXES =
             Map.of("http://purl.org/dc/terms/", "dc",
                     "http://ns.adobe.com/exif/1.0/", "exif");
 
+    // public API: suggest an available prefix for the provided namespace
+    // (while considering pre-existing mappings)
     private static @NotNull String suggestPrefix(@NotNull String namespace,
                                                  @NotNull Function<String, String> lookupPrefix) {
         // try hard-wired map
@@ -53,10 +56,14 @@ public class NamespaceHelperPrototypeTest {
         }
     }
 
-    private static @NotNull String suggestPrefix(String namespace) {
+    // public API: suggest an available prefix for the provided namespace
+    public static @NotNull String suggestPrefix(String namespace) {
         return suggestPrefix(namespace, n -> null);
     }
 
+    // suggest an available prefix for the provided namespace, based on the characters
+    // in the namespace name
+    // (while considering pre-existing mappings)
     private static @NotNull String makeUpPrefix(@NotNull String namespace,
                                        @NotNull Function<String, String> lookupNamespace) {
         String prefix = namespace.toLowerCase(Locale.ENGLISH);
@@ -96,6 +103,9 @@ public class NamespaceHelperPrototypeTest {
         }
     }
 
+    // suggest an available prefix for the provided namespace, based on the base64
+    // representation of the namepace name, and a final fallback to UUID based
+    // (while considering pre-existing mappings)
     private static @NotNull String makeUpPrefixTryEvenHarder(@NotNull String namespace,
                                                              @NotNull Function<String, String> lookupNamespace) {
 
