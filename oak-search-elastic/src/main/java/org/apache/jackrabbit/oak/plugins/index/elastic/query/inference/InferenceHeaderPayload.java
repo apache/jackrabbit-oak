@@ -32,7 +32,13 @@ import java.util.stream.Collectors;
  * Configuration for inference payload
  */
 public class InferenceHeaderPayload {
+
+    public static final InferenceHeaderPayload NOOP = new InferenceHeaderPayload();
     private final Map<String, String> inferenceHeaderPayloadMap;
+
+    public InferenceHeaderPayload() {
+        this.inferenceHeaderPayloadMap = Map.of();
+    }
 
     public InferenceHeaderPayload(NodeState nodeState) {
         inferenceHeaderPayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0)

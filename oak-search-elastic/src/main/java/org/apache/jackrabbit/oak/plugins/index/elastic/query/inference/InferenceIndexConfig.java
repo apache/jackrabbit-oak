@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,9 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
+
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
 /**
  * Configuration class for Inference Index settings.
@@ -51,42 +55,21 @@ public class InferenceIndexConfig {
      */
     private final Map<String, InferenceModelConfig> inferenceModelConfigs;
 
-    /*
-
-    ES persistence of inference config only happens while creating a new index or reindexing an existing index.
-    So enricher config only gets updated on above conditions. Now if disable inferenceIndexConfig the enricher config
-    still remains same and enricher will keep on enriching new documents.
-    To stop enricher to not enrich new/updated documents one way is to set :enricher status
-
-
-
-
-    Enricher config's value indicates following state:
-    {} => Empty enricher config. If we use empty enricher config it means enricher donot need any config to process ES docs.
-        In this case we add :enricher.status="PENDING" so enricher can pick these documents for processing.
-    "" => if we set enricher config as "", we also add :enricher.status = "COMPLETE"
-        :enricher{
-            status = "COMPLETE",
-            enricherConfig = DISABLED
-        }
-
-    Above demarcation in important if we want to disable enriching documents for an index without changing reindexing index.
-     */
     private InferenceIndexConfig() {
         this.enricherConfig = DISABLED_ENRICHER_CONFIG;
         this.isEnabled = false;
         this.inferenceModelConfigs = Map.of();
     }
 
-    public InferenceIndexConfig(NodeState nodeState) {
-        String tempEnricherConfig;
-        boolean tempIsEnabled;
-        Map<String, InferenceModelConfig> tempInferenceModelConfigs;
-        try {
-            tempEnricherConfig = nodeState.hasProperty(InferenceConstants.ENRICHER_CONFIG) ?
-                    nodeState.getProperty(InferenceConstants.ENRICHER_CONFIG).getValue(Type.STRING) : "{}";
-            tempIsEnabled = nodeState.getProperty(InferenceConstants.ENABLED).getValue(Type.BOOLEAN);
-            tempInferenceModelConfigs = new HashMap<>();
+    public InferenceIndexConfig(String indexName, NodeState nodeState) {
+        boolean isValidType = getOptionalValue(nodeState, InferenceConstants.TYPE, "").equals(InferenceIndexConfig.TYPE);
+        this.isEnabled = getOptionalValue(nodeState, InferenceConstants.ENABLED, false);
+        String enricherString = getOptionalValue(nodeState, InferenceConstants.ENRICHER_CONFIG, "");
+        boolean isValidEnricherConfig = JsonUtils.isValidJson(enricherString, false);
+
+        if (isValidType && isEnabled && isValidEnricherConfig) {
+            this.enricherConfig = enricherString;
+            Map<String, InferenceModelConfig> tempInferenceModelConfigs = new HashMap<>();
             // Iterate through child nodes to find inference model configs
             for (String childName : nodeState.getChildNodeNames()) {
                 NodeState childNode = nodeState.getChildNode(childName);
@@ -94,21 +77,18 @@ public class InferenceIndexConfig {
                     tempInferenceModelConfigs.put(childName, new InferenceModelConfig(childName, childNode));
                 }
             }
-        } catch (Exception e) {
-            LOG.error("Error while loading inference index configuration", e);
-            tempEnricherConfig = "{}";
-            tempIsEnabled = false;
-            tempInferenceModelConfigs = Map.of();
+            inferenceModelConfigs = Collections.unmodifiableMap(tempInferenceModelConfigs);
+        } else {
+            this.isEnabled = false;
+            this.enricherConfig = getOptionalValue(nodeState, InferenceConstants.ENRICHER_CONFIG, DISABLED_ENRICHER_CONFIG);
+            inferenceModelConfigs = Map.of();
+            LOG.warn("inference index config for indexName: {} is not valid. Node: {}",
+                    indexName, nodeState);
         }
-        this.enricherConfig = tempEnricherConfig;
-        this.inferenceModelConfigs = Collections.unmodifiableMap(tempInferenceModelConfigs);
-        this.isEnabled = tempIsEnabled;
     }
 
-
     private boolean isInferenceModelConfig(NodeState nodeState) {
-        return nodeState.hasProperty(InferenceConstants.TYPE) &&
-                nodeState.getProperty(InferenceConstants.TYPE).getValue(Type.STRING).equals(InferenceModelConfig.TYPE);
+        return InferenceModelConfig.TYPE.equals(getOptionalValue(nodeState, InferenceConstants.TYPE, ""));
     }
 
     /**

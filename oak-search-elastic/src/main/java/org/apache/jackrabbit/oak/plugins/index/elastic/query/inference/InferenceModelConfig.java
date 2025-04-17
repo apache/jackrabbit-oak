@@ -18,14 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.query.fulltext.InferenceQuery;
 import org.apache.jackrabbit.oak.spi.query.fulltext.InferenceQueryConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStoreService.CACHE_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
 /**
@@ -33,6 +30,8 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
  * Currently only hybrid search is implemented
  */
 public class InferenceModelConfig {
+    private static final Logger log = LoggerFactory.getLogger(InferenceModelConfig.class);
+
     public static final InferenceModelConfig NOOP = new InferenceModelConfig();
     public static final String MODEL = "model";
     public static final String EMBEDDING_SERVICE_URL = "embeddingServiceUrl";
@@ -46,139 +45,66 @@ public class InferenceModelConfig {
     public static final String ENABLED = "enabled";
     public static final String HEADER = "header";
     public static final String TIMEOUT = "timeout";
-    public static final String PREFIX = "prefix";
-    private static final Logger log = LoggerFactory.getLogger(InferenceModelConfig.class);
     private static final String NUM_CANDIDATES = "numCandidates";
     private static final String CACHE_SIZE = "cacheSize";
+    private static final double DEFAULT_SIMILARITY_THRESHOLD = 0.8;
+    private static final long DEFAULT_MIN_TERMS = 2;
+    private static final long DEFAULT_TIMEOUT_MILLIS = 5000L;
+    private static final int DEFAULT_NUM_CANDIDATES = 100;
+    private static final int DEFAULT_CACHE_SIZE = 100;
+
 
     private final String model;
     private final String embeddingServiceUrl;
-    private final double similarityThreshold;
-    private final long minTerms;
     private final boolean isDefault;
     private final boolean enabled;
-    private final String type;
     private final InferenceHeaderPayload header;
     private final InferencePayload payload;
     private final String inferenceModelConfigName;
+    private final double similarityThreshold;
+    private final long minTerms;
+    //The number of candidates to be returned by the query. Default is 100.
+    private final int numCandidates;
+    //The timeout for the query in milliseconds. Default is 5000.
+    private final long timeout;
+    private final int cacheSize;
 
 
-    /**
-     * The prefix used for the query. If the input string starts with this prefix, the query will be executed. Default is null (no prefix).
-     */
-    public String prefix;
-    /**
-     * The number of candidates to be returned by the query. Default is 100.
-     */
-    public int numCandidates;
-    /**
-     * The type of the query. Default is "hybrid". Currently not used
-     */
-    public String queryType; // this can be hybrid or vector
-
-
-    /**
-     * The timeout for the query in milliseconds. Default is 5000.
-     */
-    public long timeout;
-
-    public int cacheSize;
-
-
-    private InferenceModelConfig() {
-        this.inferenceModelConfigName = null;
-        this.model = null;
-        this.embeddingServiceUrl = null;
-        this.similarityThreshold = 0.0;
-        this.minTerms = 0L;
+    public InferenceModelConfig() {
         this.isDefault = false;
         this.enabled = false;
-        this.type = TYPE;
-        this.header = null;
-        this.payload = null;
+
+        this.model = "";
+        this.embeddingServiceUrl = "";
+        this.header = InferenceHeaderPayload.NOOP;
+        this.payload = InferencePayload.NOOP;
+        this.inferenceModelConfigName = "";
+        this.similarityThreshold = 0.0;
+        this.minTerms = 0L;
+        this.numCandidates = 0;
+        this.timeout = 0;
+        this.cacheSize = DEFAULT_CACHE_SIZE;
     }
 
     public InferenceModelConfig(String inferenceModelConfigName, NodeState nodeState) {
         this.inferenceModelConfigName = inferenceModelConfigName;
-        this.model = nodeState.getProperty(MODEL).getValue(Type.STRING);
-        this.embeddingServiceUrl = nodeState.getProperty(EMBEDDING_SERVICE_URL).getValue(Type.STRING);
-        this.similarityThreshold = nodeState.getProperty(SIMILARITY_THRESHOLD).getValue(Type.DOUBLE);
-        this.minTerms = nodeState.getProperty(MIN_TERMS).getValue(Type.LONG);
-        this.isDefault = nodeState.getProperty(IS_DEFAULT).getValue(Type.BOOLEAN);
-
-        this.header = new InferenceHeaderPayload(nodeState.getChildNode(HEADER));
-        this.payload = new InferencePayload(inferenceModelConfigName, nodeState.getChildNode(INFERENCE_PAYLOAD));
-        this.type = TYPE;
-        this.enabled = getOptionalValue(nodeState, ENABLED,false);
-        this.timeout = getOptionalValue(nodeState, TIMEOUT, 5000L);
-        this.prefix = getOptionalValue(nodeState, PREFIX, "?");
-        this.numCandidates = getOptionalValue(nodeState, NUM_CANDIDATES, 100);
-        this.cacheSize = getOptionalValue(nodeState, CACHE_SIZE, 100);
-    }
-
-    public String getInferenceModelConfigName() {
-        return inferenceModelConfigName;
-    }
-
-    // Getters
-    public String getModel() {
-        return model;
-    }
-
-    public String getEmbeddingServiceUrl() {
-        return embeddingServiceUrl;
-    }
-
-    public double getSimilarityThreshold() {
-        return similarityThreshold;
-    }
-
-    public long getMinTerms() {
-        return minTerms;
-    }
-
-    public boolean isDefault() {
-        return isDefault;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public InferenceHeaderPayload getHeader() {
-        return header;
-    }
-
-    public InferencePayload getPayload() {
-        return this.payload;
-    }
-
-    public String getPrefix() {
-        return prefix;
-    }
-
-    public int getNumCandidates() {
-        return numCandidates;
-    }
-
-    public String getQueryType() {
-        return queryType;
-    }
-
-    public long getTimeout() {
-        return timeout;
-    }
-
-    public int getCacheSize() {
-        return this.cacheSize;
-    }
-
-    public long getTimeoutMillis() {
-        return this.timeout;
+        this.enabled = getOptionalValue(nodeState, InferenceConstants.ENABLED, false);
+        boolean isValidType = getOptionalValue(nodeState, InferenceConstants.TYPE, "").equals(InferenceModelConfig.TYPE);
+        if (this.enabled && isValidType) {
+            this.header = new InferenceHeaderPayload(nodeState.getChildNode(HEADER));
+            this.payload = new InferencePayload(inferenceModelConfigName, nodeState.getChildNode(INFERENCE_PAYLOAD));
+        } else {
+            this.header = InferenceHeaderPayload.NOOP;
+            this.payload = InferencePayload.NOOP;
+        }
+        this.isDefault = getOptionalValue(nodeState, IS_DEFAULT, false);
+        this.model = getOptionalValue(nodeState, MODEL, "");
+        this.embeddingServiceUrl = getOptionalValue(nodeState, EMBEDDING_SERVICE_URL, "");
+        this.similarityThreshold = getOptionalValue(nodeState, SIMILARITY_THRESHOLD, DEFAULT_SIMILARITY_THRESHOLD);
+        this.minTerms = getOptionalValue(nodeState, MIN_TERMS, DEFAULT_MIN_TERMS);
+        this.timeout = getOptionalValue(nodeState, TIMEOUT, DEFAULT_TIMEOUT_MILLIS);
+        this.numCandidates = getOptionalValue(nodeState, NUM_CANDIDATES, DEFAULT_NUM_CANDIDATES);
+        this.cacheSize =  getOptionalValue(nodeState, CACHE_SIZE, 100);
     }
 
     @Override
@@ -192,6 +118,56 @@ public class InferenceModelConfig {
                 ", " + ENABLED + "=" + enabled +
                 ", " + HEADER + "=" + header +
                 ", " + INFERENCE_PAYLOAD + "=" + payload +
-                '}';
+                ", " + TIMEOUT + "=" + timeout +
+                ", " + NUM_CANDIDATES + "=" + numCandidates +
+                "}";
+    }
+
+    public String getInferenceModelConfigName() {
+        return inferenceModelConfigName;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public String getEmbeddingServiceUrl() {
+        return embeddingServiceUrl;
+    }
+
+    public boolean isDefault() {
+        return isDefault;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public InferenceHeaderPayload getHeader() {
+        return header;
+    }
+
+    public InferencePayload getPayload() {
+        return payload;
+    }
+
+    public double getSimilarityThreshold() {
+        return similarityThreshold;
+    }
+
+    public long getMinTerms() {
+        return minTerms;
+    }
+
+    public int getNumCandidates() {
+        return numCandidates;
+    }
+
+    public long getTimeoutMillis() {
+        return timeout;
+    }
+
+    public int getCacheSize() {
+        return cacheSize;
     }
 }

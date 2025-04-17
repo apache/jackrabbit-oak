@@ -33,10 +33,15 @@ import java.util.Map;
  * Configuration for inference payload. We support open-ai api standard
  */
 public class InferencePayload {
+    public static final InferencePayload NOOP = new InferencePayload();
     private static final Logger LOG = LoggerFactory.getLogger(InferencePayload.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, Object> inferencePayloadMap;
     private final String inputTextKey = "input";
+
+    public InferencePayload() {
+        inferencePayloadMap = Map.of();
+    }
 
     public InferencePayload(String inferenceModelName, NodeState nodeState) {
         inferencePayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0);

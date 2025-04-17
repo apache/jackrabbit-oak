@@ -169,22 +169,26 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 && (InferenceIndexConfig.NOOP.equals(inferenceConfig.getInferenceIndexConfig(jcrIndexName))))) {
             bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
         } else {
-
             if (indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
                 doc.addProperty(InferenceConstants.ENRICH_NODE,
                         Map.of(InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_PENDING));
             }
             /*
-                in case we want to disable enriching document for an already created index only way is to convert
-                InferenceIndexConfig to NOOP (not literally but functionally) i.e. change enricherConfig to ""
-                and update enricher status to COMPLETED by adding to DOC
+                The inference configuration in Elasticsearch (ES) is persisted only during the creation of a new index
+                or the reindexing of an existing one. This means that the enricher configuration is updated only under
+                these conditions. If we want to disable the `inferenceIndexConfig`, the existing enricher configuration
+                remains unchanged, and the enricher will continue processing new documents.
+
+                To stop the enricher from processing documents, we need to explicitly update the enricher status to
+                `COMPLETED` in the ES document by adding the following structure:
                 {
                     :enrich {
-                        "status" : "COMPLETED",
-                        "inferenceDisabled" : true
+                        "status": "COMPLETED",
+                        "inferenceDisabled": true
                     }
                 }
-                Here we are explicitly adding inferenceDisabled if some evaluation is needed at later stage
+
+                The `inferenceDisabled` flag is added to allow for potential evaluations at a later stage.
              */
             else if (!indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).getEnricherConfig().isEmpty()
                     && !indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).isEnabled()) {

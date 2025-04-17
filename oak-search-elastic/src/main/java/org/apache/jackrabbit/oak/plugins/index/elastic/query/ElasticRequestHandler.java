@@ -582,7 +582,7 @@ public class ElasticRequestHandler {
                             elasticIndexDefinition.getDynamicBoostProperties().stream().anyMatch(ElasticPropertyDefinition::useInFullTextQuery);
 
                     String indexName = PathUtils.getName(indexPlan.getPlanName());
-                    String inferenceModelConfig = null;
+                    String inferenceModelConfig = "";
                     InferenceQueryConfig inferenceQueryConfig;
                     InferenceQuery inferenceQuery;
                     if (text.startsWith(InferenceQuery.INFERENCE_QUERY_CONFIG_PREFIX)) {
@@ -655,7 +655,7 @@ public class ElasticRequestHandler {
                 } else if (inferenceModelConfig.isEnabled() && inferenceModelConfig.getMinTerms() <= inferenceQuery.getQueryText().split("\\s+").length) {
                     InferenceService inferenceService = InferenceServiceManager
                             .getInstance(inferenceModelConfig);
-                    List<Float> embeddings = inferenceService.embeddings(inferenceQuery.getQueryText(), (int) inferenceModelConfig.getTimeout());
+                    List<Float> embeddings = inferenceService.embeddings(inferenceQuery.getQueryText(), (int) inferenceModelConfig.getTimeoutMillis());
                     if (embeddings != null) {
                         KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder();
                         knnQueryBuilder.field(InferenceConstants.VECTOR_SPACES + "." + inferenceQueryModelName + "." + InferenceConstants.VECTOR);

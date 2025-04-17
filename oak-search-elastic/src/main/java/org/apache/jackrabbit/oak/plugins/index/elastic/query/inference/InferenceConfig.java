@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -37,10 +35,10 @@ import java.util.function.Function;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
 /**
- * Data model class representing the inference configuration stored under /oak:index/:inferenceConfig
+ * Data model class representing the inference configuration stored under /oak:index/:inferenceConfig (default path)
  */
 public class InferenceConfig {
-    Logger LOG = LoggerFactory.getLogger(InferenceConfig.class.getName());
+    private static final Logger LOG = LoggerFactory.getLogger(InferenceConfig.class.getName());
 
     public static final InferenceConfig NOOP = new InferenceConfig();
     public static final String TYPE = "inferenceConfig";
@@ -73,46 +71,30 @@ public class InferenceConfig {
      * Constructor to load inference configuration from the given NodeStore and path
      *
      */
-    public InferenceConfig(NodeStore nodeStore, String inferenceConfigPath) {
+    public InferenceConfig(NodeStore nodeStore, @NotNull String inferenceConfigPath) {
         this.nodeStore = nodeStore;
         this.inferenceConfigPath = inferenceConfigPath;
-        if (nodeStore == null) {
-            LOG.warn("InferenceConfig: NodeStore is null");
+        if (!isValidInferenceConfig(nodeStore, inferenceConfigPath)) {
             enabled = false;
             indexConfigs = Map.of();
+            return;
         } else {
             NodeState nodeState = nodeStore.getRoot();
             for (String elem : PathUtils.elements(inferenceConfigPath)) {
                 nodeState = nodeState.getChildNode(elem);
-                if (!nodeState.exists()) {
-                    LOG.warn("InferenceConfig: NodeState does not exist for path: " + inferenceConfigPath);
-                    enabled = false;
-                    indexConfigs = Map.of();
-                    return;
-                }
             }
-
             // Inference enabled or not.
-            this.enabled = getOptionalValue(nodeState, InferenceConstants.ENABLED,false);
+            this.enabled = getOptionalValue(nodeState, InferenceConstants.ENABLED, false);
             Map<String, InferenceIndexConfig> temp_indexConfigs = new HashMap<>();
-
             // Read index configurations
             for (String indexName : nodeState.getChildNodeNames()) {
-                if (isValidInferenceIndexConfig(nodeState, indexName)) {
-                    temp_indexConfigs.put(indexName, new InferenceIndexConfig(nodeState.getChildNode(indexName)));
-                }
+                temp_indexConfigs.put(indexName, new InferenceIndexConfig(indexName, nodeState.getChildNode(indexName)));
+
             }
             this.indexConfigs = Collections.unmodifiableMap(temp_indexConfigs);
             //TODO Check if we we are also logging sensitive info.
-            LOG.info("Loaded inference configuration: " + this.toString());
-
+            LOG.info("Loaded inference configuration: " + this);
         }
-
-    }
-
-    private static boolean isValidInferenceIndexConfig(NodeState nodeState, String indexName) {
-        return nodeState.getChildNode(indexName).hasProperty(InferenceConstants.TYPE)
-                && InferenceIndexConfig.TYPE.equals(nodeState.getChildNode(indexName).getProperty(InferenceConstants.TYPE).getValue(Type.STRING));
     }
 
     public boolean isEnabled() {
@@ -135,7 +117,7 @@ public class InferenceConfig {
                 LOG.debug("InferenceIndexConfig is using baseIndexName {} and is: {}", indexNameObject.getBaseName(), inferenceIndexConfig);
                 inferenceIndexConfig = getInferenceIndexConfig.apply(indexNameObject.getBaseName());
             }
-            return inferenceIndexConfig;
+            return inferenceIndexConfig.isEnabled() ? inferenceIndexConfig : InferenceIndexConfig.NOOP;
         }
     }
 
@@ -175,4 +157,28 @@ public class InferenceConfig {
             stampedLock.unlockWrite(stamp);
         }
     }
+
+    private boolean isValidInferenceConfig(NodeStore nodeStore, String inferenceConfigPath) {
+
+        if (nodeStore == null) {
+            LOG.warn("InferenceConfig: NodeStore is null");
+            return false;
+        }
+        NodeState nodeState = nodeStore.getRoot();
+        if (inferenceConfigPath == null || inferenceConfigPath.isEmpty()) {
+            LOG.warn("InferenceConfig: Inference config path is null or empty");
+            return false;
+        }
+
+        for (String elem : PathUtils.elements(inferenceConfigPath)) {
+            nodeState = nodeState.getChildNode(elem);
+            if (!nodeState.exists()) {
+                LOG.warn("InferenceConfig: NodeState does not exist for path: " + inferenceConfigPath);
+                return false;
+            }
+        }
+        return getOptionalValue(nodeState, InferenceConstants.ENABLED, false);
+    }
+
+
 } 
