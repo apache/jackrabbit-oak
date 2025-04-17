@@ -85,6 +85,7 @@ public class InferenceServiceUsingConfig implements InferenceService {
                     .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
                     .collect(Collectors.toList());
 
+            //TODO : implement bulk processor.
             // Build the HttpRequest.
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)

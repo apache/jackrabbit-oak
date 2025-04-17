@@ -29,6 +29,7 @@ import co.elastic.clients.elasticsearch.indices.UpdateAliasesRequest;
 import co.elastic.clients.elasticsearch.indices.UpdateAliasesResponse;
 import co.elastic.clients.json.JsonpUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceIndexConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
@@ -49,6 +51,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -152,11 +156,47 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     public void updateDocument(String path, ElasticDocument doc) throws IOException {
         // update is a heavier operation compared to index, we can always use the index operation on full reindex
         // or if the index is not externally modifiable
-        if (reindex || !indexDefinition.isExternallyModifiable()) {
+        String jcrIndexName = PathUtils.getName(indexDefinition.getIndexName());
+        /*
+            we directly index the document if:
+            content is being reindexed
+            OR
+            (the index is not externally modifiable
+            AND InferenceIndexConfig is NOOP
+            )
+         */
+        if (reindex || (!indexDefinition.isExternallyModifiable()
+                && (InferenceIndexConfig.NOOP.equals(inferenceConfig.getInferenceIndexConfig(jcrIndexName))))) {
             bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
         } else {
+
+            if (indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
+                Map<String, String> enrichDocStatus = new HashMap<>();
+                enrichDocStatus.put("status", "PENDING");
+                doc.addProperty(":enrich", enrichDocStatus);
+            }
+            /*
+                in case we want to disable enriching document for an already created index only way is to convert
+                InferenceIndexConfig to NOOP (not literally but functionally) i.e. change enricherConfig to ""
+                and update enricher status to COMPLETED by adding to DOC
+                {
+                    :enrich {
+                        "status" : "COMPLETED",
+                        "inferenceDisabled" : true
+                    }
+                }
+                Here we are explicitly adding inferenceDisabled if some evaluation is needed at later stage
+             */
+            else if (!indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).getEnricherConfig().isEmpty()
+                    && !indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
+                Map<String, Object> enrichDocStatus = new HashMap<>();
+                enrichDocStatus.put("status", "COMPLETED");
+                enrichDocStatus.put("inferenceConfig", true);
+                doc.addProperty(":enrich", enrichDocStatus);
+            }
             bulkProcessorHandler.update(indexName, ElasticIndexUtils.idFromPath(path), doc);
         }
+
     }
 
     @Override

@@ -79,7 +79,7 @@ public class InferenceConfig {
         if (nodeStore == null) {
             LOG.warn("InferenceConfig: NodeStore is null");
             enabled = false;
-            indexConfigs = Collections.emptyMap();
+            indexConfigs = Map.of();
         } else {
             NodeState nodeState = nodeStore.getRoot();
             for (String elem : PathUtils.elements(inferenceConfigPath)) {
@@ -87,7 +87,7 @@ public class InferenceConfig {
                 if (!nodeState.exists()) {
                     LOG.warn("InferenceConfig: NodeState does not exist for path: " + inferenceConfigPath);
                     enabled = false;
-                    indexConfigs = Collections.emptyMap();
+                    indexConfigs = Map.of();
                     return;
                 }
             }

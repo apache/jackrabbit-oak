@@ -83,10 +83,10 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         NodeBuilder inferenceIndexConfig = inferenceConfig.child(indexName);
         inferenceIndexConfig.setProperty(TYPE, InferenceIndexConfig.TYPE);
         inferenceIndexConfig.setProperty(ENRICHER_CONFIG, enricherConfig);
+        inferenceIndexConfig.setProperty(InferenceConstants.ENABLED, true);
         // Add inference model1 configuration
         NodeBuilder inferenceModelConfig1 = inferenceIndexConfig.child("inferenceModel1");
         inferenceModelConfig1.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
-//        inferenceModelConfig1.setProperty(INFERENCE_CONFIG_TYPE, InferenceConstants.INFERENCE_MODEL_CONFIG);
         inferenceModelConfig1.setProperty(InferenceModelConfig.MODEL, "test-model1");
         inferenceModelConfig1.setProperty(InferenceModelConfig.EMBEDDING_SERVICE_URL, "http://localhost:8080");
         inferenceModelConfig1.setProperty(InferenceModelConfig.SIMILARITY_THRESHOLD, 0.8);
@@ -108,7 +108,6 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         // Add inference model2 configuration
         NodeBuilder inferenceModelConfig2 = inferenceIndexConfig.child("inferenceModel2");
         inferenceModelConfig2.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
-//        inferenceModelConfig2.setProperty(INFERENCE_CONFIG_TYPE, InferenceConstants.INFERENCE_MODEL_CONFIG);
         inferenceModelConfig2.setProperty(InferenceModelConfig.MODEL, "test-model2");
         inferenceModelConfig2.setProperty(InferenceModelConfig.EMBEDDING_SERVICE_URL, "http://localhost:8080");
         inferenceModelConfig2.setProperty(InferenceModelConfig.SIMILARITY_THRESHOLD, 0.8);
@@ -124,7 +123,8 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         // Setup payload configuration
         NodeBuilder payload2 = inferenceModelConfig2.child(InferenceModelConfig.INFERENCE_PAYLOAD);
         payload2.setProperty("textKey", "searchString2");
-        payload2.setProperty("dimension", 1024);
+        // dimension is handled automatically by ES on first document ingestion
+//        payload2.setProperty("dimension", 1024);
         payload2.setProperty("model", "model-name-of-inference-model2");
 
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -161,6 +161,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         NodeBuilder inferenceIndexConfig = inferenceConfig.child(indexName);
         inferenceIndexConfig.setProperty(TYPE, InferenceIndexConfig.TYPE);
         inferenceIndexConfig.setProperty(ENRICHER_CONFIG, enricherConfig);
+        inferenceIndexConfig.setProperty(InferenceConstants.ENABLED, true);
         // Add inference model1 configuration
         NodeBuilder inferenceModelConfig1 = inferenceIndexConfig.child(inferenceModelConfigName);
         inferenceModelConfig1.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
@@ -174,12 +175,10 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         // Setup header configuration
         NodeBuilder header1 = inferenceModelConfig1.child(InferenceModelConfig.HEADER);
         header1.setProperty("Content-Type", "application/json");
-//        header1.setProperty("headerKey2_1", "headerValue2_1");
 
         // Setup payload configuration
         NodeBuilder payload1 = inferenceModelConfig1.child(InferenceModelConfig.INFERENCE_PAYLOAD);
         payload1.setProperty("input", List.of(""), Type.STRINGS);
-//        payload1.setProperty("dimension", 1536);
         payload1.setProperty("model", "text-embedding-ada-002");
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
@@ -336,10 +335,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and updatedBy = 'John Doe'", List.of("/content/cars")));
 
         ObjectNode carsDocUpdated = getDocument(index, "/content/cars");
-        //TODO should we delete VECTOR_SPACES from ES doc on each update?
-        // currently we are deleting but we shluld not delete vector space + we also need
-        // to add enricher status
-//        assertNotNull(carsDocUpdated.get(InferenceConstants.VECTOR_SPACES));
+        assertNotNull(carsDocUpdated.get(InferenceConstants.VECTOR_SPACES));
 
     }
 }
