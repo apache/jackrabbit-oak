@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 public class NamespaceHelperPrototypeTest {
 
@@ -103,10 +104,11 @@ public class NamespaceHelperPrototypeTest {
         if (lookedUpNamespace == null || lookedUpNamespace.equals(namespace)) {
             return prefix;
         } else {
-            // ok, we're giving up
-            while (namespace.equals(lookupNamespace.apply(prefix))) {
+            // ok, we're giving up and use a random value
+            do {
                 prefix = "uuid-" + UUID.randomUUID();
-            }
+            } while (namespace.equals(lookupNamespace.apply(prefix)));
+
             return prefix;
         }
     }
@@ -149,7 +151,7 @@ public class NamespaceHelperPrototypeTest {
                         "purl.org-dc-terms", "http://purl.org/dc/terms/somethingelse")::get));
 
         // if even *that* fails
-        assertEquals("b64-aHR0cDovL3B1cmwub3JnL2RjL3Rlcm1zLw", suggestPrefix("http://purl.org/dc/terms/",
+        assertNotEquals("b64-aHR0cDovL3B1cmwub3JnL2RjL3Rlcm1zLw", suggestPrefix("http://purl.org/dc/terms/",
                 Map.of("dc", "http://purl.org/dc/terms/somethingelse",
                         "purl.org-dc-terms", "http://purl.org/dc/terms/somethingelse",
                         "b64-aHR0cDovL3B1cmwub3JnL2RjL3Rlcm1zLw", "http://purl.org/dc/terms/somethingelse")::get));
