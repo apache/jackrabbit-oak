@@ -109,7 +109,7 @@ public class EffectivePoliciesByPrincipalsAndPathsTest extends AbstractAccessCon
         Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal), new String[0]);
         AccessControlPolicy[] expected = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
         
-        assertArrayEquals(expected, Iterators.toArray(effective, AccessControlPolicy.class));
+        assertArrayEquals(expected, IteratorUtils.toArray(effective, AccessControlPolicy.class));
     }
     
     @Test
