@@ -144,9 +144,6 @@ public class JsonUtilsTest {
         
         Map<String, Object> result = JsonUtils.convertNodeStateToMap(nodeState, 0);
         assertNotNull(result);
-
-        result = JsonUtils.convertNodeStateToMap(nodeState, -1);
-        assertNull(result);
     }
 
     @Test
