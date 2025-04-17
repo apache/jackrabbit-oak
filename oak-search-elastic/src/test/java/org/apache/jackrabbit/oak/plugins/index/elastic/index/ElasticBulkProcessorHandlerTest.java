@@ -25,16 +25,16 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.when;
 
@@ -64,7 +64,7 @@ public class ElasticBulkProcessorHandlerTest {
     public void setUp() {
         closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getDefinitionNodeState()).thenReturn(definitionNodeStateMock);
-        when(commitInfo.getInfo()).thenReturn(Collections.emptyMap());
+        when(commitInfo.getInfo()).thenReturn(Map.of());
         when(elasticConnectionMock.getAsyncClient()).thenReturn(esAsyncClientMock);
     }
 
@@ -74,13 +74,18 @@ public class ElasticBulkProcessorHandlerTest {
     }
 
     @Test
-    public void defaultMode() {
+    public void defaultMode() throws IOException {
         when(definitionNodeStateMock.getProperty(eq("async"))).thenReturn(null);
 
-        ElasticBulkProcessorHandler bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo, true);
+        ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        bulkProcessorHandler.registerIndex("index", indexDefinitionMock, definitionBuilder, commitInfo, true);
 
-        assertThat(bulkProcessorHandler, instanceOf(ElasticBulkProcessorHandler.class));
+        ElasticBulkProcessorHandler.IndexInfo indexInfo = bulkProcessorHandler.getIndexInfo("index");
+        Assert.assertNotNull(indexInfo);
+        Assert.assertFalse(indexInfo.isRealTime);
+
+        bulkProcessorHandler.flushIndex("index");
+        bulkProcessorHandler.close();
     }
 
     @Test(expected = IllegalStateException.class)
@@ -89,30 +94,89 @@ public class ElasticBulkProcessorHandlerTest {
         when(definitionNodeStateMock.getProperty(eq("sync-mode")))
                 .thenReturn(new MultiStringPropertyState("sync-mode", Arrays.asList("nrt", "rt")));
 
-        ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo, true);
+        ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        bulkProcessorHandler.registerIndex("index", indexDefinitionMock, definitionBuilder, commitInfo, true);
     }
 
     @Test
-    public void rtMode() {
+    public void didNotFlushIndex() throws IOException {
+        when(definitionNodeStateMock.getProperty(eq("async"))).thenReturn(null);
+        ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        bulkProcessorHandler.registerIndex("index", indexDefinitionMock, definitionBuilder, commitInfo, true);
+        // Should still close successfully, but should print a warning message
+        bulkProcessorHandler.close();
+    }
+
+    @Test
+    public void useAfterCloseThrowsException() throws IOException {
+        when(definitionNodeStateMock.getProperty(eq("async"))).thenReturn(null);
+        ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        bulkProcessorHandler.close();
+        // It's ok to call close twice
+        bulkProcessorHandler.close();
+
+        Assert.assertThrows(IllegalStateException.class,
+                () -> bulkProcessorHandler.registerIndex("index", indexDefinitionMock, definitionBuilder, commitInfo, true));
+        Assert.assertThrows(IllegalStateException.class,
+                () -> bulkProcessorHandler.index("index", "id", new ElasticDocument("path")));
+        Assert.assertThrows(IllegalStateException.class,
+                () -> bulkProcessorHandler.update("index", "id", new ElasticDocument("path")));
+        Assert.assertThrows(IllegalStateException.class,
+                () -> bulkProcessorHandler.delete("index", "id"));
+        Assert.assertThrows(IllegalStateException.class,
+                () -> bulkProcessorHandler.flushIndex("index"));
+    }
+
+    @Test
+    public void rtMode() throws IOException {
         when(definitionNodeStateMock.getProperty(eq("async"))).thenReturn(null);
         when(definitionNodeStateMock.getProperty(eq("sync-mode")))
                 .thenReturn(new StringPropertyState("sync-mode", "rt"));
 
-        ElasticBulkProcessorHandler bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo, true);
+        ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        bulkProcessorHandler.registerIndex("index", indexDefinitionMock, definitionBuilder, commitInfo, true);
 
-        assertThat(bulkProcessorHandler, instanceOf(ElasticBulkProcessorHandler.RealTimeBulkProcessorHandler.class));
+        ElasticBulkProcessorHandler.IndexInfo indexInfo = bulkProcessorHandler.getIndexInfo("index");
+        Assert.assertNotNull(indexInfo);
+        Assert.assertTrue(indexInfo.isRealTime);
+        bulkProcessorHandler.flushIndex("index");
+        bulkProcessorHandler.close();
     }
 
     @Test
-    public void defaultModeWithCommitInfoOverride() {
+    public void defaultModeWithCommitInfoOverride() throws IOException {
         when(definitionNodeStateMock.getProperty(eq("async"))).thenReturn(null);
-        when(commitInfo.getInfo()).thenReturn(Collections.singletonMap("sync-mode", "rt"));
+        when(commitInfo.getInfo()).thenReturn(Map.of("sync-mode", "rt"));
 
-        ElasticBulkProcessorHandler bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo, true);
+        ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        bulkProcessorHandler.registerIndex("index", indexDefinitionMock, definitionBuilder, commitInfo, true);
 
-        assertThat(bulkProcessorHandler, instanceOf(ElasticBulkProcessorHandler.RealTimeBulkProcessorHandler.class));
+        ElasticBulkProcessorHandler.IndexInfo indexInfo = bulkProcessorHandler.getIndexInfo("index");
+        Assert.assertNotNull(indexInfo);
+        Assert.assertTrue(indexInfo.isRealTime);
+
+        bulkProcessorHandler.flushIndex("index");
+        bulkProcessorHandler.close();
+    }
+
+    @Test
+    public void multipleIndexes() throws IOException {
+        when(definitionNodeStateMock.getProperty(eq("async"))).thenReturn(null);
+
+        ElasticBulkProcessorHandler bulkProcessorHandler = new ElasticBulkProcessorHandler(elasticConnectionMock);
+        bulkProcessorHandler.registerIndex("index1", indexDefinitionMock, definitionBuilder, commitInfo, true);
+        bulkProcessorHandler.registerIndex("index2", indexDefinitionMock, definitionBuilder, commitInfo, true);
+
+        ElasticBulkProcessorHandler.IndexInfo indexInfo1 = bulkProcessorHandler.getIndexInfo("index1");
+        Assert.assertNotNull(indexInfo1);
+        Assert.assertFalse(indexInfo1.isRealTime);
+
+        ElasticBulkProcessorHandler.IndexInfo indexInfo2 = bulkProcessorHandler.getIndexInfo("index2");
+        Assert.assertNotNull(indexInfo2);
+        Assert.assertFalse(indexInfo2.isRealTime);
+
+        Assert.assertFalse(bulkProcessorHandler.flushIndex("index1"));
+        Assert.assertFalse(bulkProcessorHandler.flushIndex("index2"));
+        bulkProcessorHandler.close();
     }
 }

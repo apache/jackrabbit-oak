@@ -150,6 +150,7 @@ public class ElasticIndexProviderService {
     private ElasticConnection elasticConnection;
     private ElasticMetricHandler metricHandler;
     private ElasticIndexTracker indexTracker;
+    private ElasticIndexEditorProvider elasticIndexEditorProvider;
 
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
@@ -189,7 +190,8 @@ public class ElasticIndexProviderService {
         LOG.info("Registering Index and Editor providers with connection {}", elasticConnection);
 
         registerIndexProvider(bundleContext);
-        registerIndexEditor(bundleContext);
+        this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache);
+        registerIndexEditor(bundleContext, elasticIndexEditorProvider);
         if (isElasticAvailable) {
             registerIndexCleaner(config);
         } else {
@@ -207,6 +209,11 @@ public class ElasticIndexProviderService {
             reg.unregister();
         }
 
+        try {
+            this.elasticIndexEditorProvider.close();
+        } catch (Exception e) {
+            LOG.warn("Error closing ElasticIndexEditorProvider. Ignoring error and proceeding.", e);
+        }
         IOUtils.closeQuietly(elasticConnection);
 
         if (extractedTextCache != null) {
@@ -231,12 +238,10 @@ public class ElasticIndexProviderService {
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, props));
     }
 
-    private void registerIndexEditor(BundleContext bundleContext) {
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache);
-
+    private void registerIndexEditor(BundleContext bundleContext, ElasticIndexEditorProvider indexEditorProvider) {
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);
-        regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
+        regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), indexEditorProvider, props));
     }
 
     private ElasticConnection getElasticConnection(Config contextConfig) {

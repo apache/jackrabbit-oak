@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -110,7 +111,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
     @Test
     public void testDynamicMembers() throws Exception {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
-        when(dmp.getMembers(dynamicGroup, false)).thenReturn(Iterators.forArray(dynamicUser, getTestUser()));
+        when(dmp.getMembers(dynamicGroup, false)).thenReturn(Arrays.asList(new Authorizable[]{dynamicUser, getTestUser()}).iterator());
         when(dmp.getMembers(nonDynamicGroup, false)).thenReturn(Collections.emptyIterator());
 
         // dynamic members get resolved this time

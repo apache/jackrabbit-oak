@@ -21,12 +21,16 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder.PropertyRule;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -37,6 +41,20 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
+    @Rule
+    public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
+
+    // Tests are hardcoded for these values
+    private final static int BULK_ACTIONS_TEST = 250;
+    private final static int BULK_SIZE_BYTES_TEST = 1024 * 1024;
+
+    @Before
+    public void before() throws Exception {
+        // Use a low value for the tests
+        System.setProperty(ElasticBulkProcessorHandler.BULK_ACTIONS_PROP, Integer.toString(BULK_ACTIONS_TEST));
+        System.setProperty(ElasticBulkProcessorHandler.BULK_SIZE_BYTES_PROP, Integer.toString(BULK_SIZE_BYTES_TEST));
+        super.before();
+    }
 
     @Test
     public void bulkProcessorEventsFlushLimit() throws Exception {
@@ -73,24 +91,22 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
     @Test
     public void bulkProcessorSizeFlushLimit() throws Exception {
         LogCustomizer customLogger = LogCustomizer
-                .forLogger(
-                        "org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler")
+                .forLogger("org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler")
                 .enable(Level.DEBUG).create();
         try {
             customLogger.starting();
         /*
         Below are the conditions to flush data from bulk processor.
-        1. Based on events by default 250 events.
+        1. Based on events reaching 250. (BULK_ACTIONS_TEST)
         2. Based on size of estimated bulk request size.
         3. When index writer is closed.
         To trigger flush on bulk request size, we will load large documents so that
          instead of event, flush is triggered because of bulk request size.
          */
             setIndex("test1", createIndex("propa", "propb"));
-            long bulkSize = ElasticIndexDefinition.BULK_SIZE_BYTES_DEFAULT;
             int docSize = 1024 * 16;
             // +1 at end leads to bulk size breach, leading to two bulkIds.
-            long docCountBreachingBulkSize = (bulkSize / docSize) + 1;
+            int docCountBreachingBulkSize = (BULK_SIZE_BYTES_TEST / docSize) + 1;
             // 250 is the default flush limit for bulk processor
             Assert.assertTrue(docCountBreachingBulkSize < 250);
             String random = RandomStringUtils.insecure().next(docSize, true, true);
@@ -370,46 +386,6 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         assertThat("no exception thrown", cfe != null);
         assertThat("the exception cause has to be an IOException", cfe.getCause() instanceof IOException);
         assertThat("there should be 5 suppressed exception", cfe.getCause().getSuppressed().length == 5);
-
-        String query = "select [jcr:path] from [nt:base] where [a] = 'foo'";
-        assertEventually(() -> assertQuery(query, SQL2,
-                List.of("/test/a1", "/test/a2", "/test/a100", "/test/a101", "/test/a102", "/test/a103", "/test/a104")
-        ));
-    }
-
-    @Test
-    public void indexFailuresWithFailOnErrorOff() throws Exception {
-        IndexDefinitionBuilder builder = createIndex("a");
-        builder.includedPaths("/test")
-                .indexRule("nt:base")
-                .property("nodeName", PROPDEF_PROP_NODE_NAME);
-
-        // configuring the index with a regex property and strict mapping to simulate failures
-        builder.indexRule("nt:base").property("b", true).propertyIndex();
-        builder.getBuilderTree().setProperty(ElasticIndexDefinition.DYNAMIC_MAPPING, "strict");
-        builder.getBuilderTree().setProperty(ElasticIndexDefinition.FAIL_ON_ERROR, false);
-
-        setIndex("test1", builder);
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        for (int i = 1; i < 3; i++) {
-            test.addChild("a" + i).setProperty("a", "foo");
-        }
-        root.commit();
-
-        // now we add 5 correct docs and 5 docs cannot be mapped
-        test.addChild("a100").setProperty("a", "foo");
-        test.addChild("a200").setProperty("b", "foo");
-        test.addChild("a101").setProperty("a", "foo");
-        test.addChild("a201").setProperty("b", "foo");
-        test.addChild("a102").setProperty("a", "foo");
-        test.addChild("a202").setProperty("b", "foo");
-        test.addChild("a103").setProperty("a", "foo");
-        test.addChild("a203").setProperty("b", "foo");
-        test.addChild("a104").setProperty("a", "foo");
-        test.addChild("a204").setProperty("b", "foo");
-        root.commit();
 
         String query = "select [jcr:path] from [nt:base] where [a] = 'foo'";
         assertEventually(() -> assertQuery(query, SQL2,

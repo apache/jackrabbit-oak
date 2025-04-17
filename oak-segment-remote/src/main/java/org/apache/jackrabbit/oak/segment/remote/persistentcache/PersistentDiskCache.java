@@ -17,12 +17,11 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import java.io.UncheckedIOException;
 import java.nio.file.NoSuchFileException;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.SegmentCacheStats;
 import org.jetbrains.annotations.NotNull;

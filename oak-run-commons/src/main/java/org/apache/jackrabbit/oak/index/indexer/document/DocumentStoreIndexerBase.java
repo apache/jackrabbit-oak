@@ -20,12 +20,12 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 
 import com.codahale.metrics.MetricRegistry;
 import com.mongodb.MongoClientURI;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
@@ -378,41 +378,38 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             progressReporter.reset();
 
             progressReporter.reindexingTraversalStart("/");
-
             NodeBuilder builder = copyOnWriteStore.getRoot().builder();
-            CompositeIndexer compositeIndexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
-            closer.register(compositeIndexer);
-            preIndexOperations(compositeIndexer.getIndexers());
-
             INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:START] Starting indexing");
             Stopwatch indexerWatch = Stopwatch.createStarted();
             try {
-                if (indexStores.size() > 1) {
-                    indexParallel(indexStores, compositeIndexer, progressReporter);
-                } else if (indexStores.size() == 1) {
-                    IndexStore indexStore = indexStores.get(0);
-                    TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
-                    compositeIndexer.onIndexingStarting();
-                    long entryStart = System.nanoTime();
-                    for (NodeStateEntry entry : indexStore) {
-                        reportDocumentRead(entry.getPath(), progressReporter);
-                        compositeIndexer.index(entry);
-                        // Avoid calling System.nanoTime() twice per each entry, by reusing the timestamp taken at the end
-                        // of indexing an entry as the start time of the following entry. This is less accurate, because
-                        // the measured times will also include the bookkeeping at the end of indexing each entry, but
-                        // we are only interested in entries that take a significant time to index, so this extra
-                        // inaccuracy will not significantly change the results.
-                        long entryEnd = System.nanoTime();
-                        long elapsedMillis = (entryEnd - entryStart) / 1_000_000;
-                        entryStart = entryEnd;
-                        slowestTopKElements.add(entry.getPath(), elapsedMillis);
-                        if (elapsedMillis > 1000) {
-                            log.info("Indexing {} took {} ms", entry.getPath(), elapsedMillis);
+                try (CompositeIndexer compositeIndexer = prepareIndexers(copyOnWriteStore, builder, progressReporter)) {
+                    preIndexOperations(compositeIndexer.getIndexers());
+                    if (indexStores.size() > 1) {
+                        indexParallel(indexStores, compositeIndexer, progressReporter);
+                    } else if (indexStores.size() == 1) {
+                        IndexStore indexStore = indexStores.get(0);
+                        TopKSlowestPaths slowestTopKElements = new TopKSlowestPaths(TOP_SLOWEST_PATHS_TO_LOG);
+                        compositeIndexer.onIndexingStarting();
+                        long entryStart = System.nanoTime();
+                        for (NodeStateEntry entry : indexStore) {
+                            reportDocumentRead(entry.getPath(), progressReporter);
+                            compositeIndexer.index(entry);
+                            // Avoid calling System.nanoTime() twice per each entry, by reusing the timestamp taken at the end
+                            // of indexing an entry as the start time of the following entry. This is less accurate, because
+                            // the measured times will also include the bookkeeping at the end of indexing each entry, but
+                            // we are only interested in entries that take a significant time to index, so this extra
+                            // inaccuracy will not significantly change the results.
+                            long entryEnd = System.nanoTime();
+                            long elapsedMillis = (entryEnd - entryStart) / 1_000_000;
+                            entryStart = entryEnd;
+                            slowestTopKElements.add(entry.getPath(), elapsedMillis);
+                            if (elapsedMillis > 1000) {
+                                log.info("Indexing {} took {} ms", entry.getPath(), elapsedMillis);
+                            }
                         }
+                        log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
                     }
-                    log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
                 }
-
                 for (NodeStateIndexerProvider indexerProvider : indexerProviders) {
                     ExtractedTextCache extractedTextCache = indexerProvider.getTextCache();
                     CacheStats cacheStats = extractedTextCache == null ? null : extractedTextCache.getCacheStats();
@@ -545,7 +542,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 NodeStateIndexer indexer = indexerProvider.getIndexer(type, indexPath, idxBuilder, root, progressReporter);
                 if (indexer != null) {
                     indexers.add(indexer);
-                    closer.register(indexer);
                     progressReporter.registerIndex(indexPath, true, -1);
                 }
             }

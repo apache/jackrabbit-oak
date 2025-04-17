@@ -39,8 +39,6 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 @Component(configurationPolicy = ConfigurationPolicy.REQUIRE, service = {MountedNodeStoreChecker.class})
 public class NodeTypeMountedNodeStoreChecker implements 
         MountedNodeStoreChecker<NodeTypeMountedNodeStoreChecker.Context>  {
