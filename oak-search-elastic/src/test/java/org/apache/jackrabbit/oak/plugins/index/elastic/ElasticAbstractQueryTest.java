@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -78,6 +79,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     protected long INDEX_CORRUPT_INTERVAL_IN_MILLIS = 100;
     protected NodeStore nodeStore;
     protected int DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS = 5;
+    protected static final String INFERENCE_CONFIG_PATH = "oak:index/:inferenceConfig";
 
     @ClassRule
     public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
@@ -141,12 +143,13 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         esConnection = getElasticConnection();
-        indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
+        nodeStore = getNodeStore();
+        indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler(), new InferenceConfig(nodeStore, INFERENCE_CONFIG_PATH));
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
-        nodeStore = getNodeStore();
+
 
         asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(
                 editorProvider,

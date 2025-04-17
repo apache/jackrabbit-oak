@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
@@ -44,9 +45,11 @@ class ElasticIndex extends FulltextIndex {
     private static final IteratorRewoundStateProvider REWOUND_STATE_PROVIDER_NOOP = () -> 0;
 
     private final ElasticIndexTracker elasticIndexTracker;
+    private final InferenceConfig inferenceConfig;
 
     ElasticIndex(ElasticIndexTracker elasticIndexTracker) {
         this.elasticIndexTracker = elasticIndexTracker;
+        this.inferenceConfig = elasticIndexTracker.getInferenceConfig();
     }
 
     @Override
@@ -108,7 +111,7 @@ class ElasticIndex extends FulltextIndex {
         Filter filter = plan.getFilter();
         FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
 
-        ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState);
+        ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState, inferenceConfig);
         ElasticResponseHandler responseHandler = new ElasticResponseHandler(planResult, filter);
 
         ElasticQueryIterator itr;

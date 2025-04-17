@@ -168,4 +168,5 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
         public void markDirty() {
         }
     }
+
 }

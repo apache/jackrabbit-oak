@@ -36,16 +36,30 @@ public class InferenceServiceManager {
 
     private static final ConcurrentHashMap<String, InferenceService> SERVICES = new ConcurrentHashMap<>();
 
+    @Deprecated
     public static InferenceService getInstance(@NotNull String url, String model) {
         String k = model == null ? url : url + "|" + model;
 
         if (SERVICES.size() >= MAX_CACHED_SERVICES) {
             LOGGER.warning("InferenceServiceManager maximum cached services reached: " + MAX_CACHED_SERVICES);
             LOGGER.warning("Returning a new InferenceService instance with no cache");
-            return new InferenceService(url, 0);
+            return new InferenceServiceUsingIndexConfig(url, 0);
         }
 
-        return SERVICES.computeIfAbsent(k, key -> new InferenceService(url, CACHE_SIZE));
+        return SERVICES.computeIfAbsent(k, key -> new InferenceServiceUsingIndexConfig(url, CACHE_SIZE));
     }
 
+    public static InferenceService getInstance(InferenceModelConfig inferenceModelConfig) {
+        //TODO we should use hash here, as hash takes care of all properties in model config.
+        String key = inferenceModelConfig.getEmbeddingServiceUrl()
+                + "|" + inferenceModelConfig.getInferenceModelConfigName()
+                + "|" + inferenceModelConfig.getModel();
+
+        if (SERVICES.size() >= MAX_CACHED_SERVICES) {
+            LOGGER.warning("InferenceServiceManager maximum cached services reached: " + MAX_CACHED_SERVICES);
+            LOGGER.warning("Returning a new InferenceService instance with no cache");
+            return new InferenceServiceUsingConfig(inferenceModelConfig);
+        }
+        return SERVICES.computeIfAbsent(key, k -> new InferenceServiceUsingConfig(inferenceModelConfig));
+    }
 }

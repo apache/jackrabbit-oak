@@ -241,6 +241,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         } else {
             this.inferenceDefinition = null;
         }
+
     }
 
     @Nullable

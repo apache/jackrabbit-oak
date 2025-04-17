@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-import java.util.List;
-
-public interface InferenceService {
-
-    List<Float> embeddings(String text);
-
-    List<Float> embeddings(String text, long timeoutMillis);
+public interface InferenceConstants {
+    String ENABLED = "enabled";
+    String ENRICHER_CONFIG = "enricherConfig";
+    String TYPE = "type";
+    String DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH = "/oak:index/:inferenceConfig";
+    String VECTOR_SPACES = ":vectorSpaces";
+    String VECTOR = "vector";
 }

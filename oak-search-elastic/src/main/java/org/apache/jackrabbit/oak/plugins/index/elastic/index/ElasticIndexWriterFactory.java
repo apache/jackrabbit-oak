@@ -48,4 +48,5 @@ public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<Ela
 
         return new ElasticIndexWriter(indexTracker, elasticConnection, esDefinition, definitionBuilder, reindex, commitInfo, bulkProcessorHandler);
     }
+
 }
