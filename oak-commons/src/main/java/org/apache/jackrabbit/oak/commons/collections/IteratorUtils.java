@@ -22,6 +22,7 @@ import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -262,9 +263,27 @@ public class IteratorUtils {
      * @param type     the {@link Class} object representing the component type of the array, must not be null
      * @return an array containing all the elements from the iterator
      * @throws NullPointerException if the iterator or type is null
-     * @since 4.1
      */
     public static <T> T[] toArray(Iterator<? extends T> iterator, Class<T> type) {
         return org.apache.commons.collections4.IteratorUtils.toArray(iterator, type);
+    }
+
+    /**
+     * Converts an iterator to an enumeration.
+     * <p>
+     * This method creates an {@link Enumeration} that will use the provided {@link Iterator}
+     * as its source of elements. The enumeration will iterate through the same elements
+     * as the iterator in the same order.
+     * <p>
+     * The enumeration's {@code hasMoreElements()} and {@code nextElement()} methods
+     * delegate to the iterator's {@code hasNext()} and {@code next()} methods respectively.
+     *
+     * @param <T> the type of elements in the iterator and enumeration
+     * @param iterator the iterator to convert to an enumeration, must not be null
+     * @return an enumeration that uses the provided iterator as its source
+     * @throws NullPointerException if the iterator is null
+     */
+    public static <T> Enumeration<T> asEnumeration(final Iterator<T> iterator) {
+        return org.apache.commons.collections4.IteratorUtils.asEnumeration(iterator);
     }
 }

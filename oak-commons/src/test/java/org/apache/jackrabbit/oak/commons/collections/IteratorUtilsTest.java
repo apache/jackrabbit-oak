@@ -25,9 +25,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 import static org.junit.Assert.fail;
 
@@ -511,5 +513,80 @@ public class IteratorUtilsTest {
         CustomObject[] array = IteratorUtils.toArray(iterator, CustomObject.class);
         Assert.assertEquals("first", array[0].toString());
         Assert.assertEquals("second", array[1].toString());
+    }
+
+    @Test
+    public void testAsEnumerationWithMultipleElements() {
+        Iterator<String> iterator = Arrays.asList("one", "two", "three").iterator();
+        Enumeration<String> enumeration = IteratorUtils.asEnumeration(iterator);
+
+        Assert.assertTrue(enumeration.hasMoreElements());
+        Assert.assertEquals("one", enumeration.nextElement());
+        Assert.assertTrue(enumeration.hasMoreElements());
+        Assert.assertEquals("two", enumeration.nextElement());
+        Assert.assertTrue(enumeration.hasMoreElements());
+        Assert.assertEquals("three", enumeration.nextElement());
+        Assert.assertFalse(enumeration.hasMoreElements());
+    }
+
+    @Test
+    public void testAsEnumerationWithEmptyIterator() {
+        Iterator<String> emptyIterator = Collections.emptyIterator();
+        Enumeration<String> enumeration = IteratorUtils.asEnumeration(emptyIterator);
+
+        Assert.assertFalse(enumeration.hasMoreElements());
+    }
+
+    @Test
+    public void testAsEnumerationWithSingleElement() {
+        Iterator<Integer> singleElementIterator = Collections.singleton(42).iterator();
+        Enumeration<Integer> enumeration = IteratorUtils.asEnumeration(singleElementIterator);
+
+        Assert.assertTrue(enumeration.hasMoreElements());
+        Assert.assertEquals(Integer.valueOf(42), enumeration.nextElement());
+        Assert.assertFalse(enumeration.hasMoreElements());
+    }
+
+    @Test(expected = NoSuchElementException.class)
+    public void testAsEnumerationNoMoreElements() {
+        Iterator<String> iterator = Collections.singletonList("single").iterator();
+        Enumeration<String> enumeration = IteratorUtils.asEnumeration(iterator);
+
+        enumeration.nextElement(); // First element
+        enumeration.nextElement(); // Should throw NoSuchElementException
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testAsEnumerationWithNullIterator() {
+        IteratorUtils.asEnumeration(null);
+    }
+
+    @Test
+    public void testAsEnumerationWithCustomType() {
+        class CustomObject {
+            private final String value;
+
+            CustomObject(String value) {
+                this.value = value;
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                if (this == obj) return true;
+                if (obj == null || getClass() != obj.getClass()) return false;
+                CustomObject that = (CustomObject) obj;
+                return Objects.equals(value, that.value);
+            }
+        }
+
+        List<CustomObject> list = Arrays.asList(new CustomObject("first"), new CustomObject("second"));
+        Iterator<CustomObject> iterator = list.iterator();
+        Enumeration<CustomObject> enumeration = IteratorUtils.asEnumeration(iterator);
+
+        Assert.assertTrue(enumeration.hasMoreElements());
+        Assert.assertEquals(list.get(0), enumeration.nextElement());
+        Assert.assertTrue(enumeration.hasMoreElements());
+        Assert.assertEquals(list.get(1), enumeration.nextElement());
+        Assert.assertFalse(enumeration.hasMoreElements());
     }
 }
