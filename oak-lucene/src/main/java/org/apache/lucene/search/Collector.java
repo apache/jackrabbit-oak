@@ -45,14 +45,14 @@ import org.apache.lucene.index.IndexReaderContext;
  *   <li>{@link TopDocsCollector} is an abstract base class
  *   that assumes you will retrieve the top N docs,
  *   according to some criteria, after collection is
- *   done.  
+ *   done.  </li>
  *
  *   <li>{@link TopScoreDocCollector} is a concrete subclass
  *   {@link TopDocsCollector} and sorts according to score +
  *   docID.  This is used internally by the {@link
  *   IndexSearcher} search methods that do not take an
  *   explicit {@link Sort}. It is likely the most frequently
- *   used collector.
+ *   used collector.</li>
  *
  *   <li>{@link TopFieldCollector} subclasses {@link
  *   TopDocsCollector} and sorts according to a specified
@@ -62,11 +62,11 @@ import org.apache.lucene.index.IndexReaderContext;
  *
  *   <li>{@link TimeLimitingCollector}, which wraps any other
  *   Collector and aborts the search if it's taken too much
- *   time.
+ *   time.</li>
  *
  *   <li>{@link PositiveScoresOnlyCollector} wraps any other
  *   Collector and prevents collection of hits whose score
- *   is &lt;= 0.0
+ *   is &lt;= 0.0</li>
  *
  * </ul>
  *

@@ -33,6 +33,7 @@ import org.apache.lucene.util.IntBlockPool.Allocator;
  * {@link #getIntBlock()}.
  * <p>
  * Note: This class is not thread-safe
+ * </p>
  * @lucene.internal
  */
 public final class RecyclingIntBlockAllocator extends Allocator {

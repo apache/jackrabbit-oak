@@ -60,14 +60,14 @@ import org.apache.lucene.util.packed.PackedInts;
  * first bit, the number of clean words minus 2 on the next 3 bits and the
  * number of dirty words on the last 4 bits. The higher-order bit is a
  * continuation bit, meaning that the number is incomplete and needs additional
- * bytes to be read.
+ * bytes to be read.</li>
  *   <li><b>Clean length+</b>: If clean length has its higher-order bit set,
  * you need to read a {@link DataInput#readVInt() vint}, shift it by 3 bits on
- * the left side and add it to the 3 bits which have been read in the token.
+ * the left side and add it to the 3 bits which have been read in the token.</li>
  *   <li><b>Dirty length+</b> works the same way as <b>Clean length+</b> but
- * on 4 bits and for the length of dirty words.
+ * on 4 bits and for the length of dirty words.</li>
  *   <li><b>Dirty words</b> are the dirty words, there are <b>Dirty length</b>
- * of them.
+ * of them.</li>
  * </ul>
  * <p>This format cannot encode sequences of less than 2 clean words and 0 dirty
  * word. The reason is that if you find a single clean word, you should rather

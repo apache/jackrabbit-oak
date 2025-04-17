@@ -49,6 +49,7 @@ import org.apache.lucene.util.automaton.Transition;
  * The algorithm does not attempt to actually skip to the next string that is
  * completely accepted. This is not possible when the language accepted by the
  * FSM is not finite (i.e. * operator).
+ * </p>
  * @lucene.experimental
  */
 class AutomatonTermsEnum extends FilteredTermsEnum {

@@ -47,6 +47,7 @@ import java.util.concurrent.Future; // javadoc
  * implementation the position is apparently synchronized. See <a
  * href="http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6265734">here</a>
  * for details.
+ * </p>
  * <p>
  * <font color="red"><b>NOTE:</b> Accessing this class either directly or
  * indirectly from a thread while it's interrupted can close the
@@ -56,6 +57,7 @@ import java.util.concurrent.Future; // javadoc
  * your application uses either {@link Thread#interrupt()} or
  * {@link Future#cancel(boolean)} you should use {@link SimpleFSDirectory} in
  * favor of {@link NIOFSDirectory}.</font>
+ * </p>
  */
 public class NIOFSDirectory extends FSDirectory {
 

@@ -38,9 +38,9 @@ import org.apache.lucene.util.SetOnce;
  * Segments are traditionally flushed by:
  * <ul>
  * <li>RAM consumption - configured via
- * {@link IndexWriterConfig#setRAMBufferSizeMB(double)}
+ * {@link IndexWriterConfig#setRAMBufferSizeMB(double)}</li>
  * <li>Number of RAM resident documents - configured via
- * {@link IndexWriterConfig#setMaxBufferedDocs(int)}
+ * {@link IndexWriterConfig#setMaxBufferedDocs(int)}</li>
  * </ul>
  * The policy also applies pending delete operations (by term and/or query),
  * given the threshold set in

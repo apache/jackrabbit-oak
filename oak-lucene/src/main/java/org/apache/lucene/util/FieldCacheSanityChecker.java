@@ -41,6 +41,7 @@ import org.apache.lucene.store.AlreadyClosedException;
 /** 
  * Provides methods for sanity checking that entries in the FieldCache 
  * are not wasteful or inconsistent.
+ * </p>
  * <p>
  * Lucene 2.9 Introduced numerous enhancements into how the FieldCache 
  * is used by the low levels of Lucene searching (for Sorting and 
@@ -53,6 +54,7 @@ import org.apache.lucene.store.AlreadyClosedException;
  * Later.  This class provides an API for these applications (or their 
  * Unit tests) to check at run time if the FieldCache contains "insane" 
  * usages of the FieldCache.
+ * </p>
  * @lucene.experimental
  * @see FieldCache
  * @see FieldCacheSanityChecker.Insanity

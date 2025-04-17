@@ -50,37 +50,40 @@ import org.apache.lucene.store.IOContext;
  * <p>This contains, for each document, a pointer to its field data, as
  * follows:</p>
  * <ul>
- * <li>FieldIndex (.fdx) --&gt; &lt;Header&gt;, &lt;FieldValuesPosition&gt; <sup>SegSize</sup>
- * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
- * <li>FieldValuesPosition --&gt; {@link DataOutput#writeLong Uint64}
+ * <li>FieldIndex (.fdx) --&gt; &lt;Header&gt;, &lt;FieldValuesPosition&gt; <sup>SegSize</sup></li>
+ * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
+ * <li>FieldValuesPosition --&gt; {@link DataOutput#writeLong Uint64}</li>
  * </ul>
+ * </li>
  * <li>
  * <p><a name="field_data" id="field_data"></a>The field data, or <tt>.fdt</tt> file.</p>
  * <p>This contains the stored fields of each document, as follows:</p>
  * <ul>
- * <li>FieldData (.fdt) --&gt; &lt;Header&gt;, &lt;DocFieldData&gt; <sup>SegSize</sup>
- * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
+ * <li>FieldData (.fdt) --&gt; &lt;Header&gt;, &lt;DocFieldData&gt; <sup>SegSize</sup></li>
+ * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
  * <li>DocFieldData --&gt; FieldCount, &lt;FieldNum, Bits, Value&gt;
- * <sup>FieldCount</sup>
- * <li>FieldCount --&gt; {@link DataOutput#writeVInt VInt}
- * <li>FieldNum --&gt; {@link DataOutput#writeVInt VInt}
- * <li>Bits --&gt; {@link DataOutput#writeByte Byte}
+ * <sup>FieldCount</sup></li>
+ * <li>FieldCount --&gt; {@link DataOutput#writeVInt VInt}</li>
+ * <li>FieldNum --&gt; {@link DataOutput#writeVInt VInt}</li>
+ * <li>Bits --&gt; {@link DataOutput#writeByte Byte}</li>
  * <ul>
- * <li>low order bit reserved.
- * <li>second bit is one for fields containing binary data
- * <li>third bit reserved.
+ * <li>low order bit reserved.</li>
+ * <li>second bit is one for fields containing binary data</li>
+ * <li>third bit reserved.</li>
  * <li>4th to 6th bit (mask: 0x7&lt;&lt;3) define the type of a numeric field:
  * <ul>
- * <li>all bits in mask are cleared if no numeric field at all
- * <li>1&lt;&lt;3: Value is Int
- * <li>2&lt;&lt;3: Value is Long
- * <li>3&lt;&lt;3: Value is Int as Float (as of {@link Float#intBitsToFloat(int)}
- * <li>4&lt;&lt;3: Value is Long as Double (as of {@link Double#longBitsToDouble(long)}
+ * <li>all bits in mask are cleared if no numeric field at all</li>
+ * <li>1&lt;&lt;3: Value is Int</li>
+ * <li>2&lt;&lt;3: Value is Long</li>
+ * <li>3&lt;&lt;3: Value is Int as Float (as of {@link Float#intBitsToFloat(int)}</li>
+ * <li>4&lt;&lt;3: Value is Long as Double (as of {@link Double#longBitsToDouble(long)}</li>
  * </ul>
+ * </li>
  * </ul>
- * <li>Value --&gt; String | BinaryValue | Int | Long (depending on Bits)
- * <li>BinaryValue --&gt; ValueSize, &lt;{@link DataOutput#writeByte Byte}&gt;^ValueSize
- * <li>ValueSize --&gt; {@link DataOutput#writeVInt VInt}
+ * <li>Value --&gt; String | BinaryValue | Int | Long (depending on Bits)</li>
+ * <li>BinaryValue --&gt; ValueSize, &lt;{@link DataOutput#writeByte Byte}&gt;^ValueSize</li>
+ * <li>ValueSize --&gt; {@link DataOutput#writeVInt VInt}</li>
+ * </li>
  * </ul>
  * </ol>
  * @lucene.experimental */

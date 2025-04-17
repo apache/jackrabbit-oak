@@ -33,6 +33,7 @@ import org.apache.lucene.util.ByteBlockPool.Allocator;
  * {@link #getByteBlock()}.
  * <p>
  * Note: This class is not thread-safe
+ * </p>
  * @lucene.internal
  */
 public final class RecyclingByteBlockAllocator extends ByteBlockPool.Allocator {

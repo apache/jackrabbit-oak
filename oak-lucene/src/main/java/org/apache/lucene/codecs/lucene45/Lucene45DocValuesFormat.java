@@ -89,8 +89,8 @@ import org.apache.lucene.util.packed.PackedInts;
  * <p>
  * Files:
  * <ol>
- *   <li><tt>.dvd</tt>: DocValues data
- *   <li><tt>.dvm</tt>: DocValues metadata
+ *   <li><tt>.dvd</tt>: DocValues data</li>
+ *   <li><tt>.dvm</tt>: DocValues metadata</li>
  * </ol>
  * <ol>
  *   <li><a name="dvm" id="dvm"></a>
@@ -99,24 +99,24 @@ import org.apache.lucene.util.packed.PackedInts;
  *      DocValues data (.dvd)</p>
  *   <p>DocValues metadata (.dvm) --&gt; Header,&lt;Entry&gt;<sup>NumFields</sup></p>
  *   <ul>
- *     <li>Entry --&gt; NumericEntry | BinaryEntry | SortedEntry | SortedSetEntry
- *     <li>NumericEntry --&gt; GCDNumericEntry | TableNumericEntry | DeltaNumericEntry
- *     <li>GCDNumericEntry --&gt; NumericHeader,MinValue,GCD
- *     <li>TableNumericEntry --&gt; NumericHeader,TableSize,{@link DataOutput#writeLong Int64}<sup>TableSize</sup>
- *     <li>DeltaNumericEntry --&gt; NumericHeader
- *     <li>NumericHeader --&gt; FieldNumber,EntryType,NumericType,MissingOffset,PackedVersion,DataOffset,Count,BlockSize
- *     <li>BinaryEntry --&gt; FixedBinaryEntry | VariableBinaryEntry | PrefixBinaryEntry
- *     <li>FixedBinaryEntry --&gt; BinaryHeader
- *     <li>VariableBinaryEntry --&gt; BinaryHeader,AddressOffset,PackedVersion,BlockSize
- *     <li>PrefixBinaryEntry --&gt; BinaryHeader,AddressInterval,AddressOffset,PackedVersion,BlockSize
- *     <li>BinaryHeader --&gt; FieldNumber,EntryType,BinaryType,MissingOffset,MinLength,MaxLength,DataOffset
- *     <li>SortedEntry --&gt; FieldNumber,EntryType,BinaryEntry,NumericEntry
- *     <li>SortedSetEntry --&gt; EntryType,BinaryEntry,NumericEntry,NumericEntry
- *     <li>FieldNumber,PackedVersion,MinLength,MaxLength,BlockSize,ValueCount --&gt; {@link DataOutput#writeVInt VInt}
- *     <li>EntryType,CompressionType --&gt; {@link DataOutput#writeByte Byte}
- *     <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
- *     <li>MinValue,GCD,MissingOffset,AddressOffset,DataOffset --&gt; {@link DataOutput#writeLong Int64}
- *     <li>TableSize --&gt; {@link DataOutput#writeVInt vInt}
+ *     <li>Entry --&gt; NumericEntry | BinaryEntry | SortedEntry | SortedSetEntry</li>
+ *     <li>NumericEntry --&gt; GCDNumericEntry | TableNumericEntry | DeltaNumericEntry</li>
+ *     <li>GCDNumericEntry --&gt; NumericHeader,MinValue,GCD</li>
+ *     <li>TableNumericEntry --&gt; NumericHeader,TableSize,{@link DataOutput#writeLong Int64}<sup>TableSize</sup></li>
+ *     <li>DeltaNumericEntry --&gt; NumericHeader</li>
+ *     <li>NumericHeader --&gt; FieldNumber,EntryType,NumericType,MissingOffset,PackedVersion,DataOffset,Count,BlockSize</li>
+ *     <li>BinaryEntry --&gt; FixedBinaryEntry | VariableBinaryEntry | PrefixBinaryEntry</li>
+ *     <li>FixedBinaryEntry --&gt; BinaryHeader</li>
+ *     <li>VariableBinaryEntry --&gt; BinaryHeader,AddressOffset,PackedVersion,BlockSize</li>
+ *     <li>PrefixBinaryEntry --&gt; BinaryHeader,AddressInterval,AddressOffset,PackedVersion,BlockSize</li>
+ *     <li>BinaryHeader --&gt; FieldNumber,EntryType,BinaryType,MissingOffset,MinLength,MaxLength,DataOffset</li>
+ *     <li>SortedEntry --&gt; FieldNumber,EntryType,BinaryEntry,NumericEntry</li>
+ *     <li>SortedSetEntry --&gt; EntryType,BinaryEntry,NumericEntry,NumericEntry</li>
+ *     <li>FieldNumber,PackedVersion,MinLength,MaxLength,BlockSize,ValueCount --&gt; {@link DataOutput#writeVInt VInt}</li>
+ *     <li>EntryType,CompressionType --&gt; {@link DataOutput#writeByte Byte}</li>
+ *     <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
+ *     <li>MinValue,GCD,MissingOffset,AddressOffset,DataOffset --&gt; {@link DataOutput#writeLong Int64}</li>
+ *     <li>TableSize --&gt; {@link DataOutput#writeVInt vInt}</li>
  *   </ul>
  *   <p>Sorted fields have two entries: a BinaryEntry with the value metadata,
  *      and an ordinary NumericEntry for the document-to-ord metadata.</p>
@@ -151,13 +151,13 @@ import org.apache.lucene.util.packed.PackedInts;
  *   <p>For DocValues field, this stores the actual per-document data (the heavy-lifting)</p>
  *   <p>DocValues data (.dvd) --&gt; Header,&lt;NumericData | BinaryData | SortedData&gt;<sup>NumFields</sup></p>
  *   <ul>
- *     <li>NumericData --&gt; DeltaCompressedNumerics | TableCompressedNumerics | GCDCompressedNumerics
- *     <li>BinaryData --&gt;  {@link DataOutput#writeByte Byte}<sup>DataLength</sup>,Addresses
- *     <li>SortedData --&gt; {@link FST FST&lt;Int64&gt;}
- *     <li>DeltaCompressedNumerics --&gt; {@link BlockPackedWriter BlockPackedInts(blockSize=16k)}
- *     <li>TableCompressedNumerics --&gt; {@link PackedInts PackedInts}
- *     <li>GCDCompressedNumerics --&gt; {@link BlockPackedWriter BlockPackedInts(blockSize=16k)}
- *     <li>Addresses --&gt; {@link MonotonicBlockPackedWriter MonotonicBlockPackedInts(blockSize=16k)}
+ *     <li>NumericData --&gt; DeltaCompressedNumerics | TableCompressedNumerics | GCDCompressedNumerics</li>
+ *     <li>BinaryData --&gt;  {@link DataOutput#writeByte Byte}<sup>DataLength</sup>,Addresses</li>
+ *     <li>SortedData --&gt; {@link FST FST&lt;Int64&gt;}</li>
+ *     <li>DeltaCompressedNumerics --&gt; {@link BlockPackedWriter BlockPackedInts(blockSize=16k)}</li>
+ *     <li>TableCompressedNumerics --&gt; {@link PackedInts PackedInts}</li>
+ *     <li>GCDCompressedNumerics --&gt; {@link BlockPackedWriter BlockPackedInts(blockSize=16k)}</li>
+ *     <li>Addresses --&gt; {@link MonotonicBlockPackedWriter MonotonicBlockPackedInts(blockSize=16k)}</li>
  *   </ul>
  *   <p>SortedSet entries store the list of ordinals in their BinaryData as a
  *      sequences of increasing {@link DataOutput#writeVLong vLong}s, delta-encoded.</p>

@@ -60,61 +60,63 @@ import org.apache.lucene.util.packed.PackedInts;
  * <a href="http://fastcompression.blogspot.fr/2011/05/lz4-explained.html">compression format</a>.</p>
  * <p>Here is a more detailed description of the field data file format:</p>
  * <ul>
- * <li>FieldData (.fdt) --&gt; &lt;Header&gt;, PackedIntsVersion, &lt;Chunk&gt;<sup>ChunkCount</sup>
- * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
- * <li>PackedIntsVersion --&gt; {@link PackedInts#VERSION_CURRENT} as a {@link DataOutput#writeVInt VInt}
- * <li>ChunkCount is not known in advance and is the number of chunks necessary to store all document of the segment
- * <li>Chunk --&gt; DocBase, ChunkDocs, DocFieldCounts, DocLengths, &lt;CompressedDocs&gt;
- * <li>DocBase --&gt; the ID of the first document of the chunk as a {@link DataOutput#writeVInt VInt}
- * <li>ChunkDocs --&gt; the number of documents in the chunk as a {@link DataOutput#writeVInt VInt}
+ * <li>FieldData (.fdt) --&gt; &lt;Header&gt;, PackedIntsVersion, &lt;Chunk&gt;<sup>ChunkCount</sup></li>
+ * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
+ * <li>PackedIntsVersion --&gt; {@link PackedInts#VERSION_CURRENT} as a {@link DataOutput#writeVInt VInt}</li>
+ * <li>ChunkCount is not known in advance and is the number of chunks necessary to store all document of the segment</li>
+ * <li>Chunk --&gt; DocBase, ChunkDocs, DocFieldCounts, DocLengths, &lt;CompressedDocs&gt;</li>
+ * <li>DocBase --&gt; the ID of the first document of the chunk as a {@link DataOutput#writeVInt VInt}</li>
+ * <li>ChunkDocs --&gt; the number of documents in the chunk as a {@link DataOutput#writeVInt VInt}</li>
  * <li>DocFieldCounts --&gt; the number of stored fields of every document in the chunk, encoded as followed:<ul>
- *   <li>if chunkDocs=1, the unique value is encoded as a {@link DataOutput#writeVInt VInt}
+ *   <li>if chunkDocs=1, the unique value is encoded as a {@link DataOutput#writeVInt VInt}</li>
  *   <li>else read a {@link DataOutput#writeVInt VInt} (let's call it <tt>bitsRequired</tt>)<ul>
- *     <li>if <tt>bitsRequired</tt> is <tt>0</tt> then all values are equal, and the common value is the following {@link DataOutput#writeVInt VInt}
- *     <li>else <tt>bitsRequired</tt> is the number of bits required to store any value, and values are stored in a {@link PackedInts packed} array where every value is stored on exactly <tt>bitsRequired</tt> bits
- *   </ul>
- * </ul>
- * <li>DocLengths --&gt; the lengths of all documents in the chunk, encoded with the same method as DocFieldCounts
- * <li>CompressedDocs --&gt; a compressed representation of &lt;Docs&gt; using the LZ4 compression format
- * <li>Docs --&gt; &lt;Doc&gt;<sup>ChunkDocs</sup>
- * <li>Doc --&gt; &lt;FieldNumAndType, Value&gt;<sup>DocFieldCount</sup>
- * <li>FieldNumAndType --&gt; a {@link DataOutput#writeVLong VLong}, whose 3 last bits are Type and other bits are FieldNum
+ *     <li>if <tt>bitsRequired</tt> is <tt>0</tt> then all values are equal, and the common value is the following {@link DataOutput#writeVInt VInt}</li>
+ *     <li>else <tt>bitsRequired</tt> is the number of bits required to store any value, and values are stored in a {@link PackedInts packed} array where every value is stored on exactly <tt>bitsRequired</tt> bits</li>
+ *   </ul></li>
+ * </ul></li>
+ * <li>DocLengths --&gt; the lengths of all documents in the chunk, encoded with the same method as DocFieldCounts</li>
+ * <li>CompressedDocs --&gt; a compressed representation of &lt;Docs&gt; using the LZ4 compression format</li>
+ * <li>Docs --&gt; &lt;Doc&gt;<sup>ChunkDocs</sup></li>
+ * <li>Doc --&gt; &lt;FieldNumAndType, Value&gt;<sup>DocFieldCount</sup></li>
+ * <li>FieldNumAndType --&gt; a {@link DataOutput#writeVLong VLong}, whose 3 last bits are Type and other bits are FieldNum</li>
  * <li>Type --&gt;<ul>
- *   <li>0: Value is String
- *   <li>1: Value is BinaryValue
- *   <li>2: Value is Int
- *   <li>3: Value is Float
- *   <li>4: Value is Long
- *   <li>5: Value is Double
- *   <li>6, 7: unused
- * </ul>
- * <li>FieldNum --&gt; an ID of the field
- * <li>Value --&gt; {@link DataOutput#writeString(String) String} | BinaryValue | Int | Float | Long | Double depending on Type
- * <li>BinaryValue --&gt; ValueLength &lt;Byte&gt;<sup>ValueLength</sup>
+ *   <li>0: Value is String</li>
+ *   <li>1: Value is BinaryValue</li>
+ *   <li>2: Value is Int</li>
+ *   <li>3: Value is Float</li>
+ *   <li>4: Value is Long</li>
+ *   <li>5: Value is Double</li>
+ *   <li>6, 7: unused</li>
+ * </ul></li>
+ * <li>FieldNum --&gt; an ID of the field</li>
+ * <li>Value --&gt; {@link DataOutput#writeString(String) String} | BinaryValue | Int | Float | Long | Double depending on Type</li>
+ * <li>BinaryValue --&gt; ValueLength &lt;Byte&gt;<sup>ValueLength</sup></li>
  * </ul>
  * <p>Notes</p>
  * <ul>
  * <li>If documents are larger than 16KB then chunks will likely contain only
  * one document. However, documents can never spread across several chunks (all
- * fields of a single document are in the same chunk).
+ * fields of a single document are in the same chunk).</li>
  * <li>When at least one document in a chunk is large enough so that the chunk
  * is larger than 32KB, the chunk will actually be compressed in several LZ4
  * blocks of 16KB. This allows {@link StoredFieldVisitor}s which are only
  * interested in the first fields of a document to not have to decompress 10MB
- * of data if the document is 10MB, but only 16KB.
+ * of data if the document is 10MB, but only 16KB.</li>
  * <li>Given that the original lengths are written in the metadata of the chunk,
  * the decompressor can leverage this information to stop decoding as soon as
- * enough data has been decompressed.
+ * enough data has been decompressed.</li>
  * <li>In case documents are incompressible, CompressedDocs will be less than
- * 0.5% larger than Docs.
+ * 0.5% larger than Docs.</li>
  * </ul>
+ * </li>
  * <li><a name="field_index" id="field_index"></a>
  * <p>A fields index file (extension <tt>.fdx</tt>).</p>
  * <ul>
- * <li>FieldsIndex (.fdx) --&gt; &lt;Header&gt;, &lt;ChunkIndex&gt;
- * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
- * <li>ChunkIndex: See {@link CompressingStoredFieldsIndexWriter}
+ * <li>FieldsIndex (.fdx) --&gt; &lt;Header&gt;, &lt;ChunkIndex&gt;</li>
+ * <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
+ * <li>ChunkIndex: See {@link CompressingStoredFieldsIndexWriter}</li>
  * </ul>
+ * </li>
  * </ol>
  * <p><b>Known limitations</b></p>
  * <p>This {@link StoredFieldsFormat} does not support individual documents

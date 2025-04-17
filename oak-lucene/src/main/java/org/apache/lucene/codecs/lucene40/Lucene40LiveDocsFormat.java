@@ -48,12 +48,12 @@ import org.apache.lucene.util.MutableBits;
  * <p>Deletions (.del) --&gt; Format,Header,ByteCount,BitCount, Bits | DGaps (depending
  * on Format)</p>
  * <ul>
- *   <li>Format,ByteSize,BitCount --&gt; {@link DataOutput#writeInt Uint32}
- *   <li>Bits --&gt; &lt;{@link DataOutput#writeByte Byte}&gt; <sup>ByteCount</sup>
- *   <li>DGaps --&gt; &lt;DGap,NonOnesByte&gt; <sup>NonzeroBytesCount</sup>
- *   <li>DGap --&gt; {@link DataOutput#writeVInt VInt}
- *   <li>NonOnesByte --&gt; {@link DataOutput#writeByte Byte}
- *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
+ *   <li>Format,ByteSize,BitCount --&gt; {@link DataOutput#writeInt Uint32}</li>
+ *   <li>Bits --&gt; &lt;{@link DataOutput#writeByte Byte}&gt; <sup>ByteCount</sup></li>
+ *   <li>DGaps --&gt; &lt;DGap,NonOnesByte&gt; <sup>NonzeroBytesCount</sup></li>
+ *   <li>DGap --&gt; {@link DataOutput#writeVInt VInt}</li>
+ *   <li>NonOnesByte --&gt; {@link DataOutput#writeByte Byte}</li>
+ *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
  * </ul>
  * <p>Format is 1: indicates cleared DGaps.</p>
  * <p>ByteCount indicates the number of bytes in Bits. It is typically

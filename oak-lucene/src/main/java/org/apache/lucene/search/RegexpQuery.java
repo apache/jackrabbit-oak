@@ -45,6 +45,7 @@ import org.apache.lucene.util.automaton.RegExp;
  * The supported syntax is documented in the {@link RegExp} class.
  * Note this might be different than other regular expression implementations.
  * For some alternatives with different syntax, look under the sandbox.
+ * </p>
  * <p>
  * Note this query can be slow, as it needs to iterate over many terms. In order
  * to prevent extremely slow RegexpQueries, a Regexp term should not start with

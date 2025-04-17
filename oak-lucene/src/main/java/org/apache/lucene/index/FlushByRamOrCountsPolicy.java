@@ -38,7 +38,7 @@ import org.apache.lucene.index.DocumentsWriterPerThreadPool.ThreadState;
  * {@link #onDelete(DocumentsWriterFlushControl, DocumentsWriterPerThreadPool.ThreadState)}
  * - applies pending delete operations based on the global number of buffered
  * delete terms iff {@link IndexWriterConfig#getMaxBufferedDeleteTerms()} is
- * enabled
+ * enabled</li>
  * <li>
  * {@link #onInsert(DocumentsWriterFlushControl, DocumentsWriterPerThreadPool.ThreadState)}
  * - flushes either on the number of documents per
@@ -46,14 +46,14 @@ import org.apache.lucene.index.DocumentsWriterPerThreadPool.ThreadState;
  * {@link DocumentsWriterPerThread#getNumDocsInRAM()}) or on the global active
  * memory consumption in the current indexing session iff
  * {@link IndexWriterConfig#getMaxBufferedDocs()} or
- * {@link IndexWriterConfig#getRAMBufferSizeMB()} is enabled respectively
+ * {@link IndexWriterConfig#getRAMBufferSizeMB()} is enabled respectively</li>
  * <li>
  * {@link #onUpdate(DocumentsWriterFlushControl, DocumentsWriterPerThreadPool.ThreadState)}
  * - calls
  * {@link #onInsert(DocumentsWriterFlushControl, DocumentsWriterPerThreadPool.ThreadState)}
  * and
  * {@link #onDelete(DocumentsWriterFlushControl, DocumentsWriterPerThreadPool.ThreadState)}
- * in order
+ * in order</li>
  * </ul>
  * All {@link IndexWriterConfig} settings are used to mark
  * {@link DocumentsWriterPerThread} as flush pending during indexing with

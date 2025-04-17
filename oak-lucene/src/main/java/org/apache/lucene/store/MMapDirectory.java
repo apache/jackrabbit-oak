@@ -82,6 +82,7 @@ import org.apache.lucene.util.Constants;
  * underlying channel immediately if at the same time the thread is
  * blocked on IO. The channel will remain closed and subsequent access
  * to {@link MMapDirectory} will throw a {@link ClosedChannelException}. 
+ * </p>
  */
 public class MMapDirectory extends FSDirectory {
   private boolean useUnmapHack = UNMAP_SUPPORTED;

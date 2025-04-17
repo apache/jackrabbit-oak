@@ -44,8 +44,8 @@ import org.apache.lucene.util.packed.PackedInts;
  * <p>
  * Files:
  * <ul>
- *   <li><tt>.nvd</tt>: DocValues data
- *   <li><tt>.nvm</tt>: DocValues metadata
+ *   <li><tt>.nvd</tt>: DocValues data</li>
+ *   <li><tt>.nvm</tt>: DocValues metadata</li>
  * </ul>
  * @see Lucene42DocValuesFormat
  */

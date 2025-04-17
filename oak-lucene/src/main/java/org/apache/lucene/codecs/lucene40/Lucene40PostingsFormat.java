@@ -48,11 +48,12 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * <p>
  * Files:
  * <ul>
- *   <li><tt>.tim</tt>: <a href="#Termdictionary">Term Dictionary</a>
- *   <li><tt>.tip</tt>: <a href="#Termindex">Term Index</a>
- *   <li><tt>.frq</tt>: <a href="#Frequencies">Frequencies</a>
- *   <li><tt>.prx</tt>: <a href="#Positions">Positions</a>
+ *   <li><tt>.tim</tt>: <a href="#Termdictionary">Term Dictionary</a></li>
+ *   <li><tt>.tip</tt>: <a href="#Termindex">Term Index</a></li>
+ *   <li><tt>.frq</tt>: <a href="#Frequencies">Frequencies</a></li>
+ *   <li><tt>.prx</tt>: <a href="#Positions">Positions</a></li>
  * </ul>
+ * </p>
  * <p>
  * <a name="Termdictionary" id="Termdictionary"></a>
  * <h3>Term Dictionary</h3>
@@ -62,44 +63,46 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * and pointers to the frequencies, positions and
  * skip data in the .frq and .prx files.
  * See {@link BlockTreeTermsWriter} for more details on the format.
+ * </p>
  *
  * <p>NOTE: The term dictionary can plug into different postings implementations:
  * the postings writer/reader are actually responsible for encoding 
  * and decoding the Postings Metadata and Term Metadata sections described here:</p>
  * <ul>
- *    <li>Postings Metadata --&gt; Header, SkipInterval, MaxSkipLevels, SkipMinimum
+ *    <li>Postings Metadata --&gt; Header, SkipInterval, MaxSkipLevels, SkipMinimum</li>
  *    <li>Term Metadata --&gt; FreqDelta, SkipDelta?, ProxDelta?
- *    <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
- *    <li>SkipInterval,MaxSkipLevels,SkipMinimum --&gt; {@link DataOutput#writeInt Uint32}
- *    <li>SkipDelta,FreqDelta,ProxDelta --&gt; {@link DataOutput#writeVLong VLong}
+ *    <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
+ *    <li>SkipInterval,MaxSkipLevels,SkipMinimum --&gt; {@link DataOutput#writeInt Uint32}</li>
+ *    <li>SkipDelta,FreqDelta,ProxDelta --&gt; {@link DataOutput#writeVLong VLong}</li>
  * </ul>
  * <p>Notes:</p>
  * <ul>
  *    <li>Header is a {@link CodecUtil#writeHeader CodecHeader} storing the version information
- *        for the postings.
+ *        for the postings.</li>
  *    <li>SkipInterval is the fraction of TermDocs stored in skip tables. It is used to accelerate 
  *        {@link DocsEnum#advance(int)}. Larger values result in smaller indexes, greater 
  *        acceleration, but fewer accelerable cases, while smaller values result in bigger indexes, 
  *        less acceleration (in case of a small value for MaxSkipLevels) and more accelerable cases.
+ *        </li>
  *    <li>MaxSkipLevels is the max. number of skip levels stored for each term in the .frq file. A 
  *        low value results in smaller indexes but less acceleration, a larger value results in 
  *        slightly larger indexes but greater acceleration. See format of .frq file for more 
- *        information about skip levels.
+ *        information about skip levels.</li>
  *    <li>SkipMinimum is the minimum document frequency a term must have in order to write any 
- *        skip data at all.
+ *        skip data at all.</li>
  *    <li>FreqDelta determines the position of this term's TermFreqs within the .frq
  *        file. In particular, it is the difference between the position of this term's
  *        data in that file and the position of the previous term's data (or zero, for
- *        the first term in the block).
+ *        the first term in the block).</li>
  *    <li>ProxDelta determines the position of this term's TermPositions within the
  *        .prx file. In particular, it is the difference between the position of this
  *        term's data in that file and the position of the previous term's data (or zero,
  *        for the first term in the block. For fields that omit position data, this will
- *        be 0 since prox information is not stored.
+ *        be 0 since prox information is not stored.</li>
  *    <li>SkipDelta determines the position of this term's SkipData within the .frq
  *        file. In particular, it is the number of bytes after TermFreqs that the
  *        SkipData starts. In other words, it is the length of the TermFreq data.
- *        SkipDelta is only stored if DocFreq is not smaller than SkipMinimum.
+ *        SkipDelta is only stored if DocFreq is not smaller than SkipMinimum.</li>
  * </ul>
  * <a name="Termindex" id="Termindex"></a>
  * <h3>Term Index</h3>
@@ -111,18 +114,18 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * with the frequency of the term in that document (except when frequencies are
  * omitted: {@link IndexOptions#DOCS_ONLY}).</p>
  * <ul>
- *   <li>FreqFile (.frq) --&gt; Header, &lt;TermFreqs, SkipData?&gt; <sup>TermCount</sup>
- *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
- *   <li>TermFreqs --&gt; &lt;TermFreq&gt; <sup>DocFreq</sup>
- *   <li>TermFreq --&gt; DocDelta[, Freq?]
+ *   <li>FreqFile (.frq) --&gt; Header, &lt;TermFreqs, SkipData?&gt; <sup>TermCount</sup></li>
+ *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
+ *   <li>TermFreqs --&gt; &lt;TermFreq&gt; <sup>DocFreq</sup></li>
+ *   <li>TermFreq --&gt; DocDelta[, Freq?]</li>
  *   <li>SkipData --&gt; &lt;&lt;SkipLevelLength, SkipLevel&gt;
- *       <sup>NumSkipLevels-1</sup>, SkipLevel&gt; &lt;SkipDatum&gt;
+ *       <sup>NumSkipLevels-1</sup>, SkipLevel&gt; &lt;SkipDatum&gt;</li>
  *   <li>SkipLevel --&gt; &lt;SkipDatum&gt; <sup>DocFreq/(SkipInterval^(Level +
- *       1))</sup>
+ *       1))</sup></li>
  *   <li>SkipDatum --&gt;
- *       DocSkip,PayloadLength?,OffsetLength?,FreqSkip,ProxSkip,SkipChildLevelPointer?
- *   <li>DocDelta,Freq,DocSkip,PayloadLength,OffsetLength,FreqSkip,ProxSkip --&gt; {@link DataOutput#writeVInt VInt}
- *   <li>SkipChildLevelPointer --&gt; {@link DataOutput#writeVLong VLong}
+ *       DocSkip,PayloadLength?,OffsetLength?,FreqSkip,ProxSkip,SkipChildLevelPointer?</li>
+ *   <li>DocDelta,Freq,DocSkip,PayloadLength,OffsetLength,FreqSkip,ProxSkip --&gt; {@link DataOutput#writeVInt VInt}</li>
+ *   <li>SkipChildLevelPointer --&gt; {@link DataOutput#writeVLong VLong}</li>
  * </ul>
  * <p>TermFreqs are ordered by term (the term is implicit, from the term dictionary).</p>
  * <p>TermFreq entries are ordered by increasing document number.</p>
@@ -177,6 +180,7 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * referencing the corresponding SkipData entry in level-1. In the example has
  * entry 15 on level 1 a pointer to entry 15 on level 0 and entry 31 on level 1 a
  * pointer to entry 31 on level 0.
+ * </p>
  * <a name="Positions" id="Positions"></a>
  * <h3>Positions</h3>
  * <p>The .prx file contains the lists of positions that each term occurs at
@@ -184,12 +188,12 @@ import org.apache.lucene.util.fst.FST; // javadocs
  * anything into this file, and if all fields in the index omit positional data
  * then the .prx file will not exist.</p>
  * <ul>
- *   <li>ProxFile (.prx) --&gt; Header, &lt;TermPositions&gt; <sup>TermCount</sup>
- *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
- *   <li>TermPositions --&gt; &lt;Positions&gt; <sup>DocFreq</sup>
- *   <li>Positions --&gt; &lt;PositionDelta,PayloadLength?,OffsetDelta?,OffsetLength?,PayloadData?&gt; <sup>Freq</sup>
- *   <li>PositionDelta,OffsetDelta,OffsetLength,PayloadLength --&gt; {@link DataOutput#writeVInt VInt}
- *   <li>PayloadData --&gt; {@link DataOutput#writeByte byte}<sup>PayloadLength</sup>
+ *   <li>ProxFile (.prx) --&gt; Header, &lt;TermPositions&gt; <sup>TermCount</sup></li>
+ *   <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
+ *   <li>TermPositions --&gt; &lt;Positions&gt; <sup>DocFreq</sup></li>
+ *   <li>Positions --&gt; &lt;PositionDelta,PayloadLength?,OffsetDelta?,OffsetLength?,PayloadData?&gt; <sup>Freq</sup></li>
+ *   <li>PositionDelta,OffsetDelta,OffsetLength,PayloadLength --&gt; {@link DataOutput#writeVInt VInt}</li>
+ *   <li>PayloadData --&gt; {@link DataOutput#writeByte byte}<sup>PayloadLength</sup></li>
  * </ul>
  * <p>TermPositions are ordered by term (the term is implicit, from the term dictionary).</p>
  * <p>Positions entries are ordered by increasing document number (the document

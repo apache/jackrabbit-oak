@@ -68,8 +68,8 @@ import org.apache.lucene.util.packed.BlockPackedWriter;
  * <p>
  * Files:
  * <ol>
- *   <li><tt>.dvd</tt>: DocValues data
- *   <li><tt>.dvm</tt>: DocValues metadata
+ *   <li><tt>.dvd</tt>: DocValues data</li>
+ *   <li><tt>.dvm</tt>: DocValues metadata</li>
  * </ol>
  * <ol>
  *   <li><a name="dvm" id="dvm"></a>
@@ -78,14 +78,14 @@ import org.apache.lucene.util.packed.BlockPackedWriter;
  *      DocValues data (.dvd)</p>
  *   <p>DocValues metadata (.dvm) --&gt; Header,&lt;FieldNumber,EntryType,Entry&gt;<sup>NumFields</sup></p>
  *   <ul>
- *     <li>Entry --&gt; NumericEntry | BinaryEntry | SortedEntry
- *     <li>NumericEntry --&gt; DataOffset,CompressionType,PackedVersion
- *     <li>BinaryEntry --&gt; DataOffset,DataLength,MinLength,MaxLength,PackedVersion?,BlockSize?
- *     <li>SortedEntry --&gt; DataOffset,ValueCount
- *     <li>FieldNumber,PackedVersion,MinLength,MaxLength,BlockSize,ValueCount --&gt; {@link DataOutput#writeVInt VInt}
- *     <li>DataOffset,DataLength --&gt; {@link DataOutput#writeLong Int64}
- *     <li>EntryType,CompressionType --&gt; {@link DataOutput#writeByte Byte}
- *     <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}
+ *     <li>Entry --&gt; NumericEntry | BinaryEntry | SortedEntry</li>
+ *     <li>NumericEntry --&gt; DataOffset,CompressionType,PackedVersion</li>
+ *     <li>BinaryEntry --&gt; DataOffset,DataLength,MinLength,MaxLength,PackedVersion?,BlockSize?</li>
+ *     <li>SortedEntry --&gt; DataOffset,ValueCount</li>
+ *     <li>FieldNumber,PackedVersion,MinLength,MaxLength,BlockSize,ValueCount --&gt; {@link DataOutput#writeVInt VInt}</li>
+ *     <li>DataOffset,DataLength --&gt; {@link DataOutput#writeLong Int64}</li>
+ *     <li>EntryType,CompressionType --&gt; {@link DataOutput#writeByte Byte}</li>
+ *     <li>Header --&gt; {@link CodecUtil#writeHeader CodecHeader}</li>
  *   </ul>
  *   <p>Sorted fields have two entries: a SortedEntry with the FST metadata,
  *      and an ordinary NumericEntry for the document-to-ord metadata.</p>
@@ -115,13 +115,13 @@ import org.apache.lucene.util.packed.BlockPackedWriter;
  *   <p>For DocValues field, this stores the actual per-document data (the heavy-lifting)</p>
  *   <p>DocValues data (.dvd) --&gt; Header,&lt;NumericData | BinaryData | SortedData&gt;<sup>NumFields</sup></p>
  *   <ul>
- *     <li>NumericData --&gt; DeltaCompressedNumerics | TableCompressedNumerics | UncompressedNumerics | GCDCompressedNumerics
- *     <li>BinaryData --&gt;  {@link DataOutput#writeByte Byte}<sup>DataLength</sup>,Addresses
- *     <li>SortedData --&gt; {@link FST FST&lt;Int64&gt;}
- *     <li>DeltaCompressedNumerics --&gt; {@link BlockPackedWriter BlockPackedInts(blockSize=4096)}
- *     <li>TableCompressedNumerics --&gt; TableSize,{@link DataOutput#writeLong Int64}<sup>TableSize</sup>,{@link PackedInts PackedInts}
- *     <li>UncompressedNumerics --&gt; {@link DataOutput#writeByte Byte}<sup>maxdoc</sup>
- *     <li>Addresses --&gt; {@link MonotonicBlockPackedWriter MonotonicBlockPackedInts(blockSize=4096)}
+ *     <li>NumericData --&gt; DeltaCompressedNumerics | TableCompressedNumerics | UncompressedNumerics | GCDCompressedNumerics</li>
+ *     <li>BinaryData --&gt;  {@link DataOutput#writeByte Byte}<sup>DataLength</sup>,Addresses</li>
+ *     <li>SortedData --&gt; {@link FST FST&lt;Int64&gt;}</li>
+ *     <li>DeltaCompressedNumerics --&gt; {@link BlockPackedWriter BlockPackedInts(blockSize=4096)}</li>
+ *     <li>TableCompressedNumerics --&gt; TableSize,{@link DataOutput#writeLong Int64}<sup>TableSize</sup>,{@link PackedInts PackedInts}</li>
+ *     <li>UncompressedNumerics --&gt; {@link DataOutput#writeByte Byte}<sup>maxdoc</sup></li>
+ *     <li>Addresses --&gt; {@link MonotonicBlockPackedWriter MonotonicBlockPackedInts(blockSize=4096)}</li>
  *   </ul>
  *   <p>SortedSet entries store the list of ordinals in their BinaryData as a
  *      sequences of increasing {@link DataOutput#writeVLong vLong}s, delta-encoded.</p>       
