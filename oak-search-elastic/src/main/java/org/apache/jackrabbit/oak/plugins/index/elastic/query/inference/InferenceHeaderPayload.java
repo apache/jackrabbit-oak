@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 public class InferenceHeaderPayload {
 
     public static final InferenceHeaderPayload NOOP = new InferenceHeaderPayload();
+    private static final String AUTHORIZATION_KEY = "Authorization";
     private final Map<String, String> inferenceHeaderPayloadMap;
 
     public InferenceHeaderPayload() {
@@ -44,6 +46,28 @@ public class InferenceHeaderPayload {
         inferenceHeaderPayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0)
                 .entrySet().stream().filter(entry -> entry.getValue() instanceof String)
                 .collect(HashMap::new, (map, entry) -> map.put(entry.getKey(), (String) entry.getValue()), HashMap::putAll);
+        replaceEnvVariabledInAuthorizationHeader();
+    }
+
+    private void replaceEnvVariabledInAuthorizationHeader() {
+        String authValue = inferenceHeaderPayloadMap.get(AUTHORIZATION_KEY);
+        if (authValue != null) {
+            List<String> headerParts = List.of(authValue.trim().split("\\s+"));
+            authValue = headerParts.stream()
+                    .map(part -> {
+                        if (part.startsWith("$")) {
+                            String envVar = part.substring(1);
+                            String envValue = System.getenv(envVar);
+                            if (envValue == null) {
+                                throw new IllegalStateException("Required environment variable not found: " + envVar);
+                            }
+                            return envValue;
+                        }
+                        return part;
+                    })
+                    .collect(Collectors.joining(" "));
+            inferenceHeaderPayloadMap.put(AUTHORIZATION_KEY, authValue);
+        }
     }
 
     /*
