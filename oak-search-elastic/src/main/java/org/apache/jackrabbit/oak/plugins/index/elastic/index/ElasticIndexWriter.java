@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceIndexConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
@@ -51,7 +52,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -171,9 +171,8 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         } else {
 
             if (indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
-                Map<String, String> enrichDocStatus = new HashMap<>();
-                enrichDocStatus.put("status", "PENDING");
-                doc.addProperty(":enrich", enrichDocStatus);
+                doc.addProperty(InferenceConstants.ENRICH_NODE,
+                        Map.of(InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_PENDING));
             }
             /*
                 in case we want to disable enriching document for an already created index only way is to convert
@@ -189,14 +188,14 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
              */
             else if (!indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).getEnricherConfig().isEmpty()
                     && !indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
-                Map<String, Object> enrichDocStatus = new HashMap<>();
-                enrichDocStatus.put("status", "COMPLETED");
-                enrichDocStatus.put("inferenceConfig", true);
-                doc.addProperty(":enrich", enrichDocStatus);
+                Map<String, Object> enrichDocStatus = Map.of(
+                        InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_COMPLETED,
+                        InferenceConstants.ENRICH_STATUS_INFERENCE_DISABLED, InferenceConstants.ENRICH_STATUS_PENDING
+                );
+                doc.addProperty(InferenceConstants.ENRICH_NODE, enrichDocStatus);
             }
             bulkProcessorHandler.update(indexName, ElasticIndexUtils.idFromPath(path), doc);
         }
-
     }
 
     @Override

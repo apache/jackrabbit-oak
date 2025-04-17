@@ -25,4 +25,9 @@ public interface InferenceConstants {
     String DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH = "/oak:index/:inferenceConfig";
     String VECTOR_SPACES = ":vectorSpaces";
     String VECTOR = "vector";
+    String ENRICH_NODE = ":enrich";
+    String ENRICH_STATUS = "status";
+    String ENRICH_STATUS_PENDING = "PENDING";
+    String ENRICH_STATUS_COMPLETED = "COMPLETED";
+    String ENRICH_STATUS_INFERENCE_DISABLED = "inferenceDisabled";
 }

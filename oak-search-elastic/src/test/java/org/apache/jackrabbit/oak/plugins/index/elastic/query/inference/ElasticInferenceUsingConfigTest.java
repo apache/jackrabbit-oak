@@ -302,9 +302,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         assertEventually(() -> {
 
             for (Map.Entry<String, String> entry : queryResults.entrySet()) {
-
                 String query = entry.getKey();
-
                 String expectedPath = entry.getValue();
                 String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?"+inferenceConfigInQuery+"?" + query + "')";
 
