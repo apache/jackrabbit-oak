@@ -458,4 +458,58 @@ public class IteratorUtilsTest {
         Assert.assertTrue(iterator.hasNext());
         Assert.assertEquals("b", iterator.next());
     }
+
+    @Test
+    public void testToArrayWithMultipleElements() {
+        Iterator<String> iterator = Arrays.asList("one", "two", "three").iterator();
+        String[] array = IteratorUtils.toArray(iterator, String.class);
+        Assert.assertArrayEquals(new String[]{"one", "two", "three"}, array);
+    }
+
+    @Test
+    public void testToArrayWithEmptyIterator() {
+        Iterator<String> iterator = Collections.emptyIterator();
+        String[] array = IteratorUtils.toArray(iterator, String.class);
+        Assert.assertArrayEquals(new String[0], array);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testToArrayWithNullIterator() {
+        IteratorUtils.toArray(null, String.class);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testToArrayWithNullType() {
+        Iterator<String> iterator = Arrays.asList("one").iterator();
+        IteratorUtils.toArray(iterator, null);
+    }
+
+    @Test
+    public void testToArrayWithSingleElement() {
+        Iterator<Integer> iterator = Collections.singletonList(10).iterator();
+        Integer[] array = IteratorUtils.toArray(iterator, Integer.class);
+        Assert.assertArrayEquals(new Integer[]{10}, array);
+    }
+
+    @Test
+    public void testToArrayWithCustomType() {
+        class CustomObject {
+            private final String value;
+
+            CustomObject(String value) {
+                this.value = value;
+            }
+
+            @Override
+            public String toString() {
+                return value;
+            }
+        }
+
+        List<CustomObject> list = Arrays.asList(new CustomObject("first"), new CustomObject("second"));
+        Iterator<CustomObject> iterator = list.iterator();
+        CustomObject[] array = IteratorUtils.toArray(iterator, CustomObject.class);
+        Assert.assertEquals("first", array[0].toString());
+        Assert.assertEquals("second", array[1].toString());
+    }
 }

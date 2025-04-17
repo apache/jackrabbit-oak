@@ -250,4 +250,21 @@ public class IteratorUtils {
         Objects.requireNonNull(iterator, "Iterator must not be null");
         return org.apache.commons.collections4.IteratorUtils.contains(iterator, element);
     }
+
+    /**
+     * Converts an iterator to an array of a specific type.
+     * <p>
+     * This method consumes the iterator and returns an array containing all of its elements.
+     * The type of the array is determined by the provided {@code type} parameter.
+     *
+     * @param <T>      the component type of the resulting array
+     * @param iterator the iterator to convert, must not be null
+     * @param type     the {@link Class} object representing the component type of the array, must not be null
+     * @return an array containing all the elements from the iterator
+     * @throws NullPointerException if the iterator or type is null
+     * @since 4.1
+     */
+    public static <T> T[] toArray(Iterator<? extends T> iterator, Class<T> type) {
+        return org.apache.commons.collections4.IteratorUtils.toArray(iterator, type);
+    }
 }
