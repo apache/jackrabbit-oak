@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
@@ -135,7 +136,7 @@ public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
 
             @Override
             public @NotNull Enumeration<? extends Principal> members() {
-                return Iterators.asEnumeration(Collections.emptyIterator());
+                return IteratorUtils.asEnumeration(Collections.emptyIterator());
             }
 
             @Override

@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
@@ -623,14 +624,14 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         public Enumeration<? extends Principal> members() {
             Result result = findPrincipals(getName(), true);
             if (result != null) {
-                return Iterators.asEnumeration(new MemberIterator<Principal>(result) {
+                return IteratorUtils.asEnumeration(new MemberIterator<Principal>(result) {
                     @Override
                     Principal get(@NotNull Authorizable authorizable) throws RepositoryException {
                         return authorizable.getPrincipal();
                     }
                 });
             } else {
-                return Iterators.asEnumeration(Collections.emptyIterator());
+                return IteratorUtils.asEnumeration(Collections.emptyIterator());
             }
         }
     }
