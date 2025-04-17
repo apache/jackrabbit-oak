@@ -119,7 +119,7 @@ public interface SynchronizationMBean {
     /**
      * <p>Migrates all previously synchronized users to have dynamic membership if the {@code SyncHandler} has the dynamic 
      * membership option enabled. Otherwise this method will have no effect.
-     * </p>
+     * <p>
      * Note: calling this method will only migrate existing group membership information to the dynamic persistence format. 
      * It does not retrieve the latest membership information from the external identity provider. Membership information 
      * will therefore only be updated upon the next synchronization.

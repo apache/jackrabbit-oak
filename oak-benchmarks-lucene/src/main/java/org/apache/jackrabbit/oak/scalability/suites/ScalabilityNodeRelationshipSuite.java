@@ -317,7 +317,6 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
      *                                     targetId: cUser0_5
      * }
      * </pre>
-     * </p>
      */
     class ActivityWriter extends Writer {
         private int startIdx;

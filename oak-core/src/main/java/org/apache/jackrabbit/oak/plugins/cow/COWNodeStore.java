@@ -39,18 +39,18 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * <p>The copy-on-write (COW) node store implementation allows to temporarily
  * switch the repository into the "testing" mode, in which all the changes are
  * stored in a volatile storage, namely the MemoryNodeStore. After switching
- * back to the "production" mode, the test changes should be dropped.</p>
+ * back to the "production" mode, the test changes should be dropped.
  *
  * <p>If the CoW is enabled, a special :cow=true property will be set on the
  * root node returned by getRoot(). It's being used in the merge() to decide
  * which store be modified. Removing this property will result in merging
- * changes to the main node store, even in the CoW mode.</p>
+ * changes to the main node store, even in the CoW mode.
  *
  * <p>The checkpoint support is provided by the {@link BranchNodeStore} class.
  * All the existing checkpoints are still available in the CoW mode (until they
- * expire). New checkpoints are only created in the MemoryNodeStore.</p>
+ * expire). New checkpoints are only created in the MemoryNodeStore.
  *
- * <p>Known limitations:</p>
+ * <p>Known limitations:
  *
  * <ul>
  *     <li>turning the CoW mode on and off requires cleaning up the

@@ -86,7 +86,7 @@ import com.mongodb.client.model.Filters;
  * to fetch required NodeDocuments
  *
  * <p>Version collection involves looking into old record and mostly unmodified
- * documents. In such case read from secondaries are preferred</p>
+ * documents. In such case read from secondaries are preferred
  */
 public class MongoVersionGCSupport extends VersionGCSupport {
 

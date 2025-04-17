@@ -43,7 +43,7 @@ public final class JmxUtil {
      * it would return a quoted string which is then safe to be used
      * as part of ObjectName.
      *
-     * <p>This is meant to avoid unnecessary quoting of value</p>
+     * <p>This is meant to avoid unnecessary quoting of value
      *
      * @param unquotedValue to quote if required
      * @return passed value or quoted value if required

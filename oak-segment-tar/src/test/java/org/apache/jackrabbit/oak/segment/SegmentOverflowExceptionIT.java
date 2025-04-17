@@ -48,7 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2662 SegmentOverflowException in HeavyWriteIT on Jenkins}</p>
+ * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2662 SegmentOverflowException in HeavyWriteIT on Jenkins}
  *
  * <p><b>This test will run for one hour unless it fails</b>, thus it is disabled by default. On the
  * command line specify {@code -Dtest=SegmentOverflowExceptionIT} to enable it. Use {@code -Dtimeout=t}

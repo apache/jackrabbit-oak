@@ -167,14 +167,12 @@ public class AtomicCounterEditor extends DefaultEditor {
      * <p>
      * Create an instance of the editor for atomic increments. It can works synchronously as well as
      * asynchronously. See class javadoc for details around it.
-     * </p>
      * <p>
      * If {@code instanceId} OR {@code executor} OR {@code store} OR {@code board} are null, the
      * editor will switch to synchronous behaviour for consolidation. If no {@link CommitHook} will
      * be found in the whiteboard, a {@link EmptyHook} will be provided to the {@link NodeStore} for
      * merging.
-     * </p>
-     * 
+     *
      * @param builder the build on which to work. Cannot be null.
      * @param instanceId the current Oak instance Id. If null editor will be synchronous.
      * @param executor the current Oak executor service. If null editor will be synchronous.
@@ -231,15 +229,13 @@ public class AtomicCounterEditor extends DefaultEditor {
      * <p>
      * consolidate the {@link #PREFIX_PROP_COUNTER} properties and sum them into the
      * {@link #PROP_COUNTER}
-     * </p>
-     * 
+     *
      * <p>
      * The passed in {@code NodeBuilder} must have
      * {@link org.apache.jackrabbit.JcrConstants#JCR_MIXINTYPES JCR_MIXINTYPES} with
      * {@link NodeTypeConstants#MIX_ATOMIC_COUNTER MIX_ATOMIC_COUNTER}.
      * If not it will be silently ignored.
-     * </p>
-     * 
+     *
      * @param builder the builder to work on. Cannot be null.
      */
     public static void consolidateCount(@NotNull final NodeBuilder builder) {

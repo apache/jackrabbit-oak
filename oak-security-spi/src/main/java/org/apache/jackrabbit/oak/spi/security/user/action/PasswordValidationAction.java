@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>The password validation is executed on user creation and upon password
  * change. It throws a {@code ConstraintViolationException} if the password
- * validation fails.</p>
+ * validation fails.
  *
  * @see org.apache.jackrabbit.api.security.user.UserManager#createUser(String, String)
  * @see org.apache.jackrabbit.api.security.user.User#changePassword(String)
