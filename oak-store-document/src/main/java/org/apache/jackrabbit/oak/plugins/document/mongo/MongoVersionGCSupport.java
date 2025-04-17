@@ -237,7 +237,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
      * then perform the comparison.
-     * <p/>
      *
      * @param fromModified the lower bound modified timestamp in millis (inclusive)
      * @param toModified   the upper bound modified timestamp in millis (exclusive)

@@ -74,7 +74,7 @@ public class LMSEstimator {
 
     /**
      * Get the input value for a certain feature (by index) in the given filter.
-     * <p/>
+     * <p>
      * A filter is represented as a vector in R^5 where
      * i_0 : no. of property restrictions
      * i_1 : 1 if any native constraint exists in the filter, 0 otherwise

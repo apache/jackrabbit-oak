@@ -1462,7 +1462,7 @@ public class VersionGarbageCollector {
          * establishes whether a branch commit revision is committed or not - this is no
          * longer checked in this method. The resulting operations are added to the
          * provided updateOp.
-         * <p/>
+         * <p>
          * The actions depend on the exacty property key - here's the comprehensive list
          * of system properties and how they are handled:
          * <ul>
