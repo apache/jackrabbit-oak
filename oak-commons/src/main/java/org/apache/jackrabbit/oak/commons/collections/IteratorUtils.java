@@ -18,9 +18,11 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
+import org.apache.commons.collections4.iterators.IteratorChain;
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -285,5 +287,86 @@ public class IteratorUtils {
      */
     public static <T> Enumeration<T> asEnumeration(final Iterator<T> iterator) {
         return org.apache.commons.collections4.IteratorUtils.asEnumeration(iterator);
+    }
+
+    /**
+     * Returns an iterator that iterates through two iterators in sequence.
+     * <p>
+     * This method creates a new iterator that will first iterate through the elements
+     * in the first iterator and then, when the first iterator is exhausted, will iterate
+     * through the elements in the second iterator.
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the provided iterators
+     * support it.
+     *
+     * @param <E> the element type
+     * @param iterator1 the first iterator to chain, may be null
+     * @param iterator2 the second iterator to chain, may be null
+     * @return an iterator that chains the specified iterators together
+     * @throws NullPointerException if any of the iterator is null
+     */
+    public static <E> Iterator<E> chainedIterator(final Iterator<? extends E> iterator1,
+                                                  final Iterator<? extends E> iterator2) {
+        return org.apache.commons.collections4.IteratorUtils.chainedIterator(iterator1, iterator2);
+    }
+
+    /**
+     * Returns an iterator that iterates through varargs of iterators in sequence.
+     * <p>
+     * This method creates a new iterator that will first iterate through the elements
+     * in the first iterator and then, when the first iterator is exhausted, will iterate
+     * through the elements in the second iterator and so on...
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the underlying iterator
+     * support it.
+     *
+     * @param <E> the element type
+     * @param iterators array of iterators to chain must not be null
+     * @return an iterator that chains the specified iterators together
+     * @throws NullPointerException if iterators array is null or contains a null iterator
+     */
+    @SafeVarargs
+    public static <E> Iterator<E> chainedIterator(final Iterator<? extends E>... iterators) {
+        return org.apache.commons.collections4.IteratorUtils.chainedIterator(iterators);
+    }
+
+    /**
+     * Returns an iterator that iterates through a collection of iterators in sequence.
+     * <p>
+     * This method creates a new iterator that will first iterate through the elements
+     * in the first iterator and then, when the first iterator is exhausted, will iterate
+     * through the elements in the second iterator and so on...
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the underlying iterator
+     * support it.
+     *
+     * @param <E> the element type
+     * @param iterators collection of iterators to chain must not be null
+     * @return an iterator that chains the specified iterators together
+     * @throws NullPointerException if an iterators collection is null or contains a null iterator
+     */
+    public static <E> Iterator<E> chainedIterator(final Collection<Iterator<? extends E>> iterators) {
+        return org.apache.commons.collections4.IteratorUtils.chainedIterator(iterators);
+    }
+
+    /**
+     * Returns an iterator that iterates through an iterator of iterators in sequence.
+     * <p>
+     * This method creates a new iterator that will first iterate through the elements
+     * in the first iterator and then, when the first iterator is exhausted, will iterate
+     * through the elements in the second iterator and so on...
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the underlying iterator
+     * support it.
+     *
+     * @param <E> the element type
+     * @param iterators an iterator of iterators to chain must not be null
+     * @return an iterator that chains the specified iterators together
+     * @throws NullPointerException if an iterators collection is null or contains a null iterator
+     */
+    public static <E> Iterator<E> chainedIterator(final Iterator<? extends Iterator<? extends E>> iterators) {
+        final IteratorChain<E> eIteratorChain = new IteratorChain<>();
+        iterators.forEachRemaining(eIteratorChain::addIterator);
+        return eIteratorChain;
     }
 }

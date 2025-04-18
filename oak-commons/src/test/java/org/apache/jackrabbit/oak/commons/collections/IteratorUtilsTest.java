@@ -589,4 +589,232 @@ public class IteratorUtilsTest {
         Assert.assertEquals(list.get(1), enumeration.nextElement());
         Assert.assertFalse(enumeration.hasMoreElements());
     }
+
+    @Test
+    public void testChainedIteratorBothNonEmpty() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b").iterator();
+        Iterator<String> iterator2 = Arrays.asList("c", "d").iterator();
+        Iterator<String> chain = IteratorUtils.chainedIterator(iterator1, iterator2);
+
+        // it should iterate the elements in order, first from iterator1 and then from iterator2
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("a", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("b", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("c", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("d", chain.next());
+        Assert.assertFalse(chain.hasNext());
+    }
+
+    @Test
+    public void testChainedIteratorFirstEmpty() {
+        Iterator<String> empty = Collections.emptyIterator();
+        Iterator<String> nonEmpty = Arrays.asList("a", "b").iterator();
+        Iterator<String> chain = IteratorUtils.chainedIterator(empty, nonEmpty);
+
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("a", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("b", chain.next());
+        Assert.assertFalse(chain.hasNext());
+    }
+
+    @Test
+    public void testChainedIteratorSecondEmpty() {
+        Iterator<String> nonEmpty = Arrays.asList("a", "b").iterator();
+        Iterator<String> empty = Collections.emptyIterator();
+        Iterator<String> chain = IteratorUtils.chainedIterator(nonEmpty, empty);
+
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("a", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("b", chain.next());
+        Assert.assertFalse(chain.hasNext());
+    }
+
+    @Test
+    public void testChainedIteratorBothEmpty() {
+        Iterator<String> empty1 = Collections.emptyIterator();
+        Iterator<String> empty2 = Collections.emptyIterator();
+        Iterator<String> chain = IteratorUtils.chainedIterator(empty1, empty2);
+
+        Assert.assertFalse(chain.hasNext());
+    }
+
+    @Test
+    public void testChainedIteratorNullFirst() {
+        Iterator<String> nonEmpty = Arrays.asList("a", "b").iterator();
+
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.chainedIterator(null, nonEmpty));
+    }
+
+    @Test
+    public void testChainedIteratorNullSecond() {
+        Iterator<String> nonEmpty = Arrays.asList("a", "b").iterator();
+
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.chainedIterator(nonEmpty, null));
+    }
+
+    @Test
+    public void testChainedIteratorBothNull() {
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.chainedIterator(null, null));
+    }
+
+    @Test
+    public void testChainedIteratorRemove() {
+        List<String> list1 = new ArrayList<>(Arrays.asList("a", "b"));
+        List<String> list2 = new ArrayList<>(Arrays.asList("c", "d"));
+
+        Iterator<String> iterator1 = list1.iterator();
+        Iterator<String> iterator2 = list2.iterator();
+        Iterator<String> chain = IteratorUtils.chainedIterator(iterator1, iterator2);
+
+        // Remove an element from the first iterator
+        chain.next(); // "a"
+        chain.remove();
+        Assert.assertEquals(List.of("b"), list1);
+
+        // Move to second iterator and remove an element
+        chain.next(); // "b"
+        chain.next(); // "c"
+        chain.remove();
+        Assert.assertEquals(List.of("d"), list2);
+    }
+
+    @Test
+    public void testChainedIteratorRemoveNotSupported() {
+        List<String> list1 = List.of("a", "b");
+        List<String> list2 = new ArrayList<>(Arrays.asList("c", "d"));
+
+        Iterator<String> iterator1 = list1.iterator();
+        Iterator<String> iterator2 = list2.iterator();
+        Iterator<String> chain = IteratorUtils.chainedIterator(iterator1, iterator2);
+
+        // Remove an element from the first iterator
+        chain.next(); // "a"
+        Assert.assertThrows(UnsupportedOperationException.class, chain::remove);
+        Assert.assertEquals(List.of("a", "b"), list1);
+
+        // Move to second iterator and remove an element
+        chain.next(); // "b"
+        chain.next(); // "c"
+        chain.remove();
+        Assert.assertEquals(List.of("d"), list2);
+    }
+
+    @Test
+    public void testChainedIteratorWithDifferentTypes() {
+        Iterator<Integer> intIterator = Arrays.asList(1, 2).iterator();
+        Iterator<Double> doubleIterator = Arrays.asList(3.0, 4.0).iterator();
+
+        // Chain iterators with a common supertype
+        Iterator<Number> chain = IteratorUtils.chainedIterator(intIterator, doubleIterator);
+
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals(1, chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals(2, chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals(3.0, chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals(4.0, chain.next());
+        Assert.assertFalse(chain.hasNext());
+    }
+
+    // for chained Iterator with varargs
+
+    @Test
+    public void testChainedIteratorArrays() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b").iterator();
+        Iterator<String> iterator2 = Arrays.asList("c", "d").iterator();
+        Iterator<String> iterator3 = Arrays.asList("e", "f").iterator();
+        Iterator<String> chain = IteratorUtils.chainedIterator(iterator1, iterator2, iterator3);
+
+        // it should iterate the elements in order, first from iterator1 and then from iterator2
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("a", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("b", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("c", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("d", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("e", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("f", chain.next());
+        Assert.assertFalse(chain.hasNext());
+    }
+
+    @Test
+    public void testChainedIteratorArrayHasNull() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b").iterator();
+        Iterator<String> iterator2 = Arrays.asList("a", "b").iterator();
+
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.chainedIterator(iterator1, null, iterator2));
+    }
+
+    @Test
+    public void testChainedIteratorCollection() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b").iterator();
+        Iterator<String> iterator2 = Arrays.asList("c", "d").iterator();
+        Iterator<String> iterator3 = Arrays.asList("e", "f").iterator();
+        Iterator<String> chain = IteratorUtils.chainedIterator(List.of(iterator1, iterator2, iterator3));
+
+        // it should iterate the elements in order, first from iterator1 and then from iterator2
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("a", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("b", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("c", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("d", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("e", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("f", chain.next());
+        Assert.assertFalse(chain.hasNext());
+    }
+
+    @Test
+    public void testChainedIteratorCollectionHasNull() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b").iterator();
+        Iterator<String> iterator2 = Arrays.asList("a", "b").iterator();
+
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.chainedIterator(new ArrayList<>(Arrays.asList(iterator1, iterator2, null))));
+    }
+
+    @Test
+    public void testChainedIterators() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b").iterator();
+        Iterator<String> iterator2 = Arrays.asList("c", "d").iterator();
+        Iterator<String> iterator3 = Arrays.asList("e", "f").iterator();
+        Iterator<String> chain = IteratorUtils.chainedIterator(Arrays.asList(iterator1, iterator2, iterator3).iterator());
+
+        // it should iterate the elements in order, first from iterator1 and then from iterator2
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("a", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("b", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("c", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("d", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("e", chain.next());
+        Assert.assertTrue(chain.hasNext());
+        Assert.assertEquals("f", chain.next());
+        Assert.assertFalse(chain.hasNext());
+    }
+
+    @Test
+    public void testChainedIteratorsHasNull() {
+        Iterator<String> iterator1 = Arrays.asList("a", "b").iterator();
+        Iterator<String> iterator2 = Arrays.asList("a", "b").iterator();
+
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.chainedIterator(new ArrayList<>(Arrays.asList(iterator1, iterator2, null)).iterator()));
+    }
 }
