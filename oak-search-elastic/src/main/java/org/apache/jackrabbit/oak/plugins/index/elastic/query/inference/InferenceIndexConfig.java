@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -27,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
@@ -73,9 +71,7 @@ public class InferenceIndexConfig {
             // Iterate through child nodes to find inference model configs
             for (String childName : nodeState.getChildNodeNames()) {
                 NodeState childNode = nodeState.getChildNode(childName);
-                if (isInferenceModelConfig(childNode)) {
-                    tempInferenceModelConfigs.put(childName, new InferenceModelConfig(childName, childNode));
-                }
+                tempInferenceModelConfigs.put(childName, new InferenceModelConfig(childName, childNode));
             }
             inferenceModelConfigs = Collections.unmodifiableMap(tempInferenceModelConfigs);
         } else {
@@ -85,10 +81,6 @@ public class InferenceIndexConfig {
             LOG.warn("inference index config for indexName: {} is not valid. Node: {}",
                     indexName, nodeState);
         }
-    }
-
-    private boolean isInferenceModelConfig(NodeState nodeState) {
-        return InferenceModelConfig.TYPE.equals(getOptionalValue(nodeState, InferenceConstants.TYPE, ""));
     }
 
     /**

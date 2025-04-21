@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.EnvironmentVariableProcessorUtil;
 import org.apache.jackrabbit.oak.spi.query.fulltext.InferenceQueryConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
  */
 public class InferenceModelConfig {
     private static final Logger log = LoggerFactory.getLogger(InferenceModelConfig.class);
+    private static final String DEFAULT_ENVIRONMENT_VARIABLE_VALUE = "";
 
     public static final InferenceModelConfig NOOP = new InferenceModelConfig();
     public static final String MODEL = "model";
@@ -45,8 +47,8 @@ public class InferenceModelConfig {
     public static final String ENABLED = "enabled";
     public static final String HEADER = "header";
     public static final String TIMEOUT = "timeout";
-    private static final String NUM_CANDIDATES = "numCandidates";
-    private static final String CACHE_SIZE = "cacheSize";
+    public static final String NUM_CANDIDATES = "numCandidates";
+    public static final String CACHE_SIZE = "cacheSize";
     private static final double DEFAULT_SIMILARITY_THRESHOLD = 0.8;
     private static final long DEFAULT_MIN_TERMS = 2;
     private static final long DEFAULT_TIMEOUT_MILLIS = 5000L;
@@ -99,12 +101,13 @@ public class InferenceModelConfig {
         }
         this.isDefault = getOptionalValue(nodeState, IS_DEFAULT, false);
         this.model = getOptionalValue(nodeState, MODEL, "");
-        this.embeddingServiceUrl = getOptionalValue(nodeState, EMBEDDING_SERVICE_URL, "");
+        this.embeddingServiceUrl = EnvironmentVariableProcessorUtil.processEnvironmentVariable(
+                InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, getOptionalValue(nodeState, EMBEDDING_SERVICE_URL, ""), DEFAULT_ENVIRONMENT_VARIABLE_VALUE);
         this.similarityThreshold = getOptionalValue(nodeState, SIMILARITY_THRESHOLD, DEFAULT_SIMILARITY_THRESHOLD);
         this.minTerms = getOptionalValue(nodeState, MIN_TERMS, DEFAULT_MIN_TERMS);
         this.timeout = getOptionalValue(nodeState, TIMEOUT, DEFAULT_TIMEOUT_MILLIS);
         this.numCandidates = getOptionalValue(nodeState, NUM_CANDIDATES, DEFAULT_NUM_CANDIDATES);
-        this.cacheSize =  getOptionalValue(nodeState, CACHE_SIZE, 100);
+        this.cacheSize = getOptionalValue(nodeState, CACHE_SIZE, 100);
     }
 
     @Override

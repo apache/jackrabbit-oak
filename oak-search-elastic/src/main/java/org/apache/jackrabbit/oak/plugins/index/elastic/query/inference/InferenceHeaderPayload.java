@@ -18,24 +18,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.json.JsonUtils;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.EnvironmentVariableProcessorUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Configuration for inference payload
  */
 public class InferenceHeaderPayload {
+    private static final Logger LOG = LoggerFactory.getLogger(InferenceHeaderPayload.class);
+    private static final String DEFAULT_ENVIRONMENT_VARIABLE_VALUE = "";
 
     public static final InferenceHeaderPayload NOOP = new InferenceHeaderPayload();
-    private static final String AUTHORIZATION_KEY = "Authorization";
     private final Map<String, String> inferenceHeaderPayloadMap;
 
     public InferenceHeaderPayload() {
@@ -45,29 +44,12 @@ public class InferenceHeaderPayload {
     public InferenceHeaderPayload(NodeState nodeState) {
         inferenceHeaderPayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0)
                 .entrySet().stream().filter(entry -> entry.getValue() instanceof String)
-                .collect(HashMap::new, (map, entry) -> map.put(entry.getKey(), (String) entry.getValue()), HashMap::putAll);
-        replaceEnvVariabledInAuthorizationHeader();
-    }
-
-    private void replaceEnvVariabledInAuthorizationHeader() {
-        String authValue = inferenceHeaderPayloadMap.get(AUTHORIZATION_KEY);
-        if (authValue != null) {
-            List<String> headerParts = List.of(authValue.trim().split("\\s+"));
-            authValue = headerParts.stream()
-                    .map(part -> {
-                        if (part.startsWith("$")) {
-                            String envVar = part.substring(1);
-                            String envValue = System.getenv(envVar);
-                            if (envValue == null) {
-                                throw new IllegalStateException("Required environment variable not found: " + envVar);
-                            }
-                            return envValue;
-                        }
-                        return part;
-                    })
-                    .collect(Collectors.joining(" "));
-            inferenceHeaderPayloadMap.put(AUTHORIZATION_KEY, authValue);
-        }
+                .collect(HashMap::new, (map, entry) -> {
+                            String value = EnvironmentVariableProcessorUtil.processEnvironmentVariable(
+                                    InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, (String) entry.getValue(), DEFAULT_ENVIRONMENT_VARIABLE_VALUE);
+                            map.put(entry.getKey(), value);
+                        },
+                        HashMap::putAll);
     }
 
     /*
