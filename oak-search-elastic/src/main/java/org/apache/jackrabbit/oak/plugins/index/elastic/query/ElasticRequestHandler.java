@@ -142,10 +142,9 @@ public class ElasticRequestHandler {
     private final ElasticIndexDefinition elasticIndexDefinition;
     private final String propertyRestrictionQuery;
     private final NodeState rootState;
-    private final InferenceConfig inferenceConfig;
 
     ElasticRequestHandler(@NotNull IndexPlan indexPlan, @NotNull FulltextIndexPlanner.PlanResult planResult,
-                          NodeState rootState, InferenceConfig inferenceConfig) {
+                          NodeState rootState) {
         this.indexPlan = indexPlan;
         this.filter = indexPlan.getFilter();
         this.planResult = planResult;
@@ -159,11 +158,6 @@ public class ElasticRequestHandler {
 
         this.propertyRestrictionQuery = pr != null ? String.valueOf(pr.first.getValue(pr.first.getType())) : null;
         this.rootState = rootState;
-        this.inferenceConfig = inferenceConfig;
-    }
-
-    public ElasticRequestHandler(IndexPlan plan, PlanResult planResult, NodeState rootState) {
-        this(plan, planResult, rootState, InferenceConfig.NOOP);
     }
 
     public Query baseQuery() {
@@ -591,16 +585,16 @@ public class ElasticRequestHandler {
                         queryText = inferenceQuery.getQueryText();
                         inferenceQueryConfig = new InferenceQueryConfig(queryConfig);
                         inferenceModelConfig = inferenceQueryConfig.getInferenceModelConfig().isBlank()
-                                ? inferenceConfig.getInferenceIndexConfig(indexName).getDefaultEnabledModel().getInferenceModelConfigName()
-                                : inferenceConfig.getInferenceModelConfig(indexName, inferenceQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
+                                ? InferenceConfig.getInstance().getInferenceIndexConfig(indexName).getDefaultEnabledModel().getInferenceModelConfigName()
+                                : InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
                     } else {
                         inferenceQueryConfig = null;
                         inferenceQuery = null;
                         queryText = text;
                     }
 
-                    if (inferenceConfig.isEnabled()
-                            && !InferenceModelConfig.NOOP.equals(inferenceConfig.getInferenceModelConfig(indexName, inferenceModelConfig))) {
+                    if (InferenceConfig.getInstance().isEnabled()
+                            && !InferenceModelConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceModelConfig))) {
 
                         bqBuilder.must(m -> m.bool(b -> inferenceConfigQuery(b, propertyName, queryText, pr, includeDynamicBoostedValues, inferenceQuery, inferenceQueryConfig)));
                     }
@@ -646,7 +640,7 @@ public class ElasticRequestHandler {
             try {
                 String inferenceQueryModelName = inferenceQueryConfig.getInferenceModelConfig();
                 String indexName = PathUtils.getName(elasticIndexDefinition.getIndexName());
-                InferenceModelConfig inferenceModelConfig = inferenceConfig.getInferenceModelConfig(indexName, inferenceQueryModelName);
+                InferenceModelConfig inferenceModelConfig = InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceQueryModelName);
                 if (!inferenceModelConfig.isEnabled()
                         || inferenceModelConfig.getMinTerms() > inferenceQuery.getQueryText().split("\\s+").length) {
                     LOG.debug("inferenceModelConfig isEnable: {}, Config minTerms:{}, query: {}, ", inferenceModelConfig.isEnabled(),

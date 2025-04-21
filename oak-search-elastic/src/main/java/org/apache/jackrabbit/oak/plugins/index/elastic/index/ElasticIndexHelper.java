@@ -84,26 +84,16 @@ class ElasticIndexHelper {
      * @return a {@code CreateIndexRequest}
      */
     public static CreateIndexRequest createIndexRequest(@NotNull String remoteIndexName,
-                                                        @NotNull ElasticIndexDefinition indexDefinition, @NotNull InferenceConfig inferenceConfig) {
-        return new CreateIndexRequest.Builder()
-                .index(remoteIndexName)
-                .settings(s -> loadSettings(s, indexDefinition))
-                .mappings(s -> loadMappings(s, indexDefinition, inferenceConfig))
-                .build();
-    }
-
-    public static CreateIndexRequest createIndexRequest(@NotNull String remoteIndexName,
                                                         @NotNull ElasticIndexDefinition indexDefinition) {
         return new CreateIndexRequest.Builder()
                 .index(remoteIndexName)
                 .settings(s -> loadSettings(s, indexDefinition))
-                .mappings(s -> loadMappings(s, indexDefinition, InferenceConfig.NOOP))
+                .mappings(s -> loadMappings(s, indexDefinition))
                 .build();
     }
 
     private static ObjectBuilder<TypeMapping> loadMappings(@NotNull TypeMapping.Builder builder,
-                                                           @NotNull ElasticIndexDefinition indexDefinition,
-                                                           @NotNull InferenceConfig inferenceConfig) {
+                                                           @NotNull ElasticIndexDefinition indexDefinition) {
         builder.dynamic(Arrays
                 .stream(DynamicMapping.values())
                 .filter(dm -> dm.jsonValue().equals(indexDefinition.dynamicMapping))
@@ -114,8 +104,8 @@ class ElasticIndexHelper {
         if (indexDefinition.inferenceDefinition != null) {
             mapInferenceDefinition(builder, indexDefinition.inferenceDefinition);
         }
-        if (inferenceConfig.isEnabled()) {
-            mapInferenceConfig(builder, indexDefinition, inferenceConfig);
+        if (InferenceConfig.getInstance().isEnabled()) {
+            mapInferenceConfig(builder, indexDefinition, InferenceConfig.getInstance());
         }
         return builder;
     }

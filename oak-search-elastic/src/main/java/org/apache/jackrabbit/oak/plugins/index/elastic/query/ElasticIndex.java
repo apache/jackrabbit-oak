@@ -16,14 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
@@ -37,6 +33,9 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
+
 class ElasticIndex extends FulltextIndex {
     private static final Predicate<NodeState> ELASTICSEARCH_INDEX_DEFINITION_PREDICATE =
             state -> TYPE_ELASTICSEARCH.equals(state.getString(TYPE_PROPERTY_NAME));
@@ -45,11 +44,9 @@ class ElasticIndex extends FulltextIndex {
     private static final IteratorRewoundStateProvider REWOUND_STATE_PROVIDER_NOOP = () -> 0;
 
     private final ElasticIndexTracker elasticIndexTracker;
-    private final InferenceConfig inferenceConfig;
 
     ElasticIndex(ElasticIndexTracker elasticIndexTracker) {
         this.elasticIndexTracker = elasticIndexTracker;
-        this.inferenceConfig = elasticIndexTracker.getInferenceConfig();
     }
 
     @Override
@@ -111,7 +108,7 @@ class ElasticIndex extends FulltextIndex {
         Filter filter = plan.getFilter();
         FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
 
-        ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState, inferenceConfig);
+        ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState);
         ElasticResponseHandler responseHandler = new ElasticResponseHandler(planResult, filter);
 
         ElasticQueryIterator itr;

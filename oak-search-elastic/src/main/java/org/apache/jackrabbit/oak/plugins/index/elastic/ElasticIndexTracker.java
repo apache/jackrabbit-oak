@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexTracker;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -29,16 +28,10 @@ public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeMa
 
     private final ElasticConnection elasticConnection;
     private final ElasticMetricHandler elasticMetricHandler;
-    private final InferenceConfig inferenceConfig;
 
-    public ElasticIndexTracker(@NotNull ElasticConnection elasticConnection, @NotNull ElasticMetricHandler elasticMetricHandler) {
-        this(elasticConnection, elasticMetricHandler, InferenceConfig.NOOP);
-    }
-
-    public ElasticIndexTracker(ElasticConnection elasticConnection, ElasticMetricHandler elasticMetricHandler, InferenceConfig inferenceConfig) {
+    public ElasticIndexTracker(ElasticConnection elasticConnection, ElasticMetricHandler elasticMetricHandler) {
         this.elasticConnection = elasticConnection;
         this.elasticMetricHandler = elasticMetricHandler;
-        this.inferenceConfig = inferenceConfig;
     }
 
     @Override
@@ -69,14 +62,6 @@ public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeMa
         return elasticMetricHandler;
     }
 
-    public InferenceConfig getInferenceConfig() {
-        return inferenceConfig;
-    }
-
-    public InferenceConfig refreshInferenceConfig() {
-        return inferenceConfig.refreshConfig();
-    }
-
     static class IgnoreStatusDiff extends EqualsDiff {
 
         public static boolean equals(NodeState before, NodeState after) {
@@ -96,12 +81,12 @@ public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeMa
          * effort to avoid calling this method on child nodes under which nothing
          * has changed.
          *
-         * @param name name of the changed child node
+         * @param name   name of the changed child node
          * @param before child node state before the change
-         * @param after child node state after the change
+         * @param after  child node state after the change
          * @return {@code true} to continue the comparison, {@code false} to abort.
-         *         Abort will stop comparing completely, that means sibling nodes
-         *         and sibling nodes of all parents are not further compared.
+         * Abort will stop comparing completely, that means sibling nodes
+         * and sibling nodes of all parents are not further compared.
          */
         @Override
         public boolean childNodeChanged(String name, NodeState before, NodeState after) {

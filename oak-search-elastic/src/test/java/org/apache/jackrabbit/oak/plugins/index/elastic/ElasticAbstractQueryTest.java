@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch.core.CountRequest;
 import co.elastic.clients.elasticsearch.core.GetRequest;
 import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -50,8 +52,6 @@ import org.junit.ClassRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
-import co.elastic.clients.elasticsearch.core.CountRequest;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -87,8 +87,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     @After
     public void tearDown() throws IOException {
         if (esConnection != null) {
-        	esConnection.getClient().indices().delete(i->i
-        	        .index(esConnection.getIndexPrefix() + "*"));
+            esConnection.getClient().indices().delete(i -> i
+                    .index(esConnection.getIndexPrefix() + "*"));
             esConnection.close();
         }
     }
@@ -144,11 +144,11 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         esConnection = getElasticConnection();
         nodeStore = getNodeStore();
-        indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler(), new InferenceConfig(nodeStore, INFERENCE_CONFIG_PATH));
+        InferenceConfig.getInstance(nodeStore, INFERENCE_CONFIG_PATH, true);
+        indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
-
 
 
         asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(
@@ -236,14 +236,14 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
     protected long countDocuments(Tree index) {
         ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
-        
-        CountRequest count = CountRequest.of( r -> r
+
+        CountRequest count = CountRequest.of(r -> r
                 .index(esIdxDef.getIndexAlias()));
         try {
-			return esConnection.getClient().count(count).count();
-		} catch (ElasticsearchException | IOException e) {
-			throw new IllegalStateException(e);
-		}
+            return esConnection.getClient().count(count).count();
+        } catch (ElasticsearchException | IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     protected ObjectNode getDocument(Tree index, String id) {

@@ -65,7 +65,6 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
     private final boolean reindex;
     private final String indexName;
-    private final InferenceConfig inferenceConfig;
 
     ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
                        @NotNull ElasticConnection elasticConnection,
@@ -78,17 +77,14 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         this.indexDefinition = indexDefinition;
         this.reindex = reindex;
         this.bulkProcessorHandler = bulkProcessorHandler;
-        if (this.reindex) {
-            //TODO Should observe changes under inference config path.
-            indexTracker.refreshInferenceConfig().refreshConfig();
-        }
-        this.inferenceConfig = indexTracker.getInferenceConfig();
 
         // We don't use stored index definitions with elastic. Every time a new writer gets created we
         // use the actual index name (based on the current seed) while reindexing, or the alias (pointing to the
         // old index until the new one gets enabled) during incremental reindexing
         if (this.reindex) {
             try {
+                //TODO we should observe changes under inference config path.
+                InferenceConfig.getInstance(true);
                 // refresh inference config on any index reindex.
                 long seed = indexDefinition.indexNameSeed == 0L ? UUID.randomUUID().getMostSignificantBits() : indexDefinition.indexNameSeed;
                 // merge gets called on node store later in the indexing flow
@@ -125,22 +121,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                        @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull ElasticBulkProcessorHandler bulkProcessorHandler) {
-        this(indexTracker, elasticConnection, indexDefinition, bulkProcessorHandler, false, InferenceConfig.NOOP);
-    }
-
-    @TestOnly
-    ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
-                       @NotNull ElasticConnection elasticConnection,
-                       @NotNull ElasticIndexDefinition indexDefinition,
-                       @NotNull ElasticBulkProcessorHandler bulkProcessorHandler,
-                       boolean reindex, @NotNull InferenceConfig inferenceConfig) {
-        this.indexTracker = indexTracker;
-        this.elasticConnection = elasticConnection;
-        this.indexDefinition = indexDefinition;
-        this.bulkProcessorHandler = bulkProcessorHandler;
-        this.indexName = indexDefinition.getIndexAlias();
-        this.reindex = reindex;
-        this.inferenceConfig = inferenceConfig;
+        this(indexTracker, elasticConnection, indexDefinition, bulkProcessorHandler, false);
     }
 
     @TestOnly
@@ -149,7 +130,12 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull ElasticBulkProcessorHandler bulkProcessorHandler,
                        boolean reindex) {
-        this(indexTracker, elasticConnection, indexDefinition, bulkProcessorHandler, false, InferenceConfig.NOOP);
+        this.indexTracker = indexTracker;
+        this.elasticConnection = elasticConnection;
+        this.indexDefinition = indexDefinition;
+        this.bulkProcessorHandler = bulkProcessorHandler;
+        this.indexName = indexDefinition.getIndexAlias();
+        this.reindex = reindex;
     }
 
     @Override
@@ -166,10 +152,10 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             )
          */
         if (reindex || (!indexDefinition.isExternallyModifiable()
-                && (InferenceIndexConfig.NOOP.equals(inferenceConfig.getInferenceIndexConfig(jcrIndexName))))) {
+                && (InferenceIndexConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName))))) {
             bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
         } else {
-            if (indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
+            if (InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
                 doc.addProperty(InferenceConstants.ENRICH_NODE,
                         Map.of(InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_PENDING));
             }
@@ -190,8 +176,8 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
                 The `inferenceDisabled` flag is added to allow for potential evaluations at a later stage.
              */
-            else if (!indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).getEnricherConfig().isEmpty()
-                    && !indexTracker.getInferenceConfig().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
+            else if (!InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).getEnricherConfig().isEmpty()
+                    && !InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
                 Map<String, Object> enrichDocStatus = Map.of(
                         InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_COMPLETED,
                         InferenceConstants.ENRICH_STATUS_INFERENCE_DISABLED, InferenceConstants.ENRICH_STATUS_PENDING
@@ -248,7 +234,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
         CreateIndexRequest request;
         try {
-            request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition, inferenceConfig);
+            request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
         } catch (Exception e) {
             LOG.error("Failed to create index {}: {}", indexName, e.toString());
             throw e;

@@ -29,6 +29,9 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
 
@@ -39,21 +42,21 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
  */
 public class InferenceConfig {
     private static final Logger LOG = LoggerFactory.getLogger(InferenceConfig.class.getName());
-
-    public static final InferenceConfig NOOP = new InferenceConfig();
+    private static final ReadWriteLock lock = new ReentrantReadWriteLock(true);
+    private static final InferenceConfig INSTANCE = new InferenceConfig();
     public static final String TYPE = "inferenceConfig";
-
-    private final StampedLock stampedLock = new StampedLock();
     /**
      * Semantic search is enabled if this flag is true
      */
-    private volatile boolean enabled;
+    private boolean enabled;
     /**
      * Map of index names to their respective inference configurations
      */
-    private volatile Map<String, InferenceIndexConfig> indexConfigs;
+    private Map<String, InferenceIndexConfig> indexConfigs;
     private NodeStore nodeStore;
     private String inferenceConfigPath;
+    private String currentInferenceConfig;
+    private static volatile String activeInferenceConfig;
 
     /**
      * Loads configuration from the given NodeState
@@ -62,103 +65,136 @@ public class InferenceConfig {
      */
 
     private InferenceConfig() {
-        LOG.warn("InferenceConfig: NOOP Inference config initialized");
-        enabled = false;
-        indexConfigs = Map.of();
-    }
-
-    /*
-     * Constructor to load inference configuration from the given NodeStore and path
-     *
-     */
-    public InferenceConfig(NodeStore nodeStore, @NotNull String inferenceConfigPath) {
-        this.nodeStore = nodeStore;
-        this.inferenceConfigPath = inferenceConfigPath;
-        if (!isValidInferenceConfig(nodeStore, inferenceConfigPath)) {
-            enabled = false;
-            indexConfigs = Map.of();
-            return;
-        } else {
-            NodeState nodeState = nodeStore.getRoot();
-            for (String elem : PathUtils.elements(inferenceConfigPath)) {
-                nodeState = nodeState.getChildNode(elem);
+        lock.writeLock().lock();
+        try {
+            if (INSTANCE == null) {
+                LOG.warn("InferenceConfig: NOOP Inference config initialized");
+                enabled = false;
+                indexConfigs = Map.of();
+                activeInferenceConfig = getNewInferenceConfigId();
+                currentInferenceConfig = activeInferenceConfig;
             }
-            // Inference enabled or not.
-            this.enabled = getOptionalValue(nodeState, InferenceConstants.ENABLED, false);
-            Map<String, InferenceIndexConfig> temp_indexConfigs = new HashMap<>();
-            // Read index configurations
-            for (String indexName : nodeState.getChildNodeNames()) {
-                temp_indexConfigs.put(indexName, new InferenceIndexConfig(indexName, nodeState.getChildNode(indexName)));
-
-            }
-            this.indexConfigs = Collections.unmodifiableMap(temp_indexConfigs);
-            //TODO Check if we we are also logging sensitive info.
-            LOG.info("Loaded inference configuration: " + this);
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 
+
+    public static InferenceConfig getInstance(boolean shouldReinitialize) {
+        return getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, shouldReinitialize);
+    }
+
+    public static InferenceConfig getInstance() {
+        return getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, false);
+    }
+
+    /**
+     * This method returns the current InferenceConfig instance, we update InferenceConfig if
+     * activeInferenceConfig != currentInferenceConfig
+     *
+     * @param nodeStore
+     * @param inferenceConfigPath
+     * @return
+     */
+    public static InferenceConfig getInstance(NodeStore nodeStore, @NotNull String inferenceConfigPath, boolean shouldReinitialize) {
+
+        lock.readLock().lock();
+        try {
+            if (activeInferenceConfig != null && activeInferenceConfig.equals(INSTANCE.currentInferenceConfig) && !shouldReinitialize) {
+                return INSTANCE;
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+
+        lock.writeLock().lock();
+        try {
+            INSTANCE.nodeStore = nodeStore;
+            INSTANCE.inferenceConfigPath = inferenceConfigPath;
+            if (!isValidInferenceConfig(nodeStore, inferenceConfigPath)) {
+                INSTANCE.enabled = false;
+                INSTANCE.indexConfigs = Map.of();
+            } else {
+                NodeState nodeState = nodeStore.getRoot();
+                for (String elem : PathUtils.elements(inferenceConfigPath)) {
+                    nodeState = nodeState.getChildNode(elem);
+                }
+                // Inference enabled or not.
+                INSTANCE.enabled = getOptionalValue(nodeState, InferenceConstants.ENABLED, false);
+                Map<String, InferenceIndexConfig> temp_indexConfigs = new HashMap<>();
+                // Read index configurations
+                for (String indexName : nodeState.getChildNodeNames()) {
+                    temp_indexConfigs.put(indexName, new InferenceIndexConfig(indexName, nodeState.getChildNode(indexName)));
+
+                }
+                INSTANCE.indexConfigs = Collections.unmodifiableMap(temp_indexConfigs);
+                //TODO Check if we we are also logging sensitive info.
+                LOG.info("Loaded inference configuration: " + INSTANCE);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+        return INSTANCE;
+    }
+
     public boolean isEnabled() {
-        return enabled;
+        lock.readLock().lock();
+        try {
+            return enabled;
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public @NotNull InferenceIndexConfig getInferenceIndexConfig(String indexName) {
-        if (!isEnabled()) {
-            return InferenceIndexConfig.NOOP;
-        } else {
-            InferenceIndexConfig inferenceIndexConfig;
-            IndexName indexNameObject;
-            Function<String, InferenceIndexConfig> getInferenceIndexConfig = (iName) ->
-                    this.getIndexConfigs().getOrDefault(iName, InferenceIndexConfig.NOOP);
-            if (!InferenceIndexConfig.NOOP.equals(inferenceIndexConfig = getInferenceIndexConfig.apply(indexName))) {
-                LOG.debug("InferenceIndexConfig for indexName: {} is: {}", indexName, inferenceIndexConfig);
-            } else if ((indexNameObject = IndexName.parse(indexName)) != null && indexNameObject.isLegal()
-                    && indexNameObject.getBaseName() != null
-            ) {
-                LOG.debug("InferenceIndexConfig is using baseIndexName {} and is: {}", indexNameObject.getBaseName(), inferenceIndexConfig);
-                inferenceIndexConfig = getInferenceIndexConfig.apply(indexNameObject.getBaseName());
+        lock.readLock().lock();
+        try {
+            getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, false);
+            if (!isEnabled()) {
+                return InferenceIndexConfig.NOOP;
+            } else {
+                InferenceIndexConfig inferenceIndexConfig;
+                IndexName indexNameObject;
+                Function<String, InferenceIndexConfig> getInferenceIndexConfig = (iName) ->
+                        this.getIndexConfigs().getOrDefault(iName, InferenceIndexConfig.NOOP);
+                if (!InferenceIndexConfig.NOOP.equals(inferenceIndexConfig = getInferenceIndexConfig.apply(indexName))) {
+                    LOG.debug("InferenceIndexConfig for indexName: {} is: {}", indexName, inferenceIndexConfig);
+                } else if ((indexNameObject = IndexName.parse(indexName)) != null && indexNameObject.isLegal()
+                        && indexNameObject.getBaseName() != null
+                ) {
+                    LOG.debug("InferenceIndexConfig is using baseIndexName {} and is: {}", indexNameObject.getBaseName(), inferenceIndexConfig);
+                    inferenceIndexConfig = getInferenceIndexConfig.apply(indexNameObject.getBaseName());
+                }
+                return inferenceIndexConfig.isEnabled() ? inferenceIndexConfig : InferenceIndexConfig.NOOP;
             }
-            return inferenceIndexConfig.isEnabled() ? inferenceIndexConfig : InferenceIndexConfig.NOOP;
+        } finally {
+            lock.readLock().unlock();
         }
     }
 
     public @NotNull InferenceModelConfig getInferenceModelConfig(String inferenceIndexName, String inferenceModelConfigName) {
-        InferenceIndexConfig inferenceIndexConfig = getInferenceIndexConfig(inferenceIndexName);
-        return inferenceIndexConfig.getInferenceModelConfigs().getOrDefault(inferenceModelConfigName, InferenceModelConfig.NOOP);
+        lock.readLock().lock();
+        try {
+            getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, false);
+            InferenceIndexConfig inferenceIndexConfig = getInferenceIndexConfig(inferenceIndexName);
+            return inferenceIndexConfig.getInferenceModelConfigs().getOrDefault(inferenceModelConfigName, InferenceModelConfig.NOOP);
+        } finally {
+            lock.readLock().unlock();
+        }
+
     }
 
     public @NotNull Map<String, InferenceIndexConfig> getIndexConfigs() {
-        // Using StampedLock which has better performance for read operations
-        long stamp = stampedLock.tryOptimisticRead();
-
-        if (!stampedLock.validate(stamp)) {
-            // Fallback to pessimistic read lock if optimistic read fails
-            stamp = stampedLock.readLock();
-            try {
-                return isEnabled() ?
-                        Collections.unmodifiableMap(indexConfigs) : Map.of();
-            } finally {
-                stampedLock.unlockRead(stamp);
-            }
-        } else {
-            // Optimistic read lock succeeded
+        lock.readLock().lock();
+        try {
             return isEnabled() ?
                     Collections.unmodifiableMap(indexConfigs) : Map.of();
+        }finally {
+            lock.readLock().unlock();
         }
     }
 
-    public InferenceConfig refreshConfig() {
-        long stamp = stampedLock.writeLock();
-        try {
-            InferenceConfig refreshedInferenceConfig = new InferenceConfig(this.nodeStore, this.inferenceConfigPath);
-            this.enabled = refreshedInferenceConfig.enabled;
-            this.indexConfigs = refreshedInferenceConfig.indexConfigs;
-            return this;
-        } finally {
-            stampedLock.unlockWrite(stamp);
-        }
-    }
-
-    private boolean isValidInferenceConfig(NodeStore nodeStore, String inferenceConfigPath) {
+    private static boolean isValidInferenceConfig(NodeStore nodeStore, String inferenceConfigPath) {
 
         if (nodeStore == null) {
             LOG.warn("InferenceConfig: NodeStore is null");
@@ -180,5 +216,8 @@ public class InferenceConfig {
         return getOptionalValue(nodeState, InferenceConstants.ENABLED, false);
     }
 
+    private static String getNewInferenceConfigId() {
+        return UUID.randomUUID().toString();
+    }
 
 } 

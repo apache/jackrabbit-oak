@@ -47,7 +47,7 @@ public class InferenceIndexConfig {
     /**
      * Indicates whether the inference index is enabled or not.
      */
-    private volatile boolean isEnabled;
+    private boolean isEnabled;
     /**
      * Map of inference model configurations keyed by their names.
      */

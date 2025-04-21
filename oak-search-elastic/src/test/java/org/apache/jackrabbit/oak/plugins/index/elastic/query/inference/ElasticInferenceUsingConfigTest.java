@@ -206,7 +206,6 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
 
         Tree index = setIndex(jcrIndexName, builder);
         root.commit();
-        InferenceConfig inferenceConfig = indexTracker.getInferenceConfig();
 
         // add content
         Tree content = root.getTree("/").addChild("content");
@@ -262,15 +261,15 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         try (Stream<Path> stream = Files.walk(Paths.get(this.getClass().getResource("/inferenceUsingConfig/queries").toURI()))) {
             stream.filter(Files::isRegularFile).forEach(queryFile -> {
                 String query = FilenameUtils.removeExtension(queryFile.getFileName().toString()).replaceAll("_", " ");
-                String str = inferenceConfig.getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query);
+                String str = InferenceConfig.getInstance().getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query);
                 if (queryFile.toAbsolutePath().toString().contains("queries/faulty")) {
 
                     wireMock.stubFor(WireMock.post("/v1/embeddings")
-                            .withRequestBody(WireMock.equalToJson(inferenceConfig.getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query)))
+                            .withRequestBody(WireMock.equalToJson(InferenceConfig.getInstance().getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query)))
                             .willReturn(WireMock.serverError()));
                 } else if (queryFile.toAbsolutePath().toString().contains("delayed")) {
                     wireMock.stubFor(WireMock.post("/v1/embeddings")
-                            .withRequestBody(WireMock.equalToJson(inferenceConfig.getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query)))
+                            .withRequestBody(WireMock.equalToJson(InferenceConfig.getInstance().getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query)))
                             .willReturn(WireMock.ok()
                                     .withHeader("Content-Type", "application/json")
                                     .withBody("[]")
@@ -283,7 +282,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
                         throw new RuntimeException(e);
                     }
                     wireMock.stubFor(WireMock.post("/v1/embeddings")
-                            .withRequestBody(WireMock.equalToJson(inferenceConfig.getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query)))
+                            .withRequestBody(WireMock.equalToJson(InferenceConfig.getInstance().getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query)))
                             .willReturn(WireMock.ok()
                                     .withHeader("Content-Type", "application/json")
                                     .withBody(json)));

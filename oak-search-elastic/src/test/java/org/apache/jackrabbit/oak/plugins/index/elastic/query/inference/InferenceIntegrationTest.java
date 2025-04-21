@@ -59,7 +59,7 @@ public class InferenceIntegrationTest {
         setupModelConfiguration(modelBuilder);
 
         // Create the full configuration
-        InferenceConfig inferenceConfig = new InferenceConfig( nodeStore, "oak:index/:inferenceConfig");
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance( nodeStore, "oak:index/:inferenceConfig", true);
 
 
         // Verify top-level config
@@ -104,7 +104,7 @@ public class InferenceIntegrationTest {
         setupModelConfiguration(model2Builder, false);
 
         // Create and verify configuration
-        InferenceConfig inferenceConfig = new InferenceConfig(nodeStore, "oak:index/:inferenceConfig");
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance(nodeStore, "oak:index/:inferenceConfig", true);
         InferenceIndexConfig indexConfig = inferenceConfig.getIndexConfigs().get("testIndex");
         
         assertEquals(2, indexConfig.getInferenceModelConfigs().size());

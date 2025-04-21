@@ -174,11 +174,11 @@ public class ElasticIndexProviderService {
         metricHandler.markEnabled(isElasticAvailable);
 
         whiteboard = new OsgiWhiteboard(bundleContext);
-        inferenceConfig = new InferenceConfig(nodeStore, config.inferenceConfigPath());
+        InferenceConfig.getInstance(nodeStore, config.inferenceConfigPath(), true);
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);
-        indexTracker = new ElasticIndexTracker(elasticConnection, metricHandler, inferenceConfig);
+        indexTracker = new ElasticIndexTracker(elasticConnection, metricHandler);
 
         // register observer needed for index tracking
         regs.add(bundleContext.registerService(Observer.class.getName(), indexTracker, null));
