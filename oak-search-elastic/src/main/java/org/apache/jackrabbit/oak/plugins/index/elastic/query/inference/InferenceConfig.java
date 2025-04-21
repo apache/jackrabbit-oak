@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
 
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
@@ -109,6 +108,10 @@ public class InferenceConfig {
 
         lock.writeLock().lock();
         try {
+            if (shouldReinitialize){
+                activeInferenceConfig = getNewInferenceConfigId();
+            }
+            INSTANCE.currentInferenceConfig = activeInferenceConfig;
             INSTANCE.nodeStore = nodeStore;
             INSTANCE.inferenceConfigPath = inferenceConfigPath;
             if (!isValidInferenceConfig(nodeStore, inferenceConfigPath)) {
@@ -189,7 +192,7 @@ public class InferenceConfig {
         try {
             return isEnabled() ?
                     Collections.unmodifiableMap(indexConfigs) : Map.of();
-        }finally {
+        } finally {
             lock.readLock().unlock();
         }
     }
