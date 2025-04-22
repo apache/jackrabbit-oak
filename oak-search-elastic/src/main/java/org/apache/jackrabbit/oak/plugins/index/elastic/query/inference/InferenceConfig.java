@@ -78,7 +78,6 @@ public class InferenceConfig {
         }
     }
 
-
     public static InferenceConfig getInstance(boolean shouldReinitialize) {
         return getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, shouldReinitialize);
     }

@@ -29,7 +29,7 @@ public class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeMa
     private final ElasticConnection elasticConnection;
     private final ElasticMetricHandler elasticMetricHandler;
 
-    public ElasticIndexTracker(ElasticConnection elasticConnection, ElasticMetricHandler elasticMetricHandler) {
+    public ElasticIndexTracker(@NotNull ElasticConnection elasticConnection, @NotNull ElasticMetricHandler elasticMetricHandler) {
         this.elasticConnection = elasticConnection;
         this.elasticMetricHandler = elasticMetricHandler;
     }
