@@ -119,7 +119,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
                 iterators[i++] = provider.findPrincipals(nameHint, searchType);
             }
         }
-        return Iterators.concat(iterators);
+        return IteratorUtils.chainedIterator(iterators);
     }
 
     @NotNull

@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
@@ -95,7 +96,7 @@ class AutoMembershipProvider implements DynamicMembershipProvider {
         searchGlobalMembers(group, results);
         // add members from conditional automembership mapping
         results.add(autoMembershipPrincipals.getMembersFromAutoMembershipConfig(group));
-        return Iterators.concat(results.iterator());
+        return IteratorUtils.chainedIterator(results.iterator());
     }
 
     @Override

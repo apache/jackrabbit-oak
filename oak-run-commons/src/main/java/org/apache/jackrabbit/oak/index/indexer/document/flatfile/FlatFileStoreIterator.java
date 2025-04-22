@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.FlatFileBufferLinkedList;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.NodeStateEntryList;
@@ -36,7 +37,6 @@ import java.io.Closeable;
 import java.util.Iterator;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
 
 class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry>, Closeable {
@@ -149,7 +149,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     }
 
     private Iterable<NodeStateEntry> getEntries() {
-        return () -> concat(singletonIterator(current), queueIterator());
+        return () -> IteratorUtils.chainedIterator(singletonIterator(current), queueIterator());
     }
 
     private Iterator<NodeStateEntry> queueIterator() {

@@ -354,7 +354,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
         private Iterator<String> propertyValues;
 
         private MemberReferenceIterator(@NotNull Tree groupTree) {
-            this.trees = Iterators.concat(
+            this.trees = IteratorUtils.chainedIterator(
                     Iterators.singletonIterator(groupTree),
                     groupTree.getChild(REP_MEMBERS_LIST).getChildren().iterator()
             );

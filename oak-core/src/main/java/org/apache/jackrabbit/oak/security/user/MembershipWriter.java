@@ -26,6 +26,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.jetbrains.annotations.NotNull;
@@ -74,7 +75,7 @@ public class MembershipWriter {
     Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         // check all possible rep:members properties for the new member and also find the one with the least values
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
-        Iterator<Tree> trees = Iterators.concat(
+        Iterator<Tree> trees = IteratorUtils.chainedIterator(
                 Iterators.singletonIterator(groupTree),
                 membersList.getChildren().iterator()
         );
@@ -203,7 +204,7 @@ public class MembershipWriter {
     @NotNull
     Set<String> removeMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
-        Iterator<Tree> trees = Iterators.concat(
+        Iterator<Tree> trees = IteratorUtils.chainedIterator(
                 Iterators.singletonIterator(groupTree),
                 membersList.getChildren().iterator()
         );

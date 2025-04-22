@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.index.cursor.AbstractCursor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -89,7 +90,7 @@ class AggregationCursor extends AbstractCursor {
             currentRow = cursor.next();
             if (!currentRow.isVirtualRow()) {
                 String path = currentRow.getPath();
-                aggregates = Iterators.filter(Iterators.concat(
+                aggregates = Iterators.filter(IteratorUtils.chainedIterator(
                         Iterators.singletonIterator(path),
                         aggregator.getParents(rootState, path)),
                         x -> !seenPaths.contains(x));

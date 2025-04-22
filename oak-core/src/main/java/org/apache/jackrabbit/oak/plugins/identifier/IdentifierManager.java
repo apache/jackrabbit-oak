@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
@@ -237,7 +238,7 @@ public class IdentifierManager {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                return Iterators.concat(transform(result.getRows().iterator(), new RowToPaths()::apply));
+                return IteratorUtils.chainedIterator(transform(result.getRows().iterator(), new RowToPaths()::apply));
             }
 
             class RowToPaths implements Function<ResultRow, Iterator<String>> {

@@ -38,6 +38,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
@@ -109,7 +110,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
                 l.add(acMgr.getApplicablePolicies(absPath));
             }
         }
-        return new AccessControlPolicyIteratorAdapter(Iterators.concat(l.toArray(new AccessControlPolicyIterator[0])));
+        return new AccessControlPolicyIteratorAdapter(IteratorUtils.chainedIterator(l.toArray(new AccessControlPolicyIterator[0])));
     }
 
     @Override
@@ -190,6 +191,6 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
                 }
             }
         }
-        return Iterators.concat(iterators.build().toArray(new Iterator[0]));
+        return IteratorUtils.chainedIterator(iterators.build().toArray(new Iterator[0]));
     }
 }

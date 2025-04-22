@@ -28,6 +28,7 @@ import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -364,7 +365,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                     if (bundlingContext.hasOnlyBundledChildren()){
                         return getBundledChildren();
                     }
-                    return Iterators.concat(getBundledChildren(), new ChildNodeEntryIterator());
+                    return IteratorUtils.chainedIterator(getBundledChildren(), new ChildNodeEntryIterator());
                 }
 
                 return new ChildNodeEntryIterator();

@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -1618,7 +1619,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 .transform(path -> new FulltextResultRow(path, 0, null, null, null));
 
         //Property index itr should come first
-        return Iterators.concat(propIndex.iterator(), itr);
+        return IteratorUtils.chainedIterator(propIndex.iterator(), itr);
     }
 
     class DelayedLuceneFacetProvider implements FacetProvider {

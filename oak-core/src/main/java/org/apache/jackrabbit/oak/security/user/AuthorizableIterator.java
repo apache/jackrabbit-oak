@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -74,7 +75,7 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
                 size = LongUtils.safeAdd(size, l);
             }
         }
-        return new AuthorizableIterator(Iterators.concat(it1, it2), size, filterDuplicates);
+        return new AuthorizableIterator(IteratorUtils.chainedIterator(it1, it2), size, filterDuplicates);
     }
 
     private AuthorizableIterator(Iterator<? extends Authorizable> authorizables, long size, boolean filterDuplicates) {
