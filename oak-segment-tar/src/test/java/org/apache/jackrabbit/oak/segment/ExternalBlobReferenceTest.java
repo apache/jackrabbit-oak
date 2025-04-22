@@ -62,12 +62,12 @@ public class ExternalBlobReferenceTest {
      * is between 0 and {@code Segment.BLOB_ID_SMALL_LIMIT - 1} bytes. It should
      * be possible to correctly read the blob ID back and pass it to the {@code
      * BlobStore} to obtain information about the blob.
-     * <p/>
+     * <p>
      * This code path executes only if the written stream is {@code
      * Segment.MEDIUM_LIMIT} bytes long (or more). If the length of the stream
      * is smaller, the binary value is inlined in the segment and the {@code
      * BlobStore} is never called.
-     * <p/>
+     * <p>
      * See OAK-3105.
      */
     @Test
@@ -82,12 +82,12 @@ public class ExternalBlobReferenceTest {
      * and an alternate encoding is used. It should be possible to correctly
      * read the blob ID back and pass it to the {@code BlobStore} to obtain
      * information about the blob.
-     * <p/>
+     * <p>
      * This code path executes only if the written stream is {@code
      * Segment.MEDIUM_LIMIT} bytes long (or more). If the length of the stream
      * is smaller, the binary value is inlined in the segment and the {@code
      * BlobStore} is never called.
-     * <p/>
+     * <p>
      * See OAK-3105 and OAK-3107.
      */
     @Test

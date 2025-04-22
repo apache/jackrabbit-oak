@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticDocument;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexWriterFactory;
@@ -36,10 +37,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
-
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
@@ -49,12 +51,18 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
     private final IndexHelper indexHelper;
     private final ElasticIndexWriterFactory indexWriterFactory;
     private final ElasticConnection connection;
+    private final ElasticBulkProcessorHandler bulkProcessorHandler;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final ElasticIndexEditorProvider elasticIndexEditorProvider;
 
     public ElasticIndexerProvider(IndexHelper indexHelper, ElasticConnection connection) {
         this.indexHelper = indexHelper;
-        this.indexWriterFactory = new ElasticIndexWriterFactory(connection,
-                new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP)));
         this.connection = connection;
+        this.bulkProcessorHandler = new ElasticBulkProcessorHandler(connection);
+        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+        this.indexWriterFactory = new ElasticIndexWriterFactory(connection, indexTracker, bulkProcessorHandler);
+        this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, connection, null, bulkProcessorHandler);
+
     }
 
     @Override
@@ -67,9 +75,6 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
 
         FulltextIndexWriter<ElasticDocument> indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, CommitInfo.EMPTY, true);
         FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);
-
-        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP));
-        ElasticIndexEditorProvider elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, connection, null);
         return new ElasticIndexer(idxDefinition, textExtractor, definition, progressReporter, indexWriter, elasticIndexEditorProvider, indexHelper);
     }
 
@@ -79,5 +84,10 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
     }
 
     @Override
-    public void close() {}
+    public void close() throws IOException {
+        if (closed.compareAndSet(false, true)) {
+            this.elasticIndexEditorProvider.close();
+            this.bulkProcessorHandler.close();
+        }
+    }
 }

@@ -306,7 +306,6 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
     /**
      * <p>
      * convenience method that create an "asset" structure like
-     * </p>
      * <p>
      * <pre>
      *  "parent" : {
@@ -322,9 +321,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
      *  }
      * </pre>
      * <p>
-     * <p>
      * and returns the {@code metadata} node
-     * </p>
      *
      * @param parent   the parent under which creating the node
      * @param nodeName the node name to be used
@@ -348,7 +345,6 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
     /**
      * <p>
      * convenience method that create an "page" structure like
-     * </p>
      * <p>
      * <pre>
      *  "parent" : {
@@ -361,9 +357,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
      *  }
      * </pre>
      * <p>
-     * <p>
      * and returns the {@code jcr:content} node
-     * </p>
      *
      * @param parent   the parent under which creating the node
      * @param nodeName the node name to be used

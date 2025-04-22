@@ -21,15 +21,15 @@ package org.apache.jackrabbit.oak.plugins.tree;
  * or primary type. Currently the following types are supported:
  *
  * <ul>
- *     <li>{@link #DEFAULT}: the default type for trees that don't match any of the following types.</li>
+ *     <li>{@link #DEFAULT}: the default type for trees that don't match any of the following types.
  *     <li>{@link #ACCESS_CONTROL}: A tree that stores access control content
- *     and requires special access {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#READ_ACCESS_CONTROL permissions}.</li>
+ *     and requires special access {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#READ_ACCESS_CONTROL permissions}.
  *     <li>{@link #HIDDEN}: a hidden tree whose name starts with ":".
- *     Please note that the whole subtree of a hidden node is considered hidden.</li>
- *     <li>{@link #INTERNAL}: repository internal content that is not hidden (e.g. permission store)</li>
+ *     Please note that the whole subtree of a hidden node is considered hidden.
+ *     <li>{@link #INTERNAL}: repository internal content that is not hidden (e.g. permission store)
  *     <li>{@link #VERSION}: if a given tree is located within
  *     any of the version related stores defined by JSR 283. Depending on the
- *     permission evaluation implementation those items require special treatment.</li>
+ *     permission evaluation implementation those items require special treatment.
  * </ul>
  */
 public enum TreeType {

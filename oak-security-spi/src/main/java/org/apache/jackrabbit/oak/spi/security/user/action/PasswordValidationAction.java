@@ -38,12 +38,12 @@ import org.slf4j.LoggerFactory;
  *
  * <ul>
  *     <li><strong>constraint</strong>: a regular expression that can be compiled
- *     to a {@link java.util.regex.Pattern} defining validation rules for a password.</li>
+ *     to a {@link java.util.regex.Pattern} defining validation rules for a password.
  * </ul>
  *
  * <p>The password validation is executed on user creation and upon password
  * change. It throws a {@code ConstraintViolationException} if the password
- * validation fails.</p>
+ * validation fails.
  *
  * @see org.apache.jackrabbit.api.security.user.UserManager#createUser(String, String)
  * @see org.apache.jackrabbit.api.security.user.User#changePassword(String)

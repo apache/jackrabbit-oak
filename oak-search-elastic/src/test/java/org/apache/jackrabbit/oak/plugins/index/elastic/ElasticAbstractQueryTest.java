@@ -56,7 +56,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler.BULK_FLUSH_INTERVAL_MS_DEFAULT;
 import static org.junit.Assert.assertEquals;
 
 public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
@@ -165,7 +165,6 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
                 .with(indexProvider)
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider());
-
         if (useAsyncIndexing()) {
             oak = addAsyncIndexingLanesToOak(oak);
         }

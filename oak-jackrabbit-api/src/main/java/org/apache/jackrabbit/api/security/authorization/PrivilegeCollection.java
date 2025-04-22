@@ -33,7 +33,7 @@ import org.osgi.annotation.versioning.ProviderType;
 /**
  * <p>Wrapper around a set of {@link Privilege}s that allows to test if a given list of privilege names in included. This 
  * avoids repeated calls to {@link AccessControlManager#hasPrivileges(String, Privilege[])} or having to manually resolve 
- * the privilege aggregation when using {@link AccessControlManager#getPrivileges(String)}.</p>
+ * the privilege aggregation when using {@link AccessControlManager#getPrivileges(String)}.
  * 
  * While a {@link PrivilegeCollection.Default default} is available for backwards compatibility, it uses regular 
  * JCR API. Therefore it is recommended to provide custom implementations of 

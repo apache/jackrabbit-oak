@@ -36,6 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_GENERATION;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_PERFLOGGER_INFO_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
@@ -375,6 +376,17 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "FullGC can be entirely enabled / disabled with the variable fullGCEnabled, unless fullGCEnabled " +
                     "is set to true, the fullGCMode will be ignored.")
     int fullGCMode() default DEFAULT_FULL_GC_MODE;
+
+    @AttributeDefinition(
+            name = "Document Node Store Full GC Generation",
+            description = "Long value indicating which Full GC generation is currently running on " +
+                    "document node store. The Default value is " + DEFAULT_FULL_GC_GENERATION +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.fullGCGeneration'. " +
+                    "FullGC can be reset to run from beginning after incrementing this value. " +
+                    "Any value change must be a increment from previous value to reset the FullGC, " +
+                    "in case we set to a value smaller or equal to exiting generation, it would simply be ignored.")
+    long fullGCGeneration() default DEFAULT_FULL_GC_GENERATION;
 
     @AttributeDefinition(
             name = "Delay factor for a Full GC run",

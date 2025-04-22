@@ -629,7 +629,7 @@ public class ActiveDeletedBlobCollectorTest {
 
         @Override
         public Iterator<String> resolveChunks(String blobId) throws IOException {
-            return Iterators.forArray(blobId + "-1", blobId + "-2");
+            return List.of(blobId + "-1", blobId + "-2").iterator();
         }
 
         @Override

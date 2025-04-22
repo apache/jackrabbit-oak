@@ -44,11 +44,11 @@ import org.slf4j.LoggerFactory;
  *
  * <ol>
  *     <li>Try to retrieve JCR credentials from the {@link CallbackHandler} using
- *     the {@link CredentialsCallback}</li>
+ *     the {@link CredentialsCallback}
  *     <li>In case no credentials could be obtained it pushes a new instance of
  *     {@link GuestCredentials} to the shared stated. Subsequent login modules
  *     in the authentication process may retrieve the {@link GuestCredentials}
- *     instead of failing to obtain any credentials.</li>
+ *     instead of failing to obtain any credentials.
  * </ol>
  *
  * If this login module pushed {@link GuestLoginModule} to the shared state

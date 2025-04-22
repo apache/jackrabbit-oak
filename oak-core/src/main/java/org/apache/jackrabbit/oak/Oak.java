@@ -602,12 +602,10 @@ public class Oak {
     /**
      * <p>
      * Enable the asynchronous (background) indexing behavior.
-     * </p>
      * <p>
      * Please note that when enabling the background indexer, you need to take
      * care of calling
      * <code>#shutdown</code> on the <code>executor</code> provided for this Oak instance.
-     * </p>
      * @deprecated Use {@link Oak#withAsyncIndexing(String, long)} instead
      */
     @Deprecated
@@ -652,12 +650,10 @@ public class Oak {
      * <p>
      * Enable the asynchronous (background) indexing behavior for the provided
      * task name.
-     * </p>
      * <p>
      * Please note that when enabling the background indexer, you need to take
      * care of calling
      * <code>#shutdown</code> on the <code>executor</code> provided for this Oak instance.
-     * </p>
      */
     public Oak withAsyncIndexing(@NotNull String name, long delayInSeconds) {
         if (this.asyncTasks == null) {

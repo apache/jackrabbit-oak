@@ -21,6 +21,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -35,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -55,6 +58,9 @@ import static org.junit.Assert.fail;
 
 public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest {
     private static final String NT_TEST_ASSET = "test:Asset";
+
+    @Rule
+    public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
 
     @Override
     protected InitialContent getInitialContent() {
@@ -110,7 +116,6 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
         Tree indexDefn = createTestIndexNode(index, ElasticIndexDefinition.TYPE_ELASTICSEARCH);
-        indexDefn.setProperty(ElasticIndexDefinition.FAIL_ON_ERROR, false);
         indexDefn.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         Tree includeNtFileContent = indexDefn.addChild(FulltextIndexConstants.AGGREGATES)
                 .addChild(NT_TEST_ASSET).addChild("include10");
@@ -121,6 +126,7 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
 
     @Test
     public void indexNtFileText() throws CommitFailedException {
+        System.setProperty(ElasticBulkProcessorHandler.FAIL_ON_ERROR_PROP, "false");
         setTraversalEnabled(false);
         final String statement = "//element(*, test:Asset)[ " +
                 "jcr:contains(jcr:content/renditions/dam.text.txt/jcr:content, 'quick') ]";
@@ -138,8 +144,6 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
                 "the quick brown fox jumps over the lazy dog."));
         root.commit();
 
-        assertEventually(()-> {
-            assertQuery(statement, "xpath", List.of("/content/asset"));
-        });
+        assertEventually(()-> assertQuery(statement, "xpath", List.of("/content/asset")));
     }
 }

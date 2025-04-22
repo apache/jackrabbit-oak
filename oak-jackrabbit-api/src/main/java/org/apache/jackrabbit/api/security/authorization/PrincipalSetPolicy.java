@@ -37,7 +37,7 @@ import org.osgi.annotation.versioning.ProviderType;
  * remains an implementation detail. Similarly a given permission model is
  * in charge of defining the interactions and effects different
  * {@link AccessControlPolicy policies} will have if used together in the same
- * repository.</p>
+ * repository.
  */
 @ProviderType
 public interface PrincipalSetPolicy extends AccessControlPolicy {

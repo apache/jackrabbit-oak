@@ -38,9 +38,9 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
  * <ul>
  *     <li>creates a property index definitions for
  *     {@link #REP_PRINCIPAL_NAME rep:principalName} properties defined with ACE
- *     nodes</li>
+ *     nodes
  *     <li>asserts that the permission store is setup and has dedicated entry for
- *     this workspace.</li>
+ *     this workspace.
  * </ul>.
  */
 class AuthorizationInitializer implements WorkspaceInitializer, AccessControlConstants, PermissionConstants {

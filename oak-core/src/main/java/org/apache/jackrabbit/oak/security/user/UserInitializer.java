@@ -61,19 +61,19 @@ import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze
  * <p>
  * <ul>
  * <li>An administrator user using {@link UserConstants#PARAM_ADMIN_ID}
- * or {@link UserConstants#DEFAULT_ADMIN_ID} if the config option is missing.</li>
+ * or {@link UserConstants#DEFAULT_ADMIN_ID} if the config option is missing.
  * <li>An administrator user using {@link UserConstants#PARAM_ANONYMOUS_ID}
  * or {@link UserConstants#DEFAULT_ANONYMOUS_ID} if the config option is
- * missing.</li>
+ * missing.
  * </ul>
  * <p>
  * In addition this initializer sets up index definitions for the following
  * user related properties:
  * <p>
  * <ul>
- * <li>{@link UserConstants#REP_AUTHORIZABLE_ID}</li>
- * <li>{@link UserConstants#REP_PRINCIPAL_NAME}</li>
- * <li>{@link UserConstants#REP_MEMBERS}</li>
+ * <li>{@link UserConstants#REP_AUTHORIZABLE_ID}
+ * <li>{@link UserConstants#REP_PRINCIPAL_NAME}
+ * <li>{@link UserConstants#REP_MEMBERS}
  * </ul>
  */
 class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndexProviderAware {

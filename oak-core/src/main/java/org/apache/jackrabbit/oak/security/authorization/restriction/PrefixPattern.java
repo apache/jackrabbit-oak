@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.Collections;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -33,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
  * {@link org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern}
  * interface that returns {@code true} if the name of the target property or tree
  * starts with any of the configured namespace prefixes.
- * </p>s
+ * <p>
  * Note: an empty string prefix will match qualified item names defined with the 
  * {@link javax.jcr.NamespaceRegistry#NAMESPACE_EMPTY empty namespace}. 
  * See also sections 

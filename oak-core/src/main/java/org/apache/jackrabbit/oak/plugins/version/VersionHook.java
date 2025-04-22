@@ -45,21 +45,16 @@ import static org.apache.jackrabbit.oak.spi.commit.CompositeHook.compose;
  *                 {@link VersionEditor} - creates version history, handles
  *                 checking-in, checking-out and restoring, prevents a
  *                 checked-in node from being modified,
- *             </li>
  *             <li>
  *                 {@link VersionStorageEditor} - validates changes on the
  *                 version storage,
- *             </li>
  *         </ul>
- *     </li>
  *     <li>
  *         {@link VersionableCollector} - collects all existing versionable
  *         UUIDs, so assigned histories won't be removed in the next step,
- *     </li>
  *     <li>
  *         {@link OrphanedVersionCleaner} - removes all histories that are
  *         empty and have no longer a parent versionable node.
- *     </li>
  * </ol>
  *
  */

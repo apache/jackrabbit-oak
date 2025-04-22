@@ -65,11 +65,13 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                        @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull NodeBuilder definitionBuilder,
-                       boolean reindex, CommitInfo commitInfo) {
+                       boolean reindex, CommitInfo commitInfo,
+                       ElasticBulkProcessorHandler bulkProcessorHandler) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
         this.reindex = reindex;
+        this.bulkProcessorHandler = bulkProcessorHandler;
 
         // We don't use stored index definitions with elastic. Every time a new writer gets created we
         // use the actual index name (based on the current seed) while reindexing, or the alias (pointing to the
@@ -103,9 +105,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 waitForESAcknowledgement = false;
             }
         }
-
-        this.bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, commitInfo, waitForESAcknowledgement);
+        bulkProcessorHandler.registerIndex(indexName, indexDefinition, definitionBuilder, commitInfo, waitForESAcknowledgement);
     }
 
     @TestOnly
@@ -135,20 +135,20 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         // update is a heavier operation compared to index, we can always use the index operation on full reindex
         // or if the index is not externally modifiable
         if (reindex || !indexDefinition.isExternallyModifiable()) {
-            bulkProcessorHandler.index(ElasticIndexUtils.idFromPath(path), doc);
+            bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
         } else {
-            bulkProcessorHandler.update(ElasticIndexUtils.idFromPath(path), doc);
+            bulkProcessorHandler.update(indexName, ElasticIndexUtils.idFromPath(path), doc);
         }
     }
 
     @Override
     public void deleteDocuments(String path) throws IOException {
-        bulkProcessorHandler.delete(ElasticIndexUtils.idFromPath(path));
+        bulkProcessorHandler.delete(indexName, ElasticIndexUtils.idFromPath(path));
     }
 
     @Override
     public boolean close(long timestamp) throws IOException {
-        boolean updateStatus = bulkProcessorHandler.close();
+        boolean updateStatus = bulkProcessorHandler.flushIndex(indexName);
         if (reindex) {
             // if we are closing a writer in reindex mode, it means we need to open the new index for queries
             this.enableIndex();

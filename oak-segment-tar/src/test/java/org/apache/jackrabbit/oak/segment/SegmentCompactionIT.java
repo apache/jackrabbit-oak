@@ -115,16 +115,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>This is a longevity test for revision garbage collection.</p>
+ * <p>This is a longevity test for revision garbage collection.
  *
  * <p>The test schedules a number of readers, writers, a compactor and holds some references for a certain time.
  * All of which can be interactively modified through the accompanying {@link SegmentCompactionITMBean} and the {@link SegmentRevisionGC}.
  *
  *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
  * {@code mvn test -Dtest=SegmentCompactionIT -Dtest.opts.memory=-Xmx4G}
- * </p>
  *
- * <p>TODO Leverage longevity test support from OAK-2771 once we have it.</p>
+ * <p>TODO Leverage longevity test support from OAK-2771 once we have it.
  */
 public class SegmentCompactionIT {
 

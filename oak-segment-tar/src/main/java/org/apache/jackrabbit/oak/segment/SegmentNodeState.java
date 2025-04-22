@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -97,7 +96,7 @@ public class SegmentNodeState extends Record implements NodeState {
         @Nullable BlobStore blobStore,
         @NotNull RecordId id
     ) {
-        this(reader, Suppliers.ofInstance(writer), blobStore, id, NoopStats.INSTANCE);
+        this(reader, () -> writer, blobStore, id, NoopStats.INSTANCE);
     }
 
     public SegmentNodeState(
@@ -107,7 +106,7 @@ public class SegmentNodeState extends Record implements NodeState {
         @NotNull RecordId id,
         MeterStats readStats
     ) {
-        this(reader, Suppliers.ofInstance(writer), blobStore, id, readStats);
+        this(reader, () -> writer, blobStore, id, readStats);
     }
 
     RecordId getTemplateId() {

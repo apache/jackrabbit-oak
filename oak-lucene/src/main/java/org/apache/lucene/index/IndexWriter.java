@@ -1645,7 +1645,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit{
   final InfoStream infoStream;
 
   /**
-   * Forces merge policy to merge segments until there are <=
+   * Forces merge policy to merge segments until there are &lt;=
    * maxNumSegments.  The actual merges to be
    * executed are determined by the {@link MergePolicy}.
    *

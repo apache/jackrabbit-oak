@@ -100,21 +100,17 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
      * <p>
      * used to signal the {@link #runTest(int)} if stop running future test planned or not. If set
      * to true, it will exit the loop not performing any more tests.
-     * </p>
-     * 
+     *
      * <p>
      * useful when the running of the benchmark makes sense for as long as other processes didn't
      * complete.
-     * </p>
-     * 
+     *
      * <p>
      * Set this variable from within the benchmark itself by using {@link #issueHaltRequest(String)}
-     * </p>
-     * 
+     *
      * <p>
      * <strong>it works only for concurrency level of 1 ({@code --concurrency 1} the
      * default)</strong>
-     * </p>
      */
     private boolean haltRequested;
 
@@ -136,11 +132,9 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
      * <p>
      * this method will be called during the {@link #tearDown()} before the {@link #afterSuite()}.
      * Override it if you have background processes you wish to stop.
-     * </p>
      * <p>
      * For example in case of big imports, the suite could be keep running for as long as the import
      * is running, even if the tests are actually no longer executed.
-     * </p>
      */
     protected void issueHaltChildThreads() {
     }

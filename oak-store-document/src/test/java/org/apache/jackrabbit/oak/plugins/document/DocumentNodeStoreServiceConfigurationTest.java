@@ -39,6 +39,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_GENERATION;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 import static org.junit.Assert.assertArrayEquals;
@@ -97,6 +98,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DEFAULT_THROTTLING_ENABLED, config.throttlingEnabled());
         assertEquals(DEFAULT_FULL_GC_ENABLED, config.fullGCEnabled());
         assertEquals(DEFAULT_FULL_GC_MODE, config.fullGCMode());
+        assertEquals(DEFAULT_FULL_GC_GENERATION, config.fullGCGeneration());
         assertEquals(DEFAULT_FGC_DELAY_FACTOR, config.fullGCDelayFactor(), 0.01);
         assertEquals(DEFAULT_FGC_BATCH_SIZE, config.fullGCBatchSize());
         assertEquals(DEFAULT_FGC_PROGRESS_SIZE, config.fullGCProgressSize());
@@ -137,6 +139,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "fullGCMode", fullGCModeValue);
         Configuration config = createConfiguration();
         assertEquals(fullGCModeValue, config.fullGCMode());
+    }
+
+    @Test
+    public void fullGCGenerationValueSet() throws Exception {
+        long fullGCGenerationValue = 2;
+        addConfigurationEntry(preset, "fullGCGeneration", fullGCGenerationValue);
+        Configuration config = createConfiguration();
+        assertEquals(fullGCGenerationValue, config.fullGCGeneration());
     }
 
     @Test

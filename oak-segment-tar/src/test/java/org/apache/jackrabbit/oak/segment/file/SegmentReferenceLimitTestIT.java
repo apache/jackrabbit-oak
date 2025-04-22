@@ -43,15 +43,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2294 Corrupt repository after concurrent version operations}</p>
+ * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2294 Corrupt repository after concurrent version operations}
  *
  * <p>These tests are disabled by default due to their long running time. On the
  * command line specify {@code -DSegmentReferenceLimitTestIT=true} to enable
- * them.</p>
+ * them.
  *
  *<p>If you only want to run this test:<br>
  * {@code mvn verify -Dsurefire.skip.ut=true -PintegrationTesting -Dit.test=SegmentReferenceLimitTestIT -DSegmentReferenceLimitTestIT=true}
- * </p>
  */
 public class SegmentReferenceLimitTestIT {
 

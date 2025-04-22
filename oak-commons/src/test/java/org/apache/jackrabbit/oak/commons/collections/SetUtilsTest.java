@@ -38,7 +38,6 @@ import static org.junit.Assert.fail;
  * <p>
  * This class contains test cases to verify the functionality of the methods
  * in the {@link SetUtils} class.
- * </p>
  */
 public class SetUtilsTest {
 

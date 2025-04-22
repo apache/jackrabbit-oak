@@ -52,17 +52,15 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
         this.port = port;
         this.apiKeyId = apiKeyId;
         this.apiSecretId = apiSecretId;
-        setProviders();
+        setProvider();
     }
 
-    protected List<NodeStateIndexerProvider> createProviders() {
-        List<NodeStateIndexerProvider> providers = List.of(
-                createElasticIndexerProvider()
-        );
-
-        providers.forEach(closer::register);
-        return providers;
+    protected NodeStateIndexerProvider createProvider() {
+        NodeStateIndexerProvider provider = createElasticIndexerProvider();
+        closer.register(provider);
+        return provider;
     }
+
     /*
     Used to provision elastic index before starting indexing
     Otherwise proper alias naming and mapping will not be applied
@@ -86,14 +84,14 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
                         host,
                         port
                 );
-        final ElasticConnection coordinate;
+        final ElasticConnection connection;
         if (apiKeyId != null && apiSecretId != null) {
-            coordinate = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
+            connection = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
         } else {
-            coordinate = buildStep.build();
+            connection = buildStep.build();
         }
-        closer.register(coordinate);
-        return new ElasticIndexerProvider(indexHelper, coordinate);
+        closer.register(connection);
+        return new ElasticIndexerProvider(indexHelper, connection);
     }
 
 }

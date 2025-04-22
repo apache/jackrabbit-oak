@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -165,7 +166,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @return {@code true} if the group is contained in the membership of the specified authorizable.
      */
     private boolean hasMembership(@NotNull Tree authorizableTree, @NotNull String groupPath) {
-        return Iterators.contains(Iterators.transform(getMembership(authorizableTree, true), Tree::getPath), groupPath);
+        return IteratorUtils.contains(Iterators.transform(getMembership(authorizableTree, true), Tree::getPath), groupPath);
     }
 
     /**
@@ -243,7 +244,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             return false;
         }
         if (pendingChanges(groupTree)) {
-            return Iterators.contains(Iterators.transform(getMembers(groupTree, true), Tree::getPath), authorizableTree.getPath());
+            return IteratorUtils.contains(Iterators.transform(getMembers(groupTree, true), Tree::getPath), authorizableTree.getPath());
         } else {
             return hasMembership(authorizableTree, groupTree.getPath());
         }
@@ -256,7 +257,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
         String contentId = getContentID(authorizableTree);
         MemberReferenceIterator refs = getDeclaredMemberReferenceIterator(groupTree);
-        return Iterators.contains(refs, contentId);
+        return IteratorUtils.contains(refs, contentId);
     }
 
     /**

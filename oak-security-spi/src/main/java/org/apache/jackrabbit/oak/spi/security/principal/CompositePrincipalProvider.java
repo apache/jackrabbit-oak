@@ -32,6 +32,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -134,7 +135,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
 
         List<Iterator<? extends Principal>> all = providers.stream()
                 .map((p) -> p.findPrincipals(nameHint, fullText, searchType, 0, limit + offset)).collect(Collectors.toList());
-        Iterator<? extends Principal> principals = Iterators.mergeSorted(all, Comparator.comparing(Principal::getName));
+        Iterator<? extends Principal> principals = IteratorUtils.mergeSorted(all, Comparator.comparing(Principal::getName));
 
         Spliterator<? extends Principal> spliterator = Spliterators.spliteratorUnknownSize(principals, 0);
         Stream<? extends Principal> stream = StreamSupport.stream(spliterator, false);

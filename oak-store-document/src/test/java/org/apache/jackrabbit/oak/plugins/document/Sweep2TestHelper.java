@@ -215,7 +215,7 @@ public class Sweep2TestHelper {
     /**
      * Removes the "sweep2Status" from the settings collection as well
      * as emptying the "_sweepRev" from the "0:/" root if desired.
-     * <p/>
+     * <p>
      * The reason for emptying the "_sweepRev", and not straight removing it,
      * is that it has an influence on whether Sweep2Helper.isSweep2Necessary
      * considers a sweep2 necessary or not: if it's not there, then the
@@ -247,7 +247,7 @@ public class Sweep2TestHelper {
      * This simulates the provided store having done the changes
      * "pre 1.8" - ie it "ages" the document in a way that it looks
      * like they were applied "pre 1.8".
-     * <p/>
+     * <p>
      * The way this is done is to remove all the "_bc" entries
      * (as they didn't exist before 1.8) - *and then* doing a normal sweep (ie "sweep1")
      */
@@ -259,7 +259,7 @@ public class Sweep2TestHelper {
      * This simulates the provided store having done the changes
      * "pre 1.8" - ie it "ages" the document in a way that it looks
      * like they were applied "pre 1.8".
-     * <p/>
+     * <p>
      * The way this is done is to remove all the "_bc" entries
      * (as they didn't exist before 1.8) - *and then* doing a normal sweep (ie "sweep1")
      */
