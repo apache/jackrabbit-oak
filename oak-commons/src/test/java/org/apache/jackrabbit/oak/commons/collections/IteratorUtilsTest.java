@@ -817,4 +817,60 @@ public class IteratorUtilsTest {
 
         Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.chainedIterator(new ArrayList<>(Arrays.asList(iterator1, iterator2, null)).iterator()));
     }
+
+    @Test
+    public void testSingletonIteratorWithNonNullValue() {
+        String value = "test";
+        Iterator<String> iterator = IteratorUtils.singletonIterator(value);
+
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertEquals(value, iterator.next());
+        Assert.assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testSingletonIteratorWithNullValue() {
+        Iterator<String> iterator = IteratorUtils.singletonIterator(null);
+
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertNull(iterator.next());
+        Assert.assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testSingletonIteratorRemoveNotSupported() {
+        Iterator<String> iterator = IteratorUtils.singletonIterator("value");
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertThrows(UnsupportedOperationException.class, iterator::remove); // Should throw UnsupportedOperationException
+    }
+
+    @Test
+    public void testSingletonIteratorNoSuchElement() {
+        Iterator<String> iterator = IteratorUtils.singletonIterator("value");
+        iterator.next(); // First call is fine
+        Assert.assertThrows(NoSuchElementException.class, iterator::next); // Should throw NoSuchElementException
+    }
+
+    @Test
+    public void testSingletonIteratorWithCustomObject() {
+        class CustomObject {
+            private final String value;
+
+            CustomObject(String value) {
+                this.value = value;
+            }
+
+            @Override
+            public String toString() {
+                return value;
+            }
+        }
+
+        CustomObject obj = new CustomObject("test-object");
+        Iterator<CustomObject> iterator = IteratorUtils.singletonIterator(obj);
+
+        Assert.assertTrue(iterator.hasNext());
+        Assert.assertSame(obj, iterator.next());
+        Assert.assertFalse(iterator.hasNext());
+    }
 }

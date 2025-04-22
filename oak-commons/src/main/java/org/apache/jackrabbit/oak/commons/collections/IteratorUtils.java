@@ -20,7 +20,9 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import org.apache.commons.collections4.iterators.IteratorChain;
 import org.apache.commons.collections4.iterators.PeekingIterator;
+import org.apache.commons.collections4.iterators.SingletonIterator;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -368,5 +370,21 @@ public class IteratorUtils {
         final IteratorChain<E> eIteratorChain = new IteratorChain<>();
         iterators.forEachRemaining(eIteratorChain::addIterator);
         return eIteratorChain;
+    }
+
+    /**
+     * Creates an unmodifiable iterator containing a single object.
+     * <p>
+     * This method returns a {@link SingletonIterator} that will yield the specified
+     * object exactly once. The returned iterator does not support the
+     * {@link Iterator#remove()} operation.
+     * <p>
+     *
+     * @param <T> the type of object in the iterator
+     * @param value the object to return from the iterator, may be null
+     * @return an unmodifiable iterator containing only the specified object
+     */
+    public static <T> Iterator<T> singletonIterator(@Nullable T value) {
+        return new SingletonIterator<>(value, false);
     }
 }
