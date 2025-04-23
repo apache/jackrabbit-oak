@@ -125,7 +125,7 @@ public class RevisionsCommand implements Command {
         this.exitWhenDone = exitWhenDone;
     }
 
-    public static class RevisionsOptions extends Utils.NodeStoreOptions {
+    static class RevisionsOptions extends Utils.NodeStoreOptions {
 
         static final String CMD_INFO = "info";
         static final String CMD_COLLECT = "collect";

@@ -38,12 +38,12 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getServic
 /**
  * Initializes metrics exported fixture for fullGC. For use in oak-run RevisionsCommand.
  */
-public class FullGCMetricsExporterFixtureProvider {
+class FullGCMetricsExporterFixtureProvider {
 
     private static final Logger log = LoggerFactory.getLogger(NodeStoreFixtureProvider.class);
 
     @Nullable
-    public static FullGCMetricsExporterFixture<PushGateway> create(RevisionsCommand.RevisionsOptions options, Whiteboard wb) {
+    static FullGCMetricsExporterFixture<PushGateway> create(RevisionsCommand.RevisionsOptions options, Whiteboard wb) {
         if (options.exportMetrics()) {
             CollectorRegistry collectorRegistry = new CollectorRegistry();
             wb.register(CollectorRegistry.class, collectorRegistry, emptyMap());

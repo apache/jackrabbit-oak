@@ -38,7 +38,7 @@ import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 class FullGCStatsCollectorImpl implements FullGCStatsCollector {
 
     static final String FULL_GC_PUSH_METRICS_PREFIX = "oak_FullGC";
-    static String FULL_GC = "FullGC";
+    static final String FULL_GC = "FullGC";
     static final String READ_DOC = "READ_DOC";
     static final String DELETED_ORPHAN_NODE = "DELETED_ORPHAN_NODE";
     static final String DELETED_PROPERTY = "DELETED_PROPERTY";
@@ -238,7 +238,7 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
         return provider.getCounterStats(qualifiedName(name), METRICS_ONLY);
     }
 
-    public static String qualifiedName(String metricName) {
+    private static String qualifiedName(String metricName) {
         return METRICS_QUALIFIED_NAME_PREFIX + "." + metricName;
     }
 

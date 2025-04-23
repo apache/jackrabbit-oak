@@ -248,7 +248,7 @@ public class VersionGarbageCollector {
         this.fullGcMaxAgeInMillis = unit.toMillis(fullGcMaxAge);
     }
 
-    public void  setStatisticsProvider(StatisticsProvider provider) {
+    public void setStatisticsProvider(StatisticsProvider provider) {
         setStatisticsProvider(provider, false);
     }
 
