@@ -20,11 +20,11 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import org.apache.commons.collections4.iterators.IteratorChain;
 import org.apache.commons.collections4.iterators.PeekingIterator;
-import org.apache.commons.collections4.iterators.SingletonIterator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -375,7 +375,7 @@ public class IteratorUtils {
     /**
      * Creates an unmodifiable iterator containing a single object.
      * <p>
-     * This method returns a {@link SingletonIterator} that will yield the specified
+     * This method returns a {@link Iterator} that will yield the specified
      * object exactly once. The returned iterator does not support the
      * {@link Iterator#remove()} operation.
      * <p>
@@ -385,6 +385,6 @@ public class IteratorUtils {
      * @return an unmodifiable iterator containing only the specified object
      */
     public static <T> Iterator<T> singletonIterator(@Nullable T value) {
-        return new SingletonIterator<>(value, false);
+        return Collections.singleton(value).iterator();
     }
 }
