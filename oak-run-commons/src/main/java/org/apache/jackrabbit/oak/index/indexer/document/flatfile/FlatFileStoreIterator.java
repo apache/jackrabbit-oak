@@ -34,10 +34,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
 
 class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry>, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(FlatFileStoreIterator.class);
@@ -149,7 +148,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
     }
 
     private Iterable<NodeStateEntry> getEntries() {
-        return () -> IteratorUtils.chainedIterator(singletonIterator(current), queueIterator());
+        return () -> IteratorUtils.chainedIterator(Collections.singleton(current).iterator(), queueIterator());
     }
 
     private Iterator<NodeStateEntry> queueIterator() {

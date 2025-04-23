@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.aggregate;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -91,7 +92,7 @@ class AggregationCursor extends AbstractCursor {
             if (!currentRow.isVirtualRow()) {
                 String path = currentRow.getPath();
                 aggregates = Iterators.filter(IteratorUtils.chainedIterator(
-                        Iterators.singletonIterator(path),
+                        Collections.singleton(path).iterator(),
                         aggregator.getParents(rootState, path)),
                         x -> !seenPaths.contains(x));
             }

@@ -533,7 +533,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(goldenToad);
+        Iterator<User> expected = Collections.singleton(goldenToad).iterator();
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
     }
@@ -547,7 +547,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(goldenToad);
+        Iterator<User> expected = Collections.singleton(goldenToad).iterator();
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
     }
@@ -560,7 +560,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(kangaroo);
+        Iterator<User> expected = Collections.singleton(kangaroo).iterator();
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
     }
@@ -574,7 +574,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(kangaroo);
+        Iterator<User> expected = Collections.singleton(kangaroo).iterator();
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
     }
@@ -642,7 +642,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(elephant);
+        Iterator<User> expected = Collections.singleton(elephant).iterator();
         assertTrue(result.hasNext());
         assertSameElements(expected, result);
     }
@@ -656,7 +656,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(elephant);
+        Iterator<User> expected = Collections.singleton(elephant).iterator();
         assertTrue(result.hasNext());
         assertSameElements(expected, result);
     }

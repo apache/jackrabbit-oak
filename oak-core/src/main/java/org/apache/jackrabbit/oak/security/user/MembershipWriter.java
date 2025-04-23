@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -76,7 +77,7 @@ public class MembershipWriter {
         // check all possible rep:members properties for the new member and also find the one with the least values
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
         Iterator<Tree> trees = IteratorUtils.chainedIterator(
-                Iterators.singletonIterator(groupTree),
+                Collections.singleton(groupTree).iterator(),
                 membersList.getChildren().iterator()
         );
 
@@ -205,7 +206,7 @@ public class MembershipWriter {
     Set<String> removeMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
         Iterator<Tree> trees = IteratorUtils.chainedIterator(
-                Iterators.singletonIterator(groupTree),
+                Collections.singleton(groupTree).iterator(),
                 membersList.getChildren().iterator()
         );
         while (trees.hasNext() && !memberIds.isEmpty()) {

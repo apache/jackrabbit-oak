@@ -101,12 +101,12 @@ public class DynamicMembershipTrackerTest extends AbstractSecurityTest {
         User testUser = getTestUser();
 
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
-        when(dmp.getMembership(eq(a), anyBoolean())).thenReturn(Iterators.singletonIterator(gr));
+        when(dmp.getMembership(eq(a), anyBoolean())).thenReturn(Collections.singleton(gr).iterator());
         when(dmp.getMembership(eq(testUser), anyBoolean())).thenReturn(Collections.emptyIterator());
         
         when(dmp.isMember(eq(gr), eq(a), anyBoolean())).thenReturn(true);
         when(dmp.coversAllMembers(gr)).thenReturn(true);
-        when(dmp.getMembers(eq(gr), anyBoolean())).thenReturn(Iterators.singletonIterator(a));
+        when(dmp.getMembers(eq(gr), anyBoolean())).thenReturn(Collections.singleton(a).iterator());
         
         DynamicMembershipService dms = (root, userManager, namePathMapper) -> dmp;
         registrations.add(context.bundleContext().registerService(DynamicMembershipService.class.getName(), dms, MapUtil.toDictionary(Collections.emptyMap())));

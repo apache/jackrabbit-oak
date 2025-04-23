@@ -26,6 +26,8 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.junit.Test;
 
+import java.util.Collections;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -140,7 +142,7 @@ public class GroupPredicateTest extends AbstractSecurityTest {
     @Test
     public void testGetMemberIdFails() throws Exception {
         Authorizable member = when(mock(Authorizable.class).getID()).thenThrow(new RepositoryException()).getMock();
-        Group g = when(mock(Group.class).getDeclaredMembers()).thenReturn(Iterators.singletonIterator(member)).getMock();
+        Group g = when(mock(Group.class).getDeclaredMembers()).thenReturn(Collections.singleton(member).iterator()).getMock();
         when(g.isGroup()).thenReturn(true);
         UserManager uMgr = when(mock(UserManager.class).getAuthorizable("g")).thenReturn(g).getMock();
         Authorizable a = when(mock(Authorizable.class).getID()).thenReturn("a").getMock();

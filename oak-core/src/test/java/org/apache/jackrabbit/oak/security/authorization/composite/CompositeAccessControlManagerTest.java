@@ -416,12 +416,12 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     public void testEffectivePoliciesByPrincipalAndPaths() throws Exception {
         JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
         JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
-        when(mgr.getEffectivePolicies(any(Set.class), anyString())).thenReturn(Iterators.singletonIterator(policy));
+        when(mgr.getEffectivePolicies(any(Set.class), anyString())).thenReturn(Collections.singleton(policy).iterator());
 
         Set<Principal> principalSet = Set.of(EveryonePrincipal.getInstance());
         CompositeAccessControlManager composite = createComposite(mgr);
         
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(policy), composite.getEffectivePolicies(principalSet, ROOT_PATH)));
+        assertTrue(Iterators.elementsEqual(Collections.singleton(policy).iterator(), composite.getEffectivePolicies(principalSet, ROOT_PATH)));
 
         verify(mgr, times(0)).getEffectivePolicies(principalSet);
         verify(mgr, times(1)).getEffectivePolicies(principalSet, ROOT_PATH);

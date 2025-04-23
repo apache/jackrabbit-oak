@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -355,7 +356,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
         private MemberReferenceIterator(@NotNull Tree groupTree) {
             this.trees = IteratorUtils.chainedIterator(
-                    Iterators.singletonIterator(groupTree),
+                    Collections.singleton(groupTree).iterator(),
                     groupTree.getChild(REP_MEMBERS_LIST).getChildren().iterator()
             );
         }

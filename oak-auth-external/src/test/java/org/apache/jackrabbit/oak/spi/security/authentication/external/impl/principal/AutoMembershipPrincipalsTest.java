@@ -65,7 +65,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         
         when(amConfig.getAutoMembership(authorizable)).thenReturn(Set.of(automembershipGroup3.getID()));
         when(amConfig.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Collections.emptyIterator());
-        when(amConfig.getAutoMembers(userManager, automembershipGroup3)).thenReturn(Iterators.singletonIterator(authorizable));
+        when(amConfig.getAutoMembers(userManager, automembershipGroup3)).thenReturn(Collections.singleton(authorizable).iterator());
     }
 
     @Override
@@ -234,7 +234,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
 
         Group gr = mock(Group.class);
         when(gr.isGroup()).thenReturn(true);
-        when(gr.memberOf()).thenReturn(Iterators.singletonIterator(inherited));
+        when(gr.memberOf()).thenReturn(Collections.singleton(inherited).iterator());
         when(um.getAuthorizable(automembershipGroup1.getPrincipal())).thenReturn(gr);
 
         // retrieve from cache
@@ -373,6 +373,6 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         assertFalse(amp.getMembersFromAutoMembershipConfig(automembershipGroup1).hasNext());
         assertFalse(amp.getMembersFromAutoMembershipConfig(automembershipGroup2).hasNext());
         
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(authorizable), amp.getMembersFromAutoMembershipConfig(automembershipGroup3)));
+        assertTrue(Iterators.elementsEqual(Collections.singleton(authorizable).iterator(), amp.getMembersFromAutoMembershipConfig(automembershipGroup3)));
     }
 }

@@ -558,7 +558,7 @@ public class DataStoreBlobStore
     @Override
     public Iterator<String> resolveChunks(String blobId) throws IOException {
         if (!InMemoryDataRecord.isInstance(blobId)) {
-            return Iterators.singletonIterator(blobId);
+            return Collections.singleton(blobId).iterator();
         }
         return Collections.emptyIterator();
     }

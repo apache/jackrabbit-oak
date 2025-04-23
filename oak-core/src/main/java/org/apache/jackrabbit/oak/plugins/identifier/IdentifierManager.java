@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 
@@ -277,7 +276,7 @@ public class IdentifierManager {
                             } else {
                                 // for a fixed property name, we don't need to look for it, but just assume that
                                 // the search found the correct one
-                                return singletonIterator(PathUtils.concat(rowPath, propertyName));
+                                return Collections.singleton(PathUtils.concat(rowPath, propertyName)).iterator();
                             }
                     }
                     return Collections.emptyIterator();

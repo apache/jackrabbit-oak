@@ -66,7 +66,7 @@ class ValueMap {
                     // merge sort local map into maps of previous documents
                     List<Iterator<NodeDocument>> iterators = 
                             new ArrayList<Iterator<NodeDocument>>(2);
-                    iterators.add(Iterators.singletonIterator(doc));
+                    iterators.add(Collections.singleton(doc).iterator());
                     iterators.add(doc.getPreviousDocs(property, null).iterator());
                     docs = IteratorUtils.mergeSorted(iterators, new Comparator<NodeDocument>() {
                                 @Override

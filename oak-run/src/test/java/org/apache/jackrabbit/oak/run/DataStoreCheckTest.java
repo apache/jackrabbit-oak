@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -256,7 +257,7 @@ public class DataStoreCheckTest {
         assertEquals(2, count);
 
         // artificially put the deleted id in the tracked .del file
-        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker, false);
+        FileIOUtils.writeStrings(Collections.singleton(activeDeletedBlobId).iterator(), delTracker, false);
 
         setupDataStore.close();
 
@@ -287,7 +288,7 @@ public class DataStoreCheckTest {
         assertEquals(2, count);
 
         // artificially put the deleted id in the tracked .del file
-        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker, false);
+        FileIOUtils.writeStrings(Collections.singleton(activeDeletedBlobId).iterator(), delTracker, false);
 
         setupDataStore.close();
 
