@@ -37,7 +37,7 @@ import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
  */
 class FullGCStatsCollectorImpl implements FullGCStatsCollector {
 
-    static final String FULL_GC_PUSH_METRICS_PREFIX = "oak_FullGC";
+    static final String OAK_RUN_METRICS_PREFIX = "oak_FullGC";
     static final String FULL_GC = "FullGC";
     static final String READ_DOC = "READ_DOC";
     static final String DELETED_ORPHAN_NODE = "DELETED_ORPHAN_NODE";
@@ -90,9 +90,9 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
         this(provider, false);
     }
 
-    FullGCStatsCollectorImpl(StatisticsProvider provider, boolean pushMetrics) {
+    FullGCStatsCollectorImpl(StatisticsProvider provider, boolean isOakRunJob) {
         this.provider = provider;
-        this.METRICS_QUALIFIED_NAME_PREFIX = pushMetrics ? FULL_GC_PUSH_METRICS_PREFIX : FULL_GC;
+        this.METRICS_QUALIFIED_NAME_PREFIX = isOakRunJob ? OAK_RUN_METRICS_PREFIX : FULL_GC;
 
         readDoc = meter(provider, READ_DOC);
         deletedOrphanNode = meter(provider, DELETED_ORPHAN_NODE);
