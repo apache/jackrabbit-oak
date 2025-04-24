@@ -112,10 +112,8 @@ class ElasticIndexHelper {
 
     private static void mapInferenceConfig(TypeMapping.Builder builder, @NotNull ElasticIndexDefinition indexDefinition, @NotNull InferenceConfig inferenceConfig) {
         String indexName = PathUtils.getName(indexDefinition.getIndexName());
-        InferenceIndexConfig inferenceIndexConfig;
-//        try {
-        // Store the inference configuration in the index metadata so that it can be used by the inference service
-        inferenceIndexConfig = inferenceConfig.getInferenceIndexConfig(indexName);
+
+        InferenceIndexConfig inferenceIndexConfig = inferenceConfig.getInferenceIndexConfig(indexName);
         if (InferenceIndexConfig.NOOP.equals(inferenceIndexConfig)) {
             return;
         }
@@ -123,6 +121,7 @@ class ElasticIndexHelper {
             Map<String, Object> enricherConfigJson = mapper.readValue(inferenceConfig.getIndexConfigs().get(indexName).getEnricherConfig(),
                     new TypeReference<Map<String, Object>>() {
                     });
+            // Store the enricher configuration in the index metadata so that it can be used by the enricher service
             enricherConfigJson.forEach((k, v) -> {
                 builder.meta(k, JsonData.of(v));
             });
