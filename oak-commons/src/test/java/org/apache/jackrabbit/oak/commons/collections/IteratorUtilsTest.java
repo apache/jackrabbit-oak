@@ -931,4 +931,103 @@ public class IteratorUtilsTest {
 
         Assert.assertEquals(Arrays.asList("Alice", "Charlie"), adultNames);
     }
+
+    @Test
+    public void testTransformWithBasicTypes() {
+        List<Integer> list = Arrays.asList(1, 2, 3);
+        Iterator<String> transformed = IteratorUtils.transform(list.iterator(), n -> "Number: " + n);
+
+        List<String> result = ListUtils.toList(transformed);
+
+        Assert.assertEquals(Arrays.asList("Number: 1", "Number: 2", "Number: 3"), result);
+    }
+
+    @Test
+    public void testTransformWithEmptyIterator() {
+        Iterator<Integer> emptyIterator = Collections.emptyIterator();
+        Iterator<String> transformed = IteratorUtils.transform(emptyIterator, Object::toString);
+
+        Assert.assertFalse(transformed.hasNext());
+    }
+
+    @Test
+    public void testTransformWithNullIterator() {
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.transform(null, Object::toString));
+    }
+
+    @Test
+    public void testTransformWithNullFunction() {
+        Iterator<String> iterator = Arrays.asList("a", "b").iterator();
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.transform(iterator, null));
+    }
+
+    @Test
+    public void testTransformWithRemove() {
+        List<Integer> list = new ArrayList<>(Arrays.asList(1, 2, 3));
+        Iterator<String> transformed = IteratorUtils.transform(list.iterator(), n -> "Number: " + n);
+
+        transformed.next(); // "Number: 1"
+        transformed.remove();
+
+        Assert.assertEquals(Arrays.asList(2, 3), list);
+
+        transformed.next(); // "Number: 2"
+        transformed.next(); // "Number: 3"
+        Assert.assertFalse(transformed.hasNext());
+    }
+
+    @Test
+    public void testTransformWithNullElements() {
+        List<String> list = Arrays.asList("a", null, "c");
+        Iterator<Integer> transformed = IteratorUtils.transform(list.iterator(),
+                s -> s == null ? -1 : s.length());
+
+        Assert.assertEquals(Integer.valueOf(1), transformed.next());
+        Assert.assertEquals(Integer.valueOf(-1), transformed.next());
+        Assert.assertEquals(Integer.valueOf(1), transformed.next());
+        Assert.assertFalse(transformed.hasNext());
+    }
+
+    @Test
+    public void testTransformWithCustomObjects() {
+        class Person {
+            private final String name;
+            private final int age;
+
+            Person(String name, int age) {
+                this.name = name;
+                this.age = age;
+            }
+
+            public String getName() {
+                return name;
+            }
+        }
+
+        List<Person> people = Arrays.asList(
+                new Person("Alice", 25),
+                new Person("Bob", 30),
+                new Person("Charlie", 35)
+        );
+
+        // Transform Person objects to their names
+        Iterator<String> names = IteratorUtils.transform(people.iterator(), Person::getName);
+
+        List<String> result = ListUtils.toList(names);
+
+        Assert.assertEquals(Arrays.asList("Alice", "Bob", "Charlie"), result);
+    }
+
+    @Test
+    public void testTransformWithChaining() {
+        List<Integer> list = Arrays.asList(1, 2, 3, 4);
+        // First transform integers to strings
+        Iterator<String> stringIterator = IteratorUtils.transform(list.iterator(), n -> "Num" + n);
+        // Then transform strings to their lengths
+        Iterator<Integer> lengthIterator = IteratorUtils.transform(stringIterator, String::length);
+
+        List<Integer> result = ListUtils.toList(lengthIterator);
+
+        Assert.assertEquals(Arrays.asList(4, 4, 4, 4), result);
+    }
 }
