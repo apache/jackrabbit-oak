@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -144,6 +145,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         esConnection = getElasticConnection();
         nodeStore = getNodeStore();
+        QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
+        queryEngineSettings.setInferenceEnabled(true);
         InferenceConfig.getInstance(nodeStore, INFERENCE_CONFIG_PATH, true);
         indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
@@ -162,6 +165,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
         Oak oak = new Oak(nodeStore)
                 .with(getInitialContent())
+                .with(queryEngineSettings)
                 .with(new OpenSecurityProvider())
                 .with(editorProvider)
                 .with(indexTracker)

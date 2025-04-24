@@ -138,8 +138,11 @@ public class FullTextSearchImpl extends ConstraintImpl {
             }
             String p2 = normalizePropertyName(p);
             String rawText = getRawText(v);
-            InferenceQuery inferenceQuery = new InferenceQuery(rawText);
-            String queryText = inferenceQuery.getQueryText();
+            String queryText = rawText;
+            if (query.getSettings().isInferenceEnabled()) {
+                InferenceQuery inferenceQuery = new InferenceQuery(rawText);
+                queryText = inferenceQuery.getQueryText();
+            }
             FullTextExpression e = FullTextParser.parse(p2, queryText);
             return new FullTextContains(p2, rawText, e);
         } catch (ParseException e) {
