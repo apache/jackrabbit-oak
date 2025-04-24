@@ -110,7 +110,7 @@ public class NodeStoreFixtureProvider {
         return statsProvider;
     }
 
-    public static StatisticsProvider createStatsProvider(Options options, Whiteboard wb, Closer closer) {
+    private static StatisticsProvider createStatsProvider(Options options, Whiteboard wb, Closer closer) {
         if (options.getCommonOpts().isMetricsEnabled()) {
             return createStatsProvider(wb, closer);
         }

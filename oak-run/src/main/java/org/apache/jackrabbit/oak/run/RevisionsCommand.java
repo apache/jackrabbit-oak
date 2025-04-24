@@ -219,7 +219,7 @@ public class RevisionsCommand implements Command {
                     .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toSeconds(1));
             fullGCAuditLoggingEnabled = parser.accepts("fullGCAuditLoggingEnabled", "Enable audit logging for Full GC")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(FALSE);
-            exportMetrics = parser.accepts("export-metrics",
+            exportMetrics = parser.accepts("exportMetrics",
                     "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
         }
 
