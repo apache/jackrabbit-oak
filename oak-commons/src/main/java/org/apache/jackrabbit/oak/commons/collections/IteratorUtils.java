@@ -30,6 +30,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.function.Predicate;
 
 /**
  * Utility methods for {@link Iterator} conversions.
@@ -369,4 +370,33 @@ public class IteratorUtils {
         iterators.forEachRemaining(eIteratorChain::addIterator);
         return eIteratorChain;
     }
+
+    /**
+     * Returns an iterator containing only the elements that match the given predicate.
+     * <p>
+     * This method creates a new iterator that will iterate through elements from the
+     * source iterator but only return elements that satisfy the specified predicate.
+     * The filtering occurs during iteration and the method doesn't consume the source iterator
+     * until the returned iterator is advanced.
+     * <p>
+     * Example usage:
+     * <pre>
+     * Iterator&lt;Integer&gt; numbers = Arrays.asList(1, 2, 3, 4, 5).iterator();
+     * Predicate&lt;Integer&gt; isEven = n -> n % 2 == 0;
+     * Iterator&lt;Integer&gt; evenNumbers = IteratorUtils.filter(numbers, isEven);
+     * // evenNumbers will iterate through 2, 4
+     * </pre>
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the source iterator supports it.
+     *
+     * @param <T> the type of objects in the iterator
+     * @param itr the source iterator, must not be null
+     * @param predicate the predicate to apply to each element, must not be null
+     * @return a filtered iterator
+     * @throws NullPointerException if either the iterator or predicate is null
+     */
+    public static <T> Iterator<T> filter(final Iterator<? extends T> itr, final Predicate<? super T> predicate) {
+        return org.apache.commons.collections4.IteratorUtils.filteredIterator(itr, predicate::test);
+    }
 }
+

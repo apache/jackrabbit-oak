@@ -817,4 +817,118 @@ public class IteratorUtilsTest {
 
         Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.chainedIterator(new ArrayList<>(Arrays.asList(iterator1, iterator2, null)).iterator()));
     }
+
+    @Test
+    public void testFilterWithMatchingElements() {
+        List<Integer> list = Arrays.asList(1, 2, 3, 4, 5);
+        Iterator<Integer> filtered = IteratorUtils.filter(list.iterator(), n -> n % 2 == 0);
+
+        List<Integer> result = new ArrayList<>();
+        filtered.forEachRemaining(result::add);
+
+        Assert.assertEquals(Arrays.asList(2, 4), result);
+    }
+
+    @Test
+    public void testFilterWithNoMatchingElements() {
+        List<String> list = Arrays.asList("apple", "banana", "cherry");
+        Iterator<String> filtered = IteratorUtils.filter(list.iterator(), s -> s.startsWith("d"));
+
+        Assert.assertFalse(filtered.hasNext());
+    }
+
+    @Test
+    public void testFilterWithAllMatchingElements() {
+        List<Integer> list = Arrays.asList(10, 20, 30, 40);
+        Iterator<Integer> filtered = IteratorUtils.filter(list.iterator(), n -> n > 0);
+
+        List<Integer> result = new ArrayList<>();
+        filtered.forEachRemaining(result::add);
+
+        Assert.assertEquals(list, result);
+    }
+
+    @Test
+    public void testFilterWithEmptyIterator() {
+        Iterator<String> emptyIterator = Collections.emptyIterator();
+        Iterator<String> filtered = IteratorUtils.filter(emptyIterator, s -> true);
+
+        Assert.assertFalse(filtered.hasNext());
+    }
+
+    @Test
+    public void testFilterWithNullIterator() {
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.filter(null, item -> true));
+    }
+
+    @Test
+    public void testFilterWithNullPredicate() {
+        Iterator<String> iterator = Arrays.asList("a", "b").iterator();
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.filter(iterator, null));
+    }
+
+    @Test
+    public void testFilterWithRemove() {
+        List<String> list = new ArrayList<>(Arrays.asList("keep", "remove", "keep"));
+        Iterator<String> filtered = IteratorUtils.filter(list.iterator(), "keep"::equals);
+
+        // First element matches
+        Assert.assertTrue(filtered.hasNext());
+        Assert.assertEquals("keep", filtered.next());
+        filtered.remove();
+
+        // Skip "remove" as it doesn't match
+        Assert.assertTrue(filtered.hasNext());
+        Assert.assertEquals("keep", filtered.next());
+
+        Assert.assertEquals(Arrays.asList("remove", "keep"), list);
+    }
+
+    @Test
+    public void testFilterWithNullElements() {
+        List<String> list = Arrays.asList("a", null, "b", null, "c");
+        Iterator<String> filtered = IteratorUtils.filter(list.iterator(), Objects::isNull);
+
+        List<String> result = new ArrayList<>();
+        filtered.forEachRemaining(result::add);
+
+        Assert.assertEquals(Arrays.asList(null, null), result);
+    }
+
+    @Test
+    public void testFilterWithCustomObjects() {
+        class Person {
+            private final String name;
+            private final int age;
+
+            Person(String name, int age) {
+                this.name = name;
+                this.age = age;
+            }
+
+            public int getAge() {
+                return age;
+            }
+
+            @Override
+            public String toString() {
+                return name;
+            }
+        }
+
+        List<Person> people = Arrays.asList(
+                new Person("Alice", 25),
+                new Person("Bob", 17),
+                new Person("Charlie", 30),
+                new Person("David", 16)
+        );
+
+        // Filter adults (age >= 18)
+        Iterator<Person> adults = IteratorUtils.filter(people.iterator(), p -> p.getAge() >= 18);
+
+        List<String> adultNames = new ArrayList<>();
+        adults.forEachRemaining(p -> adultNames.add(p.toString()));
+
+        Assert.assertEquals(Arrays.asList("Alice", "Charlie"), adultNames);
+    }
 }
