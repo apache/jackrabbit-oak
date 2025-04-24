@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.principal.EveryoneFilter;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
@@ -185,7 +186,7 @@ class UserPrincipalProvider implements PrincipalProvider {
                     statement.toString(), javax.jcr.query.Query.XPATH,
                     limit, offset, NO_BINDINGS, namePathMapper.getSessionLocalMappings());
 
-            Iterator<Principal> principals = Iterators.filter(
+            Iterator<Principal> principals = IteratorUtils.filter(
                     Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()::apply),
                     Objects::nonNull);
 

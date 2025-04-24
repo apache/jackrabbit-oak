@@ -615,7 +615,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public NodeIterator perform() throws RepositoryException {
-                Iterator<NodeDelegate> children = Iterators.filter(
+                Iterator<NodeDelegate> children = IteratorUtils.filter(
                         node.getChildren(),
                         // TODO: use Oak names
                         state -> ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern));
@@ -635,7 +635,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public NodeIterator perform() throws RepositoryException {
-                Iterator<NodeDelegate> children = Iterators.filter(
+                Iterator<NodeDelegate> children = IteratorUtils.filter(
                         node.getChildren(),
                         // TODO: use Oak names
                         state -> ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs));
@@ -1724,7 +1724,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
 
         public Iterator<PropertyDelegate> iterator() throws InvalidItemStateException {
-            return Iterators.filter(node.getProperties(), predicate::test);
+            return IteratorUtils.filter(node.getProperties(), predicate::test);
         }
 
         public long getSize() {

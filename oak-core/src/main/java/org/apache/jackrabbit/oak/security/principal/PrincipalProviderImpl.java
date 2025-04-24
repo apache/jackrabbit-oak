@@ -24,6 +24,7 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.QueryBuilder.Direction;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
@@ -144,7 +145,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
         try {
             Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType, offset, limit);
-            Iterator<Principal> principals = Iterators.filter(Iterators.transform(authorizables, new AuthorizableToPrincipal()::apply), Objects::nonNull);
+            Iterator<Principal> principals = IteratorUtils.filter(Iterators.transform(authorizables, new AuthorizableToPrincipal()::apply), Objects::nonNull);
             return EveryoneFilter.filter(principals, nameHint, searchType, offset, limit);
         } catch (RepositoryException e) {
             log.debug(e.getMessage());

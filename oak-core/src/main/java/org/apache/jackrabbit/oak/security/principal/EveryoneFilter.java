@@ -50,7 +50,7 @@ public final class EveryoneFilter {
         boolean noRange = offset == 0 && limit == Long.MAX_VALUE;
         if (noRange && matchesEveryone(nameHint, searchType)) {
             Iterator<Principal> principals = IteratorUtils.chainedIterator(resultPrincipals, Collections.singleton(EveryonePrincipal.getInstance()).iterator());
-            return Iterators.filter(principals, new EveryonePredicate()::test);
+            return IteratorUtils.filter(principals, new EveryonePredicate()::test);
         } else {
             return resultPrincipals;
         }

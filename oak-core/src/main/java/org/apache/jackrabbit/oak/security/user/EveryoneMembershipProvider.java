@@ -21,6 +21,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
@@ -50,8 +51,8 @@ class EveryoneMembershipProvider implements DynamicMembershipProvider {
     @Override
     public @NotNull Iterator<Authorizable> getMembers(@NotNull Group group, boolean includeInherited) throws RepositoryException {
         if (Utils.isEveryone(group)) {
-            Iterator<Authorizable> result = Iterators.filter(userManager.findAuthorizables(repPrincipalName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE), x -> x != null);
-            return Iterators.filter(result, authorizable -> !Utils.isEveryone(authorizable));
+            Iterator<Authorizable> result = IteratorUtils.filter(userManager.findAuthorizables(repPrincipalName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE), x -> x != null);
+            return IteratorUtils.filter(result, authorizable -> !Utils.isEveryone(authorizable));
         } else {
             return RangeIteratorAdapter.EMPTY;
         }

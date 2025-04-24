@@ -44,6 +44,7 @@ import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -2397,7 +2398,7 @@ public class VersionGarbageCollector {
 
         private Iterator<String> getPrevDocIdsToDelete() throws IOException {
             ensureSorted();
-            return Iterators.filter(prevDocIdsToDelete.getIds(),
+            return IteratorUtils.filter(prevDocIdsToDelete.getIds(),
                     input -> !exclude.contains(input));
         }
 

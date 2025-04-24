@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -135,7 +136,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     @NotNull
     private static Iterator<String> getAllAuthorizableIds(@NotNull UserManager userManager) throws Exception {
         Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
-        return Iterators.filter(Iterators.transform(iter, input -> {
+        return IteratorUtils.filter(Iterators.transform(iter, input -> {
             try {
                 if (input != null) {
                     return input.getID();

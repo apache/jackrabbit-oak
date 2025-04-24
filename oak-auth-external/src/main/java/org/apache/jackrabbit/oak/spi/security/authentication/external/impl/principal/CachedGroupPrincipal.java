@@ -94,7 +94,7 @@ final class CachedGroupPrincipal extends PrincipalImpl implements GroupPrincipal
                 throw new IllegalStateException(msg, e);
             }
         });
-        return IteratorUtils.asEnumeration(Iterators.filter(principals, Objects::nonNull));
+        return IteratorUtils.asEnumeration(IteratorUtils.filter(principals, Objects::nonNull));
     }
 
     private Group getGroup() throws RepositoryException {

@@ -52,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 
@@ -270,7 +269,7 @@ public class IdentifierManager {
                     // skip references from the version storage (OAK-1196)
                     if (!rowPath.startsWith(VersionConstants.VERSION_STORE_PATH)) {
                             if (propertyName == null) {
-                                return filter(
+                                return IteratorUtils.filter(
                                         transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()::apply),
                                         x -> x != null);
                             } else {

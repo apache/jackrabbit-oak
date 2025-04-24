@@ -91,7 +91,7 @@ class AggregationCursor extends AbstractCursor {
             currentRow = cursor.next();
             if (!currentRow.isVirtualRow()) {
                 String path = currentRow.getPath();
-                aggregates = Iterators.filter(IteratorUtils.chainedIterator(
+                aggregates = IteratorUtils.filter(IteratorUtils.chainedIterator(
                         Collections.singleton(path).iterator(),
                         aggregator.getParents(rootState, path)),
                         x -> !seenPaths.contains(x));

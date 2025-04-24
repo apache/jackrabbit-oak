@@ -81,7 +81,7 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
     private AuthorizableIterator(Iterator<? extends Authorizable> authorizables, long size, boolean filterDuplicates) {
         if (filterDuplicates)  {
             this.servedIds = new HashSet<>();
-            this.authorizables = Iterators.filter(authorizables, authorizable -> {
+            this.authorizables = IteratorUtils.filter(authorizables, authorizable -> {
                 if (authorizable == null) {
                     return false;
                 }
@@ -90,7 +90,7 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
             });
         } else {
             this.servedIds = null;
-            this.authorizables = Iterators.filter(authorizables, Objects::nonNull);
+            this.authorizables = IteratorUtils.filter(authorizables, Objects::nonNull);
         }
         this.size = size;
     }

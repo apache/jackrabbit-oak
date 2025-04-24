@@ -105,6 +105,6 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements Grou
                 throw new IllegalStateException(msg, e);
             }
         });
-        return IteratorUtils.asEnumeration(Iterators.filter(principals, x -> x != null));
+        return IteratorUtils.asEnumeration(IteratorUtils.filter(principals, x -> x != null));
     }
 }
