@@ -580,17 +580,18 @@ public class ElasticRequestHandler {
                     InferenceQueryConfig inferenceQueryConfig;
                     InferenceQuery inferenceQuery;
                     if (indexPlan.getFilter().getQueryLimits().isInferenceEnabled()
-                            //todo should we remove this condition and always remove inferenceConfig from query
-                            // so that other indexes can be used to do fulltext search with only text part of InferenceQuery
-                            && InferenceConfig.getInstance().getInferenceIndexConfig(indexName).isEnabled()
-                            && text.startsWith(InferenceQuery.INFERENCE_QUERY_CONFIG_PREFIX)) {
+                        //todo should we remove this condition and always remove inferenceConfig from query
+                        // so that other indexes can be used to do fulltext search with only text part of InferenceQuery.
+                        // this will help in case another index gets picked, may be because of index corruption.
+                        && InferenceConfig.getInstance().getInferenceIndexConfig(indexName).isEnabled()
+                        && text.startsWith(InferenceQuery.INFERENCE_QUERY_CONFIG_PREFIX)) {
                         inferenceQuery = new InferenceQuery(text);
                         String queryConfig = inferenceQuery.getQueryInferenceConfig();
                         queryText = inferenceQuery.getQueryText();
                         inferenceQueryConfig = new InferenceQueryConfig(queryConfig);
                         inferenceModelConfig = inferenceQueryConfig.getInferenceModelConfig().isBlank()
-                                ? InferenceConfig.getInstance().getInferenceIndexConfig(indexName).getDefaultEnabledModel().getInferenceModelConfigName()
-                                : InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
+                            ? InferenceConfig.getInstance().getInferenceIndexConfig(indexName).getDefaultEnabledModel().getInferenceModelConfigName()
+                            : InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
                     } else {
                         inferenceQueryConfig = null;
                         inferenceQuery = null;

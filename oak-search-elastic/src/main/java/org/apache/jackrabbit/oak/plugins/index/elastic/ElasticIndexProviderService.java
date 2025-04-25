@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.Inference
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -140,6 +141,9 @@ public class ElasticIndexProviderService {
     @Reference
     private AsyncIndexInfoService asyncIndexInfoService;
 
+    @Reference
+    private QueryEngineSettings queryEngineSettings;
+
     @Reference(policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.OPTIONAL,
             policyOption = ReferencePolicyOption.GREEDY
@@ -174,7 +178,7 @@ public class ElasticIndexProviderService {
         metricHandler.markEnabled(isElasticAvailable);
 
         whiteboard = new OsgiWhiteboard(bundleContext);
-        InferenceConfig.getInstance(nodeStore, config.inferenceConfigPath(), true);
+        InferenceConfig.getInstance(nodeStore, config.inferenceConfigPath(), queryEngineSettings, true);
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);

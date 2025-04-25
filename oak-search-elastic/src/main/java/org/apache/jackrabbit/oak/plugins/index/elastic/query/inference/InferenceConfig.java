@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
@@ -55,7 +57,8 @@ public class InferenceConfig {
     private NodeStore nodeStore;
     private String inferenceConfigPath;
     private String currentInferenceConfig;
-    private static volatile String activeInferenceConfig;
+    private volatile String activeInferenceConfig;
+    private QueryLimits queryLimits;
 
     /**
      * Loads configuration from the given NodeState
@@ -72,6 +75,7 @@ public class InferenceConfig {
                 indexConfigs = Map.of();
                 activeInferenceConfig = getNewInferenceConfigId();
                 currentInferenceConfig = activeInferenceConfig;
+                queryLimits = (QueryLimits) new QueryEngineSettings();
             }
         } finally {
             lock.writeLock().unlock();
@@ -79,11 +83,11 @@ public class InferenceConfig {
     }
 
     public static InferenceConfig getInstance(boolean shouldReinitialize) {
-        return getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, shouldReinitialize);
+        return getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, INSTANCE.queryLimits, shouldReinitialize);
     }
 
     public static InferenceConfig getInstance() {
-        return getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, false);
+        return getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, INSTANCE.queryLimits, false);
     }
 
     /**
@@ -92,13 +96,16 @@ public class InferenceConfig {
      *
      * @param nodeStore
      * @param inferenceConfigPath
-     * @return
+     * @param queryLimits
+     * @param shouldReinitialize
+     * @return InferenceConfig instance
      */
-    public static InferenceConfig getInstance(NodeStore nodeStore, @NotNull String inferenceConfigPath, boolean shouldReinitialize) {
+    public static InferenceConfig getInstance(NodeStore nodeStore, @NotNull String inferenceConfigPath,
+                                              QueryLimits queryLimits, boolean shouldReinitialize) {
 
         lock.readLock().lock();
         try {
-            if (activeInferenceConfig != null && activeInferenceConfig.equals(INSTANCE.currentInferenceConfig) && !shouldReinitialize) {
+            if (INSTANCE.activeInferenceConfig != null && INSTANCE.activeInferenceConfig.equals(INSTANCE.currentInferenceConfig) && !shouldReinitialize) {
                 return INSTANCE;
             }
         } finally {
@@ -107,10 +114,10 @@ public class InferenceConfig {
 
         lock.writeLock().lock();
         try {
-            if (shouldReinitialize){
-                activeInferenceConfig = getNewInferenceConfigId();
+            if (shouldReinitialize) {
+                INSTANCE.activeInferenceConfig = getNewInferenceConfigId();
             }
-            INSTANCE.currentInferenceConfig = activeInferenceConfig;
+            INSTANCE.currentInferenceConfig = INSTANCE.activeInferenceConfig;
             INSTANCE.nodeStore = nodeStore;
             INSTANCE.inferenceConfigPath = inferenceConfigPath;
             if (!isValidInferenceConfig(nodeStore, inferenceConfigPath)) {
@@ -136,7 +143,12 @@ public class InferenceConfig {
         } finally {
             lock.writeLock().unlock();
         }
+
         return INSTANCE;
+    }
+
+    public QueryLimits getQueryLimits() {
+        return queryLimits;
     }
 
     public boolean isEnabled() {
@@ -151,7 +163,7 @@ public class InferenceConfig {
     public @NotNull InferenceIndexConfig getInferenceIndexConfig(String indexName) {
         lock.readLock().lock();
         try {
-            getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, false);
+            getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, INSTANCE.queryLimits, false);
             if (!isEnabled()) {
                 return InferenceIndexConfig.NOOP;
             } else {
@@ -177,7 +189,7 @@ public class InferenceConfig {
     public @NotNull InferenceModelConfig getInferenceModelConfig(String inferenceIndexName, String inferenceModelConfigName) {
         lock.readLock().lock();
         try {
-            getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, false);
+            getInstance(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, INSTANCE.queryLimits, false);
             InferenceIndexConfig inferenceIndexConfig = getInferenceIndexConfig(inferenceIndexName);
             return inferenceIndexConfig.getInferenceModelConfigs().getOrDefault(inferenceModelConfigName, InferenceModelConfig.NOOP);
         } finally {

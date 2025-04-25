@@ -151,18 +151,23 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             AND InferenceIndexConfig is NOOP
             )
          */
-        if (reindex || (!indexDefinition.isExternallyModifiable()
-                && (InferenceIndexConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName))))) {
+        if (reindex
+            || (!indexDefinition.isExternallyModifiable()
+            && !InferenceConfig.getInstance().getQueryLimits().isInferenceEnabled()
+            && (InferenceIndexConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName))))) {
             bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
         } else {
-            if (InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
+            if (InferenceConfig.getInstance().getQueryLimits().isInferenceEnabled()
+                && InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
                 doc.addProperty(InferenceConstants.ENRICH_NODE,
-                        Map.of(InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_PENDING));
+                    Map.of(InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_PENDING));
             }
             /*
-                The inference configuration in Elasticsearch (ES) is persisted only during the creation of a new index
-                or the reindexing of an existing one. This means that the enricher configuration is updated only under
-                these conditions. If we want to disable the `inferenceIndexConfig`, the existing enricher configuration
+
+                Once inference is enabled, it is not trivial to disable it.  As inference configuration in Elasticsearch (ES)
+                is persisted only during the creation of a new index
+                or reindexing of an existing one. This means that the enricher configuration is updated only under
+                these conditions. If we want to disable inference on instance, the existing enricher configuration
                 remains unchanged, and the enricher will continue processing new documents.
 
                 To stop the enricher from processing documents, we need to explicitly update the enricher status to
@@ -175,9 +180,16 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 }
 
                 The `inferenceDisabled` flag is added to allow for potential evaluations at a later stage.
+
+                This should happen in all cases where we try to disable inference i.e.
+                1. inference is disabled in queryEngineSettings but InferenceConfig is valid.
+                2. We can also disable a specific InferenceIndexConfig by setting enricher as DISABLED_ENRICHER_CONFIG i.e empty string.
+                3. InferenceModelConfig is disabled
+                In case we are updating inferenceConfig, it is always better to reindex so that Elastic always mirrors
+                the configuration present on AEM.
+
              */
-            else if (!InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).getEnricherConfig().isEmpty()
-                    && !InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
+            else {
                 Map<String, Object> enrichDocStatus = Map.of(
                         InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_COMPLETED,
                         InferenceConstants.ENRICH_STATUS_INFERENCE_DISABLED, InferenceConstants.ENRICH_STATUS_PENDING
