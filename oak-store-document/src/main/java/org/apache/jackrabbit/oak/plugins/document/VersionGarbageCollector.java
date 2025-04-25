@@ -128,7 +128,12 @@ public class VersionGarbageCollector {
     /**
      * Document id stored in settings collection that keeps info about version gc
      */
-    static final String SETTINGS_COLLECTION_ID = "versionGC";
+    public static final String SETTINGS_COLLECTION_ID = "versionGC";
+
+    /**
+     * Property name to sum the total size of removed garbage in bytes
+     */
+    public static final String SETTINGS_COLLECTION_FULL_GC_REMOVED_TOTAL_BSON_SIZE = "fullGcRemovedTotalBsonSize";
 
     /**
      * Property name to timestamp when last gc run happened

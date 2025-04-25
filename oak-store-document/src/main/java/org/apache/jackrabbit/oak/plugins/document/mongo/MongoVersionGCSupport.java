@@ -56,7 +56,6 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCursor;
 
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -113,7 +112,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     private final int batchSize = SystemPropertySupplier.create(
         "oak.mongo.queryDeletedDocsBatchSize", 1000).get();
-    private final MongoFullGcNodeBin fullGcBin;
+    private final FullGcNodeBin fullGcBin;
 
     public MongoVersionGCSupport(MongoDocumentStore store) {
         this(store, false);
@@ -136,7 +135,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         } else {
             modifiedIdHint = null;
         }
-        this.fullGcBin = new MongoFullGcNodeBin(store, fullGcBinEnabled);
+        this.fullGcBin = new MongoFullGcNodeBinSumBsonSize( new MongoFullGcNodeBin(store, fullGcBinEnabled));
     }
 
     @Override
