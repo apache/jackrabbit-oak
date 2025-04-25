@@ -120,6 +120,7 @@ public class InferenceConfig {
             INSTANCE.currentInferenceConfig = INSTANCE.activeInferenceConfig;
             INSTANCE.nodeStore = nodeStore;
             INSTANCE.inferenceConfigPath = inferenceConfigPath;
+            INSTANCE.queryLimits =queryLimits;
             if (!isValidInferenceConfig(nodeStore, inferenceConfigPath)) {
                 INSTANCE.enabled = false;
                 INSTANCE.indexConfigs = Map.of();
