@@ -21,7 +21,10 @@ package org.apache.jackrabbit.oak.commons.collections;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.fail;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public class CollectionUtilsTest {
 
@@ -37,9 +40,74 @@ public class CollectionUtilsTest {
         Assert.assertEquals(1073741824, capacity);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void ensureCapacityWithNegativeValue() {
-        int capacity = CollectionUtils.ensureCapacity(-8);
-        fail("Should throw IllegalArgumentException");
+        Assert.assertThrows(IllegalArgumentException.class, () -> CollectionUtils.ensureCapacity(-8));
+    }
+
+    @Test
+    public void testToCollectionWithCollection() {
+        // Create a Collection
+        Collection<String> original = Arrays.asList("a", "b", "c");
+
+        // Convert to Collection
+        Collection<String> result = CollectionUtils.toCollection(original);
+
+        // Verify it's the same instance
+        Assert.assertSame(original, result);
+        Assert.assertEquals(Arrays.asList("a", "b", "c"), result);
+    }
+
+    @Test
+    public void testToCollectionWithNonCollection() {
+        // Create a non-Collection Iterable using custom implementation
+        Iterable<Integer> iterable = () -> Arrays.asList(1, 2, 3).iterator();
+
+        // Convert to Collection
+        Collection<Integer> result = CollectionUtils.toCollection(iterable);
+
+        // Verify it created a new List with the correct elements
+        Assert.assertTrue(result instanceof List);
+        Assert.assertEquals(Arrays.asList(1, 2, 3), result);
+    }
+
+    @Test
+    public void testToCollectionWithNull() {
+        Assert.assertThrows(NullPointerException.class, () -> CollectionUtils.toCollection(null));
+    }
+
+    @Test
+    public void testToCollectionWithEmptyIterable() {
+        Iterable<String> empty = Collections.emptyList();
+        Collection<String> result = CollectionUtils.toCollection(empty);
+
+        Assert.assertTrue(result.isEmpty());
+        Assert.assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testToCollectionWithCustomIterable() {
+        // Create a custom Iterable
+        Iterable<Character> chars = () -> Arrays.asList('a', 'b', 'c').iterator();
+
+        Collection<Character> result = CollectionUtils.toCollection(chars);
+
+        Assert.assertEquals(3, result.size());
+        Assert.assertTrue(result.contains('a'));
+        Assert.assertTrue(result.contains('b'));
+        Assert.assertTrue(result.contains('c'));
+    }
+
+    @Test
+    public void testToCollectionMutability() {
+        // Create a non-Collection Iterable
+        Iterable<String> iterable = () -> Arrays.asList("a", "b").iterator();
+
+        // Convert to Collection
+        Collection<String> result = CollectionUtils.toCollection(iterable);
+
+        // Verify the resulting collection is mutable
+        result.add("c");
+        Assert.assertEquals(Arrays.asList("a", "b", "c"), result);
     }
 }

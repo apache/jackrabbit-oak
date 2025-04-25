@@ -1030,4 +1030,109 @@ public class IteratorUtilsTest {
 
         Assert.assertEquals(Arrays.asList(4, 4, 4, 4), result);
     }
+
+    @Test
+    public void testCycleWithNonEmptyElements() {
+        Iterator<String> cyclingIterator = IteratorUtils.cycle("a", "b", "c");
+
+        Assert.assertTrue(cyclingIterator.hasNext());
+        Assert.assertEquals("a", cyclingIterator.next());
+        Assert.assertEquals("b", cyclingIterator.next());
+        Assert.assertEquals("c", cyclingIterator.next());
+        Assert.assertEquals("a", cyclingIterator.next()); // Cycles back
+        Assert.assertEquals("b", cyclingIterator.next()); // Cycles back
+        Assert.assertEquals("c", cyclingIterator.next()); // Cycles back
+    }
+
+    @Test
+    public void testCycleWithSingleElement() {
+        Iterator<Integer> cyclingIterator = IteratorUtils.cycle(42);
+
+        Assert.assertTrue(cyclingIterator.hasNext());
+        Assert.assertEquals(Integer.valueOf(42), cyclingIterator.next());
+        Assert.assertEquals(Integer.valueOf(42), cyclingIterator.next()); // Repeats
+    }
+
+    @Test
+    public void testCycleWithEmptyElements() {
+        Iterator<Object> cyclingIterator = IteratorUtils.cycle();
+
+        Assert.assertFalse(cyclingIterator.hasNext());
+    }
+
+    @Test
+    public void testCycleWithNullElements() {
+        Assert.assertThrows(NullPointerException.class,() -> IteratorUtils.cycle((String[]) null));
+    }
+
+    @Test
+    public void testCycleWithRemove() {
+        Iterator<String> cyclingIterator = IteratorUtils.cycle("x", "y");
+
+        Assert.assertEquals("x", cyclingIterator.next());
+        cyclingIterator.remove(); // Should remove "x"
+        Assert.assertEquals("y", cyclingIterator.next());
+        Assert.assertEquals("y", cyclingIterator.next());
+        cyclingIterator.remove(); // Should remove "y"
+        Assert.assertFalse(cyclingIterator.hasNext());
+    }
+
+    @Test
+    public void testCycleWithNonEmptyIterable() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        Iterator<String> cyclingIterator = IteratorUtils.cycle(list);
+
+        Assert.assertTrue(cyclingIterator.hasNext());
+        Assert.assertEquals("a", cyclingIterator.next());
+        Assert.assertEquals("b", cyclingIterator.next());
+        Assert.assertEquals("c", cyclingIterator.next());
+        Assert.assertEquals("a", cyclingIterator.next()); // Cycles back
+    }
+
+    @Test
+    public void testCycleWithSingleElementIterable() {
+        List<Integer> list = Collections.singletonList(42);
+        Iterator<Integer> cyclingIterator = IteratorUtils.cycle(list);
+
+        Assert.assertTrue(cyclingIterator.hasNext());
+        Assert.assertEquals(Integer.valueOf(42), cyclingIterator.next());
+        Assert.assertEquals(Integer.valueOf(42), cyclingIterator.next()); // Repeats
+    }
+
+    @Test
+    public void testCycleWithEmptyIterable() {
+        List<Object> emptyList = Collections.emptyList();
+        Iterator<Object> cyclingIterator = IteratorUtils.cycle(emptyList);
+
+        Assert.assertFalse(cyclingIterator.hasNext());
+    }
+
+    @Test
+    public void testCycleWithNullIterable() {
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.cycle((Iterable<String>) null));
+    }
+
+    @Test
+    public void testCycleWithRemoveWhenIterableAllows() {
+        List<String> list = new ArrayList<>(Arrays.asList("x", "y"));
+        Iterator<String> cyclingIterator = IteratorUtils.cycle(list);
+
+        Assert.assertEquals("x", cyclingIterator.next());
+        cyclingIterator.remove(); // Removes "x"
+        Assert.assertEquals("y", cyclingIterator.next());
+        cyclingIterator.remove(); // Removes "y"
+        Assert.assertFalse(cyclingIterator.hasNext());
+    }
+
+    @Test
+    public void testCycleWithRemoveWhenIterableDisallows() {
+        List<String> list = Arrays.asList("x", "y");
+        Iterator<String> cyclingIterator = IteratorUtils.cycle(list);
+
+        Assert.assertEquals("x", cyclingIterator.next());
+        Assert.assertThrows(UnsupportedOperationException.class, cyclingIterator::remove); // Doesn't Removes "x"
+        Assert.assertEquals("y", cyclingIterator.next());
+        Assert.assertEquals("x", cyclingIterator.next());
+        Assert.assertTrue(cyclingIterator.hasNext());
+    }
 }

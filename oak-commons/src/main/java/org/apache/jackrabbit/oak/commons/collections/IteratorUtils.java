@@ -429,5 +429,50 @@ public class IteratorUtils {
     public static <F, T> Iterator<T> transform(Iterator<? extends F> itr, final Function<? super F, ? extends T> transform) {
         return org.apache.commons.collections4.IteratorUtils.transformedIterator(itr, transform::apply);
     }
+
+    /**
+     * Creates an iterator that cycles indefinitely over the provided elements.
+     * <p>
+     * The returned iterator will continuously loop through the given elements in the same order.
+     * If no elements are provided, the iterator will be empty.
+     * <p>
+     * Example usage:
+     * <pre>
+     * Iterator&lt;String&gt; cyclingIterator = IteratorUtils.cycle("a", "b", "c");
+     * // Iterates: "a", "b", "c", "a", "b", "c", ...
+     * </pre>
+     *
+     * @param <E> the type of elements in the iterator
+     * @param elements the elements to cycle through, must not be null
+     * @return an iterator that cycles indefinitely over the provided elements
+     * @throws NullPointerException if the elements array is null
+     */
+    @SafeVarargs
+    public static <E> Iterator<E> cycle(final E... elements) {
+        Objects.requireNonNull(elements, "elements must not be null");
+        return IteratorUtils.cycle(SetUtils.toLinkedSet(elements));
+    }
+
+    /**
+     * Creates an iterator that cycles indefinitely over the elements of the given iterable.
+     * <p>
+     * The returned iterator will continuously loop through the elements of the iterable in the same order.
+     * If the iterable is empty, the iterator will also be empty.
+     * <p>
+     * Example usage:
+     * <pre>
+     * List&lt;String&gt; list = Arrays.asList("a", "b", "c");
+     * Iterator&lt;String&gt; cyclingIterator = IteratorUtils.cycle(list);
+     * // Iterates: "a", "b", "c", "a", "b", "c", ...
+     * </pre>
+     *
+     * @param <E> the type of elements in the iterable
+     * @param iterable the iterable to cycle through, must not be null
+     * @return an iterator that cycles indefinitely over the elements of the iterable
+     * @throws NullPointerException if the iterable is null
+     */
+    public static <E> Iterator<E> cycle(final Iterable<E> iterable) {
+        return org.apache.commons.collections4.IteratorUtils.loopingIterator(CollectionUtils.toCollection(iterable));
+    }
 }
 
