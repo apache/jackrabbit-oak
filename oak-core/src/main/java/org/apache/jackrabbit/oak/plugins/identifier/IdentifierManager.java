@@ -52,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 
 /**
@@ -236,7 +235,7 @@ public class IdentifierManager {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                return IteratorUtils.chainedIterator(transform(result.getRows().iterator(), new RowToPaths()::apply));
+                return IteratorUtils.chainedIterator(IteratorUtils.transform(result.getRows().iterator(), new RowToPaths()::apply));
             }
 
             class RowToPaths implements Function<ResultRow, Iterator<String>> {
@@ -270,7 +269,7 @@ public class IdentifierManager {
                     if (!rowPath.startsWith(VersionConstants.VERSION_STORE_PATH)) {
                             if (propertyName == null) {
                                 return IteratorUtils.filter(
-                                        transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()::apply),
+                                        IteratorUtils.transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()::apply),
                                         x -> x != null);
                             } else {
                                 // for a fixed property name, we don't need to look for it, but just assume that

@@ -748,7 +748,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     private Iterator<ChildNodeEntry> getBundledChildren(){
-        return Iterators.transform(bundlingContext.getBundledChildNodeNames().iterator(), childNodeName -> {
+        return IteratorUtils.transform(bundlingContext.getBundledChildNodeNames().iterator(), childNodeName -> {
                 return new AbstractChildNodeEntry() {
                     @Override
                     public String getName() {

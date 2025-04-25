@@ -63,6 +63,7 @@ import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -1854,7 +1855,7 @@ public class RDBDocumentStore implements DocumentStore {
                     Iterator<RDBRow> res = db.queryAsIterator(ch, tmd, from, to, excludeKeyPatterns, conditions,
                             limit, sortBy);
                     returned.add(res);
-                    Iterator<T> tmp = Iterators.transform(res, input -> convertFromDBObject(collection, input));
+                    Iterator<T> tmp = IteratorUtils.transform(res, input -> convertFromDBObject(collection, input));
                     return CloseableIterator.wrap(tmp, (Closeable) res);
                 } catch (SQLException ex) {
                     throw new RuntimeException(ex);

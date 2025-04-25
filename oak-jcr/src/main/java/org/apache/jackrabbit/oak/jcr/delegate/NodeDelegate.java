@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKOWNER;
@@ -295,7 +294,7 @@ public class NodeDelegate extends ItemDelegate {
      */
     @NotNull
     public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
-        return transform(getTree().getProperties().iterator(),
+        return IteratorUtils.transform(getTree().getProperties().iterator(),
                 propertyState -> new PropertyDelegate(sessionDelegate, tree, propertyState.getName()));
     }
 
@@ -340,7 +339,7 @@ public class NodeDelegate extends ItemDelegate {
     @NotNull
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
         Iterator<Tree> iterator = getTree().getChildren().iterator();
-        return transform(
+        return IteratorUtils.transform(
                 IteratorUtils.filter(iterator, tree -> tree.exists()),
                 tree -> new NodeDelegate(sessionDelegate, tree));
     }

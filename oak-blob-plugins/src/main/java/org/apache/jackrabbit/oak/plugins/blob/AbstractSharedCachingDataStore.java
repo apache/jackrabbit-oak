@@ -274,7 +274,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
      */
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-        return IteratorUtils.chainedIterator(Iterators.transform(cache.getStagingCache().getAllIdentifiers(),
+        return IteratorUtils.chainedIterator(IteratorUtils.transform(cache.getStagingCache().getAllIdentifiers(),
             id -> new DataIdentifier(id)), backend.getAllIdentifiers());
     }
 

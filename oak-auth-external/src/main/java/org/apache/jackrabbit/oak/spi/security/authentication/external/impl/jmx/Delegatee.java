@@ -357,7 +357,7 @@ final class Delegatee {
     private Iterator<String> internalListOrphanedIdentities() {
         try {
             Iterator<SyncedIdentity> it = handler.listIdentities(userMgr);
-            return IteratorUtils.filter(Iterators.transform(it, syncedIdentity -> {
+            return IteratorUtils.filter(IteratorUtils.transform(it, syncedIdentity -> {
                 if (syncedIdentity != null && isMyIDP(syncedIdentity)) {
                     try {
                         // nonNull-ExternalIdRef has already been asserted by 'isMyIDP'

@@ -22,6 +22,7 @@ import java.util.function.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 
 final class AuthorizableWrapper<T extends Authorizable> implements Function<T, T> {
 
@@ -41,10 +42,10 @@ final class AuthorizableWrapper<T extends Authorizable> implements Function<T, T
     }
 
     static Iterator<Authorizable> createIterator(Iterator<Authorizable> dlgs, AutoSaveEnabledManager mgr) {
-        return Iterators.transform(dlgs, new AuthorizableWrapper<Authorizable>(mgr)::apply);
+        return IteratorUtils.transform(dlgs, new AuthorizableWrapper<Authorizable>(mgr)::apply);
     }
 
     static Iterator<Group> createGroupIterator(Iterator<Group> dlgs, AutoSaveEnabledManager mgr) {
-        return Iterators.transform(dlgs, new AuthorizableWrapper<Group>(mgr)::apply);
+        return IteratorUtils.transform(dlgs, new AuthorizableWrapper<Group>(mgr)::apply);
     }
 }

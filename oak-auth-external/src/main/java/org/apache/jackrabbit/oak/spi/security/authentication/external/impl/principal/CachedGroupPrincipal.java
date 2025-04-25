@@ -82,7 +82,7 @@ final class CachedGroupPrincipal extends PrincipalImpl implements GroupPrincipal
             throw new IllegalStateException(msg, e);
         }
 
-        Iterator<Principal> principals = Iterators.transform(members, authorizable -> {
+        Iterator<Principal> principals = IteratorUtils.transform(members, authorizable -> {
             if (authorizable == null) {
                 return null;
             }

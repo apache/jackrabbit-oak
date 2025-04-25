@@ -145,7 +145,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
         try {
             Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType, offset, limit);
-            Iterator<Principal> principals = IteratorUtils.filter(Iterators.transform(authorizables, new AuthorizableToPrincipal()::apply), Objects::nonNull);
+            Iterator<Principal> principals = IteratorUtils.filter(IteratorUtils.transform(authorizables, new AuthorizableToPrincipal()::apply), Objects::nonNull);
             return EveryoneFilter.filter(principals, nameHint, searchType, offset, limit);
         } catch (RepositoryException e) {
             log.debug(e.getMessage());

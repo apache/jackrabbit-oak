@@ -136,7 +136,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
     @NotNull
     private static Iterator<String> getAllAuthorizableIds(@NotNull UserManager userManager) throws Exception {
         Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
-        return IteratorUtils.filter(Iterators.transform(iter, input -> {
+        return IteratorUtils.filter(IteratorUtils.transform(iter, input -> {
             try {
                 if (input != null) {
                     return input.getID();

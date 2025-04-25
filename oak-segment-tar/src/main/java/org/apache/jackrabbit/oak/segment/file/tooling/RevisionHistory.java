@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -78,7 +79,7 @@ public class RevisionHistory {
         requireNonNull(path);
 
         try (JournalReader journalReader = new JournalReader(requireNonNull(journal))) {
-            return Iterators.transform(journalReader, entry -> {
+            return IteratorUtils.transform(journalReader, entry -> {
                             store.setRevision(entry.getRevision());
                             NodeState node = getNode(store.getHead(), path);
                             return new HistoryElement(entry.getRevision(), node);

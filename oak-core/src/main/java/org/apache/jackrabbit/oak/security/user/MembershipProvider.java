@@ -167,7 +167,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @return {@code true} if the group is contained in the membership of the specified authorizable.
      */
     private boolean hasMembership(@NotNull Tree authorizableTree, @NotNull String groupPath) {
-        return IteratorUtils.contains(Iterators.transform(getMembership(authorizableTree, true), Tree::getPath), groupPath);
+        return IteratorUtils.contains(IteratorUtils.transform(getMembership(authorizableTree, true), Tree::getPath), groupPath);
     }
 
     /**
@@ -245,7 +245,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             return false;
         }
         if (pendingChanges(groupTree)) {
-            return IteratorUtils.contains(Iterators.transform(getMembers(groupTree, true), Tree::getPath), authorizableTree.getPath());
+            return IteratorUtils.contains(IteratorUtils.transform(getMembers(groupTree, true), Tree::getPath), authorizableTree.getPath());
         } else {
             return hasMembership(authorizableTree, groupTree.getPath());
         }

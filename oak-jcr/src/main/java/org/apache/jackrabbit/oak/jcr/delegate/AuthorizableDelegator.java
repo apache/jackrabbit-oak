@@ -117,7 +117,7 @@ abstract class AuthorizableDelegator implements Authorizable {
             @Override
             public Iterator<Group> perform() throws RepositoryException {
                 Iterator<Group> groups = delegate.declaredMemberOf();
-                return Iterators.transform(IteratorUtils.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
+                return IteratorUtils.transform(IteratorUtils.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
             }
         });
     }
@@ -130,7 +130,7 @@ abstract class AuthorizableDelegator implements Authorizable {
             @Override
             public Iterator<Group> perform() throws RepositoryException {
                 Iterator<Group> groups = delegate.memberOf();
-                return Iterators.transform(IteratorUtils.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
+                return IteratorUtils.transform(IteratorUtils.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
             }
         });
     }

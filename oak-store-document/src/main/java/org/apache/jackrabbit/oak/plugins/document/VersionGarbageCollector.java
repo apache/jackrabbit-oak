@@ -2335,11 +2335,11 @@ public class VersionGarbageCollector {
                 // previous ranges map. this works for first level previous
                 // documents only.
                 final Path path = doc.getPath();
-                return Iterators.transform(prevRanges.entrySet().iterator(),
+                return IteratorUtils.transform(prevRanges.entrySet().iterator(),
                         input -> Utils.getPreviousIdFor(path, input.getKey(), input.getValue().getHeight()));
             } else {
                 // need to fetch the previous documents to get their ids
-                return Iterators.transform(doc.getAllPreviousDocs(),
+                return IteratorUtils.transform(doc.getAllPreviousDocs(),
                         input -> input.getId());
             }
         }

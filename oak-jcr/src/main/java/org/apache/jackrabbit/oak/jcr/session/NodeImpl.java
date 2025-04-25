@@ -20,7 +20,6 @@ import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -1353,13 +1352,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
-        return sessionDelegate.sync(transform(
+        return sessionDelegate.sync(IteratorUtils.transform(
                 childNodes,
                 nodeDelegate -> new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext)));
     }
 
     private Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
-        return sessionDelegate.sync(transform(
+        return sessionDelegate.sync(IteratorUtils.transform(
                 properties,
                 propertyDelegate -> new PropertyImpl(propertyDelegate, sessionContext)));
     }

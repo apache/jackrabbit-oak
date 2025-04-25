@@ -51,7 +51,7 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
     static AuthorizableIterator create(@NotNull Iterator<Tree> authorizableTrees,
                                        @NotNull UserManagerImpl userManager,
                                        @NotNull AuthorizableType authorizableType) {
-        Iterator<Authorizable> it = Iterators.transform(authorizableTrees,
+        Iterator<Authorizable> it = IteratorUtils.transform(authorizableTrees,
                 new TreeToAuthorizable(userManager, authorizableType)::apply);
         long size = getSize(authorizableTrees);
         return new AuthorizableIterator(it, size, false);

@@ -275,7 +275,7 @@ public class UserQueryManager {
                     statement, javax.jcr.query.Query.XPATH, limit, offset,
                     NO_BINDINGS, namePathMapper.getSessionLocalMappings());
             Iterable<? extends ResultRow> resultRows = query.getRows();
-            Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(),
+            Iterator<Authorizable> authorizables = IteratorUtils.transform(resultRows.iterator(),
                     new ResultRowToAuthorizable(userManager, root, type, query.getSelectorNames())::apply);
             return IteratorUtils.filter(authorizables, new UniqueResultPredicate()::test);
         } catch (ParseException e) {

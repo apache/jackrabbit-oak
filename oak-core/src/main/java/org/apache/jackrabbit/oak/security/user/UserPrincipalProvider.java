@@ -187,7 +187,7 @@ class UserPrincipalProvider implements PrincipalProvider {
                     limit, offset, NO_BINDINGS, namePathMapper.getSessionLocalMappings());
 
             Iterator<Principal> principals = IteratorUtils.filter(
-                    Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()::apply),
+                    IteratorUtils.transform(result.getRows().iterator(), new ResultRowToPrincipal()::apply),
                     Objects::nonNull);
 
             // everyone is injected only in complete set, not on pages

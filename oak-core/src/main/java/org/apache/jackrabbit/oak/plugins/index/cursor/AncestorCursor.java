@@ -37,7 +37,7 @@ class AncestorCursor extends PathCursor {
     }
 
     private static Iterator<String> transform(Cursor cursor, final int level) {
-        Iterator<String> unfiltered = Iterators.transform(cursor,
+        Iterator<String> unfiltered = IteratorUtils.transform(cursor,
                 input -> input != null ? input.getPath() : null);
         Iterator<String> filtered = IteratorUtils.filter(unfiltered,
                 new Predicate<String>() {
@@ -46,7 +46,7 @@ class AncestorCursor extends PathCursor {
                 return input != null && PathUtils.getDepth(input) >= level;
             }
         }::test);
-        return Iterators.transform(filtered,
+        return IteratorUtils.transform(filtered,
                 input -> PathUtils.getAncestorPath(input, level));
     }
 }

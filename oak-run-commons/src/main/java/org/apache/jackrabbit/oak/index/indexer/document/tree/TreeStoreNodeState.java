@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.tree;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-
 import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.MemoryObject;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -172,12 +171,12 @@ public class TreeStoreNodeState implements NodeState, MemoryObject {
     @NotNull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return () -> transform(getChildNodeIterator(),
+        return () -> IteratorUtils.transform(getChildNodeIterator(),
                 s -> new MemoryChildNodeEntry(PathUtils.getName(s.getPath()), s.getNodeState()));
     }
 
     private Iterator<NodeStateEntry> getChildNodeIterator() {
-        return transform(getChildNodeNamesIterator(),
+        return IteratorUtils.transform(getChildNodeNamesIterator(),
                 s -> treeStore.getNodeStateEntry(PathUtils.concat(path, s)));
     }
 

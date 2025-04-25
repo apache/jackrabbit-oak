@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 import java.io.BufferedInputStream;
@@ -495,7 +494,7 @@ public class DataStoreBlobStore
 
     @Override
     public Iterator<String> getAllChunkIds(final long maxLastModifiedTime) throws Exception {
-        return transform(IteratorUtils.filter(getAllRecords(), input -> {
+        return IteratorUtils.transform(IteratorUtils.filter(getAllRecords(), input -> {
                 if (input != null && (maxLastModifiedTime <= 0
                         || input.getLastModified() < maxLastModifiedTime)) {
                     return true;
@@ -747,7 +746,7 @@ public class DataStoreBlobStore
 
         Iterator<DataRecord> result = delegate instanceof SharedDataStore ?
                 ((SharedDataStore) delegate).getAllRecords() :
-                Iterators.transform(delegate.getAllIdentifiers(),
+                IteratorUtils.transform(delegate.getAllIdentifiers(),
                         input -> {
                                 try {
                                     return delegate.getRecord(input);

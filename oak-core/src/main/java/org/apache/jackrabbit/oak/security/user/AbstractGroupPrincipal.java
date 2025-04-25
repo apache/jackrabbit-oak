@@ -93,7 +93,7 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements Grou
             throw new IllegalStateException(msg, e);
         }
 
-        Iterator<Principal> principals = Iterators.transform(members, authorizable -> {
+        Iterator<Principal> principals = IteratorUtils.transform(members, authorizable -> {
             if (authorizable == null) {
                 return null;
             }
