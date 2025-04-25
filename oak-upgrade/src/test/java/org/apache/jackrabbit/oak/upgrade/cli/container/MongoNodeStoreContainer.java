@@ -17,12 +17,12 @@
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
+import org.bson.Document;
 import org.junit.Assume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoIterable;
 
 public class MongoNodeStoreContainer implements NodeStoreContainer {
 
@@ -73,23 +72,13 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
     }
 
     private static boolean testMongoAvailability() {
-        MongoClient mongo = null;
-        try {
-            ConnectionString uri = new ConnectionString(MONGO_URI + "?connectTimeoutMS=3000");
-            mongo = MongoClients.create(uri);
-            MongoIterable<String> listDatabaseNames = mongo.listDatabaseNames();
-
-            // To do real call to mongo and so test its availability we need to call iterator on just returned result
-            for (Iterator<String> iterator = listDatabaseNames.iterator(); iterator.hasNext();) {
-                // do nothing...
-            }
+        try (MongoClient mongo = MongoClients.create(
+                new ConnectionString(MONGO_URI + "?connectTimeoutMS=3000"))) {
+            // Use the ping command: https://www.mongodb.com/docs/v6.0/reference/command/ping/
+            mongo.getDatabase("admin").runCommand(new Document("ping", 1));
             return true;
         } catch (Exception e) {
             return false;
-        } finally {
-            if (mongo != null) {
-                mongo.close();
-            }
         }
     }
 

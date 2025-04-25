@@ -16,29 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type.GENERIC;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type.TRANSIENT;
-import static org.apache.jackrabbit.oak.plugins.document.MongoUtils.isAvailable;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
-import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.bson.BsonDocument;
-import org.bson.BsonInt32;
-import org.bson.BsonString;
-import org.bson.Document;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.DuplicateKeyException;
 import com.mongodb.MongoCommandException;
@@ -49,6 +30,28 @@ import com.mongodb.WriteConcernException;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.bson.BsonDocument;
+import org.bson.BsonInt32;
+import org.bson.BsonString;
+import org.bson.Document;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type.GENERIC;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type.TRANSIENT;
+import static org.apache.jackrabbit.oak.plugins.document.MongoUtils.isAvailable;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.mock;
 
 public class MongoUtilsTest {
 

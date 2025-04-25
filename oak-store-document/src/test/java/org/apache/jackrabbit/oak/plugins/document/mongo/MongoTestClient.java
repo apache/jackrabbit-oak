@@ -19,10 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.bson.Document;
-import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.conversions.Bson;
-import org.jetbrains.annotations.NotNull;
+
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.ConnectionString;
 import com.mongodb.ReadConcern;
@@ -37,6 +34,11 @@ import com.mongodb.client.MongoCluster;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 import com.mongodb.connection.ClusterDescription;
+
+import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.conversions.Bson;
+import org.jetbrains.annotations.NotNull;
 
 class MongoTestClient implements MongoClient {
 
