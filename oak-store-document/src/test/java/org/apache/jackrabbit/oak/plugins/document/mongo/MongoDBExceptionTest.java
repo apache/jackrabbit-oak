@@ -263,7 +263,7 @@ public class MongoDBExceptionTest {
     private UpdateOp create16MBProp(UpdateOp op) {
         // create a 1 MB property
         String content = create1MBContent();
-
+        
 
         //create 16MB property
         for (int i = 0; i < 16; i++) {
