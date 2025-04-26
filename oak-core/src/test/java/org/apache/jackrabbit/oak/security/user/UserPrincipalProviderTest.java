@@ -268,7 +268,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
                 SEARCH_TYPE_GROUP, 0, -1);
         Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
                 SEARCH_TYPE_GROUP, 0, -1);
-        assertTrue(Iterators.elementsEqual(i1, i2));
+        assertTrue(IteratorUtils.elementsEqual(i1, i2));
     }
 
     @Test
@@ -297,7 +297,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
                     SEARCH_TYPE_GROUP, 0, limit);
             Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
                     SEARCH_TYPE_GROUP, 0, limit);
-            assertTrue(Iterators.elementsEqual(i1, i2));
+            assertTrue(IteratorUtils.elementsEqual(i1, i2));
         }
     }
 

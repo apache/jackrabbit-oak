@@ -24,6 +24,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -421,7 +422,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         Set<Principal> principalSet = Set.of(EveryonePrincipal.getInstance());
         CompositeAccessControlManager composite = createComposite(mgr);
         
-        assertTrue(Iterators.elementsEqual(Collections.singleton(policy).iterator(), composite.getEffectivePolicies(principalSet, ROOT_PATH)));
+        assertTrue(IteratorUtils.elementsEqual(Collections.singleton(policy).iterator(), composite.getEffectivePolicies(principalSet, ROOT_PATH)));
 
         verify(mgr, times(0)).getEffectivePolicies(principalSet);
         verify(mgr, times(1)).getEffectivePolicies(principalSet, ROOT_PATH);

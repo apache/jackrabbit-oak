@@ -32,6 +32,7 @@ import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -128,7 +129,7 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
         assertFalse(result.hasNext());
 
         result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
-        assertTrue(Iterators.elementsEqual(Collections.singleton(EveryonePrincipal.getInstance()).iterator(), result));
+        assertTrue(IteratorUtils.elementsEqual(Collections.singleton(EveryonePrincipal.getInstance()).iterator(), result));
     }
 
     @Test
@@ -141,6 +142,6 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
         assertFalse(result.hasNext());
 
         result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
-        assertTrue(Iterators.elementsEqual(Collections.singleton(EveryonePrincipal.getInstance()).iterator(), result));
+        assertTrue(IteratorUtils.elementsEqual(Collections.singleton(EveryonePrincipal.getInstance()).iterator(), result));
     }
 }

@@ -21,6 +21,7 @@ import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -373,6 +374,6 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         assertFalse(amp.getMembersFromAutoMembershipConfig(automembershipGroup1).hasNext());
         assertFalse(amp.getMembersFromAutoMembershipConfig(automembershipGroup2).hasNext());
         
-        assertTrue(Iterators.elementsEqual(Collections.singleton(authorizable).iterator(), amp.getMembersFromAutoMembershipConfig(automembershipGroup3)));
+        assertTrue(IteratorUtils.elementsEqual(Collections.singleton(authorizable).iterator(), amp.getMembersFromAutoMembershipConfig(automembershipGroup3)));
     }
 }

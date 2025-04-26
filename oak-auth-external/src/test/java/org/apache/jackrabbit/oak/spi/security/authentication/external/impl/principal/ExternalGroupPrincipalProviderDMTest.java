@@ -215,7 +215,7 @@ public class ExternalGroupPrincipalProviderDMTest extends AbstractPrincipalTest 
             Iterator<Authorizable> membersInh = principalProvider.getMembers(gr, true);
             assertTrue(membersDecl.hasNext());
             assertTrue(membersInh.hasNext());
-            assertTrue(Iterators.elementsEqual(membersDecl, membersInh));
+            assertTrue(IteratorUtils.elementsEqual(membersDecl, membersInh));
         }
     }
 
