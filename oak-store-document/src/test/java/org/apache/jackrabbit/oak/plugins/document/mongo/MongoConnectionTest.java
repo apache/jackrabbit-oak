@@ -46,6 +46,69 @@ public class MongoConnectionTest {
     }
 
     @Test
+    public void testHasWriteConcern_withExplicitWParam() {
+        String uriWithW = "mongodb://localhost:27017/?w=majority";
+        assertTrue(MongoConnection.hasWriteConcern(uriWithW));
+    }
+
+    @Test
+    public void testHasWriteConcern_withoutWParam() {
+        String uriWithoutW = "mongodb://localhost:27017";
+        assertFalse(MongoConnection.hasWriteConcern(uriWithoutW));
+    }
+
+    @Test
+    public void testHasWriteConcern_withUnknownParam() {
+        String uriWithOtherParams = "mongodb://localhost:27017/?retryWrites=true";
+        assertFalse(MongoConnection.hasWriteConcern(uriWithOtherParams));
+    }
+
+    @Test
+    public void testHasWriteConcern_withWEqual1() {
+        String uriWithW1 = "mongodb://localhost:27017/?w=1";
+        assertTrue(MongoConnection.hasWriteConcern(uriWithW1));
+    }
+
+    @Test
+    public void testDifferenceNoWriteConcern() {
+        String uri = "mongodb://localhost:27017";
+        assertFalse(MongoConnection.hasWriteConcern(uri));
+        assertTrue(MongoConnection.hasMongoDbDefaultWriteConcern(uri));
+    }
+
+    @Test
+    public void testDifferenceMajorityConcern() {
+        String uri = "mongodb://localhost:27017/?w=majority";
+        assertTrue(MongoConnection.hasWriteConcern(uri));
+        assertFalse(MongoConnection.hasMongoDbDefaultWriteConcern(uri));
+    }
+
+    @Test
+    public void testDifferenceWriteConcern1() {
+        String uri = "mongodb://localhost:27017/?w=1";
+        assertTrue(MongoConnection.hasWriteConcern(uri));
+        assertTrue(MongoConnection.hasMongoDbDefaultWriteConcern(uri));
+    }
+
+    @Test
+    public void testDifferenceWriteConcern0() {
+        String uri = "mongodb://localhost:27017/?w=0";
+        assertTrue(MongoConnection.hasWriteConcern(uri));
+        assertFalse(MongoConnection.hasMongoDbDefaultWriteConcern(uri));
+    }
+
+    @Test
+    public void testDifferenceJournaledWriteConcern() {
+        String uri = "mongodb://localhost:27017/?w=journaled";
+        try {
+            MongoConnection.hasWriteConcern(uri);
+            MongoConnection.hasMongoDbDefaultWriteConcern(uri);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
     public void sufficientWriteConcern() throws Exception {
         sufficientWriteConcernReplicaSet(WriteConcern.ACKNOWLEDGED, false);
         sufficientWriteConcernReplicaSet(WriteConcern.JOURNALED, false);

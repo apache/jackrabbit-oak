@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-
 import com.mongodb.client.MongoClient;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;

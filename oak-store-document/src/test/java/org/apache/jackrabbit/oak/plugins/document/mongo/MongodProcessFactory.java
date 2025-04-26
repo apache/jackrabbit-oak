@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.bson.Document;
 import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
@@ -44,6 +43,7 @@ import de.flapdoodle.embed.process.runtime.Network;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongodProcess.join;
 import static org.junit.Assert.assertTrue;
+
 /**
  * External resource for mongod processes.
  */

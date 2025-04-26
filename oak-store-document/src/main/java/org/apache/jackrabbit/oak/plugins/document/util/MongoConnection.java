@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.MoreObjects;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoClientSettings.Builder;
@@ -182,17 +182,25 @@ public class MongoConnection {
         SocketSettings socketSettings = settings.getSocketSettings();
         ServerSettings serverSettings = settings.getServerSettings();
 
-        return MoreObjects.toStringHelper(settings)
-                .add("connectionsPerHost", poolSettings.getMaxSize())
-                .add("connectTimeout", socketSettings.getConnectTimeout(java.util.concurrent.TimeUnit.MILLISECONDS))
-                .add("socketTimeout", socketSettings.getReadTimeout(java.util.concurrent.TimeUnit.MILLISECONDS))
-                .add("maxWaitTime", poolSettings.getMaxWaitTime(java.util.concurrent.TimeUnit.MILLISECONDS))
-                .add("heartbeatFrequency", serverSettings.getHeartbeatFrequency(java.util.concurrent.TimeUnit.MILLISECONDS))
-                .add("threadsAllowedToBlockForConnectionMultiplier", "Handled via maxSize in connection pool")
-                .add("readPreference", settings.getReadPreference()
-                        .getName())
-                .add("writeConcern", settings.getWriteConcern())
+        return new StringJoiner(", ", MongoClientSettings.class.getSimpleName() + "[", "]")
+                .add("connectionsPerHost=" + poolSettings.getMaxSize())
+                .add("connectTimeout=" + socketSettings.getConnectTimeout(TimeUnit.MILLISECONDS))
+                .add("socketTimeout=" + socketSettings.getReadTimeout(TimeUnit.MILLISECONDS))
+                .add("maxWaitTime=" + poolSettings.getMaxWaitTime(TimeUnit.MILLISECONDS))
+                .add("heartbeatFrequency=" + serverSettings.getHeartbeatFrequency(TimeUnit.MILLISECONDS))
+                .add("threadsAllowedToBlockForConnectionMultiplier=" + poolSettings.getMaxSize())  // Handled via maxSize in connection pool
+                .add("readPreference=" + settings.getReadPreference().getName())
+                .add("writeConcern=" + settings.getWriteConcern())
                 .toString();
+    }
+
+    public static boolean hasWriteConcern(@NotNull String uri) {
+        WriteConcern marker = new WriteConcern("unknown");
+        MongoClientSettings settings = MongoClientSettings.builder()
+                .applyConnectionString(new ConnectionString(uri))
+                .writeConcern(marker)
+                .build();
+        return !marker.equals(settings.getWriteConcern());
     }
 
     /**
@@ -239,7 +247,6 @@ public class MongoConnection {
     public static WriteConcern getDefaultWriteConcern(@NotNull MongoClient client) {
         WriteConcern w;
         ClusterDescription clusterDescription = client.getClusterDescription();
-
         if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
             w = WriteConcern.MAJORITY;
         } else {
@@ -261,9 +268,7 @@ public class MongoConnection {
     public static ReadConcern getDefaultReadConcern(@NotNull MongoClient client,
                                                     @NotNull MongoDatabase db) {
         ReadConcern r;
-
         ClusterDescription clusterDescription = requireNonNull(client).getClusterDescription();
-
         if (clusterDescription.getType() == ClusterType.REPLICA_SET && isMajorityWriteConcern(db)) {
             r = ReadConcern.MAJORITY;
         } else {

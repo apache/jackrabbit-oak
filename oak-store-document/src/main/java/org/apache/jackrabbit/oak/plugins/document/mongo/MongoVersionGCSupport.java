@@ -25,14 +25,13 @@ import static com.mongodb.client.model.Filters.gt;
 import static com.mongodb.client.model.Filters.lt;
 import static com.mongodb.client.model.Filters.or;
 import static com.mongodb.client.model.Projections.include;
+import static com.mongodb.client.model.Sorts.ascending;
 
 import static java.util.Collections.emptyList;
-import static com.mongodb.client.model.Sorts.ascending;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
-import org.apache.jackrabbit.oak.plugins.document.FullGcNodeBin;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -55,6 +54,7 @@ import java.util.regex.Pattern;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.FullGcNodeBin;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.Path;
@@ -363,14 +363,13 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
         Bson sort = ascending(MODIFIED_IN_SECS);
         List<Long> result = new ArrayList<>(1);
-        getNodeCollection().find(query).sort(sort).limit(1).forEach(
-                document -> {
-                NodeDocument doc = store.convertFromDBObject(NODES, document);
-                long modifiedMs = doc.getModified() * TimeUnit.SECONDS.toMillis(1);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("getOldestDeletedOnceTimestamp() -> {}", Utils.timestampToString(modifiedMs));
-                }
-                result.add(modifiedMs);
+        getNodeCollection().find(query).sort(sort).limit(1).forEach(document -> {
+            NodeDocument doc = store.convertFromDBObject(NODES, document);
+            long modifiedMs = doc.getModified() * TimeUnit.SECONDS.toMillis(1);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("getOldestDeletedOnceTimestamp() -> {}", Utils.timestampToString(modifiedMs));
+            }
+            result.add(modifiedMs);
         });
         if (result.isEmpty()) {
             LOG.debug("getOldestDeletedOnceTimestamp() -> none found, return current time");
@@ -387,7 +386,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     @Override
     public Optional<NodeDocument> getOldestModifiedDoc(final Clock clock) {
-
         // we need to add query condition to ignore `previous` documents which doesn't have this field
         final Bson query = exists(MODIFIED_IN_SECS);
         // sort by MODIFIED_IN_SECS first, ID otherwise

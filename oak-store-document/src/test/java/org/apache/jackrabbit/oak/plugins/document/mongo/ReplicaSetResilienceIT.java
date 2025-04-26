@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeThat;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -58,6 +53,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeThat;
 
 /**
  * A long running resilience IT. The test sets up a three node replica set and
@@ -220,7 +221,6 @@ public class ReplicaSetResilienceIT {
             }
             
             String replicaSetName = "rs";
-            
             MongoClientSettings settings = MongoClientSettings.builder()
                     .applyToClusterSettings(builder -> 
                         builder.hosts(seeds).requiredReplicaSetName(replicaSetName)
