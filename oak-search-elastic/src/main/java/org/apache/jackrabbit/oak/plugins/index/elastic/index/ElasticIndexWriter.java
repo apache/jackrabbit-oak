@@ -192,7 +192,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             else {
                 Map<String, Object> enrichDocStatus = Map.of(
                         InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_COMPLETED,
-                        InferenceConstants.ENRICH_STATUS_INFERENCE_DISABLED, InferenceConstants.ENRICH_STATUS_PENDING
+                        InferenceConstants.ENRICH_STATUS_INFERENCE_DISABLED, true
                 );
                 doc.addProperty(InferenceConstants.ENRICH_NODE, enrichDocStatus);
             }
