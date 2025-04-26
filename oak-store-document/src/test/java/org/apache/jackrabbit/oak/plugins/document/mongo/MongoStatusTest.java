@@ -16,8 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoCommandException;
+import com.mongodb.ReadPreference;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ServerDescription;
 
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -40,16 +49,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
-
-import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoCommandException;
-import com.mongodb.ReadPreference;
-import com.mongodb.ServerAddress;
-import com.mongodb.client.ClientSession;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.connection.ClusterDescription;
-import com.mongodb.connection.ServerDescription;
 
 public class MongoStatusTest {
 

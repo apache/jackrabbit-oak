@@ -245,7 +245,7 @@ public class MongoDBExceptionTest {
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString(exceptionMsg));
             assertThat(e.getMessage(), containsString(id));
-        }
+       }
     }
 
     private void setExceptionMsg() {

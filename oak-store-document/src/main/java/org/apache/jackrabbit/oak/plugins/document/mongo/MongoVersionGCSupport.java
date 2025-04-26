@@ -266,7 +266,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                         and(gt(MODIFIED_IN_SECS, fromModifiedQuery), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)))));
 
         // first sort by _modified and then by _id
-
         final Bson sort = ascending(MODIFIED_IN_SECS, ID);
 
         if (LOG.isTraceEnabled()) {
@@ -360,7 +359,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     public long getOldestDeletedOnceTimestamp(Clock clock, long precisionMs) {
         LOG.debug("getOldestDeletedOnceTimestamp() <- start");
         Bson query = Filters.eq(DELETED_ONCE, Boolean.TRUE);
-
         Bson sort = ascending(MODIFIED_IN_SECS);
         List<Long> result = new ArrayList<>(1);
         getNodeCollection().find(query).sort(sort).limit(1).forEach(document -> {
