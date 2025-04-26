@@ -231,10 +231,7 @@ public class ReplicaSetResilienceIT {
                 ServerAddress address = null;
                 for (int i = 0; i < 5; i++) {
                     ClusterDescription clusterDescription = c.getClusterDescription();
-                    
-                    for (Iterator<ServerDescription> iterator = clusterDescription.getServerDescriptions().iterator(); iterator.hasNext();) {
-                        ServerDescription sd = iterator.next();
-                        
+                    for (ServerDescription sd : clusterDescription.getServerDescriptions()) {
                         if (ServerType.REPLICA_SET_PRIMARY.equals(sd.getType())) {
                             address = sd.getAddress();
                             break;
