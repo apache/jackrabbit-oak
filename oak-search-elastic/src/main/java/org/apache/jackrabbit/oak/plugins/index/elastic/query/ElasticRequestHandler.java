@@ -197,6 +197,10 @@ public class ElasticRequestHandler {
                         for (String stf : elasticIndexDefinition.getSimilarityTagsFields()) {
                             Map<String, String> shallowMltParams = new HashMap<>(MoreLikeThisHelperUtil.getParamMapFromMltQuery(stf));
                             shallowMltParams.putAll(mltParams);
+                            if (shallowMltParams.containsKey("mlt.fl") && shallowMltParams.get("mlt.fl").equals("*")) {
+                                String simFields = generateFieldsForMLT();
+                                shallowMltParams.put("mlt.fl", simFields);
+                            }
                             bqb.should(m -> m.moreLikeThis(mltQuery(shallowMltParams)));
                         }
                     } else {
@@ -213,6 +217,7 @@ public class ElasticRequestHandler {
                 // enabled and there is at least one similarity tag property
                 if (elasticIndexDefinition.areSimilarityTagsEnabled() &&
                         !elasticIndexDefinition.getSimilarityTagsProperties().isEmpty()) {
+
                     // add should clause to improve relevance using similarity tags
                     bqb.should(s -> s
                             .moreLikeThis(m -> m
@@ -236,6 +241,47 @@ public class ElasticRequestHandler {
         }
 
         return bqb;
+    }
+
+    private String generateFieldsForMLT() {
+        //todo add in more fields to make it exhaustive.
+        List<String> keys = elasticIndexDefinition.getPropertiesByName().entrySet().stream().map(Map.Entry::getKey).collect(Collectors.toList());
+        List<String> simFields = new ArrayList<>();
+        keys.forEach(key -> {
+                simFields.add(key);
+                simFields.add(key + ".keyword");
+            }
+        );
+        simFields.add(FieldNames.ANCESTORS);
+        simFields.add(FieldNames.PATH_DEPTH);
+        simFields.add(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT);
+        simFields.add(ElasticIndexDefinition.DYNAMIC_PROPERTIES);
+        simFields.add(FieldNames.FULLTEXT);
+        simFields.add(ElasticIndexDefinition.LAST_UPDATED);
+        simFields.add(FieldNames.PATH);
+        simFields.add(ElasticIndexDefinition.PATH_RANDOM_VALUE);
+        simFields.add(ElasticIndexDefinition.SIMILARITY_TAGS);
+        simFields.add(FieldNames.SPELLCHECK);
+        simFields.add(FieldNames.SUGGEST);
+
+        simFields.add(FieldNames.NULL_PROPS);
+        simFields.add(FieldNames.NOT_NULL_PROPS);
+        simFields.add(FieldNames.NODE_NAME);
+
+        if (!elasticIndexDefinition.getSimilarityProperties().isEmpty()) {
+            simFields.add(FieldNames.SIMILARITY_TAGS);
+        }
+        if (!elasticIndexDefinition.getDynamicBoostProperties().isEmpty()) {
+            simFields.add(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT);
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String field : simFields) {
+            if (sb.length() > 0) {
+                sb.append(",");
+            }
+            sb.append(field);
+        }
+        return sb.toString();
     }
 
     public Optional<KnnQuery> similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
