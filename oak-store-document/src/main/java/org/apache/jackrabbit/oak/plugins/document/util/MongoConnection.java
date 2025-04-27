@@ -50,7 +50,6 @@ public class MongoConnection {
 
     private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
     private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
-
     private static final Set<ReadConcernLevel> REPLICA_RC = Set.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final ConnectionString mongoURI;
     private final MongoClient mongo;
@@ -76,7 +75,6 @@ public class MongoConnection {
      */
     public MongoConnection(String uri, MongoClientSettings.Builder builder)
             throws MongoException {
-
         mongoURI = new ConnectionString(uri);
         builder.applyConnectionString(mongoURI);
         MongoClientSettings settings = builder.build();
@@ -103,7 +101,6 @@ public class MongoConnection {
      * @param client the already connected client.
      */
     public MongoConnection(String uri, MongoClient client) {
-
         Builder defaultBuilder = MongoConnection.getDefaultBuilder();
         mongoURI = new ConnectionString(uri);
         defaultBuilder.applyConnectionString(mongoURI);
@@ -216,7 +213,6 @@ public class MongoConnection {
         MongoClientSettings.Builder builder = MongoClientSettings.builder()
                 .applyConnectionString(connectionString);
         MongoClientSettings settings = builder.build();
-
         return readConcernLevel(settings.getReadConcern()) != null;
     }
 
@@ -298,7 +294,6 @@ public class MongoConnection {
             throw new IllegalArgumentException(
                     "Unknown write concern: " + wc);
         }
-
         ClusterDescription clusterDescription = client.getClusterDescription();
         if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
             return w >= 2;
