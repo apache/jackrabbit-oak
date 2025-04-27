@@ -100,7 +100,7 @@ public class InferenceConfig {
      * @param shouldReinitialize
      * @return InferenceConfig instance
      */
-    public static InferenceConfig getInstance(NodeStore nodeStore, @NotNull String inferenceConfigPath,
+    public static InferenceConfig getInstance(NodeStore nodeStore, String inferenceConfigPath,
                                               QueryLimits queryLimits, boolean shouldReinitialize) {
 
         lock.readLock().lock();
@@ -120,7 +120,8 @@ public class InferenceConfig {
             INSTANCE.currentInferenceConfig = INSTANCE.activeInferenceConfig;
             INSTANCE.nodeStore = nodeStore;
             INSTANCE.inferenceConfigPath = inferenceConfigPath;
-            INSTANCE.queryLimits =queryLimits;
+            INSTANCE.queryLimits = queryLimits == null ? new QueryEngineSettings() : queryLimits;
+
             if (!isValidInferenceConfig(nodeStore, inferenceConfigPath)) {
                 INSTANCE.enabled = false;
                 INSTANCE.indexConfigs = Map.of();

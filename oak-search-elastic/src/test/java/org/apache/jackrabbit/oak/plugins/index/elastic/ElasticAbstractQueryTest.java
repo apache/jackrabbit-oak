@@ -145,8 +145,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         esConnection = getElasticConnection();
         nodeStore = getNodeStore();
-        QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
-        queryEngineSettings.setInferenceEnabled(true);
+        QueryEngineSettings queryEngineSettings = getQueryEngineSettings();
         InferenceConfig.getInstance(nodeStore, INFERENCE_CONFIG_PATH, queryEngineSettings, true);
         indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
@@ -176,6 +175,12 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
             oak = addAsyncIndexingLanesToOak(oak);
         }
         return oak.createContentRepository();
+    }
+
+    protected QueryEngineSettings getQueryEngineSettings(){
+        QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
+        queryEngineSettings.setInferenceEnabled(true);
+        return queryEngineSettings;
     }
 
     protected ElasticMetricHandler getMetricHandler() {
