@@ -194,29 +194,15 @@ public class MongoConnection {
                 .toString();
     }
 
-    public static boolean hasWriteConcern(@NotNull String uri) {
-        WriteConcern marker = new WriteConcern("unknown");
-        MongoClientSettings settings = MongoClientSettings.builder()
-                .applyConnectionString(new ConnectionString(uri))
-                .writeConcern(marker)
-                .build();
-        return !marker.equals(settings.getWriteConcern());
-    }
-
     /**
      * Returns {@code true} if the given {@code uri} has a write concern set.
      * @param uri the URI to check.
      * @return {@code true} if the URI has a write concern set, {@code false}
      *      otherwise.
      */
-    public static boolean hasMongoDbDefaultWriteConcern(@NotNull String uri) {
+    public static boolean hasWriteConcern(@NotNull String uri) {
         ConnectionString connectionString = new ConnectionString(requireNonNull(uri));
-        MongoClientSettings.Builder builder = MongoClientSettings.builder()
-                .applyConnectionString(connectionString);
-        MongoClientSettings settings = builder.build();
-
-        // ACKNOWLEDGE is the default of MongoClientSettings.Builder while the default of ConnectionString would be UNACKNOWLEDGED
-        return WriteConcern.ACKNOWLEDGED.equals(settings.getWriteConcern());
+        return connectionString.getWriteConcern() != null;
     }
 
     /**

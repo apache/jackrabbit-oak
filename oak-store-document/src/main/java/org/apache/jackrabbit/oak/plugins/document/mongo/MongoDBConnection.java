@@ -83,7 +83,7 @@ final class MongoDBConnection {
         MongoStatus status = new MongoStatus(client, name);
         serverMonitorListener.addListener(status);
         MongoDatabase db = client.getDatabase(name);
-        if (MongoConnection.hasMongoDbDefaultWriteConcern(uri)) {
+        if (!MongoConnection.hasWriteConcern(uri)) {
             db = db.withWriteConcern(MongoConnection.getDefaultWriteConcern(client));
         }
         if (status.isMajorityReadConcernSupported()

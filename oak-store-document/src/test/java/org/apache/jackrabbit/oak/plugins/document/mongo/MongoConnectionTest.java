@@ -35,8 +35,8 @@ public class MongoConnectionTest {
 
     @Test
     public void hasWriteConcern() throws Exception {
-        assertTrue(MongoConnection.hasMongoDbDefaultWriteConcern("mongodb://localhost:27017/foo"));
-        assertFalse(MongoConnection.hasMongoDbDefaultWriteConcern("mongodb://localhost:27017/foo?w=1"));
+        assertFalse(MongoConnection.hasWriteConcern("mongodb://localhost:27017/foo"));
+        assertTrue(MongoConnection.hasWriteConcern("mongodb://localhost:27017/foo?w=1"));
     }
 
     @Test
@@ -67,45 +67,6 @@ public class MongoConnectionTest {
     public void testHasWriteConcern_withWEqual1() {
         String uriWithW1 = "mongodb://localhost:27017/?w=1";
         assertTrue(MongoConnection.hasWriteConcern(uriWithW1));
-    }
-
-    @Test
-    public void testDifferenceNoWriteConcern() {
-        String uri = "mongodb://localhost:27017";
-        assertFalse(MongoConnection.hasWriteConcern(uri));
-        assertTrue(MongoConnection.hasMongoDbDefaultWriteConcern(uri));
-    }
-
-    @Test
-    public void testDifferenceMajorityConcern() {
-        String uri = "mongodb://localhost:27017/?w=majority";
-        assertTrue(MongoConnection.hasWriteConcern(uri));
-        assertFalse(MongoConnection.hasMongoDbDefaultWriteConcern(uri));
-    }
-
-    @Test
-    public void testDifferenceWriteConcern1() {
-        String uri = "mongodb://localhost:27017/?w=1";
-        assertTrue(MongoConnection.hasWriteConcern(uri));
-        assertTrue(MongoConnection.hasMongoDbDefaultWriteConcern(uri));
-    }
-
-    @Test
-    public void testDifferenceWriteConcern0() {
-        String uri = "mongodb://localhost:27017/?w=0";
-        assertTrue(MongoConnection.hasWriteConcern(uri));
-        assertFalse(MongoConnection.hasMongoDbDefaultWriteConcern(uri));
-    }
-
-    @Test
-    public void testDifferenceJournaledWriteConcern() {
-        String uri = "mongodb://localhost:27017/?w=journaled";
-        try {
-            MongoConnection.hasWriteConcern(uri);
-            MongoConnection.hasMongoDbDefaultWriteConcern(uri);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     @Test
