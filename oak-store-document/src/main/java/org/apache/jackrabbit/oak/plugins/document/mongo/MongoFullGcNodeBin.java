@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static org.slf4j.LoggerFactory.getLogger;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -98,7 +97,9 @@ public class MongoFullGcNodeBin implements FullGcNodeBin {
      */
     @Override
     public List<NodeDocument> findAndUpdate(List<UpdateOp> updateOpList) {
-        LOG.info("Updating {} documents", updateOpList.size());
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Updating {} documents", updateOpList.size());
+        }
         if (updateOpList.isEmpty() || !addToBin(updateOpList)) {
             return Collections.emptyList();
         }
@@ -107,7 +108,9 @@ public class MongoFullGcNodeBin implements FullGcNodeBin {
 
     private boolean addToBin(Map<String, Long> orphanOrDeletedRemovalMap) {
         if (!enabled) {
-            LOG.info("Bin is disabled, skipping adding delete candidate documents to bin");
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Bin is disabled, skipping adding delete candidate documents to bin");
+            }
             return true;
         }
         LOG.info("Adding {} delete candidate documents to bin", orphanOrDeletedRemovalMap.size());
@@ -125,7 +128,9 @@ public class MongoFullGcNodeBin implements FullGcNodeBin {
 
     private boolean addToBin(List<UpdateOp> updateOpList) {
         if (!enabled) {
-            LOG.info("Bin is disabled, skipping adding removed properties to bin");
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Bin is disabled, skipping adding removed properties to bin");
+            }
             return true;
         }
         LOG.info("Adding {} removed properties to bin", updateOpList.size());
