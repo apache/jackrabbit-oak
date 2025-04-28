@@ -100,7 +100,7 @@ class SysViewImportHandler extends TargetImportHandler {
         return "ns_" + UUID.randomUUID().toString().substring(0, 8);
     }
 
-    private NameInfo getNameInfo(String svName) throws RepositoryException {
+    private NameInfo createNameInfo(String svName) throws RepositoryException {
         //name extraction algorithm taken from GlobalNameMapper#isExpandedName(String)
         String namespaceUri = null;
         if (svName.startsWith("{")) {
@@ -158,7 +158,7 @@ class SysViewImportHandler extends TargetImportHandler {
             // push new ImportState instance onto the stack
             ImportState state = new ImportState();
             try {
-                state.nodeName = getNameInfo(svName).getRepoQualifiedName();
+                state.nodeName = createNameInfo(svName).getRepoQualifiedName();
             } catch (RepositoryException e) {
                 throw new SAXException(new InvalidSerializedDataException("illegal node name: " + svName, e));
             }
@@ -176,7 +176,7 @@ class SysViewImportHandler extends TargetImportHandler {
                         "missing mandatory sv:name attribute of element sv:property"));
             }
             try {
-                currentPropName = getNameInfo(svName);
+                currentPropName = createNameInfo(svName);
             } catch (RepositoryException e) {
                 throw new SAXException(new InvalidSerializedDataException("illegal property name: " + svName, e));
             }
