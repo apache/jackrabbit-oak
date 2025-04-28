@@ -994,9 +994,6 @@ public class VersionGarbageCollector {
                             // now remove the garbage in one go, if any
                             if (gc.hasGarbage() && phases.start(GCPhase.FULL_GC_CLEANUP)) {
                                 gc.removeGarbage(phases.stats);
-                                if (fullGCMetricsExporter != null) {
-                                    fullGCMetricsExporter.onIterationComplete();
-                                }
                                 phases.stop(GCPhase.FULL_GC_CLEANUP);
                             } else {
                                 if (log.isDebugEnabled()) {
@@ -1006,6 +1003,9 @@ public class VersionGarbageCollector {
                             if (lastDoc != null) {
                                 fromModifiedMs = lastDoc.getModified() == null ? oldModifiedMs : SECONDS.toMillis(lastDoc.getModified());
                                 fromId = lastDoc.getId();
+                            }
+                            if (fullGCMetricsExporter != null) {
+                                fullGCMetricsExporter.onIterationComplete();
                             }
                         } finally {
                             Utils.closeIfCloseable(itr);
