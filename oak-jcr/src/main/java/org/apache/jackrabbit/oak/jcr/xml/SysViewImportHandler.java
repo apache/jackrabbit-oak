@@ -95,42 +95,38 @@ class SysViewImportHandler extends TargetImportHandler {
         }
     }
 
-    //TODO avoid code duplication (this is stolen from GlobalNameMapper)
-    private static boolean isExpandedName(String name) {
-        if (name.startsWith("{")) {
-            int brace = name.indexOf('}', 1);
-            if (brace != -1) {
-                String namespace = name.substring(1, brace);
-                // the empty namespace and "internal" are valid as well, otherwise it always contains a colon (as it is a URI)
-                // compare with RFC 3986, Section 3 (https://datatracker.ietf.org/doc/html/rfc3986#section-3)
-                if (namespace.isEmpty() || namespace.equals(NamespaceConstants.NAMESPACE_REP)|| namespace.indexOf(':') != -1) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    //TODO replace with library method
+    private static @NotNull String suggestPrefix(String namespace) {
+        return "ns_" + UUID.randomUUID().toString().substring(0, 8);
     }
 
     private NameInfo getNameInfo(String svName) throws RepositoryException {
-        if (isExpandedName(svName)) {
-            String namespaceUri = svName.substring(svName.indexOf("{") + 1, svName.indexOf("}"));
-            String localName = svName.substring(svName.indexOf("}") + 1);
-            NamespaceRegistry namespaceRegistry = sessionContext.getWorkspace().getNamespaceRegistry();
-            String prefix;
-            try {
-                prefix = namespaceRegistry.getPrefix(namespaceUri);
-            } catch (NamespaceException expected) {
-                // this is an expanded svName using an unregistered namespace
-                // we need to make up a prefix for the namespace
-                prefix = "ns_" + UUID.randomUUID().toString().substring(0, 8);
-                namespaceRegistry.registerNamespace(prefix, namespaceUri);
+        String namespaceUri = null;
+        if (svName.startsWith("{")) {
+            int brace = svName.indexOf('}', 1);
+            if (brace != -1) {
+                namespaceUri = svName.substring(1, brace);
+                // the empty namespace and "internal" are valid as well, otherwise it always contains a colon (as it is a URI)
+                // compare with RFC 3986, Section 3 (https://datatracker.ietf.org/doc/html/rfc3986#section-3)
+                if (namespaceUri.isEmpty() || namespaceUri.equals(NamespaceConstants.NAMESPACE_REP)|| namespaceUri.indexOf(':') != -1) {
+                    String localName = svName.substring(svName.indexOf("}") + 1);
+                    NamespaceRegistry namespaceRegistry = sessionContext.getWorkspace().getNamespaceRegistry();
+                    String prefix;
+                    try {
+                        prefix = namespaceRegistry.getPrefix(namespaceUri);
+                    } catch (NamespaceException expected) {
+                        // this is an expanded svName using an unregistered namespace
+                        // we need to make up a prefix for the namespace
+                        prefix = suggestPrefix(namespaceUri);
+                        namespaceRegistry.registerNamespace(prefix, namespaceUri);
+                    }
+                    return new NameInfo(prefix, localName);
+                }
             }
-            return new NameInfo(prefix, localName);
-        } else {
-            return new NameInfo(sessionContext.getJcrName(sessionContext.getOakName(svName)));
         }
+        return new NameInfo(sessionContext.getJcrName(sessionContext.getOakName(svName)));
     }
-    
+
     //-------------------------------------------------------< ContentHandler >
 
     @Override
