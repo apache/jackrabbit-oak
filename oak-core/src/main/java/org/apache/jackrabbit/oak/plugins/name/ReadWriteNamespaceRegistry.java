@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,8 +39,17 @@ public abstract class ReadWriteNamespaceRegistry
 
     private static final Logger LOG = LoggerFactory.getLogger(ReadWriteNamespaceRegistry.class);
 
-    public ReadWriteNamespaceRegistry(Root root) {
+    /**
+     * Feature flag to allow registering invalid namespace URIs (without a colon).
+     * Set the system property {@code oak.allowInvalidNamespaceUris} to {@code true} to enable this feature.
+     */
+    private final boolean allowInvalidNamespaceUris;
+
+    protected ReadWriteNamespaceRegistry(Root root) {
         super(root);
+        // cannot be static in order to allow testing with different values
+        allowInvalidNamespaceUris = SystemPropertySupplier.create("oak.allowInvalidNamespaceUris", false)
+                .loggingTo(LOG).get();
     }
 
     /**
@@ -71,11 +81,13 @@ public abstract class ReadWriteNamespaceRegistry
 
         // sanity check for legal namespace names (excluding the "internal"
         // namespace, see OAK-74)
-        if (!NamespaceConstants.NAMESPACE_REP.equals(uri)) {
-            if (!uri.contains(":")) {
+        if (!NamespaceConstants.NAMESPACE_REP.equals(uri) && !uri.contains(":")) {
+            if (allowInvalidNamespaceUris) {
                 LOG.error("Registering invalid namespace name '" + uri + "' for prefix '" + prefix
-                        + "', please see https://developer.adobe.com/experience-manager/reference-materials/spec/jcr/2.0/3_Repository_Model.html#3.2.1%20Namespaces",
-                        new Exception("call stack"));
+                            + "', please see https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.1%20Namespaces",
+                            new Exception("call stack"));
+            } else {
+                throw new NamespaceException("Invalid namespace URI given: " + uri + ". It must contain a colon.");
             }
         }
 
