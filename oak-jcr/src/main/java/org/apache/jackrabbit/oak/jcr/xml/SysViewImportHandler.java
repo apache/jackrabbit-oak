@@ -101,6 +101,7 @@ class SysViewImportHandler extends TargetImportHandler {
     }
 
     private NameInfo getNameInfo(String svName) throws RepositoryException {
+        //name extraction algorithm taken from GlobalNameMapper#isExpandedName(String)
         String namespaceUri = null;
         if (svName.startsWith("{")) {
             int brace = svName.indexOf('}', 1);
