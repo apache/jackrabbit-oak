@@ -182,12 +182,14 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 The `inferenceDisabled` flag is added to allow for potential evaluations at a later stage.
 
                 This should happen in all cases where we try to disable inference i.e.
-                1. inference is disabled in queryEngineSettings but InferenceConfig is valid.
-                2. We can also disable a specific InferenceIndexConfig by setting enricher as DISABLED_ENRICHER_CONFIG i.e empty string.
-                3. InferenceModelConfig is disabled
-                In case we are updating inferenceConfig, it is always better to reindex so that Elastic always mirrors
-                the configuration present on AEM.
 
+                1. Inference is disabled in ElasticIndexProviderService but InferenceConfig is valid.
+                2. Inference is enabled and InferenceConfig is not equal to InferenceConfig.NOOP i.e.
+                    any of the properties is different from below:
+                    enricherConfig = "";
+                    isEnabled = false;
+                    inferenceModelConfigs = Map.of();
+                 Note: This is possible by not setting enricherConfig to empty string as other fields are set to default values.
              */
             else {
                 Map<String, Object> enrichDocStatus = Map.of(

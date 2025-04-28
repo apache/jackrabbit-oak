@@ -70,7 +70,9 @@ public class ElasticIndexWriterTest {
         closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
         when(indexDefinitionMock.getIndexName()).thenReturn("test-index-name");
-        InferenceConfig.reInitialize(new MemoryNodeStore(), "/oak:index/:inferenceConfig", true);
+        // In this test we are explicitly disabling inference as bulkprocessor
+        // is called with update document if inference is enabled.
+        InferenceConfig.reInitialize(new MemoryNodeStore(), "/oak:index/:inferenceConfig", false);
         indexWriter = new ElasticIndexWriter(indexTrackerMock, elasticConnectionMock, indexDefinitionMock, bulkProcessorHandlerMock);
         indexAlias = indexDefinitionMock.getIndexAlias();
     }
