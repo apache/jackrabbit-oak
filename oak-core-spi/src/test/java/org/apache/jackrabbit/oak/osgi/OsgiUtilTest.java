@@ -234,4 +234,32 @@ public class OsgiUtilTest {
         assertEquals(FrameworkUtil.createFilter("(&(objectClass=java.lang.String)(foo=bar)(!(empty=*))(escaped=\\*xyz\\)))"), getFilter(String.class, m));
         b.setLength(0);
     }
+
+    @Test
+    public void testLookupWithoutOsgiRuntime() {
+        String oldValue = System.setProperty("name", "value");
+        try {
+            assertEquals("value", lookup("name"));
+        } finally {
+            if (oldValue == null) {
+                System.clearProperty("name");
+            } else {
+                System.setProperty("name", oldValue);
+            }
+        }
+    }
+
+    @Test
+    public void testLookupEmptyStringWithoutOsgiRuntime() {
+        String oldValue = System.setProperty("name", "");
+        try {
+            assertNull(lookup("name"));
+        } finally {
+            if (oldValue == null) {
+                System.clearProperty("name");
+            } else {
+                System.setProperty("name", oldValue);
+            }
+        }
+    }
 }

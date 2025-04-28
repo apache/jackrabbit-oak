@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.oak.osgi;
 
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.Filter;
@@ -34,6 +35,29 @@ public class OsgiUtil {
 
     private OsgiUtil() {
         // Prevent instantiation.
+    }
+
+    /**
+     * Looks up a property by name in the set of framework properties if running inside an OSGi runtime
+     * (falling back to looking it up in the system properties if not found in framework properties). 
+     * Otherwise tries to look it up in from the system properties.
+     * Returns {@code null} if the property is not found or if the property is found but
+     * it is an empty string.
+     *
+     * @param name    Name of the property.
+     * @return The property value serialized as a string, or {@code null}.
+     * @since 1.80
+     */
+    public static String lookup(String name) {
+        Objects.requireNonNull(name);
+        Bundle bundle = FrameworkUtil.getBundle(OsgiUtil.class);
+        final String value;
+        if (bundle == null) {
+            value = System.getProperty(name);
+        } else {
+            value = bundle.getBundleContext().getProperty(name);
+        }
+        return asString(value);
     }
 
     /**
