@@ -94,7 +94,8 @@ public class InferenceConfigTest {
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // Create InferenceConfig object using the nodeStore
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance(nodeStore, DEFAULT_CONFIG_PATH,  queryEngineSettings,true);
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
 
         // Verify the state
         assertFalse("InferenceConfig should be disabled", inferenceConfig.isEnabled());
@@ -116,7 +117,8 @@ public class InferenceConfigTest {
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // Create InferenceConfig object using the nodeStore
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance(nodeStore, DEFAULT_CONFIG_PATH, queryEngineSettings,true);
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
 
         // Verify the state
         assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
@@ -145,7 +147,8 @@ public class InferenceConfigTest {
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // Create InferenceConfig object
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance(nodeStore, DEFAULT_CONFIG_PATH, queryEngineSettings, true);
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
 
         // Verify the state
         assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
@@ -180,7 +183,8 @@ public class InferenceConfigTest {
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // Create InferenceConfig object
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance(nodeStore, DEFAULT_CONFIG_PATH, queryEngineSettings, true);
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
 
         // Verify the state
         assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
@@ -214,7 +218,8 @@ public class InferenceConfigTest {
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // Create InferenceConfig object
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance(nodeStore, DEFAULT_CONFIG_PATH, queryEngineSettings, true);
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
 
         // Verify the state
         assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
@@ -258,7 +263,8 @@ public class InferenceConfigTest {
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // Create InferenceConfig object
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance(nodeStore, DEFAULT_CONFIG_PATH, queryEngineSettings, true);
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
 
         // Verify the state
         assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
@@ -322,7 +328,8 @@ public class InferenceConfigTest {
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // Create InferenceConfig object
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance(nodeStore, DEFAULT_CONFIG_PATH, queryEngineSettings, true);
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
 
         // Verify the state
         assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
@@ -417,7 +424,8 @@ public class InferenceConfigTest {
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // Create InferenceConfig object
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance(nodeStore, DEFAULT_CONFIG_PATH, queryEngineSettings, true);
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
 
         // Verify the state
         assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
@@ -479,7 +487,8 @@ public class InferenceConfigTest {
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // Create InferenceConfig object
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance(nodeStore, DEFAULT_CONFIG_PATH, queryEngineSettings, true);
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
 
         // Verify initial state
         assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
@@ -501,7 +510,7 @@ public class InferenceConfigTest {
 
 
         // Refresh the InferenceConfig
-        InferenceConfig.getInstance(true);
+        InferenceConfig.getInstance();
         // Verify updated state
         assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
         assertEquals("Should have two index configs after refresh", 2, inferenceConfig.getIndexConfigs().size());

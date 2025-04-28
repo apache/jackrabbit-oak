@@ -50,10 +50,8 @@ public class ElasticPropertyIndexNonFailureTest extends ElasticAbstractQueryTest
     }
 
     @Override
-    protected QueryEngineSettings getQueryEngineSettings() {
-        QueryEngineSettings settings = super.getQueryEngineSettings();
-        settings.setInferenceEnabled(false);
-        return settings;
+    protected boolean isInferenceEnabled() {
+        return false;
     }
 
     /*

@@ -145,8 +145,9 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         esConnection = getElasticConnection();
         nodeStore = getNodeStore();
-        QueryEngineSettings queryEngineSettings = getQueryEngineSettings();
-        InferenceConfig.getInstance(nodeStore, INFERENCE_CONFIG_PATH, queryEngineSettings, true);
+        QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
+        queryEngineSettings.setInferenceEnabled(isInferenceEnabled());
+        InferenceConfig.reInitialize(nodeStore, INFERENCE_CONFIG_PATH, isInferenceEnabled());
         indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
             new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
@@ -177,10 +178,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         return oak.createContentRepository();
     }
 
-    protected QueryEngineSettings getQueryEngineSettings(){
-        QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
-        queryEngineSettings.setInferenceEnabled(true);
-        return queryEngineSettings;
+    protected boolean isInferenceEnabled() {
+        return true;
     }
 
     protected ElasticMetricHandler getMetricHandler() {

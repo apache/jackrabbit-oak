@@ -84,7 +84,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         if (this.reindex) {
             try {
                 //TODO we should observe changes under inference config path.
-                InferenceConfig.getInstance(true);
+                InferenceConfig.reInitialize();
                 // refresh inference config on any index reindex.
                 long seed = indexDefinition.indexNameSeed == 0L ? UUID.randomUUID().getMostSignificantBits() : indexDefinition.indexNameSeed;
                 // merge gets called on node store later in the indexing flow
@@ -153,11 +153,11 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
          */
         if (reindex
             || (!indexDefinition.isExternallyModifiable()
-            && !InferenceConfig.getInstance().getQueryLimits().isInferenceEnabled()
+            && !InferenceConfig.getInstance().isInferenceEnabled()
             && (InferenceIndexConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName))))) {
             bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
         } else {
-            if (InferenceConfig.getInstance().getQueryLimits().isInferenceEnabled()
+            if (InferenceConfig.getInstance().isInferenceEnabled()
                 && InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
                 doc.addProperty(InferenceConstants.ENRICH_NODE,
                     Map.of(InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_PENDING));

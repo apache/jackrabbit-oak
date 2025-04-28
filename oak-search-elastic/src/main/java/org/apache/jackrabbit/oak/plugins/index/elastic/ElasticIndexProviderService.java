@@ -72,6 +72,7 @@ public class ElasticIndexProviderService {
     protected static final String PROP_ELASTIC_API_KEY_ID = "elasticsearch.apiKeyId";
     protected static final String PROP_ELASTIC_API_KEY_SECRET = "elasticsearch.apiKeySecret";
     protected static final String PROP_LOCAL_TEXT_EXTRACTION_DIR = "localTextExtractionDir";
+    private static final boolean DEFAULT_IS_INFERENCE_ENABLED = false;
 
     @ObjectClassDefinition(name = "ElasticIndexProviderService", description = "Apache Jackrabbit Oak ElasticIndexProvider")
     public @interface Config {
@@ -125,6 +126,13 @@ public class ElasticIndexProviderService {
                 "Default is 1 day.")
         int remoteIndexDeletionThreshold() default 24 * 60 * 60;
 
+        @AttributeDefinition(
+            name = "Enable inference",
+            description = "If enabled the inference index config will be used"
+        )
+        boolean isInferenceEnabled() default DEFAULT_IS_INFERENCE_ENABLED;
+
+
         @AttributeDefinition(name = "Inference Config Path", description = "Path to the inference configuration")
         String inferenceConfigPath() default InferenceConstants.DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH;
     }
@@ -140,9 +148,6 @@ public class ElasticIndexProviderService {
 
     @Reference
     private AsyncIndexInfoService asyncIndexInfoService;
-
-    @Reference
-    private QueryEngineSettings queryEngineSettings;
 
     @Reference(policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.OPTIONAL,
@@ -161,7 +166,7 @@ public class ElasticIndexProviderService {
     private ElasticMetricHandler metricHandler;
     private ElasticIndexTracker indexTracker;
     private ElasticIndexEditorProvider elasticIndexEditorProvider;
-    private InferenceConfig inferenceConfig;
+    private boolean isInferenceEnabled;
 
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
@@ -178,7 +183,12 @@ public class ElasticIndexProviderService {
         metricHandler.markEnabled(isElasticAvailable);
 
         whiteboard = new OsgiWhiteboard(bundleContext);
-        InferenceConfig.getInstance(nodeStore, config.inferenceConfigPath(), queryEngineSettings, true);
+        if (System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED) != null) {
+            this.isInferenceEnabled = Boolean.parseBoolean(System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED));
+        } else {
+            this.isInferenceEnabled = config.isInferenceEnabled();
+        }
+        InferenceConfig.reInitialize(nodeStore, config.inferenceConfigPath(), isInferenceEnabled);
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);

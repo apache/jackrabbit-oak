@@ -105,7 +105,7 @@ class ElasticIndexHelper {
             mapInferenceDefinition(builder, indexDefinition.inferenceDefinition);
         }
         // We only add mappings if both the inference config (in queryEngineSettings config) and the inference index config are enabled.
-        if (InferenceConfig.getInstance().getQueryLimits().isInferenceEnabled() && InferenceConfig.getInstance().isEnabled()) {
+        if (InferenceConfig.getInstance().isInferenceEnabled() && InferenceConfig.getInstance().isEnabled()) {
             mapInferenceConfig(builder, indexDefinition, InferenceConfig.getInstance());
         }
         return builder;

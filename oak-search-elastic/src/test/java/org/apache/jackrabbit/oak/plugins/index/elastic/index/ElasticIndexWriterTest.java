@@ -70,7 +70,7 @@ public class ElasticIndexWriterTest {
         closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
         when(indexDefinitionMock.getIndexName()).thenReturn("test-index-name");
-        InferenceConfig.getInstance(new MemoryNodeStore(), "/oak:index/:inferenceConfig", new QueryEngineSettings(), true);
+        InferenceConfig.reInitialize(new MemoryNodeStore(), "/oak:index/:inferenceConfig", true);
         indexWriter = new ElasticIndexWriter(indexTrackerMock, elasticConnectionMock, indexDefinitionMock, bulkProcessorHandlerMock);
         indexAlias = indexDefinitionMock.getIndexAlias();
     }
