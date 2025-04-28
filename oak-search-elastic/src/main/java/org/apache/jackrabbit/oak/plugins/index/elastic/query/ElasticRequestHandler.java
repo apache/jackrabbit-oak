@@ -635,9 +635,7 @@ public class ElasticRequestHandler {
                         String queryConfig = inferenceQuery.getQueryInferenceConfig();
                         queryText = inferenceQuery.getQueryText();
                         inferenceQueryConfig = new InferenceQueryConfig(queryConfig);
-                        inferenceModelConfig = inferenceQueryConfig.getInferenceModelConfig().isBlank()
-                            ? InferenceConfig.getInstance().getInferenceIndexConfig(indexName).getDefaultEnabledModel().getInferenceModelConfigName()
-                            : InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
+                        inferenceModelConfig = InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
                     } else {
                         inferenceQueryConfig = null;
                         inferenceQuery = null;

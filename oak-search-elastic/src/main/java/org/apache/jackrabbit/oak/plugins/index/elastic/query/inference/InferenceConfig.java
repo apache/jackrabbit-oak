@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -160,7 +161,7 @@ public class InferenceConfig {
                 InferenceIndexConfig inferenceIndexConfig;
                 IndexName indexNameObject;
                 Function<String, InferenceIndexConfig> getInferenceIndexConfig = (iName) ->
-                        this.getIndexConfigs().getOrDefault(iName, InferenceIndexConfig.NOOP);
+                        getIndexConfigs().getOrDefault(iName, InferenceIndexConfig.NOOP);
                 if (!InferenceIndexConfig.NOOP.equals(inferenceIndexConfig = getInferenceIndexConfig.apply(indexName))) {
                     LOG.debug("InferenceIndexConfig for indexName: {} is: {}", indexName, inferenceIndexConfig);
                 } else if ((indexNameObject = IndexName.parse(indexName)) != null && indexNameObject.isLegal()
@@ -179,15 +180,20 @@ public class InferenceConfig {
     public @NotNull InferenceModelConfig getInferenceModelConfig(String inferenceIndexName, String inferenceModelConfigName) {
         lock.readLock().lock();
         try {
-            InferenceIndexConfig inferenceIndexConfig = getInferenceIndexConfig(inferenceIndexName);
-            return inferenceIndexConfig.getInferenceModelConfigs().getOrDefault(inferenceModelConfigName, InferenceModelConfig.NOOP);
+            if (inferenceModelConfigName == null){
+                return InferenceModelConfig.NOOP;
+            } else if (inferenceModelConfigName.isEmpty()) {
+                return getInferenceIndexConfig(inferenceIndexName).getDefaultEnabledModel();
+            } else {
+                return getInferenceIndexConfig(inferenceIndexName).getInferenceModelConfigs().getOrDefault(inferenceModelConfigName, InferenceModelConfig.NOOP);
+            }
         } finally {
             lock.readLock().unlock();
         }
 
     }
 
-    public @NotNull Map<String, InferenceIndexConfig> getIndexConfigs() {
+    private @NotNull Map<String, InferenceIndexConfig> getIndexConfigs() {
         lock.readLock().lock();
         try {
             return isEnabled() ?
@@ -208,7 +214,6 @@ public class InferenceConfig {
             LOG.warn("InferenceConfig: Inference config path is null or empty");
             return false;
         }
-
         for (String elem : PathUtils.elements(inferenceConfigPath)) {
             nodeState = nodeState.getChildNode(elem);
             if (!nodeState.exists()) {

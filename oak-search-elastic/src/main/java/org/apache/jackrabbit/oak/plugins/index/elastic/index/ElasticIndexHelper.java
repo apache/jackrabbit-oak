@@ -42,6 +42,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -55,6 +57,7 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDef
  */
 class ElasticIndexHelper {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexHelper.class);
     private static final ObjectMapper mapper = new ObjectMapper();
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
@@ -119,7 +122,8 @@ class ElasticIndexHelper {
             return;
         }
         try {
-            Map<String, Object> enricherConfigJson = mapper.readValue(inferenceConfig.getIndexConfigs().get(indexName).getEnricherConfig(),
+            // We are already validating the enricherConfigJson in the InferenceIndexConfig constructor
+            Map<String, Object> enricherConfigJson = mapper.readValue(inferenceConfig.getInferenceIndexConfig(indexName).getEnricherConfig(),
                     new TypeReference<Map<String, Object>>() {
                     });
             // Store the enricher configuration in the index metadata so that it can be used by the enricher service
@@ -127,7 +131,7 @@ class ElasticIndexHelper {
                 builder.meta(k, JsonData.of(v));
             });
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("json processing for enricher config failed " + e.getMessage());
+            throw new RuntimeException("enricherConfig parsing should never fail as it is validated in InferenceIndexConfig" + e.getMessage());
         }
 
         builder.properties(InferenceConstants.VECTOR_SPACES, b -> b.object(spaces -> {
