@@ -29,7 +29,6 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class JsonUtilsTest {
@@ -125,9 +124,9 @@ public class JsonUtilsTest {
         builder.setProperty("property1", "value1");
         builder.setProperty("property2", 123);
         NodeState nodeState = builder.getNodeState();
-        
-        Map<String, Object> result = JsonUtils.convertNodeStateToMap(nodeState, 2);
-        
+
+        Map<String, Object> result = JsonUtils.convertNodeStateToMap(nodeState, 2, true);
+
         assertNotNull(result);
         assertEquals(2, result.size());
         assertTrue(result.containsKey("property1"));
@@ -141,8 +140,8 @@ public class JsonUtilsTest {
         MemoryNodeBuilder builder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         builder.setProperty("property1", "value1");
         NodeState nodeState = builder.getNodeState();
-        
-        Map<String, Object> result = JsonUtils.convertNodeStateToMap(nodeState, 0);
+
+        Map<String, Object> result = JsonUtils.convertNodeStateToMap(nodeState, 0, true);
         assertNotNull(result);
     }
 
@@ -150,10 +149,10 @@ public class JsonUtilsTest {
     public void testConvertNodeStateToMapWithNestedNodes() {
         NodeBuilder builder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         builder.setProperty("prop1", "val1");
-        
+
         NodeBuilder child = builder.child("child1");
         child.setProperty("childProp1", "childVal1");
-        
+
         NodeBuilder grandChild = child.child("grandChild1");
         grandChild.setProperty("grandChildProp1", "grandChildVal1");
 
@@ -163,7 +162,7 @@ public class JsonUtilsTest {
         NodeState nodeState = builder.getNodeState();
 
         // Test with maxDepth = 0 (should return only properties on current node)
-        Map<String, Object> result0 = JsonUtils.convertNodeStateToMap(nodeState, 0);
+        Map<String, Object> result0 = JsonUtils.convertNodeStateToMap(nodeState, 0, true);
         assertNotNull(result0);
         assertEquals(1, result0.size());
         assertTrue(result0.containsKey("prop1"));
@@ -174,7 +173,7 @@ public class JsonUtilsTest {
 
 
         // Test with maxDepth = 1 (should include child1)
-        Map<String, Object> result1 = JsonUtils.convertNodeStateToMap(nodeState, 1);
+        Map<String, Object> result1 = JsonUtils.convertNodeStateToMap(nodeState, 1, true);
         assertNotNull(result1);
         assertTrue(result1.containsKey("child1"));
         Map<String, Object> childMap1 = (Map<String, Object>) result1.get("child1");
@@ -186,8 +185,8 @@ public class JsonUtilsTest {
 
 
         // Test with maxDepth = 2 (should include grandChild1)
-        Map<String, Object> result2 = JsonUtils.convertNodeStateToMap(nodeState, 2);
-        Map<String, Object>  childMap2 = (Map<String, Object>) result2.get("child1");
+        Map<String, Object> result2 = JsonUtils.convertNodeStateToMap(nodeState, 2, true);
+        Map<String, Object> childMap2 = (Map<String, Object>) result2.get("child1");
         assertTrue(childMap2.containsKey("grandChild1"));
         Map<String, Object> grandChildMap2 = (Map<String, Object>) childMap2.get("grandChild1");
         assertEquals("grandChildVal1", grandChildMap2.get("grandChildProp1"));
@@ -197,8 +196,8 @@ public class JsonUtilsTest {
         assertFalse(grandChildMap2.containsKey("greatGrandChild1"));
 
         // Test with maxDepth = 3 (should include greatGrandChild1)
-        Map<String, Object> result3 = JsonUtils.convertNodeStateToMap(nodeState, 3);
-        Map<String, Object>  childMap3 = (Map<String, Object>) result3.get("child1");
+        Map<String, Object> result3 = JsonUtils.convertNodeStateToMap(nodeState, 3, true);
+        Map<String, Object> childMap3 = (Map<String, Object>) result3.get("child1");
         Map<String, Object> grandChildMap3 = (Map<String, Object>) childMap3.get("grandChild1");
         Map<String, Object> greatGrandChildMap3 = (Map<String, Object>) grandChildMap3.get("greatGrandChild1");
         assertEquals("greatGrandChildVal1", greatGrandChildMap3.get("greatGrandChildProp1"));
@@ -207,8 +206,8 @@ public class JsonUtilsTest {
         assertTrue(result3.containsKey("child1"));
 
         // Test with maxDepth = -1 (should return all nodes and properties)
-        Map<String, Object> resultNeg1 = JsonUtils.convertNodeStateToMap(nodeState, -1);
-        Map<String, Object>  childMapNeg1 = (Map<String, Object>) resultNeg1.get("child1");
+        Map<String, Object> resultNeg1 = JsonUtils.convertNodeStateToMap(nodeState, -1, true);
+        Map<String, Object> childMapNeg1 = (Map<String, Object>) resultNeg1.get("child1");
         Map<String, Object> grandChildMapNeg1 = (Map<String, Object>) childMapNeg1.get("grandChild1");
         assertTrue(grandChildMapNeg1.containsKey("greatGrandChild1"));
         Map<String, Object> greatGrandChildMapNeg1 = (Map<String, Object>) grandChildMapNeg1.get("greatGrandChild1");
@@ -218,5 +217,54 @@ public class JsonUtilsTest {
         assertTrue(resultNeg1.containsKey("child1"));
 
 
+    }
+
+    @Test
+    public void testConvertNodeStateToMapWithHiddenNodesAndProperties() {
+        NodeBuilder builder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+
+        // Regular property
+        builder.setProperty("regularProp", "regularValue");
+
+        // Hidden property (starts with ":")
+        builder.setProperty(":hiddenProp", "hiddenValue");
+
+        // Regular child
+        NodeBuilder regularChild = builder.child("regularChild");
+        regularChild.setProperty("childProp", "childValue");
+
+        // Hidden child (starts with ":")
+        NodeBuilder hiddenChild = builder.child(":hiddenChild");
+        hiddenChild.setProperty("hiddenChildProp", "hiddenChildValue");
+
+        NodeState nodeState = builder.getNodeState();
+
+        // Test with shouldSerializeHiddenNodesOrProperties = true
+        // Hidden nodes and properties should be excluded
+        Map<String, Object> resultWithHiddenExcluded = JsonUtils.convertNodeStateToMap(nodeState, -1, false);
+        assertNotNull(resultWithHiddenExcluded);
+        assertEquals(2, resultWithHiddenExcluded.size());
+        assertTrue(resultWithHiddenExcluded.containsKey("regularProp"));
+        assertTrue(resultWithHiddenExcluded.containsKey("regularChild"));
+        assertFalse(resultWithHiddenExcluded.containsKey(":hiddenProp"));
+        assertFalse(resultWithHiddenExcluded.containsKey(":hiddenChild"));
+
+        // Test with shouldSerializeHiddenNodesOrProperties = false
+        // Hidden nodes and properties should be included
+        Map<String, Object> resultWithHiddenIncluded = JsonUtils.convertNodeStateToMap(nodeState, -1, true);
+        assertNotNull(resultWithHiddenIncluded);
+        assertEquals(4, resultWithHiddenIncluded.size());
+        assertTrue(resultWithHiddenIncluded.containsKey("regularProp"));
+        assertTrue(resultWithHiddenIncluded.containsKey("regularChild"));
+        assertTrue(resultWithHiddenIncluded.containsKey(":hiddenProp"));
+        assertTrue(resultWithHiddenIncluded.containsKey(":hiddenChild"));
+        assertEquals("hiddenValue", resultWithHiddenIncluded.get(":hiddenProp"));
+
+        // Verify nested content
+        Map<String, Object> regularChildMap = (Map<String, Object>) resultWithHiddenIncluded.get("regularChild");
+        assertEquals("childValue", regularChildMap.get("childProp"));
+
+        Map<String, Object> hiddenChildMap = (Map<String, Object>) resultWithHiddenIncluded.get(":hiddenChild");
+        assertEquals("hiddenChildValue", hiddenChildMap.get("hiddenChildProp"));
     }
 }

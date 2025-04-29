@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,6 +28,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +41,7 @@ import java.util.stream.Stream;
  */
 public class InferenceServiceUsingConfig implements InferenceService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(InferenceServiceUsingConfig.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final URI uri;
@@ -60,9 +63,9 @@ public class InferenceServiceUsingConfig implements InferenceService {
         this.timeoutMillis = inferenceModelConfig.getTimeoutMillis();
         this.inferenceModelConfig = inferenceModelConfig;
         this.headersValue = inferenceModelConfig.getHeader().getInferenceHeaderPayload()
-                .entrySet().stream()
-                .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
-                .collect(Collectors.toList()).toArray(String[]::new);
+            .entrySet().stream()
+            .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
+            .collect(Collectors.toList()).toArray(String[]::new);
 
     }
 
@@ -76,35 +79,38 @@ public class InferenceServiceUsingConfig implements InferenceService {
             return cache.get(text);
         }
 
+        List<Float> result = null;
         try {
             // Create the JSON payload.
-//            String jsonInputString = "{\"text\":\"" + text + "\"}";
             String jsonInputString = inferenceModelConfig.getPayload().getInferencePayload(text);
             List<String> headerValues = inferenceModelConfig.getHeader().getInferenceHeaderPayload()
-                    .entrySet().stream()
-                    .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
-                    .collect(Collectors.toList());
+                .entrySet().stream()
+                .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
 
-            //TODO : implement bulk processor.
-            // Build the HttpRequest.
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .timeout(java.time.Duration.ofMillis(timeoutMillis))
-                    .headers(headersValue)
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonInputString, StandardCharsets.UTF_8))
-                    .build();
+                .uri(uri)
+                .timeout(java.time.Duration.ofMillis(timeoutMillis))
+                .headers(headersValue)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonInputString, StandardCharsets.UTF_8))
+                .build();
 
             // Send the request and get the response.
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            InferenceResponseModel inferenceResponseModel = MAPPER.readValue(response.body(), InferenceResponseModel.class);
-            String jsonString = MAPPER.writeValueAsString(inferenceResponseModel);
-            List<Float> result = inferenceResponseModel.getData().get(0).getEmbedding();
-            cache.put(text, result);
-            return result;
-        } catch (Exception e) {
-            throw new InferenceServiceException("Failed to get embeddings", e);
-        }
 
+            if (response.statusCode() == 200) {
+                List<Float> embeddingList = new ArrayList<>();
+                MAPPER.readTree(response.body()).path("data").get(0).get("embedding").forEach(n -> {
+                    embeddingList.add(n.floatValue());
+                });
+                result = embeddingList;
+                cache.put(text, result);
+                return result;
+            }
+        } catch (Exception e) {
+            LOG.warn("Unable to get embeddings" + e.getMessage());
+        }
+        return result;
     }
 
     private static class Cache<K, V> extends LinkedHashMap<K, V> {

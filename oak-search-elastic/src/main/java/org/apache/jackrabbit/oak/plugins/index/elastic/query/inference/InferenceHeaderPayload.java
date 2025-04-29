@@ -42,7 +42,7 @@ public class InferenceHeaderPayload {
     }
 
     public InferenceHeaderPayload(NodeState nodeState) {
-        inferenceHeaderPayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0)
+        inferenceHeaderPayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0, false)
             .entrySet().stream().filter(entry -> entry.getValue() instanceof String)
             .filter(entry -> !entry.getKey().equals("jcr:primaryType"))
             .collect(HashMap::new, (map, entry) -> {

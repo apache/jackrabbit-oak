@@ -45,8 +45,8 @@ public class JsonUtils {
      * @param maxDepth  Maximum depth to traverse
      * @return Map representation of the NodeState
      */
-    public static Map<String, Object> convertNodeStateToMap(NodeState nodeState, int maxDepth) {
-        return convertNodeStateToMap(nodeState, maxDepth, -1);
+    public static Map<String, Object> convertNodeStateToMap(NodeState nodeState, int maxDepth, boolean shouldSerializeHiddenNodesOrProperties) {
+        return convertNodeStateToMap(nodeState, maxDepth, -1, shouldSerializeHiddenNodesOrProperties);
     }
 
     /**
@@ -57,7 +57,7 @@ public class JsonUtils {
      * @param currentDepth Current traversal depth
      * @return Map representation of the NodeState
      */
-    private static Map<String, Object> convertNodeStateToMap(NodeState nodeState, int maxDepth, int currentDepth) {
+    private static Map<String, Object> convertNodeStateToMap(NodeState nodeState, int maxDepth, int currentDepth, boolean shouldSerializeHiddenNodesOrProperties) {
         if (maxDepth >= 0 && currentDepth >= maxDepth) {
             return null;
         }
@@ -68,7 +68,10 @@ public class JsonUtils {
         for (PropertyState property : nodeState.getProperties()) {
             String name = property.getName();
             Type<?> type = property.getType();
-
+            // Skip serializing hidden properties.
+            if (!shouldSerializeHiddenNodesOrProperties && name.startsWith(":")) {
+                continue;
+            }
             if (property.isArray()) {
                 if (type == Type.STRINGS) {
                     result.put(name, property.getValue(Type.STRINGS));
@@ -112,8 +115,11 @@ public class JsonUtils {
 
         // Convert child nodes recursively
         for (String childName : nodeState.getChildNodeNames()) {
+            if (!shouldSerializeHiddenNodesOrProperties && childName.startsWith(":")) {
+                continue;
+            }
             NodeState childNode = nodeState.getChildNode(childName);
-            Map<String, Object> childMap = convertNodeStateToMap(childNode, maxDepth, currentDepth + 1);
+            Map<String, Object> childMap = convertNodeStateToMap(childNode, maxDepth, currentDepth + 1, shouldSerializeHiddenNodesOrProperties);
             if (childMap != null) {
                 result.put(childName, childMap);
             }

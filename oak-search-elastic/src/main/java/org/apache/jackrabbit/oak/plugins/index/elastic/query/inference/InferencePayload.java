@@ -44,7 +44,7 @@ public class InferencePayload {
     }
 
     public InferencePayload(String inferenceModelName, NodeState nodeState) {
-        inferencePayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0);
+        inferencePayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0, false);
         inferencePayloadMap.remove("jcr:primaryType");
     }
     /*
