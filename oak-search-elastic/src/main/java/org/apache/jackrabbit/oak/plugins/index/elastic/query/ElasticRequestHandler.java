@@ -624,7 +624,7 @@ public class ElasticRequestHandler {
                             elasticIndexDefinition.getDynamicBoostProperties().stream().anyMatch(ElasticPropertyDefinition::useInFullTextQuery);
 
                     String indexName = PathUtils.getName(indexPlan.getPlanName());
-                    String inferenceModelConfig = "";
+                    String inferenceModelConfig = null;
                     InferenceQueryConfig inferenceQueryConfig;
                     InferenceQuery inferenceQuery;
                     if (indexPlan.getFilter().getQueryLimits().isInferenceEnabled()
@@ -644,7 +644,7 @@ public class ElasticRequestHandler {
                         queryText = text;
                     }
 
-                    if (InferenceConfig.getInstance().isEnabled()
+                    if (indexPlan.getFilter().getQueryLimits().isInferenceEnabled() && InferenceConfig.getInstance().isEnabled()
                             && !InferenceModelConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceModelConfig))) {
 
                         bqBuilder.must(m -> m.bool(b -> inferenceConfigQuery(b, propertyName, queryText, pr, includeDynamicBoostedValues, inferenceQuery, inferenceQueryConfig)));
@@ -653,9 +653,6 @@ public class ElasticRequestHandler {
                     else if (elasticIndexDefinition.inferenceDefinition != null && elasticIndexDefinition.inferenceDefinition.queries != null) {
                         bqBuilder.must(m -> m.bool(b -> inference(b, propertyName, queryText, pr, includeDynamicBoostedValues)));
                     } else {
-                        if (inferenceModelConfig != null) {
-                            LOG.warn("Inference model config {} is not supported for index {}", inferenceModelConfig, indexName);
-                        }
                         QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFulltextFieldName(propertyName), pr, includeDynamicBoostedValues);
                         bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
                     }
