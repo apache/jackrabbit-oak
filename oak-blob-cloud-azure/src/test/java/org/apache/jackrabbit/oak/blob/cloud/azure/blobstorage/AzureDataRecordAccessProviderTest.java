@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Constants.MAX_BINARY_UPLOAD_SIZE;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Constants.MAX_MULTIPART_UPLOAD_PART_SIZE;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Constants.MAX_SINGLE_PUT_UPLOAD_SIZE;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Constants.MIN_MULTIPART_UPLOAD_PART_SIZE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
@@ -93,19 +97,19 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
 
     @Override
     protected long getProviderMinPartSize() {
-        return Math.max(0L, AzureBlobStoreBackend.MIN_MULTIPART_UPLOAD_PART_SIZE);
+        return Math.max(0L, MIN_MULTIPART_UPLOAD_PART_SIZE);
     }
 
     @Override
     protected long getProviderMaxPartSize() {
-        return AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE;
+        return MAX_MULTIPART_UPLOAD_PART_SIZE;
     }
 
     @Override
-    protected long getProviderMaxSinglePutSize() { return AzureBlobStoreBackend.MAX_SINGLE_PUT_UPLOAD_SIZE; }
+    protected long getProviderMaxSinglePutSize() { return MAX_SINGLE_PUT_UPLOAD_SIZE; }
 
     @Override
-    protected long getProviderMaxBinaryUploadSize() { return AzureBlobStoreBackend.MAX_BINARY_UPLOAD_SIZE; }
+    protected long getProviderMaxBinaryUploadSize() { return MAX_BINARY_UPLOAD_SIZE; }
 
     @Override
     protected boolean isSinglePutURI(URI uri) {

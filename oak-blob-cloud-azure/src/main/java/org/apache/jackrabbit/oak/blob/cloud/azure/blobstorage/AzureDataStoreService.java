@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
@@ -32,7 +33,7 @@ public class AzureDataStoreService extends AbstractAzureDataStoreService {
 
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.AzureDataStore";
 
-    protected StatisticsProvider getStatisticsProvider(){
+    protected @NotNull StatisticsProvider getStatisticsProvider(){
         return statisticsProvider;
     }
 

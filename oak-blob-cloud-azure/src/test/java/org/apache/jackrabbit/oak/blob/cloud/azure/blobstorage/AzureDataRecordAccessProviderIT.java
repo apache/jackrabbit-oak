@@ -38,6 +38,7 @@ import org.junit.rules.TemporaryFolder;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils.getAzureConfig;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils.getAzureDataStore;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtils.isAzureConfigured;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Constants.MAX_MULTIPART_UPLOAD_PART_SIZE;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -76,7 +77,7 @@ public class AzureDataRecordAccessProviderIT extends AbstractDataRecordAccessPro
 
     @Override
     protected long getProviderMaxPartSize() {
-        return AzureBlobStoreBackend.MAX_MULTIPART_UPLOAD_PART_SIZE;
+        return MAX_MULTIPART_UPLOAD_PART_SIZE;
     }
 
     @Override

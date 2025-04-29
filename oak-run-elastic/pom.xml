@@ -42,7 +42,8 @@
         105 MB: Azure updates
         107 MB: RDB/Tomcat (OAK-10752)
         -->
-        <max.jar.size>115000000</max.jar.size>
+        <!-- The value increased to follow with the Enforcer rules  -->
+        <max.jar.size>115550000</max.jar.size>
                       
     </properties>
 

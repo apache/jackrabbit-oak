@@ -27,8 +27,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 import java.util.Properties;
@@ -38,13 +36,12 @@ import javax.jcr.RepositoryException;
 /**
  * Test {@link AzureDataStore} with AzureDataStore and local cache on.
  * It requires to pass azure config file via system property or system properties by prefixing with 'ds.'.
- * See details @ {@link AzureDataStoreUtils}.
+ * See details @ {@link TestAzureDataStoreUtils}.
  * For e.g. -Dconfig=/opt/cq/azure.properties. Sample azure properties located at
  * src/test/resources/azure.properties
  */
 public class TestAzureDS extends AbstractDataStoreTest {
 
-  protected static final Logger LOG = LoggerFactory.getLogger(TestAzureDS.class);
   protected Properties props = new Properties();
   protected String container;
 
@@ -57,7 +54,7 @@ public class TestAzureDS extends AbstractDataStoreTest {
   @Before
   public void setUp() throws Exception {
     props.putAll(AzureDataStoreUtils.getAzureConfig());
-    container = String.valueOf(randomGen.nextInt(9999)) + "-" + String.valueOf(randomGen.nextInt(9999))
+    container = randomGen.nextInt(9999) + "-" + randomGen.nextInt(9999)
                 + "-test";
     props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, container);
     props.setProperty("secret", "123456");

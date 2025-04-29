@@ -25,6 +25,7 @@ import java.util.Properties;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8.AzureBlobStoreBackendV8;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -41,11 +42,18 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
 
     protected Properties properties;
 
-    private AzureBlobStoreBackend azureBlobStoreBackend;
+    private AbstractAzureBlobStoreBackend azureBlobStoreBackend;
+
+    private final boolean useAzureSdkV12 = Boolean.getBoolean("blob.azure.v12.enabled");
 
     @Override
     protected AbstractSharedBackend createBackend() {
-        azureBlobStoreBackend = new AzureBlobStoreBackend();
+        if(useAzureSdkV12) {
+            azureBlobStoreBackend = new AzureBlobStoreBackend();
+        } else {
+            azureBlobStoreBackend = new AzureBlobStoreBackendV8();
+        }
+
         if (null != properties) {
             azureBlobStoreBackend.setProperties(properties);
         }
