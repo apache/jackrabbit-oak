@@ -43,13 +43,14 @@ public class InferenceHeaderPayload {
 
     public InferenceHeaderPayload(NodeState nodeState) {
         inferenceHeaderPayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0)
-                .entrySet().stream().filter(entry -> entry.getValue() instanceof String)
-                .collect(HashMap::new, (map, entry) -> {
-                            String value = EnvironmentVariableProcessorUtil.processEnvironmentVariable(
-                                    InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, (String) entry.getValue(), DEFAULT_ENVIRONMENT_VARIABLE_VALUE);
-                            map.put(entry.getKey(), value);
-                        },
-                        HashMap::putAll);
+            .entrySet().stream().filter(entry -> entry.getValue() instanceof String)
+            .filter(entry -> !entry.getKey().equals("jcr:primaryType"))
+            .collect(HashMap::new, (map, entry) -> {
+                    String value = EnvironmentVariableProcessorUtil.processEnvironmentVariable(
+                        InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, (String) entry.getValue(), DEFAULT_ENVIRONMENT_VARIABLE_VALUE);
+                    map.put(entry.getKey(), value);
+                },
+                HashMap::putAll);
     }
 
     /*

@@ -41,6 +41,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class InferenceConfigTest {
@@ -380,9 +381,11 @@ public class InferenceConfigTest {
         NodeBuilder headerBuilder1 = modelConfigBuilder1.child(InferenceModelConfig.HEADER);
         headerBuilder1.setProperty("Content-Type", "application/json");
         headerBuilder1.setProperty("Authorization", AUTH_ENV_VARIABLE);
+        headerBuilder1.setProperty("jcr:primaryType", "nt:unstructured");
 
         NodeBuilder payloadBuilder1 = modelConfigBuilder1.child(InferenceModelConfig.INFERENCE_PAYLOAD);
         payloadBuilder1.setProperty("model", "text-embedding-ada-002");
+        payloadBuilder1.setProperty("jcr:primaryType", "nt:unstructured");
 
         // Second index config
         String indexName2 = "testIndex2";
@@ -409,10 +412,12 @@ public class InferenceConfigTest {
         NodeBuilder headerBuilder2 = modelConfigBuilder2.child(InferenceModelConfig.HEADER);
         headerBuilder2.setProperty("Content-Type", "application/json");
         headerBuilder2.setProperty("Authorization", "$Authorization");
+        headerBuilder2.setProperty("jcr:primaryType", "nt:unstructured");
 
         NodeBuilder payloadBuilder2 = modelConfigBuilder2.child(InferenceModelConfig.INFERENCE_PAYLOAD);
         payloadBuilder2.setProperty("model", "text-embedding-3-large");
         payloadBuilder2.setProperty("dimensions", 1024);
+        payloadBuilder2.setProperty("jcr:primaryType", "nt:unstructured");
 
         // Commit the changes
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -436,6 +441,9 @@ public class InferenceConfigTest {
         assertTrue("Model config 1 should be default", modelConfig1.isDefault());
         assertEquals("Model 1 name should match", "model1", modelConfig1.getModel());
         assertEquals("Model 1 similarity threshold should match", 0.8, modelConfig1.getSimilarityThreshold(), 0.001);
+        assertFalse("Payload should not have jcr:primaryType property",
+            modelConfig1.getPayload().getInferencePayload("input text").contains("jcr:primaryType"));
+        assertFalse("Header Payload should not have jcr:primaryType property", modelConfig1.getHeader().getInferenceHeaderPayload().containsKey("jcr:primaryType"));
 
         // Test second index config
         InferenceIndexConfig indexConfig2 = inferenceConfig.getInferenceIndexConfig(indexName2);
@@ -456,6 +464,10 @@ public class InferenceConfigTest {
         assertNotEquals("Model 2 embedding service URL should not match empty string", "", modelConfig2.getEmbeddingServiceUrl());
         // this is picked from pom.xml during test
         assertEquals("Model 2 embedding service URL should match", "http://localhost:8080/embeddings", modelConfig2.getEmbeddingServiceUrl());
+        assertFalse("Payload should not have jcr:primaryType property",
+            modelConfig2.getPayload().getInferencePayload("input text").contains("jcr:primaryType"));
+        assertFalse("Header Payload should not have jcr:primaryType property", modelConfig2.getHeader().getInferenceHeaderPayload().containsKey("jcr:primaryType"));
+
     }
 
     /**
@@ -499,6 +511,7 @@ public class InferenceConfigTest {
 
         // Commit the changes
         nodeStore.merge(updatedRootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        assertFalse("Should not have new index config", inferenceConfig.getInferenceIndexConfig(newIndexName).isEnabled());
 
         // Refresh the InferenceConfig
         InferenceConfig.reInitialize();

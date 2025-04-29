@@ -45,6 +45,7 @@ public class InferencePayload {
 
     public InferencePayload(String inferenceModelName, NodeState nodeState) {
         inferencePayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0);
+        inferencePayloadMap.remove("jcr:primaryType");
     }
     /*
      * Get the inference payload as a json string
@@ -57,7 +58,6 @@ public class InferencePayload {
         // This creates a shallow copy - only the map structure is cloned but values are still references
         Map<String, Object> inferencePayloadMapCopy = new HashMap<>(inferencePayloadMap);
         inferencePayloadMapCopy.put(inputTextKey, List.of(text));
-
         try {
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(inferencePayloadMapCopy);
         } catch (JsonProcessingException e) {
