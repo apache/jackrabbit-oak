@@ -32,5 +32,6 @@ public interface InferenceConstants {
     String ENRICH_STATUS_INFERENCE_DISABLED = "inferenceDisabled";
     String DEFAULT_ENVIRONMENT_VARIABLE_PREFIX = "$";
     String INFERENCE_ENVIRONMENT_VARIABLE_PREFIX = System.getProperty("org.apache.jackrabbit.oak.plugins.index.elastic.query.inference", DEFAULT_ENVIRONMENT_VARIABLE_PREFIX);
+    String DEFAULT_ENVIRONMENT_VARIABLE_VALUE = "";
 
 }

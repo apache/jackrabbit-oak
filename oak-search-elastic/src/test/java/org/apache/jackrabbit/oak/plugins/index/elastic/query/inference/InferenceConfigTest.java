@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.util.EnvironmentVariableP
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -53,25 +52,26 @@ public class InferenceConfigTest {
     private NodeBuilder rootBuilder;
     private NodeStore nodeStore;
 
-    private boolean areEnvVaraiblesSet;
     private final String AUTH_ENV_VARIABLE = "$Authorization";
     private final String INFERENCE_SERVICE_URL_ENV_VARIABLE = "$inferenceServiceUrl";
+    private final String INFERENCE_PAYLOAD_MODEL = "$EMBEDDING_MODEL";
 
     private boolean isAuthEnvVarDefined;
     private boolean isInferenceUrlEnvVarDefined;
-    private QueryEngineSettings queryEngineSettings;
+    private boolean isInferencePayloadModelDefined;
 
     @Before
     public void setup() {
         // Initialize memory node store
         rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         nodeStore = new MemoryNodeStore(rootBuilder.getNodeState());
-        queryEngineSettings = new QueryEngineSettings();
 
         isAuthEnvVarDefined = !EnvironmentVariableProcessorUtil.processEnvironmentVariable(
                 InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, AUTH_ENV_VARIABLE, "").equals(Strings.EMPTY);
         isInferenceUrlEnvVarDefined = !EnvironmentVariableProcessorUtil.processEnvironmentVariable(
                 InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, INFERENCE_SERVICE_URL_ENV_VARIABLE, "").equals(Strings.EMPTY);
+        isInferencePayloadModelDefined = !EnvironmentVariableProcessorUtil.processEnvironmentVariable(
+            InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, INFERENCE_PAYLOAD_MODEL, "").equals(Strings.EMPTY);
     }
 
     @After
@@ -353,7 +353,7 @@ public class InferenceConfigTest {
     @Test
     public void testCompleteConfiguration() throws CommitFailedException {
 
-        assertTrue(isAuthEnvVarDefined && isInferenceUrlEnvVarDefined);
+        assertTrue(isAuthEnvVarDefined && isInferenceUrlEnvVarDefined && isInferencePayloadModelDefined);
         // Create enabled inference config with multiple index configs
         NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
         inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
@@ -384,7 +384,7 @@ public class InferenceConfigTest {
         headerBuilder1.setProperty("jcr:primaryType", "nt:unstructured");
 
         NodeBuilder payloadBuilder1 = modelConfigBuilder1.child(InferenceModelConfig.INFERENCE_PAYLOAD);
-        payloadBuilder1.setProperty("model", "text-embedding-ada-002");
+        payloadBuilder1.setProperty("model", INFERENCE_PAYLOAD_MODEL);
         payloadBuilder1.setProperty("jcr:primaryType", "nt:unstructured");
 
         // Second index config
@@ -411,7 +411,7 @@ public class InferenceConfigTest {
         // Add header and payload for model2
         NodeBuilder headerBuilder2 = modelConfigBuilder2.child(InferenceModelConfig.HEADER);
         headerBuilder2.setProperty("Content-Type", "application/json");
-        headerBuilder2.setProperty("Authorization", "$Authorization");
+        headerBuilder2.setProperty("Authorization", AUTH_ENV_VARIABLE);
         headerBuilder2.setProperty("jcr:primaryType", "nt:unstructured");
 
         NodeBuilder payloadBuilder2 = modelConfigBuilder2.child(InferenceModelConfig.INFERENCE_PAYLOAD);
@@ -444,6 +444,7 @@ public class InferenceConfigTest {
         assertFalse("Payload should not have jcr:primaryType property",
             modelConfig1.getPayload().getInferencePayload("input text").contains("jcr:primaryType"));
         assertFalse("Header Payload should not have jcr:primaryType property", modelConfig1.getHeader().getInferenceHeaderPayload().containsKey("jcr:primaryType"));
+        assertFalse("Model 1 payload model should not contain " + INFERENCE_PAYLOAD_MODEL, modelConfig1.getPayload().getInferencePayload("input-text").contains(INFERENCE_PAYLOAD_MODEL));
 
         // Test second index config
         InferenceIndexConfig indexConfig2 = inferenceConfig.getInferenceIndexConfig(indexName2);

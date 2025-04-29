@@ -93,6 +93,7 @@
           <environmentVariables>
             <Authorization>Bearer test-token</Authorization>
             <inferenceServiceUrl>http://localhost:8080/embeddings</inferenceServiceUrl>
+            <EMBEDDING_MODEL>embedding-test-model</EMBEDDING_MODEL>
           </environmentVariables>
         </configuration>
       </plugin>

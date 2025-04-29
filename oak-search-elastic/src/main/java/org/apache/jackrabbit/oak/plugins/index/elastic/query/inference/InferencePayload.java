@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.oak.json.JsonUtils;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.EnvironmentVariableProcessorUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,16 @@ public class InferencePayload {
     public InferencePayload(String inferenceModelName, NodeState nodeState) {
         inferencePayloadMap = JsonUtils.convertNodeStateToMap(nodeState, 0, false);
         inferencePayloadMap.remove("jcr:primaryType");
+        Map<String, String> swappedEnvVarsMap = inferencePayloadMap.entrySet().stream()
+            .filter(entry -> entry.getValue() instanceof String)
+            .collect(HashMap::new, (map, entry) -> {
+                    String value = EnvironmentVariableProcessorUtil.processEnvironmentVariable(
+                        InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, (String) entry.getValue(), InferenceConstants.DEFAULT_ENVIRONMENT_VARIABLE_VALUE);
+                    map.put(entry.getKey(), value);
+                },
+                HashMap::putAll);
+        //replace current keys with swapped
+        inferencePayloadMap.putAll(swappedEnvVarsMap);
     }
     /*
      * Get the inference payload as a json string

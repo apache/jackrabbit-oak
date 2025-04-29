@@ -32,7 +32,6 @@ import java.util.Map;
  */
 public class InferenceHeaderPayload {
     private static final Logger LOG = LoggerFactory.getLogger(InferenceHeaderPayload.class);
-    private static final String DEFAULT_ENVIRONMENT_VARIABLE_VALUE = "";
 
     public static final InferenceHeaderPayload NOOP = new InferenceHeaderPayload();
     private final Map<String, String> inferenceHeaderPayloadMap;
@@ -47,7 +46,7 @@ public class InferenceHeaderPayload {
             .filter(entry -> !entry.getKey().equals("jcr:primaryType"))
             .collect(HashMap::new, (map, entry) -> {
                     String value = EnvironmentVariableProcessorUtil.processEnvironmentVariable(
-                        InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, (String) entry.getValue(), DEFAULT_ENVIRONMENT_VARIABLE_VALUE);
+                        InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, (String) entry.getValue(), InferenceConstants.DEFAULT_ENVIRONMENT_VARIABLE_VALUE);
                     map.put(entry.getKey(), value);
                 },
                 HashMap::putAll);
