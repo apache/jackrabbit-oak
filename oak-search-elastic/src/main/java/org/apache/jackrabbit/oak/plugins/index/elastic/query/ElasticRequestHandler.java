@@ -244,7 +244,9 @@ public class ElasticRequestHandler {
     }
 
     private String generateFieldsForMLT() {
-        //todo add in more fields to make it exhaustive.
+        //todo with addition of :enricher status for inference. All documents will now have :enricher for inference enabled indexes.
+        // as as result mlt is now returning all documents.
+        // find a better way so that these fields can be easily managed.
         List<String> keys = elasticIndexDefinition.getPropertiesByName().entrySet().stream().map(Map.Entry::getKey).collect(Collectors.toList());
         List<String> simFields = new ArrayList<>();
         keys.forEach(key -> {
