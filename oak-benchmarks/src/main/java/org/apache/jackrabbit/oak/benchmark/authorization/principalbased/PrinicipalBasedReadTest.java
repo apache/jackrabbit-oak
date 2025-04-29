@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -120,7 +121,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
     }
 
     private void createForRotatingPrincipal(@NotNull JackrabbitAccessControlManager acMgr, @NotNull List<Privilege> allPrivileges) throws RepositoryException {
-        Iterator<Principal> principalIterator = Iterators.cycle(subject.getPrincipals());
+        Iterator<Principal> principalIterator = IteratorUtils.cycle(subject.getPrincipals());
         int cnt = 0;
         while (cnt < numberOfACEs) {
             if (!principalIterator.hasNext()) {
