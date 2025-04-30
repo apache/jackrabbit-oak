@@ -228,7 +228,7 @@ public class ActiveDeletedBlobCollectorTest {
         for (int threadNum = 0; threadNum < numThreads; threadNum++) {
             for (int blobCnt = 0; blobCnt < numBlobsPerThread; blobCnt++) {
                 String id = "Thread" + threadNum + "Blob" + blobCnt;
-                Iterators.addAll(deletedChunks, blobStore.resolveChunks(id));
+                blobStore.resolveChunks(id).forEachRemaining(deletedChunks::add);
             }
         }
 
@@ -245,7 +245,7 @@ public class ActiveDeletedBlobCollectorTest {
             bdc.deleted(markerBlobId, List.of(markerBlobId));
             bdc.commitProgress(COMMIT_SUCCEDED);
 
-            Iterators.addAll(markerChunks, blobStore.resolveChunks(markerBlobId));
+            blobStore.resolveChunks(markerBlobId).forEachRemaining(markerChunks::add);
             clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(5));
             adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
 
