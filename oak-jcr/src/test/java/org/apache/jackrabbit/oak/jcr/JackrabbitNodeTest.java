@@ -24,14 +24,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.lock.LockException;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
+import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
@@ -335,5 +340,12 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         
         assertNotNull(jn.getPropertyOrNull(JcrConstants.JCR_PRIMARYTYPE));
         assertNotNull(jn.getPropertyOrNull("a/aa/p"));
+    }
+    
+    public void testSessionMappedPrefixWithUnregisteredNamespace() throws ItemExistsException, PathNotFoundException, VersionException, ConstraintViolationException, LockException, RepositoryException {
+        Node n = testRootNode.addNode("foo:bar");
+        assertEquals("foo:bar", n.getName());
+        n.getSession().setNamespacePrefix("foo", "http://foo.com");
+        assertEquals("foo:bar", n.getName()); // this must not fail, but throws a ISE
     }
 }
