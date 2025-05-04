@@ -1135,4 +1135,115 @@ public class IteratorUtilsTest {
         Assert.assertEquals("x", cyclingIterator.next());
         Assert.assertTrue(cyclingIterator.hasNext());
     }
+
+    @Test
+    public void testPartitionWithEvenDivision() {
+        List<String> list = Arrays.asList("a", "b", "c", "d");
+        Iterator<List<String>> partitioned = IteratorUtils.partition(list.iterator(), 2);
+
+        Assert.assertTrue(partitioned.hasNext());
+        Assert.assertEquals(Arrays.asList("a", "b"), partitioned.next());
+        Assert.assertTrue(partitioned.hasNext());
+        Assert.assertEquals(Arrays.asList("c", "d"), partitioned.next());
+        Assert.assertFalse(partitioned.hasNext());
+    }
+
+    @Test
+    public void testPartitionWithUnevenDivision() {
+        List<String> list = Arrays.asList("a", "b", "c", "d", "e");
+        Iterator<List<String>> partitioned = IteratorUtils.partition(list.iterator(), 2);
+
+        Assert.assertTrue(partitioned.hasNext());
+        Assert.assertEquals(Arrays.asList("a", "b"), partitioned.next());
+        Assert.assertTrue(partitioned.hasNext());
+        Assert.assertEquals(Arrays.asList("c", "d"), partitioned.next());
+        Assert.assertTrue(partitioned.hasNext());
+        Assert.assertEquals(List.of("e"), partitioned.next());
+        Assert.assertFalse(partitioned.hasNext());
+    }
+
+    @Test
+    public void testPartitionWithEmptyIterator() {
+        Iterator<List<String>> partitioned = IteratorUtils.partition(Collections.emptyIterator(), 3);
+        Assert.assertFalse(partitioned.hasNext());
+    }
+
+    @Test
+    public void testPartitionWithSizeOne() {
+        List<Integer> list = Arrays.asList(1, 2, 3);
+        Iterator<List<Integer>> partitioned = IteratorUtils.partition(list.iterator(), 1);
+
+        Assert.assertTrue(partitioned.hasNext());
+        Assert.assertEquals(Collections.singletonList(1), partitioned.next());
+        Assert.assertTrue(partitioned.hasNext());
+        Assert.assertEquals(Collections.singletonList(2), partitioned.next());
+        Assert.assertTrue(partitioned.hasNext());
+        Assert.assertEquals(Collections.singletonList(3), partitioned.next());
+        Assert.assertFalse(partitioned.hasNext());
+    }
+
+    @Test
+    public void testPartitionWithLargeIterator() {
+        // Create a large list
+        List<Integer> list = new ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            list.add(i);
+        }
+
+        Iterator<List<Integer>> partitioned = IteratorUtils.partition(list.iterator(), 100);
+
+        // Verify we get 10 partitions of 100 elements each
+        int partitionCount = 0;
+        while (partitioned.hasNext()) {
+            List<Integer> partition = partitioned.next();
+            if (partitionCount < 9) {
+                Assert.assertEquals(100, partition.size());
+            }
+            partitionCount++;
+        }
+        Assert.assertEquals(10, partitionCount);
+    }
+
+    @Test
+    public void testPartitionWithNullIterator() {
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.partition(null, 5));
+    }
+
+    @Test
+    public void testPartitionWithZeroSize() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        Assert.assertThrows(IllegalArgumentException.class, () -> IteratorUtils.partition(list.iterator(), 0));
+    }
+
+    @Test
+    public void testPartitionWithNegativeSize() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        Assert.assertThrows(IllegalArgumentException.class, () -> IteratorUtils.partition(list.iterator(), -1));
+    }
+
+    @Test
+    public void testPartitionReturnsUnmodifiableLists() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        Iterator<List<String>> partitioned = IteratorUtils.partition(list.iterator(), 2);
+
+        List<String> partition = partitioned.next();
+        Assert.assertThrows(UnsupportedOperationException.class, () -> partition.add("d")); // Should throw UnsupportedOperationException
+    }
+
+    @Test
+    public void testPartitionWithRemovableIterator() {
+        List<String> list = new ArrayList<>(Arrays.asList("a", "b", "c", "d"));
+        Iterator<String> iterator = list.iterator();
+        Iterator<List<String>> partitioned = IteratorUtils.partition(iterator, 2);
+
+        // Get first partition
+        List<String> partition = partitioned.next();
+        Assert.assertEquals(Arrays.asList("a", "b"), partition);
+
+        // Original iterator shouldn't support removal through partition
+        Assert.assertThrows(UnsupportedOperationException.class, partitioned::remove);
+
+        // But original list should still have all elements
+        Assert.assertEquals(Arrays.asList("a", "b", "c", "d"), list);
+    }
 }
