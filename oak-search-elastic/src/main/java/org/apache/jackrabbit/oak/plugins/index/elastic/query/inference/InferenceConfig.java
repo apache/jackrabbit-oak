@@ -67,21 +67,16 @@ public class InferenceConfig {
 
     /**
      * Loads configuration from the given NodeState
-     *
-     * @return InferenceConfiguration instance
      */
 
     private InferenceConfig() {
         lock.writeLock().lock();
         try {
-            if (INSTANCE == null) {
-                LOG.warn("InferenceConfig: NOOP Inference config initialized");
-                enabled = false;
-                indexConfigs = Map.of();
-                activeInferenceConfig = getNewInferenceConfigId();
-                currentInferenceConfig = activeInferenceConfig;
-                isInferenceEnabled = false;
-            }
+            enabled = false;
+            indexConfigs = Map.of();
+            activeInferenceConfig = getNewInferenceConfigId();
+            currentInferenceConfig = activeInferenceConfig;
+            isInferenceEnabled = false;
         } finally {
             lock.writeLock().unlock();
         }

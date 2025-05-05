@@ -49,7 +49,7 @@ public class InferenceQuery {
             // Try to find the end of the JSON part by parsing incrementally
             int possibleEndIndex = 0;
             String jsonPart = null;
-            String queryTextPart = null;
+            String queryTextPart;
             int jsonEndDelimiterIndex = -1;
 
             while (possibleEndIndex < text.length()) {
@@ -57,7 +57,6 @@ public class InferenceQuery {
                 if (possibleEndIndex == -1) {
                     // If we reach here, it means we couldn't find a valid JSON part
                     jsonPart = "";
-                    queryTextPart = text;
                     LOG.warn("Query starts with inference prefix {}, but without valid json part," +
                                     " if case this prefix is a valid fulltext query prefix, please update system property {} with different prefix value",
                             INFERENCE_QUERY_CONFIG_PREFIX, INFERENCE_QUERY_CONFIG_PREFIX_KEY);
@@ -69,8 +68,6 @@ public class InferenceQuery {
                     jsonPart = candidateJson;
                     jsonEndDelimiterIndex = possibleEndIndex;
                     break;
-                } else {
-                    continue;
                 }
             }
             // If we found a valid JSON part, extract it
