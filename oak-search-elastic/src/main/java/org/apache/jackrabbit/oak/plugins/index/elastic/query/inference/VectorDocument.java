@@ -18,14 +18,39 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-public interface InferenceConstants {
-    String ENABLED = "enabled";
-    String ENRICHER_CONFIG = "enricherConfig";
-    String TYPE = "type";
-    String DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH = "/oak:index/:inferenceConfig";
-    String ENRICH_NODE = ":enrich";
-    String DEFAULT_ENVIRONMENT_VARIABLE_PREFIX = "$";
-    String INFERENCE_ENVIRONMENT_VARIABLE_PREFIX = System.getProperty("org.apache.jackrabbit.oak.plugins.index.elastic.query.inference", DEFAULT_ENVIRONMENT_VARIABLE_PREFIX);
-    String DEFAULT_ENVIRONMENT_VARIABLE_VALUE = "";
+import java.util.List;
+import java.util.Map;
 
+public class VectorDocument {
+
+    public static final String ID = "id";
+    public static final String VECTOR = "vector";
+    public static final String METADATA = "metadata";
+
+    public final String id;
+
+    public final List<Float> vector;
+
+    public final Map<String, Object> metadata;
+
+    public VectorDocument() {
+        this.id = null;
+        this.vector = null;
+        this.metadata = null;
+    }
+
+    public VectorDocument(String id, List<Float> vector, Map<String, Object> metadata) {
+        this.id = id;
+        this.vector = vector;
+        this.metadata = metadata;
+    }
+
+    @Override
+    public String toString() {
+        return "VectorDocument{" +
+                "id='" + id + '\'' +
+                ", vector=" + vector +
+                ", metadata=" + metadata +
+                '}';
+    }
 }
