@@ -106,14 +106,23 @@ public class ElasticIndexUtils {
     public static String idFromPath(@NotNull String path) {
         byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
         if (pathBytes.length > 512) {
-            try {
-                return new String(MessageDigest.getInstance("SHA-256").digest(pathBytes),
-                        StandardCharsets.UTF_8);
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalStateException(e);
-            }
+            return sha256Hash(pathBytes);
         }
         return path;
+    }
+
+    /**
+     * Computes the SHA-256 hash of the given byte array and returns it as a UTF-8 string.
+     *
+     * @param input the byte array to hash
+     * @return the SHA-256 hash as a string
+     */
+    public static String sha256Hash(byte[] input) {
+        try {
+            return new String(MessageDigest.getInstance("SHA-256").digest(input), StandardCharsets.UTF_8);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
