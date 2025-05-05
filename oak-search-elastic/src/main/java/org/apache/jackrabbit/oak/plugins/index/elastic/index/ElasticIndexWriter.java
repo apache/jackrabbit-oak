@@ -29,6 +29,7 @@ import co.elastic.clients.elasticsearch.indices.UpdateAliasesRequest;
 import co.elastic.clients.elasticsearch.indices.UpdateAliasesResponse;
 import co.elastic.clients.json.JsonpUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
@@ -36,6 +37,9 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceIndexConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
@@ -48,6 +52,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -78,6 +83,9 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         // old index until the new one gets enabled) during incremental reindexing
         if (this.reindex) {
             try {
+                //TODO we should observe changes under inference config path.
+                InferenceConfig.reInitialize();
+                // refresh inference config on any index reindex.
                 long seed = indexDefinition.indexNameSeed == 0L ? UUID.randomUUID().getMostSignificantBits() : indexDefinition.indexNameSeed;
                 // merge gets called on node store later in the indexing flow
                 definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
@@ -134,9 +142,62 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     public void updateDocument(String path, ElasticDocument doc) throws IOException {
         // update is a heavier operation compared to index, we can always use the index operation on full reindex
         // or if the index is not externally modifiable
-        if (reindex || !indexDefinition.isExternallyModifiable()) {
+        String jcrIndexName = PathUtils.getName(indexDefinition.getIndexName());
+        /*
+            we directly index the document if:
+            content is being reindexed
+            OR
+            (the index is not externally modifiable
+            AND InferenceIndexConfig is NOOP
+            )
+         */
+        if (reindex
+            || (!indexDefinition.isExternallyModifiable()
+            && !InferenceConfig.getInstance().isInferenceEnabled()
+            && (InferenceIndexConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName))))) {
             bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
         } else {
+            if (InferenceConfig.getInstance().isInferenceEnabled()
+                && InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
+                doc.addProperty(InferenceConstants.ENRICH_NODE,
+                    Map.of(InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_PENDING));
+            }
+            /*
+
+                Once inference is enabled, it is not trivial to disable it.  As inference configuration in Elasticsearch (ES)
+                is persisted only during the creation of a new index
+                or reindexing of an existing one. This means that the enricher configuration is updated only under
+                these conditions. If we want to disable inference on instance, the existing enricher configuration
+                remains unchanged, and the enricher will continue processing new documents.
+
+                To stop the enricher from processing documents, we need to explicitly update the enricher status to
+                `COMPLETED` in the ES document by adding the following structure:
+                {
+                    :enrich {
+                        "status": "COMPLETED",
+                        "inferenceDisabled": true
+                    }
+                }
+
+                The `inferenceDisabled` flag is added to allow for potential evaluations at a later stage.
+
+                This should happen in all cases where we try to disable inference i.e.
+
+                1. Inference is disabled in ElasticIndexProviderService but InferenceConfig is valid.
+                2. Inference is enabled and InferenceConfig is not equal to InferenceConfig.NOOP i.e.
+                    any of the properties is different from below:
+                    enricherConfig = "";
+                    isEnabled = false;
+                    inferenceModelConfigs = Map.of();
+                 Note: This is possible by not setting enricherConfig to empty string as other fields are set to default values.
+             */
+            else {
+                Map<String, Object> enrichDocStatus = Map.of(
+                        InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_COMPLETED,
+                        InferenceConstants.ENRICH_STATUS_INFERENCE_DISABLED, true
+                );
+                doc.addProperty(InferenceConstants.ENRICH_NODE, enrichDocStatus);
+            }
             bulkProcessorHandler.update(indexName, ElasticIndexUtils.idFromPath(path), doc);
         }
     }
