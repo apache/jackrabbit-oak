@@ -60,6 +60,9 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
 
     private static final int SEGMENT_COUNT = Integer.getInteger("oak.blob.fileCache.segmentCount", 1);
 
+    // the maximum number of entries (default: 0.5 million)
+    private static final int MAX_ENTRY_COUNT = Integer.getInteger("oak.blob.fileCache.maxEntryCount", 500_000);
+
     protected static final String DOWNLOAD_DIR = "download";
 
     /**
@@ -83,6 +86,17 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     private Weigher<String, String> weigher;
     private Weigher<String, String> memWeigher;
 
+    // the maximum number of entries (files)
+    private long maxEntryCount = MAX_ENTRY_COUNT;
+
+    // the maximum number of blocks, as configured via maxSize
+    private final long maxBlocks;
+
+    // the current block limit. by default, this is maxBlocks,
+    // unless if there are too many entries, in which cache
+    // the limit is adjusted
+    private long currentBlockLimit;
+
     private FileCache(long maxSize /* bytes */, File root,
         final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
 
@@ -90,19 +104,20 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         this.cacheRoot = new File(root, DOWNLOAD_DIR);
 
         // convert to number of 4 KB blocks
-        long size = Math.round(maxSize / 4096);
+        maxBlocks = Math.round(maxSize / (1024L * 4));
+        currentBlockLimit = maxBlocks;
 
         /**
          * Convert the size calculation to KB to support max file size of 2 TB
          */
         weigher = (key, value) -> {
-            // convert to number of 4 KB blocks, plus an overhead of 4 blocks per file
-            return Math.round(getFile(value).length() / 4096) + 4;
+            long value2 = getFile(key).length();
+            // convert to number of 4 KB blocks, plus an overhead of 1 blocks per file
+            return Math.round(value2 / (4 * 1024)) + 0;
         };
 
         //Rough estimate of the in-memory key, value pair
-        memWeigher = (key, value) -> (StringUtils.estimateMemoryUsage(key) +
-            StringUtils.estimateMemoryUsage(value) + 48);
+        memWeigher = (key, value) -> (StringUtils.estimateMemoryUsage(key) + 128);
 
         cacheLoader = new CacheLoader<>() {
             @Override
@@ -128,16 +143,16 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         };
 
         cache = new CacheLIRS.Builder<String, String>()
-            .maximumWeight(size)
+            .maximumWeight(maxBlocks)
             .recordStats()
             .weigher(weigher)
             .segmentCount(SEGMENT_COUNT)
-            .evictionCallback((key, cachedKey, cause) -> {
+            .evictionCallback((key, value, cause) -> {
                 try {
-                    if (cachedKey != null && getFile(cachedKey).exists()
+                    if (value != null && getFile(key).exists()
                         && cause != RemovalCause.REPLACED) {
-                        DataStoreCacheUtils.recursiveDelete(getFile(cachedKey), cacheRoot);
-                        LOG.info("File [{}] evicted with reason [{}]", getFile(cachedKey), cause);
+                        DataStoreCacheUtils.recursiveDelete(getFile(key), cacheRoot);
+                        LOG.info("File [{}] evicted with reason [{}]", getFile(key), cause);
                     }
                 } catch (IOException e) {
                     LOG.info("Cached file deletion failed after eviction", e);
@@ -158,7 +173,22 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         this.executor.submit(new CacheBuildJob());
     }
 
+    /**
+     * Set the maximum number of files.
+     */
+    public void setMaxEntryCount(long maxEntryCount) {
+        this.maxEntryCount = maxEntryCount;
+    }
+
+    /**
+     * Get the current entry count (number of files).
+     */
+    public long getEntryCount() {
+        return cache.size();
+    }
+
     private FileCache() {
+        maxBlocks = 0;
     }
 
     private File getFile(String key) {
@@ -212,6 +242,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      */
     @Override
     public void put(String key, File file) {
+        adjustSize();
         put(key, file, true);
     }
 
@@ -245,8 +276,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     @Nullable
     public File getIfPresent(String key) {
         try {
-            String cached = cache.getIfPresent(key);
-            return cached == null ? null : getFile(cached);
+            String value = cache.getIfPresent(key);
+            return value == null ? null : getFile(key);
         } catch (Exception e) {
             LOG.error("Error in retrieving [{}] from cache", key, e);
         }
@@ -260,13 +291,47 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     }
 
     public File get(String key) throws IOException {
+        adjustSize();
         try {
             // get from cache and download if not available
-            return getFile(cache.get(key, () -> cacheLoader.load(key)));
+            cache.get(key, () -> cacheLoader.load(key));
+            return getFile(key);
         } catch (ExecutionException e) {
             LOG.error("Error loading [{}] from cache", key);
             throw new IOException(e);
         }
+    }
+
+    private void adjustSize() {
+        if (cache.size() < maxEntryCount * 0.9 && currentBlockLimit  == maxBlocks) {
+            // normal case:
+            // less than 90% of the max number of entries,
+            // and the limit is unchanged
+            return;
+        }
+        if (cache.size() < maxEntryCount) {
+            if (cache.size() >= maxEntryCount * 0.9) {
+                // more than 90% full: keep current limit
+                return;
+            }
+            // possibly increase the limit, to allow for more files
+            if (currentBlockLimit < maxBlocks) {
+                // not yet at the maximum:
+                // grow the maximum size, one block at the time, starting at the current
+                currentBlockLimit = Math.max(currentBlockLimit + 1, cache.getUsedMemory() + 1);
+                // never grow larger than the configured size
+                currentBlockLimit = Math.min(currentBlockLimit, maxBlocks);
+                LOG.info("Grow the cache size to {}", currentBlockLimit);
+                cache.setMaxMemory(currentBlockLimit);
+            }
+            return;
+        }
+        // shrink the cache, one block at the time, starting at the current size
+        currentBlockLimit = Math.min(currentBlockLimit - 1, cache.getUsedMemory() - 1);
+        // never grow larger than the configured size
+        currentBlockLimit = Math.min(currentBlockLimit, maxBlocks);
+        LOG.info("Shrink the cache size to {}", currentBlockLimit);
+        cache.setMaxMemory(currentBlockLimit);
     }
 
     @Override
@@ -327,7 +392,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
 }
 
 class FileCacheStats extends CacheStats implements DataStoreCacheStatsMBean {
-    private static final long BLOCK_SIZE = 4096;
+    private static final long BLOCK_SIZE = 4 * 1024;
     private final Weigher<Object, Object> memWeigher;
     private final Weigher<Object, Object> weigher;
     private final Cache<Object, Object> cache;
