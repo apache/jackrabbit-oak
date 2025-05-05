@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
-
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Set;
