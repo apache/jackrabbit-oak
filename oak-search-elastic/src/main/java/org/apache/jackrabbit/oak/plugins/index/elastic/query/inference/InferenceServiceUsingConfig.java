@@ -18,10 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -107,8 +110,8 @@ public class InferenceServiceUsingConfig implements InferenceService {
                 cache.put(text, result);
                 return result;
             }
-        } catch (Exception e) {
-            LOG.warn("Unable to get embeddings" + e.getMessage());
+        } catch (IOException | InterruptedException e) {
+            throw new InferenceServiceException("Failed to get embeddings", e);
         }
         return result;
     }
