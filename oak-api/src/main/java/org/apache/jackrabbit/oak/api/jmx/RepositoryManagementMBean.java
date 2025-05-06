@@ -49,23 +49,23 @@ import org.osgi.annotation.versioning.ProviderType;
  *     system is in a state where it does not allow the operation to
  *     be carried out (e.g. the operation is already running). The
  *     {@code message} should give further indication of the exact
- *     reason.</li>
+ *     reason.
  *     <li>{@code 1}: <em>Status not available</em>. Usually because
  *     there was no prior attempt to start the operation. The
  *     {@code message} should give further indication of the exact
- *     reason.</li>
+ *     reason.
  *     <li>{@code 2}: <em>Operation initiated</em>. The {@code message}
  *     should give further information of when the operation was
  *     initiated. This status mean that the operation will be performed
  *     some time in the future without impacting overall system behaviour
  *     and that no further status updates will be available until this
- *     operation is performed next time.</li>
- *     <li>{@code 3}: <em>Operation running</em>.</li>
+ *     operation is performed next time.
+ *     <li>{@code 3}: <em>Operation running</em>.
  *     <li>{@code 4}: <em>Operation succeeded</em>. The {@code message} should
  *     give further information on how long the operation took to
- *     complete.</li>
+ *     complete.
  *     <li>{@code 5}: Operation failed. The {@code message} should give
- *     further information on the reason for the failure.</li>
+ *     further information on the reason for the failure.
  * </ul>
  * <p>
  * In all cases the {@code message} may provide additional information

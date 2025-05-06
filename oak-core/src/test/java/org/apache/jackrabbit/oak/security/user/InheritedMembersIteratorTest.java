@@ -23,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.jetbrains.annotations.NotNull;
@@ -135,7 +136,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
     }
     
     private static @NotNull Set<String> getMembersIds(@NotNull InheritedMembersIterator it) {
-        return SetUtils.toSet(Iterators.transform(it, authorizable -> {
+        return SetUtils.toSet(IteratorUtils.transform(it, authorizable -> {
             try {
                 return authorizable.getID();
             } catch (RepositoryException repositoryException) {

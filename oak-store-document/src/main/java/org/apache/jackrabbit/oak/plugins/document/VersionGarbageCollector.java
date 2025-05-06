@@ -44,6 +44,7 @@ import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -128,7 +129,12 @@ public class VersionGarbageCollector {
     /**
      * Document id stored in settings collection that keeps info about version gc
      */
-    static final String SETTINGS_COLLECTION_ID = "versionGC";
+    public static final String SETTINGS_COLLECTION_ID = "versionGC";
+
+    /**
+     * Property name to sum the total size of removed garbage in bytes
+     */
+    public static final String SETTINGS_COLLECTION_FULL_GC_REMOVED_TOTAL_BSON_SIZE = "fullGcRemovedTotalBsonSize";
 
     /**
      * Property name to timestamp when last gc run happened
@@ -166,6 +172,7 @@ public class VersionGarbageCollector {
     static final String SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP = "fullGCDryRunId";
 
     private static FullGCMode fullGcMode = GAP_ORPHANS_EMPTYPROPS;
+    private final long fullGcGen;
 
     static FullGCMode getFullGcMode() {
         return fullGcMode;
@@ -270,6 +277,7 @@ public class VersionGarbageCollector {
     private GCMonitor gcMonitor = GCMonitor.EMPTY;
     private RevisionGCStats gcStats = new RevisionGCStats(NOOP);
     private FullGCStatsCollector fullGCStats = new FullGCStatsCollectorImpl(NOOP);
+    private FullGCMetricsExporter fullGCMetricsExporter;
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport,
@@ -304,7 +312,7 @@ public class VersionGarbageCollector {
         this.options = new VersionGCOptions();
 
         setFullGcMode(fullGCMode);
-        long fullGcGen = fullGCEnabled ? resetFullGcIfGenChange(fullGcGeneration) : fullGcGeneration;
+        this.fullGcGen = fullGCEnabled ? resetFullGcIfGenChange(fullGcGeneration) : fullGcGeneration;
         AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode: {}, maxFullGcAgeInMillis: {}, batchSize: {}, progressSize: {}, delayFactor: {}, fullGcGeneration: {}",
                 fullGcMode, fullGcMaxAgeInMillis, fullGCBatchSize, fullGCProgressSize, fullGCDelayFactor, fullGcGen);
     }
@@ -329,8 +337,25 @@ public class VersionGarbageCollector {
     }
 
     public void setStatisticsProvider(StatisticsProvider provider) {
+        setStatisticsProvider(provider, false);
+    }
+
+    public void setStatisticsProvider(StatisticsProvider provider, boolean pushMetrics) {
         this.gcStats = new RevisionGCStats(provider);
-        this.fullGCStats = new FullGCStatsCollectorImpl(provider);
+        this.fullGCStats = new FullGCStatsCollectorImpl(provider, pushMetrics);
+        // save OSGi configuration metrics
+        this.fullGCStats.enabled(fullGCEnabled);
+        this.fullGCStats.mode(fullGcMode.ordinal());
+        this.fullGCStats.delayFactor(fullGCDelayFactor);
+        this.fullGCStats.batchSize(fullGCBatchSize);
+        this.fullGCStats.progressSize(fullGCProgressSize);
+        this.fullGCStats.maxAge(fullGcMaxAgeInMillis);
+        this.fullGCStats.verificationEnabled(this.embeddedVerification);
+        this.fullGCStats.fullGCGeneration(this.fullGcGen);
+    }
+
+    public void setFullGCMetricsExporter(FullGCMetricsExporter exporter) {
+        this.fullGCMetricsExporter = exporter;
     }
 
     @NotNull
@@ -379,6 +404,9 @@ public class VersionGarbageCollector {
                 gcStats.finished(overall);
                 if (fullGCEnabled) {
                     fullGCStats.finished(overall);
+                    if (fullGCMetricsExporter != null) {
+                        fullGCMetricsExporter.onIterationComplete();
+                    }
                 }
                 if (overall.iterationCount > 1) {
                     gcMonitor.info("Revision garbage collection finished after {} iterations - aggregate statistics: {}",
@@ -981,6 +1009,9 @@ public class VersionGarbageCollector {
                                 fromModifiedMs = lastDoc.getModified() == null ? oldModifiedMs : SECONDS.toMillis(lastDoc.getModified());
                                 fromId = lastDoc.getId();
                             }
+                            if (fullGCMetricsExporter != null) {
+                                fullGCMetricsExporter.onIterationComplete();
+                            }
                         } finally {
                             Utils.closeIfCloseable(itr);
                             phases.stats.oldestModifiedDocTimeStamp = fromModifiedMs;
@@ -1543,7 +1574,7 @@ public class VersionGarbageCollector {
          * establishes whether a branch commit revision is committed or not - this is no
          * longer checked in this method. The resulting operations are added to the
          * provided updateOp.
-         * <p/>
+         * <p>
          * The actions depend on the exacty property key - here's the comprehensive list
          * of system properties and how they are handled:
          * <ul>
@@ -2334,11 +2365,11 @@ public class VersionGarbageCollector {
                 // previous ranges map. this works for first level previous
                 // documents only.
                 final Path path = doc.getPath();
-                return Iterators.transform(prevRanges.entrySet().iterator(),
+                return IteratorUtils.transform(prevRanges.entrySet().iterator(),
                         input -> Utils.getPreviousIdFor(path, input.getKey(), input.getValue().getHeight()));
             } else {
                 // need to fetch the previous documents to get their ids
-                return Iterators.transform(doc.getAllPreviousDocs(),
+                return IteratorUtils.transform(doc.getAllPreviousDocs(),
                         input -> input.getId());
             }
         }
@@ -2397,7 +2428,7 @@ public class VersionGarbageCollector {
 
         private Iterator<String> getPrevDocIdsToDelete() throws IOException {
             ensureSorted();
-            return Iterators.filter(prevDocIdsToDelete.getIds(),
+            return IteratorUtils.filter(prevDocIdsToDelete.getIds(),
                     input -> !exclude.contains(input));
         }
 

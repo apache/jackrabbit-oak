@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
@@ -54,7 +55,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.concat;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.ALL;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.EMPTY;
 
@@ -441,7 +441,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         if (groupStore != null) {
             groupEntries = groupStore.getEntryIterator(predicate);
         }
-        return concat(userEntries, groupEntries);
+        return IteratorUtils.chainedIterator(userEntries, groupEntries);
     }
 
     @Nullable
@@ -605,7 +605,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             if (groupStore != null) {
                 groupIt = new LazyIterator(this, false, predicate);
             }
-            return concat(userIt, groupIt);
+            return IteratorUtils.chainedIterator(userIt, groupIt);
         }
 
         @NotNull

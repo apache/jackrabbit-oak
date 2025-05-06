@@ -25,7 +25,7 @@ import java.util.Locale;
 public class PipelinedUtils {
     /**
      * <p>Format a percentage as a string with 2 decimal places. For instance:
-     * <code>formatAsPercentage(52, 1000)</code> returns <code>"5.20"</code>.</p>
+     * <code>formatAsPercentage(52, 1000)</code> returns <code>"5.20"</code>.
      */
     public static String formatAsPercentage(long numerator, long denominator) {
         if (denominator == 0) {

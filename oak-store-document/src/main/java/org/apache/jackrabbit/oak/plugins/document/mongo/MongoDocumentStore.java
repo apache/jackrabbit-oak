@@ -61,6 +61,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionExce
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
@@ -1266,7 +1267,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
 
             // if there are some changes left, we'll apply them one after another i.e. failed ones
-            final Iterator<UpdateOp> it = Iterators.concat(operationsToCover.values().iterator(), duplicates.iterator());
+            final Iterator<UpdateOp> it = IteratorUtils.chainedIterator(operationsToCover.values().iterator(), duplicates.iterator());
             while (it.hasNext()) {
                 UpdateOp op = it.next();
                 it.remove();
@@ -1364,7 +1365,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
 
             // if there are some changes left, we'll apply them one after another
-            Iterator<UpdateOp> it = Iterators.concat(operationsToCover.values().iterator(), duplicates.iterator());
+            Iterator<UpdateOp> it = IteratorUtils.chainedIterator(operationsToCover.values().iterator(), duplicates.iterator());
             while (it.hasNext()) {
                 UpdateOp op = it.next();
                 it.remove();

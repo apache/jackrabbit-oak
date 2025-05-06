@@ -103,7 +103,7 @@ public class CollisionRollbackTest {
      * MongoDocumentStore's nodesCache: when a document is read into
      * the nodesCache shortly before a collision is rolled back,
      * it runs risk of later making uncommitted changes visible.
-     * <p/>
+     * <p>
      * The test case works as follows:
      * <ul>
      * <li>consider clusterId 2 and 4 being active in a cluster</li>

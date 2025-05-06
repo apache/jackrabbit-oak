@@ -47,6 +47,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
@@ -113,7 +114,7 @@ public class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, Shar
     }
 
     @Override public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-        return  Iterators.transform(store.keySet().iterator(), input -> new DataIdentifier(input));
+        return  IteratorUtils.transform(store.keySet().iterator(), input -> new DataIdentifier(input));
     }
 
     @Override public void deleteRecord(DataIdentifier identifier) throws DataStoreException {

@@ -30,8 +30,8 @@ import java.util.List;
  * care of synchronizing the {@link #writeLine(String)} method calls), but the method
  * should be:
  * <ul>
- *  <li>atomic with regards to the {@link JournalFileReader},</li>
- *  <li><b>flushed to the storage</b>.</li>
+ *  <li>atomic with regards to the {@link JournalFileReader},
+ *  <li><b>flushed to the storage</b>.
  * </ul>
  */
 public interface JournalFileWriter extends Closeable {

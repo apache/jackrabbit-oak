@@ -59,13 +59,12 @@ import org.slf4j.LoggerFactory;
  * the following states:
  * <ul>
  * <li>active: the instance is currently running and has an up-to-date lease
- * </li>
  * <li>deactivating: the instance failed to update the lease recently thus a
  * recovery is happening - or it has just finished and the local instance is yet
  * to do a backgroundRead before it has finished reading the crashed/shutdown
- * instance's last changes</li>
+ * instance's last changes
  * <li>inactive: the instance is currently not running and all its changes have
- * been seen by the local instance</li>
+ * been seen by the local instance
  * </ul>
  * <p>
  * Additionally, the cluster-view is assigned a monotonically increasing
@@ -117,10 +116,10 @@ import org.slf4j.LoggerFactory;
  * Prerequisites that the clusterView mechanism is stable:
  * <ul>
  * <li>the machine clocks are reasonably in sync - that is, they should be off
- * by magnitudes less than the lease updateFrequency/timeout</li>
+ * by magnitudes less than the lease updateFrequency/timeout
  * <li>the write-delays from any instance to the mongo server where the
  * clusterNodes and settings collections are stored should be very fast - at
- * least orders of magnitudes lower again than the lease timeout</li>
+ * least orders of magnitudes lower again than the lease timeout
  * <li>when this instance notices that others have kicked it out of the
  * clusterView (which it can find out when either its clusterNodes document is
  * set to recovering or it is not in the clusterView anymore, although it just
@@ -130,7 +129,7 @@ import org.slf4j.LoggerFactory;
  * have stabilized - waiting for recovery of its own instance by the remaining
  * instances in the cluster to have finished - and then probably waiting for
  * another gracePeriod until it might rejoin the cluster. In between, any commit
- * should fail with BannedFromClusterException</li>
+ * should fail with BannedFromClusterException
  * </ul>
  * 
  * @see #OAK_DISCOVERYLITE_CLUSTERVIEW

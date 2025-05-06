@@ -41,14 +41,14 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
  *<p>
  * The conflict handler deals with the following conflicts:
  * <ul>
- *     <li>{@code addExistingProperty}  : {@code Resolution.MERGED}.</li>
+ *     <li>{@code addExistingProperty}  : {@code Resolution.MERGED}.
  *     <li>{@code changeDeletedProperty}: {@code Resolution.THEIRS}, removing the members property takes precedence.
  *     <li>{@code changeChangedProperty}: {@code Resolution.MERGED}, merge of the 2 members sets into a single one
  *     <li>{@code deleteChangedProperty}: {@code Resolution.OURS} removing the members property takes precedence.
- *     <li>{@code deleteDeletedProperty}: {@code Resolution.MERGED}.</li>
- *     <li>{@code changeDeletedNode}    : {@code Resolution.THEIRS}, removal takes precedence.</li>
- *     <li>{@code deleteChangedNode}    : {@code Resolution.OURS}, removal takes precedence.</li>
- *     <li>{@code deleteDeletedNode}    : {@code Resolution.MERGED}.</li>
+ *     <li>{@code deleteDeletedProperty}: {@code Resolution.MERGED}.
+ *     <li>{@code changeDeletedNode}    : {@code Resolution.THEIRS}, removal takes precedence.
+ *     <li>{@code deleteChangedNode}    : {@code Resolution.OURS}, removal takes precedence.
+ *     <li>{@code deleteDeletedNode}    : {@code Resolution.MERGED}.
  * </ul>
  */
 class RepMembersConflictHandler implements ThreeWayConflictHandler {

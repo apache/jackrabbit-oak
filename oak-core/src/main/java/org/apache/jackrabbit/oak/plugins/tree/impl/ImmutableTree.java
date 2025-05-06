@@ -58,11 +58,11 @@ import org.jetbrains.annotations.Nullable;
  *
  * <ul>
  *     <li>{@link DefaultParentProvider}: used with the default usage where the
- *     parent tree is passed to the constructor</li>
+ *     parent tree is passed to the constructor
  *     <li>{@link ParentProvider#ROOT_PROVIDER}: the default parent provider for
- *     the root tree. All children will get {@link DefaultParentProvider}</li>
+ *     the root tree. All children will get {@link DefaultParentProvider}
  *     <li>{@link ParentProvider#UNSUPPORTED}: throws {@code UnsupportedOperationException}
- *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()}</li>
+ *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()}
  * </ul>
  *
  * <h3>Filtering 'hidden' items</h3>

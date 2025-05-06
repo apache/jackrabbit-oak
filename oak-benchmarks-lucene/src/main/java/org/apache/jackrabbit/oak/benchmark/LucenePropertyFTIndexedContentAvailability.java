@@ -39,14 +39,11 @@ import org.slf4j.LoggerFactory;
  * Perform a benchmark on how long it takes for an ingested item to be available in a Lucene
  * Property index when indexed in conjunction with a Global full-text lucene (same thread). It makes
  * use of the {@link WikipediaImport} to use a Wikipedia dump for content injestion.
- * </p>
  * <p>
  * Suggested dump: 
  * <a href="https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2">https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2</a>
- * </p>
  * <p>
  * Usage example:
- * </p>
  * 
  * <pre>
  * java -Druntime=900 -Dlogback.configurationFile=logback-benchmark.xml \
@@ -56,7 +53,6 @@ import org.slf4j.LoggerFactory;
  * </pre>
  * <p>
  * it will run the benchmark for 15 minutes against TarNS and MongoNS.
- * </p>
  */
 public class LucenePropertyFTIndexedContentAvailability extends PropertyFullTextTest {
     private static final Logger LOG = LoggerFactory.getLogger(LucenePropertyFTIndexedContentAvailability.class);

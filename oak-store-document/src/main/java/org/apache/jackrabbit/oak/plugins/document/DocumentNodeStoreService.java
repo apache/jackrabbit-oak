@@ -792,7 +792,6 @@ public class DocumentNodeStoreService {
      * <p>
      * This method iterates over the provided varargs of features and closes each one
      * that is not null.
-     * </p>
      *
      * @param features a varargs of {@link Feature} objects to be closed.
      */

@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -651,7 +652,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         Set<Principal> principalSet = Collections.singleton(getTestGroupPrincipal());
         Iterator<AccessControlPolicy> effective = cugAccessControlManager.getEffectivePolicies(principalSet, new String[0]);
         assertTrue(effective.hasNext());
-        assertEquivalentCugs(cugAccessControlManager.getEffectivePolicies(principalSet), Iterators.toArray(effective, AccessControlPolicy.class));
+        assertEquivalentCugs(cugAccessControlManager.getEffectivePolicies(principalSet), IteratorUtils.toArray(effective, AccessControlPolicy.class));
     }
 
     @Test
@@ -662,7 +663,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         String[] paths = null;
         Iterator<AccessControlPolicy> effective = cugAccessControlManager.getEffectivePolicies(principalSet, paths);
         assertTrue(effective.hasNext());
-        assertEquivalentCugs(cugAccessControlManager.getEffectivePolicies(principalSet), Iterators.toArray(effective, AccessControlPolicy.class));
+        assertEquivalentCugs(cugAccessControlManager.getEffectivePolicies(principalSet), IteratorUtils.toArray(effective, AccessControlPolicy.class));
     }
 
     @Test
@@ -688,7 +689,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         Set<Principal> principalSet = Collections.singleton(getTestGroupPrincipal());
         Iterator<AccessControlPolicy> effective = cugAccessControlManager.getEffectivePolicies(principalSet, cugPath, cugPath);
         assertTrue(effective.hasNext());
-        assertEquivalentCugs(cugAccessControlManager.getEffectivePolicies(cugPath), Iterators.toArray(effective, AccessControlPolicy.class));
+        assertEquivalentCugs(cugAccessControlManager.getEffectivePolicies(cugPath), IteratorUtils.toArray(effective, AccessControlPolicy.class));
     }
 
     @Test
@@ -707,8 +708,8 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         String cugPath = "/content/a";
         Set<Principal> principalSet = Collections.singleton(getTestGroupPrincipal());
         Iterator<AccessControlPolicy> effective = cugAccessControlManager.getEffectivePolicies(principalSet, cugPath+"/jcr:primaryType");
-        AccessControlPolicy[] expected = Iterators.toArray(cugAccessControlManager.getEffectivePolicies(principalSet, cugPath), AccessControlPolicy.class);
-        assertEquivalentCugs(expected, Iterators.toArray(effective, AccessControlPolicy.class));
+        AccessControlPolicy[] expected = IteratorUtils.toArray(cugAccessControlManager.getEffectivePolicies(principalSet, cugPath), AccessControlPolicy.class);
+        assertEquivalentCugs(expected, IteratorUtils.toArray(effective, AccessControlPolicy.class));
     }
 
     @Test

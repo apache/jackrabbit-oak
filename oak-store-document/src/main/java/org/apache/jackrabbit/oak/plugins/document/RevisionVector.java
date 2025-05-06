@@ -221,7 +221,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
             }
         }
         // add remaining
-        Iterators.addAll(pmax, it);
+        it.forEachRemaining(pmax::add);
         return new RevisionVector(IterableUtils.toArray(pmax, Revision.class), false, false);
     }
 

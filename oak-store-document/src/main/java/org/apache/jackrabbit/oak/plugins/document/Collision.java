@@ -35,9 +35,9 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isPropertyNa
  * includes the following situations:
  * <ul>
  * <li>Our commit goes to trunk and another session committed to a branch
- * not yet merged back.</li>
+ * not yet merged back.
  * <li>Our commit goes to a branch and another session committed to trunk
- * or some other branch.</li>
+ * or some other branch.
  * </ul>
  * Other collisions like concurrent commits to trunk are handled earlier and
  * do not require collision marking.

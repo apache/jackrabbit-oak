@@ -563,7 +563,6 @@ public final class NodeDocument extends Document {
      *     <bold>Note</bold> - This method should only be invoked upon startup
      *     as then only we can safely assume that these revisions would not be
      *     committed
-     * </p>
      *
      * @param clusterId the clusterId.
      * @param batchSize the batch size to purge uncommitted revisions

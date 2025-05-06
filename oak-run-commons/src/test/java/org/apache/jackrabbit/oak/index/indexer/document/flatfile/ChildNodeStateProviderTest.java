@@ -26,6 +26,7 @@ import java.util.Set;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -183,7 +184,7 @@ public class ChildNodeStateProviderTest {
     }
 
     private Iterator<String> childNames(Iterator<NodeStateEntry> children) {
-        return Iterators.transform(children, c -> PathUtils.getName(c.getPath()));
+        return IteratorUtils.transform(children, c -> PathUtils.getName(c.getPath()));
     }
 
 }

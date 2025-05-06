@@ -52,12 +52,11 @@ import org.slf4j.LoggerFactory;
  * Checker that ensures the consistency of unique entries in the various mounts
  * 
  * <p>For all unique indexes, it checks that the uniqueness constraint holds when
- * taking into account the combined index from all the mounts, including the global one.</p>
+ * taking into account the combined index from all the mounts, including the global one.
  * 
  * <p>Being a one-off check, it does not strictly implement the {@link #check(MountedNodeStore, Tree, ErrorHolder, Context)}
  * contract in terms of navigating the specified tree, but instead accesses the index definitions node directly
- * on first access and skips all subsequent executions.</p>
- *
+ * on first access and skips all subsequent executions.
  */
 @Component(service = {MountedNodeStoreChecker.class})
 public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<UniqueIndexNodeStoreChecker.Context> {

@@ -51,6 +51,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
@@ -358,7 +359,9 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // Check getAllIdentifiers
         Iterator<String> idsIter = stagingCache.getAllIdentifiers();
-        assertEquals(ID_PREFIX + 0, Iterators.getOnlyElement(idsIter));
+        final List<String> idsList = ListUtils.toList(idsIter);
+        assertEquals(ID_PREFIX + 0, idsList.get(0));
+        assertEquals(1, idsList.size());
 
         //start
         taskLatch.countDown();

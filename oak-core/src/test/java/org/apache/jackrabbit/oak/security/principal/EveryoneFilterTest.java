@@ -68,7 +68,7 @@ public class EveryoneFilterTest {
 
     @Test
     public void testMissingEveryoneNoRange() {
-        Iterator<Principal> principals = Iterators.singletonIterator(anotherPrincipal);
+        Iterator<Principal> principals = Collections.singleton(anotherPrincipal).iterator();
         Iterator<Principal> result = EveryoneFilter.filter(principals, EveryonePrincipal.NAME, searchType, 0, Long.MAX_VALUE);
 
         int expectedSize = adjustExpectedSize(searchType, 1);

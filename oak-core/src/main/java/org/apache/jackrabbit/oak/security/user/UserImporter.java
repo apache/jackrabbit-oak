@@ -97,42 +97,39 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
  * <ul>
  * <li>The importer will only be initialized if the user manager exposed by
  * the session is an instance of {@code UserManagerImpl}.
- * </li>
  * <li>The importer will only be initialized if the editing session starting
  * this import is the same as the UserManager's Session instance.
- * </li>
  * <li>The jcr:uuid property of user and groups is defined to represent the
  * hashed authorizable id as calculated by the UserManager. This importer
  * is therefore not able to handle imports with
- * {@link ImportUUIDBehavior#IMPORT_UUID_CREATE_NEW}.</li>
+ * {@link ImportUUIDBehavior#IMPORT_UUID_CREATE_NEW}.
  * <li>Importing user/group nodes outside of the hierarchy defined by the two
  * configuration options
  * {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_PATH}
  * and {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_USER_PATH}
  * will fail upon {@code Root#commit()}. The same may
  * be true in case of {@link ImportUUIDBehavior#IMPORT_UUID_COLLISION_REPLACE_EXISTING}
- * inserting the user/group node at some other place in the node hierarchy.</li>
+ * inserting the user/group node at some other place in the node hierarchy.
  * <li>The same commit hook will make sure that authorizables are never nested
  * and are created below a hierarchy of nt:AuthorizableFolder nodes. This isn't
  * enforced by means of node type constraints but only by the API. This importer
- * itself currently doesn't perform such a validation check.</li>
+ * itself currently doesn't perform such a validation check.
  * <li>Any attempt to import conflicting data will cause the import to fail
  * either immediately or upon calling {@link javax.jcr.Session#save()} with the
  * following exceptions:
  * <ul>
- * <li>{@code rep:members} : Group membership</li>
- * <li>{@code rep:impersonators} : Impersonators of a User.</li>
+ * <li>{@code rep:members} : Group membership
+ * <li>{@code rep:impersonators} : Impersonators of a User.
  * </ul>
  * The import behavior of these two properties is defined by the {@link #PARAM_IMPORT_BEHAVIOR}
  * configuration parameter, which can be set to
  * <ul>
- * <li>{@link ImportBehavior#NAME_IGNORE ignore}: A warning is logged.</li>
+ * <li>{@link ImportBehavior#NAME_IGNORE ignore}: A warning is logged.
  * <li>{@link ImportBehavior#NAME_BESTEFFORT best effort}: A warning is logged
- * and the importer tries to fix the problem.</li>
+ * and the importer tries to fix the problem.
  * <li>{@link ImportBehavior#NAME_ABORT abort}: The import is immediately
- * aborted with a ConstraintViolationException. (<strong>default</strong>)</li>
+ * aborted with a ConstraintViolationException. (<strong>default</strong>)
  * </ul>
- * </li>
  * </ul>
  */
 class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, UserConstants {

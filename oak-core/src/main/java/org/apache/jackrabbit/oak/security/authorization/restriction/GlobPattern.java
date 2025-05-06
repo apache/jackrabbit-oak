@@ -46,7 +46,6 @@ import static java.util.Objects.requireNonNull;
  * /foo         |   null          |   matches /foo and all descendants of /foo
  * /foo         |   ""            |   matches /foo only (no descendants, not even properties)
  * </pre>
- * </p>
  *
  * <p>
  * Examples without wildcard char:
@@ -59,7 +58,6 @@ import static java.util.Objects.requireNonNull;
  * cat           |   '/foocat' and all it's descendants
  * cat/          |   all descendants of '/foocat'
  * </pre>
- * </p>
  *
  * <p>
  * Examples including wildcard char:
@@ -78,7 +76,6 @@ import static java.util.Objects.requireNonNull;
  * &#42;cat/&#42;    |   all siblings and descendants of foo that have an intermediate segment ending with 'cat'
  * /&#42;cat/&#42;   |   all descendants of /foo that have an intermediate segment ending with 'cat'
  * </pre>
- * </p>
  */
 final class GlobPattern implements RestrictionPattern {
 

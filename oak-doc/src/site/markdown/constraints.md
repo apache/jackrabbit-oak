@@ -40,7 +40,7 @@ a (local) name (see [JCR v2.0 Specification, Section 5.2.2.1](https://s.apache.o
 Finally, the chosen persistence implementation might restrict node names even further.
 See [Node Name Length Limit](./differences.md#node-name-length-limit).
 
-The namespace for prefix `rep` (`internal`) is not a valid URI therefore you can only use the qualified names but not the expanded names ([JCR v2.0 Specification, Section 3.2.5](https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5%20Lexical%20Form%20of%20JCR%20Names)) when addressing items in that namespace([OAK-74](https://issues.apache.org/jira/browse/OAK-74)).
+The namespace for prefix `rep` (=`internal`) is not a valid URI, however still used in the namespace registry. Therefore local names starting with `{internal}` (which clashes with the [expanded name](https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5%20Lexical%20Form%20of%20JCR%20Names) for namespace prefix `rep:`) are not allowed in Oak ([OAK-74](https://issues.apache.org/jira/browse/OAK-74)).
 
 ## Invalid Java Strings
 

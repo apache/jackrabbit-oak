@@ -54,9 +54,9 @@ import org.junit.Test;
  *   {@link #getConfiguration()} method.
  *   Change the JAAS configuration and use the {@link #testLogin()} method to
  *   walk through the login. For example
- *   > look at ConfigurationUtil for various options
- *   > manually create a different configuration with different control flags
- *   > create a configuration that also includes the {@link CustomLoginModule}
+ *   + look at ConfigurationUtil for various options
+ *   + manually create a different configuration with different control flags
+ *   + create a configuration that also includes the {@link CustomLoginModule}
  *   Discuss your findings
  *
  *

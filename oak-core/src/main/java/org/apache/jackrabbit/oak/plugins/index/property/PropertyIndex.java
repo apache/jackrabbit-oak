@@ -45,25 +45,22 @@ import org.slf4j.LoggerFactory;
  * <br>
  * Next (as a child node) follows the index definition node that:
  * <ul>
- * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
- * <li>must have the <code>type</code> property set to <b><code>property</code></b></li>
- * <li>contains the <code>propertyNames</code> property that indicates what property will be stored in the index</li>
+ * <li>must be of type <code>oak:QueryIndexDefinition</code>
+ * <li>must have the <code>type</code> property set to <b><code>property</code></b>
+ * <li>contains the <code>propertyNames</code> property that indicates what property will be stored in the index
  * </ul>
- * </p>
  * <p>
  * Optionally you can specify
  * <ul> 
- * <li> a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code></li>
- * <li> that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property</li>
+ * <li> a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code>
+ * <li> that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property
  * </ul>
- * </p>
  * <p>
  * Notes:
  * <ul>
- * <li> <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value</li>
- * <li> <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.</li>
+ * <li> <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
+ * <li> <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.
  * </ul>
- * </p>
  * 
  * <pre>
  * <code>

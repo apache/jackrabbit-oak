@@ -150,11 +150,9 @@ public interface Query {
      * returns a clone of the current object. Will throw an exception in case it's invoked in a non
      * appropriate moment. For example the default {@link QueryImpl} cannot be cloned once the
      * {@link #init()} has been executed.
-     * </p>
-     * 
+     *
      * <p>
      * <strong>May return null if not implemented.</strong>
-     * </p>
      * @return a clone of self
      * @throws IllegalStateException
      */

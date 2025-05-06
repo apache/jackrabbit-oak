@@ -182,7 +182,7 @@ public class DataStoreTextWriter implements TextWriter, Closeable, PreExtractedT
     /**
      * Returns the identified file. This method implements the pattern
      * used to avoid problems with too many files in a single directory.
-     * <p/>
+     * <p>
      * No sanity checks are performed on the given identifier.
      *
      * @param identifier file name

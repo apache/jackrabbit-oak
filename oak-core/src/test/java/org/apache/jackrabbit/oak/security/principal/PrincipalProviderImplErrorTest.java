@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -35,6 +36,7 @@ import org.mockito.stubbing.Answer;
 import javax.jcr.RepositoryException;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -167,7 +169,7 @@ public class PrincipalProviderImplErrorTest extends AbstractSecurityTest {
         Principal p = testUser.getPrincipal();
 
         User userMock = when(mock(User.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
-        UserManager um = when(mock(UserManager.class).findAuthorizables(any(Query.class))).thenReturn(Iterators.singletonIterator(userMock)).getMock();
+        UserManager um = when(mock(UserManager.class).findAuthorizables(any(Query.class))).thenReturn(Collections.singleton(((Authorizable) userMock)).iterator()).getMock();
 
         Iterator it = createPrincipalProvider(um).findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertFalse(it.hasNext());

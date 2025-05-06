@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user.autosave;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -104,14 +105,14 @@ public class AuthorizableImplTest extends AbstractAutoSaveTest {
 
     @Test
     public void testDeclaredMemberOf() throws Exception {
-        assertTrue(Iterators.elementsEqual(dlg.declaredMemberOf(), a.declaredMemberOf()));
+        assertTrue(IteratorUtils.elementsEqual(dlg.declaredMemberOf(), a.declaredMemberOf()));
         verify(dlg, times(2)).declaredMemberOf();
         verify(autosaveMgr, never()).autosave();
     }
 
     @Test
     public void testMemberOf() throws Exception {
-        assertTrue(Iterators.elementsEqual(dlg.memberOf(), a.memberOf()));
+        assertTrue(IteratorUtils.elementsEqual(dlg.memberOf(), a.memberOf()));
         verify(dlg, times(2)).memberOf();
         verify(autosaveMgr, never()).autosave();
     }
@@ -125,14 +126,14 @@ public class AuthorizableImplTest extends AbstractAutoSaveTest {
 
     @Test
     public void testGetPropertyNames() throws Exception {
-        assertTrue(Iterators.elementsEqual(dlg.getPropertyNames(), a.getPropertyNames()));
+        assertTrue(IteratorUtils.elementsEqual(dlg.getPropertyNames(), a.getPropertyNames()));
         verify(dlg, times(2)).getPropertyNames();
         verify(autosaveMgr, never()).autosave();
     }
 
     @Test
     public void testGetPropertyNamesRelPath() throws Exception {
-        assertTrue(Iterators.elementsEqual(dlg.getPropertyNames("."), a.getPropertyNames(".")));
+        assertTrue(IteratorUtils.elementsEqual(dlg.getPropertyNames("."), a.getPropertyNames(".")));
         verify(dlg, times(2)).getPropertyNames(".");
         verify(autosaveMgr, never()).autosave();
     }

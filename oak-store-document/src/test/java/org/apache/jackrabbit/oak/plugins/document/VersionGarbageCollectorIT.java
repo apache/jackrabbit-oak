@@ -3654,7 +3654,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(foo);
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
-        List<String> prevIds = ListUtils.toList(Iterators.transform(
+        List<String> prevIds = ListUtils.toList(IteratorUtils.transform(
                 foo.getPreviousDocLeaves(), input -> input.getId()));
 
         // run gc on another document node store

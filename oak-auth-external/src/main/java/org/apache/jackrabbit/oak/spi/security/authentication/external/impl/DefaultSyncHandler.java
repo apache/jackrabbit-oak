@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Deactivate;
@@ -226,7 +227,7 @@ public class DefaultSyncHandler implements SyncHandler, AutoMembershipAware {
         
         @Override
         public Iterator<Authorizable> getAutoMembers(@NotNull UserManager userManager, @NotNull Group group) {
-            return Iterators.concat(getServices().stream().map(autoMembershipConfig -> autoMembershipConfig.getAutoMembers(userManager, group)).iterator());
+            return IteratorUtils.chainedIterator(getServices().stream().map(autoMembershipConfig -> autoMembershipConfig.getAutoMembers(userManager, group)).iterator());
         }
     }
 }

@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
@@ -58,6 +59,12 @@ public final class DefaultStatisticsProvider implements StatisticsProvider {
     @Override
     public HistogramStats getHistogram(String name, StatsOptions options) {
         return getStats(name, true, SimpleStats.Type.HISTOGRAM, options);
+    }
+
+    @Override
+    public <T> GaugeStats<T> getGauge(String name, Supplier<T> supplier) {
+        return statsMeters.computeIfAbsent(name,
+                k -> new SimpleStats<>(new AtomicLong(), SimpleStats.Type.GAUGE, supplier.get()));
     }
 
     private synchronized SimpleStats getStats(String type, boolean resetValueEachSecond, SimpleStats.Type statsType,
