@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -95,7 +96,7 @@ public class InferenceServiceUsingIndexConfig implements InferenceService{
 
             cache.put(text, result);
             return result;
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             throw new InferenceServiceException("Failed to get embeddings", e);
         }
     }
