@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getStrings;
 import static org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory.createReadOnlyRoot;
 import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.NAMESPACES_PATH;
-import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.NAMESPACE_REP;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_URIS;

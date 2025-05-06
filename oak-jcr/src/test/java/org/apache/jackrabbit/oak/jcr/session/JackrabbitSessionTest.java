@@ -26,7 +26,6 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.Item;
 import javax.jcr.NamespaceException;
 import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 
