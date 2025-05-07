@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
-import org.apache.jackrabbit.oak.spi.query.fulltext.InferenceQuery;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
 
 import java.text.ParseException;
 import java.util.Collections;
@@ -145,8 +145,8 @@ public class FullTextSearchImpl extends ConstraintImpl {
             // So here we split the query into text part of query and inferenceConfig part of query.
             // Afterwards we only parse text part of query as this part of query is what we want to search.
             if (query.getSettings().isInferenceEnabled()) {
-                InferenceQuery inferenceQuery = new InferenceQuery(rawText);
-                queryText = inferenceQuery.getQueryText();
+                VectorQuery vectorQuery = new VectorQuery(rawText);
+                queryText = vectorQuery.getQueryText();
             }
             FullTextExpression e = FullTextParser.parse(p2, queryText);
             return new FullTextContains(p2, rawText, e);

@@ -22,25 +22,25 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class InferenceQueryTest {
+public class VectorQueryTest {
 
     @Test
     public void testBasicQuery() {
-        InferenceQuery query = new InferenceQuery("simple query");
+        VectorQuery query = new VectorQuery("simple query");
         assertEquals("", query.getQueryInferenceConfig());
         assertEquals("simple query", query.getQueryText());
     }
 
     @Test
     public void testQueryWithInferenceConfig() {
-        InferenceQuery query = new InferenceQuery("?{\"model\":\"gpt-4\"}?search for oak trees");
+        VectorQuery query = new VectorQuery("?{\"model\":\"gpt-4\"}?search for oak trees");
         assertEquals("{\"model\":\"gpt-4\"}", query.getQueryInferenceConfig());
         assertEquals("search for oak trees", query.getQueryText());
     }
 
     @Test
     public void testQueryWithComplexInferenceConfig() {
-        InferenceQuery query = new InferenceQuery(
+        VectorQuery query = new VectorQuery(
             "?{\"model\":\"gpt-4\",\"temperature\":0.7,\"options\":{\"filter\":true}}?oak trees");
         assertEquals("{\"model\":\"gpt-4\",\"temperature\":0.7,\"options\":{\"filter\":true}}",
             query.getQueryInferenceConfig());
@@ -49,42 +49,42 @@ public class InferenceQueryTest {
 
     @Test
     public void testQueryWithQuestionMarksInText() {
-        InferenceQuery query = new InferenceQuery("?{\"model\":\"gpt-4\"}?what are oak trees?");
+        VectorQuery query = new VectorQuery("?{\"model\":\"gpt-4\"}?what are oak trees?");
         assertEquals("{\"model\":\"gpt-4\"}", query.getQueryInferenceConfig());
         assertEquals("what are oak trees?", query.getQueryText());
     }
 
     @Test
     public void testQueryWithoutInferencePrefix() {
-        InferenceQuery query = new InferenceQuery("{\"model\":\"gpt-4\"}?query");
+        VectorQuery query = new VectorQuery("{\"model\":\"gpt-4\"}?query");
         assertEquals("", query.getQueryInferenceConfig());
         assertEquals("{\"model\":\"gpt-4\"}?query", query.getQueryText());
     }
 
     @Test
     public void testQueryWithInvalidJson() {
-        InferenceQuery query = new InferenceQuery("?{invalid json}?query");
+        VectorQuery query = new VectorQuery("?{invalid json}?query");
         assertEquals("", query.getQueryInferenceConfig());
         assertEquals("{invalid json}?query", query.getQueryText());
     }
 
     @Test
     public void testQueryWithEmptyConfig() {
-        InferenceQuery query = new InferenceQuery("??query text");
+        VectorQuery query = new VectorQuery("??query text");
         assertEquals("", query.getQueryInferenceConfig());
         assertEquals("??query text", query.getQueryText());
     }
 
     @Test
     public void testQueryWithWhitespace() {
-        InferenceQuery query = new InferenceQuery("   ?{\"model\":\"gpt-4\"}?   search query   ");
+        VectorQuery query = new VectorQuery("   ?{\"model\":\"gpt-4\"}?   search query   ");
         assertEquals("{\"model\":\"gpt-4\"}", query.getQueryInferenceConfig());
         assertEquals("search query", query.getQueryText());
     }
 
     @Test
     public void testEmptyQuery() {
-        InferenceQuery query = new InferenceQuery("");
+        VectorQuery query = new VectorQuery("");
         assertEquals("", query.getQueryInferenceConfig());
         assertEquals("", query.getQueryText());
     }

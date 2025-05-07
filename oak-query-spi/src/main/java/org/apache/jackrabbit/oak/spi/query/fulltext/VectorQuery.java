@@ -24,8 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class InferenceQuery {
-    private static final Logger LOG = LoggerFactory.getLogger(InferenceQuery.class);
+public class VectorQuery {
+    private static final Logger LOG = LoggerFactory.getLogger(VectorQuery.class);
     private static final String DEFAULT_INFERENCE_QUERY_CONFIG_PREFIX = "?";
     private static final String INFERENCE_QUERY_CONFIG_PREFIX_KEY = "org.apache.jackrabbit.oak.search.inference.query.prefix";
     public static final String INFERENCE_QUERY_CONFIG_PREFIX = System.getProperty(
@@ -34,7 +34,7 @@ public class InferenceQuery {
     private final String queryInferenceConfig;
     private final String queryText;
 
-    public InferenceQuery(@NotNull String text) {
+    public VectorQuery(@NotNull String text) {
         String[] components = parseText(text);
         this.queryInferenceConfig = components[0];
         this.queryText = components[1];
