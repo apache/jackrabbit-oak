@@ -55,6 +55,7 @@ public class InferenceConfig {
      * Map of index names to their respective inference configurations
      */
     private Map<String, InferenceIndexConfig> indexConfigs;
+    private EnricherStatus enricherStatus;
     private NodeStore nodeStore;
     private String inferenceConfigPath;
     private String currentInferenceConfig;
@@ -77,6 +78,7 @@ public class InferenceConfig {
             activeInferenceConfig = getNewInferenceConfigId();
             currentInferenceConfig = activeInferenceConfig;
             isInferenceEnabled = false;
+            enricherStatus = EnricherStatus.NOOP;
         } finally {
             lock.writeLock().unlock();
         }
@@ -112,6 +114,7 @@ public class InferenceConfig {
             INSTANCE.nodeStore = nodeStore;
             INSTANCE.inferenceConfigPath = inferenceConfigPath;
             INSTANCE.isInferenceEnabled = isInferenceEnabled;
+            INSTANCE.enricherStatus = new EnricherStatus(nodeStore, inferenceConfigPath);
 
             if (!isValidInferenceConfig(nodeStore, inferenceConfigPath)) {
                 INSTANCE.enabled = false;
@@ -186,6 +189,15 @@ public class InferenceConfig {
             lock.readLock().unlock();
         }
 
+    }
+
+    public Map<String, Object> getEnricherStatus(){
+        lock.readLock().lock();
+        try {
+            return INSTANCE.enricherStatus.getEnricherStatus();
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     private @NotNull Map<String, InferenceIndexConfig> getIndexConfigs() {
