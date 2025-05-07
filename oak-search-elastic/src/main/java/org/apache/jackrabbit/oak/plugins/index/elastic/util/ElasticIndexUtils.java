@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,7 +120,8 @@ public class ElasticIndexUtils {
      */
     public static String sha256Hash(byte[] input) {
         try {
-            return new String(MessageDigest.getInstance("SHA-256").digest(input), StandardCharsets.UTF_8);
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(input);
+            return StringUtils.convertBytesToHex(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
