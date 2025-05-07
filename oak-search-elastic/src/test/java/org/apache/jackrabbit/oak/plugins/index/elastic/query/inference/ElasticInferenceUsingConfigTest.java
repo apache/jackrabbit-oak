@@ -336,4 +336,253 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         assertNotNull(carsDocUpdated.get(InferenceConstants.VECTOR_SPACES));
 
     }
+
+    @Test
+    public void testEnricherStatus() throws Exception {
+        String jcrIndexName = UUID.randomUUID().toString();
+        String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
+        String inferenceModelConfigName = "ada-test-model";
+        String inferenceModelName = "text-embedding-ada-002";
+
+        // Create inference config with enricher information
+        createInferenceConfig(jcrIndexName, true, enricherConfig, inferenceModelConfigName,
+            inferenceModelName, inferenceServiceUrl,
+            0.8, 1L, true, true);
+
+        // Create and set up the node with enricher status information
+        NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+        NodeBuilder nodeBuilder = rootBuilder;
+        for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
+            nodeBuilder = nodeBuilder.child(path);
+        }
+        // Add enricher status node
+        NodeBuilder enrichNodeBuilder = nodeBuilder.child(InferenceConstants.ENRICH_NODE);
+        enrichNodeBuilder.setProperty("lastUpdated", System.currentTimeMillis());
+        enrichNodeBuilder.setProperty("status", "active");
+        enrichNodeBuilder.setProperty("documentsProcessed", 100);
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexDefinitionBuilder builder = createIndex();
+        builder.includedPaths("/content")
+            .indexRule("nt:base")
+            .property("title").propertyIndex().analyzed().nodeScopeIndex()
+            .property("description").propertyIndex().analyzed().nodeScopeIndex();
+
+        Tree index = setIndex(jcrIndexName, builder);
+        root.commit();
+
+        // Add content
+        Tree content = root.getTree("/").addChild("content");
+        Tree document = content.addChild("document");
+        document.setProperty("title", "Test Document");
+        document.setProperty("description", "This is a test document to verify enricher status is included in document updates.");
+        root.commit();
+
+        // Let the index catch up
+        assertEventually(() -> assertEquals(2, countDocuments(index)));
+
+        // Get the document and check that it has the enricher status
+        ObjectNode docNode = getDocument(index, "/content/document");
+        assertNotNull(docNode);
+
+        // Add another property to trigger an update
+        document.setProperty("updatedAt", Instant.now().toString());
+        root.commit();
+
+        // Let the index catch up with the update
+        assertEventually(() -> {
+            ObjectNode updatedDoc = getDocument(index, "/content/document");
+            assertNotNull(updatedDoc.get(InferenceConstants.ENRICH_NODE));
+            JsonNode enrichNode = updatedDoc.get(InferenceConstants.ENRICH_NODE);
+            assertNotNull(enrichNode);
+            assertNotNull(enrichNode.get("lastUpdated"));
+            assertEquals("active", enrichNode.get("status").asText());
+            assertEquals(100, enrichNode.get("documentsProcessed").asInt());
+        });
+    }
+
+    @Test
+    public void testEnricherStatusPreservedWithVectorEmbeddings() throws Exception {
+        String jcrIndexName = UUID.randomUUID().toString();
+        String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
+        String inferenceModelConfigName = "ada-test-model";
+        String inferenceModelName = "text-embedding-ada-002";
+
+        // Create inference config with enricher information
+        createInferenceConfig(jcrIndexName, true, enricherConfig, inferenceModelConfigName,
+            inferenceModelName, inferenceServiceUrl,
+            0.8, 1L, true, true);
+
+        // Create and set up the node with enricher status information
+        NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+        NodeBuilder nodeBuilder = rootBuilder;
+        for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
+            nodeBuilder = nodeBuilder.child(path);
+        }
+        // Add enricher status node
+        NodeBuilder enrichNode = nodeBuilder.child(InferenceConstants.ENRICH_NODE);
+        enrichNode.setProperty("lastUpdated", System.currentTimeMillis());
+        enrichNode.setProperty("status", "active");
+        enrichNode.setProperty("documentsProcessed", 100);
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexDefinitionBuilder builder = createIndex();
+        builder.includedPaths("/content")
+            .indexRule("nt:base")
+            .property("title").propertyIndex().analyzed().nodeScopeIndex()
+            .property("description").propertyIndex().analyzed().nodeScopeIndex()
+            .property("updatedBy").propertyIndex();
+
+        Tree index = setIndex(jcrIndexName, builder);
+        root.commit();
+
+        // Add content
+        Tree content = root.getTree("/").addChild("content");
+        Tree document = content.addChild("document");
+        document.setProperty("title", "Test Document with Embeddings");
+        document.setProperty("description", "This is a test document that will have vector embeddings and enricher status.");
+        root.commit();
+
+        // Let the index catch up
+        assertEventually(() -> assertEquals(2, countDocuments(index)));
+
+        // Create an update with vector embeddings
+        ObjectMapper mapper = new JsonMapper();
+        ObjectNode updateDoc = mapper.createObjectNode();
+        List<Float> embeddings = List.of(0.1f, 0.2f, 0.3f, 0.4f, 0.5f);
+        VectorDocument vectorDocument = new VectorDocument(UUID.randomUUID().toString(), embeddings,
+            Map.of("updatedAt", Instant.now().toEpochMilli(), "model", inferenceModelName));
+        ObjectNode vectorSpacesNode = updateDoc.putObject(InferenceConstants.VECTOR_SPACES);
+        ArrayNode inferenceModelConfigNode = vectorSpacesNode.putArray(inferenceModelConfigName);
+        inferenceModelConfigNode.addPOJO(vectorDocument);
+
+        // Update the document with vector embeddings
+        updateDocument(index, "/content/document", updateDoc);
+
+        // Verify the document has the embeddings
+        assertEventually(() -> {
+            ObjectNode docWithEmbeddings = getDocument(index, "/content/document");
+            assertNotNull(docWithEmbeddings.get(InferenceConstants.VECTOR_SPACES));
+            JsonNode vectorSpaces = docWithEmbeddings.get(InferenceConstants.VECTOR_SPACES);
+            assertNotNull(vectorSpaces.get(inferenceModelConfigName));
+        });
+
+        // Now update a property to trigger another update which should preserve the embeddings
+        // and also add the enricher status
+        document.setProperty("updatedBy", "Test User");
+        root.commit();
+
+        // Verify the document still has embeddings and now has enricher status
+        assertEventually(() -> {
+            ObjectNode updatedDoc = getDocument(index, "/content/document");
+
+            // Check that the vector embeddings are preserved
+            assertNotNull(updatedDoc.get(InferenceConstants.VECTOR_SPACES));
+            JsonNode vectorSpaces = updatedDoc.get(InferenceConstants.VECTOR_SPACES);
+            assertNotNull(vectorSpaces.get(inferenceModelConfigName));
+
+            // Check that the enricher status is present
+            assertNotNull(updatedDoc.get(InferenceConstants.ENRICH_NODE));
+            JsonNode enrichNodeData = updatedDoc.get(InferenceConstants.ENRICH_NODE);
+            assertNotNull(enrichNodeData.get("lastUpdated"));
+            assertEquals("active", enrichNodeData.get("status").asText());
+            assertEquals(100, enrichNodeData.get("documentsProcessed").asInt());
+
+            // Check that the updated property is present
+            assertEquals("Test User", updatedDoc.get("updatedBy").asText());
+        });
+    }
+
+    @Test
+    public void testEnricherStatusOnReinitialization() throws Exception {
+        String jcrIndexName = UUID.randomUUID().toString();
+        String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
+        String inferenceModelConfigName = "ada-test-model";
+        String inferenceModelName = "text-embedding-ada-002";
+
+        // Create inference config
+        createInferenceConfig(jcrIndexName, true, enricherConfig, inferenceModelConfigName,
+            inferenceModelName, inferenceServiceUrl,
+            0.8, 1L, true, true);
+
+        // Create and set up the node with initial enricher status
+        NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+        NodeBuilder nodeBuilder = rootBuilder;
+        for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
+            nodeBuilder = nodeBuilder.child(path);
+        }
+        // Add enricher status node with initial values
+        NodeBuilder enrichNode = nodeBuilder.child(InferenceConstants.ENRICH_NODE);
+        long initialTime = System.currentTimeMillis();
+        enrichNode.setProperty("lastUpdated", initialTime);
+        enrichNode.setProperty("status", "initializing");
+        enrichNode.setProperty("documentsProcessed", 0);
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Force reinitialization of InferenceConfig
+        InferenceConfig.reInitialize();
+
+        // Verify initial enricher status
+        Map<String, Object> initialStatus = InferenceConfig.getInstance().getEnricherStatus();
+        assertNotNull(initialStatus);
+        assertEquals(initialTime, initialStatus.get("lastUpdated"));
+        assertEquals("initializing", initialStatus.get("status"));
+        assertEquals(0L, initialStatus.get("documentsProcessed"));
+
+        // Create and set up the node with updated enricher status
+        rootBuilder = nodeStore.getRoot().builder();
+        nodeBuilder = rootBuilder;
+        for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
+            nodeBuilder = nodeBuilder.child(path);
+        }
+        // Update enricher status node with new values
+        enrichNode = nodeBuilder.child(InferenceConstants.ENRICH_NODE);
+        long updatedTime = System.currentTimeMillis() + 1000; // Ensure it's different
+        enrichNode.setProperty("lastUpdated", updatedTime);
+        enrichNode.setProperty("status", "active");
+        enrichNode.setProperty("documentsProcessed", 200);
+        // Add a new property
+        enrichNode.setProperty("errorCount", 5);
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Force reinitialization of InferenceConfig
+        InferenceConfig.reInitialize();
+
+        // Verify updated enricher status
+        Map<String, Object> updatedStatus = InferenceConfig.getInstance().getEnricherStatus();
+        assertNotNull(updatedStatus);
+        assertEquals(updatedTime, updatedStatus.get("lastUpdated"));
+        assertEquals("active", updatedStatus.get("status"));
+        assertEquals(200L, updatedStatus.get("documentsProcessed"));
+        assertEquals(5L, updatedStatus.get("errorCount"));
+
+        // Create an index and verify the enricher status gets included in document updates
+        IndexDefinitionBuilder builder = createIndex();
+        builder.includedPaths("/content")
+            .indexRule("nt:base")
+            .property("title").propertyIndex().analyzed().nodeScopeIndex();
+
+        Tree index = setIndex(jcrIndexName, builder);
+        root.commit();
+
+        // Add content
+        Tree content = root.getTree("/").addChild("content");
+        Tree document = content.addChild("document");
+        document.setProperty("title", "Test Document for Reinitialization");
+        root.commit();
+
+        // Let the index catch up
+        assertEventually(() -> assertEquals(2, countDocuments(index)));
+
+        // Verify the enricher status in the indexed document
+        assertEventually(() -> {
+            ObjectNode docNode = getDocument(index, "/content/document");
+            assertNotNull(docNode.get(InferenceConstants.ENRICH_NODE));
+            JsonNode enrichNodeData = docNode.get(InferenceConstants.ENRICH_NODE);
+            assertEquals(updatedTime, enrichNodeData.get("lastUpdated").asLong());
+            assertEquals("active", enrichNodeData.get("status").asText());
+            assertEquals(200, enrichNodeData.get("documentsProcessed").asInt());
+            assertEquals(5, enrichNodeData.get("errorCount").asInt());
+        });
+    }
 }

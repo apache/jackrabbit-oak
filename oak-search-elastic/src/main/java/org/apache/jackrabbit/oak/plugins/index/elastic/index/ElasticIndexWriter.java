@@ -160,43 +160,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             if (InferenceConfig.getInstance().isInferenceEnabled()
                 && InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
                 doc.addProperty(InferenceConstants.ENRICH_NODE,
-                    Map.of(InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_PENDING));
-            }
-            /*
-
-                Once inference is enabled, it is not trivial to disable it.  As inference configuration in Elasticsearch (ES)
-                is persisted only during the creation of a new index
-                or reindexing of an existing one. This means that the enricher configuration is updated only under
-                these conditions. If we want to disable inference on instance, the existing enricher configuration
-                remains unchanged, and the enricher will continue processing new documents.
-
-                To stop the enricher from processing documents, we need to explicitly update the enricher status to
-                `COMPLETED` in the ES document by adding the following structure:
-                {
-                    :enrich {
-                        "status": "COMPLETED",
-                        "inferenceDisabled": true
-                    }
-                }
-
-                The `inferenceDisabled` flag is added to allow for potential evaluations at a later stage.
-
-                This should happen in all cases where we try to disable inference i.e.
-
-                1. Inference is disabled in ElasticIndexProviderService but InferenceConfig is valid.
-                2. Inference is enabled and InferenceConfig is not equal to InferenceConfig.NOOP i.e.
-                    any of the properties is different from below:
-                    enricherConfig = "";
-                    isEnabled = false;
-                    inferenceModelConfigs = Map.of();
-                 Note: This is possible by not setting enricherConfig to empty string as other fields are set to default values.
-             */
-            else {
-                Map<String, Object> enrichDocStatus = Map.of(
-                        InferenceConstants.ENRICH_STATUS, InferenceConstants.ENRICH_STATUS_COMPLETED,
-                        InferenceConstants.ENRICH_STATUS_INFERENCE_DISABLED, true
-                );
-                doc.addProperty(InferenceConstants.ENRICH_NODE, enrichDocStatus);
+                    InferenceConfig.getInstance().getEnricherStatus());
             }
             bulkProcessorHandler.update(indexName, ElasticIndexUtils.idFromPath(path), doc);
         }
