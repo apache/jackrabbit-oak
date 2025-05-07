@@ -31,6 +31,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
@@ -65,6 +66,10 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
 
     protected static final String DOWNLOAD_DIR = "download";
 
+    private static final long ONE_SECOND_IN_MILLIS = 1000;
+
+    private static final AtomicLong lastLogMessage = new AtomicLong();
+
     /**
      * Parent of the cache root directory
      */
@@ -96,6 +101,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     // unless if there are too many entries, in which cache
     // the limit is adjusted
     private long currentBlockLimit;
+    private long highWaterMark;
 
     private FileCache(long maxSize /* bytes */, File root,
         final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
@@ -151,8 +157,18 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                 try {
                     if (value != null && getFile(key).exists()
                         && cause != RemovalCause.REPLACED) {
+                        long last = lastLogMessage.get();
                         DataStoreCacheUtils.recursiveDelete(getFile(key), cacheRoot);
-                        LOG.info("File [{}] evicted with reason [{}]", getFile(key), cause);
+                        long now = System.currentTimeMillis();
+                        if (now - last >= ONE_SECOND_IN_MILLIS) {
+                            if (lastLogMessage.compareAndSet(last, now)) {
+                                String reason = cause.toString();
+                                if ("SIZE".equals(reason) && currentBlockLimit != maxBlocks) {
+                                    reason = "ENTRY_COUNT > " + maxEntryCount;
+                                }
+                                LOG.info("File [{}] evicted with reason [{}]", getFile(key), reason);
+                            }
+                        }
                     }
                 } catch (IOException e) {
                     LOG.info("Cached file deletion failed after eviction", e);
@@ -303,34 +319,47 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     }
 
     private void adjustSize() {
-        if (cache.size() < maxEntryCount * 0.9 && currentBlockLimit  == maxBlocks) {
+        long currentSize = cache.size();
+        if (currentSize > highWaterMark) {
+            highWaterMark = currentSize;
+            if (highWaterMark % 50_000 == 0) {
+                LOG.info("New high water mark: {} entries", highWaterMark);
+            }
+        }
+        if (currentSize < maxEntryCount * 0.9 && currentBlockLimit  == maxBlocks) {
             // normal case:
             // less than 90% of the max number of entries,
             // and the limit is unchanged
             return;
         }
-        if (cache.size() < maxEntryCount) {
-            if (cache.size() >= maxEntryCount * 0.9) {
+        if (currentSize < maxEntryCount) {
+            if (currentSize >= maxEntryCount * 0.9) {
                 // more than 90% full: keep current limit
                 return;
             }
             // possibly increase the limit, to allow for more files
             if (currentBlockLimit < maxBlocks) {
                 // not yet at the maximum:
-                // grow the maximum size, one block at the time, starting at the current
-                currentBlockLimit = Math.max(currentBlockLimit + 1, cache.getUsedMemory() + 1);
+                // grow the maximum size, 10 blocks at the time,
+                // starting at the current size
+                currentBlockLimit = Math.max(
+                        currentBlockLimit + 10,
+                        cache.getUsedMemory() + 10);
                 // never grow larger than the configured size
                 currentBlockLimit = Math.min(currentBlockLimit, maxBlocks);
-                LOG.info("Grow the cache size to {}", currentBlockLimit);
+                LOG.debug("Grow the cache size to {}", currentBlockLimit);
                 cache.setMaxMemory(currentBlockLimit);
             }
             return;
         }
-        // shrink the cache, one block at the time, starting at the current size
-        currentBlockLimit = Math.min(currentBlockLimit - 1, cache.getUsedMemory() - 1);
+        // shrink the cache, 2 percent at the time, starting at the current size
+        currentBlockLimit = Math.min(
+                (int) (currentBlockLimit * 0.98 - 1),
+                (int) (cache.getUsedMemory() * 0.98 - 1));
         // never grow larger than the configured size
         currentBlockLimit = Math.min(currentBlockLimit, maxBlocks);
-        LOG.info("Shrink the cache size to {}", currentBlockLimit);
+        LOG.info("Shrinking the file cache size to {} because there are {} files (limit: {})",
+                currentBlockLimit, cache.size(), maxEntryCount);
         cache.setMaxMemory(currentBlockLimit);
     }
 
