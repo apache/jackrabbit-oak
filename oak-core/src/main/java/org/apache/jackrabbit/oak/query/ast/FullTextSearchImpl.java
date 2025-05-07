@@ -140,7 +140,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
             String rawText = getRawText(v);
             String queryText = rawText;
             // To use inference we need to add inferenceconfig information in query. The format for the query is
-            // <inferenceprefix><json with inferenceModelConfig><inferencePrefix>
+            // <inferencePrefix><json with inferenceModelConfig><inferencePrefix>
             // e.g. ?{"inferenceModelConfig": "ada-test-model"}?little red fox
             // So here we split the query into text part of query and inferenceConfig part of query.
             // Afterwards we only parse text part of query as this part of query is what we want to search.

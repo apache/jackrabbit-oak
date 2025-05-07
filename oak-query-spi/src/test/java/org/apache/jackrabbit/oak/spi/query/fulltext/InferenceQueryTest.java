@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.spi.query.fulltext;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class InferenceQueryTest {
 
@@ -42,7 +42,7 @@ public class InferenceQueryTest {
     public void testQueryWithComplexInferenceConfig() {
         InferenceQuery query = new InferenceQuery(
             "?{\"model\":\"gpt-4\",\"temperature\":0.7,\"options\":{\"filter\":true}}?oak trees");
-        assertEquals("{\"model\":\"gpt-4\",\"temperature\":0.7,\"options\":{\"filter\":true}}", 
+        assertEquals("{\"model\":\"gpt-4\",\"temperature\":0.7,\"options\":{\"filter\":true}}",
             query.getQueryInferenceConfig());
         assertEquals("oak trees", query.getQueryText());
     }

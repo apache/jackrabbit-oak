@@ -34,7 +34,6 @@ public class InferenceQueryConfig {
     public InferenceQueryConfig(@NotNull String queryConfig) {
         if (queryConfig.isBlank()){
             this.inferenceModelConfig = null;
-            return;
         } else if (queryConfig.equals("{}")) {
             // in this case a default inferenceModelConfig will be used.
             this.inferenceModelConfig = "";
@@ -43,7 +42,7 @@ public class InferenceQueryConfig {
                 JsonNode jsonNode1 = objectMapper.readTree(queryConfig);
                 inferenceModelConfig = jsonNode1.get(TYPE).asText();
             } catch (JsonProcessingException e) {
-                throw new RuntimeException("Error parsing inference query config: "+ queryConfig  + "error message:" + e.getMessage());
+                throw new RuntimeException("Error parsing inference query config: "+ queryConfig  + "error message: " + e.getMessage());
             }
         }
     }
