@@ -401,6 +401,31 @@ public class IterableUtilsTest {
     }
 
     @Test
+    public void testPartitionReturnsUnmodifiableLists() {
+        List<String> list = new ArrayList<>(Arrays.asList("a", "b", "c"));
+        Iterable<List<String>> partitioned = IterableUtils.partition(list, 2);
+
+        List<String> partition = partitioned.iterator().next();
+        Assert.assertThrows(UnsupportedOperationException.class, () -> partition.add("d")); // Should throw UnsupportedOperationException
+    }
+
+    @Test
+    public void testPartitionWithRemovableIterable() {
+        List<String> list = new ArrayList<>(Arrays.asList("a", "b", "c", "d"));
+        Iterable<List<String>> partitioned = IterableUtils.partition(list, 2);
+
+        // Get first partition
+        List<String> partition = partitioned.iterator().next();
+        Assert.assertEquals(Arrays.asList("a", "b"), partition);
+
+        // Original iterator shouldn't support removal through partition
+        Assert.assertThrows(UnsupportedOperationException.class, partitioned.iterator()::remove);
+
+        // But original list should still have all elements
+        Assert.assertEquals(Arrays.asList("a", "b", "c", "d"), list);
+    }
+
+    @Test
     public void testFilterWithNonEmptyIterable() {
         Iterable<Integer> iterable = Arrays.asList(1, 2, 3, 4, 5);
         Predicate<Integer> predicate = x -> x % 2 == 0;

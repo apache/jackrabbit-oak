@@ -238,28 +238,7 @@ public class IterableUtils {
         return new Iterable<>() {
             @Override
             public @NotNull Iterator<List<T>> iterator() {
-                return new Iterator<>() {
-                    private final Iterator<T> iterator = itr.iterator();
-
-                    @Override
-                    public boolean hasNext() {
-                        return iterator.hasNext();
-                    }
-
-                    @Override
-                    public List<T> next() {
-                        // check if there are elements left, throw an exception if not
-                        if (!hasNext()) {
-                            throw new NoSuchElementException();
-                        }
-
-                        List<T> currentPartition = new ArrayList<>(size);
-                        for (int i = 0; i < size && iterator.hasNext(); i++) {
-                            currentPartition.add(iterator.next());
-                        }
-                        return currentPartition;
-                    }
-                };
+                return IteratorUtils.partition(itr.iterator(), size);
             }
         };
     }

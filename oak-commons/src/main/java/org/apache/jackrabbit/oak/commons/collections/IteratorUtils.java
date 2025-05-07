@@ -20,12 +20,17 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import org.apache.commons.collections4.iterators.IteratorChain;
 import org.apache.commons.collections4.iterators.PeekingIterator;
+import org.apache.commons.collections4.iterators.UnmodifiableIterator;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.PriorityQueue;
@@ -473,6 +478,58 @@ public class IteratorUtils {
      */
     public static <E> Iterator<E> cycle(final Iterable<E> iterable) {
         return org.apache.commons.collections4.IteratorUtils.loopingIterator(CollectionUtils.toCollection(iterable));
+    }
+
+    /**
+     * Returns an iterator that partitions the elements of another iterator into fixed-size lists.
+     * <p>
+     * This method creates a new iterator that will group elements from the source iterator
+     * into lists of the specified size. The final list may be smaller than the requested size
+     * if there are not enough elements remaining in the source iterator.
+     * <p>
+     * The returned lists are unmodifiable. The source iterator is consumed only as the
+     * returned iterator is advanced.
+     * <p>
+     * Example usage:
+     * <pre>
+     * Iterator&lt;Integer&gt; numbers = Arrays.asList(1, 2, 3, 4, 5).iterator();
+     * Iterator&lt;List&lt;Integer&gt;&gt; partitioned = IteratorUtils.partition(numbers, 2);
+     * // partitioned will iterate through [1, 2], [3, 4], [5]
+     * </pre>
+     *
+     * @param <T> the type of elements in the source iterator
+     * @param iterator the source iterator to partition, must not be null
+     * @param size the size of each partition, must be greater than 0
+     * @return an iterator of fixed-size lists containing the elements of the source iterator
+     * @throws NullPointerException if the iterator is null
+     * @throws IllegalArgumentException if size is less than or equal to 0
+     */
+    public static <T> Iterator<List<T>> partition(final Iterator<T> iterator, final int size) {
+
+        Objects.requireNonNull(iterator, "Iterator must not be null.");
+        Validate.checkArgument(size > 0, "Size must be greater than 0.");
+
+        return UnmodifiableIterator.unmodifiableIterator(new Iterator<>() {
+
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public List<T> next() {
+                // check if there are elements left, throw an exception if not
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+
+                final List<T> currentPartition = new ArrayList<>(size);
+                for (int i = 0; i < size && iterator.hasNext(); i++) {
+                    currentPartition.add(iterator.next());
+                }
+                return Collections.unmodifiableList(currentPartition);
+            }
+        });
     }
 }
 
