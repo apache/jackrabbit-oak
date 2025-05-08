@@ -1246,4 +1246,95 @@ public class IteratorUtilsTest {
         // But original list should still have all elements
         Assert.assertEquals(Arrays.asList("a", "b", "c", "d"), list);
     }
+
+    @Test
+    public void testLimitWithSmallerLimit() {
+        List<String> list = Arrays.asList("a", "b", "c", "d");
+        Iterator<String> limited = IteratorUtils.limit(list.iterator(), 2);
+
+        Assert.assertTrue(limited.hasNext());
+        Assert.assertEquals("a", limited.next());
+        Assert.assertTrue(limited.hasNext());
+        Assert.assertEquals("b", limited.next());
+        Assert.assertFalse(limited.hasNext());
+    }
+
+    @Test
+    public void testLimitWithLargerLimit() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        Iterator<String> limited = IteratorUtils.limit(list.iterator(), 5);
+
+        Assert.assertTrue(limited.hasNext());
+        Assert.assertEquals("a", limited.next());
+        Assert.assertTrue(limited.hasNext());
+        Assert.assertEquals("b", limited.next());
+        Assert.assertTrue(limited.hasNext());
+        Assert.assertEquals("c", limited.next());
+        Assert.assertFalse(limited.hasNext());
+    }
+
+    @Test
+    public void testLimitWithEqualLimit() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        Iterator<String> limited = IteratorUtils.limit(list.iterator(), 3);
+
+        Assert.assertTrue(limited.hasNext());
+        Assert.assertEquals("a", limited.next());
+        Assert.assertTrue(limited.hasNext());
+        Assert.assertEquals("b", limited.next());
+        Assert.assertTrue(limited.hasNext());
+        Assert.assertEquals("c", limited.next());
+        Assert.assertFalse(limited.hasNext());
+    }
+
+    @Test
+    public void testLimitWithZeroLimit() {
+        List<String> list = Arrays.asList("a", "b", "c");
+        Iterator<String> limited = IteratorUtils.limit(list.iterator(), 0);
+
+        Assert.assertFalse(limited.hasNext());
+    }
+
+    @Test
+    public void testLimitWithEmptyIterator() {
+        Iterator<String> limited = IteratorUtils.limit(Collections.emptyIterator(), 5);
+        Assert.assertFalse(limited.hasNext());
+    }
+
+    @Test
+    public void testLimitWithNullIterator() {
+        Assert.assertThrows(NullPointerException.class, () -> IteratorUtils.limit(null, 5));
+    }
+
+    @Test
+    public void testLimitWithNegativeLimit() {
+        final List<String> list = List.of("a", "b", "c");
+        Assert.assertThrows(IllegalArgumentException.class, () -> IteratorUtils.limit(list.iterator(), -1));
+    }
+
+    @Test
+    public void testLimitWithRemove() {
+        List<String> list = new ArrayList<>(Arrays.asList("a", "b", "c"));
+        Iterator<String> limited = IteratorUtils.limit(list.iterator(), 2);
+
+        Assert.assertEquals("a", limited.next());
+        limited.remove(); // Remove "a"
+        Assert.assertEquals("b", limited.next());
+
+        Assert.assertEquals(List.of("b", "c"), list);
+    }
+
+    @Test
+    public void testLimitChaining() {
+        List<Integer> list = Arrays.asList(1, 2, 3, 4, 5, 6);
+        Iterator<Integer> limited = IteratorUtils.limit(list.iterator(), 4); // First 4 elements
+        Iterator<Integer> furtherLimited = IteratorUtils.limit(limited, 2); // First 2 of those 4
+
+        List<Integer> result = new ArrayList<>();
+        while (furtherLimited.hasNext()) {
+            result.add(furtherLimited.next());
+        }
+
+        Assert.assertEquals(List.of(1, 2), result);
+    }
 }
