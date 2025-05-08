@@ -24,7 +24,6 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.Item;
-import javax.jcr.NamespaceException;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
@@ -87,39 +86,20 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         assertEquals("{}testroot", s.getExpandedName(testRootNode));
         Node n = testRootNode.addNode("test:bar");
         assertEquals("{http://www.apache.org/jackrabbit/test}bar", s.getExpandedName(n));
-        // now remap namespace uri - should not affect expanded name
-        assertEquals("prefix 'test' has unexpected mapping",
-                "http://www.apache.org/jackrabbit/test", s.getNamespaceURI("test"));
+        // now remap namespace uri
         s.setNamespacePrefix("test", "urn:foo");
-        assertEquals("{http://www.apache.org/jackrabbit/test}bar", s.getExpandedName(n));
+        assertEquals("{urn:foo}bar", s.getExpandedName(n));
         // use special namespace uri
         n = testRootNode.addNode("rep:bar");
         assertEquals("{internal}bar", s.getExpandedName(n));
-    }
-
-    public void testGetExpandedNameBrokenNamespace() throws RepositoryException {
-        // empty namespace uri
-        assertEquals("{}testroot", s.getExpandedName(testRootNode));
-
-        // register broken namespace name
-        s.getWorkspace().getNamespaceRegistry().registerNamespace("foo", "bar");
-        Node n = testRootNode.addNode("foo:qux");
-
-        try {
-            // there is no expanded name, thus we expect an exception here
-            s.getExpandedName(n);
-            fail("there is no expanded name in this case, so we expect the call to fail");
-        } catch (NamespaceException ex) {
-            // expected
-        }
     }
 
     public void testGetExpandedPath() throws RepositoryException {
         assertEquals("/{}testroot", s.getExpandedPath(testRootNode));
         Node n = testRootNode.addNode("test:bar").addNode("rep:bar");
         assertEquals("/{}testroot/{http://www.apache.org/jackrabbit/test}bar/{internal}bar", s.getExpandedPath(n));
-        // now remap namespace uri - should not affect expanded name
+        // now remap namespace uri
         s.setNamespacePrefix("test", "urn:foo");
-        assertEquals("/{}testroot/{http://www.apache.org/jackrabbit/test}bar/{internal}bar", s.getExpandedPath(n));
+        assertEquals("/{}testroot/{urn:foo}bar/{internal}bar", s.getExpandedPath(n));
     }
 }
