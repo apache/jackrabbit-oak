@@ -77,7 +77,6 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.partition;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
@@ -2441,7 +2440,7 @@ public class VersionGarbageCollector {
             }
             monitor.info("Proceeding to delete [{}] documents [{}]", numDocuments, label);
 
-            Iterator<List<String>> idListItr = partition(docIdsToDelete, DELETE_BATCH_SIZE);
+            Iterator<List<String>> idListItr = IteratorUtils.partition(docIdsToDelete, DELETE_BATCH_SIZE);
             int deletedCount = 0;
             int lastLoggedCount = 0;
             int recreatedCount = 0;
@@ -2542,8 +2541,7 @@ public class VersionGarbageCollector {
 
             int deletedCount = 0;
             int lastLoggedCount = 0;
-            Iterator<List<String>> idListItr =
-                    partition(getPrevDocIdsToDelete(), DELETE_BATCH_SIZE);
+            Iterator<List<String>> idListItr = IteratorUtils.partition(getPrevDocIdsToDelete(), DELETE_BATCH_SIZE);
             while (idListItr.hasNext() && !cancel.get()) {
                 List<String> deletionBatch = idListItr.next();
                 deletedCount += deletionBatch.size();
