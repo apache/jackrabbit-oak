@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.EnvironmentVariableProcessorUtil;
-import org.apache.jackrabbit.oak.spi.query.fulltext.InferenceQueryConfig;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQueryConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +41,7 @@ public class InferenceModelConfig {
     public static final String INFERENCE_PAYLOAD = "inferencePayload";
     // InferenceQueryConfig also uses InferenceModelConfig.TYPE so referencing
     // it from InferenceQueryConfig.
-    public static final String TYPE = InferenceQueryConfig.TYPE;
+    public static final String TYPE = VectorQueryConfig.TYPE;
     public static final String MIN_TERMS = "minTerms";
     public static final String IS_DEFAULT = "isDefault";
     public static final String ENABLED = "enabled";

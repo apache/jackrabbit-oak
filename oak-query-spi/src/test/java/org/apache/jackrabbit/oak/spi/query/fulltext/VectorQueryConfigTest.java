@@ -27,29 +27,29 @@ public class VectorQueryConfigTest {
 
     @Test
     public void testEmptyConfig() {
-        InferenceQueryConfig config = new InferenceQueryConfig("");
+        VectorQueryConfig config = new VectorQueryConfig("");
         assertNull(config.getInferenceModelConfig());
     }
 
     @Test
     public void testEmptyJsonConfig() {
-        InferenceQueryConfig config = new InferenceQueryConfig("{}");
+        VectorQueryConfig config = new VectorQueryConfig("{}");
         assertEquals("", config.getInferenceModelConfig());
     }
 
     @Test
     public void testValidConfig() {
-        InferenceQueryConfig config = new InferenceQueryConfig("{\"inferenceModelConfig\":\"ada-test-model\"}");
+        VectorQueryConfig config = new VectorQueryConfig("{\"inferenceModelConfig\":\"ada-test-model\"}");
         assertEquals("ada-test-model", config.getInferenceModelConfig());
     }
 
     @Test(expected = RuntimeException.class)
     public void testInvalidJsonConfig() {
-        new InferenceQueryConfig("{invalid json}");
+        new VectorQueryConfig("{invalid json}");
     }
 
     @Test(expected = RuntimeException.class)
     public void testMissingTypeConfig() {
-        new InferenceQueryConfig("{\"someOtherField\":\"value\"}");
+        new VectorQueryConfig("{\"someOtherField\":\"value\"}");
     }
 }
