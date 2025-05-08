@@ -102,6 +102,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     // the limit is adjusted
     private long currentBlockLimit;
     private long highWaterMark;
+    private long loggedWaterMark;
 
     private FileCache(long maxSize /* bytes */, File root,
         final CacheLoader<String, InputStream> loader, @Nullable final ExecutorService executor) {
@@ -322,8 +323,10 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         long currentSize = cache.size();
         if (currentSize > highWaterMark) {
             highWaterMark = currentSize;
-            if (highWaterMark % 50_000 == 0) {
-                LOG.info("New high water mark: {} entries", highWaterMark);
+            // low for each additional 50'000 entries
+            while (highWaterMark > loggedWaterMark + 50_000) {
+                loggedWaterMark += 50_000;
+                LOG.info("New high water mark: {} entries", loggedWaterMark);
             }
         }
         if (currentSize < maxEntryCount * 0.9 && currentBlockLimit  == maxBlocks) {
