@@ -24,14 +24,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class InferenceQueryConfig {
+public class VectorQueryConfig {
     public static final String TYPE = "inferenceModelConfig";
     @Nullable
     private final String inferenceModelConfig;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public InferenceQueryConfig(@NotNull String queryConfig) {
+    public VectorQueryConfig(@NotNull String queryConfig) {
         if (queryConfig.isBlank()){
             this.inferenceModelConfig = null;
         } else if (queryConfig.equals("{}")) {
