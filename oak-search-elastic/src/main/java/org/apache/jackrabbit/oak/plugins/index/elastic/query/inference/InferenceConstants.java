@@ -23,6 +23,8 @@ public interface InferenceConstants {
     String ENRICHER_CONFIG = "enricherConfig";
     String TYPE = "type";
     String DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH = "/oak:index/:inferenceConfig";
+    String VECTOR_SPACES = ":vectorSpaces";
+    String VECTOR = "vector";
     String ENRICH_NODE = ":enrich";
     String DEFAULT_ENVIRONMENT_VARIABLE_PREFIX = "$";
     String INFERENCE_ENVIRONMENT_VARIABLE_PREFIX = System.getProperty("org.apache.jackrabbit.oak.plugins.index.elastic.query.inference", DEFAULT_ENVIRONMENT_VARIABLE_PREFIX);
