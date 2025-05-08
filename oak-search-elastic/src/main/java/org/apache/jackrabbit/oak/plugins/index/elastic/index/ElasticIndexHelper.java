@@ -134,6 +134,7 @@ class ElasticIndexHelper {
             throw new RuntimeException("enricherConfig parsing should never fail as it is validated in InferenceIndexConfig" + e.getMessage());
         }
 
+        //todo: we should make these mappings configurable
         builder.properties(InferenceConstants.VECTOR_SPACES, b -> b.object(spaces -> {
             for (var inferenceModelConfig : inferenceIndexConfig.getInferenceModelConfigs().entrySet()) {
                 if (inferenceModelConfig.getValue().isEnabled()) {

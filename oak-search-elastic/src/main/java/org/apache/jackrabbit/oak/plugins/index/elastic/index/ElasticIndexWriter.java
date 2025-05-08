@@ -157,11 +157,6 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             && (InferenceIndexConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName))))) {
             bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
         } else {
-            if (InferenceConfig.getInstance().isInferenceEnabled()
-                && InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName).isEnabled()) {
-                doc.addProperty(InferenceConstants.ENRICH_NODE,
-                    InferenceConfig.getInstance().getEnricherStatus());
-            }
             bulkProcessorHandler.update(indexName, ElasticIndexUtils.idFromPath(path), doc);
         }
     }

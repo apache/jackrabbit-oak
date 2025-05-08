@@ -21,9 +21,12 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -67,6 +70,11 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
         // When specifically disabled, we will keep indexing it, but the field won't be used at query time
         doc.indexAncestors(path);
         doc.setLastUpdated(System.currentTimeMillis());
+        if (InferenceConfig.getInstance().isInferenceEnabled()
+            && InferenceConfig.getInstance().getInferenceIndexConfig(PathUtils.getName(definition.getIndexName())).isEnabled()) {
+            doc.addProperty(InferenceConstants.ENRICH_NODE,
+                InferenceConfig.getInstance().getEnricherStatus());
+        }
         return doc;
     }
 
