@@ -113,7 +113,7 @@ public class AbstractDataStoreCacheTest {
     }
 
 
-    static class TestCacheLoader<S, I> extends CacheLoader<String, FileInputStream> {
+    static class TestCacheLoader extends CacheLoader<String, InputStream> {
         protected File root;
 
         public TestCacheLoader(File dir) {
@@ -164,7 +164,7 @@ public class AbstractDataStoreCacheTest {
     /**
      * Test loader which uses the ErrorInputStream for load
      */
-    static class TestErrorCacheLoader<S, I> extends TestCacheLoader<String, FileInputStream> {
+    static class TestErrorCacheLoader extends TestCacheLoader {
         private long max;
 
         public TestErrorCacheLoader(File dir, long max) {
