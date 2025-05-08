@@ -18,25 +18,24 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
-import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
-import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Set;
 
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 
 /**
  * A fulltext "contains(...)" condition.
@@ -70,7 +69,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
         } else {
             this.propertyName = propertyName;
         }
-
+        
         this.fullTextSearchExpression = fullTextSearchExpression;
     }
 
@@ -138,27 +137,17 @@ public class FullTextSearchImpl extends ConstraintImpl {
             }
             String p2 = normalizePropertyName(p);
             String rawText = getRawText(v);
-            String queryText = rawText;
-            // To use inference we need to add inferenceconfig information in query. The format for the query is
-            // <inferencePrefix><json with inferenceModelConfig><inferencePrefix>
-            // e.g. ?{"inferenceModelConfig": "ada-test-model"}?little red fox
-            // So here we split the query into text part of query and inferenceConfig part of query.
-            // Afterwards we only parse text part of query as this part of query is what we want to search.
-            if (query.getSettings().isInferenceEnabled()) {
-                VectorQuery vectorQuery = new VectorQuery(rawText);
-                queryText = vectorQuery.getQueryText();
-            }
-            FullTextExpression e = FullTextParser.parse(p2, queryText);
+            FullTextExpression e = FullTextParser.parse(p2, rawText);
             return new FullTextContains(p2, rawText, e);
         } catch (ParseException e) {
             throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
         }
     }
-
+    
     String getRawText(PropertyValue v) {
         return v.getValue(Type.STRING);
     }
-
+    
     @Override
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
@@ -166,9 +155,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     /**
      * verify that a property exists in the node. {@code property IS NOT NULL}
-     *
+     * 
      * @param propertyName the property to check
-     * @param selector     the selector to work with
+     * @param selector the selector to work with
      * @return true if the property is there, false otherwise.
      */
     boolean enforcePropertyExistence(String propertyName, SelectorImpl selector) {
@@ -178,7 +167,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
         }
         return true;
     }
-
+    
     @Override
     public boolean evaluate() {
         // disable evaluation if a fulltext index is used,
@@ -236,7 +225,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
         }
         return getFullTextConstraint(selector).evaluate(buff.toString());
     }
-
+    
     @Override
     public boolean evaluateStop() {
         // if a fulltext index is used, then we are fine
@@ -289,7 +278,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
     /**
      * restrict the provided property to the property to the provided filter achieving so
      * {@code property IS NOT NULL}
-     *
+     * 
      * @param propertyName
      * @param f
      */

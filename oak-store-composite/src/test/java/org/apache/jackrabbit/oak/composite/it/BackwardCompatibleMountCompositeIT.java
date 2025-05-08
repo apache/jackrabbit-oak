@@ -36,7 +36,6 @@ import org.ops4j.pax.exam.spi.reactors.PerMethod;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.options;
 
 /**

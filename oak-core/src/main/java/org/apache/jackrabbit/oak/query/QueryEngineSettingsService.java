@@ -86,12 +86,6 @@ public class QueryEngineSettingsService {
                 )
         String[] ignoredClassNamesInCallTrace() default {};
 
-        @AttributeDefinition(
-                name = "Enable inference query parsing",
-                description = "If enabled the query engine will parse the query, infers the inference index config from query"
-        )
-        boolean isInferenceEnabled() default DEFAULT_IS_INFERENCE_ENABLED;
-
     }
 
     // should be the same as QueryEngineSettings.DEFAULT_QUERY_LIMIT_IN_MEMORY
@@ -107,9 +101,6 @@ public class QueryEngineSettingsService {
     
     static final String QUERY_FAST_QUERY_SIZE = "fastQuerySize";
     static final String DISABLED_STRICT_PATH_RESTRICTION = "DISABLE";
-
-    private static final boolean DEFAULT_IS_INFERENCE_ENABLED = false;
-    static final String INFERENCE_ENABLED = "inferenceEnabled";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -137,13 +128,6 @@ public class QueryEngineSettingsService {
             queryEngineSettings.setFailTraversal(failTraversal);
         } else {
             logMsg(QUERY_FAIL_TRAVERSAL, QueryEngineSettings.OAK_QUERY_FAIL_TRAVERSAL);
-        }
-
-        if (System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED) == null) {
-            boolean isInferenceEnabled = config.isInferenceEnabled();
-            queryEngineSettings.setInferenceEnabled(isInferenceEnabled);
-        } else {
-            logMsg(INFERENCE_ENABLED, QueryEngineSettings.OAK_INFERENCE_ENABLED);
         }
 
         queryEngineSettings.setIgnoredClassNamesInCallTrace(config.ignoredClassNamesInCallTrace());

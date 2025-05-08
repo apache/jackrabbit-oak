@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 
 import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
+import org.junit.BeforeClass;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
 
@@ -96,10 +97,7 @@ public abstract class CompositeTestSupport extends TestSupport {
             mavenBundle().groupId("commons-codec").artifactId("commons-codec").versionAsInProject(),
             mavenBundle().groupId("commons-io").artifactId("commons-io").versionAsInProject(),
             mavenBundle().groupId("org.apache.commons").artifactId("commons-collections4").versionAsInProject(),
-            mavenBundle().groupId("org.apache.commons").artifactId("commons-lang3").versionAsInProject(),
-            mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-core").versionAsInProject(),
-            mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").versionAsInProject(),
-            mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").versionAsInProject()
+            mavenBundle().groupId("org.apache.commons").artifactId("commons-lang3").versionAsInProject()
         );
     }
 

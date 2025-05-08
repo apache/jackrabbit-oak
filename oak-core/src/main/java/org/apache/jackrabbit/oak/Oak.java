@@ -411,7 +411,6 @@ public class Oak {
         this.queryEngineSettings.setLimitInMemory(settings.getLimitInMemory());
         this.queryEngineSettings.setLimitReads(settings.getLimitReads());
         this.queryEngineSettings.setStrictPathRestriction(settings.getStrictPathRestriction());
-        this.queryEngineSettings.setInferenceEnabled(settings.isInferenceEnabled());
         return this;
     }
 
@@ -956,16 +955,6 @@ public class Oak {
         @Override
         public void setFailTraversal(boolean failQueriesWithoutIndex) {
             settings.setFailTraversal(failQueriesWithoutIndex);
-        }
-
-        @Override
-        public boolean isInferenceEnabled() {
-            return settings.isInferenceEnabled();
-        }
-
-        @Override
-        public void setInferenceEnabled(boolean isInferenceEnabled) {
-            settings.setInferenceEnabled(isInferenceEnabled);
         }
 
         @Override

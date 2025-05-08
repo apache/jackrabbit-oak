@@ -75,12 +75,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     private static final boolean DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX =
             Boolean.getBoolean("oak.queryFullTextComparisonWithoutIndex");
-
-    public static final String OAK_INFERENCE_ENABLED = "oak.query.InferenceEnabled";
-    private static final boolean DEFAULT_INFERENCE_ENABLED =
-            Boolean.getBoolean(OAK_INFERENCE_ENABLED);
-
-
+    
     private long limitInMemory = DEFAULT_QUERY_LIMIT_IN_MEMORY;
     
     private long limitReads = DEFAULT_QUERY_LIMIT_READS;
@@ -91,8 +86,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     
     private boolean fullTextComparisonWithoutIndex = 
             DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX;
-
-    private boolean isInferenceEnabled = DEFAULT_INFERENCE_ENABLED;
     
     private boolean sql2Optimisation = 
             Boolean.parseBoolean(System.getProperty(SQL2_OPTIMISATION_FLAG, "true"));
@@ -205,16 +198,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     @Override
     public void setFailTraversal(boolean failTraversal) {
         this.failTraversal = failTraversal;
-    }
-
-    @Override
-    public boolean isInferenceEnabled() {
-        return this.isInferenceEnabled;
-    }
-
-    @Override
-    public void setInferenceEnabled(boolean isInferenceEnabled) {
-        this.isInferenceEnabled = isInferenceEnabled;
     }
 
     @Override

@@ -180,14 +180,6 @@ public interface Filter {
     boolean isAlwaysFalse();
 
     /**
-     *
-     * @return true if inference is enabled.
-     */
-    default boolean isInferenceEnabled() {
-        return false;
-    }
-
-    /**
      * A restriction for a property.
      */
     class PropertyRestriction {

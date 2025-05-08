@@ -71,11 +71,6 @@ public class OSGiIT {
                 mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.9.20" ),
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
                 mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
-                // Jackson dependency for object serialisation.
-                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-core").version("2.17.2"),
-                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").version("2.17.2"),
-                mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").version("2.17.2"),
-
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles(),

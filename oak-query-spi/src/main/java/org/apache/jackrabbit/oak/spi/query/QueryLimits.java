@@ -64,8 +64,4 @@ public interface QueryLimits {
         return new String[] {};
     }
 
-    default boolean isInferenceEnabled(){
-        return false;
-    };
-
 }
