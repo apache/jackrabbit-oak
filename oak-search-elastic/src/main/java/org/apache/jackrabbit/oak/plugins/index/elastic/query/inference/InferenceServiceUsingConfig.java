@@ -110,8 +110,11 @@ public class InferenceServiceUsingConfig implements InferenceService {
                 cache.put(text, result);
                 return result;
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new InferenceServiceException("Failed to get embeddings", e);
+        } catch (IOException e) {
+            throw new InferenceServiceException("Unable to extract embeddings from inference service response", e);
         }
         return result;
     }
