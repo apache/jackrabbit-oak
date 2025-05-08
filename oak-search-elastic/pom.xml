@@ -85,6 +85,18 @@
           </excludes>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <environmentVariables>
+            <Authorization>Bearer test-token</Authorization>
+            <inferenceServiceUrl>http://localhost:8080/embeddings</inferenceServiceUrl>
+            <EMBEDDING_MODEL>embedding-test-model</EMBEDDING_MODEL>
+          </environmentVariables>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
