@@ -87,11 +87,11 @@ public interface NameMapper {
      * @param oakName Oak name
      * @return JCR name in expanded form
      * @since Oak 1.78.0
-     * @throws IllegalStateException in case the namespace URI for the given Oak name cannot be resolved
+     * @throws IllegalStateException in case the namespace URI for the given
+     * Oak name cannot be resolved or is invalid
      * 
      * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form">JCR 2.0, 3.2.5.1 Expanded Form</a>
      */
     @NotNull
     String getExpandedJcrName(@NotNull String oakName);
-
 }

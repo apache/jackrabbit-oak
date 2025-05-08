@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
-import org.apache.jackrabbit.oak.spi.query.fulltext.InferenceQuery;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
 
 import java.text.ParseException;
 import java.util.Collections;
@@ -140,13 +140,13 @@ public class FullTextSearchImpl extends ConstraintImpl {
             String rawText = getRawText(v);
             String queryText = rawText;
             // To use inference we need to add inferenceconfig information in query. The format for the query is
-            // <inferenceprefix><json with inferenceModelConfig><inferencePrefix>
+            // <inferencePrefix><json with inferenceModelConfig><inferencePrefix>
             // e.g. ?{"inferenceModelConfig": "ada-test-model"}?little red fox
             // So here we split the query into text part of query and inferenceConfig part of query.
             // Afterwards we only parse text part of query as this part of query is what we want to search.
             if (query.getSettings().isInferenceEnabled()) {
-                InferenceQuery inferenceQuery = new InferenceQuery(rawText);
-                queryText = inferenceQuery.getQueryText();
+                VectorQuery vectorQuery = new VectorQuery(rawText);
+                queryText = vectorQuery.getQueryText();
             }
             FullTextExpression e = FullTextParser.parse(p2, queryText);
             return new FullTextContains(p2, rawText, e);

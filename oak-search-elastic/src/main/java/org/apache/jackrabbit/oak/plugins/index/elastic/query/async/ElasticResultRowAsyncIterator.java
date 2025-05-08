@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticQueryIterato
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
@@ -41,8 +42,8 @@ import co.elastic.clients.elasticsearch.core.search.Highlight;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import co.elastic.clients.elasticsearch.core.search.TotalHitsRelation;
-import co.elastic.clients.json.JsonpUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
@@ -201,7 +202,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
      */
     @Override
     public String explain() {
-        return JsonpUtils.toString(elasticQueryScanner.searchRequest, new StringBuilder()).toString();
+        return elasticQueryScanner.searchRequest.toString();
     }
 
     @Override
@@ -220,6 +221,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         private final List<SearchHitListener> searchHitListeners = new ArrayList<>();
         private final List<AggregationListener> aggregationListeners = new ArrayList<>();
 
+        private final String sessionId;
         private final Query query;
         private final SearchRequest searchRequest;
         private final @NotNull List<SortOptions> sorts;
@@ -242,6 +244,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
             this.query = elasticRequestHandler.baseQuery();
+            this.sessionId = "oak-" + ElasticIndexUtils.sha256Hash(this.query.toString().getBytes(StandardCharsets.UTF_8));
             this.sorts = elasticRequestHandler.baseSorts();
             this.highlight = elasticRequestHandler.highlight();
 
@@ -275,7 +278,9 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                                 .highlight(highlight)
                                 // use a smaller size when the query contains aggregations. This improves performance
                                 // when the client is only interested in insecure facets
-                                .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests));
+                                .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests))
+                                // consistently route the same queries to the same shard copy (primary or replica) within the shard set
+                                .preference(sessionId);
                         if (needsAggregations.get()) {
                             builder.aggregations(elasticRequestHandler.aggregations());
                         }
@@ -404,6 +409,8 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                         .query(query)
                         .highlight(highlight)
                         .size(getFetchSize(requests++))
+                        // consistently route the same queries to the same shard copy (primary or replica) within the shard set
+                        .preference(sessionId)
                 );
                 LOG.trace("Kicking new search after query {}", searchReq);
 

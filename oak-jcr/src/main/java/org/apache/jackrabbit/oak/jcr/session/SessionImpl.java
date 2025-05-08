@@ -860,7 +860,12 @@ public class SessionImpl implements JackrabbitSession {
             ItemImpl<?> itemImpl = checkItemImpl(item);
             return itemImpl.sessionContext.getExpandedJcrName(itemImpl.getOakName());
         } catch (IllegalStateException e) {
-            throw new RepositoryException("Namespace exception " + e.getMessage());
+            // unwrap RepositoryException when available
+            if (e.getCause() instanceof RepositoryException) {
+                throw (RepositoryException) e.getCause();
+            } else {
+                throw new RepositoryException("Namespace exception " + e.getMessage());
+            }
         }
     }
 

@@ -109,8 +109,8 @@ public class ConfigurationParametersTest {
         dict.put("a", "b");
 
         ConfigurationParameters cp = ConfigurationParameters.of(dict);
-        assertEquals(SetUtils.toSet(Iterators.forEnumeration(dict.keys())), Set.copyOf(cp.keySet()));
-        assertEquals(SetUtils.toSet(Iterators.forEnumeration(dict.elements())), Set.copyOf(cp.values()));
+        assertEquals(SetUtils.toSet(dict.keys().asIterator()), Set.copyOf(cp.keySet()));
+        assertEquals(SetUtils.toSet(dict.elements().asIterator()), Set.copyOf(cp.values()));
 
     }
 
