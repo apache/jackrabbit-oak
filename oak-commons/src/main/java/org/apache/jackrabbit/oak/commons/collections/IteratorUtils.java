@@ -531,5 +531,32 @@ public class IteratorUtils {
             }
         });
     }
+
+    /**
+     * Returns an iterator that will only provide at most the first N elements from given iterator.
+     * <p>
+     * This method returns an iterator that will stop after returning the
+     * specified number of elements or when the source iterator is exhausted,
+     * whichever comes first.
+     * <p>
+     * Example usage:
+     * <pre>
+     * Iterator&lt;String&gt; names = Arrays.asList("Alice", "Bob", "Charlie", "David").iterator();
+     * Iterator&lt;String&gt; firstTwo = IteratorUtils.limit(names, 2);
+     * // firstTwo will iterate through "Alice", "Bob" only
+     * </pre>
+     *
+     * @param <T> the type of elements in the iterator
+     * @param iterator the source iterator to limit, must not be null
+     * @param limit the maximum number of elements to return, must not be negative
+     * @return an iterator limited to the specified number of elements
+     * @throws NullPointerException if the iterator is null
+     * @throws IllegalArgumentException if limit is negative
+     */
+    public static <T> Iterator<T> limit(final Iterator<T> iterator, final int limit) {
+        Objects.requireNonNull(iterator);
+        Validate.checkArgument(limit >= 0, "limit is negative");
+        return org.apache.commons.collections4.IteratorUtils.boundedIterator(iterator, limit);
+    }
 }
 
