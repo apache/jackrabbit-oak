@@ -46,30 +46,32 @@ public class EnricherStatus {
     }
 
     public EnricherStatus(NodeStore nodeStore, String inferenceConfigPath) {
-        NodeState nodeState = nodeStore.getRoot();
         String enricherStatusJsonMapping = "{}";
         Map<String, Object> enricherStatusData = Map.of();
-        for (String elem : PathUtils.elements(inferenceConfigPath)) {
-            nodeState = nodeState.getChildNode(elem);
-            if (!nodeState.exists()) {
-                this.enricherStatusJsonMapping = "{}";
-                this.enricherStatusData = Map.of();
-                return;
-            }
-        }
-        try {
-            for (String node : nodeState.getChildNodeNames()) {
-                if (node.equals(InferenceConstants.ENRICH_NODE)) {
-                    NodeState enrichNode = nodeState.getChildNode(node);
-                    String enricherStatusJson = enrichNode.getString(InferenceConstants.ENRICHER_STATUS_DATA);
-                    enricherStatusData = MAPPER.readValue(enricherStatusJson, new TypeReference<HashMap<String, Object>>() {
-                    });
-                    enricherStatusJsonMapping = enrichNode.getString(InferenceConstants.ENRICHER_STATUS_MAPPING);
-                    break;
+        if (nodeStore != null) {
+            NodeState nodeState = nodeStore.getRoot();
+            for (String elem : PathUtils.elements(inferenceConfigPath)) {
+                nodeState = nodeState.getChildNode(elem);
+                if (!nodeState.exists()) {
+                    this.enricherStatusJsonMapping = "{}";
+                    this.enricherStatusData = Map.of();
+                    return;
                 }
             }
-        } catch (Exception e) {
-            LOG.warn("Failed to parse enricher status data: {}", e.getMessage());
+            try {
+                for (String node : nodeState.getChildNodeNames()) {
+                    if (node.equals(InferenceConstants.ENRICH_NODE)) {
+                        NodeState enrichNode = nodeState.getChildNode(node);
+                        String enricherStatusJson = enrichNode.getString(InferenceConstants.ENRICHER_STATUS_DATA);
+                        enricherStatusData = MAPPER.readValue(enricherStatusJson, new TypeReference<HashMap<String, Object>>() {
+                        });
+                        enricherStatusJsonMapping = enrichNode.getString(InferenceConstants.ENRICHER_STATUS_MAPPING);
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to parse enricher status data: {}", e.getMessage());
+            }
         }
         this.enricherStatusJsonMapping = enricherStatusJsonMapping;
         this.enricherStatusData = enricherStatusData;
