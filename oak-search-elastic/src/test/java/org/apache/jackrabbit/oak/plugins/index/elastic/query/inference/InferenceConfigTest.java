@@ -42,7 +42,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class InferenceConfigTest {
@@ -50,7 +49,7 @@ public class InferenceConfigTest {
     private static final Logger LOG = LoggerFactory.getLogger(InferenceConfigTest.class);
     private final String defaultEnricherStatusMapping = "{\"properties\":{\"processingTimeMs\":{\"type\":\"date\"},\"latestError\":{\"type\":\"keyword\",\"index\":false},\"errorCount\":{\"type\":\"short\"},\"status\":{\"type\":\"keyword\"}}}";
     private final String defaultEnricherStatusData = "{\"processingTimeMs\":0,\"latestError\":\"\",\"errorCount\":0,\"status\":\"PENDING\"}";
-    
+
     private static final String ENRICH_STATUS_PENDING = "PENDING";
 
     private static final String DEFAULT_CONFIG_PATH = InferenceConstants.DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH;
@@ -473,14 +472,14 @@ public class InferenceConfigTest {
     /**
      * Utility method to verify enricher status fields
      */
-    private void verifyEnricherStatusFields(Map<String, Object> status, String expectedStatus, 
-                                       int expectedProcessingTime, String expectedError, int expectedErrorCount) {
+    private void verifyEnricherStatusFields(Map<String, Object> status, String expectedStatus,
+                                            int expectedProcessingTime, String expectedError, int expectedErrorCount) {
         assertEquals("Status should match", expectedStatus, status.get("status"));
         assertEquals("Processing time should match", expectedProcessingTime, status.get("processingTimeMs"));
         assertEquals("Latest error should match", expectedError, status.get("latestError"));
         assertEquals("Error count should match", expectedErrorCount, status.get("errorCount"));
     }
-    
+
     /**
      * Test 10: Test EnricherStatus
      * Tests that the EnricherStatus is properly loaded from the inference config
@@ -512,7 +511,7 @@ public class InferenceConfigTest {
 
         // Check status property based on the defaultEnricherStatusData
         verifyEnricherStatusFields(enricherStatus, ENRICH_STATUS_PENDING, 0, "", 0);
-        
+
         // Also verify the JSON mapping
         EnricherStatus enricherStatusInstance = new EnricherStatus(nodeStore, DEFAULT_CONFIG_PATH);
         String jsonMapping = enricherStatusInstance.getEnricherStatusJsonMapping();
@@ -610,7 +609,7 @@ public class InferenceConfigTest {
     @Test
     public void testCompleteConfiguration() throws CommitFailedException {
         assertTrue(isAuthEnvVarDefined && isInferenceUrlEnvVarDefined && isInferencePayloadModelDefined);
-        
+
         // Create enabled inference config with multiple index configs
         NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
         inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
