@@ -18,64 +18,71 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Configuration for inference payload
  */
 public class EnricherStatus {
     private static final Logger LOG = LoggerFactory.getLogger(EnricherStatus.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static final EnricherStatus NOOP = new EnricherStatus();
-    private final Map<String, Object> enricherStatus;
+    private final Map<String, Object> enricherStatusData;
+    private final String enricherStatusJsonMapping;
 
     public EnricherStatus() {
-        this.enricherStatus = Map.of();
+        this.enricherStatusData = Map.of();
+        this.enricherStatusJsonMapping = "{}";
     }
 
     public EnricherStatus(NodeStore nodeStore, String inferenceConfigPath) {
-        NodeState nodeState = nodeStore.getRoot();
-        for (String elem : PathUtils.elements(inferenceConfigPath)) {
-            nodeState = nodeState.getChildNode(elem);
-            if (!nodeState.exists()) {
-                this.enricherStatus = Map.of();
-                return;
+        String enricherStatusJsonMapping = "{}";
+        Map<String, Object> enricherStatusData = Map.of();
+        if (nodeStore != null) {
+            NodeState nodeState = nodeStore.getRoot();
+            for (String elem : PathUtils.elements(inferenceConfigPath)) {
+                nodeState = nodeState.getChildNode(elem);
+                if (!nodeState.exists()) {
+                    this.enricherStatusJsonMapping = "{}";
+                    this.enricherStatusData = Map.of();
+                    return;
+                }
+            }
+            try {
+                for (String node : nodeState.getChildNodeNames()) {
+                    if (node.equals(InferenceConstants.ENRICH_NODE)) {
+                        NodeState enrichNode = nodeState.getChildNode(node);
+                        String enricherStatusJson = enrichNode.getString(InferenceConstants.ENRICHER_STATUS_DATA);
+                        enricherStatusData = MAPPER.readValue(enricherStatusJson, new TypeReference<HashMap<String, Object>>() {
+                        });
+                        enricherStatusJsonMapping = enrichNode.getString(InferenceConstants.ENRICHER_STATUS_MAPPING);
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to parse enricher status data: {}", e.getMessage());
             }
         }
-        for (String node : nodeState.getChildNodeNames()) {
-            if (node.equals(InferenceConstants.ENRICH_NODE)) {
-                nodeState = nodeState.getChildNode(node);
-                enricherStatus = JsonUtils.convertNodeStateToMap(nodeState, 0, false)
-                    .entrySet().stream()
-                    .filter(entry -> !entry.getKey().equals("jcr:primaryType"))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                return;
-            }
-        }
-        this.enricherStatus = Map.of();
+        this.enricherStatusJsonMapping = enricherStatusJsonMapping;
+        this.enricherStatusData = enricherStatusData;
     }
 
-    /*
-     * Get the inference payload as a json string
-     *
-     * @param text
-     * @return
-     */
     public Map<String, Object> getEnricherStatus() {
-        return enricherStatus;
+        return enricherStatusData;
     }
 
-    @Override
-    public String toString() {
-        return enricherStatus.toString();
+    public String getEnricherStatusJsonMapping() {
+        return enricherStatusJsonMapping;
     }
 
 } 

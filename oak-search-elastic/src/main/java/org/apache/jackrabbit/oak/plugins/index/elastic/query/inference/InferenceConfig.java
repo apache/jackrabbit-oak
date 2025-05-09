@@ -20,15 +20,12 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -195,6 +192,15 @@ public class InferenceConfig {
         lock.readLock().lock();
         try {
             return INSTANCE.enricherStatus.getEnricherStatus();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public String getEnricherStatusMapping(){
+        lock.readLock().lock();
+        try {
+            return INSTANCE.enricherStatus.getEnricherStatusJsonMapping();
         } finally {
             lock.readLock().unlock();
         }

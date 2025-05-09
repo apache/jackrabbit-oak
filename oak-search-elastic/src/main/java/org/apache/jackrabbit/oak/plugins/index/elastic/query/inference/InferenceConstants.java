@@ -26,6 +26,8 @@ public interface InferenceConstants {
     String VECTOR_SPACES = ":vectorSpaces";
     String VECTOR = "vector";
     String ENRICH_NODE = ":enrich";
+    String ENRICHER_STATUS_DATA = "enricherStatusData";
+    String ENRICHER_STATUS_MAPPING = "enricherStatusMapping";
     String DEFAULT_ENVIRONMENT_VARIABLE_PREFIX = "$";
     String INFERENCE_ENVIRONMENT_VARIABLE_PREFIX = System.getProperty("org.apache.jackrabbit.oak.plugins.index.elastic.query.inference", DEFAULT_ENVIRONMENT_VARIABLE_PREFIX);
     String DEFAULT_ENVIRONMENT_VARIABLE_VALUE = "";

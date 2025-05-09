@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -87,6 +88,7 @@ public class ElasticIndexProviderServiceTest {
         context.registerService(NodeStore.class, new MemoryNodeStore());
         context.registerService(StatisticsProvider.class, spyStatsProvider);
         context.registerService(AsyncIndexInfoService.class, mock(AsyncIndexInfoService.class));
+        context.registerService(QueryEngineSettings.class, mock(QueryEngineSettings.class));
 
         wb = new OsgiWhiteboard(context.bundleContext());
         MockOsgi.injectServices(service, context.bundleContext());

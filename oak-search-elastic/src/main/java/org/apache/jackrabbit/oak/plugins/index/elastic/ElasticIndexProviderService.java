@@ -23,8 +23,11 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -69,9 +72,11 @@ public class ElasticIndexProviderService {
     protected static final String PROP_ELASTIC_API_KEY_ID = "elasticsearch.apiKeyId";
     protected static final String PROP_ELASTIC_API_KEY_SECRET = "elasticsearch.apiKeySecret";
     protected static final String PROP_LOCAL_TEXT_EXTRACTION_DIR = "localTextExtractionDir";
+    private static final boolean DEFAULT_IS_INFERENCE_ENABLED = false;
 
     @ObjectClassDefinition(name = "ElasticIndexProviderService", description = "Apache Jackrabbit Oak ElasticIndexProvider")
     public @interface Config {
+
         @AttributeDefinition(name = "Disable the OAK Elastic service",
                 description = "If true, does not start the Elastic component")
         boolean disabled() default false;
@@ -79,7 +84,7 @@ public class ElasticIndexProviderService {
         @AttributeDefinition(name = "Extracted text cache size (MB)",
                 description = "Cache size in MB for caching extracted text for some time. When set to 0 then " +
                         "cache would be disabled")
-        int extractedTextCacheSizeInMB() default 20 ;
+        int extractedTextCacheSizeInMB() default 20;
 
         @AttributeDefinition(name = "Extracted text cache expiry (secs)",
                 description = "Time in seconds for which the extracted text would be cached in memory")
@@ -119,7 +124,17 @@ public class ElasticIndexProviderService {
 
         @AttributeDefinition(name = "Remote index deletion threshold", description = "Time in seconds after which a remote index whose local index is not found gets deleted." +
                 "Default is 1 day.")
-        int remoteIndexDeletionThreshold() default 24*60*60;
+        int remoteIndexDeletionThreshold() default 24 * 60 * 60;
+
+        @AttributeDefinition(
+            name = "Enable inference",
+            description = "If enabled the inference index config will be used"
+        )
+        boolean isInferenceEnabled() default DEFAULT_IS_INFERENCE_ENABLED;
+
+
+        @AttributeDefinition(name = "Inference Config Path", description = "Path to the inference configuration")
+        String inferenceConfigPath() default InferenceConstants.DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH;
     }
 
 
@@ -151,6 +166,7 @@ public class ElasticIndexProviderService {
     private ElasticMetricHandler metricHandler;
     private ElasticIndexTracker indexTracker;
     private ElasticIndexEditorProvider elasticIndexEditorProvider;
+    private boolean isInferenceEnabled;
 
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
@@ -167,6 +183,12 @@ public class ElasticIndexProviderService {
         metricHandler.markEnabled(isElasticAvailable);
 
         whiteboard = new OsgiWhiteboard(bundleContext);
+        if (System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED) != null) {
+            this.isInferenceEnabled = Boolean.parseBoolean(System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED));
+        } else {
+            this.isInferenceEnabled = config.isInferenceEnabled();
+        }
+        InferenceConfig.reInitialize(nodeStore, config.inferenceConfigPath(), isInferenceEnabled);
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);

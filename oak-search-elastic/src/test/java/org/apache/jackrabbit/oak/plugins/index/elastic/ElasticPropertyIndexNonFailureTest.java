@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
@@ -24,18 +25,25 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-public class ElasticPropertyIndexFailuresTest extends ElasticAbstractQueryTest {
-
+public class ElasticPropertyIndexNonFailureTest extends ElasticAbstractQueryTest {
     @Rule
     public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
 
+    // Tests are hardcoded for these values
+    private final static int BULK_ACTIONS_TEST = 250;
+    private final static int BULK_SIZE_BYTES_TEST = 1024 * 1024;
+
     @Before
     public void before() throws Exception {
-        System.setProperty(ElasticBulkProcessorHandler.FAIL_ON_ERROR_PROP, "false");
+        // Use a low value for the tests
+        System.setProperty(ElasticBulkProcessorHandler.BULK_ACTIONS_PROP, Integer.toString(BULK_ACTIONS_TEST));
+        System.setProperty(ElasticBulkProcessorHandler.BULK_SIZE_BYTES_PROP, Integer.toString(BULK_SIZE_BYTES_TEST));
         super.before();
     }
 
@@ -45,7 +53,7 @@ public class ElasticPropertyIndexFailuresTest extends ElasticAbstractQueryTest {
     }
 
     /*
-     In indexFailuresWithFailOnErrorOff test we are explicitly setting "strict mapping". For inference
+        In indexFailuresWithFailOnErrorOn test we are explicitly setting "strict mapping". For inference
      enabled oak, this is not supported as enricher for oak will be an external service and this enricher
      service would need some flexibility and may want to add additional properties.
 
@@ -53,7 +61,14 @@ public class ElasticPropertyIndexFailuresTest extends ElasticAbstractQueryTest {
      */
 
     @Test
-    public void indexFailuresWithFailOnErrorOff() throws Exception {
+    public void indexFailuresWithFailOnErrorOn() throws Exception {
+        if (ElasticPropertyDefinition.PROP_IS_FLATTENED_DEFAULT) {
+            // if "flattened" enabled by default,
+            // then the test doesn't make sense.
+            // alternatively, disable "flattened" in the index definition;
+            // but this is already tested in ElasticRegexPropertyIndexTest
+            return;
+        }
         IndexDefinitionBuilder builder = createIndex("a");
         builder.includedPaths("/test")
             .indexRule("nt:base")
@@ -62,7 +77,6 @@ public class ElasticPropertyIndexFailuresTest extends ElasticAbstractQueryTest {
         // configuring the index with a regex property and strict mapping to simulate failures
         builder.indexRule("nt:base").property("b", true).propertyIndex();
         builder.getBuilderTree().setProperty(ElasticIndexDefinition.DYNAMIC_MAPPING, "strict");
-
 
         setIndex("test1", builder);
         root.commit();
@@ -84,7 +98,17 @@ public class ElasticPropertyIndexFailuresTest extends ElasticAbstractQueryTest {
         test.addChild("a203").setProperty("b", "foo");
         test.addChild("a104").setProperty("a", "foo");
         test.addChild("a204").setProperty("b", "foo");
-        root.commit();
+
+        CommitFailedException cfe = null;
+        try {
+            root.commit();
+        } catch (CommitFailedException e) {
+            cfe = e;
+        }
+
+        assertThat("no exception thrown", cfe != null);
+        assertThat("the exception cause has to be an IOException", cfe.getCause() instanceof IOException);
+        assertThat("there should be 5 suppressed exception", cfe.getCause().getSuppressed().length == 5);
 
         String query = "select [jcr:path] from [nt:base] where [a] = 'foo'";
         assertEventually(() -> assertQuery(query, SQL2,

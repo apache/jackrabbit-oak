@@ -16,23 +16,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition.DEFAULT_SIMILARITY_METRIC;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newAncestorQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newDepthQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPathQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixPathQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPropertyRestrictionQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardPathQuery;
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardQuery;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.DYNAMIC_BOOST_WEIGHT;
-import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
-import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
-import static org.apache.jackrabbit.util.ISO8601.parse;
-
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.KnnQuery;
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.SuggestMode;
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
+import co.elastic.clients.elasticsearch._types.query_dsl.MoreLikeThisQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.NestedQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.QueryStringQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
+import co.elastic.clients.elasticsearch.core.search.Highlight;
+import co.elastic.clients.elasticsearch.core.search.HighlightField;
+import co.elastic.clients.elasticsearch.core.search.InnerHits;
+import co.elastic.clients.elasticsearch.core.search.PhraseSuggester;
+import co.elastic.clients.json.JsonpUtils;
 import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -43,6 +46,9 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceModelConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceService;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceServiceManager;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
@@ -64,6 +70,8 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQueryConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.search.WildcardQuery;
 import org.jetbrains.annotations.NotNull;
@@ -71,27 +79,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import co.elastic.clients.elasticsearch._types.FieldValue;
-import co.elastic.clients.elasticsearch._types.KnnQuery;
-import co.elastic.clients.elasticsearch._types.SortOptions;
-import co.elastic.clients.elasticsearch._types.SortOrder;
-import co.elastic.clients.elasticsearch._types.SuggestMode;
-import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.ChildScoreMode;
-import co.elastic.clients.elasticsearch._types.query_dsl.MoreLikeThisQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.NestedQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.QueryStringQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
-import co.elastic.clients.elasticsearch.core.search.Highlight;
-import co.elastic.clients.elasticsearch.core.search.HighlightField;
-import co.elastic.clients.elasticsearch.core.search.InnerHits;
-import co.elastic.clients.elasticsearch.core.search.PhraseSuggester;
-import co.elastic.clients.json.JsonpUtils;
-
+import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -110,7 +98,22 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import javax.jcr.PropertyType;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition.DEFAULT_SIMILARITY_METRIC;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newAncestorQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newDepthQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPathQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixPathQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPrefixQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPropertyRestrictionQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardPathQuery;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardQuery;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.DYNAMIC_BOOST_WEIGHT;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
+import static org.apache.jackrabbit.util.ISO8601.parse;
 
 /**
  * Class to map query plans into Elastic request objects.
@@ -194,6 +197,10 @@ public class ElasticRequestHandler {
                         for (String stf : elasticIndexDefinition.getSimilarityTagsFields()) {
                             Map<String, String> shallowMltParams = new HashMap<>(MoreLikeThisHelperUtil.getParamMapFromMltQuery(stf));
                             shallowMltParams.putAll(mltParams);
+                            if (shallowMltParams.containsKey("mlt.fl") && shallowMltParams.get("mlt.fl").equals("*")) {
+                                String simFields = generateFieldsForMLT();
+                                shallowMltParams.put("mlt.fl", simFields);
+                            }
                             bqb.should(m -> m.moreLikeThis(mltQuery(shallowMltParams)));
                         }
                     } else {
@@ -201,15 +208,16 @@ public class ElasticRequestHandler {
                     }
                 } else {
                     similarityQuery(queryNodePath, sp).ifPresent(similarityQuery ->
-                        bqb.filter(fb -> fb.exists(ef -> ef.field(similarityQuery.field())))
-                            .should(s -> s.knn(similarityQuery))
-                            );
+                            bqb.filter(fb -> fb.exists(ef -> ef.field(similarityQuery.field())))
+                                    .should(s -> s.knn(similarityQuery))
+                    );
                 }
 
                 // Add should clause to improve relevance using similarity tags only when similarity is
                 // enabled and there is at least one similarity tag property
                 if (elasticIndexDefinition.areSimilarityTagsEnabled() &&
                         !elasticIndexDefinition.getSimilarityTagsProperties().isEmpty()) {
+
                     // add should clause to improve relevance using similarity tags
                     bqb.should(s -> s
                             .moreLikeThis(m -> m
@@ -233,6 +241,49 @@ public class ElasticRequestHandler {
         }
 
         return bqb;
+    }
+
+    private String generateFieldsForMLT() {
+        //TODO with addition of :enricher status for inference. All documents will now have :enricher for inference enabled indexes.
+        // as as result mlt is now returning all documents.
+        // find a better way so that these fields can be easily managed.
+        List<String> keys = elasticIndexDefinition.getPropertiesByName().entrySet().stream().map(Map.Entry::getKey).collect(Collectors.toList());
+        List<String> simFields = new ArrayList<>();
+        keys.forEach(key -> {
+                simFields.add(key);
+                simFields.add(key + ".keyword");
+            }
+        );
+        simFields.add(FieldNames.ANCESTORS);
+        simFields.add(FieldNames.PATH_DEPTH);
+        simFields.add(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT);
+        simFields.add(ElasticIndexDefinition.DYNAMIC_PROPERTIES);
+        simFields.add(FieldNames.FULLTEXT);
+        simFields.add(ElasticIndexDefinition.LAST_UPDATED);
+        simFields.add(FieldNames.PATH);
+        simFields.add(ElasticIndexDefinition.PATH_RANDOM_VALUE);
+        simFields.add(ElasticIndexDefinition.SIMILARITY_TAGS);
+        simFields.add(FieldNames.SPELLCHECK);
+        simFields.add(FieldNames.SUGGEST);
+
+        simFields.add(FieldNames.NULL_PROPS);
+        simFields.add(FieldNames.NOT_NULL_PROPS);
+        simFields.add(FieldNames.NODE_NAME);
+
+        if (!elasticIndexDefinition.getSimilarityProperties().isEmpty()) {
+            simFields.add(FieldNames.SIMILARITY_TAGS);
+        }
+        if (!elasticIndexDefinition.getDynamicBoostProperties().isEmpty()) {
+            simFields.add(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT);
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String field : simFields) {
+            if (sb.length() > 0) {
+                sb.append(",");
+            }
+            sb.append(field);
+        }
+        return sb.toString();
     }
 
     public Optional<KnnQuery> similarityQuery(@NotNull String text, List<PropertyDefinition> sp) {
@@ -282,9 +333,9 @@ public class ElasticRequestHandler {
     @NotNull
     private KnnQuery.Builder baseKnnQueryBuilder(String similarityPropFieldName, byte[] bytes, ElasticPropertyDefinition pd) {
         KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder()
-            .field(similarityPropFieldName)
-            .queryVector(toFloats(bytes))
-            .numCandidates(pd.getKnnSearchParameters().getCandidates());
+                .field(similarityPropFieldName)
+                .queryVector(toFloats(bytes))
+                .numCandidates(pd.getKnnSearchParameters().getCandidates());
         if (!pd.getKnnSearchParameters().getSimilarityMetric().equals(DEFAULT_SIMILARITY_METRIC)) {
             knnQueryBuilder.similarity(pd.getKnnSearchParameters().getSimilarity());
         }
@@ -551,8 +602,11 @@ public class ElasticRequestHandler {
             }
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
+                String queryText;
                 BoolQuery.Builder bqBuilder = new BoolQuery.Builder();
+
                 if (propertyName != null && FulltextIndex.isNodePath(propertyName) && !pr.isPathTransformed()) {
+                    queryText = text;
                     //Get rid of /* as aggregated fulltext field name is the
                     //node relative path
                     String p = PathUtils.getParentPath(propertyName);
@@ -569,11 +623,27 @@ public class ElasticRequestHandler {
                     boolean includeDynamicBoostedValues = !elasticIndexDefinition.getDynamicBoostProperties().isEmpty() &&
                             elasticIndexDefinition.getDynamicBoostProperties().stream().anyMatch(ElasticPropertyDefinition::useInFullTextQuery);
 
+                    String indexName = PathUtils.getName(indexPlan.getPlanName());
+
+                    // we always parse each query and extract out inferenceModelConfig and queryText.
+                    // In case index enabled with inferenceModelConfig is not active,
+                    // other indexes can still be used to answer fulltext query.
+                    VectorQuery vectorQuery = new VectorQuery(text);
+                    String queryConfig = vectorQuery.getQueryInferenceConfig();
+                    queryText = vectorQuery.getQueryText();
+                    VectorQueryConfig vectorQueryConfig = new VectorQueryConfig(queryConfig);
+                    String inferenceModelConfig = InferenceConfig.getInstance().getInferenceModelConfig(indexName, vectorQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
+
+                    if (indexPlan.getFilter().getQueryLimits().isInferenceEnabled() && InferenceConfig.getInstance().isEnabled()
+                            && !InferenceModelConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceModelConfig))) {
+
+                        bqBuilder.must(m -> m.bool(b -> inferenceConfigQuery(b, propertyName, pr, includeDynamicBoostedValues, vectorQuery, vectorQueryConfig)));
+                    }
                     // Experimental support for inference queries
-                    if (elasticIndexDefinition.inferenceDefinition != null && elasticIndexDefinition.inferenceDefinition.queries != null) {
-                        bqBuilder.must(m -> m.bool(b -> inference(b, propertyName, text, pr, includeDynamicBoostedValues)));
+                    else if (elasticIndexDefinition.inferenceDefinition != null && elasticIndexDefinition.inferenceDefinition.queries != null) {
+                        bqBuilder.must(m -> m.bool(b -> inference(b, propertyName, queryText, pr, includeDynamicBoostedValues)));
                     } else {
-                        QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFulltextFieldName(propertyName), pr, includeDynamicBoostedValues);
+                        QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFulltextFieldName(propertyName), pr, includeDynamicBoostedValues);
                         bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
                     }
                 }
@@ -582,7 +652,7 @@ public class ElasticRequestHandler {
                     bqBuilder.boost(Float.valueOf(boost));
                 }
 
-                Stream<NestedQuery> dynamicScoreQueries = dynamicScoreQueries(text);
+                Stream<NestedQuery> dynamicScoreQueries = dynamicScoreQueries(queryText);
                 dynamicScoreQueries.forEach(dsq -> bqBuilder.should(s -> s.nested(dsq)));
 
                 if (not) {
@@ -597,11 +667,67 @@ public class ElasticRequestHandler {
         return Query.of(q -> q.bool(result.get()));
     }
 
+    private ObjectBuilder<BoolQuery> inferenceConfigQuery(BoolQuery.Builder b, String propertyName, PlanResult pr, boolean dbEnabled, VectorQuery vectorQuery, VectorQueryConfig vectorQueryConfig) {
+        QueryStringQuery.Builder qsqBuilder = fullTextQuery(vectorQuery.getQueryText(), getElasticFulltextFieldName(propertyName), pr, dbEnabled);
+
+        // the query can be null if no inference query is eligible for the given text or the min terms are not met
+        // in this case, we fall back to the default full-text query
+        if (vectorQuery.getQueryInferenceConfig() != null) {
+
+            LOG.info("Using inference query config: {}", vectorQuery.getQueryInferenceConfig());
+            try {
+                String inferenceQueryModelName = vectorQueryConfig.getInferenceModelConfig();
+                String indexName = PathUtils.getName(elasticIndexDefinition.getIndexName());
+                InferenceModelConfig inferenceModelConfig = InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceQueryModelName);
+                if (!inferenceModelConfig.isEnabled()
+                        || inferenceModelConfig.getMinTerms() > vectorQuery.getQueryText().split("\\s+").length) {
+                    LOG.debug("inferenceModelConfig isEnable: {}, Config minTerms:{}, query: {}, ", inferenceModelConfig.isEnabled(),
+                            inferenceModelConfig.getMinTerms(), vectorQuery.getQueryText());
+                    return b.must(mm -> mm.queryString(qsqBuilder.build()));
+                } else if (inferenceModelConfig.isEnabled() && inferenceModelConfig.getMinTerms() <= vectorQuery.getQueryText().split("\\s+").length) {
+                    InferenceService inferenceService = InferenceServiceManager
+                            .getInstance(inferenceModelConfig);
+                    List<Float> embeddings = inferenceService.embeddings(vectorQuery.getQueryText(), (int) inferenceModelConfig.getTimeoutMillis());
+                    if (embeddings != null) {
+                        KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder();
+                        knnQueryBuilder.field(InferenceConstants.VECTOR_SPACES + "." + inferenceQueryModelName + "." + InferenceConstants.VECTOR);
+                        knnQueryBuilder.numCandidates(inferenceModelConfig.getNumCandidates());
+                        knnQueryBuilder.queryVector(embeddings);
+
+                        KnnQuery knnQuery = knnQueryBuilder.build();
+
+                        NestedQuery.Builder nestedQueryBuilder = new NestedQuery.Builder()
+                                .path(InferenceConstants.VECTOR_SPACES + "." + inferenceQueryModelName)
+                                .query(Query.of(q2 -> q2.knn(knnQuery)));
+
+                        b.should(s -> s.nested(nestedQueryBuilder.build()));
+
+                        int tokens = vectorQuery.getQueryText().split("\\s+").length;
+                        // the more tokens, the less important the full-text query is
+                        // TODO: make it configurable
+                        double qsBoost = (tokens > 1) ? 1.0d / (5 * tokens) : 1.0d;
+
+                        return b.should(s -> s.queryString(qsqBuilder.boost((float) qsBoost).build()));
+                    } else {
+                        LOG.warn("No embeddings found for text {}", vectorQuery.getQueryText());
+                    }
+                } else {
+                    LOG.warn("No properties with model {} found", inferenceQueryModelName);
+                }
+
+            } catch (Exception e) {
+                LOG.warn("Error while calling inference service. Query won't use embeddings", e);
+            }
+        }
+
+        return b.must(mm -> mm.queryString(qsqBuilder.build()));
+    }
+
     private ObjectBuilder<BoolQuery> inference(BoolQuery.Builder b, String propertyName, String text, PlanResult pr, boolean dbEnabled) {
         ElasticIndexDefinition.InferenceDefinition.Query q = null;
         // select first query eligible for the given text
         // TODO: evaluate if/how to handle multiple queries
-        String  queryText = text;
+        String queryText = text;
         for (ElasticIndexDefinition.InferenceDefinition.Query query : elasticIndexDefinition.inferenceDefinition.queries) {
             if (query.isEligibleForInput(queryText)) {
                 queryText = query.rewrite(queryText);
@@ -657,20 +783,20 @@ public class ElasticRequestHandler {
 
     private Stream<NestedQuery> dynamicScoreQueries(String text) {
         return elasticIndexDefinition.getDynamicBoostProperties().stream()
-            .map(pd -> {
-                String field = ElasticIndexUtils.fieldName(pd.nodeName);
-                return NestedQuery.of(n -> n
-                    .path(field)
-                    .query(q -> q.functionScore(s -> s
-                        .boost(DYNAMIC_BOOST_WEIGHT)
-                        .query(fq -> fq.match(m -> m.field(
-                                field + ".value").
-                                query(FieldValue.of(text))))
-                        .functions(f -> f.fieldValueFactor(fv -> fv.field(
-                                field + ".boost")))))
-                    .scoreMode(ChildScoreMode.Avg));
-            }
-        );
+                .map(pd -> {
+                            String field = ElasticIndexUtils.fieldName(pd.nodeName);
+                            return NestedQuery.of(n -> n
+                                    .path(field)
+                                    .query(q -> q.functionScore(s -> s
+                                            .boost(DYNAMIC_BOOST_WEIGHT)
+                                            .query(fq -> fq.match(m -> m.field(
+                                                            field + ".value").
+                                                    query(FieldValue.of(text))))
+                                            .functions(f -> f.fieldValueFactor(fv -> fv.field(
+                                                    field + ".boost")))))
+                                    .scoreMode(ChildScoreMode.Avg));
+                        }
+                );
     }
 
     private List<Query> nonFullTextConstraints(IndexPlan plan, PlanResult planResult) {

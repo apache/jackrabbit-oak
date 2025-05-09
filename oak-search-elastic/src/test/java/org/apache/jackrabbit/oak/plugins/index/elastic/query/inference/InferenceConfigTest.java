@@ -42,13 +42,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class InferenceConfigTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(InferenceConfigTest.class);
-    String ENRICH_STATUS_PENDING = "PENDING";
+    private final String defaultEnricherStatusMapping = "{\"properties\":{\"processingTimeMs\":{\"type\":\"date\"},\"latestError\":{\"type\":\"keyword\",\"index\":false},\"errorCount\":{\"type\":\"short\"},\"status\":{\"type\":\"keyword\"}}}";
+    private final String defaultEnricherStatusData = "{\"processingTimeMs\":0,\"latestError\":\"\",\"errorCount\":0,\"status\":\"PENDING\"}";
+
+    private static final String ENRICH_STATUS_PENDING = "PENDING";
+
     private static final String DEFAULT_CONFIG_PATH = InferenceConstants.DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH;
     private static final String ENRICHER_CONFIG = "{\"enricher\":{\"config\":{\"vectorSpaces\":{\"semantic\":{\"pipeline\":{\"steps\":[{\"inputFields\":{\"description\":\"STRING\",\"title\":\"STRING\"},\"chunkingConfig\":{\"enabled\":true},\"name\":\"sentence-embeddings\",\"model\":\"text-embedding-ada-002\",\"optional\":true,\"type\":\"embeddings\"}]},\"default\":false}},\"version\":\"0.0.1\"}}}";
 
@@ -350,17 +353,272 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 8: Complete configuration with multiple indexes and models
-     * Tests a complex configuration with multiple indexes and models
+     * Test 8: Test EnricherStatus JSON Mapping
+     * Tests that the EnricherStatus JSON mapping is properly stored and retrieved
+     */
+    @Test
+    public void testEnricherStatusJsonMapping() throws CommitFailedException {
+        // Create enabled inference config with enrich status node
+        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
+        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
+        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+
+        // Add the enricher status node
+        NodeBuilder enrichBuilder = inferenceConfigBuilder.child(InferenceConstants.ENRICH_NODE);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_MAPPING, defaultEnricherStatusMapping);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_DATA, defaultEnricherStatusData);
+
+        // Commit the changes
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Create InferenceConfig object
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
+
+        // Create EnricherStatus instance directly since there's no getter in InferenceConfig
+        EnricherStatus enricherStatus = new EnricherStatus(nodeStore, DEFAULT_CONFIG_PATH);
+
+        // Verify the enricher status JSON mapping
+        String jsonMapping = enricherStatus.getEnricherStatusJsonMapping();
+        assertEquals("Enricher status JSON mapping should match", defaultEnricherStatusMapping, jsonMapping);
+    }
+
+    /**
+     * Test 9: Test Complete Integration with EnricherStatus
+     * Tests the complete integration of InferenceConfig, InferenceIndexConfig, InferenceModelConfig, and EnricherStatus
+     */
+    @Test
+    public void testCompleteIntegrationWithEnricherStatus() throws CommitFailedException {
+        assertTrue(isAuthEnvVarDefined && isInferenceUrlEnvVarDefined && isInferencePayloadModelDefined);
+
+        // Create enabled inference config with complete integration
+        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
+        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
+        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+
+        // Add enricher status node
+        NodeBuilder enrichBuilder = inferenceConfigBuilder.child(InferenceConstants.ENRICH_NODE);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_MAPPING, defaultEnricherStatusMapping);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_DATA, defaultEnricherStatusData);
+
+        // Add index config
+        String indexName = "testIndex";
+        NodeBuilder indexConfigBuilder = inferenceConfigBuilder.child(indexName);
+        indexConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceIndexConfig.TYPE);
+        indexConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+        indexConfigBuilder.setProperty(InferenceConstants.ENRICHER_CONFIG, ENRICHER_CONFIG);
+
+        // Add model config
+        String modelName = "testModel";
+        NodeBuilder modelConfigBuilder = indexConfigBuilder.child(modelName);
+        modelConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
+        modelConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+        modelConfigBuilder.setProperty(InferenceModelConfig.IS_DEFAULT, true);
+        modelConfigBuilder.setProperty(InferenceModelConfig.MODEL, "test-embedding-model");
+        modelConfigBuilder.setProperty(InferenceModelConfig.EMBEDDING_SERVICE_URL, INFERENCE_SERVICE_URL_ENV_VARIABLE);
+        modelConfigBuilder.setProperty(InferenceModelConfig.SIMILARITY_THRESHOLD, 0.8);
+        modelConfigBuilder.setProperty(InferenceModelConfig.MIN_TERMS, 3L);
+
+        // Add header and payload for model
+        NodeBuilder headerBuilder = modelConfigBuilder.child(InferenceModelConfig.HEADER);
+        headerBuilder.setProperty("Content-Type", "application/json");
+        headerBuilder.setProperty("Authorization", AUTH_ENV_VARIABLE);
+        headerBuilder.setProperty("jcr:primaryType", "nt:unstructured");
+
+        NodeBuilder payloadBuilder = modelConfigBuilder.child(InferenceModelConfig.INFERENCE_PAYLOAD);
+        payloadBuilder.setProperty("model", INFERENCE_PAYLOAD_MODEL);
+        payloadBuilder.setProperty("jcr:primaryType", "nt:unstructured");
+
+        // Commit the changes
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Create InferenceConfig object
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
+
+        // Verify the inference config state
+        assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
+
+        // Verify the enricher status
+        Map<String, Object> enricherStatus = inferenceConfig.getEnricherStatus();
+        assertNotNull("Enricher status should not be null", enricherStatus);
+        assertFalse("Enricher status should not be empty", enricherStatus.isEmpty());
+        assertEquals("Status should match", ENRICH_STATUS_PENDING, enricherStatus.get("status"));
+        assertEquals("Processing time should match", 0, enricherStatus.get("processingTimeMs"));
+        assertEquals("Latest error should match", "", enricherStatus.get("latestError"));
+        assertEquals("Error count should match", 0, enricherStatus.get("errorCount"));
+
+        // Verify the index config
+        InferenceIndexConfig indexConfig = inferenceConfig.getInferenceIndexConfig(indexName);
+        assertTrue("Index config should be enabled", indexConfig.isEnabled());
+        assertEquals("Enricher config should match", ENRICHER_CONFIG, indexConfig.getEnricherConfig());
+
+        // Verify the model config
+        InferenceModelConfig modelConfig = indexConfig.getInferenceModelConfigs().get(modelName);
+        assertNotNull("Model config should exist", modelConfig);
+        assertTrue("Model config should be enabled", modelConfig.isEnabled());
+        assertTrue("Model config should be default", modelConfig.isDefault());
+        assertEquals("Model name should match", "test-embedding-model", modelConfig.getModel());
+
+        // Verify model config details
+        assertNotEquals("Model's embedding service URL should not match the env variable",
+            INFERENCE_SERVICE_URL_ENV_VARIABLE, modelConfig.getEmbeddingServiceUrl());
+        assertFalse("Payload should not have jcr:primaryType property",
+            modelConfig.getPayload().getInferencePayload("test").contains("jcr:primaryType"));
+        assertFalse("Header should not have jcr:primaryType property",
+            modelConfig.getHeader().getInferenceHeaderPayload().containsKey("jcr:primaryType"));
+    }
+
+    /**
+     * Utility method to verify enricher status fields
+     */
+    private void verifyEnricherStatusFields(Map<String, Object> status, String expectedStatus,
+                                            int expectedProcessingTime, String expectedError, int expectedErrorCount) {
+        assertEquals("Status should match", expectedStatus, status.get("status"));
+        assertEquals("Processing time should match", expectedProcessingTime, status.get("processingTimeMs"));
+        assertEquals("Latest error should match", expectedError, status.get("latestError"));
+        assertEquals("Error count should match", expectedErrorCount, status.get("errorCount"));
+    }
+
+    /**
+     * Test 10: Test EnricherStatus
+     * Tests that the EnricherStatus is properly loaded from the inference config
+     */
+    @Test
+    public void testEnricherStatus() throws CommitFailedException {
+        // Create enabled inference config with enrich status node
+        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
+        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
+        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+
+        // Add the enricher status node
+        NodeBuilder enrichBuilder = inferenceConfigBuilder.child(InferenceConstants.ENRICH_NODE);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_MAPPING, defaultEnricherStatusMapping);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_DATA, defaultEnricherStatusData);
+
+        // Commit the changes
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Create InferenceConfig object
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
+
+        // Verify the enricher status
+        Map<String, Object> enricherStatus = inferenceConfig.getEnricherStatus();
+
+        assertNotNull("Enricher status should not be null", enricherStatus);
+        assertFalse("Enricher status should not be empty", enricherStatus.isEmpty());
+
+        // Check status property based on the defaultEnricherStatusData
+        verifyEnricherStatusFields(enricherStatus, ENRICH_STATUS_PENDING, 0, "", 0);
+
+        // Also verify the JSON mapping
+        EnricherStatus enricherStatusInstance = new EnricherStatus(nodeStore, DEFAULT_CONFIG_PATH);
+        String jsonMapping = enricherStatusInstance.getEnricherStatusJsonMapping();
+        assertEquals("Enricher status JSON mapping should match", defaultEnricherStatusMapping, jsonMapping);
+    }
+
+    /**
+     * Test 11: Test EnricherStatus Refresh
+     * Tests that the EnricherStatus is properly refreshed when the inference config is updated
+     */
+    @Test
+    public void testEnricherStatusRefresh() throws CommitFailedException {
+        // Create enabled inference config with initial enrich status node
+        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
+        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
+        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+
+        // Add the initial enricher status node with PENDING status
+        NodeBuilder enrichBuilder = inferenceConfigBuilder.child(InferenceConstants.ENRICH_NODE);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_MAPPING, defaultEnricherStatusMapping);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_DATA, defaultEnricherStatusData);
+
+        // Commit the changes
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Create InferenceConfig object
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
+
+        // Verify the initial enricher status
+        Map<String, Object> initialStatus = inferenceConfig.getEnricherStatus();
+        verifyEnricherStatusFields(initialStatus, ENRICH_STATUS_PENDING, 0, "", 0);
+
+        // Now update the enricher status to RUNNING with new values
+        NodeBuilder updatedRootBuilder = nodeStore.getRoot().builder();
+        NodeBuilder updatedConfigBuilder = createNodePath(updatedRootBuilder, DEFAULT_CONFIG_PATH);
+        NodeBuilder updatedEnrichBuilder = updatedConfigBuilder.child(InferenceConstants.ENRICH_NODE);
+
+        // Update with new JSON data
+        String updatedStatusData = "{\"processingTimeMs\":1000,\"latestError\":\"\",\"errorCount\":0,\"status\":\"RUNNING\",\"timestamp\":\"2023-01-01T12:00:00Z\",\"count\":100}";
+        updatedEnrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_DATA, updatedStatusData);
+
+        // Commit the updated changes
+        nodeStore.merge(updatedRootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Refresh the InferenceConfig
+        InferenceConfig.reInitialize();
+
+        // Get the updated enricher status
+        Map<String, Object> updatedStatus = inferenceConfig.getEnricherStatus();
+
+        // Verify the updated enricher status
+        assertEquals("Updated status should be RUNNING", "RUNNING", updatedStatus.get("status"));
+        assertEquals("Updated processingTimeMs should be 1000", 1000, updatedStatus.get("processingTimeMs"));
+        assertEquals("Updated timestamp should match", "2023-01-01T12:00:00Z", updatedStatus.get("timestamp"));
+        assertEquals("Updated count should be 100", 100, updatedStatus.get("count"));
+    }
+
+    /**
+     * Test 12: Test EnricherStatus with Error Information
+     * Tests that the EnricherStatus properly handles error information
+     */
+    @Test
+    public void testEnricherStatusWithErrorInfo() throws CommitFailedException {
+        // Create enabled inference config with enrich status node containing error info
+        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
+        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
+        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+
+        // Define status data with error information
+        String errorStatusData = "{\"processingTimeMs\":5000,\"latestError\":\"Connection timed out\",\"errorCount\":3,\"status\":\"ERROR\"}";
+
+        // Add the enricher status node
+        NodeBuilder enrichBuilder = inferenceConfigBuilder.child(InferenceConstants.ENRICH_NODE);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_MAPPING, defaultEnricherStatusMapping);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_DATA, errorStatusData);
+
+        // Commit the changes
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Create InferenceConfig object
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
+
+        // Verify the enricher status with error information
+        Map<String, Object> errorStatus = inferenceConfig.getEnricherStatus();
+        assertNotNull("Enricher status should not be null", errorStatus);
+        verifyEnricherStatusFields(errorStatus, "ERROR", 5000, "Connection timed out", 3);
+    }
+
+    /**
+     * Test 13: Test Complete Configuration with Multiple Indexes and Models including EnricherStatus
+     * Tests a complex configuration with multiple indexes, models, and enricher status
      */
     @Test
     public void testCompleteConfiguration() throws CommitFailedException {
-
         assertTrue(isAuthEnvVarDefined && isInferenceUrlEnvVarDefined && isInferencePayloadModelDefined);
+
         // Create enabled inference config with multiple index configs
         NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
         inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
         inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+
+        // Add enricher status node
+        NodeBuilder enrichBuilder = inferenceConfigBuilder.child(InferenceConstants.ENRICH_NODE);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_MAPPING, defaultEnricherStatusMapping);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_DATA, defaultEnricherStatusData);
 
         // First index config
         String indexName1 = "testIndex1";
@@ -429,6 +687,12 @@ public class InferenceConfigTest {
         InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
         InferenceConfig inferenceConfig = InferenceConfig.getInstance();
 
+        // Verify the enricher status
+        Map<String, Object> enricherStatus = inferenceConfig.getEnricherStatus();
+        assertNotNull("Enricher status should not be null", enricherStatus);
+        assertFalse("Enricher status should not be empty", enricherStatus.isEmpty());
+        verifyEnricherStatusFields(enricherStatus, ENRICH_STATUS_PENDING, 0, "", 0);
+
         // Verify the state
         assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
 
@@ -471,306 +735,6 @@ public class InferenceConfigTest {
         assertFalse("Payload should not have jcr:primaryType property",
             modelConfig2.getPayload().getInferencePayload("input text").contains("jcr:primaryType"));
         assertFalse("Header Payload should not have jcr:primaryType property", modelConfig2.getHeader().getInferenceHeaderPayload().containsKey("jcr:primaryType"));
-
-    }
-
-    /**
-     * Test 9: Test refreshConfig method
-     * Tests that the refreshConfig method properly updates the configuration
-     */
-    @Test
-    public void testRefreshConfig() throws CommitFailedException {
-        // Create initial enabled inference config with one index
-        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
-        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
-        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
-
-        // Add index config
-        String indexName = "testIndex";
-        NodeBuilder indexConfigBuilder = inferenceConfigBuilder.child(indexName);
-        indexConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceIndexConfig.TYPE);
-        indexConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
-        indexConfigBuilder.setProperty(InferenceConstants.ENRICHER_CONFIG, ENRICHER_CONFIG);
-
-        // Commit the changes
-        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // Create InferenceConfig object
-        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
-
-        // Verify initial state
-        assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
-
-        // Modify the configuration in the nodeStore
-        NodeBuilder updatedRootBuilder = nodeStore.getRoot().builder();
-        NodeBuilder updatedConfigBuilder = createNodePath(updatedRootBuilder, DEFAULT_CONFIG_PATH);
-
-        // Add a new index config
-        String newIndexName = "newIndex";
-        NodeBuilder newIndexConfigBuilder = updatedConfigBuilder.child(newIndexName);
-        newIndexConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceIndexConfig.TYPE);
-        newIndexConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
-        newIndexConfigBuilder.setProperty(InferenceConstants.ENRICHER_CONFIG, ENRICHER_CONFIG);
-
-        // Commit the changes
-        nodeStore.merge(updatedRootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        assertFalse("Should not have new index config", inferenceConfig.getInferenceIndexConfig(newIndexName).isEnabled());
-
-        // Refresh the InferenceConfig
-        InferenceConfig.reInitialize();
-        // Verify updated state
-        assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
-        assertTrue("Should contain the new index config", inferenceConfig.getInferenceIndexConfig(newIndexName).isEnabled());
-    }
-
-    /**
-     * Test 10: Test EnricherStatus
-     * Tests that the EnricherStatus is properly loaded from the inference config
-     */
-    @Test
-    public void testEnricherStatus() throws CommitFailedException {
-        // Create enabled inference config with enrich status node
-        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
-        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
-        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
-
-        // Add the enricher status node
-        NodeBuilder enrichBuilder = inferenceConfigBuilder.child(InferenceConstants.ENRICH_NODE);
-        enrichBuilder.setProperty("jcr:primaryType", "nt:unstructured");
-        enrichBuilder.setProperty("status", ENRICH_STATUS_PENDING);
-        enrichBuilder.setProperty("timestamp", "2023-01-01T12:00:00Z");
-        enrichBuilder.setProperty("count", 100);
-
-        // Add some nested data
-        NodeBuilder statsBuilder = enrichBuilder.child("stats");
-        statsBuilder.setProperty("jcr:primaryType", "nt:unstructured");
-        statsBuilder.setProperty("totalDocs", 1000);
-        statsBuilder.setProperty("processedDocs", 950);
-        statsBuilder.setProperty("skippedDocs", 50);
-
-        // Commit the changes
-        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // Create InferenceConfig object
-        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
-
-        // Verify the enricher status
-        Map<String, Object> enricherStatus = inferenceConfig.getEnricherStatus();
-
-        assertNotNull("Enricher status should not be null", enricherStatus);
-        assertFalse("Enricher status should not be empty", enricherStatus.isEmpty());
-
-        // Check top-level properties
-        assertEquals("Status should match", ENRICH_STATUS_PENDING, enricherStatus.get("status"));
-        assertEquals("Timestamp should match", "2023-01-01T12:00:00Z", enricherStatus.get("timestamp"));
-        assertEquals("Count should match", 100L, enricherStatus.get("count"));
-
-        // Check nested properties
-        @SuppressWarnings("unchecked")
-        Map<String, Object> stats = (Map<String, Object>) enricherStatus.get("stats");
-        assertNull("Stats should not exist", stats);
-        // Verify that jcr:primaryType is not included
-        assertFalse("jcr:primaryType should not be included", enricherStatus.containsKey("jcr:primaryType"));
-    }
-
-    /**
-     * Test 11: Test Empty EnricherStatus
-     * Tests the behavior when no enricher status is present
-     */
-    @Test
-    public void testEmptyEnricherStatus() throws CommitFailedException {
-        // Create enabled inference config without enrich status node
-        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
-        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
-        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
-
-        // Commit the changes
-        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // Create InferenceConfig object
-        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
-
-        // Verify the enricher status
-        Map<String, Object> enricherStatus = inferenceConfig.getEnricherStatus();
-
-        assertNotNull("Enricher status should not be null", enricherStatus);
-        assertTrue("Enricher status should be empty", enricherStatus.isEmpty());
-    }
-
-    /**
-     * Test 12: Test EnricherStatus when inference config doesn't exist
-     * Tests that an empty enricher status is returned when the inference config doesn't exist
-     */
-    @Test
-    public void testEnricherStatusWithNoInferenceConfig() {
-        // Create a different NodeStore without any inference config
-        NodeBuilder emptyRootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
-        NodeStore emptyNodeStore = new MemoryNodeStore(emptyRootBuilder.getNodeState());
-
-        // Create EnricherStatus directly (not through InferenceConfig)
-        EnricherStatus enricherStatus = new EnricherStatus(emptyNodeStore, DEFAULT_CONFIG_PATH);
-
-        // Verify the enricher status
-        Map<String, Object> status = enricherStatus.getEnricherStatus();
-
-        assertNotNull("Enricher status should not be null", status);
-        assertTrue("Enricher status should be empty", status.isEmpty());
-    }
-
-    /**
-     * Test 13: Test EnricherStatus Refresh
-     * Tests that the EnricherStatus is properly refreshed when the inference config is updated
-     */
-    @Test
-    public void testEnricherStatusRefresh() throws CommitFailedException {
-        // Create enabled inference config with initial enrich status node
-        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
-        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
-        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
-
-        // Add the initial enricher status node with PENDING status
-        NodeBuilder enrichBuilder = inferenceConfigBuilder.child(InferenceConstants.ENRICH_NODE);
-        enrichBuilder.setProperty("jcr:primaryType", "nt:unstructured");
-        enrichBuilder.setProperty("status", ENRICH_STATUS_PENDING);
-        enrichBuilder.setProperty("timestamp", "2023-01-01T10:00:00Z");
-        enrichBuilder.setProperty("count", 0);
-
-        // Commit the changes
-        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // Create InferenceConfig object
-        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
-
-        // Verify the initial enricher status
-        Map<String, Object> initialStatus = inferenceConfig.getEnricherStatus();
-        assertEquals("Initial status should be PENDING", ENRICH_STATUS_PENDING, initialStatus.get("status"));
-        assertEquals("Initial timestamp should match", "2023-01-01T10:00:00Z", initialStatus.get("timestamp"));
-        assertEquals("Initial count should be 0", 0L, initialStatus.get("count"));
-
-        // Now update the enricher status to COMPLETED
-        NodeBuilder updatedRootBuilder = nodeStore.getRoot().builder();
-        NodeBuilder updatedConfigBuilder = createNodePath(updatedRootBuilder, DEFAULT_CONFIG_PATH);
-        NodeBuilder updatedEnrichBuilder = updatedConfigBuilder.child(InferenceConstants.ENRICH_NODE);
-        updatedEnrichBuilder.setProperty("status", ENRICH_STATUS_PENDING);
-        updatedEnrichBuilder.setProperty("timestamp", "2023-01-01T12:00:00Z");
-        updatedEnrichBuilder.setProperty("count", 100L);
-
-        // Commit the updated changes
-        nodeStore.merge(updatedRootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // Refresh the InferenceConfig
-        InferenceConfig.reInitialize();
-
-        // Get the updated enricher status
-        Map<String, Object> updatedStatus = inferenceConfig.getEnricherStatus();
-
-        // Verify the updated enricher status
-        assertEquals("Updated status should be COMPLETED", ENRICH_STATUS_PENDING, updatedStatus.get("status"));
-        assertEquals("Updated timestamp should match", "2023-01-01T12:00:00Z", updatedStatus.get("timestamp"));
-        assertEquals("Updated count should be 100", 100L, updatedStatus.get("count"));
-    }
-
-    /**
-     * Test 14: Test Complete Integration with EnricherStatus
-     * Tests the complete integration of InferenceConfig, InferenceIndexConfig, InferenceModelConfig, and EnricherStatus
-     */
-    @Test
-    public void testCompleteIntegrationWithEnricherStatus() throws CommitFailedException {
-        assertTrue(isAuthEnvVarDefined && isInferenceUrlEnvVarDefined && isInferencePayloadModelDefined);
-
-        // Create enabled inference config with complete integration
-        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
-        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
-        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
-
-        // Add enricher status node
-        NodeBuilder enrichBuilder = inferenceConfigBuilder.child(InferenceConstants.ENRICH_NODE);
-        enrichBuilder.setProperty("jcr:primaryType", "nt:unstructured");
-        enrichBuilder.setProperty("status", ENRICH_STATUS_PENDING);
-        enrichBuilder.setProperty("timestamp", "2023-01-01T12:00:00Z");
-        enrichBuilder.setProperty("count", 100);
-
-        // Add stats to enricher status
-        NodeBuilder statsBuilder = enrichBuilder.child("stats");
-        statsBuilder.setProperty("jcr:primaryType", "nt:unstructured");
-        statsBuilder.setProperty("totalDocs", 1000);
-        statsBuilder.setProperty("processedDocs", 950);
-        statsBuilder.setProperty("skippedDocs", 50);
-
-        // Add index config
-        String indexName = "testIndex";
-        NodeBuilder indexConfigBuilder = inferenceConfigBuilder.child(indexName);
-        indexConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceIndexConfig.TYPE);
-        indexConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
-        indexConfigBuilder.setProperty(InferenceConstants.ENRICHER_CONFIG, ENRICHER_CONFIG);
-
-        // Add model config
-        String modelName = "testModel";
-        NodeBuilder modelConfigBuilder = indexConfigBuilder.child(modelName);
-        modelConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
-        modelConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
-        modelConfigBuilder.setProperty(InferenceModelConfig.IS_DEFAULT, true);
-        modelConfigBuilder.setProperty(InferenceModelConfig.MODEL, "test-embedding-model");
-        modelConfigBuilder.setProperty(InferenceModelConfig.EMBEDDING_SERVICE_URL, INFERENCE_SERVICE_URL_ENV_VARIABLE);
-        modelConfigBuilder.setProperty(InferenceModelConfig.SIMILARITY_THRESHOLD, 0.8);
-        modelConfigBuilder.setProperty(InferenceModelConfig.MIN_TERMS, 3L);
-
-        // Add header and payload for model
-        NodeBuilder headerBuilder = modelConfigBuilder.child(InferenceModelConfig.HEADER);
-        headerBuilder.setProperty("Content-Type", "application/json");
-        headerBuilder.setProperty("Authorization", AUTH_ENV_VARIABLE);
-        headerBuilder.setProperty("jcr:primaryType", "nt:unstructured");
-
-        NodeBuilder payloadBuilder = modelConfigBuilder.child(InferenceModelConfig.INFERENCE_PAYLOAD);
-        payloadBuilder.setProperty("model", INFERENCE_PAYLOAD_MODEL);
-        payloadBuilder.setProperty("jcr:primaryType", "nt:unstructured");
-
-        // Commit the changes
-        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // Create InferenceConfig object
-        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
-        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
-
-        // Verify the inference config state
-        assertTrue("InferenceConfig should be enabled", inferenceConfig.isEnabled());
-
-        // Verify the enricher status
-        Map<String, Object> enricherStatus = inferenceConfig.getEnricherStatus();
-        assertNotNull("Enricher status should not be null", enricherStatus);
-        assertFalse("Enricher status should not be empty", enricherStatus.isEmpty());
-        assertEquals("Status should match", ENRICH_STATUS_PENDING, enricherStatus.get("status"));
-
-        // Verify nested stats
-        @SuppressWarnings("unchecked")
-        Map<String, Object> stats = (Map<String, Object>) enricherStatus.get("stats");
-        assertNull("Stats should not exist", stats);
-        // Verify that jcr:primaryType is not included
-        assertFalse("jcr:primaryType should not be included", enricherStatus.containsKey("jcr:primaryType"));
-
-        // Verify the index config
-        InferenceIndexConfig indexConfig = inferenceConfig.getInferenceIndexConfig(indexName);
-        assertTrue("Index config should be enabled", indexConfig.isEnabled());
-        assertEquals("Enricher config should match", ENRICHER_CONFIG, indexConfig.getEnricherConfig());
-
-        // Verify the model config
-        InferenceModelConfig modelConfig = indexConfig.getInferenceModelConfigs().get(modelName);
-        assertNotNull("Model config should exist", modelConfig);
-        assertTrue("Model config should be enabled", modelConfig.isEnabled());
-        assertTrue("Model config should be default", modelConfig.isDefault());
-        assertEquals("Model name should match", "test-embedding-model", modelConfig.getModel());
-
-        // Verify model config details
-        assertNotEquals("Model's embedding service URL should not match the env variable",
-            INFERENCE_SERVICE_URL_ENV_VARIABLE, modelConfig.getEmbeddingServiceUrl());
-        assertFalse("Payload should not have jcr:primaryType property",
-            modelConfig.getPayload().getInferencePayload("test").contains("jcr:primaryType"));
-        assertFalse("Header should not have jcr:primaryType property",
-            modelConfig.getHeader().getInferenceHeaderPayload().containsKey("jcr:primaryType"));
     }
 
     /**
