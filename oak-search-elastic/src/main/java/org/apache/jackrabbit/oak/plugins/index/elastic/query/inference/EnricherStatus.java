@@ -18,9 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -85,4 +87,28 @@ public class EnricherStatus {
         return enricherStatusJsonMapping;
     }
 
+    @Override
+    public String toString() {
+        JsopBuilder builder = new JsopBuilder().object();
+        // Add the mapping data
+        builder.key(InferenceConstants.ENRICHER_STATUS_MAPPING).value(enricherStatusJsonMapping);
+
+        // Add enricher status data
+        builder.key(InferenceConstants.ENRICHER_STATUS_DATA).object();
+        for (Map.Entry<String, Object> entry : enricherStatusData.entrySet()) {
+            builder.key(entry.getKey());
+            if (entry.getValue() instanceof String) {
+                builder.value((String) entry.getValue());
+            } else {
+                try {
+                    builder.encodedValue(MAPPER.writeValueAsString(entry.getValue()));
+                } catch (JsonProcessingException e) {
+                    LOG.warn("Failed to serialize value for key {}: {}", entry.getKey(), e.getMessage());
+                    builder.value(entry.getValue().toString());
+                }
+            }
+        }
+        builder.endObject().endObject();
+        return JsopBuilder.prettyPrint(builder.toString());
+    }
 } 

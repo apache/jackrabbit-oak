@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.EnvironmentVariableProcessorUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -58,6 +59,7 @@ public class InferencePayload {
         //replace current keys with swapped
         inferencePayloadMap.putAll(swappedEnvVarsMap);
     }
+
     /*
      * Get the inference payload as a json string
      *
@@ -76,4 +78,23 @@ public class InferencePayload {
         }
     }
 
+    @Override
+    public String toString() {
+        JsopBuilder builder = new JsopBuilder().object();
+        for (Map.Entry<String, Object> entry : inferencePayloadMap.entrySet()) {
+            builder.key(entry.getKey());
+            if (entry.getValue() instanceof String) {
+                builder.value((String) entry.getValue());
+            } else {
+                try {
+                    builder.encodedValue(objectMapper.writeValueAsString(entry.getValue()));
+                } catch (JsonProcessingException e) {
+                    LOG.warn("Failed to serialize value for key {}: {}", entry.getKey(), e.getMessage());
+                    builder.value(entry.getValue().toString());
+                }
+            }
+        }
+        builder.endObject();
+        return JsopBuilder.prettyPrint(builder.toString());
+    }
 } 

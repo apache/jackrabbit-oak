@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.EnvironmentVariableProcessorUtil;
 import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQueryConfig;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -102,7 +103,7 @@ public class InferenceModelConfig {
         this.isDefault = getOptionalValue(nodeState, IS_DEFAULT, false);
         this.model = getOptionalValue(nodeState, MODEL, "");
         this.embeddingServiceUrl = EnvironmentVariableProcessorUtil.processEnvironmentVariable(
-                InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, getOptionalValue(nodeState, EMBEDDING_SERVICE_URL, ""), DEFAULT_ENVIRONMENT_VARIABLE_VALUE);
+            InferenceConstants.INFERENCE_ENVIRONMENT_VARIABLE_PREFIX, getOptionalValue(nodeState, EMBEDDING_SERVICE_URL, ""), DEFAULT_ENVIRONMENT_VARIABLE_VALUE);
         this.similarityThreshold = getOptionalValue(nodeState, SIMILARITY_THRESHOLD, DEFAULT_SIMILARITY_THRESHOLD);
         this.minTerms = getOptionalValue(nodeState, MIN_TERMS, DEFAULT_MIN_TERMS);
         this.timeout = getOptionalValue(nodeState, TIMEOUT, DEFAULT_TIMEOUT_MILLIS);
@@ -112,18 +113,21 @@ public class InferenceModelConfig {
 
     @Override
     public String toString() {
-        return TYPE + "{" +
-                MODEL + "='" + model + '\'' +
-                ", " + EMBEDDING_SERVICE_URL + "='" + embeddingServiceUrl + '\'' +
-                ", " + SIMILARITY_THRESHOLD + similarityThreshold +
-                ", " + MIN_TERMS + "=" + minTerms +
-                ", " + IS_DEFAULT + "=" + isDefault +
-                ", " + ENABLED + "=" + enabled +
-                ", " + HEADER + "=" + header +
-                ", " + INFERENCE_PAYLOAD + "=" + payload +
-                ", " + TIMEOUT + "=" + timeout +
-                ", " + NUM_CANDIDATES + "=" + numCandidates +
-                "}";
+        JsopBuilder builder = new JsopBuilder().object().
+            key("type").value(TYPE).
+            key(MODEL).value(model).
+            key(EMBEDDING_SERVICE_URL).value(embeddingServiceUrl).
+            key(SIMILARITY_THRESHOLD).encodedValue("" + similarityThreshold).
+            key(MIN_TERMS).value(minTerms).
+            key(IS_DEFAULT).value(isDefault).
+            key(ENABLED).value(enabled).
+            key(HEADER).encodedValue(header.toString()).
+            key(INFERENCE_PAYLOAD).encodedValue(payload.toString()).
+            key(TIMEOUT).value(timeout).
+            key(NUM_CANDIDATES).value(numCandidates).
+            key(CACHE_SIZE).value(cacheSize);
+        builder.endObject();
+        return JsopBuilder.prettyPrint(builder.toString());
     }
 
     public String getInferenceModelConfigName() {

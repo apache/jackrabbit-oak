@@ -18,7 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -85,7 +88,7 @@ public class InferenceConfig {
         reInitialize(nodeStore, inferenceConfigPath, isInferenceEnabled, true);
     }
 
-    public static void reInitialize(){
+    public static void reInitialize() {
         reInitialize(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, INSTANCE.isInferenceEnabled, true);
     }
 
@@ -101,7 +104,7 @@ public class InferenceConfig {
         }
     }
 
-    private static void reInitialize(NodeStore nodeStore, String inferenceConfigPath, boolean isInferenceEnabled, boolean updateActiveInferenceConfig){
+    private static void reInitialize(NodeStore nodeStore, String inferenceConfigPath, boolean isInferenceEnabled, boolean updateActiveInferenceConfig) {
         lock.writeLock().lock();
         try {
             if (updateActiveInferenceConfig) {
@@ -156,11 +159,11 @@ public class InferenceConfig {
                 InferenceIndexConfig inferenceIndexConfig;
                 IndexName indexNameObject;
                 Function<String, InferenceIndexConfig> getInferenceIndexConfig = (iName) ->
-                        getIndexConfigs().getOrDefault(iName, InferenceIndexConfig.NOOP);
+                    getIndexConfigs().getOrDefault(iName, InferenceIndexConfig.NOOP);
                 if (!InferenceIndexConfig.NOOP.equals(inferenceIndexConfig = getInferenceIndexConfig.apply(indexName))) {
                     LOG.debug("InferenceIndexConfig for indexName: {} is: {}", indexName, inferenceIndexConfig);
                 } else if ((indexNameObject = IndexName.parse(indexName)) != null && indexNameObject.isLegal()
-                        && indexNameObject.getBaseName() != null
+                    && indexNameObject.getBaseName() != null
                 ) {
                     LOG.debug("InferenceIndexConfig is using baseIndexName {} and is: {}", indexNameObject.getBaseName(), inferenceIndexConfig);
                     inferenceIndexConfig = getInferenceIndexConfig.apply(indexNameObject.getBaseName());
@@ -175,7 +178,7 @@ public class InferenceConfig {
     public @NotNull InferenceModelConfig getInferenceModelConfig(String inferenceIndexName, String inferenceModelConfigName) {
         lock.readLock().lock();
         try {
-            if (inferenceModelConfigName == null){
+            if (inferenceModelConfigName == null) {
                 return InferenceModelConfig.NOOP;
             } else if (inferenceModelConfigName.isEmpty()) {
                 return getInferenceIndexConfig(inferenceIndexName).getDefaultEnabledModel();
@@ -188,7 +191,7 @@ public class InferenceConfig {
 
     }
 
-    public Map<String, Object> getEnricherStatus(){
+    public Map<String, Object> getEnricherStatus() {
         lock.readLock().lock();
         try {
             return INSTANCE.enricherStatus.getEnricherStatus();
@@ -197,7 +200,7 @@ public class InferenceConfig {
         }
     }
 
-    public String getEnricherStatusMapping(){
+    public String getEnricherStatusMapping() {
         lock.readLock().lock();
         try {
             return INSTANCE.enricherStatus.getEnricherStatusJsonMapping();
@@ -206,11 +209,32 @@ public class InferenceConfig {
         }
     }
 
+    public String getInferenceConfigNodeState() {
+        if (nodeStore != null) {
+            NodeState ns = nodeStore.getRoot();
+            for (String elem : PathUtils.elements(inferenceConfigPath)) {
+                ns = ns.getChildNode(elem);
+            }
+            if (!ns.exists()) {
+                LOG.warn("InferenceConfig: NodeState does not exist for path: " + inferenceConfigPath);
+                return "{}";
+            }
+            try {
+                return JsonUtils.nodeStateToJson(ns, 5);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            LOG.warn("InferenceConfig: NodeStore is null");
+            return "{}";
+        }
+    }
+
     private @NotNull Map<String, InferenceIndexConfig> getIndexConfigs() {
         lock.readLock().lock();
         try {
             return isEnabled() ?
-                    Collections.unmodifiableMap(indexConfigs) : Map.of();
+                Collections.unmodifiableMap(indexConfigs) : Map.of();
         } finally {
             lock.readLock().unlock();
         }
@@ -241,4 +265,23 @@ public class InferenceConfig {
         return UUID.randomUUID().toString();
     }
 
+    @Override
+    public String toString() {
+        JsopBuilder builder = new JsopBuilder().object().
+            key("type").value(TYPE).
+            key("enabled").value(enabled).
+            key("inferenceConfigPath").value(inferenceConfigPath).
+            key("currentInferenceConfig").value(currentInferenceConfig).
+            key("activeInferenceConfig").value(activeInferenceConfig).
+            key("isInferenceEnabled").value(isInferenceEnabled).
+            key("indexConfigs").object();
+        // Serialize each index config
+        for (Map.Entry<String, InferenceIndexConfig> e : indexConfigs.entrySet()) {
+            builder.key(e.getKey()).encodedValue(e.getValue().toString());
+        }
+        builder.endObject();
+        // Serialize enricherStatus
+        builder.key(":enrich").encodedValue(enricherStatus.toString()).endObject();
+        return JsopBuilder.prettyPrint(builder.toString());
+    }
 } 

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.EnvironmentVariableProcessorUtil;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -64,7 +65,12 @@ public class InferenceHeaderPayload {
 
     @Override
     public String toString() {
-        return inferenceHeaderPayloadMap.toString();
+        JsopBuilder builder = new JsopBuilder().object();
+        for (Map.Entry<String, String> entry : inferenceHeaderPayloadMap.entrySet()) {
+            builder.key(entry.getKey()).value(entry.getValue());
+        }
+        builder.endObject();
+        return JsopBuilder.prettyPrint(builder.toString());
     }
 
 } 
