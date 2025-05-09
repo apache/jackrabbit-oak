@@ -65,12 +65,15 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
     @Rule
     public WireMockRule wireMock = new WireMockRule(WireMockConfiguration.options().dynamicPort());
 
-    private final String enricherConfig = "{\"enricher\":{\"config\":{\"vectorSpaces\":{\"semantic\":{\"pipeline\":{\"steps\":[{\"inputFields\":{\"description\":\"STRING\",\"title\":\"STRING\"},\"chunkingConfig\":{\"enabled\":true},\"name\":\"sentence-embeddings\",\"model\":\"text-embedding-ada-002\",\"optional\":true,\"type\":\"embeddings\"}]},\"default\":false}},\"version\":\"0.0.1\"}}}";
+    private final String defaultEnricherConfig = "{\"enricher\":{\"config\":{\"vectorSpaces\":{\"semantic\":{\"pipeline\":{\"steps\":[{\"inputFields\":{\"description\":\"STRING\",\"title\":\"STRING\"},\"chunkingConfig\":{\"enabled\":true},\"name\":\"sentence-embeddings\",\"model\":\"text-embedding-ada-002\",\"optional\":true,\"type\":\"embeddings\"}]},\"default\":false}},\"version\":\"0.0.1\"}}}";
+    private final String defaultEnricherStatusMapping = "{\"properties\":{\"processingTimeMs\":{\"type\":\"date\"},\"latestError\":{\"type\":\"keyword\",\"index\":false},\"errorCount\":{\"type\":\"short\"},\"status\":{\"type\":\"keyword\"}}}";
+    private final String defaultEnricherStatusData = "{\"processingTimeMs\":0,\"latestError\":\"\",\"errorCount\":0,\"status\":\"PENDING\"}";
 
     @Test
     public void inferenceConfigStoredInIndexMetadata() throws CommitFailedException, JsonProcessingException {
         String indexName = UUID.randomUUID().toString();
-        // check that the inference config
+
+        // Setup inference configuration with multiple models
         NodeBuilder rootBuilder = nodeStore.getRoot().builder();
         NodeBuilder nodeBuilder = rootBuilder;
         for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
@@ -80,53 +83,27 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         nodeBuilder.setProperty(InferenceConstants.ENABLED, true);
         NodeBuilder inferenceConfig = nodeBuilder;
 
+        // Add enricherStatus config
+        NodeBuilder enricherStatusConfig = inferenceConfig.child(InferenceConstants.ENRICH_NODE);
+        enricherStatusConfig.setProperty(InferenceConstants.ENRICHER_STATUS_MAPPING, defaultEnricherStatusMapping);
+        enricherStatusConfig.setProperty(InferenceConstants.ENRICHER_STATUS_DATA, defaultEnricherStatusData);
+
         // Add inferenceIndexConfig
         NodeBuilder inferenceIndexConfig = inferenceConfig.child(indexName);
         inferenceIndexConfig.setProperty(TYPE, InferenceIndexConfig.TYPE);
-        inferenceIndexConfig.setProperty(ENRICHER_CONFIG, enricherConfig);
+        inferenceIndexConfig.setProperty(ENRICHER_CONFIG, defaultEnricherConfig);
         inferenceIndexConfig.setProperty(InferenceConstants.ENABLED, true);
-        // Add inference model1 configuration
-        NodeBuilder inferenceModelConfig1 = inferenceIndexConfig.child("inferenceModel1");
-        inferenceModelConfig1.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
-        inferenceModelConfig1.setProperty(InferenceModelConfig.MODEL, "test-model1");
-        inferenceModelConfig1.setProperty(InferenceModelConfig.EMBEDDING_SERVICE_URL, "http://localhost:8080");
-        inferenceModelConfig1.setProperty(InferenceModelConfig.SIMILARITY_THRESHOLD, 0.8);
-        inferenceModelConfig1.setProperty(InferenceModelConfig.MIN_TERMS, 3L);
-        inferenceModelConfig1.setProperty(InferenceModelConfig.IS_DEFAULT, true);
-        inferenceModelConfig1.setProperty(InferenceModelConfig.ENABLED, true);
 
-        // Setup header configuration
-        NodeBuilder header1 = inferenceModelConfig1.child(InferenceModelConfig.HEADER);
-        header1.setProperty("headerKey1_1", "headerValue1_1");
-        header1.setProperty("headerKey2_1", "headerValue2_1");
+        // Setup two inference models to verify multiple model configurations
+        setupInferenceModelConfig(inferenceIndexConfig, "inferenceModel1", "test-model1",
+            "http://localhost:8080", 0.8, 3L, true, true,
+            Map.of("headerKey1_1", "headerValue1_1", "headerKey2_1", "headerValue2_1"),
+            Map.of("textKey", "text1", "dimension", 1536, "model", "model-name-of-inference-model1"));
 
-        // Setup payload configuration
-        NodeBuilder payload1 = inferenceModelConfig1.child(InferenceModelConfig.INFERENCE_PAYLOAD);
-        payload1.setProperty("textKey", "text1");
-        payload1.setProperty("dimension", 1536);
-        payload1.setProperty("model", "model-name-of-inference-model1");
-
-        // Add inference model2 configuration
-        NodeBuilder inferenceModelConfig2 = inferenceIndexConfig.child("inferenceModel2");
-        inferenceModelConfig2.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
-        inferenceModelConfig2.setProperty(InferenceModelConfig.MODEL, "test-model2");
-        inferenceModelConfig2.setProperty(InferenceModelConfig.EMBEDDING_SERVICE_URL, "http://localhost:8080");
-        inferenceModelConfig2.setProperty(InferenceModelConfig.SIMILARITY_THRESHOLD, 0.8);
-        inferenceModelConfig2.setProperty(InferenceModelConfig.MIN_TERMS, 3L);
-        inferenceModelConfig2.setProperty(InferenceModelConfig.IS_DEFAULT, false);
-        inferenceModelConfig2.setProperty(InferenceModelConfig.ENABLED, true);
-
-        // Setup header configuration
-        NodeBuilder header2 = inferenceModelConfig1.child(InferenceModelConfig.HEADER);
-        header2.setProperty("headerKey1_2", "headerValue1_2");
-        header2.setProperty("headerKey2_2", "headerValue2_2");
-
-        // Setup payload configuration
-        NodeBuilder payload2 = inferenceModelConfig2.child(InferenceModelConfig.INFERENCE_PAYLOAD);
-        payload2.setProperty("textKey", "searchString2");
-        // dimension is handled automatically by ES on first document ingestion
-//        payload2.setProperty("dimension", 1024);
-        payload2.setProperty("model", "model-name-of-inference-model2");
+        setupInferenceModelConfig(inferenceIndexConfig, "inferenceModel2", "test-model2",
+            "http://localhost:8080", 0.8, 3L, false, true,
+            Map.of("headerKey1_2", "headerValue1_2", "headerKey2_2", "headerValue2_2"),
+            Map.of("textKey", "searchString2", "model", "model-name-of-inference-model2"));
 
         nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
@@ -138,17 +115,276 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         Map<String, JsonData> meta = mapping.mappings().meta();
         assertNotNull(meta);
         ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode1 = objectMapper.readTree(enricherConfig).get("enricher");
+        JsonNode jsonNode1 = objectMapper.readTree(defaultEnricherConfig).get("enricher");
         JsonNode jsonNode2 = objectMapper.readTree(meta.get("enricher").toJson().toString());
         assertEquals(jsonNode1, jsonNode2);
-
     }
 
+    /**
+     * Helper method to setup an inference model configuration.
+     */
+    private void setupInferenceModelConfig(NodeBuilder inferenceIndexConfig,
+                                          String configName, String modelName,
+                                          String serviceUrl, double threshold,
+                                          long minTerms, boolean isDefault, boolean isEnabled,
+                                          Map<String, String> headers,
+                                          Map<String, Object> payloadConfig) {
+        // Add inference model configuration
+        NodeBuilder modelConfig = inferenceIndexConfig.child(configName);
+        modelConfig.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
+        modelConfig.setProperty(InferenceModelConfig.MODEL, modelName);
+        modelConfig.setProperty(InferenceModelConfig.EMBEDDING_SERVICE_URL, serviceUrl);
+        modelConfig.setProperty(InferenceModelConfig.SIMILARITY_THRESHOLD, threshold);
+        modelConfig.setProperty(InferenceModelConfig.MIN_TERMS, minTerms);
+        modelConfig.setProperty(InferenceModelConfig.IS_DEFAULT, isDefault);
+        modelConfig.setProperty(InferenceModelConfig.ENABLED, isEnabled);
+
+        // Setup header configuration
+        NodeBuilder header = modelConfig.child(InferenceModelConfig.HEADER);
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            header.setProperty(entry.getKey(), entry.getValue());
+        }
+
+        // Setup payload configuration
+        NodeBuilder payload = modelConfig.child(InferenceModelConfig.INFERENCE_PAYLOAD);
+        for (Map.Entry<String, Object> entry : payloadConfig.entrySet()) {
+            if (entry.getValue() instanceof String) {
+                payload.setProperty(entry.getKey(), (String) entry.getValue());
+            } else if (entry.getValue() instanceof Integer) {
+                payload.setProperty(entry.getKey(), (Integer) entry.getValue());
+            } else if (entry.getValue() instanceof Long) {
+                payload.setProperty(entry.getKey(), (Long) entry.getValue());
+            }
+        }
+    }
+
+    @Test
+    public void hybridSearch() throws Exception {
+        String jcrIndexName = UUID.randomUUID().toString();
+        String inferenceConfigInQuery = "{\"inferenceModelConfig\": \"ada-test-model\"}";
+        String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
+        String inferenceModelConfigName = "ada-test-model";
+        String inferenceModelName = "text-embedding-ada-002";
+
+        // Create inference config
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+            inferenceModelName, inferenceServiceUrl, 0.8, 1L, true, true);
+        setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
+        // Create index definition with multiple properties
+        IndexDefinitionBuilder builder = createIndexDefinition("title", "description", "updatedBy");
+        Tree index = setIndex(jcrIndexName, builder);
+        root.commit();
+
+        // Add test content
+        addTestContent();
+
+        // Let the index catch up
+        assertEventually(() -> assertEquals(7, countDocuments(index)));
+
+        // Enrich documents with embeddings
+        setupEmbeddingsForContent(index, inferenceModelConfigName, inferenceModelName);
+
+        // Setup wiremock stubs for inference service
+        setupMockInferenceService(inferenceModelConfigName, jcrIndexName);
+
+        // Test query results
+        Map<String, String> queryResults = Map.of(
+            "a beginner guide to data manipulation in python", "/content/programming",
+            "how to improve mental health through exercises", "/content/yoga",
+            "nutritional advice for a healthier lifestyle", "/content/health",
+            "technological advancements in electric vehicles", "/content/cars",
+            "what are the key algorithms used in machine learning", "/content/ml"
+        );
+
+        // Verify all queries return expected results
+        assertEventually(() -> {
+            verifyQueryResults(queryResults, inferenceConfigInQuery, jcrIndexName);
+
+            // Test error handling scenarios
+            verifyErrorHandling(jcrIndexName, inferenceConfigInQuery);
+        });
+
+        // Test that inference data persists through document updates
+        testInferenceDataPersistenceOnUpdate(index);
+    }
+
+    /**
+     * Adds test content for the hybrid search test.
+     */
+    private void addTestContent() throws CommitFailedException {
+        Tree content = root.getTree("/").addChild("content");
+
+        // Health content
+        Tree health = content.addChild("health");
+        health.setProperty("title", "Healthy Eating for a Balanced Life");
+        health.setProperty("description", "This article discusses how a well-balanced diet can lead to better health outcomes. It covers the importance of fruits, vegetables, lean proteins, and whole grains.");
+
+        // Cars content
+        Tree cars = content.addChild("cars");
+        cars.setProperty("title", "The Future of Electric Cars");
+        cars.setProperty("description", "Electric vehicles are revolutionizing the automobile industry. This paper explores advancements in battery technology, charging infrastructure, and sustainability.");
+
+        // Programming content
+        Tree programming = content.addChild("programming");
+        programming.setProperty("title", "Mastering Python for Data Science");
+        programming.setProperty("description", "A comprehensive guide to using Python for data science projects. Topics include data manipulation, visualization, and machine learning algorithms like decision trees and neural networks.");
+
+        // Machine learning content
+        Tree ml = content.addChild("ml");
+        ml.setProperty("title", "Introduction to Machine Learning");
+        ml.setProperty("description", "This book introduces machine learning concepts, focusing on supervised and unsupervised learning techniques. It covers algorithms like linear regression, k-means clustering, and support vector machines.");
+
+        // Yoga content
+        Tree yoga = content.addChild("yoga");
+        yoga.setProperty("title", "Yoga for Mental Wellness");
+        yoga.setProperty("description", "The benefits of yoga for mental health are vast. This study shows how practicing yoga can reduce stress, anxiety, and improve overall well-being through breathing techniques and meditation.");
+
+        // Farm content - not enriched with embeddings
+        Tree farm = content.addChild("farm");
+        farm.setProperty("title", "Sustainable Farming Practices");
+        farm.setProperty("description", "Sustainable farming practices are essential for preserving the environment. This article discusses crop rotation, soil health, and water conservation methods to reduce the carbon footprint of agriculture.");
+
+        root.commit();
+    }
+
+    /**
+     * Sets up embeddings for content based on JSON files.
+     */
+    private void setupEmbeddingsForContent(Tree index, String inferenceModelConfigName, String inferenceModelName) throws Exception {
+        ObjectMapper mapper = new JsonMapper();
+        List<String> paths = executeQuery("select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and title is not null", SQL2);
+
+        for (String path : paths) {
+            URL json = this.getClass().getResource("/inferenceUsingConfig" + path + ".json");
+            if (json != null) {
+                Map<String, Collection<Double>> map = mapper.readValue(json, Map.class);
+                ObjectNode updateDoc = mapper.createObjectNode();
+                List<Float> embeddings = map.get("embedding").stream()
+                    .map(d -> ((Double) d).floatValue())
+                    .collect(Collectors.toList());
+
+                VectorDocument vectorDocument = new VectorDocument(
+                    UUID.randomUUID().toString(),
+                    embeddings,
+                    Map.of("updatedAt", Instant.now().toEpochMilli(), "model", inferenceModelName)
+                );
+
+                ObjectNode vectorSpacesNode = updateDoc.putObject(InferenceConstants.VECTOR_SPACES);
+                ArrayNode inferenceModelConfigNode = vectorSpacesNode.putArray(inferenceModelConfigName);
+                inferenceModelConfigNode.addPOJO(vectorDocument);
+
+                updateDocument(index, path, updateDoc);
+            }
+        }
+    }
+
+    /**
+     * Sets up mock responses for the inference service.
+     */
+    private void setupMockInferenceService(String inferenceModelConfigName, String jcrIndexName) throws Exception {
+        try (Stream<Path> stream = Files.walk(Paths.get(this.getClass().getResource("/inferenceUsingConfig/queries").toURI()))) {
+            stream.filter(Files::isRegularFile).forEach(queryFile -> {
+                String query = FilenameUtils.removeExtension(queryFile.getFileName().toString()).replaceAll("_", " ");
+                String payload = InferenceConfig.getInstance()
+                    .getInferenceModelConfig(jcrIndexName, inferenceModelConfigName)
+                    .getPayload()
+                    .getInferencePayload(query);
+
+                if (queryFile.toAbsolutePath().toString().contains("queries/faulty")) {
+                    // Mock server error response
+                    wireMock.stubFor(WireMock.post("/v1/embeddings")
+                        .withRequestBody(WireMock.equalToJson(payload))
+                        .willReturn(WireMock.serverError()));
+                } else if (queryFile.toAbsolutePath().toString().contains("delayed")) {
+                    // Mock delayed response
+                    wireMock.stubFor(WireMock.post("/v1/embeddings")
+                        .withRequestBody(WireMock.equalToJson(payload))
+                        .willReturn(WireMock.ok()
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("[]")
+                            .withFixedDelay(6000)));
+                } else {
+                    // Mock normal response
+                    String json;
+                    try {
+                        json = IOUtils.toString(queryFile.toUri(), StandardCharsets.UTF_8);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    wireMock.stubFor(WireMock.post("/v1/embeddings")
+                        .withRequestBody(WireMock.equalToJson(payload))
+                        .willReturn(WireMock.ok()
+                            .withHeader("Content-Type", "application/json")
+                            .withBody(json)));
+                }
+            });
+        }
+    }
+
+    /**
+     * Verifies that queries return expected results.
+     */
+    private void verifyQueryResults(Map<String, String> queryResults, String inferenceConfigInQuery, String jcrIndexName) {
+        for (Map.Entry<String, String> entry : queryResults.entrySet()) {
+            String query = entry.getKey();
+            String expectedPath = entry.getValue();
+
+            // Test with inference config
+            String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?"
+                + inferenceConfigInQuery + "?" + query + "')";
+            List<String> results = executeQuery(queryPath, SQL2, true, true);
+            assertEquals(expectedPath, results.get(0));
+
+            // Test without inference config
+            String queryPath2 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '" + query + "')";
+            assertQuery(queryPath2, List.of());
+        }
+    }
+
+    /**
+     * Verifies error handling in queries.
+     */
+    private void verifyErrorHandling(String jcrIndexName, String inferenceConfigInQuery) {
+        // Test server error handling
+        String queryPath3 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?"
+            + inferenceConfigInQuery + "?" + "machine learning')";
+        assertQuery(queryPath3, List.of("/content/ml", "/content/programming"));
+
+        // Test timeout handling
+        String queryPath4 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?"
+            + inferenceConfigInQuery + "?" + "farming practices')";
+        assertQuery(queryPath4, List.of("/content/farm"));
+    }
+
+    /**
+     * Tests that inference data persists after document updates.
+     */
+    private void testInferenceDataPersistenceOnUpdate(Tree index) throws CommitFailedException {
+        ObjectNode carsDoc = getDocument(index, "/content/cars");
+        assertNotNull(carsDoc.get(InferenceConstants.VECTOR_SPACES));
+
+        // Update document property
+        root.getTree("/content/cars").setProperty("updatedBy", "John Doe");
+        root.commit();
+
+        // Verify property was updated and inference data preserved
+        assertEventually(() -> {
+            assertQuery("select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and updatedBy = 'John Doe'",
+                List.of("/content/cars"));
+
+            ObjectNode carsDocUpdated = getDocument(index, "/content/cars");
+            assertNotNull(carsDocUpdated.get(InferenceConstants.VECTOR_SPACES));
+        });
+    }
+
+    /**
+     * Creates inference configuration with the specified parameters.
+     */
     private void createInferenceConfig(String indexName, boolean isInferenceConfigEnabled,
-                                       String enricherConfig, String inferenceModelConfigName,
-                                       String inferenceModelName, String embeddingServiceUrl,
-                                       Double similarityThreshold, long minTerms, boolean isDefaultInferenceModelConfig,
-                                       boolean isInferenceModelConfigEnabled) throws CommitFailedException {
+                                     String enricherConfig, String inferenceModelConfigName,
+                                     String inferenceModelName, String embeddingServiceUrl,
+                                     Double similarityThreshold, long minTerms, boolean isDefaultInferenceModelConfig,
+                                     boolean isInferenceModelConfigEnabled) throws CommitFailedException {
         NodeBuilder rootBuilder = nodeStore.getRoot().builder();
         NodeBuilder nodeBuilder = rootBuilder;
         for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
@@ -185,159 +421,6 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    public void hybridSearch() throws Exception {
-        String jcrIndexName = UUID.randomUUID().toString();
-
-
-        String inferenceConfigInQuery = "{\"inferenceModelConfig\": \"ada-test-model\"}";
-        String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
-        String inferenceModelConfigName = "ada-test-model";
-        String inferenceModelName = "text-embedding-ada-002";
-        // create inference config
-        createInferenceConfig(jcrIndexName, true, enricherConfig, inferenceModelConfigName,
-            inferenceModelName, inferenceServiceUrl,
-            0.8, 1L, true, true);
-
-        IndexDefinitionBuilder builder = createIndex();
-        builder.includedPaths("/content")
-            .indexRule("nt:base")
-            .property("title").propertyIndex().analyzed().nodeScopeIndex()
-            .property("description").propertyIndex().analyzed().nodeScopeIndex()
-            .property("updatedBy").propertyIndex();
-
-        Tree index = setIndex(jcrIndexName, builder);
-        root.commit();
-
-        // add content
-        Tree content = root.getTree("/").addChild("content");
-        Tree health = content.addChild("health");
-        health.setProperty("title", "Healthy Eating for a Balanced Life");
-        health.setProperty("description", "This article discusses how a well-balanced diet can lead to better health outcomes. It covers the importance of fruits, vegetables, lean proteins, and whole grains.");
-
-        Tree cars = content.addChild("cars");
-        cars.setProperty("title", "The Future of Electric Cars");
-        cars.setProperty("description", "Electric vehicles are revolutionizing the automobile industry. This paper explores advancements in battery technology, charging infrastructure, and sustainability.");
-
-        Tree programming = content.addChild("programming");
-        programming.setProperty("title", "Mastering Python for Data Science");
-        programming.setProperty("description", "A comprehensive guide to using Python for data science projects. Topics include data manipulation, visualization, and machine learning algorithms like decision trees and neural networks.");
-
-        Tree ml = content.addChild("ml");
-        ml.setProperty("title", "Introduction to Machine Learning");
-        ml.setProperty("description", "This book introduces machine learning concepts, focusing on supervised and unsupervised learning techniques. It covers algorithms like linear regression, k-means clustering, and support vector machines.");
-
-        Tree yoga = content.addChild("yoga");
-        yoga.setProperty("title", "Yoga for Mental Wellness");
-        yoga.setProperty("description", "The benefits of yoga for mental health are vast. This study shows how practicing yoga can reduce stress, anxiety, and improve overall well-being through breathing techniques and meditation.");
-
-        // this content is not enriched with embeddings on purpose
-        Tree farm = content.addChild("farm");
-        farm.setProperty("title", "Sustainable Farming Practices");
-        farm.setProperty("description", "Sustainable farming practices are essential for preserving the environment. This article discusses crop rotation, soil health, and water conservation methods to reduce the carbon footprint of agriculture.");
-
-        root.commit();
-
-        // let the index catch up
-        assertEventually(() -> assertEquals(7, countDocuments(index)));
-
-        // this mimics the inference service by traversing the content and enriching it with embeddings
-        ObjectMapper mapper = new JsonMapper();
-        List<String> paths = executeQuery("select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and title is not null", SQL2);
-        for (String path : paths) {
-            URL json = this.getClass().getResource("/inferenceUsingConfig" + path + ".json");
-            if (json != null) {
-                Map<String, Collection<Double>> map = mapper.readValue(json, Map.class);
-                ObjectNode updateDoc = mapper.createObjectNode();
-                List<Float> embeddings = map.get("embedding").stream().map(d -> ((Double) d).floatValue()).collect(Collectors.toList());
-                VectorDocument vectorDocument = new VectorDocument(UUID.randomUUID().toString(), embeddings,
-                    Map.of("updatedAt", Instant.now().toEpochMilli(), "model", inferenceModelName));
-                ObjectNode vectorSpacesNode = updateDoc.putObject(InferenceConstants.VECTOR_SPACES);
-                ArrayNode inferenceModelConfigNode = vectorSpacesNode.putArray(inferenceModelConfigName);
-                inferenceModelConfigNode.addPOJO(vectorDocument);
-
-                updateDocument(index, path, updateDoc);
-            }
-        }
-
-        try (Stream<Path> stream = Files.walk(Paths.get(this.getClass().getResource("/inferenceUsingConfig/queries").toURI()))) {
-            stream.filter(Files::isRegularFile).forEach(queryFile -> {
-                String query = FilenameUtils.removeExtension(queryFile.getFileName().toString()).replaceAll("_", " ");
-                String str = InferenceConfig.getInstance().getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query);
-                if (queryFile.toAbsolutePath().toString().contains("queries/faulty")) {
-
-                    wireMock.stubFor(WireMock.post("/v1/embeddings")
-                        .withRequestBody(WireMock.equalToJson(InferenceConfig.getInstance().getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query)))
-                        .willReturn(WireMock.serverError()));
-                } else if (queryFile.toAbsolutePath().toString().contains("delayed")) {
-                    wireMock.stubFor(WireMock.post("/v1/embeddings")
-                        .withRequestBody(WireMock.equalToJson(InferenceConfig.getInstance().getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query)))
-                        .willReturn(WireMock.ok()
-                            .withHeader("Content-Type", "application/json")
-                            .withBody("[]")
-                            .withFixedDelay(6000)));
-                } else {
-                    String json;
-                    try {
-                        json = IOUtils.toString(queryFile.toUri(), StandardCharsets.UTF_8);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    wireMock.stubFor(WireMock.post("/v1/embeddings")
-                        .withRequestBody(WireMock.equalToJson(InferenceConfig.getInstance().getInferenceModelConfig(jcrIndexName, inferenceModelConfigName).getPayload().getInferencePayload(query)))
-                        .willReturn(WireMock.ok()
-                            .withHeader("Content-Type", "application/json")
-                            .withBody(json)));
-                }
-            });
-        }
-
-        Map<String, String> queryResults = Map.of(
-            "a beginner guide to data manipulation in python", "/content/programming",
-            "how to improve mental health through exercises", "/content/yoga",
-            "nutritional advice for a healthier lifestyle", "/content/health",
-            "technological advancements in electric vehicles", "/content/cars",
-            "what are the key algorithms used in machine learning", "/content/ml"
-        );
-
-        assertEventually(() -> {
-
-            for (Map.Entry<String, String> entry : queryResults.entrySet()) {
-                String query = entry.getKey();
-                String expectedPath = entry.getValue();
-                String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?" + inferenceConfigInQuery + "?" + query + "')";
-
-                List<String> results = executeQuery(queryPath, SQL2, true, true);
-                assertEquals(expectedPath, results.get(0));
-
-                // test that the same query does not return any result when the inference service is not invoked (no prefix)
-                String queryPath2 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '" + query + "')";
-                assertQuery(queryPath2, List.of());
-            }
-
-            // test that a failure in the inference service does not prevent the query from returning results
-            String queryPath3 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?" + inferenceConfigInQuery + "?" + "machine learning')";
-            assertQuery(queryPath3, List.of("/content/ml", "/content/programming"));
-
-            // test that a delayed response from the inference service does not prevent the query from returning results
-            String queryPath4 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?" + inferenceConfigInQuery + "?" + "farming practices')";
-            assertQuery(queryPath4, List.of("/content/farm"));
-
-        });
-
-        ObjectNode carsDoc = getDocument(index, "/content/cars");
-        assertNotNull(carsDoc.get(InferenceConstants.VECTOR_SPACES));
-        // let's check that inference data is not deleted when updating a document
-        cars.setProperty("updatedBy", "John Doe");
-        root.commit();
-
-        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and updatedBy = 'John Doe'", List.of("/content/cars")));
-
-        ObjectNode carsDocUpdated = getDocument(index, "/content/cars");
-        assertNotNull(carsDocUpdated.get(InferenceConstants.VECTOR_SPACES));
-
-    }
-
-    @Test
     public void testEnricherStatus() throws Exception {
         String jcrIndexName = UUID.randomUUID().toString();
         String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
@@ -345,30 +428,14 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         String inferenceModelName = "text-embedding-ada-002";
 
         // Create inference config with enricher information
-        createInferenceConfig(jcrIndexName, true, enricherConfig, inferenceModelConfigName,
-            inferenceModelName, inferenceServiceUrl,
-            0.8, 1L, true, true);
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+            inferenceModelName, inferenceServiceUrl, 0.8, 1L, true, true);
 
-        // Create and set up the node with enricher status information
-        NodeBuilder rootBuilder = nodeStore.getRoot().builder();
-        NodeBuilder nodeBuilder = rootBuilder;
-        for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
-            nodeBuilder = nodeBuilder.child(path);
-        }
-        // Add enricher status node
-        NodeBuilder enrichNodeBuilder = nodeBuilder.child(InferenceConstants.ENRICH_NODE);
-        enrichNodeBuilder.setProperty("lastUpdated", System.currentTimeMillis());
-        enrichNodeBuilder.setProperty("status", "active");
-        enrichNodeBuilder.setProperty("documentsProcessed", 100);
-        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        String enricherStatusData = "{\"status\":\"PENDING\"}";
+        setupEnricherStatus(defaultEnricherStatusMapping, enricherStatusData);
 
-        IndexDefinitionBuilder builder = createIndex();
-        builder.includedPaths("/content")
-            .indexRule("nt:base")
-            .property("title").propertyIndex().analyzed().nodeScopeIndex()
-            .property("description").propertyIndex().analyzed().nodeScopeIndex();
-
-        Tree index = setIndex(jcrIndexName, builder);
+        // Create index
+        Tree index = setIndex(jcrIndexName, createIndexDefinition("title", "description"));
         root.commit();
 
         // Add content
@@ -381,24 +448,12 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         // Let the index catch up
         assertEventually(() -> assertEquals(2, countDocuments(index)));
 
-        // Get the document and check that it has the enricher status
-        ObjectNode docNode = getDocument(index, "/content/document");
-        assertNotNull(docNode);
-
         // Add another property to trigger an update
         document.setProperty("updatedAt", Instant.now().toString());
         root.commit();
 
-        // Let the index catch up with the update
-        assertEventually(() -> {
-            ObjectNode updatedDoc = getDocument(index, "/content/document");
-            assertNotNull(updatedDoc.get(InferenceConstants.ENRICH_NODE));
-            JsonNode enrichNode = updatedDoc.get(InferenceConstants.ENRICH_NODE);
-            assertNotNull(enrichNode);
-            assertNotNull(enrichNode.get("lastUpdated"));
-            assertEquals("active", enrichNode.get("status").asText());
-            assertEquals(100, enrichNode.get("documentsProcessed").asInt());
-        });
+        // Verify enricher status in the document
+        verifyEnricherStatus(index, "/content/document", enricherStatusData);
     }
 
     @Test
@@ -408,32 +463,15 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         String inferenceModelConfigName = "ada-test-model";
         String inferenceModelName = "text-embedding-ada-002";
 
-        // Create inference config with enricher information
-        createInferenceConfig(jcrIndexName, true, enricherConfig, inferenceModelConfigName,
-            inferenceModelName, inferenceServiceUrl,
-            0.8, 1L, true, true);
+        // Create inference config
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+            inferenceModelName, inferenceServiceUrl, 0.8, 1L, true, true);
 
-        // Create and set up the node with enricher status information
-        NodeBuilder rootBuilder = nodeStore.getRoot().builder();
-        NodeBuilder nodeBuilder = rootBuilder;
-        for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
-            nodeBuilder = nodeBuilder.child(path);
-        }
-        // Add enricher status node
-        NodeBuilder enrichNode = nodeBuilder.child(InferenceConstants.ENRICH_NODE);
-        enrichNode.setProperty("lastUpdated", System.currentTimeMillis());
-        enrichNode.setProperty("status", "active");
-        enrichNode.setProperty("documentsProcessed", 100);
-        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        String enricherStatusData = "{\"status\":\"PENDING\"}";
+        setupEnricherStatus(defaultEnricherStatusMapping, enricherStatusData);
 
-        IndexDefinitionBuilder builder = createIndex();
-        builder.includedPaths("/content")
-            .indexRule("nt:base")
-            .property("title").propertyIndex().analyzed().nodeScopeIndex()
-            .property("description").propertyIndex().analyzed().nodeScopeIndex()
-            .property("updatedBy").propertyIndex();
-
-        Tree index = setIndex(jcrIndexName, builder);
+        // Create index
+        Tree index = setIndex(jcrIndexName, createIndexDefinition("title", "description", "updatedBy"));
         root.commit();
 
         // Add content
@@ -447,17 +485,8 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         assertEventually(() -> assertEquals(2, countDocuments(index)));
 
         // Create an update with vector embeddings
-        ObjectMapper mapper = new JsonMapper();
-        ObjectNode updateDoc = mapper.createObjectNode();
         List<Float> embeddings = List.of(0.1f, 0.2f, 0.3f, 0.4f, 0.5f);
-        VectorDocument vectorDocument = new VectorDocument(UUID.randomUUID().toString(), embeddings,
-            Map.of("updatedAt", Instant.now().toEpochMilli(), "model", inferenceModelName));
-        ObjectNode vectorSpacesNode = updateDoc.putObject(InferenceConstants.VECTOR_SPACES);
-        ArrayNode inferenceModelConfigNode = vectorSpacesNode.putArray(inferenceModelConfigName);
-        inferenceModelConfigNode.addPOJO(vectorDocument);
-
-        // Update the document with vector embeddings
-        updateDocument(index, "/content/document", updateDoc);
+        createDocumentWithEmbeddings(index, "/content/document", inferenceModelConfigName, inferenceModelName, embeddings);
 
         // Verify the document has the embeddings
         assertEventually(() -> {
@@ -467,30 +496,28 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
             assertNotNull(vectorSpaces.get(inferenceModelConfigName));
         });
 
-        // Now update a property to trigger another update which should preserve the embeddings
-        // and also add the enricher status
+        // Update a property to trigger another update
         document.setProperty("updatedBy", "Test User");
         root.commit();
 
-        // Verify the document still has embeddings and now has enricher status
+        // Verify both embeddings and enricher status
         assertEventually(() -> {
             ObjectNode updatedDoc = getDocument(index, "/content/document");
 
-            // Check that the vector embeddings are preserved
+            // Check vector embeddings
             assertNotNull(updatedDoc.get(InferenceConstants.VECTOR_SPACES));
             JsonNode vectorSpaces = updatedDoc.get(InferenceConstants.VECTOR_SPACES);
             assertNotNull(vectorSpaces.get(inferenceModelConfigName));
 
-            // Check that the enricher status is present
+            // Check enricher status
             assertNotNull(updatedDoc.get(InferenceConstants.ENRICH_NODE));
-            JsonNode enrichNodeData = updatedDoc.get(InferenceConstants.ENRICH_NODE);
-            assertNotNull(enrichNodeData.get("lastUpdated"));
-            assertEquals("active", enrichNodeData.get("status").asText());
-            assertEquals(100, enrichNodeData.get("documentsProcessed").asInt());
 
-            // Check that the updated property is present
+            // Check updated property
             assertEquals("Test User", updatedDoc.get("updatedBy").asText());
         });
+
+        // Verify enricher status in detail
+        verifyEnricherStatus(index, "/content/document", enricherStatusData);
     }
 
     @Test
@@ -501,68 +528,41 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         String inferenceModelName = "text-embedding-ada-002";
 
         // Create inference config
-        createInferenceConfig(jcrIndexName, true, enricherConfig, inferenceModelConfigName,
-            inferenceModelName, inferenceServiceUrl,
-            0.8, 1L, true, true);
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+            inferenceModelName, inferenceServiceUrl, 0.8, 1L, true, true);
 
-        // Create and set up the node with initial enricher status
-        NodeBuilder rootBuilder = nodeStore.getRoot().builder();
-        NodeBuilder nodeBuilder = rootBuilder;
-        for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
-            nodeBuilder = nodeBuilder.child(path);
-        }
-        // Add enricher status node with initial values
-        NodeBuilder enrichNode = nodeBuilder.child(InferenceConstants.ENRICH_NODE);
+        // Set up initial enricher status
         long initialTime = System.currentTimeMillis();
-        enrichNode.setProperty("lastUpdated", initialTime);
-        enrichNode.setProperty("status", "initializing");
-        enrichNode.setProperty("documentsProcessed", 0);
-        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        Map<String, Object> initialStatus = Map.of(
+            "lastUpdated", initialTime,
+            "status", "initializing",
+            "documentsProcessed", 0L
+        );
+        String enricherStatusData = "{\"status\":\"PENDING\"}";
+        setupEnricherStatus(defaultEnricherStatusMapping, enricherStatusData);
 
         // Force reinitialization of InferenceConfig
         InferenceConfig.reInitialize();
 
         // Verify initial enricher status
-        Map<String, Object> initialStatus = InferenceConfig.getInstance().getEnricherStatus();
-        assertNotNull(initialStatus);
-        assertEquals(initialTime, initialStatus.get("lastUpdated"));
-        assertEquals("initializing", initialStatus.get("status"));
-        assertEquals(0L, initialStatus.get("documentsProcessed"));
+        Map<String, Object> retrievedInitialStatus = InferenceConfig.getInstance().getEnricherStatus();
+        assertNotNull(retrievedInitialStatus);
+        assertEquals("PENDING", retrievedInitialStatus.get("status"));
 
-        // Create and set up the node with updated enricher status
-        rootBuilder = nodeStore.getRoot().builder();
-        nodeBuilder = rootBuilder;
-        for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
-            nodeBuilder = nodeBuilder.child(path);
-        }
-        // Update enricher status node with new values
-        enrichNode = nodeBuilder.child(InferenceConstants.ENRICH_NODE);
-        long updatedTime = System.currentTimeMillis() + 1000; // Ensure it's different
-        enrichNode.setProperty("lastUpdated", updatedTime);
-        enrichNode.setProperty("status", "active");
-        enrichNode.setProperty("documentsProcessed", 200);
-        // Add a new property
-        enrichNode.setProperty("errorCount", 5);
-        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // Update enricher status with new values
+        String updatedStatusData = "{\"status\":\"PENDING2\"}";
+        setupEnricherStatus(defaultEnricherStatusMapping, updatedStatusData);
 
         // Force reinitialization of InferenceConfig
         InferenceConfig.reInitialize();
 
         // Verify updated enricher status
-        Map<String, Object> updatedStatus = InferenceConfig.getInstance().getEnricherStatus();
-        assertNotNull(updatedStatus);
-        assertEquals(updatedTime, updatedStatus.get("lastUpdated"));
-        assertEquals("active", updatedStatus.get("status"));
-        assertEquals(200L, updatedStatus.get("documentsProcessed"));
-        assertEquals(5L, updatedStatus.get("errorCount"));
+        Map<String, Object> retrievedUpdatedStatus = InferenceConfig.getInstance().getEnricherStatus();
+        assertNotNull(retrievedUpdatedStatus);
+        assertEquals("PENDING2", retrievedUpdatedStatus.get("status"));
 
-        // Create an index and verify the enricher status gets included in document updates
-        IndexDefinitionBuilder builder = createIndex();
-        builder.includedPaths("/content")
-            .indexRule("nt:base")
-            .property("title").propertyIndex().analyzed().nodeScopeIndex();
-
-        Tree index = setIndex(jcrIndexName, builder);
+        // Create an index
+        Tree index = setIndex(jcrIndexName, createIndexDefinition("title"));
         root.commit();
 
         // Add content
@@ -575,14 +575,66 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         assertEventually(() -> assertEquals(2, countDocuments(index)));
 
         // Verify the enricher status in the indexed document
+        verifyEnricherStatus(index, "/content/document", updatedStatusData);
+    }
+
+    /**
+     * Sets up the enricher status with the specified parameters.
+     */
+    private void setupEnricherStatus(String enricherStatusMapping, String enricherStatusData) throws CommitFailedException {
+        NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+        NodeBuilder nodeBuilder = rootBuilder;
+        for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
+            nodeBuilder = nodeBuilder.child(path);
+        }
+
+        // Add enricher status node
+        NodeBuilder enrichNode = nodeBuilder.child(InferenceConstants.ENRICH_NODE);
+        enrichNode.setProperty(InferenceConstants.ENRICHER_STATUS_DATA, enricherStatusData);
+        enrichNode.setProperty(InferenceConstants.ENRICHER_STATUS_MAPPING, enricherStatusMapping);
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    /**
+     * Creates an index definition.
+     */
+    private IndexDefinitionBuilder createIndexDefinition(String... properties) {
+        IndexDefinitionBuilder builder = createIndex();
+        builder.includedPaths("/content");
+
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("nt:base");
+        for (String property : properties) {
+            indexRule.property(property).propertyIndex().analyzed().nodeScopeIndex();
+        }
+
+        return builder;
+    }
+
+    /**
+     * Verifies that a document contains the expected enricher status.
+     */
+    private void verifyEnricherStatus(Tree index, String path, String expectedEnricherStatusData) {
         assertEventually(() -> {
-            ObjectNode docNode = getDocument(index, "/content/document");
+            ObjectNode docNode = getDocument(index, path);
             assertNotNull(docNode.get(InferenceConstants.ENRICH_NODE));
             JsonNode enrichNodeData = docNode.get(InferenceConstants.ENRICH_NODE);
-            assertEquals(updatedTime, enrichNodeData.get("lastUpdated").asLong());
-            assertEquals("active", enrichNodeData.get("status").asText());
-            assertEquals(200, enrichNodeData.get("documentsProcessed").asInt());
-            assertEquals(5, enrichNodeData.get("errorCount").asInt());
+            assertEquals(expectedEnricherStatusData, enrichNodeData.toString());
         });
+    }
+
+    /**
+     * Creates a document with vector embeddings.
+     */
+    private void createDocumentWithEmbeddings(Tree index, String path, String inferenceModelConfigName,
+                                          String inferenceModelName, List<Float> embeddings) throws IOException {
+        ObjectMapper mapper = new JsonMapper();
+        ObjectNode updateDoc = mapper.createObjectNode();
+        VectorDocument vectorDocument = new VectorDocument(UUID.randomUUID().toString(), embeddings,
+            Map.of("updatedAt", Instant.now().toEpochMilli(), "model", inferenceModelName));
+        ObjectNode vectorSpacesNode = updateDoc.putObject(InferenceConstants.VECTOR_SPACES);
+        ArrayNode inferenceModelConfigNode = vectorSpacesNode.putArray(inferenceModelConfigName);
+        inferenceModelConfigNode.addPOJO(vectorDocument);
+
+        updateDocument(index, path, updateDoc);
     }
 }

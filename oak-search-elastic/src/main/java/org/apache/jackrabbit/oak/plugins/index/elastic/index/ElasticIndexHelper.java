@@ -25,11 +25,18 @@ import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
+import co.elastic.clients.json.DelegatingDeserializer;
 import co.elastic.clients.json.JsonData;
+import co.elastic.clients.json.JsonpDeserializer;
+import co.elastic.clients.json.JsonpMapper;
+import co.elastic.clients.json.JsonpMapperBase;
+import co.elastic.clients.json.ObjectDeserializer;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.util.ObjectBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.json.stream.JsonParser;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
@@ -45,6 +52,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -136,18 +145,20 @@ class ElasticIndexHelper {
 
         //todo: we should make these mappings configurable
         builder.properties(InferenceConstants.VECTOR_SPACES, b -> b.object(spaces -> {
-            for (var inferenceModelConfig : inferenceIndexConfig.getInferenceModelConfigs().entrySet()) {
-                if (inferenceModelConfig.getValue().isEnabled()) {
-                    spaces.properties(inferenceModelConfig.getKey(), v -> v.nested(vb -> {
-                        vb.properties("id", p -> p.keyword(k -> k));
-                        vb.properties("vector", p -> p.denseVector(dv -> dv));
-                        vb.properties("metadata", p -> p.object(o -> o.enabled(false)));
-                        return vb;
-                    }));
+                for (var inferenceModelConfig : inferenceIndexConfig.getInferenceModelConfigs().entrySet()) {
+                    if (inferenceModelConfig.getValue().isEnabled()) {
+                        spaces.properties(inferenceModelConfig.getKey(), v -> v.nested(vb -> {
+                            vb.properties("id", p -> p.keyword(k -> k));
+                            vb.properties("vector", p -> p.denseVector(dv -> dv));
+                            vb.properties("metadata", p -> p.object(o -> o.enabled(false)));
+                            return vb;
+                        }));
+                    }
                 }
-            }
-            return spaces;
-        }));
+                return spaces;
+            }))
+            .properties(InferenceConstants.ENRICH_NODE, b-> b.object(s -> s.properties(
+                jsonToMapping(InferenceConfig.getInstance().getEnricherStatusMapping()))));
     }
 
     private static void mapInternalProperties(@NotNull TypeMapping.Builder builder) {
@@ -386,5 +397,38 @@ class ElasticIndexHelper {
             throw new IllegalStateException(indexDefinition.getIndexPath() + " has properties with the same name and " +
                     "different types " + fields);
         }
+    }
+
+    public static Map<String, Property> jsonToMapping(String json) {
+        TypeMapping typeMapping = withJson(new TypeMapping.Builder(),
+            new StringReader(json), new JacksonJsonpMapper()).build();
+        return typeMapping.properties();
+    }
+
+    // https://discuss.elastic.co/t/reusing-internal-implementation-to-transform-json-mapping-to-es-mapping/300597/3
+
+    /**
+     * Helper method to deserialize JSON into Elasticsearch objects using the client's internal deserializers.
+     *
+     * @param builder Builder object for the target type
+     * @param json    Reader containing the JSON to deserialize
+     * @param mapper  JsonpMapper to use for deserialization
+     * @param <T>     The type of object to be built
+     * @param <B>     The builder type
+     * @return Builder object populated with data from the JSON
+     */
+    private static <T, B extends ObjectBuilder<T>> B withJson(
+        B builder, Reader json, JsonpMapper mapper) {
+        // Find which deserializer is needed for the builder's class
+        JsonpDeserializer<?> classDeserializer =
+            JsonpMapperBase.findDeserializer(builder.getClass().getEnclosingClass());
+
+        @SuppressWarnings("unchecked")
+        ObjectDeserializer<B> builderDeserializer =
+            (ObjectDeserializer<B>) DelegatingDeserializer.unwrap(classDeserializer);
+
+        JsonParser parser = mapper.jsonProvider().createParser(json);
+        builderDeserializer.deserialize(builder, parser, mapper, parser.next());
+        return builder;
     }
 }
