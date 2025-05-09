@@ -624,30 +624,20 @@ public class ElasticRequestHandler {
                             elasticIndexDefinition.getDynamicBoostProperties().stream().anyMatch(ElasticPropertyDefinition::useInFullTextQuery);
 
                     String indexName = PathUtils.getName(indexPlan.getPlanName());
-                    String inferenceModelConfig = null;
-                    VectorQueryConfig vectorQueryConfig;
-                    VectorQuery inferenceQuery;
-                    if (indexPlan.getFilter().getQueryLimits().isInferenceEnabled()
-                        //todo should we remove this condition and always remove inferenceConfig from query
-                        // so that other indexes can be used to do fulltext search with only text part of InferenceQuery.
-                        // this will help in case another index gets picked, may be because of index corruption.
-                        && InferenceConfig.getInstance().getInferenceIndexConfig(indexName).isEnabled()
-                        && text.startsWith(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX)) {
-                        inferenceQuery = new VectorQuery(text);
-                        String queryConfig = inferenceQuery.getQueryInferenceConfig();
-                        queryText = inferenceQuery.getQueryText();
-                        vectorQueryConfig = new VectorQueryConfig(queryConfig);
-                        inferenceModelConfig = InferenceConfig.getInstance().getInferenceModelConfig(indexName, vectorQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
-                    } else {
-                        vectorQueryConfig = null;
-                        inferenceQuery = null;
-                        queryText = text;
-                    }
+
+                    // we always parse each query and extract out inferenceModelConfig and queryText.
+                    // In case index enabled with inferenceModelConfig is not active,
+                    // other indexes can still be used to answer fulltext query.
+                    VectorQuery vectorQuery = new VectorQuery(text);
+                    String queryConfig = vectorQuery.getQueryInferenceConfig();
+                    queryText = vectorQuery.getQueryText();
+                    VectorQueryConfig vectorQueryConfig = new VectorQueryConfig(queryConfig);
+                    String inferenceModelConfig = InferenceConfig.getInstance().getInferenceModelConfig(indexName, vectorQueryConfig.getInferenceModelConfig()).getInferenceModelConfigName();
 
                     if (indexPlan.getFilter().getQueryLimits().isInferenceEnabled() && InferenceConfig.getInstance().isEnabled()
                             && !InferenceModelConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceModelConfig))) {
 
-                        bqBuilder.must(m -> m.bool(b -> inferenceConfigQuery(b, propertyName, queryText, pr, includeDynamicBoostedValues, inferenceQuery, vectorQueryConfig)));
+                        bqBuilder.must(m -> m.bool(b -> inferenceConfigQuery(b, propertyName, pr, includeDynamicBoostedValues, vectorQuery, vectorQueryConfig)));
                     }
                     // Experimental support for inference queries
                     else if (elasticIndexDefinition.inferenceDefinition != null && elasticIndexDefinition.inferenceDefinition.queries != null) {
@@ -677,27 +667,27 @@ public class ElasticRequestHandler {
         return Query.of(q -> q.bool(result.get()));
     }
 
-    private ObjectBuilder<BoolQuery> inferenceConfigQuery(BoolQuery.Builder b, String propertyName, String text, PlanResult pr, boolean dbEnabled, VectorQuery inferenceQuery, VectorQueryConfig vectorQueryConfig) {
-        QueryStringQuery.Builder qsqBuilder = fullTextQuery(inferenceQuery.getQueryText(), getElasticFulltextFieldName(propertyName), pr, dbEnabled);
+    private ObjectBuilder<BoolQuery> inferenceConfigQuery(BoolQuery.Builder b, String propertyName, PlanResult pr, boolean dbEnabled, VectorQuery vectorQuery, VectorQueryConfig vectorQueryConfig) {
+        QueryStringQuery.Builder qsqBuilder = fullTextQuery(vectorQuery.getQueryText(), getElasticFulltextFieldName(propertyName), pr, dbEnabled);
 
         // the query can be null if no inference query is eligible for the given text or the min terms are not met
         // in this case, we fall back to the default full-text query
-        if (inferenceQuery.getQueryInferenceConfig() != null) {
+        if (vectorQuery.getQueryInferenceConfig() != null) {
 
-            LOG.info("Using inference query config: {}", inferenceQuery.getQueryInferenceConfig());
+            LOG.info("Using inference query config: {}", vectorQuery.getQueryInferenceConfig());
             try {
                 String inferenceQueryModelName = vectorQueryConfig.getInferenceModelConfig();
                 String indexName = PathUtils.getName(elasticIndexDefinition.getIndexName());
                 InferenceModelConfig inferenceModelConfig = InferenceConfig.getInstance().getInferenceModelConfig(indexName, inferenceQueryModelName);
                 if (!inferenceModelConfig.isEnabled()
-                        || inferenceModelConfig.getMinTerms() > inferenceQuery.getQueryText().split("\\s+").length) {
+                        || inferenceModelConfig.getMinTerms() > vectorQuery.getQueryText().split("\\s+").length) {
                     LOG.debug("inferenceModelConfig isEnable: {}, Config minTerms:{}, query: {}, ", inferenceModelConfig.isEnabled(),
-                            inferenceModelConfig.getMinTerms(), text);
+                            inferenceModelConfig.getMinTerms(), vectorQuery.getQueryText());
                     return b.must(mm -> mm.queryString(qsqBuilder.build()));
-                } else if (inferenceModelConfig.isEnabled() && inferenceModelConfig.getMinTerms() <= inferenceQuery.getQueryText().split("\\s+").length) {
+                } else if (inferenceModelConfig.isEnabled() && inferenceModelConfig.getMinTerms() <= vectorQuery.getQueryText().split("\\s+").length) {
                     InferenceService inferenceService = InferenceServiceManager
                             .getInstance(inferenceModelConfig);
-                    List<Float> embeddings = inferenceService.embeddings(inferenceQuery.getQueryText(), (int) inferenceModelConfig.getTimeoutMillis());
+                    List<Float> embeddings = inferenceService.embeddings(vectorQuery.getQueryText(), (int) inferenceModelConfig.getTimeoutMillis());
                     if (embeddings != null) {
                         KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder();
                         knnQueryBuilder.field(InferenceConstants.VECTOR_SPACES + "." + inferenceQueryModelName + "." + InferenceConstants.VECTOR);
@@ -712,14 +702,14 @@ public class ElasticRequestHandler {
 
                         b.should(s -> s.nested(nestedQueryBuilder.build()));
 
-                        int tokens = inferenceQuery.getQueryText().split("\\s+").length;
+                        int tokens = vectorQuery.getQueryText().split("\\s+").length;
                         // the more tokens, the less important the full-text query is
                         // TODO: make it configurable
                         double qsBoost = (tokens > 1) ? 1.0d / (5 * tokens) : 1.0d;
 
                         return b.should(s -> s.queryString(qsqBuilder.boost((float) qsBoost).build()));
                     } else {
-                        LOG.warn("No embeddings found for text {}", text);
+                        LOG.warn("No embeddings found for text {}", vectorQuery.getQueryText());
                     }
                 } else {
                     LOG.warn("No properties with model {} found", inferenceQueryModelName);
