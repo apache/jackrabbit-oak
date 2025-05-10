@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import joptsimple.internal.Strings;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -36,6 +38,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -87,7 +90,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 1: Basic test - Disabled InferenceConfig
+     * Basic test - Disabled InferenceConfig
      * Verifies that when inference config is created but disabled, the InferenceConfig object reflects this state
      */
     @Test
@@ -109,7 +112,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 2: Enabled InferenceConfig but no index configs
+     * Enabled InferenceConfig but no index configs
      * Verifies that when an empty inference config is enabled, the InferenceConfig object reflects this state
      */
     @Test
@@ -131,7 +134,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 3: Basic InferenceIndexConfig creation
+     * Basic InferenceIndexConfig creation
      * Tests the creation of a simple InferenceIndexConfig within InferenceConfig
      */
     @Test
@@ -167,7 +170,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 4: Disabled InferenceIndexConfig
+     * Disabled InferenceIndexConfig
      * Tests that a disabled InferenceIndexConfig is properly handled
      */
     @Test
@@ -201,7 +204,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 5: Invalid InferenceIndexConfig (missing type)
+     * Invalid InferenceIndexConfig (missing type)
      * Tests that an invalid InferenceIndexConfig (missing type) is properly handled
      */
     @Test
@@ -234,7 +237,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 6: Basic InferenceModelConfig
+     * Basic InferenceModelConfig
      * Tests the creation of an InferenceModelConfig within an InferenceIndexConfig
      */
     @Test
@@ -287,7 +290,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 7: Multiple InferenceModelConfigs with one default
+     * Multiple InferenceModelConfigs with one default
      * Tests multiple InferenceModelConfigs within an InferenceIndexConfig, with one marked as default
      */
     @Test
@@ -353,7 +356,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 8: Test EnricherStatus JSON Mapping
+     * Test EnricherStatus JSON Mapping
      * Tests that the EnricherStatus JSON mapping is properly stored and retrieved
      */
     @Test
@@ -384,7 +387,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 9: Test Complete Integration with EnricherStatus
+     * Test Complete Integration with EnricherStatus
      * Tests the complete integration of InferenceConfig, InferenceIndexConfig, InferenceModelConfig, and EnricherStatus
      */
     @Test
@@ -470,18 +473,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Utility method to verify enricher status fields
-     */
-    private void verifyEnricherStatusFields(Map<String, Object> status, String expectedStatus,
-                                            int expectedProcessingTime, String expectedError, int expectedErrorCount) {
-        assertEquals("Status should match", expectedStatus, status.get("status"));
-        assertEquals("Processing time should match", expectedProcessingTime, status.get("processingTimeMs"));
-        assertEquals("Latest error should match", expectedError, status.get("latestError"));
-        assertEquals("Error count should match", expectedErrorCount, status.get("errorCount"));
-    }
-
-    /**
-     * Test 10: Test EnricherStatus
+     * Test EnricherStatus
      * Tests that the EnricherStatus is properly loaded from the inference config
      */
     @Test
@@ -519,7 +511,29 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 11: Test EnricherStatus Refresh
+     * Utility method to verify enricher status fields
+     */
+    private void verifyEnricherStatusFields(Map<String, Object> status, String expectedStatus,
+                                            int expectedProcessingTime, String expectedError, int expectedErrorCount) {
+        assertEquals("Status should match", expectedStatus, status.get("status"));
+        assertEquals("Processing time should match", expectedProcessingTime, status.get("processingTimeMs"));
+        assertEquals("Latest error should match", expectedError, status.get("latestError"));
+        assertEquals("Error count should match", expectedErrorCount, status.get("errorCount"));
+    }
+
+    /**
+     * Utility method to create a path of nodes
+     */
+    private NodeBuilder createNodePath(NodeBuilder rootBuilder, String path) {
+        NodeBuilder builder = rootBuilder;
+        for (String elem : PathUtils.elements(path)) {
+            builder = builder.child(elem);
+        }
+        return builder;
+    }
+
+    /**
+     * Test EnricherStatus Refresh
      * Tests that the EnricherStatus is properly refreshed when the inference config is updated
      */
     @Test
@@ -571,7 +585,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 12: Test EnricherStatus with Error Information
+     * Test EnricherStatus with Error Information
      * Tests that the EnricherStatus properly handles error information
      */
     @Test
@@ -603,7 +617,7 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Test 13: Test Complete Configuration with Multiple Indexes and Models including EnricherStatus
+     * Test Complete Configuration with Multiple Indexes and Models including EnricherStatus
      * Tests a complex configuration with multiple indexes, models, and enricher status
      */
     @Test
@@ -738,13 +752,248 @@ public class InferenceConfigTest {
     }
 
     /**
-     * Utility method to create a path of nodes
+     * Test getInferenceConfigNodeState
+     * Comprehensively tests the getInferenceConfigNodeState method's functionality
+     * including normal operation, handling of non-existent paths, and complex JSON structures
      */
-    private NodeBuilder createNodePath(NodeBuilder rootBuilder, String path) {
-        NodeBuilder builder = rootBuilder;
-        for (String elem : PathUtils.elements(path)) {
-            builder = builder.child(elem);
-        }
-        return builder;
+    @Test
+    public void testGetInferenceConfigNodeState() throws CommitFailedException, IOException {
+        // Part 1: Test with a complete configuration (happy path)
+        // ----------------------------------------------------------
+        // Create enabled inference config with complete configuration
+        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
+        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
+        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+
+        // Add custom property to verify in JSON output
+        inferenceConfigBuilder.setProperty("customProperty", "customValue");
+
+        // Add enricher status node
+        NodeBuilder enrichBuilder = inferenceConfigBuilder.child(InferenceConstants.ENRICH_NODE);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_MAPPING, defaultEnricherStatusMapping);
+        enrichBuilder.setProperty(InferenceConstants.ENRICHER_STATUS_DATA, defaultEnricherStatusData);
+
+        // Add index config
+        String indexName = "testJsonIndex";
+        NodeBuilder indexConfigBuilder = inferenceConfigBuilder.child(indexName);
+        indexConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceIndexConfig.TYPE);
+        indexConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+        indexConfigBuilder.setProperty(InferenceConstants.ENRICHER_CONFIG, ENRICHER_CONFIG);
+
+        // Add model config
+        String modelName = "testJsonModel";
+        NodeBuilder modelConfigBuilder = indexConfigBuilder.child(modelName);
+        modelConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
+        modelConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+        modelConfigBuilder.setProperty(InferenceModelConfig.IS_DEFAULT, true);
+        modelConfigBuilder.setProperty(InferenceModelConfig.MODEL, "json-model");
+        modelConfigBuilder.setProperty(InferenceModelConfig.EMBEDDING_SERVICE_URL, "http://localhost:8080/test");
+        modelConfigBuilder.setProperty(InferenceModelConfig.SIMILARITY_THRESHOLD, 0.8);
+        modelConfigBuilder.setProperty(InferenceModelConfig.MIN_TERMS, 3L);
+
+        // Add complex structure with various data types and special characters
+        NodeBuilder complexBuilder = inferenceConfigBuilder.child("complexNode");
+        complexBuilder.setProperty("string", "simple string value");
+        complexBuilder.setProperty("boolean", true);
+        complexBuilder.setProperty("number", 12345);
+        complexBuilder.setProperty("special", "test\"with\\quotes\nand\tnewlines");
+        complexBuilder.setProperty("unicode", "测试unicode字符");
+
+        // Add a child node to test nesting
+        NodeBuilder childBuilder = complexBuilder.child("childNode");
+        childBuilder.setProperty("childProp", "child value");
+
+        // Commit the changes
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Initialize InferenceConfig object
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
+
+        // Get the node state as JSON
+        String nodeStateJson = inferenceConfig.getInferenceConfigNodeState();
+
+        // Parse the JSON
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(nodeStateJson);
+
+        // Validate the complete config JSON
+        assertNotNull("Node state JSON should not be null", nodeStateJson);
+        assertFalse("Node state JSON should not be empty", nodeStateJson.isEmpty());
+        assertFalse("Node state JSON should not be {}", rootNode.isEmpty());
+
+        // Verify it contains expected elements using JsonNode structure
+        assertEquals("JSON should contain the correct type",
+            InferenceConfig.TYPE, rootNode.path("type").asText());
+
+        assertTrue("JSON should have enabled set to true",
+            rootNode.path("enabled").asBoolean());
+
+        assertEquals("JSON should contain the custom property",
+            "customValue", rootNode.path("customProperty").asText());
+
+        // Verify index node exists
+        JsonNode indexNode = rootNode.path(indexName);
+        assertTrue("JSON should contain the index node", indexNode.isObject());
+
+        // Verify model node exists within the index node
+        JsonNode modelNode = indexNode.path(modelName);
+        assertTrue("JSON should contain the model node", modelNode.isObject());
+
+        // Verify the model properties
+        assertEquals("Model should have correct type",
+            InferenceModelConfig.TYPE, modelNode.path("type").asText());
+        assertTrue("Model should be enabled",
+            modelNode.path("enabled").asBoolean());
+        assertTrue("Model should be default",
+            modelNode.path(InferenceModelConfig.IS_DEFAULT).asBoolean());
+        assertEquals("Model should have correct name",
+            "json-model", modelNode.path(InferenceModelConfig.MODEL).asText());
+
+        // Verify the enrich node exists
+        JsonNode enrichNode = rootNode.path(InferenceConstants.ENRICH_NODE);
+        assertTrue("JSON should contain the enrich node", enrichNode.isObject());
+
+        // Verify enrich status properties
+        assertTrue("Enrich node should contain status mapping",
+            enrichNode.has(InferenceConstants.ENRICHER_STATUS_MAPPING));
+        assertTrue("Enrich node should contain status data",
+            enrichNode.has(InferenceConstants.ENRICHER_STATUS_DATA));
+
+        // Verify complex node structure
+        JsonNode complexNode = rootNode.path("complexNode");
+        assertTrue("JSON should contain complex node", complexNode.isObject());
+
+        // Verify basic properties with different types
+        assertEquals("String property should match", "simple string value", complexNode.path("string").asText());
+        assertTrue("Boolean property should be true", complexNode.path("boolean").asBoolean());
+        assertEquals("Number property should match", 12345, complexNode.path("number").asInt());
+
+        // Verify special characters handling
+        String specialValue = complexNode.path("special").asText();
+        assertTrue("Special characters should be preserved",
+            specialValue.contains("test") &&
+                specialValue.contains("with") &&
+                specialValue.contains("quotes"));
+
+        // Verify unicode characters
+        assertEquals("Unicode characters should be preserved",
+            "测试unicode字符", complexNode.path("unicode").asText());
+
+        // Verify nested child node
+        JsonNode childNode = complexNode.path("childNode");
+        assertTrue("Child node should exist", childNode.isObject());
+        assertEquals("Child property should match", "child value", childNode.path("childProp").asText());
+
+        // Part 2: Test with a non-existent path
+        // -------------------------------------
+        String nonExistentPath = "/oak:index/nonExistentConfig";
+        InferenceConfig.reInitialize(nodeStore, nonExistentPath, true);
+        inferenceConfig = InferenceConfig.getInstance();
+
+        // Get JSON for non-existent path
+        String nonExistentJson = inferenceConfig.getInferenceConfigNodeState();
+        JsonNode nonExistentNode = mapper.readTree(nonExistentJson);
+
+        // Should return empty JSON object
+        assertTrue("Should return empty JSON object for non-existent path", nonExistentNode.isEmpty());
+
+        // Part 3: Test with disabled inference
+        // -----------------------------------
+        // Create config but disable it
+        NodeBuilder disabledConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
+        disabledConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
+        disabledConfigBuilder.setProperty(InferenceConstants.ENABLED, false);
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Initialize with disabled config
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        inferenceConfig = InferenceConfig.getInstance();
+
+        // Get JSON for disabled inference
+        String disabledJson = inferenceConfig.getInferenceConfigNodeState();
+        JsonNode disabledNode = mapper.readTree(disabledJson);
+
+        // Should contain basic structure but with enabled=false
+        assertFalse("Disabled config should not be empty", disabledNode.isEmpty());
+        assertEquals("Disabled config should have type", InferenceConfig.TYPE, disabledNode.path("type").asText());
+        assertFalse("Disabled config should have enabled=false", disabledNode.path("enabled").asBoolean());
+
+        // Reset to the default path for other tests
+        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+    }
+
+    /**
+     * Test getInferenceModelConfig
+     * Tests all paths of the getInferenceModelConfig method
+     */
+    @Test
+    public void testGetInferenceModelConfig() throws CommitFailedException {
+        // Create enabled inference config with an index config containing a model config
+        NodeBuilder inferenceConfigBuilder = createNodePath(rootBuilder, DEFAULT_CONFIG_PATH);
+        inferenceConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceConfig.TYPE);
+        inferenceConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+
+        // Add index config
+        String indexName = "testModelLookupIndex";
+        NodeBuilder indexConfigBuilder = inferenceConfigBuilder.child(indexName);
+        indexConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceIndexConfig.TYPE);
+        indexConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+        indexConfigBuilder.setProperty(InferenceConstants.ENRICHER_CONFIG, ENRICHER_CONFIG);
+
+        // Add default model config
+        String defaultModelName = "defaultModel";
+        NodeBuilder defaultModelConfigBuilder = indexConfigBuilder.child(defaultModelName);
+        defaultModelConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
+        defaultModelConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+        defaultModelConfigBuilder.setProperty(InferenceModelConfig.IS_DEFAULT, true);
+        defaultModelConfigBuilder.setProperty(InferenceModelConfig.MODEL, "default-embedding-model");
+        defaultModelConfigBuilder.setProperty(InferenceModelConfig.EMBEDDING_SERVICE_URL, "http://localhost:8080/default-embeddings");
+        defaultModelConfigBuilder.setProperty(InferenceModelConfig.SIMILARITY_THRESHOLD, 0.8);
+        defaultModelConfigBuilder.setProperty(InferenceModelConfig.MIN_TERMS, 3L);
+
+        // Add non-default model config
+        String nonDefaultModelName = "nonDefaultModel";
+        NodeBuilder nonDefaultModelConfigBuilder = indexConfigBuilder.child(nonDefaultModelName);
+        nonDefaultModelConfigBuilder.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
+        nonDefaultModelConfigBuilder.setProperty(InferenceConstants.ENABLED, true);
+        nonDefaultModelConfigBuilder.setProperty(InferenceModelConfig.IS_DEFAULT, false);
+        nonDefaultModelConfigBuilder.setProperty(InferenceModelConfig.MODEL, "non-default-embedding-model");
+        nonDefaultModelConfigBuilder.setProperty(InferenceModelConfig.EMBEDDING_SERVICE_URL, "http://localhost:8080/non-default-embeddings");
+        nonDefaultModelConfigBuilder.setProperty(InferenceModelConfig.SIMILARITY_THRESHOLD, 0.7);
+        nonDefaultModelConfigBuilder.setProperty(InferenceModelConfig.MIN_TERMS, 2L);
+
+        // Commit the changes
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // Create InferenceConfig object
+        InferenceConfig.reInitialize(nodeStore, DEFAULT_CONFIG_PATH, true);
+        InferenceConfig inferenceConfig = InferenceConfig.getInstance();
+
+        // Test case 1: null model name should return NOOP
+        InferenceModelConfig resultForNullModelName = inferenceConfig.getInferenceModelConfig(indexName, null);
+        assertEquals("Null model name should return NOOP model config", InferenceModelConfig.NOOP, resultForNullModelName);
+
+        // Test case 2: empty model name should return default model
+        InferenceModelConfig resultForEmptyModelName = inferenceConfig.getInferenceModelConfig(indexName, "");
+        assertNotEquals("Empty model name should return default model", InferenceModelConfig.NOOP, resultForEmptyModelName);
+        assertEquals("Empty model name should return default model", defaultModelName, resultForEmptyModelName.getInferenceModelConfigName());
+        assertTrue("Empty model name should return default model that is marked as default", resultForEmptyModelName.isDefault());
+
+        // Test case 3: specific model name should return that model
+        InferenceModelConfig resultForSpecificModelName = inferenceConfig.getInferenceModelConfig(indexName, nonDefaultModelName);
+        assertNotEquals("Specific model name should return that model", InferenceModelConfig.NOOP, resultForSpecificModelName);
+        assertEquals("Specific model name should return that model", nonDefaultModelName, resultForSpecificModelName.getInferenceModelConfigName());
+        assertFalse("Specific model name should return that model with the correct default flag", resultForSpecificModelName.isDefault());
+
+        // Test case 4: non-existent model name should return NOOP
+        InferenceModelConfig resultForNonExistentModelName = inferenceConfig.getInferenceModelConfig(indexName, "nonExistentModel");
+        assertEquals("Non-existent model name should return NOOP", InferenceModelConfig.NOOP, resultForNonExistentModelName);
+
+        // Test case 5: non-existent index name should return NOOP
+        InferenceModelConfig resultForNonExistentIndexName = inferenceConfig.getInferenceModelConfig("nonExistentIndex", defaultModelName);
+        assertEquals("Non-existent index name should return NOOP", InferenceModelConfig.NOOP, resultForNonExistentIndexName);
     }
 } 
