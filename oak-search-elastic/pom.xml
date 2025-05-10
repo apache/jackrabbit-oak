@@ -221,6 +221,12 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- Metrics -->
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+    </dependency>
+
     <!-- Nullability annotations -->
     <dependency>
       <groupId>org.jetbrains</groupId>

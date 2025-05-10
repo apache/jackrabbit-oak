@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,9 +52,10 @@ public class InferenceServiceUsingConfig implements InferenceService {
     private final long timeoutMillis;
     private final InferenceModelConfig inferenceModelConfig;
     private final String[] headersValue;
+    private final InferenceServiceMetrics metrics;
 
 
-    public InferenceServiceUsingConfig(InferenceModelConfig inferenceModelConfig) {
+    public InferenceServiceUsingConfig(InferenceModelConfig inferenceModelConfig, InferenceServiceMetrics metrics) {
         try {
             this.uri = new URI(inferenceModelConfig.getEmbeddingServiceUrl());
         } catch (URISyntaxException e) {
@@ -65,6 +65,7 @@ public class InferenceServiceUsingConfig implements InferenceService {
         this.httpClient = HttpClient.newHttpClient();
         this.timeoutMillis = inferenceModelConfig.getTimeoutMillis();
         this.inferenceModelConfig = inferenceModelConfig;
+        this.metrics = metrics;
         this.headersValue = inferenceModelConfig.getHeader().getInferenceHeaderPayload()
             .entrySet().stream()
             .flatMap(e -> Stream.of(e.getKey(), e.getValue()))
@@ -78,10 +79,17 @@ public class InferenceServiceUsingConfig implements InferenceService {
     }
 
     public List<Float> embeddings(String text, long timeoutMillis) {
+        // Track the request
+        Timer.Context timerContext = metrics.requestStarted();
+        long startTime = System.currentTimeMillis();
+
         if (cache.containsKey(text)) {
+            metrics.cacheHit();
+            metrics.requestCompleted(System.currentTimeMillis() - startTime, timerContext);
             return cache.get(text);
         }
 
+        metrics.cacheMiss();
         List<Float> result = null;
         try {
             // Create the JSON payload.
@@ -108,13 +116,23 @@ public class InferenceServiceUsingConfig implements InferenceService {
                 });
                 result = embeddingList;
                 cache.put(text, result);
+                metrics.requestCompleted(System.currentTimeMillis() - startTime, timerContext);
                 return result;
+            } else {
+                metrics.requestError(System.currentTimeMillis() - startTime, timerContext);
+                LOG.error("Failed to get embeddings. Status code: {}, Response: {}", response.statusCode(), response.body());
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            metrics.requestError(System.currentTimeMillis() - startTime, timerContext);
             throw new InferenceServiceException("Failed to get embeddings", e);
         } catch (IOException e) {
+            metrics.requestError(System.currentTimeMillis() - startTime, timerContext);
             throw new InferenceServiceException("Unable to extract embeddings from inference service response", e);
+        } finally {
+            //TODO evaluate and update how often we want to log these stats.
+            // Setting it to log every 10 minutes for now.
+            metrics.logMetricsSummary(10 * 60 * 1000, Integer.MAX_VALUE);
         }
         return result;
     }
