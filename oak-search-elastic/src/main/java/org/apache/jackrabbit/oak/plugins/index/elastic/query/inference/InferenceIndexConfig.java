@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -79,7 +80,7 @@ public class InferenceIndexConfig {
             this.enricherConfig = getOptionalValue(nodeState, InferenceConstants.ENRICHER_CONFIG, DISABLED_ENRICHER_CONFIG);
             inferenceModelConfigs = Map.of();
             LOG.warn("inference index config for indexName: {} is not valid. Node: {}",
-                    indexName, nodeState);
+                indexName, nodeState);
         }
     }
 
@@ -108,18 +109,26 @@ public class InferenceIndexConfig {
      */
     public InferenceModelConfig getDefaultEnabledModel() {
         return inferenceModelConfigs.values().stream()
-                .filter(InferenceModelConfig::isDefault)
-                .filter(InferenceModelConfig::isEnabled)
-                .findFirst()
-                .orElse(InferenceModelConfig.NOOP);
+            .filter(InferenceModelConfig::isDefault)
+            .filter(InferenceModelConfig::isEnabled)
+            .findFirst()
+            .orElse(InferenceModelConfig.NOOP);
     }
 
     @Override
     public String toString() {
-        return TYPE + "{" +
-                ENRICHER_CONFIG + "='" + enricherConfig + '\'' +
-                ", " + InferenceModelConfig.TYPE + "=" + inferenceModelConfigs +
-                '}';
+        JsopBuilder builder = new JsopBuilder().object().
+            key("type").value(TYPE).
+            key(ENRICHER_CONFIG).value(enricherConfig).
+            key(InferenceConstants.ENABLED).value(isEnabled).
+            key("inferenceModelConfigs").object();
+
+        // Serialize each model config
+        for (Map.Entry<String, InferenceModelConfig> e : inferenceModelConfigs.entrySet()) {
+            builder.key(e.getKey()).encodedValue(e.getValue().toString());
+        }
+        builder.endObject().endObject();
+        return JsopBuilder.prettyPrint(builder.toString());
     }
 
 }

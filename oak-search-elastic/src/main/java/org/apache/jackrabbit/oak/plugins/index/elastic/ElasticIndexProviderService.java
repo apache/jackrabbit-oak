@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import org.apache.jackrabbit.oak.api.jmx.InferenceMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
@@ -25,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorP
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceMBeanImpl;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -209,6 +211,13 @@ public class ElasticIndexProviderService {
                 ElasticIndexMBean.TYPE,
                 "Elastic Index statistics"));
 
+        InferenceMBeanImpl inferenceMBean = new InferenceMBeanImpl();
+        oakRegs.add(registerMBean(whiteboard,
+            InferenceMBean.class,
+            inferenceMBean,
+            InferenceMBean.TYPE,
+            "Inference"));
+
         LOG.info("Registering Index and Editor providers with connection {}", elasticConnection);
 
         registerIndexProvider(bundleContext);
@@ -283,5 +292,9 @@ public class ElasticIndexProviderService {
                 .withConnectionParameters(scheme, host, port)
                 .withApiKeys(apiKeyId, apiSecretId)
                 .build();
+    }
+
+    public InferenceConfig getInferenceConfig() {
+        return InferenceConfig.getInstance();
     }
 }
