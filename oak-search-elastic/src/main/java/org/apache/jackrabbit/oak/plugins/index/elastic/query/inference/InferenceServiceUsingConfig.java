@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
-import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +54,6 @@ public class InferenceServiceUsingConfig implements InferenceService {
     private final String[] headersValue;
     private final InferenceServiceMetrics metrics;
 
-
     public InferenceServiceUsingConfig(InferenceModelConfig inferenceModelConfig, InferenceServiceMetrics metrics) {
         try {
             this.uri = new URI(inferenceModelConfig.getEmbeddingServiceUrl());
@@ -80,7 +79,7 @@ public class InferenceServiceUsingConfig implements InferenceService {
 
     public List<Float> embeddings(String text, long timeoutMillis) {
         // Track the request
-        Timer.Context timerContext = metrics.requestStarted();
+        TimerStats.Context timerContext = metrics.requestStarted();
         long startTime = System.currentTimeMillis();
 
         if (cache.containsKey(text)) {
@@ -131,8 +130,8 @@ public class InferenceServiceUsingConfig implements InferenceService {
             throw new InferenceServiceException("Unable to extract embeddings from inference service response", e);
         } finally {
             //TODO evaluate and update how often we want to log these stats.
-            // Setting it to log every 10 minutes for now.
-            metrics.logMetricsSummary(10 * 60 * 1000, Integer.MAX_VALUE);
+            // Setting it to log every 10 minutes by default and can be configured using system property.
+            metrics.logMetricsSummary(DEFAULT_METRICS_LOGGING_INTERVAL);
         }
         return result;
     }

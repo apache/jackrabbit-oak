@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +68,7 @@ public class InferenceServiceUsingIndexConfig implements InferenceService {
     }
 
     public List<Float> embeddings(String text, long timeoutMillis) {
-        metrics.requestStarted();
+        TimerStats.Context timerContext = metrics.requestStarted();
         long startTime = System.currentTimeMillis();
 
         try {
@@ -134,10 +135,10 @@ public class InferenceServiceUsingIndexConfig implements InferenceService {
             throw new InferenceServiceException("Unable to extract embeddings from inference service response", e);
         } finally {
             long requestTime = System.currentTimeMillis() - startTime;
-            metrics.requestCompleted(requestTime);
+            metrics.requestCompleted(requestTime, timerContext);
             //TODO evaluate and update how often we want to log these stats.
-            // Setting it to log every 10 minutes for now.
-            metrics.logMetricsSummary(10 * 60 * 1000, Integer.MAX_VALUE);
+            // Setting it to log every 10 minutes by default and can be configured using system property.
+            metrics.logMetricsSummary(DEFAULT_METRICS_LOGGING_INTERVAL);
         }
     }
 
