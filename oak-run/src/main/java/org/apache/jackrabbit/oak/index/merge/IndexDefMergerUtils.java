@@ -219,14 +219,12 @@ public class IndexDefMergerUtils {
                 return null;
             }
             if (!tokenizer.matches(']')) {
-                if (!tokenizer.matches(JsopReader.STRING)) {
-                    // not a string
-                    return null;
-                }
                 do {
-                    if (tokenizer.matches(JsopReader.STRING)) {
-                        result.add(tokenizer.getEscapedToken());
+                    if (!tokenizer.matches(JsopReader.STRING)) {
+                        // not a string
+                        return null;
                     }
+                    result.add(tokenizer.getEscapedToken());
                 } while (tokenizer.matches(','));
                 tokenizer.read(']');
             }
