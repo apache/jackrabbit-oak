@@ -95,7 +95,6 @@ public class InferenceConfig {
         reInitialize(nodeStore, statisticsProvider, inferenceConfigPath, isInferenceEnabled, true);
     }
 
-    @Deprecated
     public static void reInitialize(NodeStore nodeStore, String inferenceConfigPath, boolean isInferenceEnabled) {
         reInitialize(nodeStore, StatisticsProvider.NOOP, inferenceConfigPath, isInferenceEnabled, true);
     }
