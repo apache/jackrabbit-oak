@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
+import ch.qos.logback.classic.Level;
 import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,13 +34,22 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticAbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
@@ -52,15 +62,25 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants.ENRICHER_CONFIG;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants.TYPE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticInferenceUsingConfigTest.class);
+
+    private ScheduledExecutorService executorService;
+    private StatisticsProvider statisticsProvider;
 
     @Rule
     public WireMockRule wireMock = new WireMockRule(WireMockConfiguration.options().dynamicPort());
@@ -68,6 +88,39 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
     private final String defaultEnricherConfig = "{\"enricher\":{\"config\":{\"vectorSpaces\":{\"semantic\":{\"pipeline\":{\"steps\":[{\"inputFields\":{\"description\":\"STRING\",\"title\":\"STRING\"},\"chunkingConfig\":{\"enabled\":true},\"name\":\"sentence-embeddings\",\"model\":\"text-embedding-ada-002\",\"optional\":true,\"type\":\"embeddings\"}]},\"default\":false}},\"version\":\"0.0.1\"}}}";
     private final String defaultEnricherStatusMapping = "{\"properties\":{\"processingTimeMs\":{\"type\":\"date\"},\"latestError\":{\"type\":\"keyword\",\"index\":false},\"errorCount\":{\"type\":\"short\"},\"status\":{\"type\":\"keyword\"}}}";
     private final String defaultEnricherStatusData = "{\"processingTimeMs\":0,\"latestError\":\"\",\"errorCount\":0,\"status\":\"PENDING\"}";
+
+    @Before
+    public void setUp() {
+        // Set system property for small metric logging interval
+        System.setProperty("oak.inference.metrics.log.interval", "100");
+
+        // Initialize StatisticsProvider for metrics testing
+        executorService = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "Statistics-Test-Thread-" + UUID.randomUUID());
+            t.setDaemon(true);
+            return t;
+        });
+        statisticsProvider = new DefaultStatisticsProvider(executorService);
+    }
+
+    @After
+    public void tearDownStatistics() {
+        // Clear system property
+        System.clearProperty("oak.inference.metrics.log.interval");
+
+        if (executorService != null) {
+            executorService.shutdown();
+            try {
+                executorService.awaitTermination(1, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOG.warn("Interrupted while waiting for executor service to terminate", e);
+            }
+            if (!executorService.isTerminated()) {
+                executorService.shutdownNow();
+            }
+        }
+    }
 
     @Test
     public void inferenceConfigStoredInIndexMetadata() throws CommitFailedException, JsonProcessingException {
@@ -124,11 +177,11 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
      * Helper method to setup an inference model configuration.
      */
     private void setupInferenceModelConfig(NodeBuilder inferenceIndexConfig,
-                                          String configName, String modelName,
-                                          String serviceUrl, double threshold,
-                                          long minTerms, boolean isDefault, boolean isEnabled,
-                                          Map<String, String> headers,
-                                          Map<String, Object> payloadConfig) {
+                                           String configName, String modelName,
+                                           String serviceUrl, double threshold,
+                                           long minTerms, boolean isDefault, boolean isEnabled,
+                                           Map<String, String> headers,
+                                           Map<String, Object> payloadConfig) {
         // Add inference model configuration
         NodeBuilder modelConfig = inferenceIndexConfig.child(configName);
         modelConfig.setProperty(InferenceConstants.TYPE, InferenceModelConfig.TYPE);
@@ -166,46 +219,112 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         String inferenceModelConfigName = "ada-test-model";
         String inferenceModelName = "text-embedding-ada-002";
 
-        // Create inference config
-        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
-            inferenceModelName, inferenceServiceUrl, 0.8, 1L, true, true);
-        setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
-        // Create index definition with multiple properties
-        IndexDefinitionBuilder builder = createIndexDefinition("title", "description", "updatedBy");
-        Tree index = setIndex(jcrIndexName, builder);
-        root.commit();
+        // Setup log customizer to capture InferenceServiceMetrics logs
+        LogCustomizer logCustomizer = LogCustomizer
+            .forLogger(InferenceServiceMetrics.class.getName())
+            .enable(Level.INFO)
+            .enable(Level.DEBUG)
+            .contains("Inference service metrics")
+            .create();
+        logCustomizer.starting();
 
-        // Add test content
-        addTestContent();
+        try {
+            // Create inference config
+            createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+                inferenceModelName, inferenceServiceUrl, 0.8, 1L, true, true);
+            setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
+            // Create index definition with multiple properties
+            IndexDefinitionBuilder builder = createIndexDefinition("title", "description", "updatedBy");
+            Tree index = setIndex(jcrIndexName, builder);
+            root.commit();
 
-        // Let the index catch up
-        assertEventually(() -> assertEquals(7, countDocuments(index)));
+            // Add test content
+            addTestContent();
 
-        // Enrich documents with embeddings
-        setupEmbeddingsForContent(index, inferenceModelConfigName, inferenceModelName);
+            // Let the index catch up
+            assertEventually(() -> assertEquals(7, countDocuments(index)));
 
-        // Setup wiremock stubs for inference service
-        setupMockInferenceService(inferenceModelConfigName, jcrIndexName);
+            // Enrich documents with embeddings
+            setupEmbeddingsForContent(index, inferenceModelConfigName, inferenceModelName);
 
-        // Test query results
-        Map<String, String> queryResults = Map.of(
-            "a beginner guide to data manipulation in python", "/content/programming",
-            "how to improve mental health through exercises", "/content/yoga",
-            "nutritional advice for a healthier lifestyle", "/content/health",
-            "technological advancements in electric vehicles", "/content/cars",
-            "what are the key algorithms used in machine learning", "/content/ml"
-        );
+            // Setup wiremock stubs for inference service
+            setupMockInferenceService(inferenceModelConfigName, jcrIndexName);
 
-        // Verify all queries return expected results
-        assertEventually(() -> {
-            verifyQueryResults(queryResults, inferenceConfigInQuery, jcrIndexName);
+            // Test query results
+            Map<String, String> queryResults = Map.of(
+                "a beginner guide to data manipulation in python", "/content/programming",
+                "how to improve mental health through exercises", "/content/yoga",
+                "nutritional advice for a healthier lifestyle", "/content/health",
+                "technological advancements in electric vehicles", "/content/cars",
+                "what are the key algorithms used in machine learning", "/content/ml"
+            );
 
-            // Test error handling scenarios
-            verifyErrorHandling(jcrIndexName, inferenceConfigInQuery);
-        });
+            // Verify all queries return expected results
+            assertEventually(() -> {
+                verifyQueryResults(queryResults, inferenceConfigInQuery, jcrIndexName);
 
-        // Test that inference data persists through document updates
-        testInferenceDataPersistenceOnUpdate(index);
+                // Test error handling scenarios
+                verifyErrorHandling(jcrIndexName, inferenceConfigInQuery);
+            });
+
+            // Test that inference data persists through document updates
+            testInferenceDataPersistenceOnUpdate(index);
+
+            // Create and verify metrics directly with our statisticsProvider
+            InferenceServiceMetrics directMetrics = new InferenceServiceMetrics(statisticsProvider,
+                "test-metrics",
+                100);
+
+            // Set reasonable counter values
+            CounterStats counter = statisticsProvider.getCounterStats("test-metrics_" + InferenceServiceMetrics.TOTAL_REQUESTS,
+                StatsOptions.DEFAULT);
+            counter.inc(10);
+
+            // Log metrics with the counts
+            directMetrics.logMetricsSummary();
+
+            LOG.info("Successfully logged basic metrics");
+
+            // Verify that we have captured the metrics logs
+            Thread.sleep(500); // Give a small delay for logging to complete
+            verifyMetricsLogsPresent(logCustomizer);
+        } finally {
+            logCustomizer.finished();
+        }
+    }
+
+    /**
+     * Verifies that metrics logs were captured by the LogCustomizer.
+     *
+     * @param logCustomizer The LogCustomizer instance used to capture logs
+     */
+    private void verifyMetricsLogsPresent(LogCustomizer logCustomizer) {
+        List<String> logs = logCustomizer.getLogs();
+        assertFalse("Should have captured metrics logs", logs.isEmpty());
+
+        LOG.info("Captured {} metrics log entries", logs.size());
+
+        // At least one log should contain the metrics information
+        boolean foundMetricsLog = false;
+
+        for (String log : logs) {
+            if (log.contains("Inference service metrics")) {
+                foundMetricsLog = true;
+
+                // Verify it contains some of the expected metrics
+                assertTrue("Log should contain request count",
+                    log.contains("requests="));
+                assertTrue("Log should contain cache hit rate",
+                    log.contains("hitRate="));
+                assertTrue("Log should contain error rate",
+                    log.contains("errorRate="));
+
+                LOG.info("Found metrics log: {}", log);
+                break;
+            }
+        }
+
+        assertTrue("Should have found at least one metrics log entry", foundMetricsLog);
     }
 
     /**
@@ -381,10 +500,10 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
      * Creates inference configuration with the specified parameters.
      */
     private void createInferenceConfig(String indexName, boolean isInferenceConfigEnabled,
-                                     String enricherConfig, String inferenceModelConfigName,
-                                     String inferenceModelName, String embeddingServiceUrl,
-                                     Double similarityThreshold, long minTerms, boolean isDefaultInferenceModelConfig,
-                                     boolean isInferenceModelConfigEnabled) throws CommitFailedException {
+                                       String enricherConfig, String inferenceModelConfigName,
+                                       String inferenceModelName, String embeddingServiceUrl,
+                                       Double similarityThreshold, long minTerms, boolean isDefaultInferenceModelConfig,
+                                       boolean isInferenceModelConfigEnabled) throws CommitFailedException {
         NodeBuilder rootBuilder = nodeStore.getRoot().builder();
         NodeBuilder nodeBuilder = rootBuilder;
         for (String path : PathUtils.elements(INFERENCE_CONFIG_PATH)) {
@@ -569,13 +688,16 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         Tree content = root.getTree("/").addChild("content");
         Tree document = content.addChild("document");
         document.setProperty("title", "Test Document for Reinitialization");
+        Tree document2 = content.addChild("document2");
+        document2.setProperty("title", "Test Document for Reinitialization 2");
         root.commit();
 
         // Let the index catch up
-        assertEventually(() -> assertEquals(2, countDocuments(index)));
+        assertEventually(() -> assertEquals(3, countDocuments(index)));
 
         // Verify the enricher status in the indexed document
         verifyEnricherStatus(index, "/content/document", updatedStatusData);
+        verifyEnricherStatus(index, "/content/document2", updatedStatusData);
     }
 
     /**
@@ -626,7 +748,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
      * Creates a document with vector embeddings.
      */
     private void createDocumentWithEmbeddings(Tree index, String path, String inferenceModelConfigName,
-                                          String inferenceModelName, List<Float> embeddings) throws IOException {
+                                              String inferenceModelName, List<Float> embeddings) throws IOException {
         ObjectMapper mapper = new JsonMapper();
         ObjectNode updateDoc = mapper.createObjectNode();
         VectorDocument vectorDocument = new VectorDocument(UUID.randomUUID().toString(), embeddings,
@@ -636,5 +758,21 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         inferenceModelConfigNode.addPOJO(vectorDocument);
 
         updateDocument(index, path, updateDoc);
+    }
+
+    /**
+     * Test metrics class that uses unique metric names to avoid conflicts
+     */
+    private static class TestMetricsWithUniqueNames extends InferenceServiceMetrics {
+        private final String uniquePrefix = "test_" + UUID.randomUUID().toString().replace("-", "_");
+
+        public TestMetricsWithUniqueNames(StatisticsProvider statisticsProvider) {
+            super(statisticsProvider, "test-unique-metrics", 100);
+        }
+
+        @Override
+        protected String getMetricName(String baseName) {
+            return uniquePrefix + "_" + baseName;
+        }
     }
 }

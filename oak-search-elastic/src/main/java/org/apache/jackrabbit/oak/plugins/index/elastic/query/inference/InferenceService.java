@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 import java.util.List;
 
 public interface InferenceService {
+    String DEFAULT_METRICS_LOGGING_INTERVAL_KEY = "elastic.query.inference.LoggingInterval";
+    long DEFAULT_METRICS_LOGGING_INTERVAL = Long.getLong(DEFAULT_METRICS_LOGGING_INTERVAL_KEY, 10L * 60L * 1000L); // 10 minutes
 
     List<Float> embeddings(String text);
 

@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,9 +62,14 @@ public class InferenceConfig {
     private String currentInferenceConfig;
     private volatile String activeInferenceConfig;
     private boolean isInferenceEnabled;
+    private StatisticsProvider statisticsProvider;
 
     public boolean isInferenceEnabled() {
         return isInferenceEnabled;
+    }
+
+    public StatisticsProvider getStatisticsProvider() {
+        return statisticsProvider;
     }
 
     /**
@@ -79,24 +85,29 @@ public class InferenceConfig {
             currentInferenceConfig = activeInferenceConfig;
             isInferenceEnabled = false;
             enricherStatus = EnricherStatus.NOOP;
+            statisticsProvider = StatisticsProvider.NOOP;
         } finally {
             lock.writeLock().unlock();
         }
     }
 
+    public static void reInitialize(NodeStore nodeStore, StatisticsProvider statisticsProvider, String inferenceConfigPath, boolean isInferenceEnabled) {
+        reInitialize(nodeStore, statisticsProvider, inferenceConfigPath, isInferenceEnabled, true);
+    }
+
     public static void reInitialize(NodeStore nodeStore, String inferenceConfigPath, boolean isInferenceEnabled) {
-        reInitialize(nodeStore, inferenceConfigPath, isInferenceEnabled, true);
+        reInitialize(nodeStore, StatisticsProvider.NOOP, inferenceConfigPath, isInferenceEnabled, true);
     }
 
     public static void reInitialize() {
-        reInitialize(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, INSTANCE.isInferenceEnabled, true);
+        reInitialize(INSTANCE.nodeStore, INSTANCE.statisticsProvider, INSTANCE.inferenceConfigPath, INSTANCE.isInferenceEnabled, true);
     }
 
     public static InferenceConfig getInstance() {
         lock.readLock().lock();
         try {
             if (INSTANCE.activeInferenceConfig != null && !INSTANCE.activeInferenceConfig.equals(INSTANCE.currentInferenceConfig)) {
-                reInitialize(INSTANCE.nodeStore, INSTANCE.inferenceConfigPath, INSTANCE.isInferenceEnabled, false);
+                reInitialize(INSTANCE.nodeStore, INSTANCE.statisticsProvider, INSTANCE.inferenceConfigPath, INSTANCE.isInferenceEnabled, false);
             }
             return INSTANCE;
         } finally {
@@ -104,7 +115,7 @@ public class InferenceConfig {
         }
     }
 
-    private static void reInitialize(NodeStore nodeStore, String inferenceConfigPath, boolean isInferenceEnabled, boolean updateActiveInferenceConfig) {
+    private static void reInitialize(NodeStore nodeStore, StatisticsProvider statisticsProvider, String inferenceConfigPath, boolean isInferenceEnabled, boolean updateActiveInferenceConfig) {
         lock.writeLock().lock();
         try {
             if (updateActiveInferenceConfig) {
@@ -115,6 +126,7 @@ public class InferenceConfig {
             INSTANCE.inferenceConfigPath = inferenceConfigPath;
             INSTANCE.isInferenceEnabled = isInferenceEnabled;
             INSTANCE.enricherStatus = new EnricherStatus(nodeStore, inferenceConfigPath);
+            INSTANCE.statisticsProvider = statisticsProvider;
 
             if (!isValidInferenceConfig(nodeStore, inferenceConfigPath)) {
                 INSTANCE.enabled = false;

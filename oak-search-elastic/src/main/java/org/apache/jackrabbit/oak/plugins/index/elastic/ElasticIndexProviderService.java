@@ -190,7 +190,7 @@ public class ElasticIndexProviderService {
         } else {
             this.isInferenceEnabled = config.isInferenceEnabled();
         }
-        InferenceConfig.reInitialize(nodeStore, config.inferenceConfigPath(), isInferenceEnabled);
+        InferenceConfig.reInitialize(nodeStore, statisticsProvider, config.inferenceConfigPath(), isInferenceEnabled);
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);

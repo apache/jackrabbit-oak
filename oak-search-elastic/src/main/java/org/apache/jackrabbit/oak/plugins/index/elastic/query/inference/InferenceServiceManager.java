@@ -33,8 +33,10 @@ public class InferenceServiceManager {
 
     private static final String CACHE_SIZE_PROPERTY = "oak.inference.cache.size";
     private static final int CACHE_SIZE = SystemPropertySupplier.create(CACHE_SIZE_PROPERTY, 100).get();
+    private static final int UNCACHED_SERVICE_CACHE_SIZE = 0;
 
     private static final ConcurrentHashMap<String, InferenceService> SERVICES = new ConcurrentHashMap<>();
+    private static final InferenceServiceMetrics uncachedServiceMetrics = new InferenceServiceMetrics(InferenceConfig.getInstance().getStatisticsProvider(), "UNCACHED_SERVICE", UNCACHED_SERVICE_CACHE_SIZE);
 
     @Deprecated
     public static InferenceService getInstance(@NotNull String url, String model) {
@@ -43,23 +45,25 @@ public class InferenceServiceManager {
         if (SERVICES.size() >= MAX_CACHED_SERVICES) {
             LOGGER.warning("InferenceServiceManager maximum cached services reached: " + MAX_CACHED_SERVICES);
             LOGGER.warning("Returning a new InferenceService instance with no cache");
-            return new InferenceServiceUsingIndexConfig(url, 0);
+            return new InferenceServiceUsingIndexConfig(url, UNCACHED_SERVICE_CACHE_SIZE, uncachedServiceMetrics);
         }
 
-        return SERVICES.computeIfAbsent(k, key -> new InferenceServiceUsingIndexConfig(url, CACHE_SIZE));
+        return SERVICES.computeIfAbsent(k, key -> new InferenceServiceUsingIndexConfig(url, CACHE_SIZE,
+            new InferenceServiceMetrics(InferenceConfig.getInstance().getStatisticsProvider(), k, CACHE_SIZE)));
     }
 
     public static InferenceService getInstance(InferenceModelConfig inferenceModelConfig) {
         //TODO we should use hash here, as hash takes care of all properties in model config.
         String key = inferenceModelConfig.getEmbeddingServiceUrl()
-                + "|" + inferenceModelConfig.getInferenceModelConfigName()
-                + "|" + inferenceModelConfig.getModel();
+            + "|" + inferenceModelConfig.getInferenceModelConfigName()
+            + "|" + inferenceModelConfig.getModel();
 
         if (SERVICES.size() >= MAX_CACHED_SERVICES) {
             LOGGER.warning("InferenceServiceManager maximum cached services reached: " + MAX_CACHED_SERVICES);
             LOGGER.warning("Returning a new InferenceService instance with no cache");
-            return new InferenceServiceUsingConfig(inferenceModelConfig);
+            return new InferenceServiceUsingConfig(inferenceModelConfig, uncachedServiceMetrics);
         }
-        return SERVICES.computeIfAbsent(key, k -> new InferenceServiceUsingConfig(inferenceModelConfig));
+        return SERVICES.computeIfAbsent(key, k -> new InferenceServiceUsingConfig(inferenceModelConfig,
+            new InferenceServiceMetrics(InferenceConfig.getInstance().getStatisticsProvider(), k, inferenceModelConfig.getCacheSize())));
     }
 }
