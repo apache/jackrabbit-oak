@@ -641,7 +641,7 @@ public class ElasticRequestHandler {
                     }
                     // Experimental support for inference queries
                     else if (elasticIndexDefinition.inferenceDefinition != null && elasticIndexDefinition.inferenceDefinition.queries != null) {
-                        bqBuilder.must(m -> m.bool(b -> inference(b, propertyName, queryText, pr, includeDynamicBoostedValues)));
+                        bqBuilder.must(m -> m.bool(b -> inference(b, propertyName, text, pr, includeDynamicBoostedValues)));
                     } else {
                         QueryStringQuery.Builder qsqBuilder = fullTextQuery(queryText, getElasticFulltextFieldName(propertyName), pr, includeDynamicBoostedValues);
                         bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
@@ -685,19 +685,20 @@ public class ElasticRequestHandler {
                             inferenceModelConfig.getMinTerms(), vectorQuery.getQueryText());
                     return b.must(mm -> mm.queryString(qsqBuilder.build()));
                 } else if (inferenceModelConfig.isEnabled() && inferenceModelConfig.getMinTerms() <= vectorQuery.getQueryText().split("\\s+").length) {
+                    String inferenceModelConfigName = inferenceModelConfig.getInferenceModelConfigName();
                     InferenceService inferenceService = InferenceServiceManager
                             .getInstance(inferenceModelConfig);
                     List<Float> embeddings = inferenceService.embeddings(vectorQuery.getQueryText(), (int) inferenceModelConfig.getTimeoutMillis());
                     if (embeddings != null) {
                         KnnQuery.Builder knnQueryBuilder = new KnnQuery.Builder();
-                        knnQueryBuilder.field(InferenceConstants.VECTOR_SPACES + "." + inferenceQueryModelName + "." + InferenceConstants.VECTOR);
+                        knnQueryBuilder.field(InferenceConstants.VECTOR_SPACES + "." + inferenceModelConfigName + "." + InferenceConstants.VECTOR);
                         knnQueryBuilder.numCandidates(inferenceModelConfig.getNumCandidates());
                         knnQueryBuilder.queryVector(embeddings);
 
                         KnnQuery knnQuery = knnQueryBuilder.build();
 
                         NestedQuery.Builder nestedQueryBuilder = new NestedQuery.Builder()
-                                .path(InferenceConstants.VECTOR_SPACES + "." + inferenceQueryModelName)
+                                .path(InferenceConstants.VECTOR_SPACES + "." + inferenceModelConfigName)
                                 .query(Query.of(q2 -> q2.knn(knnQuery)));
 
                         b.should(s -> s.nested(nestedQueryBuilder.build()));
