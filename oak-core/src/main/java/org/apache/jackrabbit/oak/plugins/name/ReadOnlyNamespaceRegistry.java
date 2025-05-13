@@ -25,18 +25,27 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.util.Text;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
+import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -130,56 +139,187 @@ public class ReadOnlyNamespaceRegistry
                 "No namespace prefix registered for URI " + uri);
     }
 
-    protected void checkConsistency() {
-        final String jcrPrimaryType = "jcr:primaryType";
-        List<String> prefixes = Arrays.asList(getPrefixes());
-        List<String> encodedUris = Arrays.stream(getURIs()).map(Namespaces::encodeUri).collect(Collectors.toList());
-        if (prefixes.size() != encodedUris.size()) {
-            LOG.error("The namespace registry is inconsistent: found {} registered namespace prefixes and {} registered namespace URIs. The numbers have to be equal.", prefixes.size(), encodedUris.size());
-        }
-        int mappedPrefixCount = 0;
-        for (PropertyState propertyState : namespaces.getProperties()) {
-            String prefix = propertyState.getName();
-            if (!prefix.equals(jcrPrimaryType)) {
-                mappedPrefixCount++;
-                if (!prefixes.contains(prefix)) {
-                    LOG.error("The namespace registry is inconsistent: namespace prefix {} is mapped to a namespace URI, but not contained in the list of registered namespace prefixes.", prefix);
-                }
-                try {
-                    getURI(prefix);
-                } catch (NamespaceException e) {
-                    LOG.error("The namespace registry is inconsistent: namespace prefix {} is not mapped to a namespace URI.", prefix);
-                }
-            }
-        }
-        //prefixes contains the unmapped empty prefix
-        if (mappedPrefixCount + 1 != prefixes.size()) {
-            LOG.error("The namespace registry is inconsistent: found {} mapped namespace prefixes and {} registered namespace prefixes. The numbers have to be equal.", mappedPrefixCount, prefixes.size());
-        }
-        int mappedUriCount = 0;
-        for (PropertyState propertyState : nsdata.getProperties()) {
-            String encodedUri = propertyState.getName();
-            switch (encodedUri) {
-                case REP_PREFIXES:
-                case REP_URIS:
-                case jcrPrimaryType:
-                    break;
-                default:
-                    mappedUriCount++;
-                    if (!encodedUris.contains(encodedUri)) {
-                        LOG.error("The namespace registry is inconsistent: encoded namespace URI {} is mapped to a namespace prefix, but not contained in the list of registered namespace URIs.", encodedUri);
-                    }
-                    try {
-                        getPrefix(Text.unescapeIllegalJcrChars(encodedUri));
-                    } catch (NamespaceException e) {
-                        LOG.error("The namespace registry is inconsistent: namespace URI {} is not mapped to a namespace prefix.", encodedUri);
-                    }
-            }
-        }
-        //encodedUris contains the unmapped empty namespace URI
-        if (mappedUriCount + 1 != encodedUris.size()) {
-            LOG.error("The namespace registry is inconsistent: found {} mapped namespace URIs and {} registered namespace URIs. The numbers have to be equal.", mappedUriCount, encodedUris.size());
+    protected void checkConsistency() throws IllegalStateException {
+        NamespaceRegistryModel model = NamespaceRegistryModel.create(namespaces);
+        if (!model.isConsistent()) {
+            LOG.warn("Namespace registry is inconsistent. "
+                    + "Unregistered mapped prefixes: {}. "
+                    + "Unregistered mapped namespaces: {}. "
+                    + "Registered unmapped prefixes: {}. "
+                    + "Registered unmapped namespaces: {}.",
+                    model.getUnregisteredMappedPrefixes(),
+                    model.getUnregisteredMappedNamespaces(),
+                    model.getRegisteredUnmappedPrefixes(),
+                    model.getRegisteredUnmappedNamespaces());
         }
         CONSISTENCY_CHECKED = true;
+    }
+
+    protected static final class NamespaceRegistryModel {
+        protected final Set<String> registeredPrefixes;
+        protected final Set<String> registeredNamespacesEncoded;
+        protected final Map<String, String> prefixToNamespaceMap;
+        protected final Map<String, String> namespaceToPrefixMap;
+
+        protected Set<String> mappedPrefixes;
+        protected Set<String> mappedNamespaces;
+        protected Set<String> mappedToPrefixes;
+        protected Set<String> mappedToNamespacesEncoded;
+        protected Set<String> allPrefixes;
+        protected Set<String> allNamespacesEncoded;
+        protected Set<String> consistentPrefixes;
+        protected Set<String> consistentNamespaces;
+        protected int registrySize;
+
+        private boolean consistent = false;
+        private boolean fixable = false;
+
+        private NamespaceRegistryModel(
+                Set<String> registeredPrefixes, Set<String> registeredNamespacesEncoded,
+                // prefixes to URIs
+                Map<String, String> prefixToNamespaceMap,
+                // encoded URIs to prefixes
+                Map<String, String> namespaceToPrefixMap) {
+            // ignore the empty namespace which is not mapped
+            this.registeredPrefixes = registeredPrefixes.stream().filter(s -> !Objects.isNull(s) && s.isEmpty()).collect(Collectors.toSet());
+            this.registeredNamespacesEncoded = registeredNamespacesEncoded.stream().filter(s -> !Objects.isNull(s) && s.isEmpty()).collect(Collectors.toSet());
+            this.prefixToNamespaceMap = prefixToNamespaceMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            this.namespaceToPrefixMap = namespaceToPrefixMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            init();
+        }
+
+        private void init() {
+            this.mappedPrefixes = prefixToNamespaceMap.keySet();
+            this.mappedNamespaces = namespaceToPrefixMap.keySet();
+            this.mappedToPrefixes = new HashSet<>(namespaceToPrefixMap.values());
+            this.mappedToNamespacesEncoded = prefixToNamespaceMap.values().stream().map(Namespaces::encodeUri).collect(Collectors.toSet());
+            allPrefixes = SetUtils.union(SetUtils.union(registeredPrefixes, mappedPrefixes), mappedToPrefixes);
+            allNamespacesEncoded = SetUtils.union(SetUtils.union(registeredNamespacesEncoded, mappedNamespaces), mappedToNamespacesEncoded);
+            registrySize = Math.max(allPrefixes.size(), allNamespacesEncoded.size());
+            consistentPrefixes = SetUtils.intersection(SetUtils.intersection(registeredPrefixes, mappedPrefixes), mappedToPrefixes);
+            consistentNamespaces = SetUtils.intersection(SetUtils.intersection(registeredNamespacesEncoded, mappedNamespaces), mappedToNamespacesEncoded);
+            consistent = consistentPrefixes.size() == consistentNamespaces.size()
+                    && consistentPrefixes.size() == allPrefixes.size();
+            if (consistent) {
+                fixable = true;
+            } else {
+                // everything needs to be contained in at least one of the bijective mappings
+                fixable = registrySize == SetUtils.union(mappedPrefixes, mappedToPrefixes).size()
+                        && registrySize == SetUtils.union(mappedNamespaces, mappedToNamespacesEncoded).size();
+            }
+        }
+
+        static NamespaceRegistryModel create(Tree namespaces) {
+            Tree nsdata = namespaces.getChild(REP_NSDATA);
+            Map<String, String> prefixToNamespaceMap = new HashMap<>();
+            Map<String, String> namespaceToPrefixMap = new HashMap<>();
+            for (PropertyState propertyState : namespaces.getProperties()) {
+                String prefix = propertyState.getName();
+                if (!prefix.equals(NodeTypeConstants.REP_PRIMARY_TYPE)) {
+                    prefixToNamespaceMap.put(prefix, propertyState.getValue(STRING));
+                }
+            }
+            for (PropertyState propertyState : nsdata.getProperties()) {
+                String encodedUri = propertyState.getName();
+                switch (encodedUri) {
+                    case REP_PREFIXES:
+                    case REP_URIS:
+                    case NodeTypeConstants.REP_PRIMARY_TYPE:
+                        break;
+                    default:
+                        namespaceToPrefixMap.put(encodedUri, propertyState.getValue(STRING));
+                }
+            }
+            NamespaceRegistryModel model = new NamespaceRegistryModel(
+                    new HashSet<>(Arrays.asList(IterableUtils.toArray(nsdata.getProperty(REP_PREFIXES).getValue(STRINGS), String.class))),
+                    StreamUtils.toStream(nsdata.getProperty(REP_URIS).getValue(STRINGS)).map(Namespaces::encodeUri).collect(Collectors.toSet()),
+                    prefixToNamespaceMap, namespaceToPrefixMap);
+            return model;
+        }
+
+        NamespaceRegistryModel createFixedModel() {
+            if (consistent) {
+                return this;
+            }
+            if (!fixable) {
+                return null;
+            }
+            HashSet<String> fixedRegisteredPrefixes = new HashSet<>();
+            HashMap<String, String> fixedPrefixToNamespaceMap = new HashMap<>();
+            for (String prefix : allPrefixes) {
+                if (!mappedPrefixes.contains(prefix)) {
+                    for (Map.Entry<String, String> entry : namespaceToPrefixMap.entrySet()) {
+                        if (entry.getValue().equals(prefix)) {
+                            fixedPrefixToNamespaceMap.put(prefix, Text.unescapeIllegalJcrChars(entry.getKey()));
+                            fixedRegisteredPrefixes.add(prefix);
+                            break;
+                        }
+                    }
+                }
+            }
+            HashSet<String> fixedRegisteredNamespacesEncoded = new HashSet<>();
+            HashMap<String, String> fixedNamespaceToPrefixMap = new HashMap<>();
+            for (String encodedNamespace : allNamespacesEncoded) {
+                if (!mappedNamespaces.contains(encodedNamespace)) {
+                    for (Map.Entry<String, String> entry : prefixToNamespaceMap.entrySet()) {
+                        if (Namespaces.encodeUri(entry.getValue()).equals(encodedNamespace)) {
+                            fixedNamespaceToPrefixMap.put(encodedNamespace, entry.getKey());
+                            fixedRegisteredNamespacesEncoded.add(encodedNamespace);
+                            break;
+                        }
+                    }
+                }
+            }
+           return new NamespaceRegistryModel(fixedRegisteredPrefixes, fixedRegisteredNamespacesEncoded,
+                   fixedPrefixToNamespaceMap, fixedNamespaceToPrefixMap);
+        }
+
+        boolean isConsistent() {
+            return consistent;
+        }
+
+        public boolean isFixable() {
+            return fixable;
+        }
+
+        Set<String> getUnregisteredMappedPrefixes() {
+            return SetUtils.difference(mappedPrefixes, registeredPrefixes);
+        }
+
+        Set<String> getRegisteredUnmappedPrefixes() {
+            return SetUtils.difference(registeredPrefixes, mappedPrefixes);
+        }
+
+        Set<String> getUnregisteredMappedNamespaces() {
+            return SetUtils.difference(mappedNamespaces, registeredNamespacesEncoded);
+        }
+
+        Set<String> getRegisteredUnmappedNamespaces() {
+            return SetUtils.difference(registeredNamespacesEncoded, mappedNamespaces);
+        }
+
+        Set<String> getRegisteredPrefixes() {
+            return registeredPrefixes;
+        }
+
+        Set<String> getRegisteredNamespacesEncoded() {
+            return registeredNamespacesEncoded;
+        }
+
+        Set<String> getMappedPrefixes() {
+            return mappedPrefixes;
+        }
+
+        Set<String> getMappedNamespaces() {
+            return mappedNamespaces;
+        }
+
+        Set<String> getAllPrefixes() {
+            return allPrefixes;
+        }
+
+        Set<String> getAllNamespaces() {
+            return allNamespacesEncoded;
+        }
     }
 }
