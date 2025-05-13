@@ -130,7 +130,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 throw e;
             }
         }
-        // retry with exclusive lock
+        // retry with exclusive lock, blocking other
+        // concurrent writes
         return merge0(hook, info, true);
     }
 
