@@ -45,6 +45,12 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void avoidMergeLockDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertFalse(builder.avoidMergeLock());
+    }
+
+    @Test
     public void throttlingFeatureToggleDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getDocStoreThrottlingFeature());
@@ -112,6 +118,12 @@ public class MongoDocumentNodeStoreBuilderTest {
     public void embeddedVerificationFeatureToggleEnabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getDocStoreEmbeddedVerificationFeature());
+    }
+
+    @Test
+    public void avoidMergeLockFeatureToggleEnabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertNull(builder.getDocStoreAvoidMergeLockFeature());
     }
 
     @Test

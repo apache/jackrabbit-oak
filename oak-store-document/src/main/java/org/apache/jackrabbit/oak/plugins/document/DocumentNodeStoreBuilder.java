@@ -136,6 +136,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
+    private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
@@ -176,6 +177,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Predicate<Path> nodeCachePredicate = x -> true;
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
+    private boolean avoidMergeLock;
     private boolean fullGCEnabled;
     private Set<String> fullGCIncludePaths = Set.of();
     private Set<String> fullGCExcludePaths = Set.of();
@@ -308,6 +310,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean isThrottlingEnabled() {
         return this.throttlingEnabled;
+    }
+
+    public T setAvoidMergeLock(boolean b) {
+        this.avoidMergeLock = b;
+        return thisBuilder();
+    }
+
+    public boolean avoidMergeLock() {
+        return this.avoidMergeLock;
     }
 
     public T setFullGCEnabled(boolean b) {
@@ -494,6 +505,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     @Nullable
     public Feature getDocStoreEmbeddedVerificationFeature() {
         return docStoreEmbeddedVerificationFeature;
+    }
+
+    public Feature getDocStoreAvoidMergeLockFeature() {
+        return docStoreAvoidMergeLockFeature;
+    }
+
+    public T setDocStoreAvoidMergeLockFeature(@Nullable Feature docStoreAvoidMergeLock) {
+        this.docStoreAvoidMergeLockFeature = docStoreAvoidMergeLock;
+        return thisBuilder();
     }
 
     public T setPrevNoPropCacheFeature(@Nullable Feature prevNoPropCacheFeature) {
