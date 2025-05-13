@@ -5,7 +5,7 @@
       ":version": 2,
       "tags": ["similarity", "asset", "fragments"],
       "type": "elasticsearch",
-      "async": "async",
+      "async": "elastic-async",
       "reindex": false,
       "reindexCount": 1
     }
@@ -17,7 +17,7 @@
       ":version": 2,
       "tags": ["similarity", "asset"],
       "type": "disabled",
-      "async": "async",
+      "async": ["async", "nrt"],
       "reindex": false,
       "reindexCount": 1
     },
@@ -28,7 +28,8 @@
       "type": "lucene",
       "async": "async",
       "reindex": false,
-      "reindexCount": 1
+      "reindexCount": 1,
+      "merges": ["/oak:index/lucene-1", "/oak:index/lucene-0-custom-1"]
     }
   },
 
@@ -38,7 +39,7 @@
       ":version": 2,
       "tags": ["similarity", "asset", "fragments"],
       "type": "elasticsearch",
-      "async": "async",
+      "async": "elastic-async",
       "reindex": false,
       "reindexCount": 1
     },
@@ -46,7 +47,7 @@
       "jcr:primaryType": "nam:oak:QueryIndexDefinition",
       "tags": ["asset", "custom", "fragments", "similarity"],
       "type": "elasticsearch",
-      "async": "async",
+      "async": "elastic-async",
       "merges": ["/oak:index/lucene-2", "/oak:index/lucene-1-custom-1"]
     }
   }

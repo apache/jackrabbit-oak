@@ -42,10 +42,20 @@ import org.apache.jackrabbit.oak.plugins.index.IndexName;
 public class IndexDefMergerUtils {
 
     private static HashSet<String> IGNORE_LEVEL_0 = new HashSet<>(Arrays.asList(
-            "reindex", "refresh", "seed", "reindexCount"));
+            "reindex",
+            "refresh",
+            "seed",
+            "reindexCount"));
     private static HashSet<String> USE_PRODUCT_PROPERTY = new HashSet<>(Arrays.asList(
-            "jcr:created", "jcr:lastModified", "jcr:uuid",
-            "jcr:createdBy", "jcr:lastModifiedBy", "jcr:createdBy", "type", "includedPaths"));
+            "async",
+            "includedPaths",
+            "jcr:created",
+            "jcr:createdBy",
+            "jcr:lastModified",
+            "jcr:lastModifiedBy",
+            "jcr:uuid",
+            "type"
+            ));
     private static HashSet<String> USE_PRODUCT_CHILD_LEVEL_0 = new HashSet<>(Arrays.asList(
             "tika"));
 
