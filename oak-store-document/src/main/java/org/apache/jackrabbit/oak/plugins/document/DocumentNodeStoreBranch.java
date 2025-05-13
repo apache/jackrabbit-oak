@@ -124,10 +124,14 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             if (!e.isOfType(MERGE)) {
                 throw e;
             }
+            // OAK-11720: Do not retry again if avoidMergeLock is enabled and the merge already failed.
+            // This avoids blocking other concurrent writes.
+            if (avoidMergeLock) {
+                throw e;
+            }
         }
-        // retry with exclusive lock (if avoidMergeLock is not enabled), blocking other
-        // concurrent writes
-        return merge0(hook, info, !avoidMergeLock);
+        // retry with exclusive lock
+        return merge0(hook, info, true);
     }
 
     @Override

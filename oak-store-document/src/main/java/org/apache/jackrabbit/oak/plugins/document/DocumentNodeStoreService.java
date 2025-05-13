@@ -157,7 +157,7 @@ public class DocumentNodeStoreService {
     static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
     static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
     static final boolean DEFAULT_PREFETCH_EXTERNAL_CHANGES = false;
-    static final boolean DEFAULT_AVOID_MERGE_LOCK = false;
+    static final boolean DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK = false;
     private static final String DEFAULT_PROP_HOME = "./repository";
     static final long DEFAULT_MAX_REPLICATION_LAG = 6 * 60 * 60;
     static final boolean DEFAULT_BUNDLING_DISABLED = false;
@@ -535,7 +535,7 @@ public class DocumentNodeStoreService {
                 setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
                 setPrevNoPropCacheFeature(prevNoPropCacheFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
-                setAvoidMergeLock(config.avoidMergeLock()).
+                setAvoidMergeLock(config.avoidExclusiveMergeLock()).
                 setFullGCEnabled(config.fullGCEnabled()).
                 setFullGCIncludePaths(config.fullGCIncludePaths()).
                 setFullGCExcludePaths(config.fullGCExcludePaths()).

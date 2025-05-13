@@ -34,7 +34,7 @@ import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 
 import static java.util.List.of;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_AVOID_MERGE_LOCK;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
@@ -96,7 +96,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(of("/"), of(config.fullGCIncludePaths()));
         assertEquals(of(), of(config.fullGCExcludePaths()));
         assertEquals("STRICT", config.leaseCheckMode());
-        assertEquals(DEFAULT_AVOID_MERGE_LOCK, config.avoidMergeLock());
+        assertEquals(DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK, config.avoidExclusiveMergeLock());
         assertEquals(DEFAULT_THROTTLING_ENABLED, config.throttlingEnabled());
         assertEquals(DEFAULT_FULL_GC_ENABLED, config.fullGCEnabled());
         assertEquals(DEFAULT_FULL_GC_MODE, config.fullGCMode());
@@ -130,9 +130,9 @@ public class DocumentNodeStoreServiceConfigurationTest {
     @Test
     public void avoidMergeLockEnabled() throws Exception {
         boolean avoidMergeLock = true;
-        addConfigurationEntry(preset, "avoidMergeLock", avoidMergeLock);
+        addConfigurationEntry(preset, "avoidExclusiveMergeLock", avoidMergeLock);
         Configuration config = createConfiguration();
-        assertEquals(avoidMergeLock, config.avoidMergeLock());
+        assertEquals(avoidMergeLock, config.avoidExclusiveMergeLock());
     }
 
     @Test
