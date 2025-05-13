@@ -70,4 +70,9 @@ public class ElasticFullTextIndexTest extends FullTextIndexCommonTest {
         });
     }
 
+    @Override
+    protected String[] getPrefixes() {
+        return new String[]{"", "?{}?", "?"};
+    }
+
 }

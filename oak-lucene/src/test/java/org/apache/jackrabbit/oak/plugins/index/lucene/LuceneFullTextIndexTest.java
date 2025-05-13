@@ -45,6 +45,11 @@ public class LuceneFullTextIndexTest extends FullTextIndexCommonTest {
         setTraversalEnabled(false);
     }
 
+    @Override
+    protected String[] getPrefixes() {
+        return new String[]{"", "?{}?", "?"};
+    }
+
     @After
     public void shutdownExecutor() {
         executorService.shutdown();

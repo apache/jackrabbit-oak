@@ -144,10 +144,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
             // e.g. ?{"inferenceModelConfig": "ada-test-model"}?little red fox
             // So here we split the query into text part of query and inferenceConfig part of query.
             // Afterwards we only parse text part of query as this part of query is what we want to search.
-            if (query.getSettings().isInferenceEnabled()) {
-                VectorQuery vectorQuery = new VectorQuery(rawText);
-                queryText = vectorQuery.getQueryText();
-            }
+            // We are explicitly removing vectorQueryConfig from raw query
+            VectorQuery vectorQuery = new VectorQuery(rawText);
+            queryText = vectorQuery.getQueryText();
             FullTextExpression e = FullTextParser.parse(p2, queryText);
             return new FullTextContains(p2, rawText, e);
         } catch (ParseException e) {

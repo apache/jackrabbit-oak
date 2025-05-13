@@ -58,6 +58,8 @@ public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
 
         resultCountingIndexProvider = new ResultCountingIndexProvider(indexProvider);
         queryEngineSettings = new QueryEngineSettings();
+        // enabling inference to check impact on all tests.
+        queryEngineSettings.setInferenceEnabled(true);
         optionalEditorProvider = new TestUtil.OptionalEditorProvider();
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }
