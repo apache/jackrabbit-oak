@@ -137,6 +137,17 @@ public class RDBDocumentNodeStoreBuilder
     }
 
     @Override
+    public RDBDocumentNodeStoreBuilder setAvoidMergeLock(boolean b) {
+        return thisBuilder();
+    }
+
+    @Override
+    public boolean avoidMergeLock() {
+        // setting this is not supported for RDB
+        return false;
+    }
+
+    @Override
     public boolean isFullGCAuditLoggingEnabled() {
         // fullGC is non supported for RDB
         return false;
@@ -207,6 +218,17 @@ public class RDBDocumentNodeStoreBuilder
     public long getFullGcMaxAgeMillis() {
         // fullGC max age is not supported for RDB
         return 0;
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setDocStoreAvoidMergeLockFeature(@Nullable Feature docStoreAvoidMergeLock) {
+        return thisBuilder();
+    }
+
+    @Override
+    @Nullable
+    public Feature getDocStoreAvoidMergeLockFeature() {
+        return null;
     }
   
     @Override

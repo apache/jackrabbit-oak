@@ -1130,6 +1130,17 @@ public class Utils {
     }
 
     /**
+     * Check whether avoid exclusive merge lock is enabled or not for document store.
+     *
+     * @param builder instance for DocumentNodeStoreBuilder
+     * @return true if avoid exclusive merge lock is enabled else false
+     */
+    public static boolean isAvoidMergeLockEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreAvoidMergeLockFeature = builder.getDocStoreAvoidMergeLockFeature();
+        return builder.avoidMergeLock() || (docStoreAvoidMergeLockFeature != null && docStoreAvoidMergeLockFeature.isEnabled());
+    }
+
+    /**
      * Returns true if all the revisions in the {@code a} greater or equals
      * to their counterparts in {@code b}. If {@code b} contains revisions
      * for cluster nodes that are not present in {@code a}, return false.

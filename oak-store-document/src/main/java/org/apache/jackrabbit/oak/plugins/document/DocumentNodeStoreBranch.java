@@ -75,6 +75,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     /** The maximum number of updates to keep in memory */
     private final int updateLimit;
+    private final boolean avoidMergeLock;
 
     /**
      * State of the this branch. Either {@link Unmodified}, {@link InMemory}, {@link Persisted},
@@ -85,13 +86,15 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     DocumentNodeStoreBranch(DocumentNodeStore store,
                             DocumentNodeState base,
-                            ReadWriteLock mergeLock) {
+                            ReadWriteLock mergeLock,
+                            boolean avoidMergeLock) {
         this.store = requireNonNull(store);
         this.branchState = new Unmodified(requireNonNull(base));
         this.maximumBackoff = Math.max((long) store.getMaxBackOffMillis(), MIN_BACKOFF);
         this.maxLockTryTimeMS = (long) (store.getMaxBackOffMillis() * MAX_LOCK_TRY_TIME_MULTIPLIER);
         this.mergeLock = mergeLock;
         this.updateLimit = store.getUpdateLimit();
+        this.avoidMergeLock = avoidMergeLock;
     }
 
     @NotNull
@@ -122,9 +125,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 throw e;
             }
         }
-        // retry with exclusive lock, blocking other
+        // retry with exclusive lock (if avoidMergeLock is not enabled), blocking other
         // concurrent writes
-        return merge0(hook, info, true);
+        return merge0(hook, info, !avoidMergeLock);
     }
 
     @Override

@@ -57,6 +57,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isAvoidMergeLockEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
@@ -234,6 +235,56 @@ public class UtilsTest {
         builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
         boolean fullGCEnabled = isFullGCEnabled(builder);
         assertFalse("Full GC is disabled for RDB Document Store", fullGCEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockEnabledDefaultValue() {
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(newDocumentNodeStoreBuilder());
+        assertFalse("Avoid Merge Lock is enabled by default", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockExplicitlyDisabled() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(false);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertFalse("Avoid Merge Lock is disabled explicitly", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockEnabledViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(true);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertTrue("Avoid Merge Lock is enabled via configuration", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockEnabledViaFeatureToggle() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(false);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertTrue("Avoid Merge Lock is enabled via Feature Toggle", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockDisabledForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(true);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertFalse("Avoid Merge Lock is enabled for RDB Document Store", avoidMergeLockEnabled);
     }
 
     @Test

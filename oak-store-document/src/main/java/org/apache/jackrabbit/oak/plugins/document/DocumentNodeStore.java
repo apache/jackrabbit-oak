@@ -33,6 +33,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExternalRevisions;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isAvoidMergeLockEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
@@ -406,6 +407,10 @@ public final class DocumentNodeStore
     private final ReadWriteLock mergeLock = new ReentrantReadWriteLock();
 
     /**
+     * To avoid taking exclusive merge lock while merging changes into repository in case of conflict
+     */
+    private final boolean avoidMergeLock;
+    /**
      * Enable using simple revisions (just a counter). This feature is useful
      * for testing.
      */
@@ -641,6 +646,7 @@ public final class DocumentNodeStore
         this.prefetchFeature = builder.getPrefetchFeature();
         this.cancelInvalidationFeature = builder.getCancelInvalidationFeature();
         this.noChildOrderCleanupFeature = builder.getNoChildOrderCleanupFeature();
+        this.avoidMergeLock = isAvoidMergeLockEnabled(builder);
         this.cacheWarming = new CacheWarming(s);
 
         this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
@@ -1898,7 +1904,7 @@ public final class DocumentNodeStore
 
     @NotNull
     DocumentNodeStoreBranch createBranch(DocumentNodeState base) {
-        return new DocumentNodeStoreBranch(this, base, mergeLock);
+        return new DocumentNodeStoreBranch(this, base, mergeLock, avoidMergeLock);
     }
 
     @NotNull
