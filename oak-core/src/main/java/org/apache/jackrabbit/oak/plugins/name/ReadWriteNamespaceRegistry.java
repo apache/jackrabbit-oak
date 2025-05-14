@@ -150,33 +150,9 @@ public abstract class ReadWriteNamespaceRegistry
             throw new IllegalArgumentException("Model must not be null");
         }
         if (!model.isConsistent()) {
-            throw new IllegalArgumentException("Model is not consistent");
+            throw new IllegalArgumentException("Model is not consistent and cannot be applied");
         }
-
-        for (PropertyState propertyState : namespaces.getProperties()) {
-            String name = propertyState.getName();
-            if (!JCR_PRIMARYTYPE.equals(name)) {
-                namespaces.removeProperty(name);
-            }
-        }
-        for (Map.Entry<String, String> entry : model.prefixToNamespaceMap.entrySet()) {
-            String prefix = entry.getKey();
-            String uri = entry.getValue();
-            namespaces.setProperty(prefix, uri);
-        }
-        for (PropertyState propertyState : nsdata.getProperties()) {
-            String name = propertyState.getName();
-            if (!JCR_PRIMARYTYPE.equals(name)) {
-                nsdata.removeProperty(name);
-            }
-        }
-        for (Map.Entry<String, String> entry : model.namespaceToPrefixMap.entrySet()) {
-            String encodedUri = entry.getKey();
-            String prefix = entry.getValue();
-            nsdata.setProperty(encodedUri, prefix);
-        }
-        nsdata.setProperty(REP_PREFIXES, model.mappedPrefixes, STRINGS);
-        nsdata.setProperty(REP_URIS, model.prefixToNamespaceMap.values(), STRINGS);
+        model.apply(namespaces);
         if (!checkConsistency()) {
             throw new IllegalStateException("Final registry consistency check failed.");
         }

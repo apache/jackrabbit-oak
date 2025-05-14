@@ -103,7 +103,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
 
         ReadOnlyNamespaceRegistry readOnlyNamespaceRegistry = (ReadOnlyNamespaceRegistry) r;
         readOnlyNamespaceRegistry.checkConsistency();
-        ReadOnlyNamespaceRegistry.NamespaceRegistryModel model = readOnlyNamespaceRegistry.createNamespaceRegistryModel();
+        NamespaceRegistryModel model = readOnlyNamespaceRegistry.createNamespaceRegistryModel();
 
         LogCustomizer customLogs = LogCustomizer.forLogger("org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry").enable(Level.ERROR).create();
         try {
@@ -129,7 +129,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         PropertyState prefixes = nsdata.getProperty(REP_PREFIXES);
 
         assertTrue(registry.checkConsistency());
-        ReadOnlyNamespaceRegistry.NamespaceRegistryModel model = registry.createNamespaceRegistryModel();
+        NamespaceRegistryModel model = registry.createNamespaceRegistryModel();
         assertTrue(model.isConsistent());
         assertTrue(model.isFixable());
 
@@ -142,7 +142,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         assertFalse(model.isConsistent());
         assertFalse(model.isFixable());
 
-        ReadOnlyNamespaceRegistry.NamespaceRegistryModel fixedModel = model.tryRegistryRepair();
+        NamespaceRegistryModel fixedModel = model.tryRegistryRepair();
         assertNull(fixedModel);
 
         namespaces.setProperty("foo", "urn:foo", Type.STRING);
