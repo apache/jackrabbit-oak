@@ -152,13 +152,15 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         c.setProperty("propb", "Hello folks");
         test.addChild("d").setProperty("propb", "baz");
         root.commit();
-
-        assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/c", "/test/b", "/test/a"), true, true);
-            assertQuery("//*[jcr:contains(., 'Hello')] order by @jcr:score ascending", XPATH,
+        for (String prefix : getPrefixes()) {
+            assertEventually(() -> {
+                assertQuery("//*[jcr:contains(., '" + prefix + "Hello')]", XPATH,
+                    List.of("/test/c", "/test/b", "/test/a"), true, true);
+                assertQuery("//*[jcr:contains(., '" + prefix + "Hello')] order by @jcr:score ascending", XPATH,
                     List.of("/test/a", "/test/b", "/test/c"), true, true);
-            assertQuery("//*[jcr:contains(., 'people')]", XPATH, List.of("/test/c"));
-        });
+                assertQuery("//*[jcr:contains(., '" + prefix + "people')]", XPATH, List.of("/test/c"));
+            });
+        }
     }
 
     @Test
@@ -197,11 +199,13 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         d.setProperty("b", "world");
         root.commit();
 
-        assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello OR world')]", XPATH, List.of("/test/nodea", "/test/nodeb", "/test/nodec", "/test/noded"));
-        });
+        for (String prefix : getPrefixes()) {
+            assertEventually(() -> {
+                assertQuery("//*[jcr:contains(., '" + prefix + "Hello')]", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
+                assertQuery("//*[jcr:contains(., '" + prefix + "hello world')]", XPATH, List.of("/test/nodec", "/test/noded"));
+                assertQuery("//*[jcr:contains(., '" + prefix + "hello OR world')]", XPATH, List.of("/test/nodea", "/test/nodeb", "/test/nodec", "/test/noded"));
+            });
+        }
     }
 
     @Test
@@ -224,10 +228,12 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         d.setProperty("b", "world");
         root.commit();
 
-        assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/a", "/test/c", "/test/d"));
-            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/c", "/test/d"));
-        });
+        for (String prefix : getPrefixes()) {
+            assertEventually(() -> {
+                assertQuery("//*[jcr:contains(., '" + prefix + "Hello')]", XPATH, List.of("/test/a", "/test/c", "/test/d"));
+                assertQuery("//*[jcr:contains(., '" + prefix + "hello world')]", XPATH, List.of("/test/c", "/test/d"));
+            });
+        }
     }
 
     @Test
@@ -250,10 +256,12 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         d.setProperty("b", "world");
         root.commit();
 
-        assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec", "/test/noded"));
-        });
+        for (String prefix : getPrefixes()) {
+            assertEventually(() -> {
+                assertQuery("//*[jcr:contains(., '" + prefix + "Hello')]", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
+                assertQuery("//*[jcr:contains(., '" + prefix + "hello world')]", XPATH, List.of("/test/nodec", "/test/noded"));
+            });
+        }
     }
 
     /*
@@ -280,10 +288,12 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         d.setProperty("b", "world");
         root.commit();
 
-        assertEventually(() -> {
-            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodec", "/test/noded"));
-            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec"));
-        });
+        for (String prefix : getPrefixes()) {
+            assertEventually(() -> {
+                assertQuery("//*[jcr:contains(., '" + prefix + "Hello')]", XPATH, List.of("/test/nodec", "/test/noded"));
+                assertQuery("//*[jcr:contains(., '" + prefix + "hello world')]", XPATH, List.of("/test/nodec"));
+            });
+        }
     }
 
     @Test
@@ -321,8 +331,10 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         index.setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
         root.commit();
 
-        assertEventually(() ->
-                assertQuery("//*[jcr:contains(., 'jpg')]", XPATH, List.of("/test/a")));
+        for (String prefix : getPrefixes()) {
+            assertEventually(() ->
+                assertQuery("//*[jcr:contains(., '" + prefix + "jpg')]", XPATH, List.of("/test/a")));
+        }
     }
 
     @Test
@@ -346,14 +358,16 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
         root.commit();
 
-        assertEventually(() -> {
-                    assertQuery("//*[jcr:contains(., 'foo')]", XPATH, List.of("/test/a"));
-                    assertQuery("//*[jcr:contains(., '2025')]", XPATH, List.of("/test/b"));
-                    assertQuery("//*[jcr:contains(., '123')]", XPATH, List.of("/test/c"));
-                    assertQuery("//*[jcr:contains(., '456.78')]", XPATH, List.of("/test/d"));
-                    assertQuery("//*[jcr:contains(., 'true')]", XPATH, List.of("/test/e"));
+        for (String prefix : getPrefixes()) {
+            assertEventually(() -> {
+                    assertQuery("//*[jcr:contains(., '" + prefix + "foo')]", XPATH, List.of("/test/a"));
+                    assertQuery("//*[jcr:contains(., '" + prefix + "2025')]", XPATH, List.of("/test/b"));
+                    assertQuery("//*[jcr:contains(., '" + prefix + "123')]", XPATH, List.of("/test/c"));
+                    assertQuery("//*[jcr:contains(., '" + prefix + "456.78')]", XPATH, List.of("/test/d"));
+                    assertQuery("//*[jcr:contains(., '" + prefix + "true')]", XPATH, List.of("/test/e"));
                 }
-        );
+            );
+        }
     }
 
     protected void assertEventually(Runnable r) {
@@ -396,4 +410,7 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         return executeQuery(explain, lang).get(0);
     }
 
+    protected String[] getPrefixes() {
+        return new String[]{""};
+    }
 }

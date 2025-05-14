@@ -27,9 +27,10 @@ import org.slf4j.LoggerFactory;
 public class VectorQuery {
     private static final Logger LOG = LoggerFactory.getLogger(VectorQuery.class);
     private static final String DEFAULT_INFERENCE_QUERY_CONFIG_PREFIX = "?";
-    private static final String INFERENCE_QUERY_CONFIG_PREFIX_KEY = "org.apache.jackrabbit.oak.search.inference.query.prefix";
+    public static final String INFERENCE_QUERY_CONFIG_PREFIX_KEY = "org.apache.jackrabbit.oak.search.inference.query.prefix";
     public static final String INFERENCE_QUERY_CONFIG_PREFIX = System.getProperty(
             INFERENCE_QUERY_CONFIG_PREFIX_KEY, DEFAULT_INFERENCE_QUERY_CONFIG_PREFIX);
+    public static final String EXPERIMENTAL_COMPATIBILITY_MODE_KEY = "oak.inference.experimental.compatibility";
 
     private final String queryInferenceConfig;
     private final String queryText;
@@ -41,53 +42,56 @@ public class VectorQuery {
     }
 
     private String[] parseText(String inputText) {
+        String jsonPart = null;
+        String queryTextPart = null;
         String text = inputText.trim();
-        // Remove the first delimiter
-        if (text.startsWith(INFERENCE_QUERY_CONFIG_PREFIX) && text.charAt(INFERENCE_QUERY_CONFIG_PREFIX.length()) == '{') {
+        if (text.startsWith(INFERENCE_QUERY_CONFIG_PREFIX)) {
             text = text.substring(INFERENCE_QUERY_CONFIG_PREFIX.length());
-
-            // Try to find the end of the JSON part by parsing incrementally
-            int possibleEndIndex = 0;
-            String jsonPart = null;
-            String queryTextPart;
-            int jsonEndDelimiterIndex = -1;
-
-            while (possibleEndIndex < text.length()) {
-                possibleEndIndex = text.indexOf(INFERENCE_QUERY_CONFIG_PREFIX, possibleEndIndex + 1);
-                if (possibleEndIndex == -1) {
-                    // If we reach here, it means we couldn't find a valid JSON part
-                    jsonPart = "";
-                    LOG.warn("Query starts with inference prefix {}, but without valid json part," +
-                                    " if case this prefix is a valid fulltext query prefix, please update system property {} with different prefix value",
-                            INFERENCE_QUERY_CONFIG_PREFIX, INFERENCE_QUERY_CONFIG_PREFIX_KEY);
-                    break;
+            if (text.charAt(0) == '{') {
+                // Try to find the end of the JSON part by parsing incrementally
+                int possibleEndIndex = 0;
+                int jsonEndDelimiterIndex = -1;
+                while (possibleEndIndex < text.length()) {
+                    possibleEndIndex = text.indexOf(INFERENCE_QUERY_CONFIG_PREFIX, possibleEndIndex + INFERENCE_QUERY_CONFIG_PREFIX.length());
+                    if (possibleEndIndex == -1) {
+                        // If we reach here, it means we couldn't find a valid JSON part
+                        jsonPart = "{}";
+                        // we should now use text string as queryText
+                        jsonEndDelimiterIndex = 0;
+                        break;
+                    }
+                    String candidateJson = text.substring(0, possibleEndIndex);
+                    // Verify if this is valid JSON using Oak's JsopTokenizer
+                    if (JsonUtils.isValidJson(candidateJson, false)) {
+                        jsonPart = candidateJson;
+                        jsonEndDelimiterIndex = possibleEndIndex;
+                        break;
+                    }
                 }
-                String candidateJson = text.substring(0, possibleEndIndex);
-                // Verify if this is valid JSON using Oak's JsopTokenizer
-                if (JsonUtils.isValidJson(candidateJson, false)) {
-                    jsonPart = candidateJson;
-                    jsonEndDelimiterIndex = possibleEndIndex;
-                    break;
+                text = text.substring(jsonEndDelimiterIndex);
+                if (text.startsWith(INFERENCE_QUERY_CONFIG_PREFIX)) {
+                    // Remove the second delimiter
+                    text = text.substring(INFERENCE_QUERY_CONFIG_PREFIX.length());
                 }
-            }
-            // If we found a valid JSON part, extract it
-            if (jsonPart == null) {
-                // If we reach here, it means we couldn't find a valid JSON part
-                jsonPart = "";
                 queryTextPart = text;
-                LOG.warn("Query starts with InferenceQueryPrefix: {}, but without valid json part," +
-                                " if case this prefix is a valid fulltext query prefix, please update {} with different prefix value",
-                        INFERENCE_QUERY_CONFIG_PREFIX, INFERENCE_QUERY_CONFIG_PREFIX_KEY);
-
             } else {
-                // Extract query text part (everything after the JSON part delimiter)
-                queryTextPart = text.substring(jsonEndDelimiterIndex + 1).trim();
-
+                if (isCompatibilityModeEnabled()) {
+                    // No JSON part present but starts with prefix
+                    // we return "{}" to be compatible with experimental inference queries
+                    jsonPart = "{}";
+                    queryTextPart = text;
+                }
+                else {
+                    jsonPart = "";
+                    queryTextPart = inputText;
+                }
             }
-            return new String[]{jsonPart, queryTextPart};
         } else {
-            return new String[]{"", text};
+            // If the text doesn't start with the prefix, return empty config and the original text
+            jsonPart = "";
+            queryTextPart = text;
         }
+        return new String[]{jsonPart, queryTextPart};
     }
 
     public String getQueryInferenceConfig() {
@@ -96,5 +100,9 @@ public class VectorQuery {
 
     public String getQueryText() {
         return queryText;
+    }
+
+    private boolean isCompatibilityModeEnabled() {
+        return Boolean.getBoolean(EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
     }
 }

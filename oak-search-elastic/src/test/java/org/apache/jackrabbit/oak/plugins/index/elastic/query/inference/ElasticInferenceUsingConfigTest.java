@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticAbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -212,9 +213,30 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    public void hybridSearch() throws Exception {
+    public void testHybridSearchWithVectorQueryConfigJson() throws Exception {
+        // Test hybrid search with inference configuration
+        hybridSearch("?{\"inferenceModelConfig\": \"ada-test-model\"}?");
+    }
+
+    @Test
+    public void testHybridSearchWithEmptyVectorQueryConfigJson() throws Exception {
+        // Test hybrid search with empty inference configuration
+        hybridSearch("?{}?");
+    }
+
+    @Test
+    public void testHybridSearchWithExperimentalPrefix() throws Exception {
+        enableExperimentalInferenceCompatibility();
+        // Test hybrid search with experimental inference query prefix
+        hybridSearch("?");
+    }
+
+    private void enableExperimentalInferenceCompatibility() {
+        System.setProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY, "true");
+    }
+
+    private void hybridSearch(String inferenceConfigInQuery) throws Exception {
         String jcrIndexName = UUID.randomUUID().toString();
-        String inferenceConfigInQuery = "{\"inferenceModelConfig\": \"ada-test-model\"}";
         String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
         String inferenceModelConfigName = "ada-test-model";
         String inferenceModelName = "text-embedding-ada-002";
@@ -449,8 +471,8 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
             String expectedPath = entry.getValue();
 
             // Test with inference config
-            String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?"
-                + inferenceConfigInQuery + "?" + query + "')";
+            String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '"
+                + inferenceConfigInQuery + query + "')";
             List<String> results = executeQuery(queryPath, SQL2, true, true);
             assertEquals(expectedPath, results.get(0));
 
@@ -465,13 +487,13 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
      */
     private void verifyErrorHandling(String jcrIndexName, String inferenceConfigInQuery) {
         // Test server error handling
-        String queryPath3 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?"
-            + inferenceConfigInQuery + "?" + "machine learning')";
+        String queryPath3 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '"
+            + inferenceConfigInQuery  + "machine learning')";
         assertQuery(queryPath3, List.of("/content/ml", "/content/programming"));
 
         // Test timeout handling
-        String queryPath4 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '?"
-            + inferenceConfigInQuery + "?" + "farming practices')";
+        String queryPath4 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '"
+            + inferenceConfigInQuery + "farming practices')";
         assertQuery(queryPath4, List.of("/content/farm"));
     }
 
@@ -687,8 +709,8 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         // Add content
         Tree content = root.getTree("/").addChild("content");
         Tree document = content.addChild("document");
-        document.setProperty("title", "Test Document for Reinitialization");
         Tree document2 = content.addChild("document2");
+        document.setProperty("title", "Test Document for Reinitialization");
         document2.setProperty("title", "Test Document for Reinitialization 2");
         root.commit();
 

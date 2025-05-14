@@ -83,6 +83,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
@@ -1477,6 +1478,14 @@ public class LucenePropertyIndex extends FulltextIndex {
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 String p = getLuceneFieldName(propertyName, pr);
+                // Lucene don't support vectorQuery so we remove queryVectorConfig from complete query text.
+                if (propertyName == null) {
+                    // Lucene indexes don't support inference, so we should remove queryInferenceConfig
+                    // from query before evaluating it.
+                    VectorQuery vectorQuery = new VectorQuery(text);
+                    text = vectorQuery.getQueryText();
+                }
+
                 Query q = tokenToQuery(text, p, pr, analyzer, augmentor);
                 if (q == null) {
                     return false;

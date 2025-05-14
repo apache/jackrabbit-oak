@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.FullTextIndexCommonTest;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -68,6 +69,14 @@ public class ElasticFullTextIndexTest extends FullTextIndexCommonTest {
             assertQuery(misspelledWorld, XPATH, List.of("/test/a"));
             assertQuery(mixedFuzzyFormats, XPATH, List.of("/test/a", "/test/b"));
         });
+    }
+
+    @Override
+    protected String[] getPrefixes() {
+        // we are not testing experimental inferenceImplementation
+        return new String[]{"",
+            VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX +"{}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX
+        };
     }
 
 }
