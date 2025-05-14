@@ -48,7 +48,11 @@ public class LuceneFullTextIndexTest extends FullTextIndexCommonTest {
 
     @Override
     protected String[] getPrefixes() {
-        return new String[]{"", VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX +"{}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX , VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX};
+
+        // we are not testing with experimental inferenceImplementation
+        return new String[]{"",
+            VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX +"{}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX
+        };
     }
 
     @After

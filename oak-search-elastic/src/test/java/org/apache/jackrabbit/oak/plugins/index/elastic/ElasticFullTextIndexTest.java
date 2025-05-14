@@ -73,7 +73,10 @@ public class ElasticFullTextIndexTest extends FullTextIndexCommonTest {
 
     @Override
     protected String[] getPrefixes() {
-        return new String[]{"", VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX +"{}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX , VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX};
+        // we are not testing experimental inferenceImplementation
+        return new String[]{"",
+            VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX +"{}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX
+        };
     }
 
 }
