@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.FullTextIndexCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -47,7 +48,7 @@ public class LuceneFullTextIndexTest extends FullTextIndexCommonTest {
 
     @Override
     protected String[] getPrefixes() {
-        return new String[]{"", "?{}?", "?"};
+        return new String[]{"", VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX +"{}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX , VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX};
     }
 
     @After

@@ -27,9 +27,11 @@ import org.slf4j.LoggerFactory;
 public class VectorQuery {
     private static final Logger LOG = LoggerFactory.getLogger(VectorQuery.class);
     private static final String DEFAULT_INFERENCE_QUERY_CONFIG_PREFIX = "?";
-    private static final String INFERENCE_QUERY_CONFIG_PREFIX_KEY = "org.apache.jackrabbit.oak.search.inference.query.prefix";
+    public static final String INFERENCE_QUERY_CONFIG_PREFIX_KEY = "org.apache.jackrabbit.oak.search.inference.query.prefix";
     public static final String INFERENCE_QUERY_CONFIG_PREFIX = System.getProperty(
             INFERENCE_QUERY_CONFIG_PREFIX_KEY, DEFAULT_INFERENCE_QUERY_CONFIG_PREFIX);
+    public static final String EXPERIMENTAL_COMPATIBILITY_MODE_KEY = "oak.inference.experimental.compatibility";
+    public static Boolean IS_EXPERIMENTAL_COMPATIBILITY_MODE_ENABLE = Boolean.getBoolean(EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
 
     private final String queryInferenceConfig;
     private final String queryText;
@@ -74,10 +76,16 @@ public class VectorQuery {
                 }
                 queryTextPart = text;
             } else {
-                // No JSON part present but starts with prefix
-                //we return "{}" to be compatible with experimental inference queries
-                jsonPart = "{}";
-                queryTextPart = text;
+                if (Boolean.getBoolean("oak.inference.experimental.compatibility")) {
+                    // No JSON part present but starts with prefix
+                    //we return "{}" to be compatible with experimental inference queries
+                    jsonPart = "{}";
+                    queryTextPart = text;
+                }
+                else {
+                    jsonPart = "";
+                    queryTextPart = inputText;
+                }
             }
         } else {
             // If the text doesn't start with the prefix, return empty config and the original text

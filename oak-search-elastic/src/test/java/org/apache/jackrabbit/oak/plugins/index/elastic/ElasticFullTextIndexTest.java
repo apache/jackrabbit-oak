@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.FullTextIndexCommonTest;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -72,7 +73,7 @@ public class ElasticFullTextIndexTest extends FullTextIndexCommonTest {
 
     @Override
     protected String[] getPrefixes() {
-        return new String[]{"", "?{}?", "?"};
+        return new String[]{"", VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX +"{}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX , VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX};
     }
 
 }

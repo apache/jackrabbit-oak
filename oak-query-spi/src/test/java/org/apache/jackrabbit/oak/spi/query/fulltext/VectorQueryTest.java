@@ -18,11 +18,18 @@
  */
 package org.apache.jackrabbit.oak.spi.query.fulltext;
 
+import org.junit.After;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class VectorQueryTest {
+
+    @After
+    public void tearDown() {
+        // Clean up any system properties set during the tests
+        System.clearProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
+    }
 
     @Test
     public void testBasicQuery() {
@@ -35,7 +42,7 @@ public class VectorQueryTest {
     @Test
     public void testQueryWithInferenceConfig() {
         // Input string: "?{"model":"gpt-4"}?search for oak trees"
-        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"{\"model\":\"gpt-4\"}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"search for oak trees");
+        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "{\"model\":\"gpt-4\"}" + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "search for oak trees");
         assertEquals("{\"model\":\"gpt-4\"}", query.getQueryInferenceConfig());
         assertEquals("search for oak trees", query.getQueryText());
     }
@@ -44,8 +51,8 @@ public class VectorQueryTest {
     public void testQueryWithComplexInferenceConfig() {
         // Input string: "?{"model":"gpt-4","temperature":0.7,"options":{"filter":true}}?oak trees"
         VectorQuery query = new VectorQuery(
-            VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"{\"model\":\"gpt-4\",\"temperature\":0.7,\"options\":{\"filter\":true}}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"oak trees");
-        assertEquals("{\"model\":\"gpt-4\",\"temperature\":0.7,\"options\":{\"filter\":true}}", 
+            VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "{\"model\":\"gpt-4\",\"temperature\":0.7,\"options\":{\"filter\":true}}" + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "oak trees");
+        assertEquals("{\"model\":\"gpt-4\",\"temperature\":0.7,\"options\":{\"filter\":true}}",
             query.getQueryInferenceConfig());
         assertEquals("oak trees", query.getQueryText());
     }
@@ -53,7 +60,7 @@ public class VectorQueryTest {
     @Test
     public void testQueryWithQuestionMarksInText() {
         // Input string: "?{"model":"gpt-4"}?what are oak trees?"
-        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"{\"model\":\"gpt-4\"}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"what are oak trees?");
+        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "{\"model\":\"gpt-4\"}" + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "what are oak trees?");
         assertEquals("{\"model\":\"gpt-4\"}", query.getQueryInferenceConfig());
         assertEquals("what are oak trees?", query.getQueryText());
     }
@@ -61,33 +68,23 @@ public class VectorQueryTest {
     @Test
     public void testQueryWithoutInferencePrefix() {
         // Input string: "{"model":"gpt-4"}?query"
-        VectorQuery query = new VectorQuery("{\"model\":\"gpt-4\"}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"query");
+        VectorQuery query = new VectorQuery("{\"model\":\"gpt-4\"}" + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query");
         assertEquals("", query.getQueryInferenceConfig());
-        assertEquals("{\"model\":\"gpt-4\"}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"query", query.getQueryText());
+        assertEquals("{\"model\":\"gpt-4\"}" + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query", query.getQueryText());
     }
 
     @Test
     public void testQueryWithInvalidJson() {
         // Input string: "?{invalid json}?query"
-        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"{invalid json}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"query");
+        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "{invalid json}" + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query");
         assertEquals("{}", query.getQueryInferenceConfig());
-        assertEquals("{invalid json}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"query", query.getQueryText());
-    }
-
-    @Test
-    public void testQueryWithEmptyConfig() {
-        // Input string: "??query text"
-        String inputString = VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"query text";
-        VectorQuery query = new VectorQuery(inputString);
-
-        assertEquals("{}", query.getQueryInferenceConfig());
-        assertEquals(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"query text", query.getQueryText());
+        assertEquals("{invalid json}" + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query", query.getQueryText());
     }
 
     @Test
     public void testQueryWithWhitespace() {
         // Input string: "   ?{"model":"gpt-4"}?   search query   "
-        VectorQuery query = new VectorQuery("   "+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"{\"model\":\"gpt-4\"}"+VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"   search query   ");
+        VectorQuery query = new VectorQuery("   " + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "{\"model\":\"gpt-4\"}" + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "   search query   ");
         assertEquals("{\"model\":\"gpt-4\"}", query.getQueryInferenceConfig());
         assertEquals("search query", query.getQueryText());
     }
@@ -101,21 +98,58 @@ public class VectorQueryTest {
     }
 
     @Test
-    public void testPrefixOnlyQuery() {
+    public void testNoJsonEndDelimiterQuery() {
+        // Input string: "?{"model":"gpt-4"query text"
+        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "{\"model\":\"gpt-4\"query text");
+        assertEquals("{}", query.getQueryInferenceConfig());
+        // With the implementation fix, the prefix should now be correctly stripped
+        assertEquals("{\"model\":\"gpt-4\"query text", query.getQueryText());
+    }
+
+    @Test
+    public void testQueryWithEmptyConfigExperimentalInferenceCompatible() {
+        enableExperimentalInferenceCompatibility();
+        // Input string: "??query text"
+        String inputString = VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text";
+        VectorQuery query = new VectorQuery(inputString);
+
+        assertEquals("{}", query.getQueryInferenceConfig());
+        assertEquals(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text", query.getQueryText());
+    }
+
+
+    @Test
+    public void testQueryWithEmptyConfigExperimentalInferenceNonCompatible() {
+        // Input string: "??query text"
+        String inputString = VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text";
+        VectorQuery query = new VectorQuery(inputString);
+
+        assertEquals("", query.getQueryInferenceConfig());
+        assertEquals(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text", query.getQueryText());
+    }
+
+
+    @Test
+    public void testPrefixOnlyQueryExperimentalInferenceCompatible() {
+        enableExperimentalInferenceCompatibility();
         // Input string: "?query text"
-        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"query text");
+        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text");
         assertEquals("{}", query.getQueryInferenceConfig());
         // With the implementation fix, the prefix should now be correctly stripped
         assertEquals("query text", query.getQueryText());
     }
 
     @Test
-    public void testNoJsonEndDelimiterQuery() {
-        // Input string: "?{"model":"gpt-4"query text"
-        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX+"{\"model\":\"gpt-4\"query text");
-        assertEquals("{}", query.getQueryInferenceConfig());
+    public void testPrefixOnlyQueryExperimentalInferenceNonCompatible() {
+        // Input string: "?query text"
+        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text");
+        assertEquals("", query.getQueryInferenceConfig());
         // With the implementation fix, the prefix should now be correctly stripped
-        assertEquals("{\"model\":\"gpt-4\"query text", query.getQueryText());
+        assertEquals("?query text", query.getQueryText());
+    }
+
+    private void enableExperimentalInferenceCompatibility() {
+        System.setProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY, "true");
     }
 
 }
