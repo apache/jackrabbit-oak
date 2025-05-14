@@ -1478,7 +1478,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 String p = getLuceneFieldName(propertyName, pr);
-                // below condition is for contains(*, 'xyz')
+                // Lucene don't support vectorQuery so we remove queryVectorConfig from complete query text.
                 if (propertyName == null) {
                     // Lucene indexes don't support inference, so we should remove queryInferenceConfig
                     // from query before evaluating it.
