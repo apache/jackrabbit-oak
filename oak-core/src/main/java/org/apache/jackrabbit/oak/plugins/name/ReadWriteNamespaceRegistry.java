@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
@@ -28,6 +30,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 
 /**
@@ -141,4 +145,41 @@ public abstract class ReadWriteNamespaceRegistry
         }
     }
 
+    protected void applyModel(NamespaceRegistryModel model) throws RepositoryException, CommitFailedException {
+        if (model == null) {
+            throw new IllegalArgumentException("Model must not be null");
+        }
+        if (!model.isConsistent()) {
+            throw new IllegalArgumentException("Model is not consistent");
+        }
+
+        for (PropertyState propertyState : namespaces.getProperties()) {
+            String name = propertyState.getName();
+            if (!JCR_PRIMARYTYPE.equals(name)) {
+                namespaces.removeProperty(name);
+            }
+        }
+        for (Map.Entry<String, String> entry : model.prefixToNamespaceMap.entrySet()) {
+            String prefix = entry.getKey();
+            String uri = entry.getValue();
+            namespaces.setProperty(prefix, uri);
+        }
+        for (PropertyState propertyState : nsdata.getProperties()) {
+            String name = propertyState.getName();
+            if (!JCR_PRIMARYTYPE.equals(name)) {
+                nsdata.removeProperty(name);
+            }
+        }
+        for (Map.Entry<String, String> entry : model.namespaceToPrefixMap.entrySet()) {
+            String encodedUri = entry.getKey();
+            String prefix = entry.getValue();
+            nsdata.setProperty(encodedUri, prefix);
+        }
+        nsdata.setProperty(REP_PREFIXES, model.mappedPrefixes, STRINGS);
+        nsdata.setProperty(REP_URIS, model.prefixToNamespaceMap.values(), STRINGS);
+        if (!checkConsistency()) {
+            throw new IllegalStateException("Final registry consistency check failed.");
+        }
+        getWriteRoot().commit();
+    }
 }

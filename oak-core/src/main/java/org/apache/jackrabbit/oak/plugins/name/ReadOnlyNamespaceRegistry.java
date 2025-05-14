@@ -139,9 +139,10 @@ public class ReadOnlyNamespaceRegistry
                 "No namespace prefix registered for URI " + uri);
     }
 
-    protected void checkConsistency() throws IllegalStateException {
+    public boolean checkConsistency() throws IllegalStateException {
         NamespaceRegistryModel model = NamespaceRegistryModel.create(namespaces);
-        if (!model.isConsistent()) {
+        boolean consistent = model.isConsistent();
+        if (!consistent) {
             LOG.warn("Namespace registry is inconsistent. "
                     + "Unregistered mapped prefixes: {}. "
                     + "Unregistered mapped namespaces: {}. "
@@ -152,7 +153,11 @@ public class ReadOnlyNamespaceRegistry
                     model.getRegisteredUnmappedPrefixes(),
                     model.getRegisteredUnmappedNamespaces());
         }
-        CONSISTENCY_CHECKED = true;
+        return consistent;
+    }
+
+    public NamespaceRegistryModel createNamespaceRegistryModel() {
+        return NamespaceRegistryModel.create(namespaces);
     }
 
     protected static final class NamespaceRegistryModel {
@@ -181,8 +186,8 @@ public class ReadOnlyNamespaceRegistry
                 // encoded URIs to prefixes
                 Map<String, String> namespaceToPrefixMap) {
             // ignore the empty namespace which is not mapped
-            this.registeredPrefixes = registeredPrefixes.stream().filter(s -> !Objects.isNull(s) && s.isEmpty()).collect(Collectors.toSet());
-            this.registeredNamespacesEncoded = registeredNamespacesEncoded.stream().filter(s -> !Objects.isNull(s) && s.isEmpty()).collect(Collectors.toSet());
+            this.registeredPrefixes = registeredPrefixes.stream().filter(s -> !(Objects.isNull(s) || s.isEmpty())).collect(Collectors.toSet());
+            this.registeredNamespacesEncoded = registeredNamespacesEncoded.stream().filter(s -> !(Objects.isNull(s) || s.isEmpty())).collect(Collectors.toSet());
             this.prefixToNamespaceMap = prefixToNamespaceMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             this.namespaceToPrefixMap = namespaceToPrefixMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             init();
@@ -215,7 +220,7 @@ public class ReadOnlyNamespaceRegistry
             Map<String, String> namespaceToPrefixMap = new HashMap<>();
             for (PropertyState propertyState : namespaces.getProperties()) {
                 String prefix = propertyState.getName();
-                if (!prefix.equals(NodeTypeConstants.REP_PRIMARY_TYPE)) {
+                if (!prefix.equals(NodeTypeConstants.JCR_PRIMARYTYPE)) {
                     prefixToNamespaceMap.put(prefix, propertyState.getValue(STRING));
                 }
             }
@@ -224,20 +229,21 @@ public class ReadOnlyNamespaceRegistry
                 switch (encodedUri) {
                     case REP_PREFIXES:
                     case REP_URIS:
-                    case NodeTypeConstants.REP_PRIMARY_TYPE:
+                    case NodeTypeConstants.JCR_PRIMARYTYPE:
                         break;
                     default:
                         namespaceToPrefixMap.put(encodedUri, propertyState.getValue(STRING));
                 }
             }
+            Iterable<String> uris = nsdata.getProperty(REP_URIS).getValue(STRINGS);
             NamespaceRegistryModel model = new NamespaceRegistryModel(
                     new HashSet<>(Arrays.asList(IterableUtils.toArray(nsdata.getProperty(REP_PREFIXES).getValue(STRINGS), String.class))),
-                    StreamUtils.toStream(nsdata.getProperty(REP_URIS).getValue(STRINGS)).map(Namespaces::encodeUri).collect(Collectors.toSet()),
+                    StreamUtils.toStream(uris).map(Namespaces::encodeUri).collect(Collectors.toSet()),
                     prefixToNamespaceMap, namespaceToPrefixMap);
             return model;
         }
 
-        NamespaceRegistryModel createFixedModel() {
+        NamespaceRegistryModel tryRegistryRepair() {
             if (consistent) {
                 return this;
             }
@@ -247,11 +253,13 @@ public class ReadOnlyNamespaceRegistry
             HashSet<String> fixedRegisteredPrefixes = new HashSet<>();
             HashMap<String, String> fixedPrefixToNamespaceMap = new HashMap<>();
             for (String prefix : allPrefixes) {
-                if (!mappedPrefixes.contains(prefix)) {
+                fixedRegisteredPrefixes.add(prefix);
+                if (mappedPrefixes.contains(prefix)) {
+                    fixedPrefixToNamespaceMap.put(prefix, prefixToNamespaceMap.get(prefix));
+                } else {
                     for (Map.Entry<String, String> entry : namespaceToPrefixMap.entrySet()) {
                         if (entry.getValue().equals(prefix)) {
                             fixedPrefixToNamespaceMap.put(prefix, Text.unescapeIllegalJcrChars(entry.getKey()));
-                            fixedRegisteredPrefixes.add(prefix);
                             break;
                         }
                     }
@@ -260,11 +268,13 @@ public class ReadOnlyNamespaceRegistry
             HashSet<String> fixedRegisteredNamespacesEncoded = new HashSet<>();
             HashMap<String, String> fixedNamespaceToPrefixMap = new HashMap<>();
             for (String encodedNamespace : allNamespacesEncoded) {
-                if (!mappedNamespaces.contains(encodedNamespace)) {
+                fixedRegisteredNamespacesEncoded.add(encodedNamespace);
+                if (mappedNamespaces.contains(encodedNamespace)) {
+                    fixedNamespaceToPrefixMap.put(encodedNamespace, namespaceToPrefixMap.get(encodedNamespace));
+                } else {
                     for (Map.Entry<String, String> entry : prefixToNamespaceMap.entrySet()) {
                         if (Namespaces.encodeUri(entry.getValue()).equals(encodedNamespace)) {
                             fixedNamespaceToPrefixMap.put(encodedNamespace, entry.getKey());
-                            fixedRegisteredNamespacesEncoded.add(encodedNamespace);
                             break;
                         }
                     }

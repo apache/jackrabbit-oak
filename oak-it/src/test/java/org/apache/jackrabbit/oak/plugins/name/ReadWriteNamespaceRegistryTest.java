@@ -16,7 +16,12 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -29,10 +34,14 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 import org.slf4j.event.Level;
@@ -92,6 +101,10 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         final Root root = session.getLatestRoot();
         NamespaceRegistry r = getNamespaceRegistry(session, root);
 
+        ReadOnlyNamespaceRegistry readOnlyNamespaceRegistry = (ReadOnlyNamespaceRegistry) r;
+        readOnlyNamespaceRegistry.checkConsistency();
+        ReadOnlyNamespaceRegistry.NamespaceRegistryModel model = readOnlyNamespaceRegistry.createNamespaceRegistryModel();
+
         LogCustomizer customLogs = LogCustomizer.forLogger("org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry").enable(Level.ERROR).create();
         try {
             customLogs.starting();
@@ -104,6 +117,47 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         finally {
             customLogs.finished();
         }
+    }
+
+    @Test
+    public void testNamespaceRegistryModel() throws Exception {
+        final ContentSession session = createContentSession();
+        final Root root = session.getLatestRoot();
+        ReadWriteNamespaceRegistry registry = (ReadWriteNamespaceRegistry) getNamespaceRegistry(session, root);
+        Tree namespaces = root.getTree("/jcr:system/rep:namespaces");
+        Tree nsdata = namespaces.getChild(REP_NSDATA);
+        PropertyState prefixes = nsdata.getProperty(REP_PREFIXES);
+
+        assertTrue(registry.checkConsistency());
+        ReadOnlyNamespaceRegistry.NamespaceRegistryModel model = registry.createNamespaceRegistryModel();
+        assertTrue(model.isConsistent());
+        assertTrue(model.isFixable());
+
+        PropertyBuilder<String> builder = PropertyBuilder.copy(Type.STRING, prefixes);
+        builder.addValue("foo");
+        nsdata.setProperty(builder.getPropertyState());
+
+        assertFalse(registry.checkConsistency());
+        model = registry.createNamespaceRegistryModel();
+        assertFalse(model.isConsistent());
+        assertFalse(model.isFixable());
+
+        ReadOnlyNamespaceRegistry.NamespaceRegistryModel fixedModel = model.tryRegistryRepair();
+        assertNull(fixedModel);
+
+        namespaces.setProperty("foo", "urn:foo", Type.STRING);
+        assertFalse(registry.checkConsistency());
+        model = registry.createNamespaceRegistryModel();
+        assertFalse(model.isConsistent());
+        assertTrue(model.isFixable());
+
+        fixedModel = model.tryRegistryRepair();
+        assertNotNull(fixedModel);
+        assertTrue(fixedModel.isConsistent());
+        assertTrue(fixedModel.isFixable());
+
+        registry.applyModel(fixedModel);
+        assertTrue(registry.checkConsistency());
     }
 
     private static NamespaceRegistry getNamespaceRegistry(ContentSession session, Root root) {
