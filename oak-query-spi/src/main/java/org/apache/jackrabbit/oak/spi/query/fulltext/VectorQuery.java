@@ -31,7 +31,7 @@ public class VectorQuery {
     public static final String INFERENCE_QUERY_CONFIG_PREFIX = System.getProperty(
             INFERENCE_QUERY_CONFIG_PREFIX_KEY, DEFAULT_INFERENCE_QUERY_CONFIG_PREFIX);
     public static final String EXPERIMENTAL_COMPATIBILITY_MODE_KEY = "oak.inference.experimental.compatibility";
-    public static Boolean IS_EXPERIMENTAL_COMPATIBILITY_MODE_ENABLE = Boolean.getBoolean(EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
+    public static final Boolean IS_EXPERIMENTAL_COMPATIBILITY_MODE_ENABLE = Boolean.getBoolean(EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
 
     private final String queryInferenceConfig;
     private final String queryText;

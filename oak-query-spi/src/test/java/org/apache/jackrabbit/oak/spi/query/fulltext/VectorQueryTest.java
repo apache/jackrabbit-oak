@@ -18,18 +18,11 @@
  */
 package org.apache.jackrabbit.oak.spi.query.fulltext;
 
-import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class VectorQueryTest {
-
-    @After
-    public void tearDown() {
-        // Clean up any system properties set during the tests
-        System.clearProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
-    }
 
     @Test
     public void testBasicQuery() {
@@ -108,18 +101,6 @@ public class VectorQueryTest {
     }
 
     @Test
-    public void testQueryWithEmptyConfigExperimentalInferenceCompatible() {
-        enableExperimentalInferenceCompatibility();
-        // Input string: "??query text"
-        String inputString = VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text";
-        VectorQuery query = new VectorQuery(inputString);
-
-        assertEquals("{}", query.getQueryInferenceConfig());
-        assertEquals(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text", query.getQueryText());
-    }
-
-
-    @Test
     public void testQueryWithEmptyConfigExperimentalInferenceNonCompatible() {
         // Input string: "??query text"
         String inputString = VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text";
@@ -129,17 +110,6 @@ public class VectorQueryTest {
         assertEquals(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text", query.getQueryText());
     }
 
-
-    @Test
-    public void testPrefixOnlyQueryExperimentalInferenceCompatible() {
-        enableExperimentalInferenceCompatibility();
-        // Input string: "?query text"
-        VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text");
-        assertEquals("{}", query.getQueryInferenceConfig());
-        // With the implementation fix, the prefix should now be correctly stripped
-        assertEquals("query text", query.getQueryText());
-    }
-
     @Test
     public void testPrefixOnlyQueryExperimentalInferenceNonCompatible() {
         // Input string: "?query text"
@@ -147,10 +117,6 @@ public class VectorQueryTest {
         assertEquals("", query.getQueryInferenceConfig());
         // With the implementation fix, the prefix should now be correctly stripped
         assertEquals("?query text", query.getQueryText());
-    }
-
-    private void enableExperimentalInferenceCompatibility() {
-        System.setProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY, "true");
     }
 
 }
