@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticAbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -225,8 +226,13 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
 
     @Test
     public void testHybridSearchWithExperimentalPrefix() throws Exception {
+        enableExperimentalInferenceCompatibility();
         // Test hybrid search with experimental inference query prefix
         hybridSearch("?");
+    }
+
+    private void enableExperimentalInferenceCompatibility() {
+        System.setProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY, "true");
     }
 
     private void hybridSearch(String inferenceConfigInQuery) throws Exception {

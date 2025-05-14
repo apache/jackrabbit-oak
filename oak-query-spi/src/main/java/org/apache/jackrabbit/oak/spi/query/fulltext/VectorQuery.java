@@ -76,9 +76,9 @@ public class VectorQuery {
                 }
                 queryTextPart = text;
             } else {
-                if (Boolean.getBoolean("oak.inference.experimental.compatibility")) {
+                if (IS_EXPERIMENTAL_COMPATIBILITY_MODE_ENABLE) {
                     // No JSON part present but starts with prefix
-                    //we return "{}" to be compatible with experimental inference queries
+                    // we return "{}" to be compatible with experimental inference queries
                     jsonPart = "{}";
                     queryTextPart = text;
                 }
@@ -100,6 +100,6 @@ public class VectorQuery {
     }
 
     public String getQueryText() {
-        return queryText.trim();
+        return queryText;
     }
 }

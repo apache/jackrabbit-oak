@@ -83,10 +83,11 @@ public class VectorQueryTest {
 
     @Test
     public void testQueryWithWhitespace() {
+        String whiteSpaces = "    ";
         // Input string: "   ?{"model":"gpt-4"}?   search query   "
-        VectorQuery query = new VectorQuery("   " + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "{\"model\":\"gpt-4\"}" + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "   search query   ");
+        VectorQuery query = new VectorQuery("   " + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "{\"model\":\"gpt-4\"}" + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + whiteSpaces + "search query   ");
         assertEquals("{\"model\":\"gpt-4\"}", query.getQueryInferenceConfig());
-        assertEquals("search query", query.getQueryText());
+        assertEquals(whiteSpaces + "search query", query.getQueryText());
     }
 
     @Test
