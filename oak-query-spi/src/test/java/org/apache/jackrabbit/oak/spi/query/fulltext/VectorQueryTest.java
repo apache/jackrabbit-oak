@@ -36,7 +36,6 @@ public class VectorQueryTest {
     public void tearDown() {
         // Clean up all system properties set during the tests
         System.clearProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
-        System.clearProperty(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX_KEY);
     }
 
     @Test
