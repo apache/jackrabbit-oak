@@ -18,11 +18,26 @@
  */
 package org.apache.jackrabbit.oak.spi.query.fulltext;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class VectorQueryTest {
+
+    @Before
+    public void setUp() {
+        // Ensure compatibility mode is disabled for these tests
+        System.setProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY, "false");
+    }
+
+    @After
+    public void tearDown() {
+        // Clean up all system properties set during the tests
+        System.clearProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
+        System.clearProperty(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX_KEY);
+    }
 
     @Test
     public void testBasicQuery() {
@@ -115,8 +130,8 @@ public class VectorQueryTest {
         // Input string: "?query text"
         VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text");
         assertEquals("", query.getQueryInferenceConfig());
-        // With the implementation fix, the prefix should now be correctly stripped
-        assertEquals("?query text", query.getQueryText());
+        // When compatibility mode is disabled, the prefix should remain part of the query text
+        assertEquals(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text", query.getQueryText());
     }
 
 }

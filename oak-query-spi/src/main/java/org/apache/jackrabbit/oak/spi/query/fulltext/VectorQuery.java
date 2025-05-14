@@ -31,7 +31,6 @@ public class VectorQuery {
     public static final String INFERENCE_QUERY_CONFIG_PREFIX = System.getProperty(
             INFERENCE_QUERY_CONFIG_PREFIX_KEY, DEFAULT_INFERENCE_QUERY_CONFIG_PREFIX);
     public static final String EXPERIMENTAL_COMPATIBILITY_MODE_KEY = "oak.inference.experimental.compatibility";
-    public static final Boolean IS_EXPERIMENTAL_COMPATIBILITY_MODE_ENABLE = Boolean.getBoolean(EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
 
     private final String queryInferenceConfig;
     private final String queryText;
@@ -76,7 +75,7 @@ public class VectorQuery {
                 }
                 queryTextPart = text;
             } else {
-                if (IS_EXPERIMENTAL_COMPATIBILITY_MODE_ENABLE) {
+                if (isCompatibilityModeEnabled()) {
                     // No JSON part present but starts with prefix
                     // we return "{}" to be compatible with experimental inference queries
                     jsonPart = "{}";
@@ -101,5 +100,9 @@ public class VectorQuery {
 
     public String getQueryText() {
         return queryText;
+    }
+
+    private boolean isCompatibilityModeEnabled() {
+        return Boolean.getBoolean(EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
     }
 }

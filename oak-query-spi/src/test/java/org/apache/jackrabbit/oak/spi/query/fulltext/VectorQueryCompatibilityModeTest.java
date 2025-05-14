@@ -29,18 +29,18 @@ public class VectorQueryCompatibilityModeTest {
     @Before
     public void setUp() {
         // Set up any necessary system properties or configurations
-        System.setProperty(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX_KEY, "true");
+        System.setProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY, "true");
     }
 
     @After
     public void tearDown() {
         // Clean up any system properties set during the tests
         System.clearProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
+        System.clearProperty(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX_KEY);
     }
 
     @Test
     public void testQueryWithEmptyConfigExperimentalInferenceCompatible() {
-        enableExperimentalInferenceCompatibility();
         // Input string: "??query text"
         String inputString = VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text";
         VectorQuery query = new VectorQuery(inputString);
@@ -51,7 +51,6 @@ public class VectorQueryCompatibilityModeTest {
 
     @Test
     public void testPrefixOnlyQueryExperimentalInferenceCompatible() {
-        enableExperimentalInferenceCompatibility();
         // Input string: "?query text"
         VectorQuery query = new VectorQuery(VectorQuery.INFERENCE_QUERY_CONFIG_PREFIX + "query text");
         assertEquals("{}", query.getQueryInferenceConfig());
@@ -59,8 +58,6 @@ public class VectorQueryCompatibilityModeTest {
         assertEquals("query text", query.getQueryText());
     }
 
-    private void enableExperimentalInferenceCompatibility() {
-        System.setProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY, "true");
-    }
-
+    // We don't need to explicitly enable experimental compatibility mode in each test anymore
+    // as it's already set in setUp()
 }
