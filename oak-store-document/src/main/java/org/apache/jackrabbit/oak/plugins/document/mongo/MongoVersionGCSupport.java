@@ -84,7 +84,7 @@ import com.mongodb.client.model.Filters;
  * to fetch required NodeDocuments
  *
  * <p>Version collection involves looking into old record and mostly unmodified
- * documents. In such case read from secondaries are preferred</p>
+ * documents. In such case read from secondaries are preferred
  */
 public class MongoVersionGCSupport extends VersionGCSupport {
 
@@ -111,7 +111,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     private final int batchSize = SystemPropertySupplier.create(
         "oak.mongo.queryDeletedDocsBatchSize", 1000).get();
-    private final MongoFullGcNodeBin fullGcBin;
+    private final FullGcNodeBin fullGcBin;
 
     public MongoVersionGCSupport(MongoDocumentStore store) {
         this(store, false);
@@ -134,7 +134,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         } else {
             modifiedIdHint = null;
         }
-        this.fullGcBin = new MongoFullGcNodeBin(store, fullGcBinEnabled);
+        this.fullGcBin = new MongoFullGcNodeBinSumBsonSize( new MongoFullGcNodeBin(store, fullGcBinEnabled));
     }
 
     @Override
@@ -235,7 +235,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
      * then perform the comparison.
-     * <p/>
      *
      * @param fromModified the lower bound modified timestamp in millis (inclusive)
      * @param toModified   the upper bound modified timestamp in millis (exclusive)

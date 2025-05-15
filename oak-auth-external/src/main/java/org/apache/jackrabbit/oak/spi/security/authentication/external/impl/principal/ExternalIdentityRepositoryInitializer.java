@@ -33,7 +33,7 @@ import java.util.List;
  *     <li>Index Definition <i>externalPrincipalNames</i>: Indexing
  *     {@link ExternalIdentityConstants#REP_EXTERNAL_PRINCIPAL_NAMES} properties.
  *     This index is used by the {@link ExternalGroupPrincipalProvider} to lookup
- *     and find principals stored in this property.</li>
+ *     and find principals stored in this property.
  * </ul>
  *
  * @since Oak 1.5.3

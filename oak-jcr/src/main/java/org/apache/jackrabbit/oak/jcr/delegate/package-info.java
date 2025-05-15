@@ -29,18 +29,18 @@
  *
  * <b>Responsibilities of JCR API implementation classes:</b>
  * <ul>
- * <li>Prevent access to internals.</li>
- * <li>Name/path mapping for both method arguments and return values.</li>
- * <li>Tracking and instantiation of other JCR implementation objects.</li>
- * <li>Conversion from JCR Values to PropertyState instances and vice versa.</li>
- * <li>No direct access to the Oak API</li>
+ * <li>Prevent access to internals.
+ * <li>Name/path mapping for both method arguments and return values.
+ * <li>Tracking and instantiation of other JCR implementation objects.
+ * <li>Conversion from JCR Values to PropertyState instances and vice versa.
+ * <li>No direct access to the Oak API
  * </ul>
  *
  * <b>Responsibilities of the delegate classes:</b>
  * <ul>
- * <li>Business logic associated with complex JCR operations.</li>
- * <li>Provide means for state invariant checking.</li>
- * <li>Must no refer to neither the JCR API nor its implementation classes.</li>
+ * <li>Business logic associated with complex JCR operations.
+ * <li>Provide means for state invariant checking.
+ * <li>Must no refer to neither the JCR API nor its implementation classes.
  * </ul>
  */
 package org.apache.jackrabbit.oak.jcr.delegate;

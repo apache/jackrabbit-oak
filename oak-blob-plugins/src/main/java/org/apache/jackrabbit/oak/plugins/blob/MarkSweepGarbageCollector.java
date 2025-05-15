@@ -65,6 +65,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
@@ -522,7 +523,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             iterator =
                     FileUtils.lineIterator(fs.getGcCandidates(), StandardCharsets.UTF_8.name());
 
-            Iterator<List<String>> partitions = Iterators.partition(iterator, getBatchCount());
+            Iterator<List<String>> partitions = IteratorUtils.partition(iterator, getBatchCount());
             while (partitions.hasNext()) {
                 List<String> ids = partitions.next();
                 count += ids.size();
@@ -639,7 +640,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                             try {
                                 Iterator<String> idIter = blobStore.resolveChunks(blobId);
-                                Iterator<List<String>> partitions = Iterators.partition(idIter, getBatchCount());
+                                Iterator<List<String>> partitions = IteratorUtils.partition(idIter, getBatchCount());
                                 while (partitions.hasNext()) {
                                     List<String> idBatch = partitions.next().stream()
                                             .map(id -> {

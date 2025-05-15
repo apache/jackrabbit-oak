@@ -49,7 +49,7 @@ import java.util.Map;
  * <li>
  *     {@link LoginContextProvider}: Returns the default implementation of
  *     {@code LoginContextProvider} that handles standard JAAS based logins and
- *     deals with pre-authenticated subjects.</li>
+ *     deals with pre-authenticated subjects.
  * </ul>
  *
  */

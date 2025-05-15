@@ -63,12 +63,12 @@ import org.slf4j.LoggerFactory;
  *
  * <ul>
  *     <li>{@link SimpleCredentials}: Authentication succeeds if userID and
- *     password match the information exposed by the {@link UserManager}.</li>
+ *     password match the information exposed by the {@link UserManager}.
  *     <li>{@link ImpersonationCredentials}: Authentication succeeds if the
  *     subject to be authenticated is allowed to impersonate the user identified
- *     by the userID.</li>
+ *     by the userID.
  *     <li>{@link GuestCredentials}: The authentication succeeds if an 'anonymous'
- *     user exists in the repository.</li>
+ *     user exists in the repository.
  * </ul>
  *
  * For any other credentials {@link #authenticate(javax.jcr.Credentials)}

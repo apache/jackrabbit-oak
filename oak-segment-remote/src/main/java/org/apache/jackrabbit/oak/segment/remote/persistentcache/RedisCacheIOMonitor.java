@@ -34,13 +34,13 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * with the Metrics library if available:
  * <ul>
  *     <li>{@link #OAK_SEGMENT_CACHE_REDIS_SEGMENT_READ_BYTES}:
- *          a meter metrics for the number of bytes read from segment redis cache</li>
+ *          a meter metrics for the number of bytes read from segment redis cache
  *     <li>{@link #OAK_SEGMENT_CACHE_REDIS_SEGMENT_WRITE_BYTES}:
- *          a meter metrics for the number of bytes written to segment redis cache</li>
+ *          a meter metrics for the number of bytes written to segment redis cache
  *     <li>{@link #OAK_SEGMENT_CACHE_REDIS_SEGMENT_READ_TIME}:
- *          a timer metrics for the time spent reading from segment redis cache</li>
+ *          a timer metrics for the time spent reading from segment redis cache
  *     <li>{@link #OAK_SEGMENT_CACHE_REDIS_SEGMENT_WRITE_TIME}:
- *          a timer metrics for the time spent writing to segment redis cache</li>
+ *          a timer metrics for the time spent writing to segment redis cache
  * </ul>
  */
 public class RedisCacheIOMonitor extends IOMonitorAdapter {

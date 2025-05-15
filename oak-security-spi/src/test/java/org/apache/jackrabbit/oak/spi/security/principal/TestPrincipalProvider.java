@@ -32,6 +32,7 @@ import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -176,7 +177,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         public TestGroup(String name, Principal... members) {
             super(name);
             Set<? extends Principal> mset = Set.of(members);
-            this.members = Iterators.asEnumeration(mset.iterator());
+            this.members = IteratorUtils.asEnumeration(mset.iterator());
         }
 
         @Override

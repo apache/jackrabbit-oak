@@ -17,15 +17,15 @@
 /**
  * <h1>Composition support</h1>
  *
- * <p>This package contains support classes for implementing a composite persistence at the {@linkplain org.apache.jackrabbit.oak.spi.state.NodeStore} level.</p>
+ * <p>This package contains support classes for implementing a composite persistence at the {@linkplain org.apache.jackrabbit.oak.spi.state.NodeStore} level.
  *
  * <h2>Design goals</h2>
  * <ol>
  *   <li>Transparency of the composition setup. Neither the NodeStores nor the code using a composite
- *       NodeStore should be aware of the specific implementation being used.</li>
+ *       NodeStore should be aware of the specific implementation being used.
  *   <li>Persistence-agnosticity. The composition support should be applicable to any conformant
- *       NodeStore implementation.</li>
- *   <li>Negligible performance impact. Composition should not add a significat performance overhead.</li>
+ *       NodeStore implementation.
+ *   <li>Negligible performance impact. Composition should not add a significat performance overhead.
  * </ol>
  *
  * <h2>Implementation</h2>

@@ -415,12 +415,12 @@ public class DefaultSyncConfig {
         /**
          * <p>Returns {@code true} if external group identities are being synchronized into the repository as dynamic groups.
          * In this case a dedicated {@link org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider} must be 
-         * present in order to have group membership reflected through User Management API.</p>
+         * present in order to have group membership reflected through User Management API.
          * 
          * <p>Note, that currently this option only takes effect if it is enabled together with dynamic membership 
          * (i.e. {@link User#getDynamicMembership()} returns true). In this case a dedicated 
          * {@link org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider} based on the 
-         * {@code ExternalGroupPrincipalProvider} will be registered.</p>
+         * {@code ExternalGroupPrincipalProvider} will be registered.
          *
          * @return {@code true} if external groups should be synchronized as dynamic groups (i.e. without having their
          * members added); {@code false} otherwise. Note, that this option currently only takes effect if {@link User#getDynamicMembership()} is enabled.

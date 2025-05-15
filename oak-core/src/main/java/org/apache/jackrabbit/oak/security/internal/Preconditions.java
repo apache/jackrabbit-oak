@@ -23,15 +23,15 @@ import java.util.Set;
 /**
  * Represents a preconditions set that may be satisfied by adding the right
  * candidates.
- * <p/>
+ * <p>
  * Initially, a set of preconditions is empty. An empty set of preconditions is
  * always satisfied. If candidates are added, but the precondition set is empty,
  * the preconditions are considered satisfied.
- * <p/>
+ * <p>
  * When some preconditions are added, the preconditions set may enter into the
  * unsatisfied state. In this case, the preconditions set may be come satisfied
  * again only with the addition of the right candidates.
- * <p/>
+ * <p>
  * This class doesn't admit duplicates for preconditions or candidates. Adding
  * the same precondition (or candidate) twice doesn't have any effect on the
  * state of the preconditions set.

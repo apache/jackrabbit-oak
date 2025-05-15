@@ -207,7 +207,7 @@ public class NodeDocumentTest {
         DocumentNodeStore ns = createTestStore(numChanges);
         NodeDocument root = getRootDocument(ns.getDocumentStore());
         // remove oldest previous doc
-        NodeDocument toRemove = Iterators.getLast(root.getAllPreviousDocs());
+        NodeDocument toRemove = IteratorUtils.getLast(root.getAllPreviousDocs());
         int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
                 Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);
@@ -314,7 +314,7 @@ public class NodeDocumentTest {
         NodeDocument root = getRootDocument(ns.getDocumentStore());
         int numLeaves = IteratorUtils.size(root.getPreviousDocLeaves());
         // remove oldest previous doc
-        NodeDocument toRemove = Iterators.getLast(root.getAllPreviousDocs());
+        NodeDocument toRemove = IteratorUtils.getLast(root.getAllPreviousDocs());
         int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(),
                 Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
         assertEquals(1, numDeleted);

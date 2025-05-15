@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.api.jmx.QueryStatManagerMBean;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
@@ -131,7 +132,7 @@ public class StatisticManagerTest {
         executorService.shutdownNow();
     }
 
-    private class DummyStatsProvider implements StatisticsProvider {
+    private static class DummyStatsProvider implements StatisticsProvider {
 
         @Override
         public RepositoryStatistics getStats() {
@@ -156,6 +157,11 @@ public class StatisticManagerTest {
         @Override
         public HistogramStats getHistogram(String name, StatsOptions options) {
             return NoopStats.INSTANCE;
+        }
+
+        @Override
+        public <T> GaugeStats<T> getGauge(String name, Supplier<T> supplier) {
+            return null;
         }
     }
 }

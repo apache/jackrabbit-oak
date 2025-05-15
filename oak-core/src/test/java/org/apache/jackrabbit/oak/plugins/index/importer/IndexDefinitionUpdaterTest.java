@@ -18,15 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import org.apache.commons.io.IOUtils;
 import org.apache.felix.inventory.Format;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -42,24 +36,39 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.Nullable;
 import org.json.simple.JSONObject;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class IndexDefinitionUpdaterTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private NodeStore store = new MemoryNodeStore();
+    private final NodeStore store = new MemoryNodeStore();
 
     @Test
-    public void update() throws Exception{
+    public void update() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index").child("fooIndex").setProperty("foo", "bar");
         builder.child("oak:index").child("fooIndex").child("a").setProperty("foo2", 2);
@@ -71,15 +80,15 @@ public class IndexDefinitionUpdaterTest {
 
         NodeState root = store.getRoot();
 
-        assertTrue(NodeStateUtils.getNode(root,"/oak:index/fooIndex").exists());
-        assertTrue(NodeStateUtils.getNode(root,"/oak:index/fooIndex/b").exists());
-        assertFalse(NodeStateUtils.getNode(root,"/oak:index/fooIndex/a").exists());
+        assertTrue(NodeStateUtils.getNode(root, "/oak:index/fooIndex").exists());
+        assertTrue(NodeStateUtils.getNode(root, "/oak:index/fooIndex/b").exists());
+        assertFalse(NodeStateUtils.getNode(root, "/oak:index/fooIndex/a").exists());
 
-        assertTrue(NodeStateUtils.getNode(root,"/oak:index/barIndex").exists());
+        assertTrue(NodeStateUtils.getNode(root, "/oak:index/barIndex").exists());
     }
 
-    @Test (expected = IllegalStateException.class)
-    public void updateNonExistingParent() throws Exception{
+    @Test(expected = IllegalStateException.class)
+    public void updateNonExistingParent() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index").child("fooIndex").setProperty("foo", "bar");
 
@@ -91,8 +100,8 @@ public class IndexDefinitionUpdaterTest {
         applyJson(json);
     }
 
-    @Test (expected = IllegalArgumentException.class)
-    public void invalidJson() throws Exception{
+    @Test(expected = IllegalArgumentException.class)
+    public void invalidJson() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("a", Map.of("a2", "b2"));
         String json = JSONObject.toJSONString(map);
@@ -100,7 +109,7 @@ public class IndexDefinitionUpdaterTest {
     }
 
     @Test
-    public void applyToIndexPath() throws Exception{
+    public void applyToIndexPath() throws Exception {
         String json = "{\"/oak:index/barIndex\": {\n" +
                 "    \"compatVersion\": 2,\n" +
                 "    \"type\": \"lucene\",\n" +
@@ -122,7 +131,7 @@ public class IndexDefinitionUpdaterTest {
     }
 
     @Test
-    public void newIndexAndOrderableChildren() throws Exception{
+    public void newIndexAndOrderableChildren() throws Exception {
         String json = "{\"/oak:index/barIndex\": {\n" +
                 "    \"compatVersion\": 2,\n" +
                 "    \"type\": \"lucene\",\n" +
@@ -147,6 +156,48 @@ public class IndexDefinitionUpdaterTest {
 
         assertEquals(asList("fooIndex", "barIndex"), names);
 
+    }
+
+
+    @Test
+    public void fixJCRUUID() throws Exception {
+        String json;
+        try (InputStream is = getClass().getResourceAsStream("/org/apache/jackrabbit/oak/plugins/index/importer/index-def-jcruuid-fix.json")) {
+            json = IOUtils.toString(is, StandardCharsets.UTF_8);
+        }
+
+        NodeBuilder builder = store.getRoot().builder();
+        Tree root = TreeFactory.createTree(builder);
+        Tree oakIndex = root.addChild("oak:index");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        IndexDefinitionUpdater updater = new IndexDefinitionUpdater(json);
+        builder = store.getRoot().builder();
+
+        NodeBuilder idxBuilder = updater.apply(builder, "/oak:index/barIndex");
+
+        NodeBuilder barIndexBuilder = builder
+                .getChildNode("oak:index")
+                .getChildNode("barIndex");
+        // The node config_without_uuid.xml does not contain any jcr:uuid, so we only check that now there is one
+        checkContainsJcrUUID(barIndexBuilder
+                .getChildNode("config_without_uuid.xml")
+                .getChildNode("jcr:content"));
+
+        // This node config_with_uuid.xml contains a jcr:uuid, so check that the new jcr:uuid is different
+        UUID newUuid = checkContainsJcrUUID(barIndexBuilder
+                .getChildNode("config_with_uuid.xml")
+                .getChildNode("jcr:content"));
+        assertFalse(newUuid.toString().equalsIgnoreCase("6db23ff7-986d-4c3d-bf3d-ea9eaf8b5f65"));
+
+    }
+
+    private UUID checkContainsJcrUUID(NodeBuilder builder) {
+        @Nullable PropertyState jcrUuid = builder.getProperty(JcrConstants.JCR_UUID);
+        assertNotNull(jcrUuid);
+        String newUuid = jcrUuid.getValue(Type.STRING);
+        assertNotNull(newUuid);
+        return UUID.fromString(newUuid);
     }
 
     private void applyJson(String json) throws IOException, CommitFailedException {
@@ -177,8 +228,7 @@ public class IndexDefinitionUpdaterTest {
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        IndexDefinitionPrinter printer = new IndexDefinitionPrinter(store,
-                () -> asList(indexPaths));
+        IndexDefinitionPrinter printer = new IndexDefinitionPrinter(store, () -> asList(indexPaths));
 
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);

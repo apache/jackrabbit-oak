@@ -70,6 +70,13 @@ public class RDBDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void avoidMergeLockDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(true);
+        assertFalse(builder.avoidMergeLock());
+    }
+
+    @Test
     public void fullGCIncludePathsEmpty() {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
         builder.setFullGCIncludePaths(new String[] {"/foo"});
@@ -109,10 +116,26 @@ public class RDBDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void avoidMergeLockFeatureToggleDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        Feature avoidMergeLockFeature = mock(Feature.class);
+        when(avoidMergeLockFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreAvoidMergeLockFeature(avoidMergeLockFeature);
+        assertNull(builder.getDocStoreAvoidMergeLockFeature());
+    }
+
+    @Test
     public void fullGCModeHasDefaultValue() {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
         builder.setFullGCMode(3);
         assertEquals(0, builder.getFullGCMode());
+    }
+
+    @Test
+    public void fullGCGenerationHasDefaultValue() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCGeneration(3);
+        assertEquals(0, builder.getFullGCGeneration());
     }
 
     @Test

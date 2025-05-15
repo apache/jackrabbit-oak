@@ -37,10 +37,10 @@ import joptsimple.OptionSpec;
 /**
  * Test class that simplifies creation of a property of type Reference, as that's not
  * easily achievable without a tool.
- * <p/>
+ * <p>
  * The idea is that this might help testing the corresponding FrozenNodeRefsByScanningCommand
  * and FrozenNodeRefsUsingIndexCommand commands.
- * <p/>
+ * <p>
  * Example:
  * <pre>
  * java -mx4g -cp oak-run-*-tests.jar org.apache.jackrabbit.oak.run.FrozenNodeReferenceCreator mongodb://localhost/&lt;dbname&gt; -user=admin -password=admin -testCreateRefPath=&lt;mypath&gt; -testCreateRefProp=&lt;mypropertyname&gt; -testCreateRefUuid=&lt;myuuid&gt; -read-write=true

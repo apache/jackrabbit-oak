@@ -217,7 +217,7 @@ public interface UserConstants {
      * User Management API expects that API consumers tests the auto-save
      * mode is enabled. Therefore this option should be considered a temporary
      * workaround after upgrading a repository to OAK; the affected code should
-     * be reviewed and adjusted accordingly.</p>
+     * be reviewed and adjusted accordingly.
      */
     String PARAM_SUPPORT_AUTOSAVE = "supportAutoSave";
 

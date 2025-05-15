@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
@@ -104,7 +105,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         // check if document is still there
         assertNotNull(ns.getNode(Path.ROOT, RevisionVector.fromString(head)));
 
-        NodeDocument prevDoc = Iterators.getOnlyElement(doc.getAllPreviousDocs());
+        NodeDocument prevDoc = IteratorUtils.get(doc.getAllPreviousDocs(), 0);
+        assertEquals(1, IteratorUtils.size(doc.getAllPreviousDocs()));
         assertThat(prevDoc.getSplitDocType(), either(is(SplitDocType.DEFAULT)).or(is(SplitDocType.DEFAULT_NO_BRANCH)));
 
         mk.commit("/", "+\"baz\":{}", null, null);

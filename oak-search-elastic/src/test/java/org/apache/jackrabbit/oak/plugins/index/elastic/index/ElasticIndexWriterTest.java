@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,6 +68,10 @@ public class ElasticIndexWriterTest {
     public void setUp() {
         closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
+        when(indexDefinitionMock.getIndexName()).thenReturn("test-index-name");
+        // In this test we are explicitly disabling inference as bulkprocessor
+        // is called with update document if inference is enabled.
+        InferenceConfig.reInitialize(new MemoryNodeStore(), "/oak:index/:inferenceConfig", false);
         indexWriter = new ElasticIndexWriter(indexTrackerMock, elasticConnectionMock, indexDefinitionMock, bulkProcessorHandlerMock);
         indexAlias = indexDefinitionMock.getIndexAlias();
     }

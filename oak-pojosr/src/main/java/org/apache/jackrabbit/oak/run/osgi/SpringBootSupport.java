@@ -33,6 +33,7 @@ import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.felix.connect.Revision;
 import org.apache.felix.connect.launch.BundleDescriptor;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +118,7 @@ class SpringBootSupport {
         @Override
         public Enumeration<String> getEntries() {
             final Enumeration<JarEntry> e = jarFile.entries();
-            return Iterators.asEnumeration(new AbstractIterator<String>() {
+            return IteratorUtils.asEnumeration(new AbstractIterator<String>() {
                 @Override
                 protected String computeNext() {
                     if (e.hasMoreElements()){

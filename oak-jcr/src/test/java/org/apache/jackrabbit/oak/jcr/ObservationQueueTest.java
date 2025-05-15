@@ -50,6 +50,7 @@ import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMongoFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.cluster.AbstractClusterTest;
@@ -107,7 +108,7 @@ public class ObservationQueueTest extends AbstractClusterTest {
     @Test
     public void heavyLoad() throws Throwable {
         List<Whiteboard> whiteboards = List.of(w1, w2);
-        Iterator<Repository> repos = Iterators.cycle(r1, r2);
+        Iterator<Repository> repos = IteratorUtils.cycle(r1, r2);
         AtomicLong commitCounter = new AtomicLong();
         for (int i = 0; i < NUM_WRITERS; i++) {
             Session s = loginUser(repos.next());

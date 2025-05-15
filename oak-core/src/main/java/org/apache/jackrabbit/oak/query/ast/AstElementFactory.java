@@ -192,8 +192,7 @@ public class AstElementFactory {
      * as the {@link AstElement#copyOf()} can return {@code this} is the cloning is not implemented
      * by the subclass, this method add some spice around it by checking for this case and tracking
      * a DEBUG message in the logs.
-     * </p>
-     * 
+     *
      * @param e the element to be cloned. Cannot be null.
      * @return same as {@link AstElement#copyOf()}
      */

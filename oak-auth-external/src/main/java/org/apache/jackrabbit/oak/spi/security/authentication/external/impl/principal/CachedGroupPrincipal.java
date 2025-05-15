@@ -31,6 +31,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -81,7 +82,7 @@ final class CachedGroupPrincipal extends PrincipalImpl implements GroupPrincipal
             throw new IllegalStateException(msg, e);
         }
 
-        Iterator<Principal> principals = Iterators.transform(members, authorizable -> {
+        Iterator<Principal> principals = IteratorUtils.transform(members, authorizable -> {
             if (authorizable == null) {
                 return null;
             }
@@ -93,7 +94,7 @@ final class CachedGroupPrincipal extends PrincipalImpl implements GroupPrincipal
                 throw new IllegalStateException(msg, e);
             }
         });
-        return Iterators.asEnumeration(Iterators.filter(principals, Objects::nonNull));
+        return IteratorUtils.asEnumeration(IteratorUtils.filter(principals, Objects::nonNull));
     }
 
     private Group getGroup() throws RepositoryException {

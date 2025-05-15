@@ -194,6 +194,9 @@ public class GlobalNameMapper implements NameMapper {
             String uri = expandedName.substring(1, brace);
             if (uri.isEmpty()) {
                 return expandedName.substring(2); // special case: {}name
+            } else if (uri.equals(NamespaceConstants.NAMESPACE_REP)) {
+                // special case: {internal}name -> no proper URI
+                return NamespaceConstants.PREFIX_REP + ':' + expandedName.substring(brace + 1);
             } else if (uri.indexOf(':') != -1) {
                 // It's an expanded name, look up the namespace prefix
                 String oakPrefix = getOakPrefixOrNull(uri);

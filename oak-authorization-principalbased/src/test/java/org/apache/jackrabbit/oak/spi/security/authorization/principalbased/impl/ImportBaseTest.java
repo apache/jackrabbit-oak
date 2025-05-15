@@ -24,6 +24,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -359,7 +360,8 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
         adminSession.save();
 
         Node policyNode = adminSession.getNode(PathUtils.concat(testPath, REP_PRINCIPAL_POLICY));
-        Node entry = Iterators.<Node>getOnlyElement(policyNode.getNodes());
+        Node entry = IteratorUtils.<Node>get(policyNode.getNodes(), 0);
+        assertEquals(1, IteratorUtils.size(policyNode.getNodes()));
         assertTrue(entry.isNodeType(NT_REP_PRINCIPAL_ENTRY));
         assertTrue(entry.getProperty(REP_PRIVILEGES).isMultiple());
     }

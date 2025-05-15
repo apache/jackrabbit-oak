@@ -46,7 +46,7 @@ import org.junit.rules.TemporaryFolder;
  * consumes a constant amount of memory (See OAK-4949). It should be possible to add
  * 2M child nodes with a 512M heap.
  *
- *<p>The test is <b>disabled</b> by default, to run it set {@code -Dtest=ManyChildNodesIT} </p>
+ *<p>The test is <b>disabled</b> by default, to run it set {@code -Dtest=ManyChildNodesIT}
  */
 public class ManyChildNodesIT {
     private static final int NODE_COUNT = getInteger("many-child-node-it.node-count", 2000000);

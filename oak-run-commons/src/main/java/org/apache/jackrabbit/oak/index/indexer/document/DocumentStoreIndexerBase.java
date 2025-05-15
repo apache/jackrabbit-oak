@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
-import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.ParallelIndexStore;
@@ -39,13 +38,14 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
-import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -104,7 +104,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     protected final IndexHelper indexHelper;
     private final IndexingReporter indexingReporter;
     private final StatisticsProvider statisticsProvider;
-    protected List<NodeStateIndexerProvider> indexerProviders;
+    protected NodeStateIndexerProvider indexerProvider;
     protected final IndexerSupport indexerSupport;
     private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
 
@@ -118,8 +118,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         this.statisticsProvider = indexHelper.getStatisticsProvider();
     }
 
-    protected void setProviders() throws IOException {
-        this.indexerProviders = createProviders();
+    protected void setProvider() throws IOException {
+        this.indexerProvider = createProvider();
     }
 
     private static class MongoNodeStateEntryTraverserFactory implements NodeStateEntryTraverserFactory {
@@ -410,12 +410,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         log.info("Top slowest nodes to index (ms): {}", slowestTopKElements);
                     }
                 }
-                for (NodeStateIndexerProvider indexerProvider : indexerProviders) {
-                    ExtractedTextCache extractedTextCache = indexerProvider.getTextCache();
-                    CacheStats cacheStats = extractedTextCache == null ? null : extractedTextCache.getCacheStats();
-                    log.info("Text extraction cache statistics: {}", cacheStats == null ? "N/A" : cacheStats.cacheInfoAsString());
-                    indexerProvider.close();
-                }
+                ExtractedTextCache extractedTextCache = indexerProvider.getTextCache();
+                CacheStats cacheStats = extractedTextCache == null ? null : extractedTextCache.getCacheStats();
+                log.info("Text extraction cache statistics: {}", cacheStats == null ? "N/A" : cacheStats.cacheInfoAsString());
+                indexerProvider.close();
 
                 progressReporter.reindexingTraversalEnd();
                 progressReporter.logReport();
@@ -538,19 +536,17 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
             idxBuilder.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, false);
 
-            for (NodeStateIndexerProvider indexerProvider : indexerProviders) {
-                NodeStateIndexer indexer = indexerProvider.getIndexer(type, indexPath, idxBuilder, root, progressReporter);
-                if (indexer != null) {
-                    indexers.add(indexer);
-                    progressReporter.registerIndex(indexPath, true, -1);
-                }
+            NodeStateIndexer indexer = indexerProvider.getIndexer(type, indexPath, idxBuilder, root, progressReporter);
+            if (indexer != null) {
+                indexers.add(indexer);
+                progressReporter.registerIndex(indexPath, true, -1);
             }
         }
 
         return new CompositeIndexer(indexers);
     }
 
-    protected abstract List<NodeStateIndexerProvider> createProviders() throws IOException;
+    protected abstract NodeStateIndexerProvider createProvider() throws IOException;
 
     protected abstract void preIndexOperations(List<NodeStateIndexer> indexers);
 

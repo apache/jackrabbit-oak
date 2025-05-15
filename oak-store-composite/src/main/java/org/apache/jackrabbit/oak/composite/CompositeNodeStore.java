@@ -71,9 +71,9 @@ import static org.apache.jackrabbit.oak.composite.ModifiedPathDiff.getModifiedPa
  * less-than-obvious issues which prevent it:
  * <ol>
  *   <li>Thread safety of the write operation can be quite costly, and will come on top
- *   of the thread safety measures already put in place by the composite node stores.</li>
+ *   of the thread safety measures already put in place by the composite node stores.
  *   <li>Many JCR subsystems require global state, e.g. the versioning store. This global state
- *   can become corrupt if multiple mounts operate on it or if mounts are added and removed.</li>
+ *   can become corrupt if multiple mounts operate on it or if mounts are added and removed.
  * </ol>
  * 
  * <p>As such, the only supported configuration is at most a single write-enabled store.

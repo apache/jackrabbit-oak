@@ -21,6 +21,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -70,12 +71,12 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
         Set<String> paths = getConfig(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
         assertFalse(paths.isEmpty());
 
-        readablePaths = Iterators.cycle(IterableUtils.transform(paths, f -> getNamePathMapper().getJcrPath(f)));
+        readablePaths = IteratorUtils.cycle(IterableUtils.transform(paths, f -> getNamePathMapper().getJcrPath(f)));
         Set<String> childPaths = new HashSet<>();
         for (String path : paths) {
             IterableUtils.transform(root.getTree(path).getChildren(), tree -> getNamePathMapper().getJcrPath(tree.getPath())).forEach(childPaths::add);
         }
-        readableChildPaths = Iterators.cycle(childPaths);
+        readableChildPaths = IteratorUtils.cycle(childPaths);
     }
 
     private Subject getTestSubject() {

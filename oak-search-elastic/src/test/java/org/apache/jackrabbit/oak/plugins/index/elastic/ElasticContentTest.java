@@ -38,6 +38,7 @@ import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -177,6 +178,23 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> assertThat(countDocuments(index), equalTo(1L)));
+    }
+
+    @Test
+    public void shardPreference() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] where [a] = 'text'";
+        String explain = explain(query);
+        assertThat(explain, containsString("preference=oak-"));
+
+        // preference session should be the same across the same query
+        String explain2 = explain(query);
+        assertThat(explain2, equalTo(explain));
     }
 
     @Test

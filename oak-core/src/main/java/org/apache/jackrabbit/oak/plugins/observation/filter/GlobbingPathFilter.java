@@ -82,7 +82,7 @@ public class GlobbingPathFilter implements EventFilter {
     public GlobbingPathFilter(@NotNull String pattern, Map<String, Pattern> patternMap) {
         // OAK-5589 : use the fastest way to create a List based on an unknown deep pattern
         this.pattern = new ArrayList<String>(10);
-        Iterators.addAll(this.pattern, elements(requireNonNull(pattern)).iterator());
+        elements(requireNonNull(pattern)).iterator().forEachRemaining(this.pattern::add);
         this.patternMap = requireNonNull(patternMap);
     }
 

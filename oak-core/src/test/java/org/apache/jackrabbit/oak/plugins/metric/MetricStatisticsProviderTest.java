@@ -41,6 +41,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.GaugeStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.NoopStats;
@@ -109,6 +110,20 @@ public class MetricStatisticsProviderTest {
         assertNotNull(histoStats);
         assertNotNull(statsProvider.getRegistry().getHistograms().containsKey("test"));
         assertTrue(((CompositeStats) histoStats).isHistogram());
+    }
+
+    @Test
+    public void gauge() {
+        GaugeStats<String> gaugeStats = statsProvider.getGauge("test", () -> "value");
+
+        assertNotNull(gaugeStats);
+        assertEquals("value", statsProvider.getRegistry().getGauges().get("test").getValue());
+
+        // updating gauge is not possible
+        gaugeStats = statsProvider.getGauge("test", () -> "value2");
+        assertNotNull(gaugeStats);
+        assertEquals("value", statsProvider.getRegistry().getGauges().get("test").getValue());
+
     }
 
     @Test

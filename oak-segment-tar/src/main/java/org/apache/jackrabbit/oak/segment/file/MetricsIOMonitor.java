@@ -34,13 +34,13 @@ import org.jetbrains.annotations.NotNull;
  * with the Metrics library if available:
  * <ul>
  *     <li>{@link #OAK_SEGMENT_SEGMENT_READ_BYTES}:
- *          a meter metrics for the number of bytes read from tar files</li>
+ *          a meter metrics for the number of bytes read from tar files
  *     <li>{@link #OAK_SEGMENT_SEGMENT_WRITE_BYTES}:
- *          a meter metrics for the number of bytes written to tar files</li>
+ *          a meter metrics for the number of bytes written to tar files
  *     <li>{@link #OAK_SEGMENT_SEGMENT_READ_TIME}:
- *          a timer metrics for the time spent reading from tar files</li>
+ *          a timer metrics for the time spent reading from tar files
  *     <li>{@link #OAK_SEGMENT_SEGMENT_WRITE_TIME}:
- *          a timer metrics for the time spent writing to tar files</li>
+ *          a timer metrics for the time spent writing to tar files
  * </ul>
  */
 public class MetricsIOMonitor extends IOMonitorAdapter {

@@ -54,7 +54,6 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest#testMoveNodesOrderingSupportedByParent <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.NamespaceRemappingTest#testPrefixRemapping                        <!-- OAK-10544 -->
-      org.apache.jackrabbit.oak.jcr.ValidNamesTest#testRepNamespaceUri                                 <!-- OAK-74 -->
 
       <!-- Locking : not fully implemented -->
       org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked <!-- OAK-3482 -->

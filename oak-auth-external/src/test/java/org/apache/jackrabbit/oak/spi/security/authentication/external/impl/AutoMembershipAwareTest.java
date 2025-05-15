@@ -21,6 +21,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -100,7 +101,7 @@ public class AutoMembershipAwareTest extends AbstractExternalAuthTest {
         AutoMembershipConfig amc = mock(AutoMembershipConfig.class);
         when(amc.getName()).thenReturn(sh.getName());
         when(amc.getAutoMembership(any(Authorizable.class))).thenReturn(groupIds);
-        when(amc.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Iterators.singletonIterator(authorizable));
+        when(amc.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Collections.singleton(authorizable).iterator());
 
         context.registerService(AutoMembershipConfig.class, amc, Collections.singletonMap(AutoMembershipConfig.PARAM_SYNC_HANDLER_NAME, sh.getName()));
 
@@ -110,7 +111,7 @@ public class AutoMembershipAwareTest extends AbstractExternalAuthTest {
         
         assertEquals(sh.getName(), config.getName());
         assertEquals(groupIds, config.getAutoMembership(authorizable));
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(authorizable), config.getAutoMembers(userManager, gr)));
+        assertTrue(IteratorUtils.elementsEqual(Collections.singleton(authorizable).iterator(), config.getAutoMembers(userManager, gr)));
         
         // verify that DefaultSyncHandler was notified about the service
         verify(amc).getAutoMembership(authorizable);
