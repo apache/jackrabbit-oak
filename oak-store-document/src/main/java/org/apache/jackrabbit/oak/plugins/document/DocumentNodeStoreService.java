@@ -342,9 +342,8 @@ public class DocumentNodeStoreService {
             String db = config.db();
             boolean soKeepAlive = config.socketKeepAlive();
 
-            ConnectionString mongoURI = new ConnectionString(uri);
             MongoClientSettings settings = MongoClientSettings.builder()
-                    .applyConnectionString(mongoURI)
+                    .applyConnectionString(new ConnectionString(uri))
                     .build();
 
             String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
