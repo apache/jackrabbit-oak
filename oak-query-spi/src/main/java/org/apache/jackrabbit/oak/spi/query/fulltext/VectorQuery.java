@@ -76,7 +76,7 @@ public class VectorQuery {
                 }
                 queryTextPart = text;
             } else {
-                if (isCompatibilityModeEnabled()) {
+                if (isCompatibilityModeEnabled) {
                     // No JSON part present but starts with prefix
                     // we return "{}" to be compatible with experimental inference queries
                     jsonPart = "{}";
@@ -105,9 +105,5 @@ public class VectorQuery {
     // to be used in tests.
     protected static void reInitializeCompatibilityMode() {
         isCompatibilityModeEnabled = Boolean.getBoolean(EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
-    }
-
-    private boolean isCompatibilityModeEnabled() {
-        return isCompatibilityModeEnabled;
     }
 }
