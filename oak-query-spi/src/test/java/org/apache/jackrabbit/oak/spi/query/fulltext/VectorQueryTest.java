@@ -30,12 +30,14 @@ public class VectorQueryTest {
     public void setUp() {
         // Ensure compatibility mode is disabled for these tests
         System.setProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY, "false");
+        VectorQuery.reInitializeCompatibilityMode();
     }
 
     @After
     public void tearDown() {
-        // Clean up all system properties set during the tests
+        // Clean up any system properties set during the tests
         System.clearProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
+        VectorQuery.reInitializeCompatibilityMode();
     }
 
     @Test
