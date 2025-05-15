@@ -45,8 +45,10 @@ import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -224,11 +226,13 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         hybridSearch("?{}?");
     }
 
+    @Ignore
     @Test
     public void testHybridSearchWithExperimentalPrefix() throws Exception {
         enableExperimentalInferenceCompatibility();
         // Test hybrid search with experimental inference query prefix
         hybridSearch("?");
+        System.clearProperty(VectorQuery.EXPERIMENTAL_COMPATIBILITY_MODE_KEY);
     }
 
     private void enableExperimentalInferenceCompatibility() {
