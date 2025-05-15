@@ -71,6 +71,7 @@ Bug
     [OAK-11685] - Reduce log level for MongoFullGcNodeBin class
     [OAK-11695] - Elasticsearch queries might produce inconsistent results
     [OAK-11704] - Update Mockito dependency to 5.17.0
+    [OAK-11719] - vector query should not break normal query
 
 Epic
 
@@ -79,6 +80,10 @@ Epic
 Story
 
     [OAK-11671] - [full-gc] Persist the avg object size and avg size of props per document in Mongo settings
+
+New Feature
+
+    [OAK-11720] - Put the usage of exclusive merge lock for large transactions behind a FeatureToggle/OSGI config
 
 Improvement
 
@@ -91,9 +96,13 @@ Improvement
     [OAK-11692] - Add inference config in oak.
     [OAK-11693] - Parse inference query and extract out inference config and text query
     [OAK-11694] - Implement inference in oak-search-elastic
+    [OAK-11709] - Merging index definitions: merge "tags" and override "type", "async"
+    [OAK-11721] - experimental and inferenceConfig implementation should be backward compatible
+    [OAK-11722] - Donot read compatibility system property in VectorQuery for each query
 
 Task
 
+    [OAK-11572] - Add api(s) in IteratorUtils to remove guava Iterators usage
     [OAK-11609] - Add Prometheus metrics export via pushgateway to RevisionsCommand (oak-run)
     [OAK-11622] - Clock improvements
     [OAK-11625] - Move o.a.j.o.plugins.bundlor.BundlingConfigInitializer to a suitable API package and export that package.
