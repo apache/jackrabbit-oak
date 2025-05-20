@@ -188,8 +188,8 @@ public class AzurePersistenceManager {
                 noRetryBlobContainerClient = getBlobContainerClient(accountName, containerName, null, azureHttpRequestLoggingPolicy, connectionString);
             }
 
-            if (createContainer) {
-                blobContainerClient.createIfNotExists();
+            if (createContainer && !blobContainerClient.exists()) {
+                blobContainerClient.create();
             }
 
             final String rootPrefixNormalized = normalizePath(rootPrefix);
@@ -259,7 +259,7 @@ public class AzurePersistenceManager {
         return rootPath;
     }
 
-    private static void checkArguments(String accountName, String containerName, String rootPrefix) {
+    private static void checkArguments(String accountName, String containerName, String rootPrefix){
         checkIfEmpty(accountName, "Account name");
         checkIfEmpty(containerName, "Container name");
         checkIfEmpty(rootPrefix, "Root prefix");
