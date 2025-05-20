@@ -340,10 +340,10 @@ public class DocumentNodeStoreService {
         } else {
             String uri = config.mongouri();
             String db = config.db();
-            boolean soKeepAlive = config.socketKeepAlive();
 
+            ConnectionString mongoURI = new ConnectionString(uri);
             MongoClientSettings settings = MongoClientSettings.builder()
-                    .applyConnectionString(new ConnectionString(uri))
+                    .applyConnectionString(mongoURI)
                     .build();
 
             String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
@@ -364,7 +364,6 @@ public class DocumentNodeStoreService {
             MongoDocumentNodeStoreBuilder builder = newMongoDocumentNodeStoreBuilder();
             configureBuilder(builder);
             builder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
-            builder.setSocketKeepAlive(soKeepAlive);
             builder.setLeaseSocketTimeout(config.mongoLeaseSocketTimeout());
             builder.setMongoDB(uri, db, config.blobCacheSize());
             builder.setCollectionCompressionType(config.collectionCompressionType());
