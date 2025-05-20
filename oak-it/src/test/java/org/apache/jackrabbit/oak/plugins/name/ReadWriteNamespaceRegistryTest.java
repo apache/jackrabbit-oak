@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.name;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -68,13 +69,13 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         assertEquals("mix", r.getPrefix("http://www.jcp.org/jcr/mix/1.0"));
         assertEquals("xml", r.getPrefix("http://www.w3.org/XML/1998/namespace"));
 
-        r.registerNamespace("p", "n");
-        assertEquals(r.getURI("p"), "n");
-        assertEquals(r.getPrefix("n"), "p");
+        r.registerNamespace("p", "myscheme:n");
+        assertEquals(r.getURI("p"), "myscheme:n");
+        assertEquals(r.getPrefix("myscheme:n"), "p");
 
-        r.registerNamespace("p2", "n2");
-        assertEquals(r.getURI("p2"), "n2");
-        assertEquals(r.getPrefix("n2"), "p2");
+        r.registerNamespace("p2", "myscheme:n2");
+        assertEquals(r.getURI("p2"), "myscheme:n2");
+        assertEquals(r.getPrefix("myscheme:n2"), "p2");
 
         // xml namespace check
         assertTrue(SetUtils.toSet(r.getPrefixes()).contains("xml"));
@@ -87,13 +88,12 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
     }
 
     @Test
-    public void testInvalidNamespace() throws Exception {
-        final ContentSession session = createContentSession();
-        final Root root = session.getLatestRoot();
-        NamespaceRegistry r = getNamespaceRegistry(session, root);
-
+    public void testInvalidNamespaceInDefaultMode() throws Exception {
         LogCustomizer customLogs = LogCustomizer.forLogger("org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry").enable(Level.ERROR).create();
         try {
+            final ContentSession session = createContentSession();
+            final Root root = session.getLatestRoot();
+            NamespaceRegistry r = getNamespaceRegistry(session, root);
             customLogs.starting();
             r.registerNamespace("foo", "example.com");
             r.unregisterNamespace("foo");
@@ -103,6 +103,24 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         }
         finally {
             customLogs.finished();
+            
+        }
+    }
+
+    @Test
+    public void testInvalidNamespaceInStrictMode() {
+        String oldValue = System.setProperty("oak.allowInvalidNamespaceUris", "true");
+        try {
+            final ContentSession session = createContentSession();
+            final Root root = session.getLatestRoot();
+            NamespaceRegistry r = getNamespaceRegistry(session, root);
+            assertThrows(NamespaceException.class, () -> r.registerNamespace("foo", "example.com"));
+        } finally {
+            if (oldValue != null) {
+                System.setProperty("oak.allowInvalidNamespaceUris", oldValue);
+            } else {
+                System.clearProperty("oak.allowInvalidNamespaceUris");
+            }
         }
     }
 
