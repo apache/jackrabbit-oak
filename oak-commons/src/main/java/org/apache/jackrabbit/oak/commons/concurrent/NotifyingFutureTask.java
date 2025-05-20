@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * listener will execute immediately.
  *
  * <p>Listener is invoked synchronously on the same thread which is used to
- * executed the Future</p>
+ * executed the Future
  */
 public class NotifyingFutureTask extends FutureTask<Void> {
     private final AtomicBoolean completed = new AtomicBoolean(false);
@@ -53,7 +53,6 @@ public class NotifyingFutureTask extends FutureTask<Void> {
      * <p>
      * Note: there is no guarantee to which handler will run when the method
      * is called multiple times with different arguments.
-     * </p>
      * @param onComplete listener to invoke upon completion
      */
     public void onComplete(Runnable onComplete) {

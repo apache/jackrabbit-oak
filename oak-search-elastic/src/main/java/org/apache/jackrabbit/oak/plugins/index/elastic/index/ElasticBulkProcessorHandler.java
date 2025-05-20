@@ -127,7 +127,7 @@ public class ElasticBulkProcessorHandler {
     private final int failedDocCountForStatusNode = ConfigHelper.getSystemPropertyAsInt("oak.failedDocStatusLimit", 10000);
     private final int bulkMaxOperations = ConfigHelper.getSystemPropertyAsInt(BULK_ACTIONS_PROP, BULK_ACTIONS_DEFAULT);
     private final int bulkMaxSizeBytes = ConfigHelper.getSystemPropertyAsInt(BULK_SIZE_BYTES_PROP, BULK_SIZE_BYTES_DEFAULT);
-    private final int bulkFlushIntervalMs = ConfigHelper.getSystemPropertyAsInt(BULK_FLUSH_INTERVAL_MS_PROP, BULK_FLUSH_INTERVAL_MS_DEFAULT);
+    private final int bulkFlushIntervalMillis = ConfigHelper.getSystemPropertyAsInt(BULK_FLUSH_INTERVAL_MS_PROP, BULK_FLUSH_INTERVAL_MS_DEFAULT);
     private final int bulkMaxConcurrentRequests = ConfigHelper.getSystemPropertyAsInt(BULK_MAX_CONCURRENT_REQUESTS_PROP, BULK_MAX_CONCURRENT_REQUESTS_DEFAULT);
     private final boolean failOnError = ConfigHelper.getSystemPropertyAsBoolean(FAIL_ON_ERROR_PROP, FAIL_ON_ERROR_DEFAULT);
 
@@ -152,8 +152,8 @@ public class ElasticBulkProcessorHandler {
         this.elasticConnection = elasticConnection;
         // BulkIngester does not support retry policies. Some retries though are already implemented in the transport layer.
         // More details here: https://github.com/elastic/elasticsearch-java/issues/478
-        LOG.info("Creating bulk ingester [maxActions: {}, maxSizeBytes: {} flushInterval {}, concurrency {}]",
-                bulkMaxOperations, bulkMaxSizeBytes, bulkFlushIntervalMs, BULK_MAX_CONCURRENT_REQUESTS_PROP);
+        LOG.info("Creating bulk ingester [maxOperations: {}, maxSizeBytes: {}, flushIntervalMillis: {}, maxConcurrentRequests: {}]",
+                bulkMaxOperations, bulkMaxSizeBytes, bulkFlushIntervalMillis, bulkMaxConcurrentRequests);
         this.bulkIngester = BulkIngester.of(b -> {
             b = b.client(elasticConnection.getAsyncClient())
                     .listener(new OakBulkListener());
@@ -163,8 +163,8 @@ public class ElasticBulkProcessorHandler {
             if (bulkMaxSizeBytes > 0) {
                 b = b.maxSize(bulkMaxSizeBytes);
             }
-            if (bulkFlushIntervalMs > 0) {
-                b = b.flushInterval(bulkFlushIntervalMs, TimeUnit.MILLISECONDS);
+            if (bulkFlushIntervalMillis > 0) {
+                b = b.flushInterval(bulkFlushIntervalMillis, TimeUnit.MILLISECONDS);
             }
             if (bulkMaxConcurrentRequests > 0) {
                 b = b.maxConcurrentRequests(bulkMaxConcurrentRequests);
@@ -309,7 +309,7 @@ public class ElasticBulkProcessorHandler {
                 // we are closing. Wait until all requests lower or equal to this number are processed.
                 OptionalLong lowestPendingBulkRequest = pendingBulks.stream().mapToLong(Long::longValue).min();
                 // If there is no pending request, we return immediately
-                long remainingTimeoutNanos = TimeUnit.MILLISECONDS.toNanos(bulkFlushIntervalMs * 5L);
+                long remainingTimeoutNanos = TimeUnit.MILLISECONDS.toNanos(bulkFlushIntervalMillis * 5L);
                 while (lowestPendingBulkRequest.isPresent() && lowestPendingBulkRequest.getAsLong() <= highestBulkRequestSent) {
                     LOG.debug("Waiting for request {} to be processed. Lowest pending request: {}", highestBulkRequestSent, lowestPendingBulkRequest.getAsLong());
                     try {
@@ -359,9 +359,7 @@ public class ElasticBulkProcessorHandler {
      * @throws IOException if an error happened while processing the bulk requests
      */
     public void close() throws IOException {
-        if (closed.getAndSet(true)) {
-            LOG.info("Already closed");
-        } else {
+        if (closed.compareAndSet(false, true)) {
             LOG.info("Closing bulk processor handler");
             printStatistics();
             // This blocks until all requests are processed

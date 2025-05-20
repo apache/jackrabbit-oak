@@ -554,7 +554,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
             //With property index at time traversing index wins (somehow reporting lower cost)
             //and that leads to warning. So limit the iterator size
-            resultSize += IteratorUtils.size(Iterators.limit(result.getNodes(), 500));
+            resultSize += IteratorUtils.size(IteratorUtils.limit(result.getNodes(), 500));
         }
     }
 

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -30,6 +31,8 @@ import org.slf4j.LoggerFactory;
  */
 public class DataStoreCacheUtils {
     private static final Logger LOG = LoggerFactory.getLogger(DataStoreCacheUtils.class);
+    private static final AtomicLong lastLogMessage = new AtomicLong();
+    private static final long TEN_SECONDS_IN_MILLIS = 10 * 1000;
 
     /**
      * Delete the file from the given root directory all its empty parent-directories.
@@ -39,8 +42,14 @@ public class DataStoreCacheUtils {
      */
     public static void recursiveDelete(File f, File root) throws IOException {
         if (f.exists()) {
+            long last = lastLogMessage.get();
             FileUtils.forceDelete(f);
-            LOG.info("Deleted file [{}]", f);
+            long now = System.currentTimeMillis();
+            if (now - last >= TEN_SECONDS_IN_MILLIS) {
+                if (lastLogMessage.compareAndSet(last, now)) {
+                    LOG.info("Deleted file [{}]", f);
+                }
+            }
         }
 
         // delete empty parent folders (except the main directory)

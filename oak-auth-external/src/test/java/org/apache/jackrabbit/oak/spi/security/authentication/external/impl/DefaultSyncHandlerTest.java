@@ -43,6 +43,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -277,7 +278,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
 
     @Test
     public void testListIdentitiesIgnoresMissingExternalIdRef() throws Exception {
-        Iterator<Authorizable> it = Iterators.singletonIterator(getTestUser());
+        Iterator<Authorizable> it = Collections.singleton(((Authorizable) getTestUser())).iterator();
 
         UserManager um = mock(UserManager.class);
         when(um.findAuthorizables(DefaultSyncContext.REP_EXTERNAL_ID, null)).thenReturn(it);
@@ -288,7 +289,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
 
     @Test
     public void testListIdentitiesIgnoresNull() throws Exception {
-        Iterator<Authorizable> it = Iterators.singletonIterator(null);
+        Iterator<Authorizable> it = Collections.singleton((Authorizable) null).iterator();
 
         UserManager um = mock(UserManager.class);
         when(um.findAuthorizables(DefaultSyncContext.REP_EXTERNAL_ID, null)).thenReturn(it);
@@ -300,7 +301,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
     @Test
     public void testListIdentitiesWithRepositoryException() throws Exception {
         Authorizable a = when(mock(Authorizable.class).getProperty(REP_EXTERNAL_ID)).thenThrow(new RepositoryException()).getMock();
-        Iterator<Authorizable> it = Iterators.singletonIterator(a);
+        Iterator<Authorizable> it = Collections.singleton(a).iterator();
 
         UserManager um = mock(UserManager.class);
         when(um.findAuthorizables(REP_EXTERNAL_ID, null)).thenReturn(it);

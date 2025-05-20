@@ -100,15 +100,19 @@ public class NodeStoreFixtureProvider {
         return !manifest.exists();
     }
 
+    public static StatisticsProvider createStatsProvider(Whiteboard wb, Closer closer) {
+        ScheduledExecutorService executorService =
+                MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
+        MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
+        closer.register(statsProvider);
+        closer.register(() -> reportMetrics(statsProvider));
+        wb.register(MetricRegistry.class, statsProvider.getRegistry(), emptyMap());
+        return statsProvider;
+    }
+
     private static StatisticsProvider createStatsProvider(Options options, Whiteboard wb, Closer closer) {
         if (options.getCommonOpts().isMetricsEnabled()) {
-            ScheduledExecutorService executorService =
-                    MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
-            MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
-            closer.register(statsProvider);
-            closer.register(() -> reportMetrics(statsProvider));
-            wb.register(MetricRegistry.class, statsProvider.getRegistry(), emptyMap());
-            return statsProvider;
+            return createStatsProvider(wb, closer);
         }
         return StatisticsProvider.NOOP;
     }
@@ -163,7 +167,7 @@ public class NodeStoreFixtureProvider {
         }
     }
 
-    private static class ClosingWhiteboard implements Whiteboard {
+    public static class ClosingWhiteboard implements Whiteboard {
         private final Whiteboard delegate;
         private final Closer closer;
 

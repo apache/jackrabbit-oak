@@ -88,20 +88,16 @@ public class IndexUpdate implements Editor, PathSource {
      * <p>
      * The value of this flag determines the behavior of the IndexUpdate when
      * dealing with {@code reindex} flags.
-     * </p>
      * <p>
      * If {@code false} (default value), the indexer will start reindexing
      * immediately in the current thread, blocking a commit until this operation
      * is done.
-     * </p>
      * <p>
      * If {@code true}, the indexer will ignore the flag, therefore ignoring any
      * reindex requests.
-     * </p>
      * <p>
      * This is only provided as a support tool (see OAK-3505) so it should be
      * used with extreme caution!
-     * </p>
      */
     static final boolean IGNORE_REINDEX_FLAGS = Boolean
             .getBoolean("oak.indexUpdate.ignoreReindexFlags");

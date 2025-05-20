@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
@@ -51,9 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 
 /**
@@ -237,7 +235,7 @@ public class IdentifierManager {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                return Iterators.concat(transform(result.getRows().iterator(), new RowToPaths()::apply));
+                return IteratorUtils.chainedIterator(IteratorUtils.transform(result.getRows().iterator(), new RowToPaths()::apply));
             }
 
             class RowToPaths implements Function<ResultRow, Iterator<String>> {
@@ -270,13 +268,13 @@ public class IdentifierManager {
                     // skip references from the version storage (OAK-1196)
                     if (!rowPath.startsWith(VersionConstants.VERSION_STORE_PATH)) {
                             if (propertyName == null) {
-                                return filter(
-                                        transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()::apply),
+                                return IteratorUtils.filter(
+                                        IteratorUtils.transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()::apply),
                                         x -> x != null);
                             } else {
                                 // for a fixed property name, we don't need to look for it, but just assume that
                                 // the search found the correct one
-                                return singletonIterator(PathUtils.concat(rowPath, propertyName));
+                                return Collections.singleton(PathUtils.concat(rowPath, propertyName)).iterator();
                             }
                     }
                     return Collections.emptyIterator();

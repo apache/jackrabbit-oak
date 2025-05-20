@@ -20,6 +20,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -61,12 +62,12 @@ public class ReadablePathsPermissionTest extends AbstractPrincipalBasedTest {
         Set<String> paths = getConfig(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
         assertFalse(paths.isEmpty());
 
-        readablePaths = Iterators.cycle(paths);
+        readablePaths = IteratorUtils.cycle(paths);
         Set<String> childPaths = new HashSet<>();
         for (String path : paths) {
             IterableUtils.transform(root.getTree(path).getChildren(), Tree::getPath).forEach(childPaths::add);
         }
-        readableChildPaths = Iterators.cycle(childPaths);
+        readableChildPaths = IteratorUtils.cycle(childPaths);
 
         permissionProvider = new PrincipalBasedPermissionProvider(root, root.getContentSession().getWorkspaceName(), Collections.singleton(getTestSystemUser().getPath()), getPrincipalBasedAuthorizationConfiguration());
     }

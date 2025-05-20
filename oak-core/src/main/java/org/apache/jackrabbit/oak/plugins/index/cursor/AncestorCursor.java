@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.jetbrains.annotations.Nullable;
@@ -36,16 +37,16 @@ class AncestorCursor extends PathCursor {
     }
 
     private static Iterator<String> transform(Cursor cursor, final int level) {
-        Iterator<String> unfiltered = Iterators.transform(cursor,
+        Iterator<String> unfiltered = IteratorUtils.transform(cursor,
                 input -> input != null ? input.getPath() : null);
-        Iterator<String> filtered = Iterators.filter(unfiltered,
+        Iterator<String> filtered = IteratorUtils.filter(unfiltered,
                 new Predicate<String>() {
             @Override
             public boolean test(@Nullable String input) {
                 return input != null && PathUtils.getDepth(input) >= level;
             }
         }::test);
-        return Iterators.transform(filtered,
+        return IteratorUtils.transform(filtered,
                 input -> PathUtils.getAncestorPath(input, level));
     }
 }

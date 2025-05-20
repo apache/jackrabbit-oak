@@ -41,7 +41,7 @@ import org.junit.Test;
  * Validates that the <tt>NodeTypeDefinitionNodeStoreChecker</tt> is properly applied
  * 
  * <p>This class does not attempt to exhaustively validate the checks that should be performed, only
- * that they are performed when needed.</p>
+ * that they are performed when needed.
  *
  */
 @Component(service = {MountedNodeStoreChecker.class})

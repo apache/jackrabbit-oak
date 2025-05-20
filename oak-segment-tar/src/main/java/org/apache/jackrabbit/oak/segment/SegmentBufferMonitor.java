@@ -35,13 +35,13 @@ import org.jetbrains.annotations.NotNull;
  * of {@link Buffer} instances:
  * <ul>
  *     <li>{@link #DIRECT_BUFFER_COUNT}: number of allocated direct byte
- *          buffers.</li>
+ *          buffers.
  *     <li>{@link #DIRECT_BUFFER_CAPACITY}: total capacity of the allocated
- *          direct byte buffers.</li>
+ *          direct byte buffers.
  *     <li>{@link #HEAP_BUFFER_COUNT}: number of allocated heap byte
- *          buffers.</li>
+ *          buffers.
  *     <li>{@link #HEAP_BUFFER_CAPACITY}: total capacity of the allocated
- *          heap byte buffers.</li>
+ *          heap byte buffers.
  * </ul>
  * <p>
  * Users of this class call {@link #trackAllocation(Buffer)} to update above statistics.

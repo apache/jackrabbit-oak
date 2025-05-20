@@ -52,10 +52,17 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
                                       @NotNull ElasticConnection elasticConnection,
                                       ExtractedTextCache extractedTextCache) {
+        this(indexTracker, elasticConnection, extractedTextCache, new ElasticBulkProcessorHandler(elasticConnection));
+    }
+
+    public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
+                                      @NotNull ElasticConnection elasticConnection,
+                                      ExtractedTextCache extractedTextCache,
+                                      ElasticBulkProcessorHandler bulkProcessorHandler) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
-        this.bulkProcessorHandler = new ElasticBulkProcessorHandler(elasticConnection);
+        this.bulkProcessorHandler = bulkProcessorHandler;
     }
 
     @Override

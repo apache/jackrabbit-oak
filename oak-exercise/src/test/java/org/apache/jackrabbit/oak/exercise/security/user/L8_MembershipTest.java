@@ -83,8 +83,8 @@ import static org.junit.Assert.assertTrue;
  *   In order to complete this exercise look at the built-in node types and
  *   identify those types that deal with group membership.
  *   Once you are familiar with the node type definitions look at
- *   > {@link org.apache.jackrabbit.oak.security.user.MembershipProvider} and
- *   > {@link org.apache.jackrabbit.oak.security.user.MembershipWriter}
+ *   + {@link org.apache.jackrabbit.oak.security.user.MembershipProvider} and
+ *   + {@link org.apache.jackrabbit.oak.security.user.MembershipWriter}
  *   and how they deal with massive amount of members on a given group.
  *   Finally fix the test case :-)
  *

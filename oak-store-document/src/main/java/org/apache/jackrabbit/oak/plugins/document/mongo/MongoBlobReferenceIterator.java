@@ -19,11 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 import java.util.Iterator;
 
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.BlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -52,7 +52,7 @@ public class MongoBlobReferenceIterator extends BlobReferenceIterator {
         MongoCursor<BasicDBObject> cursor = documentStore.getDBCollection(NODES)
                 .find(query).iterator();
 
-        return CloseableIterator.wrap(transform(cursor,
+        return CloseableIterator.wrap(IteratorUtils.transform(cursor,
                 input -> documentStore.convertFromDBObject(NODES, input)),
                 cursor);
     }

@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.jetbrains.annotations.NotNull;
@@ -139,7 +140,7 @@ public class GroupImportIgnoreTest extends AbstractImportTest {
         boolean b = g1.isDeclaredMember(g);
         assertEquals("Circular membership must be detected", !b, g.isDeclaredMember(g1));
 
-        assertEquals("Circular membership must be detected", b, Iterators.contains(g1.getMembers(), g));
-        assertEquals("Circular membership must be detected", !b, Iterators.contains(g.getMembers(), g1));
+        assertEquals("Circular membership must be detected", b, IteratorUtils.contains(g1.getMembers(), g));
+        assertEquals("Circular membership must be detected", !b, IteratorUtils.contains(g.getMembers(), g1));
     }
 }

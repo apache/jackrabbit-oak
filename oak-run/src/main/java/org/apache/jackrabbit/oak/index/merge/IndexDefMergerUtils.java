@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
@@ -41,9 +42,20 @@ import org.apache.jackrabbit.oak.plugins.index.IndexName;
 public class IndexDefMergerUtils {
 
     private static HashSet<String> IGNORE_LEVEL_0 = new HashSet<>(Arrays.asList(
-            "reindex", "refresh", "seed", "reindexCount"));
+            "reindex",
+            "refresh",
+            "seed",
+            "reindexCount"));
     private static HashSet<String> USE_PRODUCT_PROPERTY = new HashSet<>(Arrays.asList(
-            "jcr:created", "jcr:lastModified", "jcr:uuid", "jcr:createdBy", "jcr:lastModifiedBy", "jcr:createdBy"));
+            "async",
+            "includedPaths",
+            "jcr:created",
+            "jcr:createdBy",
+            "jcr:lastModified",
+            "jcr:lastModifiedBy",
+            "jcr:uuid",
+            "type"
+            ));
     private static HashSet<String> USE_PRODUCT_CHILD_LEVEL_0 = new HashSet<>(Arrays.asList(
             "tika"));
 
@@ -153,10 +165,43 @@ public class IndexDefMergerUtils {
         } else if (equalStringValues(ap, cp)) {
             return pp;
         } else {
+            String mergedSets = tryMergeSets(ap, cp, pp);
+            if (mergedSets != null) {
+                return mergedSets;
+            }
             conflicts.add("Could not merge value; path=" + path + " property=" + property + "; ancestor=" + ap + "; custom=" + cp
                     + "; product=" + pp);
             return ap;
         }
+    }
+
+    public static String tryMergeSets(String ancestor, String custom, String product) {
+        if (ancestor == null || custom == null || product == null) {
+            return null;
+        }
+        if (!ancestor.startsWith("[") && !custom.startsWith("[") && !product.startsWith("[")) {
+            // none of the values is an array
+            return null;
+        }
+        TreeSet<String> ancestorSet = getStringSet(ancestor);
+        TreeSet<String> customSet = getStringSet(custom);
+        TreeSet<String> productSet = getStringSet(product);
+        if (ancestorSet == null || customSet == null || productSet == null) {
+            return null;
+        }
+        // combine them all
+        TreeSet<String> resultSet = new TreeSet<>();
+        resultSet.addAll(ancestorSet);
+        resultSet.addAll(customSet);
+        resultSet.addAll(productSet);
+        // build JSON
+        JsopBuilder buff = new JsopBuilder();
+        buff.array();
+        for (String s : resultSet) {
+            buff.value(s);
+        }
+        buff.endArray();
+        return buff.toString();
     }
 
     public static boolean equalStringValues(String a, String b) {
@@ -167,6 +212,37 @@ public class IndexDefMergerUtils {
             return false;
         }
         return Objects.equals(aa, bb);
+    }
+
+    public static TreeSet<String> getStringSet(String value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            JsopTokenizer tokenizer = new JsopTokenizer(value);
+            TreeSet<String> result = new TreeSet<>();
+            if (tokenizer.matches(JsopReader.STRING)) {
+                result.add(tokenizer.getEscapedToken());
+                return result;
+            }
+            if (!tokenizer.matches('[')) {
+                return null;
+            }
+            if (!tokenizer.matches(']')) {
+                do {
+                    if (!tokenizer.matches(JsopReader.STRING)) {
+                        // not a string
+                        return null;
+                    }
+                    result.add(tokenizer.getEscapedToken());
+                } while (tokenizer.matches(','));
+                tokenizer.read(']');
+            }
+            tokenizer.read(JsopReader.END);
+            return result;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public static String getStringOrStringFromSingleValueArray(String value) {

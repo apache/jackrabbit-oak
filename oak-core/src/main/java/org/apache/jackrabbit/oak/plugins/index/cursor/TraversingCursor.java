@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.cursor;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
 
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 
@@ -107,14 +108,12 @@ class TraversingCursor extends AbstractCursor {
         case NO_RESTRICTION:
         case EXACT:
         case ALL_CHILDREN:
-            nodeIterators.add(Iterators.singletonIterator(
-                    new MemoryChildNodeEntry(currentPath, node)));
+            nodeIterators.add(Collections.singleton(new MemoryChildNodeEntry(currentPath, node)).iterator());
             parentPath = "";
             break;
         case PARENT:
             if (parent != null) {
-                nodeIterators.add(Iterators.singletonIterator(
-                        new MemoryChildNodeEntry(parentPath, parent)));
+                nodeIterators.add(Collections.singleton(new MemoryChildNodeEntry(parentPath, parent)).iterator());
                 parentPath = "";
             }
             break;

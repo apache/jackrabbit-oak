@@ -74,14 +74,11 @@ import org.slf4j.LoggerFactory;
  * <ul>
  * <li>
  *     <code>profile</code> - Controls whether to profile the benchmark or not. Defaults to false.
- * </li>
  * <li>
  *     <code>noWarmup</code> - Controls whether to run warmup or not before each benchmark. Defaults to false.
- * </li>
  * <li>
  *     <code>increments</code> - Comma separated list which controls the incremental load for each iteration.
  *     Defaults to 1,2,5.
- * </li>
  * </ul>
  */
 public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVResultGenerator {

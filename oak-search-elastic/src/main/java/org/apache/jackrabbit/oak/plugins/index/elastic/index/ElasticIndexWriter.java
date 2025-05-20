@@ -29,6 +29,7 @@ import co.elastic.clients.elasticsearch.indices.UpdateAliasesRequest;
 import co.elastic.clients.elasticsearch.indices.UpdateAliasesResponse;
 import co.elastic.clients.json.JsonpUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
@@ -36,6 +37,8 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceIndexConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
@@ -78,6 +81,9 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         // old index until the new one gets enabled) during incremental reindexing
         if (this.reindex) {
             try {
+                //TODO we should observe changes under inference config path.
+                InferenceConfig.reInitialize();
+                // refresh inference config on any index reindex.
                 long seed = indexDefinition.indexNameSeed == 0L ? UUID.randomUUID().getMostSignificantBits() : indexDefinition.indexNameSeed;
                 // merge gets called on node store later in the indexing flow
                 definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
@@ -134,7 +140,19 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     public void updateDocument(String path, ElasticDocument doc) throws IOException {
         // update is a heavier operation compared to index, we can always use the index operation on full reindex
         // or if the index is not externally modifiable
-        if (reindex || !indexDefinition.isExternallyModifiable()) {
+        String jcrIndexName = PathUtils.getName(indexDefinition.getIndexName());
+        /*
+            we directly index the document if:
+            content is being reindexed
+            OR
+            (the index is not externally modifiable
+            AND InferenceIndexConfig is NOOP
+            )
+         */
+        if (reindex
+            || (!indexDefinition.isExternallyModifiable()
+            && !InferenceConfig.getInstance().isInferenceEnabled()
+            && (InferenceIndexConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName))))) {
             bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
         } else {
             bulkProcessorHandler.update(indexName, ElasticIndexUtils.idFromPath(path), doc);

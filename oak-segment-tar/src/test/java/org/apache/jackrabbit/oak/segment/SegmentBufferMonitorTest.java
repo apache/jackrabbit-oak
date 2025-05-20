@@ -28,10 +28,12 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.GaugeStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
@@ -69,6 +71,11 @@ public class SegmentBufferMonitorTest {
 
         @Override
         public HistogramStats getHistogram(String name, StatsOptions options) {
+            throw new IllegalStateException();
+        }
+
+        @Override
+        public <T> GaugeStats<T> getGauge(String name, Supplier<T> supplier) {
             throw new IllegalStateException();
         }
     });

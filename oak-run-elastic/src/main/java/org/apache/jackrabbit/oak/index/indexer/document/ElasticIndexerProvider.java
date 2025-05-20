@@ -53,13 +53,15 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
     private final ElasticConnection connection;
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final ElasticIndexEditorProvider elasticIndexEditorProvider;
 
     public ElasticIndexerProvider(IndexHelper indexHelper, ElasticConnection connection) {
         this.indexHelper = indexHelper;
         this.connection = connection;
         this.bulkProcessorHandler = new ElasticBulkProcessorHandler(connection);
-        this.indexWriterFactory = new ElasticIndexWriterFactory(connection,
-                new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP)), bulkProcessorHandler);
+        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP));
+        this.indexWriterFactory = new ElasticIndexWriterFactory(connection, indexTracker, bulkProcessorHandler);
+        this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, connection, null, bulkProcessorHandler);
 
     }
 
@@ -73,9 +75,6 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
 
         FulltextIndexWriter<ElasticDocument> indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, CommitInfo.EMPTY, true);
         FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);
-
-        ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP));
-        ElasticIndexEditorProvider elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, connection, null);
         return new ElasticIndexer(idxDefinition, textExtractor, definition, progressReporter, indexWriter, elasticIndexEditorProvider, indexHelper);
     }
 
@@ -87,6 +86,7 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
     @Override
     public void close() throws IOException {
         if (closed.compareAndSet(false, true)) {
+            this.elasticIndexEditorProvider.close();
             this.bulkProcessorHandler.close();
         }
     }

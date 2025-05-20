@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 
 class CountingIterable<T> implements Iterable<T> {
     private final Iterable<T> delegate;
@@ -33,7 +34,7 @@ class CountingIterable<T> implements Iterable<T> {
 
     @Override
     public Iterator<T> iterator() {
-        return Iterators.filter(delegate.iterator(), (e) -> {
+        return IteratorUtils.filter(delegate.iterator(), (e) -> {
             count++;
             return true;
         });

@@ -75,6 +75,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     /** The maximum number of updates to keep in memory */
     private final int updateLimit;
+    private final boolean avoidMergeLock;
 
     /**
      * State of the this branch. Either {@link Unmodified}, {@link InMemory}, {@link Persisted},
@@ -85,13 +86,15 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     DocumentNodeStoreBranch(DocumentNodeStore store,
                             DocumentNodeState base,
-                            ReadWriteLock mergeLock) {
+                            ReadWriteLock mergeLock,
+                            boolean avoidMergeLock) {
         this.store = requireNonNull(store);
         this.branchState = new Unmodified(requireNonNull(base));
         this.maximumBackoff = Math.max((long) store.getMaxBackOffMillis(), MIN_BACKOFF);
         this.maxLockTryTimeMS = (long) (store.getMaxBackOffMillis() * MAX_LOCK_TRY_TIME_MULTIPLIER);
         this.mergeLock = mergeLock;
         this.updateLimit = store.getUpdateLimit();
+        this.avoidMergeLock = avoidMergeLock;
     }
 
     @NotNull
@@ -119,6 +122,11 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             return merge0(hook, info, false);
         } catch (CommitFailedException e) {
             if (!e.isOfType(MERGE)) {
+                throw e;
+            }
+            // OAK-11720: Do not retry again if avoidMergeLock is enabled and the merge already failed.
+            // This avoids blocking other concurrent writes.
+            if (avoidMergeLock) {
                 throw e;
             }
         }

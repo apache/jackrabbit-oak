@@ -266,7 +266,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     /**
      * Creates a specific type of "hit" to return from the query methods
      * 
-     * <p>Use primarily to reduce duplication when the query algorithms execute mostly the same steps but return different objects.</p>
+     * <p>Use primarily to reduce duplication when the query algorithms execute mostly the same steps but return different objects.
      * 
      * @param <T> The type of Hit to produce
      */

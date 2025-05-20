@@ -55,9 +55,9 @@ import org.jetbrains.annotations.Nullable;
  * <ul>
  *     <li>Rebasing the checkpoints and subsequently the root on top of each other
  *     in chronological order. This results minimises the deltas that need to be
- *     processed and stored.</li>
+ *     processed and stored.
  *     <li>Caching the compacted checkpoints and root states for deduplication should
- *     the same checkpoint or root state occur again in a later compaction retry cycle.</li>
+ *     the same checkpoint or root state occur again in a later compaction retry cycle.
  * </ul>
  */
 public class CheckpointCompactor extends Compactor {

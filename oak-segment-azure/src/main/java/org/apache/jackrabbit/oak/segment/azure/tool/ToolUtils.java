@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
@@ -181,7 +182,7 @@ public class ToolUtils {
         JournalFile journal = persistence.getJournalFile();
         if (journal.exists()) {
             try (JournalReader journalReader = new JournalReader(journal)) {
-                Iterator<String> revisionIterator = Iterators.transform(journalReader,
+                Iterator<String> revisionIterator = IteratorUtils.transform(journalReader,
                         entry -> entry.getRevision());
                 return ListUtils.toList(revisionIterator);
             } catch (Exception e) {

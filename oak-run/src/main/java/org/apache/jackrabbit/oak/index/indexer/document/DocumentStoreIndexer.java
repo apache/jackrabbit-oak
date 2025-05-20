@@ -32,20 +32,17 @@ public class DocumentStoreIndexer extends DocumentStoreIndexerBase implements Cl
     public DocumentStoreIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
         super(extendedIndexHelper, indexerSupport);
         this.extendedIndexHelper = extendedIndexHelper;
-        setProviders();
+        setProvider();
     }
 
     private NodeStateIndexerProvider createLuceneIndexProvider() throws IOException {
         return new LuceneIndexerProvider(extendedIndexHelper, indexerSupport);
     }
 
-    protected List<NodeStateIndexerProvider> createProviders() throws IOException {
-        List<NodeStateIndexerProvider> providers = List.of(
-                createLuceneIndexProvider()
-        );
-
-        providers.forEach(closer::register);
-        return providers;
+    protected NodeStateIndexerProvider createProvider() throws IOException {
+        NodeStateIndexerProvider provider = createLuceneIndexProvider();
+        closer.register(provider);
+        return provider;
     }
 
     @Override

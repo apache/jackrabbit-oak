@@ -22,10 +22,12 @@ package org.apache.jackrabbit.oak.stats;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class SimpleStats implements TimerStats, MeterStats, CounterStats, HistogramStats {
-    public enum Type {COUNTER, METER, TIMER, HISTOGRAM}
+public final class SimpleStats<T> implements TimerStats, MeterStats, CounterStats, HistogramStats, GaugeStats<T> {
+
+    public enum Type {COUNTER, METER, TIMER, HISTOGRAM, GAUGE}
     private final AtomicLong statsHolder;
     private long counter;
+    private T value;
 
     /*
         Using 2 different variables for managing the sum in meter calls
@@ -44,8 +46,13 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
     private final Type type;
 
     public SimpleStats(AtomicLong statsHolder, Type type) {
+        this(statsHolder, type, null);
+    }
+
+    public SimpleStats(AtomicLong statsHolder, Type type, T value) {
         this.statsHolder = statsHolder;
         this.type = type;
+        this.value = value;
     }
 
     @Override
@@ -62,6 +69,9 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
                 //For Meter it can happen that backing statsHolder gets
                 //reset each second. So need to manage that sum separately
                 return meterSum + meterSumRef.get();
+            case GAUGE:
+                // For gauge type there is no count, it only returns the constant value set
+                return 0;
         }
         throw new IllegalStateException();
     }
@@ -113,6 +123,11 @@ public final class SimpleStats implements TimerStats, MeterStats, CounterStats, 
     public void update(long value) {
         counter++;
         statsHolder.getAndAdd(value);
+    }
+
+    @Override
+    public T getValue() {
+        return value;
     }
 
     private static final class SimpleContext implements Context {

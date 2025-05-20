@@ -45,11 +45,11 @@ import org.slf4j.LoggerFactory;
  * <li>Active: an instance is active and has no recoveryLock is currently
  * acquired. The lease timeout is ignored. When the lease times out, this is
  * noticed by one of the instances at some point and a recovery is started, at
- * which point the instance transitions from 'Active' to 'Recovering'.</li>
+ * which point the instance transitions from 'Active' to 'Recovering'.
  * <li>Recovering: an instance that was active but currently has the
- * recoveryLock acquired by one of the instances.</li>
+ * recoveryLock acquired by one of the instances.
  * <li>Inactive: an instance is not set to active (in which case the
- * recoveryLock is never set)</li>
+ * recoveryLock is never set)
  * </ul>
  * <p>
  * Note that the states managed in this ClusterViewDocument differs from the one

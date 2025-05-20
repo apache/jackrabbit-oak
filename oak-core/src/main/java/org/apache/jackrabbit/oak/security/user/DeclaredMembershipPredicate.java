@@ -27,6 +27,7 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -49,7 +50,7 @@ public class DeclaredMembershipPredicate implements Predicate<Authorizable> {
         if (groupTree == null) {
             contentIdIterator = Collections.emptyIterator();
         } else {
-            contentIdIterator = Iterators.filter(membershipProvider.getDeclaredMemberContentIDs(groupTree), x -> x != null);
+            contentIdIterator = IteratorUtils.filter(membershipProvider.getDeclaredMemberContentIDs(groupTree), x -> x != null);
         }
     }
 

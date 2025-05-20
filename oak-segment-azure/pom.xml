@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.79-SNAPSHOT</version>
+        <version>1.81-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -72,11 +72,6 @@
                             com.microsoft.azure.storage,
                             com.microsoft.azure.storage.core,
                             com.microsoft.azure.storage.blob,
-                            com.azure.core.credential,
-                            com.azure.identity,
-                            com.azure.blob,
-                            com.azure.storage.common,
-                            com.azure.storage.internal.avro.implementation
                         </Export-Package>
                         <Embed-Dependency>
                             azure-storage,

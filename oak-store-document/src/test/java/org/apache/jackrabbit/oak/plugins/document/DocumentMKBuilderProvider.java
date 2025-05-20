@@ -27,16 +27,16 @@ import org.slf4j.LoggerFactory;
  * The <tt>DocumentMkBuilderProvider</tt> is a JUnit <tt>@Rule</tt> which
  * automatically disposes created <tt>DocumentNodeStore</tt> instances
  * 
- * <p>Usage samples are below</p>
+ * <p>Usage samples are below
  * 
- *  <p>Before:</p>
+ * <p>Before:
  *  
  *  <pre>
  *  @Test public void someTest() {
  *      DocumentNodeStore = new DocumentMK.Builder().getNodeStore();
  *  }</pre>
  *  
- *  <p>After:</p>
+ *  <p>After:
  *  
  *  <pre>
  *  @Rule

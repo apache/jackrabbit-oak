@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.HashSet;
@@ -41,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_CREATED;
@@ -93,7 +91,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
             if (pd.unique) {
                 UniqueEntryStoreStrategy s = new UniqueEntryStoreStrategy(INDEX_CONTENT_NODE_NAME,
                         (nb) -> nb.setProperty(PROP_CREATED, updateTime));
-                s.update(ofInstance(indexNode),
+                s.update(() -> indexNode,
                         nodePath,
                         null,
                         null,
@@ -102,7 +100,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
                 uniquenessConstraintValidator.add(propertyRelativePath, afterKeys);
             } else {
                 ContentMirrorStoreStrategy s = new ContentMirrorStoreStrategy();
-                s.update(ofInstance(indexNode),
+                s.update(() -> indexNode,
                         nodePath,
                         null,
                         null,

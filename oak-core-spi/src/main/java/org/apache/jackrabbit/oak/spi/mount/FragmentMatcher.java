@@ -26,8 +26,8 @@ import static org.apache.jackrabbit.oak.spi.mount.FragmentMatcher.Result.PARTIAL
  * This utility class allows to match strings against a simple pattern language.
  * There are two special characters:
  * <ul>
- *     <li><code>*</code> - matches zero or more any characters different than slash</li>
- *     <li><code>$</code> - matches the end of the subject</li>
+ *     <li><code>*</code> - matches zero or more any characters different than slash
+ *     <li><code>$</code> - matches the end of the subject
  * </ul>
  */
 public final class FragmentMatcher {

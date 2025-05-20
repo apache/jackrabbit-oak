@@ -27,9 +27,9 @@ import org.slf4j.Logger;
  * <p>
  * Usage:
  * <ul>
- * <li>final long start = perflogger.start();</li>
+ * <li>final long start = perflogger.start();
  * <li>.. some code ..
- * <li>perflogger.end(start, 1, "myMethodName: param1={}", param1);</li>
+ * <li>perflogger.end(start, 1, "myMethodName: param1={}", param1);
  * </ul>
  * <p>
  * The above will do nothing if the log level for the logger passed

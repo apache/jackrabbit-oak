@@ -39,12 +39,25 @@ public class ElasticPropertyIndexFailuresTest extends ElasticAbstractQueryTest {
         super.before();
     }
 
+    @Override
+    protected boolean isInferenceEnabled() {
+        return false;
+    }
+
+    /*
+     In indexFailuresWithFailOnErrorOff test we are explicitly setting "strict mapping". For inference
+     enabled oak, this is not supported as enricher for oak will be an external service and this enricher
+     service would need some flexibility and may want to add additional properties.
+
+     So we are explicitly setting inference to false for this test.
+     */
+
     @Test
     public void indexFailuresWithFailOnErrorOff() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a");
         builder.includedPaths("/test")
-                .indexRule("nt:base")
-                .property("nodeName", PROPDEF_PROP_NODE_NAME);
+            .indexRule("nt:base")
+            .property("nodeName", PROPDEF_PROP_NODE_NAME);
 
         // configuring the index with a regex property and strict mapping to simulate failures
         builder.indexRule("nt:base").property("b", true).propertyIndex();
@@ -75,7 +88,7 @@ public class ElasticPropertyIndexFailuresTest extends ElasticAbstractQueryTest {
 
         String query = "select [jcr:path] from [nt:base] where [a] = 'foo'";
         assertEventually(() -> assertQuery(query, SQL2,
-                List.of("/test/a1", "/test/a2", "/test/a100", "/test/a101", "/test/a102", "/test/a103", "/test/a104")
+            List.of("/test/a1", "/test/a2", "/test/a100", "/test/a101", "/test/a102", "/test/a103", "/test/a104")
         ));
     }
 }

@@ -26,6 +26,7 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
 
@@ -69,7 +70,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = getDelegate().getDeclaredMembers();
-                return Iterators.transform(authorizables, authorizable -> wrap(sessionDelegate, authorizable));
+                return IteratorUtils.transform(authorizables, authorizable -> wrap(sessionDelegate, authorizable));
             }
         });
     }
@@ -82,7 +83,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = getDelegate().getMembers();
-                return Iterators.transform(authorizables, authorizable -> wrap(sessionDelegate, authorizable));
+                return IteratorUtils.transform(authorizables, authorizable -> wrap(sessionDelegate, authorizable));
             }
         });
     }

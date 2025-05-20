@@ -84,7 +84,6 @@ import org.slf4j.LoggerFactory;
  * flag. It is expected that this is handled on a higher level. If this is not
  * done the uniqueness constraint on the jcr:uuid will kick in and fail the
  * commit.
- * </p>
  */
 class VersionableState {
 
