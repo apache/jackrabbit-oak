@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -44,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * Plan for querying a given property index using a given filter.
@@ -216,8 +216,7 @@ public class PropertyIndexPlan {
         for (IndexStoreStrategy s : strategies) {
             iterables.add(s.query(filter, name, definition, values));
         }
-        Cursor cursor = Cursors.newPathCursor(Iterables.concat(iterables),
-                settings);
+        Cursor cursor = Cursors.newPathCursor(IterableUtils.chainedIterable(iterables), settings);
         if (depth > 1) {
             cursor = Cursors.newAncestorCursor(cursor, depth - 1, settings);
         }

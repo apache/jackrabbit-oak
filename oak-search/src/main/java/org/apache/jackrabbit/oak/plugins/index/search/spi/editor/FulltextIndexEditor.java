@@ -18,17 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -41,361 +34,377 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
 
 /**
  * Generic implementation of an {@link IndexEditor} which supports index time aggregation.
  */
 public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateRoot {
 
-  private static final Logger log =
-      LoggerFactory.getLogger(FulltextIndexEditor.class);
+    private static final Logger log = LoggerFactory.getLogger(FulltextIndexEditor.class);
 
-  public static final String TEXT_EXTRACTION_ERROR = "TextExtractionError";
+    public static final String TEXT_EXTRACTION_ERROR = "TextExtractionError";
 
-  private final FulltextIndexEditorContext<D> context;
+    private static final List<Aggregate.Matcher> EMPTY_AGGREGATE_MATCHER_LIST = List.of();
 
-  /* Name of this node, or {@code null} for the root node. */
-  private final String name;
+    private final FulltextIndexEditorContext<D> context;
 
-  /* Parent editor or {@code null} if this is the root editor. */
-  private final FulltextIndexEditor<D> parent;
+    /* Parent editor or {@code null} if this is the root editor. */
+    private final FulltextIndexEditor<D> parent;
 
-  /* Path of this editor, built lazily in {@link #getPath()}. */
-  private String path;
+    /* Path of this editor */
+    private final String path;
 
-  private boolean propertiesChanged = false;
+    private boolean propertiesChanged = false;
 
-  private final List<PropertyState> propertiesModified = new ArrayList<>();
+    private final List<PropertyState> propertiesModified = new ArrayList<>();
 
-  /*
-   * Flag indicating if the current tree being traversed has a deleted parent.
-   */
-  private final boolean isDeleted;
+    /*
+     * Flag indicating if the current tree being traversed has a deleted parent.
+     */
+    private final boolean isDeleted;
 
-  private IndexDefinition.IndexingRule indexingRule;
+    private IndexDefinition.IndexingRule indexingRule;
 
-  private List<Aggregate.Matcher> currentMatchers = Collections.emptyList();
+    private List<Aggregate.Matcher> currentMatchers = List.of();
 
-  private final MatcherState matcherState;
+    private final MatcherState matcherState;
 
-  private final PathFilter.Result pathFilterResult;
+    private final PathFilter pathFilter;
 
-  public FulltextIndexEditor(FulltextIndexEditorContext<D> context) {
-    this.parent = null;
-    this.name = null;
-    this.path = "/";
-    this.context = context;
-    this.isDeleted = false;
-    this.matcherState = MatcherState.NONE;
-    this.pathFilterResult = context.getDefinition().getPathFilter().filter(PathUtils.ROOT_PATH);
-  }
+    private final PathFilter.Result pathFilterResult;
 
-  public FulltextIndexEditor(FulltextIndexEditor<D> parent, String name,
-                             MatcherState matcherState,
-                             PathFilter.Result pathFilterResult,
-                             boolean isDeleted) {
-    this.parent = parent;
-    this.name = name;
-    this.path = null;
-    this.context = parent.context;
-    this.isDeleted = isDeleted;
-    this.matcherState = matcherState;
-    this.pathFilterResult = pathFilterResult;
-  }
-
-  public String getPath() {
-    if (path == null) { // => parent != null
-      path = concat(parent.getPath(), name);
-    }
-    return path;
-  }
-
-  @Override
-  public void enter(NodeState before, NodeState after) {
-    if (EmptyNodeState.MISSING_NODE == before && parent == null){
-      context.enableReindexMode();
+    public FulltextIndexEditor(FulltextIndexEditorContext<D> context) {
+        this.parent = null;
+        this.path = "/";
+        this.context = context;
+        this.isDeleted = false;
+        this.matcherState = MatcherState.NONE;
+        this.pathFilter = context.getDefinition().getPathFilter();
+        this.pathFilterResult = this.pathFilter.filter(PathUtils.ROOT_PATH);
     }
 
-    //Only check for indexing if the result is include.
-    //In case like TRAVERSE nothing needs to be indexed for those
-    //path
-    if (pathFilterResult == PathFilter.Result.INCLUDE) {
-      //For traversal in deleted sub tree before state has to be used
-      NodeState current = after.exists() ? after : before;
-      indexingRule = getDefinition().getApplicableIndexingRule(current);
-
-      if (indexingRule != null) {
-        currentMatchers = indexingRule.getAggregate().createMatchers(this);
-      }
+    public FulltextIndexEditor(FulltextIndexEditor<D> parent,
+                               String path,
+                               MatcherState matcherState,
+                               PathFilter pathFilter,
+                               PathFilter.Result pathFilterResult,
+                               boolean isDeleted) {
+        this.parent = parent;
+        this.path = path;
+        this.context = parent.context;
+        this.isDeleted = isDeleted;
+        this.matcherState = matcherState;
+        this.pathFilter = pathFilter;
+        this.pathFilterResult = pathFilterResult;
     }
-  }
 
-  @Override
-  public void leave(NodeState before, NodeState after)
-      throws CommitFailedException {
-    if (propertiesChanged || !before.exists()) {
-      String path = getPath();
-      if (addOrUpdate(path, after, before.exists())) {
-        long indexed = context.incIndexedNodes();
-        if (indexed % 1000 == 0) {
-          log.debug("[{}] => Indexed {} nodes...", getIndexName(), indexed);
+    public String getPath() {
+        return path;
+    }
+
+    @Override
+    public void enter(NodeState before, NodeState after) {
+        if (EmptyNodeState.MISSING_NODE == before && parent == null) {
+            context.enableReindexMode();
         }
-      }
-    }
 
-    for (Aggregate.Matcher m : matcherState.affectedMatchers){
-      m.markRootDirty();
-    }
+        //Only check for indexing if the result is include.
+        //In case like TRAVERSE nothing needs to be indexed for those paths
+        if (pathFilterResult == PathFilter.Result.INCLUDE) {
+            //For traversal in deleted sub tree before state has to be used
+            NodeState current = after.exists() ? after : before;
+            indexingRule = getDefinition().getApplicableIndexingRule(current);
 
-    if (parent == null) {
-      PropertyUpdateCallback callback = context.getPropertyUpdateCallback();
-      if (callback != null) {
-        callback.done();
-      }
-
-      try {
-        context.closeWriter();
-      } catch (IOException e) {
-        CommitFailedException ce = new CommitFailedException("Fulltext", 4,
-            "Failed to close the Fulltext index " + context.getIndexingContext().getIndexPath(), e);
-        context.getIndexingContext().indexUpdateFailed(ce);
-        throw ce;
-      }
-      if (context.getIndexedNodes() > 0) {
-        log.debug("[{}] => Indexed {} nodes, done.", getIndexName(), context.getIndexedNodes());
-      }
-    }
-  }
-
-  @Override
-  public void propertyAdded(PropertyState after) {
-    markPropertyChanged(after.getName());
-    checkAggregates(after.getName());
-    propertyUpdated(null, after);
-  }
-
-  @Override
-  public void propertyChanged(PropertyState before, PropertyState after) {
-    markPropertyChanged(before.getName());
-    propertiesModified.add(before);
-    checkAggregates(before.getName());
-    propertyUpdated(before, after);
-  }
-
-  @Override
-  public void propertyDeleted(PropertyState before) {
-    markPropertyChanged(before.getName());
-    propertiesModified.add(before);
-    checkAggregates(before.getName());
-    propertyUpdated(before, null);
-  }
-
-  @Override
-  public Editor childNodeAdded(String name, NodeState after) {
-    PathFilter.Result filterResult = getPathFilterResult(name);
-    if (filterResult != PathFilter.Result.EXCLUDE) {
-      return new FulltextIndexEditor<>(this, name, getMatcherState(name, after), filterResult, false);
-    }
-    return null;
-  }
-
-  @Override
-  public Editor childNodeChanged(
-      String name, NodeState before, NodeState after) {
-    PathFilter.Result filterResult = getPathFilterResult(name);
-    if (filterResult != PathFilter.Result.EXCLUDE) {
-      return new FulltextIndexEditor<>(this, name, getMatcherState(name, after), filterResult, false);
-    }
-    return null;
-  }
-
-  @Override
-  public Editor childNodeDeleted(String name, NodeState before)
-      throws CommitFailedException {
-    PathFilter.Result filterResult = getPathFilterResult(name);
-    if (filterResult == PathFilter.Result.EXCLUDE) {
-      return null;
-    }
-
-    if (!isDeleted) {
-      // tree deletion is handled on the parent node
-      String path = concat(getPath(), name);
-      try {
-        FulltextIndexWriter<D> writer = context.getWriter();
-        // Remove all index entries in the removed subtree
-        writer.deleteDocuments(path);
-        this.context.indexUpdate();
-      } catch (IOException e) {
-        CommitFailedException ce = new CommitFailedException("Fulltext", 5, "Failed to remove the index entries of"
-            + " the removed subtree " + path + "for index " + context.getIndexingContext().getIndexPath(), e);
-        context.getIndexingContext().indexUpdateFailed(ce);
-        throw ce;
-      }
-    }
-
-    MatcherState ms = getMatcherState(name, before);
-    if (!ms.isEmpty()){
-      return new FulltextIndexEditor<>(this, name, ms, filterResult, true);
-    }
-    return null; // no need to recurse down the removed subtree
-  }
-
-  public FulltextIndexEditorContext<D> getContext() {
-    return context;
-  }
-
-  private boolean addOrUpdate(String path, NodeState state, boolean isUpdate)
-      throws CommitFailedException {
-    try {
-      D d = makeDocument(path, state, isUpdate);
-      if (d != null) {
-        if (log.isTraceEnabled()) {
-          log.trace("[{}] Indexed document for {} is {}", getIndexName(), path, d);
+            if (indexingRule != null) {
+                currentMatchers = indexingRule.getAggregate().createMatchers(this);
+            }
         }
-        context.indexUpdate();
-        context.getWriter().updateDocument(path, d);
-        return true;
-      }
-    } catch (IOException e) {
-      log.warn("Failed to index the node [{}] due to {}", path, e.getMessage());
-      CommitFailedException ce = new CommitFailedException("Fulltext", 3,
-          "Failed to index the node " + path, e);
-      context.getIndexingContext().indexUpdateFailed(ce);
-      throw ce;
-    } catch (IllegalArgumentException ie) {
-      log.warn("Failed to index the node [{}]", path, ie);
-    }
-    return false;
-  }
-
-  private D makeDocument(String path, NodeState state, boolean isUpdate) throws IOException {
-    if (!isIndexable()) {
-      return null;
-    }
-    return context.newDocumentMaker(indexingRule, path).makeDocument(state, isUpdate, propertiesModified);
-  }
-
-
-  //~-------------------------------------------------------< Aggregate >
-
-  @Override
-  public void markDirty() {
-    propertiesChanged = true;
-  }
-
-  private MatcherState getMatcherState(String name, NodeState after) {
-    List<Aggregate.Matcher> matched = new ArrayList<>();
-    List<Aggregate.Matcher> inherited = new ArrayList<>();
-    for (Aggregate.Matcher m : Iterables.concat(matcherState.inherited, currentMatchers)) {
-      Aggregate.Matcher result = m.match(name, after);
-      if (result.getStatus() == Aggregate.Matcher.Status.MATCH_FOUND){
-        matched.add(result);
-      }
-
-      if (result.getStatus() != Aggregate.Matcher.Status.FAIL){
-        inherited.addAll(result.nextSet());
-      }
     }
 
-    if (!matched.isEmpty() || !inherited.isEmpty()) {
-      return new MatcherState(matched, inherited);
-    }
-    return MatcherState.NONE;
-  }
-
-
-  /*
-   * Determines which all matchers are affected by this property change
-   *
-   * @param name modified property name
-   */
-  private void checkAggregates(String name) {
-    for (Aggregate.Matcher m : matcherState.matched) {
-      if (!matcherState.affectedMatchers.contains(m)
-          && m.aggregatesProperty(name)) {
-        matcherState.affectedMatchers.add(m);
-      }
-    }
-  }
-
-  static class MatcherState {
-    final static MatcherState NONE = new MatcherState(List.of(), List.of());
-
-    final List<Aggregate.Matcher> matched;
-    final List<Aggregate.Matcher> inherited;
-    final Set<Aggregate.Matcher> affectedMatchers;
-
-    public MatcherState(List<Aggregate.Matcher> matched,
-                        List<Aggregate.Matcher> inherited){
-      this.matched = matched;
-      this.inherited = inherited;
-
-      //Affected matches would only be used when there are
-      //some matched matchers
-      if (matched.isEmpty()){
-        affectedMatchers = Collections.emptySet();
-      } else {
-        affectedMatchers = SetUtils.newIdentityHashSet();
-      }
-    }
-
-    public boolean isEmpty() {
-      return matched.isEmpty() && inherited.isEmpty();
-    }
-  }
-
-  private void markPropertyChanged(String name) {
-    if (isIndexable()
-        && !propertiesChanged
-        && indexingRule.isIndexed(name)) {
-      propertiesChanged = true;
-    }
-  }
-
-  private void propertyUpdated(PropertyState before, PropertyState after) {
-    PropertyUpdateCallback callback = context.getPropertyUpdateCallback();
-
-    //Avoid further work if no callback is present
-    if (callback == null) {
-      return;
-    }
-
-    String propertyName = before != null ? before.getName() : after.getName();
-
-    if (isIndexable()) {
-      PropertyDefinition pd = indexingRule.getConfig(propertyName);
-      if (pd != null) {
-        callback.propertyUpdated(getPath(), propertyName, pd, before, after);
-      }
-    }
-
-    for (Aggregate.Matcher m : matcherState.matched) {
-      if (m.aggregatesProperty(propertyName)) {
-        Aggregate.Include i = m.getCurrentInclude();
-        if (i instanceof Aggregate.PropertyInclude) {
-          PropertyDefinition pd = ((Aggregate.PropertyInclude) i).getPropertyDefinition();
-          String propertyRelativePath = PathUtils.concat(m.getMatchedPath(), propertyName);
-
-          callback.propertyUpdated(m.getRootPath(), propertyRelativePath, pd, before, after);
+    @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        if (propertiesChanged || !before.exists()) {
+            if (addOrUpdate(path, after, before.exists())) {
+                long indexed = context.incIndexedNodes();
+                if (indexed % 1000 == 0) {
+                    log.debug("[{}] => Indexed {} nodes...", getIndexName(), indexed);
+                }
+            }
         }
-      }
+
+        BitSet bitSet = matcherState.affectedMatchers;
+        for (int i = bitSet.nextSetBit(0); i != -1; i = bitSet.nextSetBit(i + 1)) {
+            Aggregate.Matcher m = matcherState.matched.get(i);
+            m.markRootDirty();
+        }
+
+        if (parent == null) {
+            PropertyUpdateCallback callback = context.getPropertyUpdateCallback();
+            if (callback != null) {
+                callback.done();
+            }
+
+            try {
+                context.closeWriter();
+            } catch (IOException e) {
+                CommitFailedException ce = new CommitFailedException("Fulltext", 4,
+                        "Failed to close the Fulltext index " + context.getIndexingContext().getIndexPath(), e);
+                context.getIndexingContext().indexUpdateFailed(ce);
+                throw ce;
+            }
+            if (context.getIndexedNodes() > 0) {
+                log.debug("[{}] => Indexed {} nodes, done.", getIndexName(), context.getIndexedNodes());
+            }
+        }
     }
-  }
 
-  private IndexDefinition getDefinition() {
-    return context.getDefinition();
-  }
+    @Override
+    public void propertyAdded(PropertyState after) {
+        markPropertyChanged(after.getName());
+        checkAggregates(after.getName());
+        propertyUpdated(null, after);
+    }
 
-  private boolean isIndexable(){
-    return indexingRule != null;
-  }
+    @Override
+    public void propertyChanged(PropertyState before, PropertyState after) {
+        markPropertyChanged(before.getName());
+        if (isIndexable()) {
+            propertiesModified.add(before);
+        }
+        checkAggregates(before.getName());
+        propertyUpdated(before, after);
+    }
 
-  private PathFilter.Result getPathFilterResult(String childNodeName) {
-    return context.getDefinition().getPathFilter().filter(concat(getPath(), childNodeName));
-  }
+    @Override
+    public void propertyDeleted(PropertyState before) {
+        markPropertyChanged(before.getName());
+        if (isIndexable()) {
+            propertiesModified.add(before);
+        }
+        checkAggregates(before.getName());
+        propertyUpdated(before, null);
+    }
 
-  private String getIndexName() {
-    return context.getDefinition().getIndexName();
-  }
+    @Override
+    public Editor childNodeAdded(String name, NodeState after) {
+        String childPath = PathUtils.concat(path, name);
+        PathFilter.Result filterResult = pathFilter.filter(childPath);
+        if (filterResult != PathFilter.Result.EXCLUDE) {
+            return new FulltextIndexEditor<>(this, childPath, getMatcherState(name, after), pathFilter, filterResult, false);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public Editor childNodeChanged(String name, NodeState before, NodeState after) {
+        String childPath = PathUtils.concat(path, name);
+        PathFilter.Result filterResult = pathFilter.filter(childPath);
+        if (filterResult != PathFilter.Result.EXCLUDE) {
+            return new FulltextIndexEditor<>(this, childPath, getMatcherState(name, after), pathFilter, filterResult, false);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public Editor childNodeDeleted(String name, NodeState before)
+            throws CommitFailedException {
+        String childPath = PathUtils.concat(path, name);
+        PathFilter.Result filterResult = pathFilter.filter(childPath);
+        if (filterResult == PathFilter.Result.EXCLUDE) {
+            return null;
+        }
+
+        if (!isDeleted) {
+            // tree deletion is handled on the parent node
+            try {
+                FulltextIndexWriter<D> writer = context.getWriter();
+                // Remove all index entries in the removed subtree
+                writer.deleteDocuments(childPath);
+                this.context.indexUpdate();
+            } catch (IOException e) {
+                CommitFailedException ce = new CommitFailedException("Fulltext", 5, "Failed to remove the index entries of"
+                        + " the removed subtree " + path + "for index " + context.getIndexingContext().getIndexPath(), e);
+                context.getIndexingContext().indexUpdateFailed(ce);
+                throw ce;
+            }
+        }
+
+        MatcherState ms = getMatcherState(name, before);
+        if (ms.isEmpty()) {
+            return null; // no need to recurse down the removed subtree
+        } else {
+            return new FulltextIndexEditor<>(this, childPath, ms, pathFilter, filterResult, true);
+        }
+    }
+
+    public FulltextIndexEditorContext<D> getContext() {
+        return context;
+    }
+
+    private boolean addOrUpdate(String path, NodeState state, boolean isUpdate)
+            throws CommitFailedException {
+        try {
+            D d = makeDocument(path, state, isUpdate);
+            if (d != null) {
+                if (log.isTraceEnabled()) {
+                    log.trace("[{}] Indexed document for {} is {}", getIndexName(), path, d);
+                }
+                context.indexUpdate();
+                context.getWriter().updateDocument(path, d);
+                return true;
+            }
+        } catch (IOException e) {
+            log.warn("Failed to index the node [{}] due to {}", path, e.getMessage());
+            CommitFailedException ce = new CommitFailedException("Fulltext", 3,
+                    "Failed to index the node " + path, e);
+            context.getIndexingContext().indexUpdateFailed(ce);
+            throw ce;
+        } catch (IllegalArgumentException ie) {
+            log.warn("Failed to index the node [{}]", path, ie);
+        }
+        return false;
+    }
+
+    private D makeDocument(String path, NodeState state, boolean isUpdate) throws IOException {
+        if (isIndexable()) {
+            return context.newDocumentMaker(indexingRule, path).makeDocument(state, isUpdate, propertiesModified);
+        } else {
+            return null;
+        }
+    }
+
+
+    //~-------------------------------------------------------< Aggregate >
+
+    @Override
+    public void markDirty() {
+        propertiesChanged = true;
+    }
+
+    private MatcherState getMatcherState(String name, NodeState after) {
+        // Short circuit if there are no matchers to avoid creating the iterator over these two lists
+        if (matcherState.inherited.isEmpty() && currentMatchers.isEmpty()) {
+            return MatcherState.NONE;
+        }
+        List<Aggregate.Matcher> matched = EMPTY_AGGREGATE_MATCHER_LIST;
+        List<Aggregate.Matcher> inherited = EMPTY_AGGREGATE_MATCHER_LIST;
+        for (Aggregate.Matcher m : IterableUtils.chainedIterable(matcherState.inherited, currentMatchers)) {
+            Aggregate.Matcher result = m.match(name, after);
+            if (result.getStatus() == Aggregate.Matcher.Status.MATCH_FOUND) {
+                if (matched == EMPTY_AGGREGATE_MATCHER_LIST) {
+                    matched = new ArrayList<>();
+                }
+                matched.add(result);
+            }
+
+            if (result.getStatus() != Aggregate.Matcher.Status.FAIL) {
+                if (inherited == EMPTY_AGGREGATE_MATCHER_LIST) {
+                    inherited = new ArrayList<>();
+                }
+                result.nextSet(inherited);
+            }
+        }
+
+        if (matched.isEmpty() && inherited.isEmpty()) {
+            return MatcherState.NONE;
+        } else {
+            return new MatcherState(matched, inherited);
+        }
+    }
+
+
+    /*
+     * Determines which all matchers are affected by this property change
+     *
+     * @param name modified property name
+     */
+    private void checkAggregates(String name) {
+        // Performance critical code, iterate using an index to avoid allocating an iterator
+        for (int i = 0; i < matcherState.matched.size(); i++) {
+            if (!matcherState.affectedMatchers.get(i)) {
+                Aggregate.Matcher m = matcherState.matched.get(i);
+                if (m.aggregatesProperty(name)) {
+                    matcherState.affectedMatchers.set(i);
+                }
+            }
+        }
+    }
+
+    public static class MatcherState {
+        private final static BitSet EMPTY_BITSET = new BitSet(0);
+        final static MatcherState NONE = new MatcherState(List.of(), List.of());
+
+        final List<Aggregate.Matcher> matched;
+        final List<Aggregate.Matcher> inherited;
+        final BitSet affectedMatchers;
+
+        public MatcherState(List<Aggregate.Matcher> matched, List<Aggregate.Matcher> inherited) {
+            this.matched = matched;
+            this.inherited = inherited;
+            // Affected matches would only be used when there are some matched matchers
+            this.affectedMatchers = matched.isEmpty() ? EMPTY_BITSET : new BitSet(matched.size());
+        }
+
+        public boolean isEmpty() {
+            return matched.isEmpty() && inherited.isEmpty();
+        }
+    }
+
+    private void markPropertyChanged(String name) {
+        if (isIndexable()
+                && !propertiesChanged
+                && indexingRule.isIndexed(name)) {
+            propertiesChanged = true;
+        }
+    }
+
+    private void propertyUpdated(PropertyState before, PropertyState after) {
+        PropertyUpdateCallback callback = context.getPropertyUpdateCallback();
+
+        //Avoid further work if no callback is present
+        if (callback == null) {
+            return;
+        }
+
+        String propertyName = before != null ? before.getName() : after.getName();
+
+        if (isIndexable()) {
+            PropertyDefinition pd = indexingRule.getConfig(propertyName);
+            if (pd != null) {
+                callback.propertyUpdated(path, propertyName, pd, before, after);
+            }
+        }
+
+        // Performance critical code, iterate using an index to avoid allocating an iterator
+        for (int i = 0; i < matcherState.matched.size(); i++) {
+            Aggregate.Matcher m = matcherState.matched.get(i);
+            if (m.aggregatesProperty(propertyName)) {
+                Aggregate.Include aggregateInclude = m.getCurrentInclude();
+                if (aggregateInclude instanceof Aggregate.PropertyInclude) {
+                    PropertyDefinition pd = ((Aggregate.PropertyInclude) aggregateInclude).getPropertyDefinition();
+                    String propertyRelativePath = PathUtils.concat(m.getMatchedPath(), propertyName);
+                    callback.propertyUpdated(m.getRootPath(), propertyRelativePath, pd, before, after);
+                }
+            }
+        }
+    }
+
+    private IndexDefinition getDefinition() {
+        return context.getDefinition();
+    }
+
+    private boolean isIndexable() {
+        return indexingRule != null;
+    }
+
+    private String getIndexName() {
+        return context.getDefinition().getIndexName();
+    }
 }

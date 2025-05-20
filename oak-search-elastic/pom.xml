@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.77-SNAPSHOT</version>
+    <version>1.81-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -33,8 +33,8 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.java.client.version>8.15.0</elasticsearch.java.client.version>
-    <lucene.version>9.11.1</lucene.version>
+    <elasticsearch.java.client.version>8.17.2</elasticsearch.java.client.version>
+    <lucene.version>9.12.0</lucene.version>
   </properties>
 
   <build>
@@ -83,6 +83,18 @@
             <exclude>**/test.txt</exclude>
             <exclude>**/fvs.csv</exclude>
           </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <environmentVariables>
+            <Authorization>Bearer test-token</Authorization>
+            <inferenceServiceUrl>http://localhost:8080/embeddings</inferenceServiceUrl>
+            <EMBEDDING_MODEL>embedding-test-model</EMBEDDING_MODEL>
+          </environmentVariables>
         </configuration>
       </plugin>
     </plugins>

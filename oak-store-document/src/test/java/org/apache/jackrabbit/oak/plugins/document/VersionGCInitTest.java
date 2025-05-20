@@ -33,6 +33,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VAL
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
@@ -66,6 +67,7 @@ public class VersionGCInitTest {
         // fullGC values shouldn't have been updated without fullGC enabled
         assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
         assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP));
     }
 
     @Test
@@ -88,6 +90,57 @@ public class VersionGCInitTest {
         assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
         assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
         assertEquals(MIN_ID_VALUE, vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP));
+    }
+
+    @Test
+    public void lazyInitializeWithFullGCWithGenerationWithFullGCDisabled() throws Exception {
+        ns = builderProvider.newBuilder().setFullGCGeneration(1).getNodeStore();
+        DocumentStore store = ns.getDocumentStore();
+        Document vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNull(vgc);
+
+        enableFullGC(ns.getVersionGarbageCollector());
+        long offset = SECONDS.toMillis(42);
+        String id = getIdFromPath("/node");
+        Revision r = new Revision(offset, 0, 1);
+        UpdateOp op = new UpdateOp(id, true);
+        NodeDocument.setModified(op, r);
+        store.createOrUpdate(NODES, op);
+        VersionGCStats stats = ns.getVersionGarbageCollector().gc(1, DAYS);
+
+        vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNotNull(vgc);
+        assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        assertEquals(MIN_ID_VALUE, vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP));
+    }
+
+    @Test
+    public void lazyInitializeWithFullGCWithGeneration() throws Exception {
+        ns = builderProvider.newBuilder().setFullGCGeneration(1).setFullGCEnabled(true).getNodeStore();
+        DocumentStore store = ns.getDocumentStore();
+        Document vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNotNull(vgc);
+        assertEquals(1L, vgc.get(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP));
+
+        enableFullGC(ns.getVersionGarbageCollector());
+        ns.getVersionGarbageCollector().resetFullGcIfGenChange(1);
+        long offset = SECONDS.toMillis(42);
+        String id = getIdFromPath("/node");
+        Revision r = new Revision(offset, 0, 1);
+        UpdateOp op = new UpdateOp(id, true);
+        NodeDocument.setModified(op, r);
+        store.createOrUpdate(NODES, op);
+        VersionGCStats stats = ns.getVersionGarbageCollector().gc(1, DAYS);
+
+        vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNotNull(vgc);
+        assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        assertEquals(MIN_ID_VALUE, vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        assertEquals(1L, vgc.get(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP));
     }
 
     @Test
@@ -104,6 +157,7 @@ public class VersionGCInitTest {
         assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
         assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
         assertEquals(MIN_ID_VALUE, vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP));
     }
 
     @Test
@@ -128,6 +182,7 @@ public class VersionGCInitTest {
         // fullGC values shouldn't have been updated in dryRun mode
         assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
         assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP));
 
         // dryRun mode values should have been updated
         assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP));
@@ -149,6 +204,7 @@ public class VersionGCInitTest {
         // fullGC values shouldn't have been updated in dryRun mode
         assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
         assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        assertNull(vgc.get(SETTINGS_COLLECTION_FULL_GC_GENERATION_PROP));
 
         // dryRun mode values should have been updated
         assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP));

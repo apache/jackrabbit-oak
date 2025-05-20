@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -24,6 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -121,7 +121,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
         PropertyState privs = PropertyStates.createProperty(REP_PRIVILEGES, privilegeBitsProvider.getPrivilegeNames(entry.getPrivilegeBits()), Type.NAMES);
         when(t.getProperty(REP_PRIVILEGES)).thenReturn(privs);
 
-        Iterable props = Iterables.transform(entry.getRestrictions(), Restriction::getProperty);
+        Iterable props = IterableUtils.transform(entry.getRestrictions(), Restriction::getProperty);
         Tree rTree = mock(Tree.class);
         if (props.iterator().hasNext()) {
             when(rTree.exists()).thenReturn(true);

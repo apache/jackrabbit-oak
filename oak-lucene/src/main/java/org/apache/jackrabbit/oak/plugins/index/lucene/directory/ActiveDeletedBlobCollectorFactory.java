@@ -38,8 +38,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.IOFileFilter;
 import org.apache.commons.io.filefilter.RegexFileFilter;
@@ -324,7 +324,11 @@ public class ActiveDeletedBlobCollectorFactory {
             long startBlobTrackerSyncTime = clock.getTime();
             // Synchronize deleted blob ids with the blob id tracker
             try {
-                Closeables.close(idTempDeleteWriter, true);
+                try {
+                    IOUtils.close(idTempDeleteWriter);
+                } catch (IOException ex) {
+                    LOG.warn("IOException thrown while closing idTempDeleteWriter", ex);
+                }
 
                 if (blobIdsTracked && numBlobsDeleted > 0) {
                     BlobTracker tracker = ((BlobTrackingStore) blobStore).getTracker();

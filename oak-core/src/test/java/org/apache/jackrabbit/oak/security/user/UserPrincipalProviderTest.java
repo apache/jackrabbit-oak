@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
@@ -267,7 +268,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
                 SEARCH_TYPE_GROUP, 0, -1);
         Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
                 SEARCH_TYPE_GROUP, 0, -1);
-        assertTrue(Iterators.elementsEqual(i1, i2));
+        assertTrue(IteratorUtils.elementsEqual(i1, i2));
     }
 
     @Test
@@ -279,8 +280,8 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
             root.commit();
 
             Iterator<? extends Principal> principals = principalProvider.findPrincipals(null, SEARCH_TYPE_GROUP);
-            Iterator filtered = Iterators.filter(principals, principal -> EveryonePrincipal.NAME.equals(principal.getName()));
-            assertEquals(1, Iterators.size(filtered));
+            Iterator filtered = IteratorUtils.filter(principals, principal -> EveryonePrincipal.NAME.equals(principal.getName()));
+            assertEquals(1, IteratorUtils.size(filtered));
         } finally {
             if (everyoneGroup != null) {
                 everyoneGroup.remove();
@@ -296,7 +297,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
                     SEARCH_TYPE_GROUP, 0, limit);
             Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
                     SEARCH_TYPE_GROUP, 0, limit);
-            assertTrue(Iterators.elementsEqual(i1, i2));
+            assertTrue(IteratorUtils.elementsEqual(i1, i2));
         }
     }
 

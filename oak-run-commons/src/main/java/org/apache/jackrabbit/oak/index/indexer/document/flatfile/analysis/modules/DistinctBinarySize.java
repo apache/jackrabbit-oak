@@ -106,7 +106,7 @@ public class DistinctBinarySize implements StatsCollector {
         referenceCount += list.size();
         for(BinaryId id : list) {
             referenceSize += id.getLength();
-            if (largeBinariesCountMax > 0 && id.getLength() >= largeBinarySizeThreshold) {
+            if (largeBinariesCountMax > 0 && id.getLength() > largeBinarySizeThreshold) {
                 largeBinaries.add(id);
                 truncateLargeBinariesSet();
             } else {
@@ -132,15 +132,15 @@ public class DistinctBinarySize implements StatsCollector {
         }
         long[] lengths = new long[largeBinaries.size()];
         int i = 0;
-        for(BinaryId id : largeBinaries) {
+        for (BinaryId id : largeBinaries) {
             lengths[i++] = id.getLength();
         }
         Arrays.sort(lengths);
         // the new threshold is the median of all the lengths
         largeBinarySizeThreshold = lengths[largeBinariesCountMax];
-        for(Iterator<BinaryId> it = largeBinaries.iterator(); it.hasNext();) {
+        for (Iterator<BinaryId> it = largeBinaries.iterator(); it.hasNext();) {
             BinaryId id = it.next();
-            if (id.getLength() < largeBinarySizeThreshold) {
+            if (id.getLength() <= largeBinarySizeThreshold) {
                 addToBloomFilter(id);
                 it.remove();
             }

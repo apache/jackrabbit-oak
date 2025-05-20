@@ -29,13 +29,12 @@ public class MetricsUtils {
 
     /**
      * <p>Set a counter metric to the given value. The previous value of the metric is discarded and replaced by the
-     * given value.</p>
+     * given value.
      * <p>
      * Note that this method is to support a non-standard use case of the counter metrics.
      * Normally counters are incremented periodically to keep track of how many times an event occurred. This method
      * instead is intended to be called only once for a given metric, to provide the final value of the metrics. If
      * called more than once for the same metric, it will log a warning and discard the old value.
-     * </p>
      *
      * @param statisticsProvider The statistics provider to use.
      * @param name               The name of the counter to set.

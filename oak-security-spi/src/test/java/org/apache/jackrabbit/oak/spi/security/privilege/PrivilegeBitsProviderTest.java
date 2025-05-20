@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -464,7 +463,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
         when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
 
         Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(KNOWN_PRIV_NAME);
-        assertTrue(Iterables.elementsEqual(List.of(KNOWN_PRIV_NAME), result));
+        assertTrue(IterableUtils.elementsEqual(List.of(KNOWN_PRIV_NAME), result));
     }
 
     @Test

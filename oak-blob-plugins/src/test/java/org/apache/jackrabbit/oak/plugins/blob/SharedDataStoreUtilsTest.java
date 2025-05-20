@@ -34,13 +34,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
@@ -473,7 +473,7 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<String> retrieved = SetUtils.toSet(Iterables.transform(SetUtils.toSet(dataStore.getAllRecords()),
+        Set<String> retrieved = SetUtils.toSet(IterableUtils.transform(SetUtils.toSet(dataStore.getAllRecords()),
                 input -> input.getIdentifier().toString()));
 
         assertEquals(added, retrieved);
@@ -504,7 +504,7 @@ public class SharedDataStoreUtilsTest {
             added.add(rec);
         }
 
-        Set<String> retrieved = SetUtils.toSet(Iterables.transform(SetUtils.toSet(dataStore.getAllRecords()),
+        Set<String> retrieved = SetUtils.toSet(IterableUtils.transform(SetUtils.toSet(dataStore.getAllRecords()),
                 input -> input.getIdentifier().toString()));
 
         assertEquals(added, retrieved);

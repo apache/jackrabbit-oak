@@ -27,11 +27,10 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.OakValue;
 import org.apache.jackrabbit.util.ISO8601;
@@ -89,7 +88,7 @@ public final class PropertyStates {
             String name, Iterable<Value> values)
             throws RepositoryException {
         int type = PropertyType.STRING;
-        Value first = Iterables.getFirst(values, null);
+        Value first = IterableUtils.getFirst(values, null);
         if (first != null) {
             type = first.getType();
         }

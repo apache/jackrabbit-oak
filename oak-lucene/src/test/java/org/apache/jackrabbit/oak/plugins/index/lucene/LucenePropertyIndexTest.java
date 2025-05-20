@@ -43,10 +43,8 @@ import java.util.concurrent.Executors;
 
 import javax.jcr.PropertyType;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -59,7 +57,9 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
@@ -3123,7 +3123,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     private String explainXpath(String query) throws ParseException {
         String explain = "explain " + query;
         Result result = executeQuery(explain, "xpath", NO_BINDINGS);
-        ResultRow row = Iterables.getOnlyElement(result.getRows());
+        ResultRow row = StreamUtils.toStream(result.getRows()).findAny().orElseThrow();
         return row.getValue("plan").getValue(Type.STRING);
     }
 

@@ -40,9 +40,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -55,7 +52,9 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -88,7 +87,6 @@ import org.slf4j.LoggerFactory;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
@@ -197,10 +195,8 @@ public class DataStoreCommand implements Command {
             if (dataStoreOpts.dumpRefs()) {
                 log.info("Initiating dump of data store references");
                 final File referencesTemp = File.createTempFile("traverseref", null, new File(opts.getTempDirectory()));
-                final BufferedWriter writer = new BufferedWriter(new FileWriter(referencesTemp, StandardCharsets.UTF_8));
 
-                boolean threw = true;
-                try {
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(referencesTemp, StandardCharsets.UTF_8))) {
                     BlobReferenceRetriever retriever = getRetriever(fixture, dataStoreOpts, opts);
 
                     retriever.collectReferences(new ReferenceCollector() {
@@ -228,7 +224,6 @@ public class DataStoreCommand implements Command {
 
                     writer.flush();
                     writer.close();
-                    threw = false;
 
                     sort(referencesTemp, idComparator);
 
@@ -238,8 +233,6 @@ public class DataStoreCommand implements Command {
                     FileUtils.forceMkdir(parent);
 
                     FileUtils.copyFile(referencesTemp, references);
-                } finally {
-                    Closeables.close(writer, threw);
                 }
             } else if (dataStoreOpts.dumpIds()) {
                 log.info("Initiating dump of data store IDs");
@@ -392,7 +385,7 @@ public class DataStoreCommand implements Command {
     private static void retrieveBlobIds(GarbageCollectableBlobStore blobStore, File blob) throws Exception {
 
         System.out.println("Starting dump of blob ids");
-        Stopwatch watch = createStarted();
+        Stopwatch watch = Stopwatch.createStarted();
 
         Iterator<String> blobIter = blobStore.getAllChunkIds(0);
         int count = writeStrings(blobIter, blob, false);

@@ -28,7 +28,7 @@ import org.osgi.annotation.versioning.ProviderType;
 /**
  * Holds information related to the {@link Mount}s configured in a {@code ContentRepository}.
  * 
- * <p>The configuration may either be trivial - only a default mount is configured, or defining at least one non-default mount.</p>
+ * <p>The configuration may either be trivial - only a default mount is configured, or defining at least one non-default mount.
  */
 @ProviderType
 public interface MountInfoProvider {

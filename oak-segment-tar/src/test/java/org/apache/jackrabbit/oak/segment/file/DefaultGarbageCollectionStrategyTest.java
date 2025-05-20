@@ -26,15 +26,14 @@ import org.apache.jackrabbit.oak.segment.file.tar.CleanupContext;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
-import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.verification.VerificationMode;
 
-import java.io.File;
 import java.io.IOException;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -43,11 +42,10 @@ import static org.mockito.Mockito.when;
 
 public class DefaultGarbageCollectionStrategyTest {
     private final GCJournal journal;
-    private final GCJournalFile journalFile;
 
-    public DefaultGarbageCollectionStrategyTest() throws IOException {
-        journalFile = Mockito.spy(new LocalGCJournalFile(File.createTempFile("gctest", "log")));
-        journal = new GCJournal(journalFile);
+    public DefaultGarbageCollectionStrategyTest() {
+        journal = Mockito.mock(GCJournal.class);
+        when(journal.read()).thenReturn(Mockito.mock(GCJournal.GCJournalEntry.class));
     }
 
     private GarbageCollectionStrategy.Context getMockedGCContext(MemoryStore store) throws IOException {
@@ -78,8 +76,13 @@ public class DefaultGarbageCollectionStrategyTest {
         strategy.cleanup(getMockedGCContext(store), result);
     }
 
-    private void verifyGCJournalPersistence(VerificationMode mode) throws IOException {
-        verify(journalFile, mode).writeLine(anyString());
+    private void verifyGCJournalPersistence(VerificationMode mode) {
+        verify(journal, mode).persist(
+                anyLong(),
+                anyLong(),
+                any(GCGeneration.class),
+                anyLong(),
+                anyString());
     }
 
     @Test
@@ -88,47 +91,29 @@ public class DefaultGarbageCollectionStrategyTest {
                 SegmentGCOptions.GCType.FULL,
                 GCGeneration.NULL,
                 SegmentGCOptions.defaultGCOptions(),
-                new RecordId(SegmentId.NULL, 1),
-                0
-        );
+                RecordId.NULL,
+                0);
         runCleanup(result);
         verifyGCJournalPersistence(times(1));
     }
 
     @Test
-    public void partialCompactionPersistsToJournal() throws Exception {
-        CompactionResult result = CompactionResult.partiallySucceeded(
+    public void partialCompactionDoesNotPersistToJournal() throws Exception {
+        CompactionResult result = CompactionResult.partiallySucceeded(GCGeneration.NULL, RecordId.NULL, 0);
+        runCleanup(result);
+        verifyGCJournalPersistence(never());
+    }
+
+    @Test
+    public void skippedCompactionDoesNotPersistToJournal() throws Exception {
+        CompactionResult result = CompactionResult.skipped(
+                SegmentGCOptions.GCType.FULL,
                 GCGeneration.NULL,
-                new RecordId(SegmentId.NULL, 1),
-                0
-        );
+                SegmentGCOptions.defaultGCOptions(),
+                RecordId.NULL,
+                0);
         runCleanup(result);
-        verifyGCJournalPersistence(times(1));
-    }
-
-    @Test
-    public void skippedCompactionMayPersistToJournal() throws Exception {
-        SegmentGCOptions.GCType gcType = SegmentGCOptions.GCType.FULL;
-        GCGeneration gcGeneration = GCGeneration.NULL;
-        SegmentGCOptions gcOptions = SegmentGCOptions.defaultGCOptions();
-        RecordId rootOne = new RecordId(SegmentId.NULL, 1);
-        RecordId rootTwo = new RecordId(SegmentId.NULL, 2);
-
-        // persist when there is no previous entry
-        runCleanup(CompactionResult.skipped(gcType, gcGeneration, gcOptions, rootOne, 0));
-        verifyGCJournalPersistence(times(1));
-
-        // don't persist when root is identical
-        runCleanup(CompactionResult.skipped(gcType, gcGeneration, gcOptions, rootOne, 0));
-        verifyGCJournalPersistence(times(1));
-
-        // persist when there is a new root
-        runCleanup(CompactionResult.skipped(gcType, gcGeneration, gcOptions, rootTwo, 0));
-        verifyGCJournalPersistence(times(2));
-
-        // don't persist when the root is null
-        runCleanup(CompactionResult.skipped(gcType, gcGeneration, gcOptions, RecordId.NULL, 0));
-        verifyGCJournalPersistence(times(2));
+        verifyGCJournalPersistence(never());
     }
 
     @Test

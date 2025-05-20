@@ -41,8 +41,8 @@ import java.util.Iterator;
  * persistent store the nodes only when the cache is full. The in-memory cache is limited by two parameters:
  *
  * <ul>
- *     <li>cacheSize: the maximum number of elements to keep in the in-memory cache</li>
- *     <li>cacheSizeMB: the maximum size of the in-memory cache in MB</li>
+ *     <li>cacheSize: the maximum number of elements to keep in the in-memory cache
+ *     <li>cacheSizeMB: the maximum size of the in-memory cache in MB
  * </ul>
  * <p>
  * The recommended configuration is to rely on the total memory usage to limit the cache, giving as much memory as

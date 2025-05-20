@@ -43,7 +43,6 @@ import java.util.stream.StreamSupport;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -250,7 +249,9 @@ public final class IndexUtils {
             asyncNames.remove(IndexConstants.INDEXING_MODE_SYNC);
             checkArgument(!asyncNames.isEmpty(), "No valid async name found for " +
                     "index [%s], definition %s", indexPath, idxState);
-            return Iterables.getOnlyElement(asyncNames);
+            checkArgument(asyncNames.size() == 1, "Multiple async names found for " +
+                    "index [%s], definition %s", indexPath, idxState);
+            return asyncNames.stream().findAny().orElseThrow();
         }
         return null;
     }

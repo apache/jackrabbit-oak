@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -25,6 +24,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.jetbrains.annotations.NotNull;
 
@@ -86,7 +86,7 @@ abstract class AbstractHasItemGetItemTest extends ReadDeepTreeTest {
         createForEachPrincipal(principal, acMgr, allPrivileges);
 
         adminSession.save();
-        nodeSet = ImmutableSet.copyOf(nodePaths);
+        nodeSet = SetUtils.toLinkedSet(nodePaths);
     }
 
     private void createForEachPrincipal(@NotNull Principal pGrantedRead, @NotNull JackrabbitAccessControlManager acMgr, @NotNull List<Privilege> allPrivileges) throws RepositoryException {

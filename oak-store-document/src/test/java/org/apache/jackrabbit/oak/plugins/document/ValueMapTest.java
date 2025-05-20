@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
@@ -167,7 +167,7 @@ public class ValueMapTest {
         }
         
         NodeDocument doc = docStore.find(NODES, id);
-        Iterators.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());
+        IteratorUtils.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());
 
         store.dispose();
     }
@@ -209,6 +209,6 @@ public class ValueMapTest {
         store.create(NODES, List.of(op, prevOp1, prevOp2));
         
         NodeDocument doc = store.find(NODES, rootId);
-        Iterators.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());
+        IteratorUtils.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());
     }
 }

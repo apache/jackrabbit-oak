@@ -41,14 +41,18 @@ public class AzurePersistenceManager {
     private AzurePersistenceManager() {
     }
 
-    public static AzurePersistence createAzurePersistenceFrom(@NotNull String accountName, @NotNull String containerName, @NotNull String rootPrefix, @NotNull Environment environment) throws IOException {
+    public static AzurePersistence createAzurePersistenceFrom(String accountName, String containerName, String rootPrefix, String sasToken) throws IOException {
+        return createAzurePersistence(null, sasToken, accountName, containerName, rootPrefix, false, false);
+    }
+
+    public static AzurePersistence createAzurePersistenceFrom(String accountName, String containerName, String rootPrefix, Environment environment) throws IOException {
         final String clientId = environment.getVariable(AZURE_CLIENT_ID);
         final String clientSecret = environment.getVariable(AZURE_CLIENT_SECRET);
         final String tenantId = environment.getVariable(AZURE_TENANT_ID);
 
         if (StringUtils.isNoneBlank(clientId, clientSecret, tenantId)) {
             try {
-                return createPersistenceFromServicePrincipalCredentials(accountName, containerName, rootPrefix, clientId, clientSecret, tenantId, false, false);
+                return createPersistenceFromServicePrincipalCredentials(accountName, containerName, rootPrefix, clientId, clientSecret, tenantId, false, true);
             } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
                 log.error("Error occurred while connecting to Azure Storage using service principals: ", e);
                 throw new IllegalArgumentException(
@@ -86,6 +90,7 @@ public class AzurePersistenceManager {
     }
 
     private static AzurePersistence createPersistenceFromAccessKey(String accountName, String containerName, String accessKey, String blobEndpoint, String rootPrefix, boolean enableSecondaryLocation, boolean createContainer) throws IOException {
+        checkIfEmpty(accessKey, "accessKey");
         StringBuilder connectionString = new StringBuilder();
         connectionString.append("DefaultEndpointsProtocol=https;");
         connectionString.append("AccountName=").append(accountName).append(';');
@@ -93,7 +98,7 @@ public class AzurePersistenceManager {
         if (!StringUtils.isBlank(blobEndpoint)) {
             connectionString.append("BlobEndpoint=").append(blobEndpoint).append(';');
         }
-        return createAzurePersistence(connectionString.toString(), accountName, containerName, rootPrefix, enableSecondaryLocation, createContainer);
+        return createAzurePersistence(connectionString.toString(), null, accountName, containerName, rootPrefix, enableSecondaryLocation, createContainer);
     }
 
     @NotNull
@@ -114,11 +119,12 @@ public class AzurePersistenceManager {
 
 
     @NotNull
-    private static AzurePersistence createPersistenceFromServicePrincipalCredentials(Configuration configuration) throws IOException {
+    private static AzurePersistence createPersistenceFromServicePrincipalCredentials(Configuration configuration) {
         return createPersistenceFromServicePrincipalCredentials(configuration.accountName(), configuration.containerName(), configuration.rootPath(), configuration.clientId(), configuration.clientSecret(), configuration.tenantId(), configuration.enableSecondaryLocation(), true);
     }
 
-    private static AzurePersistence createPersistenceFromServicePrincipalCredentials(String accountName, String containerName, String rootPrefix, String clientId, String clientSecret, String tenantId, boolean enableSecondaryLocation, boolean createContainer) throws IOException {
+    public static AzurePersistence createPersistenceFromServicePrincipalCredentials(String accountName, String containerName, String rootPrefix, String clientId, String clientSecret, String tenantId, boolean enableSecondaryLocation, boolean createContainer) {
+        checkArguments(accountName, containerName, rootPrefix);
         AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy = new AzureHttpRequestLoggingPolicy();
 
         ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
@@ -146,21 +152,41 @@ public class AzurePersistenceManager {
 
     @NotNull
     private static AzurePersistence createAzurePersistence(String connectionString, Configuration configuration, boolean createContainer) throws IOException {
-        return createAzurePersistence(connectionString, configuration.accountName(), configuration.containerName(), configuration.rootPath(), configuration.enableSecondaryLocation(), createContainer);
+        return createAzurePersistence(connectionString, null, configuration.accountName(), configuration.containerName(), configuration.rootPath(), configuration.enableSecondaryLocation(), createContainer);
     }
 
     @NotNull
-    private static AzurePersistence createAzurePersistence(String connectionString, String accountName, String containerName, String rootPrefix, boolean enableSecondaryLocation, boolean createContainer) throws IOException {
+    public static AzurePersistence createAzurePersistence(String connectionString, String sasToken, String accountName, String containerName, String rootPrefix, boolean enableSecondaryLocation, boolean createContainer) throws IOException {
+        if (StringUtils.isBlank(connectionString) && StringUtils.isBlank(sasToken)) {
+            throw new IllegalArgumentException("Both connectionString and sasToken are not configured. Please configure one of them.");
+        }
+        checkArguments(accountName, containerName, rootPrefix);
+
         try {
             AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy = new AzureHttpRequestLoggingPolicy();
 
             RequestRetryOptions retryOptions = readRequestRetryOptions(enableSecondaryLocation, accountName);
-            BlobContainerClient blobContainerClient = getBlobContainerClient(accountName, containerName, retryOptions, azureHttpRequestLoggingPolicy, connectionString);
+            BlobContainerClient blobContainerClient;
+            if (sasToken != null) {
+                blobContainerClient = getBlobContainerClientWithSas(accountName, containerName, retryOptions, azureHttpRequestLoggingPolicy, sasToken);
+            } else {
+                blobContainerClient = getBlobContainerClient(accountName, containerName, retryOptions, azureHttpRequestLoggingPolicy, connectionString);
+            }
 
             RequestRetryOptions writeRetryOptions = AzureRequestOptions.getRetryOperationsOptimiseForWriteOperations();
-            BlobContainerClient writeBlobContainerClient = getBlobContainerClient(accountName, containerName, writeRetryOptions, azureHttpRequestLoggingPolicy, connectionString);
+            BlobContainerClient writeBlobContainerClient;
+            if (sasToken != null) {
+                writeBlobContainerClient = getBlobContainerClientWithSas(accountName, containerName, writeRetryOptions, azureHttpRequestLoggingPolicy, sasToken);
+            } else {
+                writeBlobContainerClient = getBlobContainerClient(accountName, containerName, writeRetryOptions, azureHttpRequestLoggingPolicy, connectionString);
+            }
 
-            BlobContainerClient noRetryBlobContainerClient = getBlobContainerClient(accountName, containerName, null, azureHttpRequestLoggingPolicy, connectionString);
+            BlobContainerClient noRetryBlobContainerClient;
+            if (sasToken != null) {
+                noRetryBlobContainerClient = getBlobContainerClientWithSas(accountName, containerName, null, azureHttpRequestLoggingPolicy, sasToken);
+            } else {
+                noRetryBlobContainerClient = getBlobContainerClient(accountName, containerName, null, azureHttpRequestLoggingPolicy, connectionString);
+            }
 
             if (createContainer) {
                 blobContainerClient.createIfNotExists();
@@ -174,8 +200,15 @@ public class AzurePersistenceManager {
         }
     }
 
+    private static BlobContainerClient getBlobContainerClientWithSas(String accountName, String containerName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String sasToken) {
+        BlobServiceClient blobServiceClient = blobServiceClientBuilder(accountName, requestRetryOptions, azureHttpRequestLoggingPolicy, sasToken)
+                .buildClient();
+
+        return blobServiceClient.getBlobContainerClient(containerName);
+    }
+
     private static BlobContainerClient getBlobContainerClient(String accountName, String containerName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String connectionString) {
-        BlobServiceClient blobServiceClient = blobServiceClientBuilder(accountName, requestRetryOptions, azureHttpRequestLoggingPolicy)
+        BlobServiceClient blobServiceClient = blobServiceClientBuilder(accountName, requestRetryOptions, azureHttpRequestLoggingPolicy, null)
                 .connectionString(connectionString)
                 .buildClient();
 
@@ -183,15 +216,20 @@ public class AzurePersistenceManager {
     }
 
     private static BlobContainerClient getBlobContainerClient(String accountName, String containerName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, ClientSecretCredential clientSecretCredential) {
-        BlobServiceClient blobServiceClient = blobServiceClientBuilder(accountName, requestRetryOptions, azureHttpRequestLoggingPolicy)
+        BlobServiceClient blobServiceClient = blobServiceClientBuilder(accountName, requestRetryOptions, azureHttpRequestLoggingPolicy, null)
                 .credential(clientSecretCredential)
                 .buildClient();
 
         return blobServiceClient.getBlobContainerClient(containerName);
     }
 
-    private static BlobServiceClientBuilder blobServiceClientBuilder(String accountName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy) {
-        String endpoint = String.format("https://%s.blob.core.windows.net", accountName);
+    private static BlobServiceClientBuilder blobServiceClientBuilder(String accountName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String sasToken) {
+        if (sasToken == null) {
+            sasToken = "";
+        } else {
+            sasToken = "?" + sasToken;
+        }
+        String endpoint = String.format("https://%s.blob.core.windows.net%s", accountName, sasToken);
 
         BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
                 .endpoint(endpoint)
@@ -221,4 +259,15 @@ public class AzurePersistenceManager {
         return rootPath;
     }
 
+    private static void checkArguments(String accountName, String containerName, String rootPrefix){
+        checkIfEmpty(accountName, "Account name");
+        checkIfEmpty(containerName, "Container name");
+        checkIfEmpty(rootPrefix, "Root prefix");
+    }
+
+    private static void checkIfEmpty(String argument, String argumentName) {
+        if (StringUtils.isEmpty(argument)) {
+            throw new IllegalArgumentException(String.format("%s must not be empty argument", argumentName));
+        }
+    }
 }

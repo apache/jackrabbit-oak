@@ -24,7 +24,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -32,6 +31,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
@@ -132,7 +132,7 @@ public class L3_BuiltInPrivilegesTest extends AbstractSecurityTest {
                 /* EXERCISE */
         );
 
-        Iterable<Privilege> aggregated = Iterables.<Privilege>filter(
+        Iterable<Privilege> aggregated = IterableUtils.filter(
                 Arrays.asList(privilegeManager.getRegisteredPrivileges()),
                 input -> input != null && input.isAggregate());
 

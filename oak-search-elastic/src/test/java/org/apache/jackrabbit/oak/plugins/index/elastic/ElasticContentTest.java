@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Ignore;
@@ -37,6 +38,7 @@ import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -179,6 +181,23 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    public void shardPreference() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] where [a] = 'text'";
+        String explain = explain(query);
+        assertThat(explain, containsString("preference=oak-"));
+
+        // preference session should be the same across the same query
+        String explain2 = explain(query);
+        assertThat(explain2, equalTo(explain));
+    }
+
+    @Test
     public void indexWithDefaultFetchSizes() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
         builder.includedPaths("/content");
@@ -285,12 +304,12 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             ObjectNode indexed1 = getDocument(index, "/content/indexed1");
-            assertThat(indexed1.get("a").asText(), equalTo("foo"));
+            assertThat(indexed1.get(ElasticIndexUtils.fieldName("a")).asText(), equalTo("foo"));
 
             ObjectNode indexed2 = getDocument(index, "/content/indexed2");
-            assertThat(indexed2.get("a").size(), equalTo(2));
-            assertThat(indexed2.get("a").get(0).asText(), equalTo("foo"));
-            assertThat(indexed2.get("a").get(1).asText(), equalTo("bar"));
+            assertThat(indexed2.get(ElasticIndexUtils.fieldName("a")).size(), equalTo(2));
+            assertThat(indexed2.get(ElasticIndexUtils.fieldName("a")).get(0).asText(), equalTo("foo"));
+            assertThat(indexed2.get(ElasticIndexUtils.fieldName("a")).get(1).asText(), equalTo("bar"));
         });
     }
 

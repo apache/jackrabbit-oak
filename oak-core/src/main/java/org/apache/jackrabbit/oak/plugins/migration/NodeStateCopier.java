@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -41,7 +42,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
 import static java.util.Collections.emptySet;
 
 /**
@@ -402,7 +402,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder include(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.includePaths = copyOf(paths);
+                this.includePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(paths));
             }
             return this;
         }
@@ -416,7 +416,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder include(@NotNull String... paths) {
-            return include(copyOf(requireNonNull(paths)));
+            return include(Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(paths))));
         }
 
         /**
@@ -442,7 +442,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder exclude(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.excludePaths = copyOf(paths);
+                this.excludePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(paths));
             }
             return this;
         }
@@ -456,7 +456,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder exclude(@NotNull String... paths) {
-            return exclude(copyOf(requireNonNull(paths)));
+            return exclude(Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(paths))));
         }
 
         /**
@@ -469,7 +469,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder supportFragment(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.fragmentPaths = copyOf(paths);
+                this.fragmentPaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(paths));
             }
             return this;
         }
@@ -483,7 +483,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder supportFragment(@NotNull String... paths) {
-            return supportFragment(copyOf(requireNonNull(paths)));
+            return supportFragment(Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(paths))));
         }
 
         /**
@@ -496,7 +496,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder excludeFragments(@NotNull Set<String> fragments) {
             if (!requireNonNull(fragments).isEmpty()) {
-                this.excludeFragments = copyOf(fragments);
+                this.excludeFragments = Collections.unmodifiableSet(SetUtils.toLinkedSet(fragments));
             }
             return this;
         }
@@ -510,7 +510,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder excludeFragments(@NotNull String... fragments) {
-            return exclude(copyOf(requireNonNull(fragments)));
+            return exclude(Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(fragments))));
         }
 
         /**
@@ -523,7 +523,7 @@ public class NodeStateCopier {
         @NotNull
         public Builder merge(@NotNull Set<String> paths) {
             if (!requireNonNull(paths).isEmpty()) {
-                this.mergePaths = copyOf(paths);
+                this.mergePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(paths));
             }
             return this;
         }
@@ -537,7 +537,7 @@ public class NodeStateCopier {
          */
         @NotNull
         public Builder merge(@NotNull String... paths) {
-            return merge(copyOf(requireNonNull(paths)));
+            return merge(Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(paths))));
         }
 
         @NotNull

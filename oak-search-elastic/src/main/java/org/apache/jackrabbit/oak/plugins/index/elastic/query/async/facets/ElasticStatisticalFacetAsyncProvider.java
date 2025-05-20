@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.slf4j.Logger;
@@ -64,6 +65,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private final Map<String, List<FulltextIndex.Facet>> allFacets = new HashMap<>();
     private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
     private Map<String, List<FulltextIndex.Facet>> facets;
+    private final SearchRequest searchRequest;
     private final CountDownLatch latch = new CountDownLatch(1);
     private int sampled;
     private long totalHits;
@@ -74,9 +76,11 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
-        this.facetFields = elasticRequestHandler.facetFields().collect(Collectors.toSet());
+        this.facetFields = elasticRequestHandler.facetFields().
+                map(ElasticIndexUtils::fieldName).
+                collect(Collectors.toSet());
 
-        SearchRequest searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
+        this.searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
                 .trackTotalHits(thb -> thb.enabled(true))
                 .source(SourceConfig.of(scf -> scf.filter(ff -> ff.includes(FieldNames.PATH).includes(new ArrayList<>(facetFields)))))
                 .query(Query.of(qb -> qb.bool(elasticRequestHandler.baseQueryBuilder().build())))
@@ -98,7 +102,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         searchFuture.whenCompleteAsync((searchResponse, throwable) -> {
             try {
                 if (throwable != null) {
-                    LOG.error("Error while retrieving sample documents", throwable);
+                    LOG.error("Error while retrieving sample documents. Search request: {}", searchRequest, throwable);
                 } else {
                     List<Hit<ObjectNode>> searchHits = searchResponse.hits().hits();
                     this.sampled = searchHits != null ? searchHits.size() : 0;
@@ -121,6 +125,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         try {
             boolean completed = latch.await(15, TimeUnit.SECONDS);
             if (!completed) {
+                LOG.error("Timed out while waiting for facets. Search request: {}", searchRequest);
                 throw new IllegalStateException("Timed out while waiting for facets");
             }
         } catch (InterruptedException e) {
@@ -128,7 +133,8 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
             throw new IllegalStateException("Error while waiting for facets", e);
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);
-        return facets != null ? facets.get(FulltextIndex.parseFacetField(columnName)) : null;
+        String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
+        return facets != null ? facets.get(field) : null;
     }
 
     private void processHit(Hit<ObjectNode> searchHit) {

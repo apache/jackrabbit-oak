@@ -26,14 +26,13 @@ import static com.mongodb.client.model.Projections.include;
 import static com.mongodb.client.model.Sorts.ascending;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.lt;
 import static java.util.Collections.emptyList;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
+import org.apache.jackrabbit.oak.plugins.document.FullGcNodeBin;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -56,7 +55,7 @@ import java.util.regex.Pattern;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCursor;
 
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -86,7 +85,7 @@ import com.mongodb.client.model.Filters;
  * to fetch required NodeDocuments
  *
  * <p>Version collection involves looking into old record and mostly unmodified
- * documents. In such case read from secondaries are preferred</p>
+ * documents. In such case read from secondaries are preferred
  */
 public class MongoVersionGCSupport extends VersionGCSupport {
 
@@ -111,10 +110,15 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     /**
      * The batch size for the query of possibly deleted docs.
      */
-    private final int batchSize = Integer.getInteger(
-            "oak.mongo.queryDeletedDocsBatchSize", 1000);
+    private final int batchSize = SystemPropertySupplier.create(
+        "oak.mongo.queryDeletedDocsBatchSize", 1000).get();
+    private final FullGcNodeBin fullGcBin;
 
     public MongoVersionGCSupport(MongoDocumentStore store) {
+        this(store, false);
+    }
+
+    public MongoVersionGCSupport(MongoDocumentStore store, boolean fullGcBinEnabled) {
         super(store);
         this.store = store;
         if(hasIndex(getNodeCollection(), SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
@@ -131,6 +135,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         } else {
             modifiedIdHint = null;
         }
+        this.fullGcBin = new MongoFullGcNodeBinSumBsonSize( new MongoFullGcNodeBin(store, fullGcBinEnabled));
     }
 
     @Override
@@ -144,7 +149,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query).batchSize(batchSize);
 
-        return CloseableIterable.wrap(transform(cursor,
+        return CloseableIterable.wrap(IterableUtils.transform(cursor,
                 input -> store.convertFromDBObject(NODES, input)));
     }
 
@@ -199,10 +204,9 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     }
 
     /**
-     * Logs an explain of a mongo query. If log level is INFO it does it one-lined,
-     * if log level is DEBUG it does it pretty print multi-lined.
+     * Logs an explain of a mongo query if trace is enabled
      *
-     * This is done once every 24h of livetime of this particular object.
+     * This is done once every 24h of lifetime of this particular object.
      *
      * @param logMsg the log message to use - should contain two "{}" for the hint
      *               and the explain json
@@ -220,14 +224,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 getNodeCollection(), query, hint);
         final BasicDBObject winningPlan = MongoUtils.getWinningPlan(explainResult);
         final BasicDBObject result = winningPlan == null ? explainResult : winningPlan;
-        if (LOG.isDebugEnabled()) {
-            // if log level is DEBUG, let's do a pretty print
-            String prettyPrinted = JsopBuilder.prettyPrint(result.toJson());
-            LOG.debug(logMsg, hint, prettyPrinted);
-        } else {
-            // otherwise let's just do a compact print
-            LOG.info(logMsg, hint, result);
-        }
+        LOG.trace(logMsg, hint, result);
         lastExplainLogMs = System.currentTimeMillis();
     }
 
@@ -239,7 +236,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
      * then perform the comparison.
-     * <p/>
      *
      * @param fromModified the lower bound modified timestamp in millis (inclusive)
      * @param toModified   the upper bound modified timestamp in millis (exclusive)
@@ -251,9 +247,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
                                                   @NotNull final String fromId, @NotNull Set<String> includedPathPrefixes,
                                                   @NotNull Set<String> excludedPathPrefixes) {
-        LOG.info("getModifiedDocs fromModified: {}, toModified: {}, limit: {}, fromId: {}, includedPathPrefixes: {}, excludedPathPrefixes: {}",
-                fromModified, toModified, limit, fromId, includedPathPrefixes, excludedPathPrefixes);
-
+        LOG.info("getModifiedDocs fromModified: {} ({}), toModified: {} ({}), limit: {}, fromId: {}, includedPathPrefixes: {}, excludedPathPrefixes: {}",
+                fromModified, Utils.timestampToString(fromModified), toModified, Utils.timestampToString(toModified), limit, fromId, includedPathPrefixes, excludedPathPrefixes);
         final long fromModifiedQuery;
         if (MIN_ID_VALUE.equals(fromId)) {
             // If fromId is MIN_ID_VALUE, round fromModified to 5 second resolution
@@ -273,7 +268,10 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         // first sort by _modified and then by _id
         final Bson sort = ascending(MODIFIED_IN_SECS, ID);
 
-        logQueryExplain("fullGC query explain details, hint : {} - explain : {}", query, modifiedIdHint);
+        if (LOG.isTraceEnabled()) {
+            logQueryExplain("fullGC query explain details, hint : {} - explain : {}", query, modifiedIdHint);
+        }
+
         if (LOG.isDebugEnabled()) {
             BsonDocument bson = query.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
             LOG.debug("getModifiedDocs : query is {}", bson);
@@ -284,7 +282,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 .hint(modifiedIdHint)
                 .sort(sort)
                 .limit(limit);
-        return wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
+        return wrap(IterableUtils.transform(cursor, input -> store.convertFromDBObject(NODES, input)));
     }
 
     /**
@@ -348,11 +346,11 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             // of the query as part of OAK-8351 does), it nevertheless 
             // makes any future similar problem more visible than long running
             // queries alone (15min is still long).
-            Iterable<NodeDocument> iterable = filter(transform(getNodeCollection().find(query)
+            Iterable<NodeDocument> iterable = IterableUtils.filter(IterableUtils.transform(getNodeCollection().find(query)
                     .maxTime(15, TimeUnit.MINUTES).hint(hint),
                     input -> store.convertFromDBObject(NODES, input)),
                     input -> !isDefaultNoBranchSplitNewerThan(input, sweepRevs));
-            allResults = concat(allResults, iterable);
+            allResults = IterableUtils.chainedIterable(allResults, iterable);
         }
         return allResults;
     }
@@ -481,6 +479,11 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
         sb.append(String.join(System.getProperty("line.separator"), ids));
         LOG.debug(sb.toString());
+    }
+
+    @Override
+    public FullGcNodeBin getFullGCBin() {
+        return fullGcBin;
     }
 
     private static String getID(BasicDBObject document) {

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKOWNER;
@@ -69,7 +67,6 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.security.AccessControlException;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -78,6 +75,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
@@ -295,7 +294,7 @@ public class NodeDelegate extends ItemDelegate {
      */
     @NotNull
     public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
-        return transform(getTree().getProperties().iterator(),
+        return IteratorUtils.transform(getTree().getProperties().iterator(),
                 propertyState -> new PropertyDelegate(sessionDelegate, tree, propertyState.getName()));
     }
 
@@ -340,8 +339,8 @@ public class NodeDelegate extends ItemDelegate {
     @NotNull
     public Iterator<NodeDelegate> getChildren() throws InvalidItemStateException {
         Iterator<Tree> iterator = getTree().getChildren().iterator();
-        return transform(
-                filter(iterator, tree -> tree.exists()),
+        return IteratorUtils.transform(
+                IteratorUtils.filter(iterator, tree -> tree.exists()),
                 tree -> new NodeDelegate(sessionDelegate, tree));
     }
 

@@ -19,9 +19,9 @@
 package org.apache.jackrabbit.oak.spi.security;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -262,8 +262,8 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @NotNull
     @Override
     public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
-        return Iterables.concat(
-                Iterables.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)));
+        return IterableUtils.chainedIterable(
+                IterableUtils.transform(getConfigurations(), securityConfiguration -> securityConfiguration.getMonitors(statisticsProvider)));
     }
 
     private static final class Ranking {
@@ -299,7 +299,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
         private void refresh(@NotNull List<? extends SecurityConfiguration> configurations) {
             Set<Context> s = SetUtils.newLinkedHashSet(configurations.size());
-            for (Context c : Iterables.transform(configurations, ContextFunction.INSTANCE::apply)) {
+            for (Context c : IterableUtils.transform(configurations, ContextFunction.INSTANCE::apply)) {
                 if (DEFAULT != c) {
                     s.add(c);
                 }

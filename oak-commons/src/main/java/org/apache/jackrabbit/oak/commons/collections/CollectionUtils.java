@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
+import java.util.Collection;
+
 /**
  * Utility methods for collections conversions.
  */
@@ -48,5 +50,32 @@ public class CollectionUtils {
         }
 
         return 1 + (int) (capacity / 0.75f);
+    }
+
+    /**
+     * Converts an Iterable to a Collection.
+     * <p>
+     * If the provided iterable is already a Collection, it is simply cast and returned.
+     * Otherwise, the elements from the iterable are copied into a new List using
+     * {@link ListUtils#toList(Iterable)}.
+     * <p>
+     * Example usage:
+     * <pre>
+     * Iterable&lt;String&gt; iterable = () -> Arrays.asList("a", "b", "c").iterator();
+     * Collection&lt;String&gt; collection = CollectionUtils.asCollection(iterable);
+     * // collection will contain "a", "b", "c"
+     * </pre>
+     *
+     * @param <E> the type of elements in the iterable
+     * @param iterable the iterable to convert, must not be null
+     * @return a Collection containing all elements of the iterable
+     * @throws NullPointerException if the iterable is null
+     */
+    @SuppressWarnings("unchecked")
+    static <E> Collection<E> toCollection(final Iterable<? extends E> iterable) {
+        if (iterable instanceof Collection) {
+            return (Collection<E>) iterable;
+        }
+        return ListUtils.toList(iterable);
     }
 }

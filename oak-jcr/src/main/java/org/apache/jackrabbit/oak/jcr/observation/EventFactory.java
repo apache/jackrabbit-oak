@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -34,11 +33,11 @@ import java.util.StringJoiner;
 import javax.jcr.Value;
 import javax.jcr.observation.Event;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -231,7 +230,7 @@ public class EventFactory {
             }
             return Map.of(
                     JCR_PRIMARYTYPE, mapper.getJcrName(primaryType),
-                    JCR_MIXINTYPES, toArray(jcrNames, String.class));
+                    JCR_MIXINTYPES, IterableUtils.toArray(jcrNames, String.class));
         }
     }
 

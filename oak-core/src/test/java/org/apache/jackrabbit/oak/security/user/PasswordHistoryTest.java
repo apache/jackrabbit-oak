@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.security.user;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -263,8 +263,8 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
 
         // only the configured max-size number of entries in the history must be
         // checked. additional entries in the history must be ignored
-        Iterables.skip(oldPwds, 6);
-        history.updatePasswordHistory(userTree, oldPwds.iterator().next());
+        ListIterator<String> listIterator = oldPwds.listIterator(6);
+        history.updatePasswordHistory(userTree, listIterator.next());
 
         // after chaning the pwd again however the rep:pwdHistory property must
         // only contain the max-size number of passwords

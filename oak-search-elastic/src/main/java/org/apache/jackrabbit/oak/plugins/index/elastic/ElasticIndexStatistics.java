@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -25,12 +26,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+
+import org.apache.jackrabbit.guava.common.base.Ticker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.TestOnly;
 
-import org.apache.jackrabbit.guava.common.base.Ticker;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.cache.LoadingCache;
@@ -50,9 +53,9 @@ import co.elastic.clients.elasticsearch.core.CountRequest;
  * in background when accessed after 1 minute (60 seconds). These values can be overwritten with the following system properties:
  *
  * <ul>
- *     <li>{@code oak.elastic.statsMaxSize}</li>
- *     <li>{@code oak.elastic.statsExpireSeconds}</li>
- *     <li>{@code oak.elastic.statsRefreshSeconds}</li>
+ *     <li>{@code oak.elastic.statsMaxSize}
+ *     <li>{@code oak.elastic.statsExpireSeconds}
+ *     <li>{@code oak.elastic.statsRefreshSeconds}
  * </ul>
  */
 public class ElasticIndexStatistics implements IndexStatistics {
@@ -111,8 +114,9 @@ public class ElasticIndexStatistics implements IndexStatistics {
      */
     @Override
     public int getDocCountFor(String field) {
+        String elasticField = ElasticIndexUtils.fieldName(field);
         return countCache.getUnchecked(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), field, null)
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), elasticField, null)
         );
     }
 
@@ -175,19 +179,24 @@ public class ElasticIndexStatistics implements IndexStatistics {
         ).luceneDocsDeleted;
     }
 
-    static LoadingCache<StatsRequestDescriptor, Integer> setupCountCache(long maxSize, long expireSeconds, long refreshSeconds, @Nullable Ticker ticker) {
-        return setupCache(maxSize, expireSeconds, refreshSeconds, new CountCacheLoader(), ticker);
+    static LoadingCache<StatsRequestDescriptor, Integer> setupCountCache(long maxSize, long expireSeconds, long refreshSeconds, @Nullable Clock clock) {
+        return setupCache(maxSize, expireSeconds, refreshSeconds, new CountCacheLoader(), clock);
     }
 
     static <K, V> LoadingCache<K, V> setupCache(long maxSize, long expireSeconds, long refreshSeconds,
-                                                @NotNull CacheLoader<K, V> cacheLoader, @Nullable Ticker ticker) {
+                                                @NotNull CacheLoader<K, V> cacheLoader, @Nullable Clock clock) {
         CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder()
                 .maximumSize(maxSize)
                 .expireAfterWrite(expireSeconds, TimeUnit.SECONDS)
                 // https://github.com/google/guava/wiki/CachesExplained#refresh
                 .refreshAfterWrite(refreshSeconds, TimeUnit.SECONDS);
-        if (ticker != null) {
-            cacheBuilder.ticker(ticker);
+        if (clock != null) {
+            cacheBuilder.ticker(new Ticker() {
+                @Override
+                public long read() {
+                    return TimeUnit.MILLISECONDS.toNanos(clock.millis());
+                }
+            });
         }
         return cacheBuilder.build(cacheLoader);
     }

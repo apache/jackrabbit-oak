@@ -53,7 +53,6 @@ import static org.apache.commons.lang3.reflect.FieldUtils.readField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -101,7 +100,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -112,11 +110,13 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.FailingDocumentStore.FailedUpdateOpListener;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
-import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
+import org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -1789,7 +1789,7 @@ public class VersionGarbageCollectorIT {
             }
         };
 
-        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE)));
+        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false, false, 3, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE), 0));
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -3506,7 +3506,7 @@ public class VersionGarbageCollectorIT {
                 gc(gc, 1, HOURS);
                 NodeDocument doc = store1.getDocumentStore().find(NODES, id);
                 assertNotNull(doc);
-                int numPrevDocs = Iterators.size(doc.getAllPreviousDocs());
+                int numPrevDocs = IteratorUtils.size(doc.getAllPreviousDocs());
                 assertTrue("too many previous docs: " + numPrevDocs,
                         numPrevDocs < 70);
             }
@@ -3540,7 +3540,7 @@ public class VersionGarbageCollectorIT {
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
-                return filter(super.getPossiblyDeletedDocs(fromModified, toModified),
+                return IterableUtils.filter(super.getPossiblyDeletedDocs(fromModified, toModified),
                         input -> {
                                 try {
                                     docs.put(input);
@@ -3590,7 +3590,7 @@ public class VersionGarbageCollectorIT {
 
         doc = ds.find(NODES, Utils.getIdFromPath("/" + names.get(0)));
         assertNotNull(doc);
-        assertEquals(0, Iterators.size(doc.getAllPreviousDocs()));
+        assertEquals(0, IteratorUtils.size(doc.getAllPreviousDocs()));
 
         VersionGCStats stats = f.get();
         assertEquals(1, stats.deletedDocGCCount);
@@ -3654,7 +3654,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(foo);
         Long modCount = foo.getModCount();
         assertNotNull(modCount);
-        List<String> prevIds = ListUtils.toList(Iterators.transform(
+        List<String> prevIds = ListUtils.toList(IteratorUtils.transform(
                 foo.getPreviousDocLeaves(), input -> input.getId()));
 
         // run gc on another document node store
@@ -3672,7 +3672,7 @@ public class VersionGarbageCollectorIT {
 
         foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(foo);
-        Iterators.size(foo.getAllPreviousDocs());
+        IteratorUtils.size(foo.getAllPreviousDocs());
 
         // foo must now reflect state after GC
         foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
@@ -3773,7 +3773,7 @@ public class VersionGarbageCollectorIT {
         VersionGCSupport nonReportingGcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, long toModified) {
-                return filter(fixtureGCSupport.getPossiblyDeletedDocs(fromModified, toModified),
+                return IterableUtils.filter(fixtureGCSupport.getPossiblyDeletedDocs(fromModified, toModified),
                         input -> {
                                 docCounter.incrementAndGet();
                                 // don't report any doc to be GC'able

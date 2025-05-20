@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.composite.checks.NodeStoreChecks;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
@@ -57,8 +58,6 @@ import java.util.stream.Collectors;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-
 import static java.lang.System.currentTimeMillis;
 import static org.apache.jackrabbit.oak.composite.ModifiedPathDiff.getModifiedPaths;
 
@@ -72,9 +71,9 @@ import static org.apache.jackrabbit.oak.composite.ModifiedPathDiff.getModifiedPa
  * less-than-obvious issues which prevent it:
  * <ol>
  *   <li>Thread safety of the write operation can be quite costly, and will come on top
- *   of the thread safety measures already put in place by the composite node stores.</li>
+ *   of the thread safety measures already put in place by the composite node stores.
  *   <li>Many JCR subsystems require global state, e.g. the versioning store. This global state
- *   can become corrupt if multiple mounts operate on it or if mounts are added and removed.</li>
+ *   can become corrupt if multiple mounts operate on it or if mounts are added and removed.
  * </ol>
  * 
  * <p>As such, the only supported configuration is at most a single write-enabled store.
@@ -206,7 +205,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
 
     public Iterable<String> checkpoints() {
         final NodeStore globalNodeStore = ctx.getGlobalStore().getNodeStore();
-        return filter(globalNodeStore.checkpoints(),
+        return IterableUtils.filter(globalNodeStore.checkpoints(),
                 checkpoint -> isCompositeCheckpoint(checkpoint));
     }
 
@@ -294,7 +293,7 @@ public class CompositeNodeStore implements NodeStore, PrefetchNodeStore, Observa
     }
 
     private String getPartialCheckpointName(MountedNodeStore nodeStore, String globalCheckpoint, Map<String, String> globalCheckpointProperties, boolean resolveByName) {
-        Set<String> validCheckpointNames = ImmutableSet.copyOf(nodeStore.getNodeStore().checkpoints());
+        Set<String> validCheckpointNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(nodeStore.getNodeStore().checkpoints()));
         String result = globalCheckpointProperties.get(CHECKPOINT_METADATA_MOUNT + nodeStore.getMount().getName());
         if (result != null && validCheckpointNames.contains(result)) {
             return result;

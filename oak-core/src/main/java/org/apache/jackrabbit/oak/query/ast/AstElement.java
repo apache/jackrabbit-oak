@@ -41,12 +41,12 @@ abstract class AstElement {
         }
     }
 
-    protected String quote(String pathOrName) {
+    protected static String quote(String pathOrName) {
         pathOrName = pathOrName.replaceAll("]", "]]");
         return '[' + pathOrName + ']';
     }
 
-    protected String quoteJson(String string) {
+    protected static String quoteJson(String string) {
         return '"' + string.replaceAll("\"", "\"\"") + '"';
     }
 

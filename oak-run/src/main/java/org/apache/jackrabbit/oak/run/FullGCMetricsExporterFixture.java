@@ -16,26 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.run;
 
-package org.apache.jackrabbit.oak.plugins.index.lucene;
+import org.apache.jackrabbit.oak.plugins.document.FullGCMetricsExporter;
 
-import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.guava.common.base.Ticker;
-
-public class VirtualTicker extends Ticker {
-    private long time;
-
-    @Override
-    public long read() {
-        return time;
-    }
-
-    public void setTime(long time, TimeUnit unit){
-        this.time = unit.toNanos(time);
-    }
-
-    public void addTime(long delta, TimeUnit unit){
-        this.time += unit.toNanos(delta);
-    }
+/**
+ * Fixture encapsulating FullGC metrics exporter instance of T
+ * @param <T>
+ */
+public interface FullGCMetricsExporterFixture<T> extends FullGCMetricsExporter, MetricsExporterFixture<T> {
 }

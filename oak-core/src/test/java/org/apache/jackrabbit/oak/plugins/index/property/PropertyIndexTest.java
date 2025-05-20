@@ -39,12 +39,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -86,7 +86,6 @@ import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.read.ListAppender;
 import ch.qos.logback.core.spi.FilterReply;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * Test the Property2 index mechanism.
@@ -1041,7 +1040,7 @@ public class PropertyIndexTest {
         assertTrue(indexedState.exists());
         Iterable<String> values = indexedState.getStrings("entry");
         assertEquals(1, IterableUtils.size(values));
-        assertEquals("/content", Iterables.getFirst(values, null));
+        assertEquals("/content", IterableUtils.getFirst(values, null));
 
         Mount roMount = mip.getMountByName("foo");
         assertFalse(getNode(indexed, "/oak:index/foo/" + getNodeForMount(roMount)).exists());

@@ -25,13 +25,12 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.run.Utils.NodeStoreOptions;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 /**
  * Scans and lists all references to nt:frozenNode and returns an exit code of 1 if any are found (0 otherwise).

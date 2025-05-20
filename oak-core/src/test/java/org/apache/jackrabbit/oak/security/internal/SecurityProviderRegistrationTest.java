@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -211,7 +210,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
         SecurityProvider service = context.getService(SecurityProvider.class);
         assertNotNull(service);
-        assertEquals(6, IterableUtils.size(Iterables.filter(service.getConfigurations(), x -> x != null)));
+        assertEquals(6, IterableUtils.size(IterableUtils.filter(service.getConfigurations(), x -> x != null)));
     }
 
 
@@ -887,7 +886,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         SortedMap m = (SortedMap) f.get(registration);
         assertEquals(3, m.size());
         Collection c = m.values();
-        assertTrue(Iterables.elementsEqual(List.of(service2, service3, service1), c));
+        assertTrue(IterableUtils.elementsEqual(List.of(service2, service3, service1), c));
     }
 
     @Test

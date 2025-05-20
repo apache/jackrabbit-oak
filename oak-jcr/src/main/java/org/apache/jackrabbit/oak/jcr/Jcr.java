@@ -59,11 +59,11 @@ import org.jetbrains.annotations.NotNull;
  * <p>The backing {@linkplain ContentRepository} instance will be constructed with
  * reasonable defaults and additional components can be registered by calling
  * the {@code with} methods. Note that it is not possible to remove components
- * once registered.</p>
+ * once registered.
  *
  * <p>The Jcr builder is a lazy initializer, to have a working repository make sure
  * you call {@link Jcr#createContentRepository()} or
- * {@link Jcr#createRepository()}.</p>
+ * {@link Jcr#createRepository()}.
  */
 public class Jcr {
     public static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = BackgroundObserver.DEFAULT_QUEUE_SIZE;

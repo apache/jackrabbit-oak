@@ -336,4 +336,19 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
         assertNotNull(jn.getPropertyOrNull(JcrConstants.JCR_PRIMARYTYPE));
         assertNotNull(jn.getPropertyOrNull("a/aa/p"));
     }
+    
+    public void testGetNodeWithExpandedName() throws Exception {
+        JackrabbitNode jn = (JackrabbitNode) testRootNode; 
+        Node a = jn.addNode(nodeName1, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        // namespace prefix with valid URI
+        a.addNode("test:aa", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        assertNotNull(a.getNode("test:aa"));
+        assertNotNull(a.getNode("{http://www.apache.org/jackrabbit/test}aa"));
+
+        // special namespace prefix having an invalid URI
+        a.addNode("rep:aa", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        assertNotNull(a.getNode("rep:aa"));
+        assertNotNull(a.getNode("{internal}aa"));
+        
+    }
 }

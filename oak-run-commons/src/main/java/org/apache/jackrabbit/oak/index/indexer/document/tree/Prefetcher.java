@@ -65,7 +65,7 @@ public class Prefetcher {
 
     private String blobSuffix;
 
-    private volatile long blobReadAheadSize = 4 * 1024 * 1024 * 1024L;
+    private volatile long blobReadAheadSize = 16 * 1024 * 1024L;
     private volatile long nodeReadAheadCount = 64 * 1024;
     private volatile long maxBlobSize;
 
@@ -79,7 +79,7 @@ public class Prefetcher {
             public Thread newThread(Runnable r) {
                 Thread t = new Thread(r);
                 t.setDaemon(true);
-                t.setName("BlobPrefetcher-" + threadNumber.getAndIncrement());
+                t.setName("TreeStorePrefetcher-" + threadNumber.getAndIncrement());
                 return t;
             }
         });
@@ -127,7 +127,7 @@ public class Prefetcher {
     }
 
     public void sleep(String status) throws InterruptedException {
-        Thread.sleep(10);
+        Thread.sleep(1);
     }
 
     Runnable iterator(PrefetchType prefetchType) {

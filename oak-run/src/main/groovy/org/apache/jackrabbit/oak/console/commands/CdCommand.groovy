@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
-import org.apache.jackrabbit.guava.common.collect.Iterables
 import jline.console.completer.Completer
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.console.ConsoleSession
@@ -39,7 +38,7 @@ class CdCommand extends CommandSupport{
             @Override
             SortedSet getCandidates() {
                 SortedSet<String> names = new TreeSet<String>()
-                Iterables.limit(getSession().getWorkingNode().childNodeNames, 100).each {
+                IterableUtils.limit(getSession().getWorkingNode().childNodeNames, 100).each {
                     names << it.replace(" ", "\\ ")
                 }
                 return names

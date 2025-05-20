@@ -45,6 +45,12 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void avoidMergeLockDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertFalse(builder.avoidMergeLock());
+    }
+
+    @Test
     public void throttlingFeatureToggleDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getDocStoreThrottlingFeature());
@@ -115,6 +121,12 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void avoidMergeLockFeatureToggleEnabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertNull(builder.getDocStoreAvoidMergeLockFeature());
+    }
+
+    @Test
     public void getPrevNoPropCacheFeatureDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getPrevNoPropCacheFeature());
@@ -130,6 +142,27 @@ public class MongoDocumentNodeStoreBuilderTest {
     public void fullGCModeDefaultValue() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         final int fullGcModeNone = 0;
-        assertEquals(builder.getFullGCMode(), fullGcModeNone);
+        assertEquals(fullGcModeNone, builder.getFullGCMode());
+    }
+
+    @Test
+    public void fullGCGenerationDefaultValue() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        final long fullGcGeneration = 0;
+        assertEquals(fullGcGeneration, builder.getFullGCGeneration());
+    }
+
+    @Test
+    public void fullGCGenerationSetValue() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        final long fullGcGeneration = 3;
+        builder.setFullGCGeneration(fullGcGeneration);
+        assertEquals(fullGcGeneration, builder.getFullGCGeneration());
+    }
+
+    @Test
+    public void isFullGCAuditLoggingEnabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertFalse(builder.isFullGCAuditLoggingEnabled());
     }
 }

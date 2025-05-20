@@ -55,7 +55,6 @@ import java.util.Map;
 import javax.jcr.PropertyType;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -645,17 +644,24 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 threw = false;
                 return id;
             } finally {
-                Closeables.close(stream, threw);
+                try {
+                    IOUtils.close(stream);
+                } catch (IOException ex) {
+                    if (!threw) {
+                        throw ex;
+                    }
+                    LOG.warn("IOException thrown while closing stream", ex);
+                }
             }
         }
 
         private RecordId internalWriteStream(@NotNull InputStream stream) throws IOException {
             // Special case for short binaries (up to about binariesInlineThreshold, 16kB by default):
             // store them directly as small- or medium-sized value records
-                    	
+
             byte[] data = new byte[binariesInlineThreshold];
             int n = IOUtils.read(stream, data, 0, data.length);
-            
+
             if (n < binariesInlineThreshold) {
                 return writeValueRecord(n, data);
             }

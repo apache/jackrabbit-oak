@@ -21,10 +21,10 @@ import java.util.List;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -119,7 +119,7 @@ final class PasswordHistory implements UserConstants {
         if (pwTree.exists()) {
             PropertyState pwHistoryProperty = pwTree.getProperty(UserConstants.REP_PWD_HISTORY);
             if (pwHistoryProperty != null) {
-                for (String historyPwHash : Iterables.limit(pwHistoryProperty.getValue(Type.STRINGS), maxSize)) {
+                for (String historyPwHash : IterableUtils.limit(pwHistoryProperty.getValue(Type.STRINGS), maxSize)) {
                     if (PasswordUtil.isSame(historyPwHash, newPassword)) {
                         throw new PasswordHistoryException("New password was found in password history.");
                     }

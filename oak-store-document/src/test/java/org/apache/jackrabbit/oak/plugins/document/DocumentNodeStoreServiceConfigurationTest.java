@@ -34,11 +34,13 @@ import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 
 import static java.util.List.of;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_GENERATION;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 import static org.junit.Assert.assertArrayEquals;
@@ -94,9 +96,11 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(of("/"), of(config.fullGCIncludePaths()));
         assertEquals(of(), of(config.fullGCExcludePaths()));
         assertEquals("STRICT", config.leaseCheckMode());
+        assertEquals(DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK, config.avoidExclusiveMergeLock());
         assertEquals(DEFAULT_THROTTLING_ENABLED, config.throttlingEnabled());
         assertEquals(DEFAULT_FULL_GC_ENABLED, config.fullGCEnabled());
         assertEquals(DEFAULT_FULL_GC_MODE, config.fullGCMode());
+        assertEquals(DEFAULT_FULL_GC_GENERATION, config.fullGCGeneration());
         assertEquals(DEFAULT_FGC_DELAY_FACTOR, config.fullGCDelayFactor(), 0.01);
         assertEquals(DEFAULT_FGC_BATCH_SIZE, config.fullGCBatchSize());
         assertEquals(DEFAULT_FGC_PROGRESS_SIZE, config.fullGCProgressSize());
@@ -104,6 +108,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(DEFAULT_EMBEDDED_VERIFICATION_ENABLED, config.embeddedVerificationEnabled());
         assertEquals(DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE, config.fullGcMaxAgeInSecs());
         assertEquals(CommitQueue.DEFAULT_SUSPEND_TIMEOUT, config.suspendTimeoutMillis());
+        assertFalse(config.fullGCAuditLoggingEnabled());
     }
 
     @Test
@@ -123,6 +128,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
     }
 
     @Test
+    public void avoidMergeLockEnabled() throws Exception {
+        boolean avoidMergeLock = true;
+        addConfigurationEntry(preset, "avoidExclusiveMergeLock", avoidMergeLock);
+        Configuration config = createConfiguration();
+        assertEquals(avoidMergeLock, config.avoidExclusiveMergeLock());
+    }
+
+    @Test
     public void fullGCEnabled() throws Exception {
         boolean fullGCDocStore = true;
         addConfigurationEntry(preset, "fullGCEnabled", fullGCDocStore);
@@ -136,6 +149,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "fullGCMode", fullGCModeValue);
         Configuration config = createConfiguration();
         assertEquals(fullGCModeValue, config.fullGCMode());
+    }
+
+    @Test
+    public void fullGCGenerationValueSet() throws Exception {
+        long fullGCGenerationValue = 2;
+        addConfigurationEntry(preset, "fullGCGeneration", fullGCGenerationValue);
+        Configuration config = createConfiguration();
+        assertEquals(fullGCGenerationValue, config.fullGCGeneration());
     }
 
     @Test
@@ -168,6 +189,13 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "fullGCBatchSize", batchSize);
         Configuration config = createConfiguration();
         assertEquals(batchSize, config.fullGCBatchSize());
+    }
+
+    @Test
+    public void fullGCAuditLoggingEnabled() throws Exception {
+        addConfigurationEntry(preset, "fullGCAuditLoggingEnabled", true);
+        Configuration config = createConfiguration();
+        assertTrue(config.fullGCAuditLoggingEnabled());
     }
 
     @Test

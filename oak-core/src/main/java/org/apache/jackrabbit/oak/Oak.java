@@ -48,9 +48,6 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -59,9 +56,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
 import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditorProvider;
@@ -412,6 +411,7 @@ public class Oak {
         this.queryEngineSettings.setLimitInMemory(settings.getLimitInMemory());
         this.queryEngineSettings.setLimitReads(settings.getLimitReads());
         this.queryEngineSettings.setStrictPathRestriction(settings.getStrictPathRestriction());
+        this.queryEngineSettings.setInferenceEnabled(settings.isInferenceEnabled());
         return this;
     }
 
@@ -603,12 +603,10 @@ public class Oak {
     /**
      * <p>
      * Enable the asynchronous (background) indexing behavior.
-     * </p>
      * <p>
      * Please note that when enabling the background indexer, you need to take
      * care of calling
      * <code>#shutdown</code> on the <code>executor</code> provided for this Oak instance.
-     * </p>
      * @deprecated Use {@link Oak#withAsyncIndexing(String, long)} instead
      */
     @Deprecated
@@ -653,12 +651,10 @@ public class Oak {
      * <p>
      * Enable the asynchronous (background) indexing behavior for the provided
      * task name.
-     * </p>
      * <p>
      * Please note that when enabling the background indexer, you need to take
      * care of calling
      * <code>#shutdown</code> on the <code>executor</code> provided for this Oak instance.
-     * </p>
      */
     public Oak withAsyncIndexing(@NotNull String name, long delayInSeconds) {
         if (this.asyncTasks == null) {
@@ -704,7 +700,7 @@ public class Oak {
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
-        Iterable<WorkspaceInitializer> workspaceInitializers = Iterables.transform(securityProvider.getConfigurations(),
+        Iterable<WorkspaceInitializer> workspaceInitializers = IterableUtils.transform(securityProvider.getConfigurations(),
                 sc -> {
                         WorkspaceInitializer wi = sc.getWorkspaceInitializer();
                         if (wi instanceof QueryIndexProviderAware) {
@@ -960,6 +956,16 @@ public class Oak {
         @Override
         public void setFailTraversal(boolean failQueriesWithoutIndex) {
             settings.setFailTraversal(failQueriesWithoutIndex);
+        }
+
+        @Override
+        public boolean isInferenceEnabled() {
+            return settings.isInferenceEnabled();
+        }
+
+        @Override
+        public void setInferenceEnabled(boolean isInferenceEnabled) {
+            settings.setInferenceEnabled(isInferenceEnabled);
         }
 
         @Override

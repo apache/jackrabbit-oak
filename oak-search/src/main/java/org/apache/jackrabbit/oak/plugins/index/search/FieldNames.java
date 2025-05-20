@@ -85,6 +85,11 @@ public final class FieldNames {
     public static final String ANALYZED_FIELD_PREFIX = "full:";
 
     /**
+     * Prefix for all field names that are flattened.
+     */
+    public static final String FLATTENED_FIELD_PREFIX = "flat:";
+
+    /**
      * Prefix used for storing fulltext of relative node
      */
     public static final String FULLTEXT_RELATIVE_NODE = "fullnode:";

@@ -18,12 +18,14 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -31,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
@@ -40,14 +41,14 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
  *<p>
  * The conflict handler deals with the following conflicts:
  * <ul>
- *     <li>{@code addExistingProperty}  : {@code Resolution.MERGED}.</li>
+ *     <li>{@code addExistingProperty}  : {@code Resolution.MERGED}.
  *     <li>{@code changeDeletedProperty}: {@code Resolution.THEIRS}, removing the members property takes precedence.
  *     <li>{@code changeChangedProperty}: {@code Resolution.MERGED}, merge of the 2 members sets into a single one
  *     <li>{@code deleteChangedProperty}: {@code Resolution.OURS} removing the members property takes precedence.
- *     <li>{@code deleteDeletedProperty}: {@code Resolution.MERGED}.</li>
- *     <li>{@code changeDeletedNode}    : {@code Resolution.THEIRS}, removal takes precedence.</li>
- *     <li>{@code deleteChangedNode}    : {@code Resolution.OURS}, removal takes precedence.</li>
- *     <li>{@code deleteDeletedNode}    : {@code Resolution.MERGED}.</li>
+ *     <li>{@code deleteDeletedProperty}: {@code Resolution.MERGED}.
+ *     <li>{@code changeDeletedNode}    : {@code Resolution.THEIRS}, removal takes precedence.
+ *     <li>{@code deleteChangedNode}    : {@code Resolution.OURS}, removal takes precedence.
+ *     <li>{@code deleteDeletedNode}    : {@code Resolution.MERGED}.
  * </ul>
  */
 class RepMembersConflictHandler implements ThreeWayConflictHandler {
@@ -81,7 +82,7 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
     public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
             @NotNull PropertyState theirs, @NotNull PropertyState base) {
         if (isRepMembersProperty(theirs)) {
-            Set<String> baseMembers = ImmutableSet.copyOf(base.getValue(Type.STRINGS));
+            Set<String> baseMembers = Collections.unmodifiableSet(SetUtils.toLinkedSet(base.getValue(Type.STRINGS)));
             mergeChange(parent, ours, theirs, baseMembers);
             return Resolution.MERGED;
         } else {
@@ -157,8 +158,8 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
         PropertyBuilder<String> merged = PropertyBuilder.array(Type.WEAKREFERENCE);
         merged.setName(UserConstants.REP_MEMBERS);
 
-        Set<String> theirMembers = ImmutableSet.copyOf(theirs.getValue(Type.STRINGS));
-        Set<String> ourMembers = ImmutableSet.copyOf(ours.getValue(Type.STRINGS));
+        Set<String> theirMembers = Collections.unmodifiableSet(SetUtils.toLinkedSet(theirs.getValue(Type.STRINGS)));
+        Set<String> ourMembers = Collections.unmodifiableSet(SetUtils.toLinkedSet(ours.getValue(Type.STRINGS)));
 
         // merge ours and theirs to a de-duplicated set
         Set<String> combined = new LinkedHashSet<>(Sets.intersection(ourMembers, theirMembers));

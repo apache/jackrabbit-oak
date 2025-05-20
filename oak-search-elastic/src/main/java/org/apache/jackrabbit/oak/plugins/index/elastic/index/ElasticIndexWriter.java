@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
-import co.elastic.clients.elasticsearch._types.AcknowledgedResponseBase;
+import co.elastic.clients.elasticsearch._types.AcknowledgedResponse;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
@@ -29,6 +29,7 @@ import co.elastic.clients.elasticsearch.indices.UpdateAliasesRequest;
 import co.elastic.clients.elasticsearch.indices.UpdateAliasesResponse;
 import co.elastic.clients.json.JsonpUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
@@ -36,6 +37,8 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceIndexConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
@@ -65,17 +68,22 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                        @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull NodeBuilder definitionBuilder,
-                       boolean reindex, CommitInfo commitInfo) {
+                       boolean reindex, CommitInfo commitInfo,
+                       ElasticBulkProcessorHandler bulkProcessorHandler) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
         this.reindex = reindex;
+        this.bulkProcessorHandler = bulkProcessorHandler;
 
         // We don't use stored index definitions with elastic. Every time a new writer gets created we
         // use the actual index name (based on the current seed) while reindexing, or the alias (pointing to the
         // old index until the new one gets enabled) during incremental reindexing
         if (this.reindex) {
             try {
+                //TODO we should observe changes under inference config path.
+                InferenceConfig.reInitialize();
+                // refresh inference config on any index reindex.
                 long seed = indexDefinition.indexNameSeed == 0L ? UUID.randomUUID().getMostSignificantBits() : indexDefinition.indexNameSeed;
                 // merge gets called on node store later in the indexing flow
                 definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
@@ -103,9 +111,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                 waitForESAcknowledgement = false;
             }
         }
-
-        this.bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, commitInfo, waitForESAcknowledgement);
+        bulkProcessorHandler.registerIndex(indexName, indexDefinition, definitionBuilder, commitInfo, waitForESAcknowledgement);
     }
 
     @TestOnly
@@ -134,21 +140,33 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     public void updateDocument(String path, ElasticDocument doc) throws IOException {
         // update is a heavier operation compared to index, we can always use the index operation on full reindex
         // or if the index is not externally modifiable
-        if (reindex || !indexDefinition.isExternallyModifiable()) {
-            bulkProcessorHandler.index(ElasticIndexUtils.idFromPath(path), doc);
+        String jcrIndexName = PathUtils.getName(indexDefinition.getIndexName());
+        /*
+            we directly index the document if:
+            content is being reindexed
+            OR
+            (the index is not externally modifiable
+            AND InferenceIndexConfig is NOOP
+            )
+         */
+        if (reindex
+            || (!indexDefinition.isExternallyModifiable()
+            && !InferenceConfig.getInstance().isInferenceEnabled()
+            && (InferenceIndexConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName))))) {
+            bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
         } else {
-            bulkProcessorHandler.update(ElasticIndexUtils.idFromPath(path), doc);
+            bulkProcessorHandler.update(indexName, ElasticIndexUtils.idFromPath(path), doc);
         }
     }
 
     @Override
     public void deleteDocuments(String path) throws IOException {
-        bulkProcessorHandler.delete(ElasticIndexUtils.idFromPath(path));
+        bulkProcessorHandler.delete(indexName, ElasticIndexUtils.idFromPath(path));
     }
 
     @Override
     public boolean close(long timestamp) throws IOException {
-        boolean updateStatus = bulkProcessorHandler.close();
+        boolean updateStatus = bulkProcessorHandler.flushIndex(indexName);
         if (reindex) {
             // if we are closing a writer in reindex mode, it means we need to open the new index for queries
             this.enableIndex();
@@ -185,11 +203,22 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             return;
         }
 
-        final CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
+        CreateIndexRequest request;
+        try {
+            request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
+        } catch (Exception e) {
+            LOG.error("Failed to create index {}: {}", indexName, e.toString());
+            throw e;
+        }
         if (LOG.isDebugEnabled()) {
-            StringBuilder sb = new StringBuilder();
-            JsonpUtils.toString(request, sb);
-            LOG.debug("Creating Index with request {}", sb);
+            int old = JsonpUtils.maxToStringLength();
+            try {
+                // temporarily increase the length, to avoid truncation
+                JsonpUtils.maxToStringLength(1_000_000);
+                LOG.debug("Creating Index with request {}", request);
+            } finally {
+                JsonpUtils.maxToStringLength(old);
+            }
         }
         // create the new index
         try {
@@ -204,9 +233,33 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             if (ese.status() == 400 && ese.getMessage().contains("resource_already_exists_exception")) {
                 LOG.warn("Index {} already exists. Ignoring error", indexName);
             } else {
+                LOG.warn("Failed to create index {}", indexName, ese);
+                StringBuilder sb = new StringBuilder();
+                int old = JsonpUtils.maxToStringLength();
+                try {
+                    JsonpUtils.maxToStringLength(1_000_000);
+                    JsonpUtils.toString(request, sb);
+                    String[] array = splitLargeString(sb.toString(), 1024);
+                    for (int i = 0; i < array.length; i++) {
+                        LOG.warn("request chunk[{}] = {}", i, array[i]);
+                    }
+                } finally {
+                    JsonpUtils.maxToStringLength(old);
+                }
                 throw ese;
             }
         }
+    }
+
+    public static String[] splitLargeString(String largeString, int chunkSize) {
+        int totalChunks = (largeString.length() + chunkSize - 1) / chunkSize;
+        String[] array = new String[totalChunks];
+        for (int i = 0; i < totalChunks; i++) {
+            int start = i * chunkSize;
+            int end = Math.min(start + chunkSize, largeString.length());
+            array[i] = largeString.substring(start, end);
+        }
+        return array;
     }
 
     private void enableIndex() throws IOException {
@@ -244,13 +297,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         deleteOldIndices(client, aliasResponse.result().keySet());
     }
 
-    private void checkResponseAcknowledgement(AcknowledgedResponseBase response, String exceptionMessage) {
-        if (!response.acknowledged()) {
-            throw new IllegalStateException(exceptionMessage);
-        }
-    }
-
-    private void checkResponseAcknowledgement(CreateIndexResponse response, String exceptionMessage) {
+    private void checkResponseAcknowledgement(AcknowledgedResponse response, String exceptionMessage) {
         if (!response.acknowledged()) {
             throw new IllegalStateException(exceptionMessage);
         }

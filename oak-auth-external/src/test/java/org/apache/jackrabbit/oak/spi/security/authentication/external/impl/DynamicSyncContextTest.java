@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -26,6 +24,8 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
@@ -166,7 +166,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
             
             if (IterableUtils.contains(declaredGroupRefs, ref)) {
                 assertTrue(gr.isDeclaredMember(a));
-                assertTrue(Iterators.contains(a.declaredMemberOf(), gr));
+                assertTrue(IteratorUtils.contains(a.declaredMemberOf(), gr));
             }
         }
     }
@@ -674,7 +674,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         
         ExternalUser second = idp.getUser(ID_SECOND_USER);
         testuser.withGroups(second.getExternalId());
-        assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
+        assertFalse(IterableUtils.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
 
         sync(testuser, SyncResult.Status.ADD);
 
@@ -696,7 +696,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         // in contrast to 'testSyncMembershipWithUserRef' the conflicting group-ref refers to a user in the repository
         // and the conflict is spotted as the existing synched identity is not a group.
         testuser.withGroups(previouslySyncedUser.getExternalId());
-        assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
+        assertFalse(IterableUtils.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
 
         sync(testuser, SyncResult.Status.ADD);
 

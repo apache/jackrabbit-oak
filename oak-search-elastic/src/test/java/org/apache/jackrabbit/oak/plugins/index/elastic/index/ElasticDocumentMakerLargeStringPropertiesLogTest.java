@@ -73,7 +73,7 @@ public class ElasticDocumentMakerLargeStringPropertiesLogTest {
         System.setProperty(FulltextDocumentMaker.WARN_LOG_STRING_SIZE_THRESHOLD_KEY, threshold);
     }
 
-    private ElasticDocumentMaker addPropertyAccordingToType(NodeBuilder test, Type type, String... str) {
+    private <T> ElasticDocumentMaker addPropertyAccordingToType(NodeBuilder test, Type<T> type, String... str) {
         NodeState root = INITIAL_CONTENT;
         ElasticIndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         builder.indexRule("nt:base")

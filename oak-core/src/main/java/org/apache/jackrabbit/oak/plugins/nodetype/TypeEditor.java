@@ -45,10 +45,10 @@ import java.util.function.Predicate;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -84,9 +84,9 @@ public class TypeEditor extends DefaultEditor {
          * Invoked whenever a constraint violation is detected.
          * 
          * <p>Implementors may choose to throw a {@link org.apache.jackrabbit.oak.api.CommitFailedException} or to handle the error
-         * internally, for instance by logging.</p>
+         * internally, for instance by logging.
          * 
-         * <p>Implementors may <b>not</b> throw other exception types from this method.</p>
+         * <p>Implementors may <b>not</b> throw other exception types from this method.
          * 
          * @param path the path where the constraint violation was detected
          * @param nodeTypeNames the node type names of the node
@@ -451,7 +451,7 @@ public class TypeEditor extends DefaultEditor {
         } else if (pre.isEmpty() || post.isEmpty()) {
             return true;
         } else {
-            return !Iterables.elementsEqual(pre, post);
+            return !IterableUtils.elementsEqual(pre, post);
         }
     }
 

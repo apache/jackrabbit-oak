@@ -18,24 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.commons.collections4.IterableUtils;
+import java.util.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
@@ -126,17 +121,7 @@ public abstract class AbstractTree implements Tree {
         NodeBuilder nodeBuilder = getNodeBuilder();
         PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
         if (order != null && order.getType() == NAMES) {
-            Set<String> names = SetUtils.toLinkedSet(nodeBuilder.getChildNodeNames());
-            List<String> ordered = new ArrayList<>(names.size());
-            for (String name : order.getValue(NAMES)) {
-                // only include names of child nodes that actually exist
-                if (names.remove(name)) {
-                    ordered.add(name);
-                }
-            }
-            // add names of child nodes that are not explicitly ordered
-            ordered.addAll(names);
-            return ordered;
+            return IteratorUtils.toIterable(new OrderedChildnameIterator(order.getValue(NAMES), nodeBuilder.getChildNodeNames()));
         } else {
             return nodeBuilder.getChildNodeNames();
         }
@@ -275,7 +260,7 @@ public abstract class AbstractTree implements Tree {
     @Override
     @NotNull
     public Iterable<? extends PropertyState> getProperties() {
-        return filter(getNodeBuilder().getProperties(), propertyState -> !isHidden(propertyState.getName()));
+        return IterableUtils.filter(getNodeBuilder().getProperties(), propertyState -> !isHidden(propertyState.getName()));
     }
 
     @Override
@@ -309,11 +294,11 @@ public abstract class AbstractTree implements Tree {
     @Override
     @NotNull
     public Iterable<Tree> getChildren() {
-        Iterable<Tree> children = transform(getChildNames(),
+        Iterable<Tree> children = IterableUtils.transform(getChildNames(),
                 name ->  {
                     AbstractTree child = createChild(name);
                     return child.exists() ? child : null;
                 });
-        return filter(children, x -> x != null);
+        return IterableUtils.filter(children, Objects::nonNull);
     }
 }

@@ -16,30 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
+package org.apache.jackrabbit.oak.api.jmx;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
-import org.junit.Test;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Tests for variable size integer streaming.
+ * An MBean that provides the inference configuration.
  */
-public class VarIntTest {
+@ProviderType
+public interface InferenceMBean {
 
-    @Test
-    public void test() throws IOException {
-        for (int i = 1; i > 0; i *= 2) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            NodeStreamConverter.writeVarInt(out, i);
-            ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
-            int test = NodeStreamReader.readVarInt(in);
-            assertEquals(test, i);
-            assertEquals(-1, in.read());
-        }
-    }
+    String TYPE = "Inference";
+
+    /**
+     * Get the inference configuration as a Json string.
+     */
+    String getConfigJson();
+
+    /**
+     * Get the inference configuration as a Json string.
+     */
+    String getConfigNodeStateJson();
 }

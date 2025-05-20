@@ -97,6 +97,7 @@ public class ElasticDocument {
                         map -> {
                             Object existingValue = map.get(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE);
                             if (existingValue instanceof Set) {
+                                @SuppressWarnings("unchecked")
                                 Set<Object> existingSet = (Set<Object>) existingValue;
                                 existingSet.add(value);
                             } else {
@@ -134,6 +135,7 @@ public class ElasticDocument {
         if (existingValue == null) {
             finalValue = value;
         } else if (existingValue instanceof Set) {
+            @SuppressWarnings("unchecked")
             Set<Object> existingSet = (Set<Object>) existingValue;
             existingSet.add(value);
             finalValue = existingSet;
@@ -147,9 +149,9 @@ public class ElasticDocument {
         properties.put(fieldName, finalValue);
     }
 
-    void addSimilarityField(String name, Blob value) throws IOException {
+    void addSimilarityField(String fieldName, Blob value) throws IOException {
         byte[] bytes = value.getNewStream().readAllBytes();
-        addProperty(FieldNames.createSimilarityFieldName(name), toFloats(bytes));
+        addProperty(FieldNames.createSimilarityFieldName(fieldName), toFloats(bytes));
     }
 
     void indexAncestors(String path) {
@@ -160,8 +162,8 @@ public class ElasticDocument {
         addProperty(FieldNames.PATH_DEPTH, depth);
     }
 
-    void addDynamicBoostField(String propName, String value, double boost) {
-        addProperty(propName,
+    void addDynamicBoostField(String fieldName, String value, double boost) {
+        addProperty(fieldName,
                 Map.of(
                         ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE, value,
                         ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
@@ -193,6 +195,22 @@ public class ElasticDocument {
     @NotNull
     public Set<String> getPropertiesToRemove() {
         return propertiesToRemove;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("path:").append(path).append('\n');
+        if (!fulltext.isEmpty()) {
+            buff.append("fulltext:").append(fulltext).append('\n');
+        }
+        if (!properties.isEmpty()) {
+            buff.append("properties:").append(properties).append('\n');
+        }
+        if (!dynamicProperties.isEmpty()) {
+            buff.append("dynamicProperties:").append(dynamicProperties).append('\n');
+        }
+        return buff.toString();
     }
 
 }

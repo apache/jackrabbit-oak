@@ -31,8 +31,8 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -48,17 +48,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2662 SegmentOverflowException in HeavyWriteIT on Jenkins}</p>
+ * <p>Tests verifying if the repository gets corrupted or not: {@code OAK-2662 SegmentOverflowException in HeavyWriteIT on Jenkins}
  *
  * <p><b>This test will run for one hour unless it fails</b>, thus it is disabled by default. On the
  * command line specify {@code -Dtest=SegmentOverflowExceptionIT} to enable it. Use {@code -Dtimeout=t}
  * to specify a different timeout {@code t} in milliseconds. Use {@code -Dmax-repo-size=s} to specify
  * a maximal repository size {@code s} in megabytes above which to stop the test.
- * </p>
  *
  *<p>If you only want to run this test:<br>
  * {@code mvn verify -DfailIfNoTests=false -DskipTests -PintegrationTesting -Dtest=SegmentOverflowExceptionIT}
- * </p>
  */
 public class SegmentOverflowExceptionIT {
     private static final Logger LOG = LoggerFactory
@@ -155,7 +153,7 @@ public class SegmentOverflowExceptionIT {
         long count = nodeBuilder.getChildNodeCount(Long.MAX_VALUE);
         if (count > 0) {
             int c = rnd.nextInt((int) count);
-            String name = Iterables.get(nodeBuilder.getChildNodeNames(), c);
+            String name = IterableUtils.get(nodeBuilder.getChildNodeNames(), c);
             modify(nodeStore, nodeBuilder.getChildNode(name));
         }
     }

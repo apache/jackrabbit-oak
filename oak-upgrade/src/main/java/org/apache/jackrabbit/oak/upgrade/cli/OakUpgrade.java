@@ -22,11 +22,10 @@ import java.util.ServiceLoader;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 import joptsimple.OptionSet;
 
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.CliArgumentException;

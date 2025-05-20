@@ -27,12 +27,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -137,7 +135,7 @@ public class CompositePrincipalProviderTest {
 
     @Test
     public void findPrincipalsByTypeGroup() {
-        Iterable<? extends Principal> expected = IterableUtils.chainedIterable(Set.of(EveryonePrincipal.getInstance()), Iterables.filter(testPrincipals(),
+        Iterable<? extends Principal> expected = IterableUtils.chainedIterable(Set.of(EveryonePrincipal.getInstance()), IterableUtils.filter(testPrincipals(),
             input -> input instanceof GroupPrincipal));
 
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
@@ -146,7 +144,7 @@ public class CompositePrincipalProviderTest {
 
     @Test
     public void findPrincipalsByTypeNotGroup() {
-        Iterable<? extends Principal> expected = Iterables.filter(testPrincipals(), input -> !(input instanceof GroupPrincipal));
+        Iterable<? extends Principal> expected = IterableUtils.filter(testPrincipals(), input -> !(input instanceof GroupPrincipal));
 
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertIterator(expected, result);

@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
@@ -33,8 +31,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -271,7 +268,7 @@ class Branch {
         if (!commits.containsKey(r)) {
             return Collections.emptyList();
         }
-        Iterable<Iterable<Path>> paths = transform(filter(commits.entrySet(),
+        Iterable<Iterable<Path>> paths = IterableUtils.transform(IterableUtils.filter(commits.entrySet(),
                 new Predicate<Map.Entry<Revision, BranchCommit>>() {
             @Override
             public boolean test(Map.Entry<Revision, BranchCommit> input) {
@@ -279,7 +276,7 @@ class Branch {
                         && input.getKey().compareRevisionTime(r) <= 0;
             }
         }::test), input -> input.getValue().getModifiedPaths());
-        return Iterables.concat(paths);
+        return IterableUtils.chainedIterable(paths);
     }
 
     @Override
@@ -405,9 +402,9 @@ class Branch {
 
         @Override
         Iterable<Path> getModifiedPaths() {
-            Iterable<Iterable<Path>> paths = transform(previous.values(),
+            Iterable<Iterable<Path>> paths = IterableUtils.transform(previous.values(),
                     branchCommit -> branchCommit.getModifiedPaths());
-            return Iterables.concat(paths);
+            return IterableUtils.chainedIterable(paths);
         }
 
         /**

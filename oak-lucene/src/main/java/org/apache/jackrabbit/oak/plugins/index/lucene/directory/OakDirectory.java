@@ -20,10 +20,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -341,7 +341,7 @@ public class OakDirectory extends Directory {
         if (fileNames == null){
             fileNames = directoryBuilder.getChildNodeNames();
         }
-        Set<String> result = ImmutableSet.copyOf(fileNames);
+        Set<String> result = Collections.unmodifiableSet(SetUtils.toLinkedSet(fileNames));
         PERF_LOGGER.end(start, 100, "Directory listing performed. Total {} files", result.size());
         return result;
     }

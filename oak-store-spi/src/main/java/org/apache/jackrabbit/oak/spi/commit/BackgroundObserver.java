@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 
 import java.io.Closeable;
 import java.lang.Thread.UncaughtExceptionHandler;
@@ -29,7 +28,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections4.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -235,13 +234,13 @@ public class BackgroundObserver implements Observer, Closeable {
 
             @Override
             public int getLocalEventCount() {
-                return IterableUtils.size(filter(queue,
+                return IterableUtils.size(IterableUtils.filter(queue,
                         input -> !input.info.isExternal()));
             }
 
             @Override
             public int getExternalEventCount() {
-                return IterableUtils.size(filter(queue,
+                return IterableUtils.size(IterableUtils.filter(queue,
                         input -> input.info.isExternal()));
             }
         };

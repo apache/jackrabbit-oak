@@ -20,11 +20,11 @@ import java.io.IOException;
 import java.util.*;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.cursor.PathCursor;
@@ -779,7 +779,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                     String value;
                     if (fieldValues != null && fieldValues.size() > 0) {
                         if (fieldValues.size() > 1) {
-                            value = Iterables.toString(fieldValues);
+                            value = IterableUtils.toString(fieldValues);
                         } else {
                             Object fieldValue = currentRow.doc.getFieldValue(columnName);
                             if (fieldValue != null) {
@@ -789,7 +789,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                             }
                         }
                     } else {
-                        value = Iterables.toString(Collections.emptyList());
+                        value = IterableUtils.toString(Collections.emptyList());
                     }
                     return PropertyValues.newString(value);
                 }

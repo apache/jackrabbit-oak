@@ -41,10 +41,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.commons.io.IOUtils;
+import com.mongodb.client.model.IndexOptions;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import com.mongodb.Block;
 import com.mongodb.DBObject;
@@ -61,9 +60,13 @@ import com.mongodb.client.model.CreateCollectionOptions;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -120,7 +123,6 @@ import com.mongodb.client.result.UpdateResult;
 import static java.util.Objects.isNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static com.mongodb.client.model.Projections.include;
 import static java.lang.Integer.MAX_VALUE;
 import static java.util.Collections.emptyList;
@@ -166,6 +168,8 @@ public class MongoDocumentStore implements DocumentStore {
      * which we block any data modification operation when system has been throttled.
      */
     public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
+
+    private static final @NotNull String BIN_COLLECTION = "bin";
     /**
      * nodeNameLimit for node name based on Mongo Version
      */
@@ -348,6 +352,9 @@ public class MongoDocumentStore implements DocumentStore {
 
         if (!readOnly) {
             ensureIndexes(db, status);
+            if (builder.isFullGCAuditLoggingEnabled()) {
+                ensureFullGcTTLIndex();
+            }
         }
 
         this.nodeLocks = new StripedNodeDocumentLocks();
@@ -465,12 +472,19 @@ public class MongoDocumentStore implements DocumentStore {
         createIndex(journal, JournalEntry.MODIFIED, true, false, false);
     }
 
+    private void ensureFullGcTTLIndex() {
+        //TTL index for full GC bin documents to expire after 90 days
+        //see https://issues.apache.org/jira/browse/OAK-11444
+        IndexOptions indexOptions = new IndexOptions().expireAfter(TimeUnit.DAYS.toSeconds(90), TimeUnit.SECONDS);
+        connection.getCollection(BIN_COLLECTION).createIndex(new org.bson.Document(MongoFullGcNodeBin.GC_COLLECTED_AT, 1), indexOptions);
+    }
+
     private void createCollection(MongoDatabase db, String collectionName, MongoStatus mongoStatus) {
         CreateCollectionOptions options = new CreateCollectionOptions();
 
         if (mongoStatus.isVersion(4, 2)) {
             options.storageEngineOptions(MongoDBConfig.getCollectionStorageOptions(mongoStorageOptions));
-            if (!Iterables.tryFind(db.listCollectionNames(), s -> Objects.equals(collectionName, s)).isPresent()) {
+            if (StreamUtils.toStream(db.listCollectionNames()).noneMatch(s -> Objects.equals(collectionName, s))) {
                 db.createCollection(collectionName, options);
                 LOG.info("Creating Collection {}, with collection storage options", collectionName);
             }
@@ -526,7 +540,7 @@ public class MongoDocumentStore implements DocumentStore {
             result.queryCount++;
 
             int invalidated = nodesCache.invalidateOutdated(modStamps);
-            for (String id : filter(ids, x -> !modStamps.keySet().contains(x))) {
+            for (String id : IterableUtils.filter(ids, x -> !modStamps.keySet().contains(x))) {
                 nodesCache.invalidate(id);
                 invalidated++;
             }
@@ -1253,14 +1267,14 @@ public class MongoDocumentStore implements DocumentStore {
             }
 
             // if there are some changes left, we'll apply them one after another i.e. failed ones
-            final Iterator<UpdateOp> it = Iterators.concat(operationsToCover.values().iterator(), duplicates.iterator());
+            final Iterator<UpdateOp> it = IteratorUtils.chainedIterator(operationsToCover.values().iterator(), duplicates.iterator());
             while (it.hasNext()) {
                 UpdateOp op = it.next();
                 it.remove();
                 results.put(op, findAndUpdate(collection, op));
             }
         } catch (MongoException e) {
-            throw handleException(e, collection, Iterables.transform(updateOps, UpdateOp::getId));
+            throw handleException(e, collection, IterableUtils.transform(updateOps, UpdateOp::getId));
         } finally {
             stats.doneFindAndModify(watch.elapsed(NANOSECONDS), collection, updateOps.stream().map(UpdateOp::getId).collect(toList()),
                     true, retryCount);
@@ -1351,7 +1365,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
 
             // if there are some changes left, we'll apply them one after another
-            Iterator<UpdateOp> it = Iterators.concat(operationsToCover.values().iterator(), duplicates.iterator());
+            Iterator<UpdateOp> it = IteratorUtils.chainedIterator(operationsToCover.values().iterator(), duplicates.iterator());
             while (it.hasNext()) {
                 UpdateOp op = it.next();
                 it.remove();
@@ -1361,7 +1375,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
         } catch (MongoException e) {
-            throw handleException(e, collection, Iterables.transform(updateOps,
+            throw handleException(e, collection, IterableUtils.transform(updateOps,
                     input -> input.getId()));
         } finally {
             stats.doneCreateOrUpdate(watch.elapsed(TimeUnit.NANOSECONDS),
@@ -2011,6 +2025,10 @@ public class MongoDocumentStore implements DocumentStore {
         return getDBCollection(collection).withReadPreference(readPreference);
     }
 
+    <T extends Document> MongoCollection<BasicDBObject> getBinCollection() {
+        return this.connection.getCollection(BIN_COLLECTION);
+    }
+
     MongoDatabase getDatabase() {
         return connection.getDatabase();
     }
@@ -2030,7 +2048,7 @@ public class MongoDocumentStore implements DocumentStore {
             clusterNodesConnection.close();
         }
         try {
-            Closeables.close(throttlingMetricsUpdater, false);
+            IOUtils.close(throttlingMetricsUpdater);
         } catch (IOException e) {
             LOG.warn("Error occurred while closing throttlingMetricsUpdater", e);
         }

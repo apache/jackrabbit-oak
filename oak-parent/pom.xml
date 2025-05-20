@@ -30,13 +30,13 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.77-SNAPSHOT</version>
+  <version>1.81-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <project.build.outputTimestamp>1739101214</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1747400914</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -65,11 +65,11 @@
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.15.2.0</derby.version>
-    <jackson.version>2.17.2</jackson.version>
-    <testcontainers.version>1.20.3</testcontainers.version>
+    <jackson.version>2.17.3</jackson.version>
+    <testcontainers.version>1.20.6</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
-    <groovy.version>3.0.22</groovy.version>
-    <netty.version>4.1.115.Final</netty.version>
+    <groovy.version>3.0.24</groovy.version>
+    <netty.version>4.1.119.Final</netty.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>11</javaTargetVersion>
     <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
@@ -127,7 +127,6 @@
           <configuration>
             <doclint>none</doclint>
             <detectJavaApiLink>true</detectJavaApiLink>
-            <aggregate>true</aggregate>
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
@@ -311,11 +310,6 @@
           </configuration>
         </plugin>
         <plugin>
-          <groupId>com.github.spotbugs</groupId>
-          <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.8.6.3</version>
-        </plugin>
-        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>3.6.0</version>
@@ -348,19 +342,6 @@
                     <execute />
                   </action>
                 </pluginExecution>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.jacoco</groupId>
-                    <artifactId>jacoco-maven-plugin</artifactId>
-                    <versionRange>[0.7.1.201405082137,)</versionRange>
-                    <goals>
-                      <goal>prepare-agent</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore />
-                  </action>
-                </pluginExecution>
               </pluginExecutions>
             </lifecycleMappingMetadata>
           </configuration>
@@ -378,7 +359,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.12</version>
+          <version>0.8.13</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -553,12 +534,12 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>5.4.0</version>
+        <version>5.5.0</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>5.13.0</version>
+        <version>5.17.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -615,7 +596,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
-        <version>4.4</version>
+        <version>4.5.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -640,12 +621,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>9.0.98</version>
+        <version>9.0.102</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>9.0.98</version>
+        <version>9.0.102</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -954,20 +935,6 @@
                   </execution>
                </executions>
             </plugin>
-            <plugin>
-               <groupId>com.github.spotbugs</groupId>
-               <artifactId>spotbugs-maven-plugin</artifactId>
-               <configuration>
-                  <failOnError>false</failOnError>
-               </configuration>
-               <executions>
-                  <execution>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
          </plugins>
       </build>
       <dependencies>
@@ -1039,25 +1006,11 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-maven-plugin</artifactId>
+            <artifactId>maven-surefire-plugin</artifactId>
             <configuration>
-              <failOnError>false</failOnError>
+              <skipTests>${surefire.skip.ut}</skipTests>
             </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
           </plugin>
-           <plugin>
-             <artifactId>maven-surefire-plugin</artifactId>
-             <configuration>
-               <skipTests>${surefire.skip.ut}</skipTests>
-             </configuration>
-           </plugin>
         </plugins>
       </build>
     </profile>
@@ -1314,6 +1267,6 @@
     <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
     <url>https://github.com/apache/jackrabbit/tree/${project.scm.tag}</url>
-    <tag>jackrabbit-oak-1.76.0</tag>
+    <tag>jackrabbit-oak-1.80</tag>
   </scm>
 </project>

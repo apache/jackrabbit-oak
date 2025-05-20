@@ -63,9 +63,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -73,7 +73,6 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * This class is used by the {@link TypeEditorProvider} to check for,
@@ -83,11 +82,11 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
  * defined in {@code rep:NodeType}.
  *
  * <ul>
- *   <li>validate new definitions,</li>
- *   <li>detect collisions,</li>
- *   <li>prevent circular inheritance,</li>
- *   <li>reject modifications to definitions that render existing content invalid,</li>
- *   <li>etc.</li>
+ *   <li>validate new definitions,
+ *   <li>detect collisions,
+ *   <li>prevent circular inheritance,
+ *   <li>reject modifications to definitions that render existing content invalid,
+ *   <li>etc.
  * </ul>
  */
 class TypeRegistration extends DefaultNodeStateDiff {

@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.QueryImpl.MeasuringIterator;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
@@ -324,11 +325,11 @@ public class UnionQueryImpl implements Query {
             rightIter = ((MeasuringIterator) rightRows).getDelegate();
         }
         if (orderBy == null) {
-            it = Iterators.concat(leftIter, rightIter);
+            it = IteratorUtils.chainedIterator(leftIter, rightIter);
         } else {
             // This would suggest either the sub queries are sorted by index or explicitly by QueryImpl (in case of traversing index)
             // So use mergeSorted here.
-            it = Iterators.mergeSorted(List.of(leftIter, rightIter), orderBy);
+            it = IteratorUtils.mergeSorted(List.of(leftIter, rightIter), orderBy);
         }
 
         it = FilterIterators.newCombinedFilter(it, distinct, limit.orElse(Long.MAX_VALUE), offset.orElse(0L), null, settings);

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -28,6 +27,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -560,11 +560,11 @@ public class UserManagerImpl implements UserManager {
      */
     @NotNull
     private Iterable<GroupAction> filterGroupActions() {
-        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider), GroupAction.class);
+        return IterableUtils.filter(actionProvider.getAuthorizableActions(securityProvider), GroupAction.class);
     }
 
     @NotNull
     private Iterable<UserAction> filterUserActions() {
-        return Iterables.filter(actionProvider.getAuthorizableActions(securityProvider), UserAction.class);
+        return IterableUtils.filter(actionProvider.getAuthorizableActions(securityProvider), UserAction.class);
     }
 }

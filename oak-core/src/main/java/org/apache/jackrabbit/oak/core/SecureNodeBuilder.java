@@ -20,12 +20,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Predicate;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -37,7 +37,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -194,7 +193,7 @@ class SecureNodeBuilder implements NodeBuilder {
         if (getTreePermission().canReadProperties() || isNew()) {
             return builder.getPropertyCount();
         } else {
-            return IterableUtils.size(filter(
+            return IterableUtils.size(IterableUtils.filter(
                     builder.getProperties(),
                     new ReadablePropertyPredicate()::test));
         }
@@ -206,7 +205,7 @@ class SecureNodeBuilder implements NodeBuilder {
         if (getTreePermission().canReadProperties() || isNew()) {
             return builder.getProperties();
         } else {
-            return filter(
+            return IterableUtils.filter(
                     builder.getProperties(),
                     new ReadablePropertyPredicate()::test);
         }
@@ -285,7 +284,7 @@ class SecureNodeBuilder implements NodeBuilder {
     @NotNull
     @Override
     public Iterable<String> getChildNodeNames() {
-        return filter(
+        return IterableUtils.filter(
                 builder.getChildNodeNames(),
                 input -> input != null && getChildNode(input).exists());
     }

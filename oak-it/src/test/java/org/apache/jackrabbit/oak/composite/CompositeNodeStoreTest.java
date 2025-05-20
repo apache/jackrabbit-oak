@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -46,12 +45,11 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -234,7 +232,7 @@ public class CompositeNodeStoreTest {
 
     @Test
     public void childNodeEntryForMountIsComposite() {
-        ChildNodeEntry libsNode = Iterables.find(store.getRoot().getChildNodeEntries(),
+        ChildNodeEntry libsNode = IterableUtils.find(store.getRoot().getChildNodeEntries(),
                 input -> input.getName().equals("libs"));
 
         assertThat("root.libs(childCount)", libsNode.getNodeState().getChildNodeCount(10), equalTo(3l));
@@ -651,13 +649,13 @@ public class CompositeNodeStoreTest {
         deepMountBuilder.child("new").setProperty("store", "deepMounted", Type.STRING);
         deepMountedStore.merge(deepMountBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        List<ChildNodeEntry> children = ListUtils.toList(filter(store.getRoot().getChildNodeEntries(),
+        List<ChildNodeEntry> children = ListUtils.toList(IterableUtils.filter(store.getRoot().getChildNodeEntries(),
                 x -> Objects.equals(x == null ? null : x.getName(), "new")));
         assertEquals(1, children.size());
         assertEquals("global", children.get(0).getNodeState().getString("store"));
 
         NodeBuilder rootBuilder = store.getRoot().builder();
-        List<String> childNames = ListUtils.toList(filter(rootBuilder.getChildNodeNames(),
+        List<String> childNames = ListUtils.toList(IterableUtils.filter(rootBuilder.getChildNodeNames(),
                 x -> Objects.equals(x, "new")));
         assertEquals(1, childNames.size());
         assertEquals("global", rootBuilder.getChildNode("new").getString("store"));

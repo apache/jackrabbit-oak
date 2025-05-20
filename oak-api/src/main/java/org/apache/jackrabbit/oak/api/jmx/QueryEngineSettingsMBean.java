@@ -108,6 +108,20 @@ public interface QueryEngineSettingsMBean {
     void setFailTraversal(boolean failTraversal);
 
     /**
+     * Get whether the query engine will parse the query and infers inference config
+     *
+     * @return true if inference is enabled
+     */
+    boolean isInferenceEnabled();
+
+    /**
+     * Set whether to parse for inference index config to use from query.
+     *
+     * @param isInferenceEnabled the new value for this setting
+     */
+    void setInferenceEnabled(boolean isInferenceEnabled);
+
+    /**
      * Whether the query result size should return an estimation for large queries.
      *
      * @return true if enabled

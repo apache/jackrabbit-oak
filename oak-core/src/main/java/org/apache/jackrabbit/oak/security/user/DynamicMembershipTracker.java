@@ -21,6 +21,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipService;
@@ -101,7 +102,7 @@ public class DynamicMembershipTracker extends AbstractServiceTracker<DynamicMemb
             for (int i = 0; i < size; i++) {
                 members[i] = providers.get(i).getMembers(group, includeInherited);
             }
-            return Iterators.concat(members);
+            return IteratorUtils.chainedIterator(members);
         }
 
         @Override
@@ -121,7 +122,7 @@ public class DynamicMembershipTracker extends AbstractServiceTracker<DynamicMemb
             for (int i = 0; i < size; i++) {
                 groups[i] = providers.get(i).getMembership(authorizable, includeInherited);
             }
-            return Iterators.concat(groups);
+            return IteratorUtils.chainedIterator(groups);
         }
     }
 }

@@ -257,6 +257,11 @@ public class FilterImpl implements Filter {
         return alwaysFalse;
     }
 
+    @Override
+    public boolean isInferenceEnabled() {
+        return getQueryLimits().isInferenceEnabled();
+    }
+
     public SelectorImpl getSelector() {
         return selector;
     }

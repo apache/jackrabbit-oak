@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,7 +42,6 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
@@ -53,6 +53,8 @@ import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStoreUtil
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
@@ -199,7 +201,7 @@ public class DataStoreCheckTest {
         File repoHome = temporaryFolder.newFolder();
 
         Random rand = new Random();
-        String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        String deletedBlobId = IterableUtils.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(deletedBlobId);
         long count = setupDataStore.countDeleteChunks(List.of(deletedBlobId), 0);
         assertEquals(1, count);
@@ -218,7 +220,7 @@ public class DataStoreCheckTest {
         File repoHome = temporaryFolder.newFolder();
 
         Random rand = new Random();
-        String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        String deletedBlobId = IterableUtils.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(deletedBlobId);
 
         long count = setupDataStore
@@ -246,17 +248,17 @@ public class DataStoreCheckTest {
 
         File delTracker = new File(trackerFolder, "activedeletions.del");
         Random rand = new Random();
-        String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        String deletedBlobId = IterableUtils.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(deletedBlobId);
         long count = setupDataStore.countDeleteChunks(List.of(deletedBlobId), 0);
 
-        String activeDeletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        String activeDeletedBlobId = IterableUtils.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(activeDeletedBlobId);
         count += setupDataStore.countDeleteChunks(List.of(activeDeletedBlobId), 0);
         assertEquals(2, count);
 
         // artificially put the deleted id in the tracked .del file
-        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker, false);
+        FileIOUtils.writeStrings(Collections.singleton(activeDeletedBlobId).iterator(), delTracker, false);
 
         setupDataStore.close();
 
@@ -277,17 +279,17 @@ public class DataStoreCheckTest {
 
         File delTracker = new File(trackerFolder, "activedeletions.del");
         Random rand = new Random();
-        String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        String deletedBlobId = IterableUtils.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(deletedBlobId);
         long count = setupDataStore.countDeleteChunks(List.of(deletedBlobId), 0);
 
-        String activeDeletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+        String activeDeletedBlobId = IterableUtils.get(blobsAdded, rand.nextInt(blobsAdded.size()));
         blobsAdded.remove(activeDeletedBlobId);
         count += setupDataStore.countDeleteChunks(List.of(activeDeletedBlobId), 0);
         assertEquals(2, count);
 
         // artificially put the deleted id in the tracked .del file
-        FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker, false);
+        FileIOUtils.writeStrings(Collections.singleton(activeDeletedBlobId).iterator(), delTracker, false);
 
         setupDataStore.close();
 
@@ -430,11 +432,11 @@ public class DataStoreCheckTest {
     }
 
     private static Set<String> encodedIds(Set<String> ids, String dsOption) {
-        return SetUtils.toSet(Iterators.transform(ids.iterator(), input -> DataStoreCheckCommand.encodeId(input, "--" + dsOption)));
+        return SetUtils.toSet(IteratorUtils.transform(ids.iterator(), input -> DataStoreCheckCommand.encodeId(input, "--" + dsOption)));
     }
 
     private static Set<String> encodedIdsAndPath(Set<String> ids, String dsOption, Map<String, String> blobsAddedWithNodes) {
-        return SetUtils.toSet(Iterators.transform(ids.iterator(),
+        return SetUtils.toSet(IteratorUtils.transform(ids.iterator(),
                 input -> String.join(",",
                         DataStoreCheckCommand.encodeId(input, "--" + dsOption),
                         blobsAddedWithNodes.get(input))));

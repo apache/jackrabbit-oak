@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
@@ -189,7 +189,7 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
 
         grantReadOnVersionStoreTrees();
 
-        assertTrue(Iterables.elementsEqual(Set.of(PrivilegeConstants.JCR_READ), permissionProvider.getPrivileges(versionStore)));
+        assertTrue(IterableUtils.elementsEqual(Set.of(PrivilegeConstants.JCR_READ), permissionProvider.getPrivileges(versionStore)));
     }
 
     @Test

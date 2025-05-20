@@ -35,17 +35,17 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * with the Metrics library if available:
  * <ul>
  *     <li>{@link #OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_BYTES}:
- *          a meter metrics for the number of bytes read from segment disk cache</li>
+ *          a meter metrics for the number of bytes read from segment disk cache
  *     <li>{@link #OAK_SEGMENT_CACHE_DISK_SEGMENT_WRITE_BYTES}:
- *          a meter metrics for the number of bytes written to segment disk cache</li>
+ *          a meter metrics for the number of bytes written to segment disk cache
  *     <li>{@link #OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_TIME}:
- *          a timer metrics for the time spent reading from segment disk cache</li>
+ *          a timer metrics for the time spent reading from segment disk cache
  *     <li>{@link #OAK_SEGMENT_CACHE_DISk_SEGMENT_WRITE_TIME}:
- *          a timer metrics for the time spent writing to segment disk cache</li>
+ *          a timer metrics for the time spent writing to segment disk cache
  *     <li>{@link #OAK_SEGMENT_CACHE_DISK_CACHE_SIZE_CALCULATED}:
- *          a histogram for the calculated segment disk cache size</li>
+ *          a histogram for the calculated segment disk cache size
  *     <li>{@link #OAK_SEGMENT_CACHE_DISK_CACHE_SIZE_CHANGE}:
- *          a histogram for the segment disk cache size change</li>
+ *          a histogram for the segment disk cache size change
  * </ul>
  */
 public class DiskCacheIOMonitor extends IOMonitorAdapter {

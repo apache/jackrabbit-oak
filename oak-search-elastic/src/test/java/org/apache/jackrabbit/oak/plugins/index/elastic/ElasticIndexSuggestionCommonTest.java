@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexSuggestionCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.TestUtil;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.ClassRule;
@@ -45,7 +46,7 @@ public class ElasticIndexSuggestionCommonTest extends IndexSuggestionCommonTest 
 
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
-                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
+                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + ElasticBulkProcessorHandler.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }
 
     @Test
@@ -63,7 +64,7 @@ public class ElasticIndexSuggestionCommonTest extends IndexSuggestionCommonTest 
         String expected = "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"must\":[{\"nested\":{\"inner_hits\":" +
                 "{\"size\":100},\"path\":\":suggest\",\"query\":{\"match_bool_prefix\":{\":suggest.value\":{\"operator\":\"and\",\"query\":\"boo\"}}},\"score_mode\":\"max\"}}]}},\"size\":100}";
 
-        Query q = qm.createQuery(sql, Query.SQL);
+        Query q = qm.createQuery(sql, Query.JCR_SQL2);
         Row row = q.execute().getRows().nextRow();
         MatcherAssert.assertThat(row.getValue("plan").getString(), CoreMatchers.containsString(expected));
     }

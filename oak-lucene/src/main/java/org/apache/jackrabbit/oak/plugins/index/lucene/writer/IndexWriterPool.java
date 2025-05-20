@@ -84,6 +84,7 @@ public class IndexWriterPool {
     private long updateCount = 0;
     private long deleteCount = 0;
     private long totalEnqueueTimeNanos = 0;
+    private long enqueuingDelayMessageLastLoggedMillis = 0;
 
     private static class OperationBatch {
         final long sequenceNumber;
@@ -216,7 +217,6 @@ public class IndexWriterPool {
                     if (op == SHUTDOWN) {
                         queue.add(SHUTDOWN);
                         LOG.info("[{}] Shutting down worker", id);
-                        printStatistics();
                         return;
                     }
                     long start = System.nanoTime();
@@ -294,13 +294,13 @@ public class IndexWriterPool {
     public boolean closeWriter(LuceneIndexWriter writer, long timestamp) throws IOException {
         checkOpen();
         try {
-            LOG.info("Closing writer: {}", writer);
+            LOG.debug("Closing writer: {}", writer);
             // Before closing the writer, we must wait until all previously submitted operations for
             // this writer are processed. For simplicity, we wait instead until ALL operations currently
             // in the queue are processed, because otherwise it would be more complex to distinguish which
             // operations are for which writer.
             long seqNumber = flushBatch();
-            LOG.info("All pending operations enqueued. Waiting until all batches up to {} are processed", seqNumber);
+            LOG.debug("All pending operations enqueued. Waiting until all batches up to {} are processed", seqNumber);
             synchronized (pendingBatchesLock) {
                 while (true) {
                     Long earliestPending = pendingBatches.isEmpty() ? null : pendingBatches.stream().min(Long::compareTo).get();
@@ -311,12 +311,12 @@ public class IndexWriterPool {
                     pendingBatchesLock.wait();
                 }
             }
-            LOG.info("All batches up to {} processed. Enqueuing close operation for writer {}", seqNumber, writer);
+            LOG.debug("All batches up to {} processed. Enqueuing close operation for writer {}", seqNumber, writer);
             SynchronousQueue<CloseResult> closeOpSync = new SynchronousQueue<>();
             batch.add(new CloseWriterOperation(writer, timestamp, closeOpSync));
             flushBatch();
             CloseResult res = closeOpSync.take();
-            LOG.info("Writer {} closed. Result: {}", writer, res);
+            LOG.debug("Writer {} closed. Result: {}", writer, res);
             if (res.error == null) {
                 return res.result;
             } else {
@@ -380,14 +380,19 @@ public class IndexWriterPool {
             if (seqNumber % 1000 == 0) {
                 LOG.info("Enqueuing batch {}, size: {}", seqNumber, batch.size());
             }
-            long start = System.nanoTime();
+            long enqueuingStartNanos = System.nanoTime();
             queue.put(new OperationBatch(seqNumber, batch.toArray(new Operation[0])));
-            long durationNanos = System.nanoTime() - start;
-            long durationMillis = durationNanos / 1_000_000;
+            long enqueuingEndNanos = System.nanoTime();
+            long durationNanos = enqueuingEndNanos - enqueuingStartNanos;
             totalEnqueueTimeNanos += durationNanos;
-            if (durationMillis > 1) {
-                LOG.info("Enqueuing batch delayed. Seq number: {}, size: {}. Delay: {} ms",
-                        seqNumber, batch.size(), durationMillis);
+            long durationMillis = durationNanos / 1_000_000;
+            if (durationMillis > 10) {
+                long currentTimeMillis = enqueuingEndNanos / 1_000_000;
+                if (currentTimeMillis - enqueuingDelayMessageLastLoggedMillis > TimeUnit.SECONDS.toMillis(10)) {
+                    LOG.info("Enqueuing batch delayed. Seq number: {}, size: {}. Delay: {} ms (These messages are logged every 10 seconds)",
+                            seqNumber, batch.size(), durationMillis);
+                    enqueuingDelayMessageLastLoggedMillis = currentTimeMillis;
+                }
             }
             batch.clear();
             return seqNumber;

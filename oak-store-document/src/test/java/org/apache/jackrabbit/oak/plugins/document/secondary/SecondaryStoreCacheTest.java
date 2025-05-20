@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledTypesRegistry;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
-import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
+import org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -164,7 +164,7 @@ public class SecondaryStoreCacheTest {
             revs.add(r.getRootRevision());
         }
 
-        AbstractDocumentNodeState[] rootsArr = Iterables.toArray(roots, AbstractDocumentNodeState.class);
+        AbstractDocumentNodeState[] rootsArr = IterableUtils.toArray(roots, AbstractDocumentNodeState.class);
 
         Collections.shuffle(revs);
         for (RevisionVector rev : revs){

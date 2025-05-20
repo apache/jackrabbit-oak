@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.76.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.80.0
 
 Introduction
 ------------
@@ -7,92 +7,119 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.76.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.80.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.76.0 compiles and tests successfully on Java 17, Javadocs
-generation fails on Java 17 (but works as expected on Java 11).
+While Oak 1.80.0 compiles and tests successfully on Java 24.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.76.0
+Changes in Oak 1.80.0
 ---------------------
+
+Sub-task
+
+    [OAK-11696] - remove (shaded) Guava common.io package
 
 Technical task
 
-    [OAK-11357] - Extract StreamUtils from CollectionUtils
-    [OAK-11380] - Remove usage of Guava Files.asByteSource
-    [OAK-11384] - Remove usage of Guava Maps
-    [OAK-11385] - Remove usage of Guava Files.asByteSink
-    [OAK-11387] - Extract ListUtils from CollectionUtils
-    [OAK-11388] - Extract MapUtils from CollectionUtils
-    [OAK-11395] - Extract SetUtils from CollectionUtils
-    [OAK-11396] - Remove usage of Guava Preconditions.checkElementIndex
-    [OAK-11398] - Remove usage of Guava Preconditions.checkPositionIndexes
-    [OAK-11399] - Remove usage of Guava io.BaseEncoding
-    [OAK-11400] - Remove usage of Guava ArrayListMultimap
-    [OAK-11402] - Remove usage of Guava Strings.isNullOrEmpty
-    [OAK-11406] - Remove usage of Guava io.ByteSource
-    [OAK-11407] - Remove usage of Guava Strings.EMPTY_STRING
-    [OAK-11408] - Extract IteratorUtils from CollectionUtils
-    [OAK-11411] - Remove usage of Guava Strings.emptyToNull
-    [OAK-11413] - Extract DequeUtils from CollectionUtils
-    [OAK-11414] - make collectionutils package private
-    [OAK-11417] - Remove usage of Guava ByteStreams
-    [OAK-11420] - Remove usage of Guava Files.move()
-    [OAK-11422] - Remove usage of Guava Strings
-    [OAK-11424] - Remove usage of Guava ObjectArrays.concat
-    [OAK-11427] - Remove usage of Guava Iterables.isEmpty
-    [OAK-11428] - Remove usage of Guava Files.copy()
-    [OAK-11430] - Remove usage of Guava Iterables.all
-    [OAK-11431] - Remove usage of Guava Files.createTempDir()
-    [OAK-11432] - Remove usage of Guava Iterables.size
-    [OAK-11440] - Remove usage of Guava Files.touch()
-    [OAK-11441] - Remove usage of Guava Iterables.addAll
-    [OAK-11442] - Remove usage of Guava Iterables.contains
-    [OAK-11445] - Remove usage of Guava Files.toString()
-    [OAK-11446] - Remove usage of Guava Files.equal()
-    [OAK-11448] - Remove usage of Guava Files.readLines()
-    [OAK-11449] - Remove usage of Guava Iterables.concat() [test cases only]
+    [OAK-11473] - Remove usage of Guava ImmutableSet (again)
+    [OAK-11585] - Add Iterators.contains replacement in IteratorUtils
+    [OAK-11587] - Add Iterators.asEnumeration replacement in IteratorUtils
+    [OAK-11588] - Add Iterators.toArray replacement in IteratorUtils
+    [OAK-11590] - Remove usage of Iterators.getLast()
+    [OAK-11591] - Remove usage of Iterators.contains()
+    [OAK-11592] - Remove usage of Iterators.asEnumeration()
+    [OAK-11593] - Remove usage of Iterators.toArray()
+    [OAK-11612] - Remove usage of Sets.union [2]
+    [OAK-11618] - Remove usage of Guava Stopwatch
+    [OAK-11620] - Create replacement for Guava Stopwatch
+    [OAK-11621] - Reduce usage of Guava Ticker
+    [OAK-11640] - Remove usage of Guava ImmutableSet.Builder
+    [OAK-11646] - Remove usage of Guava ImmutableSet.of
+    [OAK-11652] - Remove usage of Guava Iterators.forArray
+    [OAK-11654] - Remove usage of Guava Suppliers.ofInstance
+    [OAK-11663] - Remove usage of Guava Iterators.filter()
+    [OAK-11664] - Remove usage of Guava Iterators.transform()
+    [OAK-11665] - Remove usage of Guava Iterators.singletonIterator()
+    [OAK-11666] - Remove usage of Guava Iterators.concat()
+    [OAK-11668] - Remove usage of Guava Iterators.mergeSorted()
+    [OAK-11669] - Add Iterators.concat() replacement in IteratorUtils
+    [OAK-11674] - Add Iterators.filter() replacement in IteratorUtils
+    [OAK-11676] - Add Iterators.transform() replacement in IteratorUtils
+    [OAK-11677] - Remove usage of Guava Iterators.elementsEqual()
+    [OAK-11678] - Remove usage of Guava Iterators.cycle()
+    [OAK-11680] - Add Iterators.cycle() replacement in IteratorUtils
+    [OAK-11688] - Remove usage of Guava Iterators.getOnlyElement()
+    [OAK-11689] - Remove usage of Guava Iterators.addAll()
+    [OAK-11690] - Remove usage of Guava Iterators.partition()
+    [OAK-11691] - Add Iterators.partition() replacement in IteratorUtils
+    [OAK-11705] - Remove usage of Guava Iterators.asEnumeration()
+    [OAK-11706] - Add Iterators.limit() replacement in IteratorUtils
+    [OAK-11707] - Remove usage of Guava Iterators.limit()
 
 Bug
 
-    [OAK-11287] - Cleanup May Delete Referenced Segments
-    [OAK-11401] - Increase Log levels for FullGC deletion logs to INFO
-    [OAK-11409] - Membership cache fails to update changes on cached properties
-    [OAK-11423] - Jdbc driver dependencies need to have scope compile in order to be included in oak-run.
-    [OAK-11425] - MarkSweepGarbageColllector.iterateNodeTree() passes open file to FileIOUtils.sort()
-    [OAK-11433] - Create separate config variable for fullGC max revision age millis and apply it in VersionGarbageCollector
-    [OAK-11434] - oak-run: DataStoreCheckCommand tries to move open files
-    [OAK-11439] - Provide support to set remaining full gc modes
-    [OAK-11450] - GlobalNameMapper.isExpandedName() does sometimes return incorrect results
-    [OAK-11453] - Provide support to set fullGC max revision age millis from oak-run
+    [OAK-9584] - JCR methods only support qualified names but not expanded names for namespace prefix "rep:".
+    [OAK-11452] - Expose FullGC OSGi config via metrics
+    [OAK-11634] - Add Osgi config for FullGC generation value
+    [OAK-11639] - oak-run-commons: IncrementalFlatFileStoreStrategy uses com.google.common classes (instead of shaded ones)
+    [OAK-11673] - Oak-segment-azure v12 CPU increase caused by refreshLease
+    [OAK-11685] - Reduce log level for MongoFullGcNodeBin class
+    [OAK-11695] - Elasticsearch queries might produce inconsistent results
+    [OAK-11704] - Update Mockito dependency to 5.17.0
+    [OAK-11719] - vector query should not break normal query
+
+Epic
+
+    [OAK-11703] - Oak should compile & test on Java 24
+
+Story
+
+    [OAK-11671] - [full-gc] Persist the avg object size and avg size of props per document in Mongo settings
+
+New Feature
+
+    [OAK-11720] - Put the usage of exclusive merge lock for large transactions behind a FeatureToggle/OSGI config
 
 Improvement
 
-    [OAK-9500] - Automatically deploy snapshot artifacts to Maven repo through GHA
-    [OAK-11312] - Refactor CollectionUtils
-    [OAK-11364] - For oak-jcr tests, support automatic starting/stopping of docker containers used as RDB servers for RDBDocumentStore
-    [OAK-11365] - Incremental index store: ability to set a timeout
-    [OAK-11383] - Improve performance of DefaultStatisticsProvider
-    [OAK-11389] - Disable Checkstyle
-    [OAK-11416] - Docker support for oak-jcr tests with RdbDocumentStore needs a way to specify environment variables for the container
-    [OAK-11418] - RdbConnectionUtils should use SystemPropertySupplier
-    [OAK-11421] - Update MySql JDBC driver version to com.mysql:mysql-connector-j:9.0.1 in profile rdb-mysql
+    [OAK-11545] - oak-search-elastic: implement bulk processor pool to optimize indexing
+    [OAK-11607] - Node.getNodes() not lazy for orderable nodetypes
+    [OAK-11638] - Elastic: ignore standard token filter configurations
+    [OAK-11655] - Do not create redundant instances of ElasticBulkProcessorHandler
+    [OAK-11658] - Indexing job: fix "jcr:uuid" issue
+    [OAK-11687] - DataStore FileCache Memory Usage
+    [OAK-11692] - Add inference config in oak.
+    [OAK-11693] - Parse inference query and extract out inference config and text query
+    [OAK-11694] - Implement inference in oak-search-elastic
+    [OAK-11709] - Merging index definitions: merge "tags" and override "type", "async"
+    [OAK-11721] - experimental and inferenceConfig implementation should be backward compatible
+    [OAK-11722] - Donot read compatibility system property in VectorQuery for each query
 
 Task
 
-    [OAK-11027] - flaky IncrementalStoreTest
-    [OAK-11264] - CacheWarming tests seems flaky
-    [OAK-11286] - blob-cloud, segment: update netty version to 4.1.115
-    [OAK-11394] - Avoid creation of iterator object when creating a CompositeEditor
-    [OAK-11412] - indexing job: delay creation of index writers backend until the start of the indexing phase
-    [OAK-11415] - TypeEditor: constraint exception for node type violations should contain that node's effective type
-    [OAK-11419] - oak-store-document - persistent cache: remove unused UDP/TCP broadcasters
-    [OAK-11470] - Undo changes to remove usage of Guava ImmutableSet
+    [OAK-11572] - Add api(s) in IteratorUtils to remove guava Iterators usage
+    [OAK-11609] - Add Prometheus metrics export via pushgateway to RevisionsCommand (oak-run)
+    [OAK-11622] - Clock improvements
+    [OAK-11625] - Move o.a.j.o.plugins.bundlor.BundlingConfigInitializer to a suitable API package and export that package.
+    [OAK-11642] - oak-segment-tar uses unmaintained concurrentlinkedhashmap-lru
+    [OAK-11643] - Update (shaded) Guava to 33.4.7
+    [OAK-11650] - Fix Javadoc errors
+    [OAK-11675] - Clean oak-segment-azure lib exporting
+    [OAK-11681] - Clean oak-segment-azure lib exporting
+    [OAK-11684] - Send fullGC metrics to Prometheus pushgateway on each garbage collection iteration
+    [OAK-11698] - webapp: update Tomcat dependency to 9.0.104
+    [OAK-11699] - Update commons-collections4 to 4.5.0
+    [OAK-11700] - Update (shaded) Guava to 33.4.8
+    [OAK-11701] - Upgrade jackson-databind dependency to 2.17.3
+    [OAK-11708] - Update Easymock dependency to 5.5
+    [OAK-11710] - Update jacoco plugin to 0.8.13
+    [OAK-11714] - Add jmx to expose inferenceConfig
+    [OAK-11716] - Capture inference service stats
 
 
 In addition to the above-mentioned changes, this release contains all

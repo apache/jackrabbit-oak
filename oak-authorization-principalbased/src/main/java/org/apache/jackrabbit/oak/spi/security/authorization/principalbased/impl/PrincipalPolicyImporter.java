@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -249,7 +249,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
                 if (REP_EFFECTIVE_PATH.equals(oakName) && PropertyType.PATH == prop.getType()) {
                     effectivePath = extractEffectivePath(prop);
                 } else if (REP_PRIVILEGES.equals(oakName) && PropertyType.NAME == prop.getType()) {
-                    privs = getPrivileges(Iterables.transform(prop.getTextValues(), TextValue::getString));
+                    privs = getPrivileges(IterableUtils.transform(prop.getTextValues(), TextValue::getString));
                 } else {
                     throw new ConstraintViolationException("Unsupported property '"+oakName+"' with type "+prop.getType()+" within policy entry of type rep:PrincipalEntry");
                 }
@@ -308,7 +308,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
                 log.error("Missing rep:effectivePath for entry {} of policy at {}", this, policy.getOakPath());
                 throw new ConstraintViolationException("Entries for PrincipalAccessControlList must specify an effective path.");
             }
-            policy.addEntry(StringUtils.emptyToNull(effectivePath), Iterables.toArray(privileges, Privilege.class), restrictions, mvRestrictions);
+            policy.addEntry(StringUtils.emptyToNull(effectivePath), IterableUtils.toArray(privileges, Privilege.class), restrictions, mvRestrictions);
         }
     }
 }

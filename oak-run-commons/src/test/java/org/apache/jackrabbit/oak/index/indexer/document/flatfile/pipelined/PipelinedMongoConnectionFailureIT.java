@@ -22,8 +22,8 @@ import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -98,7 +98,9 @@ public class PipelinedMongoConnectionFailureIT {
             .withNetworkAliases("mongo")
             .withExposedPorts(MONGODB_DEFAULT_PORT);
     @Rule
-    public final ToxiproxyContainer toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(network);
+    public final ToxiproxyContainer toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
+            .withStartupAttempts(3)
+            .withNetwork(network);
     @Rule
     public final DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
     @Rule

@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.77-SNAPSHOT</version>
+        <version>1.81-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -59,7 +59,6 @@
                             io.netty.channel.epoll;resolution:=optional,
                             io.netty.handler.codec.*;resolution:=optional,
                             org.objectweb.asm;resolution:=optional,
-                            org.codehaus.stax2;resolution:=optional,
                             !org.apache.jackrabbit.oak.segment*,
                             !com.google.*,
                             !android.os,
@@ -70,16 +69,9 @@
                             org.apache.jackrabbit.oak.segment.azure,
                             org.apache.jackrabbit.oak.segment.azure.queue,
                             org.apache.jackrabbit.oak.segment.azure.util,
-                            com.fasterxml.jackson.dataformat.xml,
-                            com.fasterxml.jackson.dataformat.xml.deser,
                             com.microsoft.azure.storage,
                             com.microsoft.azure.storage.core,
                             com.microsoft.azure.storage.blob,
-                            com.azure.core.credential,
-                            com.azure.identity,
-                            com.azure.blob,
-                            com.azure.storage.common,
-                            com.azure.storage.internal.avro.implementation
                         </Export-Package>
                         <Embed-Dependency>
                             azure-storage,

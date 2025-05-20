@@ -30,10 +30,10 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.cursor.PathCursor;
@@ -126,16 +126,16 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  *
  * Under it follows the index definition node that:
  * <ul>
- * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
- * <li>must have the <code>type</code> property set to <b><code>lucene</code></b></li>
- * <li>must have the <code>async</code> property set to <b><code>async</code></b></li>
+ * <li>must be of type <code>oak:QueryIndexDefinition</code>
+ * <li>must have the <code>type</code> property set to <b><code>lucene</code></b>
+ * <li>must have the <code>async</code> property set to <b><code>async</code></b>
  * </ul>
  * <p>
  * Optionally you can add
  * <ul>
- * <li>what subset of property types to be included in the index via the <code>includePropertyTypes</code> property</li>
- * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property</li>
- * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.</li>
+ * <li>what subset of property types to be included in the index via the <code>includePropertyTypes</code> property
+ * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property
+ * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.
  * </ul>
  * <pre>{@code
  * {
@@ -1230,7 +1230,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         return PropertyValues.newDouble(currentRow.score);
                     }
                     if (QueryConstants.REP_SPELLCHECK.equals(columnName) || QueryConstants.REP_SUGGEST.equals(columnName)) {
-                        return PropertyValues.newString(Iterables.toString(currentRow.suggestWords));
+                        return PropertyValues.newString(IterableUtils.toString(currentRow.suggestWords));
                     }
                     if (QueryConstants.REP_EXCERPT.equals(columnName)) {
                         return PropertyValues.newString(currentRow.excerpt);

@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -84,7 +84,7 @@ class ExternalUserValidatorProvider extends ValidatorProvider implements Externa
     protected @NotNull Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         this.rootBefore = rootProvider.createReadOnlyRoot(before);
         this.rootAfter = rootProvider.createReadOnlyRoot(after);
-        return new SubtreeValidator(new ExternalUserValidator(), Iterables.toArray(PathUtils.elements(authorizableRootPath), String.class));
+        return new SubtreeValidator(new ExternalUserValidator(), IterableUtils.toArray(PathUtils.elements(authorizableRootPath), String.class));
     }
     
     private class ExternalUserValidator extends DefaultValidator {

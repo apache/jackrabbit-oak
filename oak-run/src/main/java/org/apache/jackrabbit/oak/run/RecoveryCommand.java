@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.run;
 
 import java.io.Closeable;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -36,8 +36,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 class RecoveryCommand implements Command {
 

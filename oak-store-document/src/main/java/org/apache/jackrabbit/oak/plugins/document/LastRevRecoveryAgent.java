@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.asISO8601;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -43,8 +41,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
@@ -301,7 +299,7 @@ public class LastRevRecoveryAgent {
             // invalidate all suspects (OAK-9908)
             log.info("Starting cache invalidation before sweep...");
             CacheInvalidationStats stats = store.invalidateCache(
-                    transform(suspects, Document::getId));
+                    IterableUtils.transform(suspects, Document::getId));
             log.info("Invalidation stats: {}", stats);
             sweeper.sweep(suspects, new NodeDocumentSweepListener() {
                 @Override
@@ -776,7 +774,7 @@ public class LastRevRecoveryAgent {
      * @return the recovery candidate nodes.
      */
     public Iterable<Integer> getRecoveryCandidateNodes() {
-        return Iterables.transform(filter(missingLastRevUtil.getAllClusters(),
+        return IterableUtils.transform(IterableUtils.filter(missingLastRevUtil.getAllClusters(),
                 input ->revisionContext.getClusterId() != input.getClusterId()
                         && input.isRecoveryNeeded(revisionContext.getClock().getTime())),
                 ClusterNodeInfoDocument::getClusterId);

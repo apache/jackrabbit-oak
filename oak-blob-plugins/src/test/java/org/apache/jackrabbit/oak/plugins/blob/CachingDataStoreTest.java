@@ -31,7 +31,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -40,7 +39,9 @@ import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -228,7 +229,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         assertEquals(id, rec.getIdentifier().toString());
         assertFile(rec.getStream(), f, folder);
 
-        assertEquals(1, Iterators.size(dataStore.getAllIdentifiers()));
+        assertEquals(1, IteratorUtils.size(dataStore.getAllIdentifiers()));
 
         dataStore.deleteRecord(new DataIdentifier(id));
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
@@ -260,7 +261,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         assertEquals(id, rec.getIdentifier().toString());
         assertFile(rec.getStream(), f, folder);
 
-        assertEquals(1, Iterators.size(dataStore.getAllIdentifiers()));
+        assertEquals(1, IteratorUtils.size(dataStore.getAllIdentifiers()));
 
         dataStore.deleteRecord(new DataIdentifier(id));
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
@@ -290,7 +291,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         assertEquals(id, rec.getIdentifier().toString());
         assertFile(rec.getStream(), f, folder);
 
-        assertEquals(1, Iterators.size(dataStore.getAllIdentifiers()));
+        assertEquals(1, IteratorUtils.size(dataStore.getAllIdentifiers()));
 
         dataStore.deleteRecord(new DataIdentifier(id));
         rec = dataStore.getRecordIfStored(new DataIdentifier(id));
@@ -323,7 +324,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         File cacheDownloaded = dataStore.getCache().get(id);
         assertTrue(FileUtils.contentEquals(f, cacheDownloaded));
 
-        assertEquals(1, Iterators.size(dataStore.getAllIdentifiers()));
+        assertEquals(1, IteratorUtils.size(dataStore.getAllIdentifiers()));
 
         LOG.info("Finished syncAddGetLoadCache");
     }
@@ -508,14 +509,14 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         DataRecord rec = dataStore.addRecord(fin);
         assertEquals(id, rec.getIdentifier().toString());
 
-        assertTrue(Iterators.contains(dataStore.getAllIdentifiers(), new DataIdentifier(id)));
+        assertTrue(IteratorUtils.contains(dataStore.getAllIdentifiers(), new DataIdentifier(id)));
 
         //start & finish
         taskLatch.countDown();
         callbackLatch.countDown();
         waitFinish();
 
-        assertTrue(Iterators.contains(dataStore.getAllIdentifiers(), new DataIdentifier(id)));
+        assertTrue(IteratorUtils.contains(dataStore.getAllIdentifiers(), new DataIdentifier(id)));
 
         LOG.info("Finished getAllIdentifiers");
     }

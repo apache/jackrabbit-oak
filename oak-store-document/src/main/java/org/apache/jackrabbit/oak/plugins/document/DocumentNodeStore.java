@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.util.Collections.singletonList;
 import static java.util.Objects.nonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
@@ -35,6 +33,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExternalRevisions;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isAvoidMergeLockEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
@@ -82,12 +81,14 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -134,11 +135,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Suppliers;
-
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * Implementation of a NodeStore on {@link DocumentStore}.
@@ -411,6 +407,10 @@ public final class DocumentNodeStore
     private final ReadWriteLock mergeLock = new ReentrantReadWriteLock();
 
     /**
+     * To avoid taking exclusive merge lock while merging changes into repository in case of conflict
+     */
+    private final boolean avoidMergeLock;
+    /**
      * Enable using simple revisions (just a counter). This feature is useful
      * for testing.
      */
@@ -646,6 +646,7 @@ public final class DocumentNodeStore
         this.prefetchFeature = builder.getPrefetchFeature();
         this.cancelInvalidationFeature = builder.getCancelInvalidationFeature();
         this.noChildOrderCleanupFeature = builder.getNoChildOrderCleanupFeature();
+        this.avoidMergeLock = isAvoidMergeLockEnabled(builder);
         this.cacheWarming = new CacheWarming(s);
 
         this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
@@ -656,7 +657,8 @@ public final class DocumentNodeStore
         this.versionGarbageCollector = new VersionGarbageCollector(
                 this, builder.createVersionGCSupport(), isFullGCEnabled(builder), false,
                 isEmbeddedVerificationEnabled(builder), builder.getFullGCMode(), builder.getFullGCDelayFactor(),
-                builder.getFullGCBatchSize(), builder.getFullGCProgressSize(), builder.getFullGcMaxAgeMillis());
+                builder.getFullGCBatchSize(), builder.getFullGCProgressSize(), builder.getFullGcMaxAgeMillis(),
+                builder.getFullGCGeneration());
         this.versionGarbageCollector.setStatisticsProvider(builder.getStatisticsProvider());
         this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
         this.versionGarbageCollector.setFullGCPaths(builder.getFullGCIncludePaths(), builder.getFullGCExcludePaths());
@@ -1594,7 +1596,7 @@ public final class DocumentNodeStore
         }
 
         final RevisionVector readRevision = parent.getLastRevision();
-        return transform(getChildren(parent, name, limit).children, new Function<String, DocumentNodeState>() {
+        return IterableUtils.transform(getChildren(parent, name, limit).children, new Function<String, DocumentNodeState>() {
             @Override
             public DocumentNodeState apply(String input) {
                 Path p = new Path(parent.getPath(), input);
@@ -1902,7 +1904,7 @@ public final class DocumentNodeStore
 
     @NotNull
     DocumentNodeStoreBranch createBranch(DocumentNodeState base) {
-        return new DocumentNodeStoreBranch(this, base, mergeLock);
+        return new DocumentNodeStoreBranch(this, base, mergeLock, avoidMergeLock);
     }
 
     @NotNull
@@ -1981,7 +1983,7 @@ public final class DocumentNodeStore
                     new ResetDiff(previous.asTrunkRevision(), operations));
             LOG.debug("reset: applying {} operations", operations.size());
             // apply reset operations
-            for (List<UpdateOp> ops : partition(operations.values(), getCreateOrUpdateBatchSize())) {
+            for (List<UpdateOp> ops : IterableUtils.partition(operations.values(), getCreateOrUpdateBatchSize())) {
                 store.createOrUpdate(NODES, ops);
             }
         }
@@ -2231,7 +2233,7 @@ public final class DocumentNodeStore
     public Iterable<String> checkpoints() {
         checkOpen();
         final long now = clock.getTime();
-        return Iterables.transform(Iterables.filter(checkpoints.getCheckpoints().entrySet(),
+        return IterableUtils.transform(IterableUtils.filter(checkpoints.getCheckpoints().entrySet(),
                 cp -> cp.getValue().getExpiryTime() > now),
                 cp -> cp.getKey().toString());
     }
@@ -3429,9 +3431,8 @@ public final class DocumentNodeStore
                 // see OAK-6016 and OAK-6011
                 if (e instanceof IllegalStateException &&
                         "Root document does not have a lastRev entry for local clusterId 0".equals(e.getMessage())) {
-                    LOG.warn("diffJournalChildren failed with " +
-                            e.getClass().getSimpleName() +
-                            ", falling back to classic diff : " + e.getMessage());
+                    LOG.debug("diffJournalChildren failed with {}" +
+                            ", falling back to classic diff: {}", e.getClass().getSimpleName(), e.getMessage());
                 } else {
                     LOG.warn("diffJournalChildren failed with " +
                             e.getClass().getSimpleName() +
@@ -3807,11 +3808,11 @@ public final class DocumentNodeStore
         }
 
         private static Supplier<Integer> getDelay(DocumentNodeStore ns) {
-            int delay = 0;
             if (ns.getAsyncDelay() != 0) {
-                delay = (int) SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
+                return () -> (int) SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
+            } {
+                return () -> 0;
             }
-            return Suppliers.ofInstance(delay);
         }
     }
 
@@ -3822,7 +3823,7 @@ public final class DocumentNodeStore
 
         BackgroundPurgeOperation(DocumentNodeStore nodeStore, AtomicBoolean isDisposed) {
             // run every 60 secs
-            super(nodeStore, isDisposed, Suppliers.ofInstance(60000));
+            super(nodeStore, isDisposed, () -> 60000);
         }
 
         @Override
@@ -3859,7 +3860,7 @@ public final class DocumentNodeStore
             // the sweep2 is fine to run every 60sec by default as it is not time critical
             // to achieve this we're doing a Math.min(60sec, 60 * getAsyncDelay())
             super(nodeStore, isDisposed,
-                    Suppliers.ofInstance(Math.min(60000, 60 * nodeStore.getAsyncDelay())));
+                    () -> Math.min(60000, 60 * nodeStore.getAsyncDelay()));
             if (sweep2Lock < 0) {
                 throw new IllegalArgumentException("sweep2Lock must not be negative");
             }
@@ -3901,7 +3902,7 @@ public final class DocumentNodeStore
 
         BackgroundLeaseUpdate(DocumentNodeStore nodeStore,
                               AtomicBoolean isDisposed) {
-            super(nodeStore, isDisposed, Suppliers.ofInstance(INTERVAL_MS));
+            super(nodeStore, isDisposed, () -> INTERVAL_MS);
         }
 
         @Override
@@ -3932,7 +3933,7 @@ public final class DocumentNodeStore
 
         BackgroundClusterUpdate(DocumentNodeStore nodeStore,
                               AtomicBoolean isDisposed) {
-            super(nodeStore, isDisposed, Suppliers.ofInstance(1000));
+            super(nodeStore, isDisposed, () -> 1000);
         }
 
         @Override

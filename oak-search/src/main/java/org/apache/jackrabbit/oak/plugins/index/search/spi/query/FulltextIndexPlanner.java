@@ -31,7 +31,6 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
@@ -591,7 +590,7 @@ public class FulltextIndexPlanner {
                 log.debug("Following relative property paths are not index: {}", relPaths);
                 return false;
             }
-            result.setParentPath(Iterables.getOnlyElement(relPaths, ""));
+            result.setParentPath(relPaths.stream().findAny().orElse(""));
 
             //Such non indexed path can possibly be evaluated via any rule on nt:base
             //which can possibly index everything

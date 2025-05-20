@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -45,7 +44,7 @@ public class OutOfBandIndexer extends OutOfBandIndexerBase {
         LuceneIndexEditorProvider lucene = createLuceneEditorProvider();
         SegmentPropertyIndexEditorProvider property = createPropertyEditorProvider();
 
-        return CompositeIndexEditorProvider.compose(List.of(lucene, property));
+        return CompositeIndexEditorProvider.compose(lucene, property);
     }
 
     private SegmentPropertyIndexEditorProvider createPropertyEditorProvider() throws IOException {

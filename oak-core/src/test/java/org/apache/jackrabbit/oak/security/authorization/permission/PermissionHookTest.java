@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -796,7 +795,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
         principalPermissionStore = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(testPrincipal.getName());
         assertEquals(2, principalPermissionStore.getChildrenCount(10));
-        Iterable<String> paths = Iterables.transform(principalPermissionStore.getChildren(), tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
+        Iterable<String> paths = IterableUtils.transform(principalPermissionStore.getChildren(), tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
 
         assertEquals(Set.of(testPath, t.getPath()), SetUtils.toSet(paths));
     }

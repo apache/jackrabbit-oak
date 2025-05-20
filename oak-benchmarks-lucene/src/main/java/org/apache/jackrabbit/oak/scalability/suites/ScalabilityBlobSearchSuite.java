@@ -37,7 +37,6 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.VersionException;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
@@ -46,6 +45,7 @@ import org.apache.jackrabbit.oak.benchmark.TestInputStream;
 import org.apache.jackrabbit.oak.benchmark.util.Date;
 import org.apache.jackrabbit.oak.benchmark.util.MimeType;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
 
@@ -60,17 +60,13 @@ import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
  * <li>
  *     <code>fileWriters</code> - Controls the number of concurrent background threads for writing blobs.
  *     Defaults to 0.
- * </li>
  * <li>
  *     <code>fileReaders</code> - Controls the number of concurrent background threads for reading blobs.
  *     Defaults to 1.
- * </li>
  * <li>
  *     <code>fileSize</code> - Controls the size in KB of the blobs. Defaults to 1.
- * </li>
  * <li>
  *     <code>maxAssets</code> - Controls the max child nodes created under a node. Defaults to 500.
- * </li>
  * </ul>
  */
 public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {

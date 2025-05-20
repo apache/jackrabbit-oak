@@ -22,9 +22,9 @@ package org.apache.jackrabbit.oak.index;
 import com.codahale.metrics.Counter;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexerBase;
@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledTypesRegistry;
-import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
+import org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -286,7 +286,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
 
         Query q = qm.createQuery("select * from [oak:Unstructured] where [foo] is not null", Query.JCR_SQL2);
         QueryResult result = q.execute();
-        int size = Iterators.size(result.getNodes());
+        int size = IteratorUtils.size(result.getNodes());
         session.logout();
         return size;
     }

@@ -70,6 +70,13 @@ public class RDBDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void avoidMergeLockDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(true);
+        assertFalse(builder.avoidMergeLock());
+    }
+
+    @Test
     public void fullGCIncludePathsEmpty() {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
         builder.setFullGCIncludePaths(new String[] {"/foo"});
@@ -109,6 +116,15 @@ public class RDBDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void avoidMergeLockFeatureToggleDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        Feature avoidMergeLockFeature = mock(Feature.class);
+        when(avoidMergeLockFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreAvoidMergeLockFeature(avoidMergeLockFeature);
+        assertNull(builder.getDocStoreAvoidMergeLockFeature());
+    }
+
+    @Test
     public void fullGCModeHasDefaultValue() {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
         builder.setFullGCMode(3);
@@ -116,9 +132,23 @@ public class RDBDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void fullGCGenerationHasDefaultValue() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCGeneration(3);
+        assertEquals(0, builder.getFullGCGeneration());
+    }
+
+    @Test
     public void fullGcMaxAgeInSecsHasDefaultValue() {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
         builder.setFullGcMaxAgeMillis(30 * 24 * 60 * 60 * 1000L);
         assertEquals(0, builder.getFullGcMaxAgeMillis());
+    }
+
+    @Test
+    public void fullGcAuditLoggingEnabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCAuditLoggingEnabled(true);
+        assertFalse(builder.isFullGCAuditLoggingEnabled());
     }
 }

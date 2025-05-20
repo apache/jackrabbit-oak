@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
@@ -235,7 +236,7 @@ final class Delegatee {
      */
     @NotNull
     String[] listOrphanedUsers() {
-        return Iterators.toArray(internalListOrphanedIdentities(), String.class);
+        return IteratorUtils.toArray(internalListOrphanedIdentities(), String.class);
     }
 
     /**
@@ -356,7 +357,7 @@ final class Delegatee {
     private Iterator<String> internalListOrphanedIdentities() {
         try {
             Iterator<SyncedIdentity> it = handler.listIdentities(userMgr);
-            return Iterators.filter(Iterators.transform(it, syncedIdentity -> {
+            return IteratorUtils.filter(IteratorUtils.transform(it, syncedIdentity -> {
                 if (syncedIdentity != null && isMyIDP(syncedIdentity)) {
                     try {
                         // nonNull-ExternalIdRef has already been asserted by 'isMyIDP'

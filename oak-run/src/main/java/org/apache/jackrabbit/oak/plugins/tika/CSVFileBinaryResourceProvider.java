@@ -25,12 +25,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

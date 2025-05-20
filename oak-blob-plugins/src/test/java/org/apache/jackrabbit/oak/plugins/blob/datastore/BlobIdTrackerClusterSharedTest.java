@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
@@ -41,7 +42,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static java.lang.String.valueOf;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -224,11 +224,11 @@ public class BlobIdTrackerClusterSharedTest {
         Set<String> retrieved = new HashSet<>();
         Iterator<String> iter = tracker.get();
         log.info("retrieving blob ids");
-        while(iter.hasNext()) {
+        while (iter.hasNext()) {
             retrieved.add(iter.next());
         }
         if (iter instanceof Closeable) {
-            close((Closeable)iter, true);
+            IOUtils.closeQuietly((Closeable)iter);
         }
         return retrieved;
     }

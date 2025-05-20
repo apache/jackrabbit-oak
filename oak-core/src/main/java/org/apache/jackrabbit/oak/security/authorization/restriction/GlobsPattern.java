@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,10 +30,10 @@ import java.util.Arrays;
 /**
  * <p>Multi-valued variant of the {@link GlobPattern} that will match a given path (or tree/property) if any of the 
  * contained patterns matches. This is equivalent to creating multiple access control entries with a single rep:glob
- * restrictions each.</p>
+ * restrictions each.
  * 
- * <p>NOTE: An empty value array will not match any path/item</p>
- * <p>NOTE: Currently the pattern keeps a list of {@link GlobPattern} and doesn't attempt to optimize the evaluation.</p>
+ * <p>NOTE: An empty value array will not match any path/item
+ * <p>NOTE: Currently the pattern keeps a list of {@link GlobPattern} and doesn't attempt to optimize the evaluation.
  * 
  * @see GlobPattern GlobPattern for details
  */

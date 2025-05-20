@@ -22,9 +22,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 import java.util.Collections;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePatternUtil;
@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;
@@ -102,10 +101,10 @@ public class HybridPropertyIndexLookup {
             result = querySimple(filter, indexName, propIndexNode, encodedValues);
         }
 
-        Iterable<String> paths = transform(result, path -> isAbsolute(path) ? path : "/" + path);
+        Iterable<String> paths = IterableUtils.transform(result, path -> isAbsolute(path) ? path : "/" + path);
 
         if (log.isTraceEnabled()) {
-            paths = transform(paths, path -> {
+            paths = IterableUtils.transform(paths, path -> {
                 log.trace("[{}] {} = {} -> {}", indexPath, propertyName, encodedValues, path);
                 return path;
             });
@@ -121,7 +120,7 @@ public class HybridPropertyIndexLookup {
 
     private Iterable<String> querySimple(Filter filter, String indexName, NodeState propIndexNode,
                                          Set<String> values) {
-        return Iterables.concat(
+        return IterableUtils.chainedIterable(
                 queryBucket(filter, indexName, propIndexNode, PROP_HEAD_BUCKET, values),
                 queryBucket(filter, indexName, propIndexNode, PROP_PREVIOUS_BUCKET, values)
         );

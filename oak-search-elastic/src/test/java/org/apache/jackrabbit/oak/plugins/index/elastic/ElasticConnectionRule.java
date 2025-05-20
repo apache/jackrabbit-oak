@@ -61,7 +61,7 @@ public class ElasticConnectionRule extends ExternalResource {
     public ElasticConnectionRule(String elasticConnectionString) {
         this(elasticConnectionString,
                 "elastic_test_" +
-                        RandomStringUtils.random(5, true, false).toLowerCase() +
+                        RandomStringUtils.insecure().next(5, true, false).toLowerCase() +
                         System.currentTimeMillis()
         );
     }

@@ -41,8 +41,6 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -59,6 +57,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -845,7 +844,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
         private PrincipalPredicate(@Nullable String accessControlledPath, @NotNull Set<Principal> principals, @NotNull Collection<String> oakPaths) {
             this.accessControlledPath = accessControlledPath;
-            principalNames = Iterables.transform(principals, Principal::getName);
+            principalNames = IterableUtils.transform(principals, Principal::getName);
             this.oakPaths = oakPaths;
         }
 

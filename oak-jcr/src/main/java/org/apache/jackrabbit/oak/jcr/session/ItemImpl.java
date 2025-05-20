@@ -121,19 +121,9 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     @NotNull
     public String getName() throws RepositoryException {
-        String oakName = perform(new ItemOperation<String>(dlg, "getName") {
-            @NotNull
-            @Override
-            public String perform() {
-                return item.getName();
-            }
-            @Override
-            public String toString() {
-                return format("getName [%s]", dlg.getPath());
-            }
-        });
+        String oakName = getOakName();
         // special case name of root node
-        return oakName.isEmpty() ? "" : toJcrPath(dlg.getName());
+        return oakName.isEmpty() ? "" : toJcrPath(oakName);
     }
 
     /**
@@ -142,13 +132,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     @NotNull
     public String getPath() throws RepositoryException {
-        return toJcrPath(perform(new ItemOperation<String>(dlg, "getPath") {
-            @NotNull
-            @Override
-            public String perform() {
-                return item.getPath();
-            }
-        }));
+        return toJcrPath(getOakPath());
     }
 
     @Override @NotNull
@@ -319,8 +303,39 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
     //-----------------------------------------------------------< internal >---
     @NotNull
-    String getOakName(String name) throws RepositoryException {
-        return sessionContext.getOakName(name);
+    String getOakName() throws RepositoryException {
+        return perform(new ItemOperation<String>(dlg, "getName") {
+            @NotNull
+            @Override
+            public String perform() {
+                return item.getName();
+            }
+            @Override
+            public String toString() {
+                return format("getName [%s]", dlg.getPath());
+            }
+        });
+    }
+    
+    @NotNull
+    String getOakPath() throws RepositoryException {
+        return perform(new ItemOperation<String>(dlg, "getPath") {
+            @NotNull
+            @Override
+            public String perform() {
+                return item.getPath();
+            }
+
+            @Override
+            public String toString() {
+                return format("getPath [%s]", dlg.getPath());
+            }
+        });
+    }
+
+    @NotNull
+    String getOakName(String jcrName) throws RepositoryException {
+        return sessionContext.getOakName(jcrName);
     }
 
     @NotNull

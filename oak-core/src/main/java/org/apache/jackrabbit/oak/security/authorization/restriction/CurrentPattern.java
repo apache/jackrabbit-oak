@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -34,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.NamespaceRegistry;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
@@ -99,7 +100,7 @@ class CurrentPattern implements RestrictionPattern {
 
     CurrentPattern(@NotNull String treePath, @NotNull Iterable<String> propertyNames) {
         this.treePath = treePath;
-        this.propertyNames = ImmutableSet.copyOf(propertyNames);
+        this.propertyNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(propertyNames));
     }
 
     @Override

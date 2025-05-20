@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import java.lang.ref.WeakReference;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -28,7 +29,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
  * A simple tracker for the source of commits (writes) in
  * {@link SegmentNodeStore}. It provides two basic functionalities:
  * <ul>
- * <li>exposes the number of commits executed per thread</li>
+ * <li>exposes the number of commits executed per thread
  * <li>exposes the threads (and possibly their details - i.e., stack traces)
  * currently waiting on the commit semaphore
  * </ul>
@@ -195,12 +196,11 @@ class CommitsTracker {
                 }
             }
         }
-        return commitsPerGroup;
+        return Collections.unmodifiableMap(commitsPerGroup);
     }
 
-    public Map<String, Long> getCommitsCountOthers() {
-        Map<String, Long> commitsOther = new ConcurrentLinkedHashMap.Builder<String, Long>()
-                .maximumWeightedCapacity(otherWritersLimit).build();
+    public Map<String, Long> getCommitsCountOthersLastMinute() {
+        Map<String, Long> commitsOther = new LRUMap<>(otherWritersLimit);
         long t = System.currentTimeMillis() - 60000;
         for (Commit commit : commits) {
             if (commit.getQueued() > t) {
@@ -210,6 +210,6 @@ class CommitsTracker {
                 }
             }
         }
-        return commitsOther;
+        return Collections.unmodifiableMap(commitsOther);
     }
 }

@@ -22,12 +22,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
@@ -59,6 +57,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isAvoidMergeLockEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
@@ -239,11 +238,69 @@ public class UtilsTest {
     }
 
     @Test
+    public void avoidMergeLockEnabledDefaultValue() {
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(newDocumentNodeStoreBuilder());
+        assertFalse("Avoid Merge Lock is enabled by default", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockExplicitlyDisabled() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(false);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertFalse("Avoid Merge Lock is disabled explicitly", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockEnabledViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(true);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertTrue("Avoid Merge Lock is enabled via configuration", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockEnabledViaFeatureToggle() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(false);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertTrue("Avoid Merge Lock is enabled via Feature Toggle", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockDisabledForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(true);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertFalse("Avoid Merge Lock is enabled for RDB Document Store", avoidMergeLockEnabled);
+    }
+
+    @Test
     public void fullGCModeDefaultValue() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
         int fullGCModeDefaultValue = builder.getFullGCMode();
         final int fullGcModeNone = 0;
-        assertEquals("Full GC mode has NONE value by default", fullGCModeDefaultValue, fullGcModeNone);
+        assertEquals("Full GC mode has NONE value by default", fullGcModeNone, fullGCModeDefaultValue);
+    }
+
+    @Test
+    public void fullGCGenerationDefaultValue() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        long fullGCGenerationDefaultValue = builder.getFullGCGeneration();
+        final long fullGcgeneration = 0;
+        assertEquals("Full GC generation has 0 value by default", fullGcgeneration, fullGCGenerationDefaultValue);
     }
 
     @Test
@@ -252,7 +309,16 @@ public class UtilsTest {
         final int fullGcModeGapOrphans = 2;
         builder.setFullGCMode(fullGcModeGapOrphans);
         int fullGCModeValue = builder.getFullGCMode();
-        assertEquals("Full GC mode set correctly via configuration", fullGCModeValue, fullGcModeGapOrphans);
+        assertEquals("Full GC mode set correctly via configuration", fullGcModeGapOrphans, fullGCModeValue);
+    }
+
+    @Test
+    public void fullGCGenerationSetViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        final long fullGcGeneration = 2;
+        builder.setFullGCGeneration(fullGcGeneration);
+        long fullGCGenerationValue = builder.getFullGCGeneration();
+        assertEquals("Full GC generation set correctly via configuration", fullGcGeneration, fullGCGenerationValue);
     }
 
     @Test
@@ -260,7 +326,15 @@ public class UtilsTest {
         DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
         builder.setFullGCMode(3);
         int fullGCModeValue = builder.getFullGCMode();
-        assertEquals("Full GC mode has default value 0 for RDB Document Store", fullGCModeValue, 0);
+        assertEquals("Full GC mode has default value 0 for RDB Document Store", 0, fullGCModeValue);
+    }
+
+    @Test
+    public void fullGCGenerationHasDefaultValueForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setFullGCGeneration(3);
+        long fullGCGenerationValue = builder.getFullGCGeneration();
+        assertEquals("Full GC generation has default value 0 for RDB Document Store", 0, fullGCGenerationValue);
     }
 
     @Test

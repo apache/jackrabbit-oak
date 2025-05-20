@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,8 +25,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
@@ -166,12 +165,7 @@ public class AsyncIndexerService {
                 registerMBean(whiteboard, PropertyIndexAsyncReindexMBean.class, asyncPI,
                         PropertyIndexAsyncReindexMBean.TYPE, "async"),
                 registerMBean(whiteboard, IndexStatsMBean.class, task.getIndexStats(), IndexStatsMBean.TYPE, name));
-        closer.register(new Closeable() {
-            @Override
-            public void close() throws IOException {
-                reg.unregister();
-            }
-        });
+        closer.register(reg::unregister);
     }
 
     @Deactivate

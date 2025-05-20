@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
  * 
  * <ul>
  * <li><code>nodeCount</code> - Controls the number of nodes to be created on
- * the primary. Defaults to 100_000.</li>
+ * the primary. Defaults to 100_000.
  * </ul>
  *
  */

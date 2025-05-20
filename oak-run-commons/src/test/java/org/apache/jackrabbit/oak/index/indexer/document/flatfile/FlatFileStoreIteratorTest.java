@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -168,7 +168,7 @@ public class FlatFileStoreIteratorTest {
             assertEquals(1, fitr.getBufferSize());
 
             // read remaining entries to trigger release of resources
-            Iterators.size(fitr);
+            IteratorUtils.size(fitr);
         }
     }
 

@@ -23,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -107,7 +108,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     }
     
     private static void assertMatchingEntries(@NotNull Iterator<Authorizable> it, @NotNull String... expectedIds) {
-        Set<String> ids = SetUtils.toSet(Iterators.transform(it, authorizable -> {
+        Set<String> ids = SetUtils.toSet(IteratorUtils.transform(it, authorizable -> {
             try {
                 return authorizable.getID();
             } catch (RepositoryException repositoryException) {
@@ -169,10 +170,10 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
             setExternalId("second", IDP_MIXED_AM);
 
             Iterator<Authorizable> it = provider.getMembers(automembershipGroup1, false);
-            assertEquals(2, Iterators.size(it));
+            assertEquals(2, IteratorUtils.size(it));
 
             it = provider.getMembers(automembershipGroup1, true);
-            assertEquals(2, Iterators.size(it));
+            assertEquals(2, IteratorUtils.size(it));
         } finally {
             if (u != null) {
                 u.remove();
@@ -521,8 +522,8 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         setExternalId(getTestUser().getID(), IDP_VALID_AM);
         
         automembershipGroup1.remove();
-        assertEquals(1, Iterators.size(provider.getMembership(getTestUser(), false)));
-        assertEquals(1, Iterators.size(provider.getMembership(getTestUser(), true)));
+        assertEquals(1, IteratorUtils.size(provider.getMembership(getTestUser(), false)));
+        assertEquals(1, IteratorUtils.size(provider.getMembership(getTestUser(), true)));
         
         // remove second group : but read principal from cache
         automembershipGroup2.remove();

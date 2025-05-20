@@ -17,9 +17,9 @@
 
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -61,7 +61,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
     @Test
     public void testListUsers() throws Exception {
         Iterator<ExternalUser> users = idp.listUsers();
-        Iterator<String> ids = Iterators.transform(users, externalUser -> externalUser.getId());
+        Iterator<String> ids = IteratorUtils.transform(users, externalUser -> externalUser.getId());
 
         Set<String> expectedIds = Set.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
         assertEquals(expectedIds, SetUtils.toSet(ids));
@@ -71,7 +71,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
     public void testListUsersWithExtraFilter() throws Exception {
         providerConfig.getUserConfig().setExtraFilter(PARAM_USER_EXTRA_FILTER_DEFAULT);
         Iterator<ExternalUser> users = idp.listUsers();
-        Iterator<String> ids = Iterators.transform(users, externalUser -> externalUser.getId());
+        Iterator<String> ids = IteratorUtils.transform(users, externalUser -> externalUser.getId());
 
         Set<String> expectedIds = Set.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
         assertEquals(expectedIds, SetUtils.toSet(ids));
@@ -200,7 +200,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
     public void testGetDeclaredMembers() throws Exception {
         ExternalGroup gr = idp.getGroup(TEST_GROUP1_NAME);
         Iterable<ExternalIdentityRef> memberrefs = gr.getDeclaredMembers();
-        Iterable<String> memberIds = Iterables.transform(memberrefs, externalIdentityRef -> externalIdentityRef.getId());
+        Iterable<String> memberIds = IterableUtils.transform(memberrefs, externalIdentityRef -> externalIdentityRef.getId());
 
         Set<String> expected = Set.of(TEST_GROUP1_MEMBERS);
         assertEquals(expected, SetUtils.toSet(memberIds));
@@ -237,7 +237,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
 
         ExternalUser user = idp.getUser(TEST_USER1_UID);
         Iterable<ExternalIdentityRef> groupRefs = user.getDeclaredGroups();
-        Iterable<String> groupIds = Iterables.transform(groupRefs, externalIdentityRef -> externalIdentityRef.getId());
+        Iterable<String> groupIds = IterableUtils.transform(groupRefs, externalIdentityRef -> externalIdentityRef.getId());
         assertEquals(Set.of(TEST_USER1_GROUPS), SetUtils.toSet(groupIds));
     }
 
@@ -294,7 +294,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
     @Test
     public void testListGroups() throws Exception {
         Iterator<ExternalGroup> groups = idp.listGroups();
-        Iterator<String> ids = Iterators.transform(groups, externalGroup -> externalGroup.getId());
+        Iterator<String> ids = IteratorUtils.transform(groups, externalGroup -> externalGroup.getId());
 
         Set<String> expectedIds = Set.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
         assertEquals(expectedIds, SetUtils.toSet(ids));
@@ -305,7 +305,7 @@ public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
         providerConfig.getGroupConfig().setExtraFilter("");
 
         Iterator<ExternalGroup> groups = idp.listGroups();
-        Iterator<String> ids = Iterators.transform(groups, externalGroup -> externalGroup.getId());
+        Iterator<String> ids = IteratorUtils.transform(groups, externalGroup -> externalGroup.getId());
 
         Set<String> expectedIds = Set.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
         assertEquals(expectedIds, SetUtils.toSet(ids));

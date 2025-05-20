@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -38,11 +37,13 @@ import ch.qos.logback.classic.LoggerContext;
 import joptsimple.OptionSpec;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
+import org.apache.jackrabbit.oak.plugins.document.FullGCMetricsExporter;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContextWrapper;
@@ -51,12 +52,16 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +81,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToS
 import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 import static org.apache.jackrabbit.oak.run.Utils.getMongoConnection;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
 /**
  * Gives information about current node revisions state.
@@ -105,7 +111,21 @@ public class RevisionsCommand implements Command {
             "org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations"
     );
 
-    private static class RevisionsOptions extends Utils.NodeStoreOptions {
+    private final boolean exitWhenDone;
+
+    public RevisionsCommand() {
+        this(true);
+    }
+
+    /**
+     *
+     * @param exitWhenDone if true, the command will exit the JVM when done
+     */
+    public RevisionsCommand(boolean exitWhenDone) {
+        this.exitWhenDone = exitWhenDone;
+    }
+
+    static class RevisionsOptions extends Utils.NodeStoreOptions {
 
         static final String CMD_INFO = "info";
         static final String CMD_COLLECT = "collect";
@@ -134,6 +154,8 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Boolean> dryRun;
         final OptionSpec<Boolean> embeddedVerification;
         final OptionSpec<Integer> fullGcMode;
+        final OptionSpec<Boolean> fullGCAuditLoggingEnabled;
+        final OptionSpec<String> exportMetrics;
 
         RevisionsOptions(String usage) {
             super(usage);
@@ -193,8 +215,12 @@ public class RevisionsCommand implements Command {
                     .withRequiredArg().ofType(Integer.class).defaultsTo(10000);
             fullGcMaxAge = parser.accepts("fullGcMaxAge", "The maximum age of the document in seconds " +
                             "to be considered for Full GC i.e. Version Garbage Collector (Full GC) logic will only consider those " +
-                            "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge)")
-                    .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toMillis(1));
+                            "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge). Default: 86400 (one day)")
+                    .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toSeconds(1));
+            fullGCAuditLoggingEnabled = parser.accepts("fullGCAuditLoggingEnabled", "Enable audit logging for Full GC")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(FALSE);
+            exportMetrics = parser.accepts("exportMetrics",
+                    "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -293,6 +319,18 @@ public class RevisionsCommand implements Command {
         boolean doCompaction() {
             return options.has(compact);
         }
+
+        Boolean isFullGCAuditLoggingEnabled() {
+            return options.has(fullGCAuditLoggingEnabled);
+        }
+
+        boolean exportMetrics() {
+            return options.has(exportMetrics);
+        }
+
+        String exportMetricsArgs() {
+            return exportMetrics.value(options);
+        }
     }
 
     @Override
@@ -324,6 +362,10 @@ public class RevisionsCommand implements Command {
                 }
             } else {
                 System.err.println("unknown revisions command: " + subCmd);
+            }
+            if (exitWhenDone) {
+                System.out.printf("Command '%s' completed successfully.%n", subCmd);
+                System.exit(0);
             }
         } catch (Throwable e) {
             LOG.error("Command failed", e);
@@ -434,11 +476,22 @@ public class RevisionsCommand implements Command {
 
     private void collect(final RevisionsOptions options, Closer closer, boolean fullGCEnabled) throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, fullGCEnabled);
-        // Set a default statistics provider
-        gc.setStatisticsProvider(new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor()));
+
+        // setup metrics exporter
+        Whiteboard whiteboard = new NodeStoreFixtureProvider.ClosingWhiteboard(new DefaultWhiteboard(), closer);
+        StatisticsProvider statsProvider = NodeStoreFixtureProvider.createStatsProvider(whiteboard, closer);
+        whiteboard.register(StatisticsProvider.class, statsProvider, Collections.emptyMap());
+        gc.setStatisticsProvider(statsProvider, true);
+
+        FullGCMetricsExporter metricsExporter = FullGCMetricsExporterFixtureProvider.create(options, whiteboard);
+        gc.setFullGCMetricsExporter(metricsExporter);
+
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
         try {
+            // register metrics exporter to closer
+            closer.register(metricsExporter);
+
             // collect until shutdown hook is called
             final AtomicBoolean running = new AtomicBoolean(true);
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -464,6 +517,7 @@ public class RevisionsCommand implements Command {
             }
             System.out.println("retrieving gc info");
             printInfo(gc, options);
+        } catch (Exception e) {
         } finally {
             finished.release();
             if (options.isDryRun()) {

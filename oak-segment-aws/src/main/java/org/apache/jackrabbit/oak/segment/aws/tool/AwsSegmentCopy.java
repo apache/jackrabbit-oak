@@ -27,8 +27,7 @@ import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.storeTypeF
 
 import java.io.PrintWriter;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Check;

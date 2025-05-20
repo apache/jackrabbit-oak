@@ -39,9 +39,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MongoFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -61,8 +62,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import com.mongodb.ReadPreference;
 
 @RunWith(Parameterized.class)
@@ -283,8 +282,8 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         Iterable<NodeDocument> garbage = gcSupport1.identifyGarbage(GC_TYPES, sweepRevs, oldestRevTimeStamp);
         assertNotNull(garbage);
         assertEquals(totalSplits, IterableUtils.size(garbage));
-        assertEquals(numSplit1, IterableUtils.size(Iterables.filter(garbage, splitDocsWithClusterId(1)::test)));
-        assertEquals(numSplit2, IterableUtils.size(Iterables.filter(garbage, splitDocsWithClusterId(2)::test)));
+        assertEquals(numSplit1, IterableUtils.size(IterableUtils.filter(garbage, splitDocsWithClusterId(1)::test)));
+        assertEquals(numSplit2, IterableUtils.size(IterableUtils.filter(garbage, splitDocsWithClusterId(2)::test)));
 
         Stats stats = deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
         assertNotNull(stats);
@@ -400,6 +399,6 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
             throws Exception {
         NodeDocument doc = store.find(NODES, getIdFromPath(path), -1);
         assertNotNull(doc);
-        return Iterators.size(doc.getAllPreviousDocs());
+        return IteratorUtils.size(doc.getAllPreviousDocs());
     }
 }

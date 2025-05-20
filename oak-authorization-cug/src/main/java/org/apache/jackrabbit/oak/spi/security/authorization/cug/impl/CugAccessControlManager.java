@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -27,6 +24,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -56,6 +54,7 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -229,7 +228,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             return new AccessControlPolicy[0];
         }
         Root r = getLatestRoot();
-        Set<String> candidates = collectEffectiveCandidates(r, Iterables.transform(principals, Principal::getName));
+        Set<String> candidates = collectEffectiveCandidates(r, IterableUtils.transform(principals, Principal::getName));
         if (candidates.isEmpty()) {
             return new AccessControlPolicy[0];
         } else {
@@ -253,7 +252,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             return Collections.emptyIterator();
         }
         if (absPaths == null || absPaths.length == 0) {
-            return Iterators.forArray(getEffectivePolicies(principals));
+            return Arrays.asList(getEffectivePolicies(principals)).iterator();
         }
 
         boolean enabled = config.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
@@ -368,16 +367,16 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             String path = eval.remove();
             Tree t = immutableRoot.getTree(path);
             if (PathUtils.denotesRoot(path)) {
-                Iterables.addAll(eval, nestedCugPaths(t));
+                nestedCugPaths(t).forEach(eval::add);
             }
             if (CugUtil.isSupportedPath(path, supportedPaths)) {
                 Tree cug = CugUtil.getCug(t);
                 PropertyState pNames = (cug == null) ? null : cug.getProperty(REP_PRINCIPAL_NAMES);
                 if (pNames != null) {
-                    if (!Collections.disjoint(ImmutableSet.copyOf(principalNames), ImmutableSet.copyOf(pNames.getValue(Type.STRINGS)))) {
+                    if (!Collections.disjoint(Collections.unmodifiableSet(SetUtils.toLinkedSet(principalNames)), Collections.unmodifiableSet(SetUtils.toLinkedSet(pNames.getValue(Type.STRINGS))))) {
                         candidates.add(path);
                     }
-                    Iterables.addAll(eval, nestedCugPaths(cug));
+                    nestedCugPaths(cug).forEach(eval::add);
                 }
             }
         }

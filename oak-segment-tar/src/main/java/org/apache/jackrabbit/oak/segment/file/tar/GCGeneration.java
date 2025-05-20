@@ -44,10 +44,10 @@ import org.jetbrains.annotations.NotNull;
  * {@code h} be the segment containing the current repository head and {@code n} be
  * the number of retained generations.
  * <ul>
- *     <li>{@code s} is old iff {@code h.generation - s.generation >= n}</li>
+ *     <li>{@code s} is old iff {@code h.generation - s.generation >= n}
  *     <li>{@code s} is in the same compaction tail than h iff
- *         {@code s.isCompacted && s.fullGeneration == h.fullGeneration}</li>
- *     <li>{@code s} is reclaimable iff {@code s} is old and {@code s} is not in the same compaction tail than {@code h}</li>
+ *         {@code s.isCompacted && s.fullGeneration == h.fullGeneration}
+ *     <li>{@code s} is reclaimable iff {@code s} is old and {@code s} is not in the same compaction tail than {@code h}
  * </ul>
  */
 public final class GCGeneration {

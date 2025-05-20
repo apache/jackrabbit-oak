@@ -19,14 +19,16 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 
 import static java.util.Objects.requireNonNull;
 
@@ -35,6 +37,8 @@ import static java.util.Objects.requireNonNull;
  * indexer contains itself, directly or indirectly. In this case, the methods will throw a StackOverflowException.
  */
 public class CompositeIndexer implements NodeStateIndexer {
+
+    private final static Logger LOG = LoggerFactory.getLogger(CompositeIndexer.class);
 
     private final List<NodeStateIndexer> indexers;
 
@@ -98,7 +102,13 @@ public class CompositeIndexer implements NodeStateIndexer {
 
     @Override
     public void close() throws IOException {
-
+        for (NodeStateIndexer indexer : indexers) {
+            try {
+                indexer.close();
+            } catch (IOException e) {
+                LOG.warn("Error closing indexer {}. Suppressing exception.", indexer, e);
+            }
+        }
     }
 
     public List<NodeStateIndexer> getIndexers() {

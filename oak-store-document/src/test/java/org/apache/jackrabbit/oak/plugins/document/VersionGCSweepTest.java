@@ -22,9 +22,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
@@ -106,6 +106,6 @@ public class VersionGCSweepTest extends AbstractTwoNodeTest {
             throws Exception {
         NodeDocument doc = store.find(NODES, getIdFromPath(path));
         assertNotNull(doc);
-        return Iterators.size(doc.getAllPreviousDocs());
+        return IteratorUtils.size(doc.getAllPreviousDocs());
     }
 }

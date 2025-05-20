@@ -29,11 +29,11 @@ import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
@@ -155,11 +155,11 @@ public final class IndexDefinitionBuilder {
         if (tree.hasProperty(INDEX_TAGS)) {
             currTags = SetUtils.toSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
         }
-        Set<String> tagVals = SetUtils.toSet(Iterables.concat(currTags, asList(additionalTagVals)));
+        Set<String> tagVals = SetUtils.toSet(IterableUtils.chainedIterable(currTags, asList(additionalTagVals)));
         boolean noAdditionalTags = currTags.containsAll(tagVals);
         if (!noAdditionalTags) {
             tree.removeProperty(INDEX_TAGS);
-            tree.setProperty(INDEX_TAGS, asList(Iterables.toArray(tagVals, String.class)), STRINGS);
+            tree.setProperty(INDEX_TAGS, asList(IterableUtils.toArray(tagVals, String.class)), STRINGS);
         }
         return this;
     }
