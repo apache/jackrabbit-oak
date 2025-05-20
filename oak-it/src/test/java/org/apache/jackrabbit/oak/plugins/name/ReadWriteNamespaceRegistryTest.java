@@ -88,9 +88,8 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
     }
 
     @Test
-    public void testInvalidNamespaceInLaxMode() throws Exception {
+    public void testInvalidNamespaceInDefaultMode() throws Exception {
         LogCustomizer customLogs = LogCustomizer.forLogger("org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry").enable(Level.ERROR).create();
-        String oldValue = System.setProperty("oak.allowInvalidNamespaceUris", "true");
         try {
             final ContentSession session = createContentSession();
             final Root root = session.getLatestRoot();
@@ -104,20 +103,25 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         }
         finally {
             customLogs.finished();
+            
+        }
+    }
+
+    @Test
+    public void testInvalidNamespaceInStrictMode() {
+        String oldValue = System.setProperty("oak.allowInvalidNamespaceUris", "true");
+        try {
+            final ContentSession session = createContentSession();
+            final Root root = session.getLatestRoot();
+            NamespaceRegistry r = getNamespaceRegistry(session, root);
+            assertThrows(NamespaceException.class, () -> r.registerNamespace("foo", "example.com"));
+        } finally {
             if (oldValue != null) {
                 System.setProperty("oak.allowInvalidNamespaceUris", oldValue);
             } else {
                 System.clearProperty("oak.allowInvalidNamespaceUris");
             }
         }
-    }
-
-    @Test
-    public void testInvalidNamespaceInDefaultMode() {
-        final ContentSession session = createContentSession();
-        final Root root = session.getLatestRoot();
-        NamespaceRegistry r = getNamespaceRegistry(session, root);
-        assertThrows(NamespaceException.class, () -> r.registerNamespace("foo", "example.com"));
     }
 
     private static NamespaceRegistry getNamespaceRegistry(ContentSession session, Root root) {

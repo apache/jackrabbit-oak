@@ -41,14 +41,14 @@ public abstract class ReadWriteNamespaceRegistry
 
     /**
      * Feature flag to allow registering invalid namespace URIs (without a colon).
-     * Set the system property {@code oak.allowInvalidNamespaceUris} to {@code true} to enable this feature.
+     * Set the system property {@code oak.allowInvalidNamespaceUris} to {@code false} to disable this feature.
      */
     private final boolean allowInvalidNamespaceUris;
 
     protected ReadWriteNamespaceRegistry(Root root) {
         super(root);
         // cannot be static in order to allow testing with different values
-        allowInvalidNamespaceUris = SystemPropertySupplier.create("oak.allowInvalidNamespaceUris", false)
+        allowInvalidNamespaceUris = SystemPropertySupplier.create("oak.allowInvalidNamespaceUris", true)
                 .loggingTo(LOG).get();
     }
 
