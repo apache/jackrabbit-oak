@@ -24,8 +24,12 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * AccessManager
@@ -62,13 +66,15 @@ public class AccessManager {
 
     public void checkPermissions(@NotNull String oakPath, @NotNull String actions) throws RepositoryException {
         if (!hasPermissions(oakPath, actions)) {
-            throw new AccessDeniedException("Access denied.");
+            String msg = String.format(Locale.ROOT, "Access denied in path %s for actions %s", oakPath, actions);
+            throw new AccessDeniedException(msg);
         }
     }
 
     public void checkPermissions(@NotNull Tree tree, @Nullable PropertyState property, long permissions) throws RepositoryException {
         if (!hasPermissions(tree, property, permissions)) {
-            throw new AccessDeniedException("Access denied.");
+            String msg = String.format(Locale.ROOT, "Access denied in path %s for permissions %s", tree.getPath(), Permissions.getNames(permissions));
+            throw new AccessDeniedException(msg);
         }
     }
 }
