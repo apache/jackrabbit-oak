@@ -141,14 +141,9 @@ public class AzurePersistenceManager {
 
         BlobContainerClient noRetryBlobContainerClient = getBlobContainerClient(accountName, containerName, null, azureHttpRequestLoggingPolicy, clientSecretCredential);
 
-        if (createContainer) {
-            blobContainerClient.createIfNotExists();
-        }
-
-        final String rootPrefixNormalized = normalizePath(rootPrefix);
-
-        return new AzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, rootPrefixNormalized, azureHttpRequestLoggingPolicy);
+        return createAzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, azureHttpRequestLoggingPolicy, rootPrefix, createContainer);
     }
+
 
     @NotNull
     private static AzurePersistence createAzurePersistence(String connectionString, Configuration configuration, boolean createContainer) throws IOException {
@@ -188,16 +183,20 @@ public class AzurePersistenceManager {
                 noRetryBlobContainerClient = getBlobContainerClient(accountName, containerName, null, azureHttpRequestLoggingPolicy, connectionString);
             }
 
-            if (createContainer) {
-                blobContainerClient.createIfNotExists();
-            }
-
-            final String rootPrefixNormalized = normalizePath(rootPrefix);
-
-            return new AzurePersistence(blobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefixNormalized, azureHttpRequestLoggingPolicy);
+            return createAzurePersistence(blobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, azureHttpRequestLoggingPolicy, rootPrefix, createContainer);
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }
+    }
+
+    private static AzurePersistence createAzurePersistence(BlobContainerClient blobContainerClient, BlobContainerClient writeContainerClient, BlobContainerClient noRetryBlobContainerClient, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String rootPrefix, boolean createContainer) {
+        if (createContainer && !blobContainerClient.exists()) {
+            blobContainerClient.create();
+        }
+
+        final String rootPrefixNormalized = normalizePath(rootPrefix);
+
+        return new AzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, rootPrefixNormalized, azureHttpRequestLoggingPolicy);
     }
 
     private static BlobContainerClient getBlobContainerClientWithSas(String accountName, String containerName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String sasToken) {
