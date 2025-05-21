@@ -66,15 +66,13 @@ public class AccessManager {
 
     public void checkPermissions(@NotNull String oakPath, @NotNull String actions) throws RepositoryException {
         if (!hasPermissions(oakPath, actions)) {
-            String msg = String.format(Locale.ROOT, "Access denied in path %s for actions %s", oakPath, actions);
-            throw new AccessDeniedException(msg);
+            throw new AccessDeniedException(String.format(Locale.ROOT, "Access denied at path '%s'", oakPath));
         }
     }
 
     public void checkPermissions(@NotNull Tree tree, @Nullable PropertyState property, long permissions) throws RepositoryException {
         if (!hasPermissions(tree, property, permissions)) {
-            String msg = String.format(Locale.ROOT, "Access denied in path %s for permissions %s", tree.getPath(), Permissions.getNames(permissions));
-            throw new AccessDeniedException(msg);
+            throw new AccessDeniedException(String.format(Locale.ROOT, "Access denied at path '%s'", tree.getPath()));
         }
     }
 }
