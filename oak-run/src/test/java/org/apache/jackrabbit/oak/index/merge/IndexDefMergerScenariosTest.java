@@ -48,6 +48,7 @@ public class IndexDefMergerScenariosTest extends ParameterizedMergingTestBase {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
                 testCase("should merge tags fully; and override type", "merge-override-tags-type.json"),
+                testCase("should merge aggregates", "merge-aggregates.json"),
                 testCase("should merge custom into new base index", "basic.json"),
                 testCase("should use the latest base version for the base in merges", "merges-base.json"),
                 testCase(
