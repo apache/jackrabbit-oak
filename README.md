@@ -59,9 +59,6 @@ The build consists of the following main components:
   - [oak-core][1]     - Oak repository API and implementation
   - oak-jcr           - JCR binding for the Oak repository
   - oak-sling         - integration with Apache Sling
-  - oak-solr-core     - Apache Solr indexing and search
-  - oak-solr-embedded - Apache Solr on an embedded Solr instance
-  - oak-solr-remote   - Apache Solr on an remote (HTTP) Solr instance
   - oak-http          - HTTP binding for Oak
   - oak-lucene        - Lucene-based query index
   - oak-run           - runnable jar packaging
