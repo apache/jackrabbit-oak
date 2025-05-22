@@ -259,6 +259,9 @@ public class ElasticRequestHandler {
         simFields.add(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT);
         simFields.add(ElasticIndexDefinition.DYNAMIC_PROPERTIES);
         simFields.add(FieldNames.FULLTEXT);
+        simFields.add(ElasticIndexDefinition.LAST_UPDATED);
+        simFields.add(FieldNames.PATH);
+        simFields.add(ElasticIndexDefinition.PATH_RANDOM_VALUE);
         simFields.add(ElasticIndexDefinition.SIMILARITY_TAGS);
         simFields.add(FieldNames.SPELLCHECK);
         simFields.add(FieldNames.SUGGEST);
