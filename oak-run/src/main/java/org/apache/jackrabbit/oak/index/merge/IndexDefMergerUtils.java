@@ -37,11 +37,17 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import jline.internal.Log;
 
 /**
  * Utility that allows to merge index definitions.
  */
 public class IndexDefMergerUtils {
+
+    private final static Logger LOG = LoggerFactory.getLogger(IndexDefMergerUtils.class);
 
     private static HashSet<String> IGNORE_LEVEL_0 = new HashSet<>(Arrays.asList(
             "reindex",
@@ -360,7 +366,8 @@ public class IndexDefMergerUtils {
                     long id = Long.parseLong(n);
                     max = Math.max(max, id);
                 } catch (NumberFormatException e) {
-                    // ignore
+                    LOG.warn("Expected 'include' + number, got " + n);
+                    // ignore: it will probably not result in a conflict
                 }
             }
         }
