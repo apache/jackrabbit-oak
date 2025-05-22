@@ -20,11 +20,13 @@ import ch.qos.logback.classic.Level;
 import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
@@ -45,7 +47,6 @@ import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -62,6 +63,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -81,6 +83,7 @@ import static org.junit.Assert.assertTrue;
 public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticInferenceUsingConfigTest.class);
+    private  static ObjectMapper MAPPER = new JsonMapper();
 
     private ScheduledExecutorService executorService;
     private StatisticsProvider statisticsProvider;
@@ -396,14 +399,13 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
      * Sets up embeddings for content based on JSON files.
      */
     private void setupEmbeddingsForContent(Tree index, String inferenceModelConfigName, String inferenceModelName) throws Exception {
-        ObjectMapper mapper = new JsonMapper();
         List<String> paths = executeQuery("select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and title is not null", SQL2);
 
         for (String path : paths) {
             URL json = this.getClass().getResource("/inferenceUsingConfig" + path + ".json");
             if (json != null) {
-                Map<String, Collection<Double>> map = mapper.readValue(json, Map.class);
-                ObjectNode updateDoc = mapper.createObjectNode();
+                Map<String, Collection<Double>> map = MAPPER.readValue(json, Map.class);
+                ObjectNode updateDoc = MAPPER.createObjectNode();
                 List<Float> embeddings = map.get("embedding").stream()
                     .map(d -> ((Double) d).floatValue())
                     .collect(Collectors.toList());
@@ -417,7 +419,10 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
                 ObjectNode vectorSpacesNode = updateDoc.putObject(InferenceConstants.VECTOR_SPACES);
                 ArrayNode inferenceModelConfigNode = vectorSpacesNode.putArray(inferenceModelConfigName);
                 inferenceModelConfigNode.addPOJO(vectorDocument);
-
+                Map<String, Object> enricherStatusConfig = new HashMap<>();
+                InferenceConfig.getInstance().getEnricherStatus().entrySet().forEach(k -> enricherStatusConfig.put(k.getKey(), k.getValue()));
+                enricherStatusConfig.put("status", "COMPLETED");
+                updateDoc.putPOJO(InferenceConstants.ENRICH_NODE, enricherStatusConfig);
                 updateDocument(index, path, updateDoc);
             }
         }
@@ -519,6 +524,12 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
 
             ObjectNode carsDocUpdated = getDocument(index, "/content/cars");
             assertNotNull(carsDocUpdated.get(InferenceConstants.VECTOR_SPACES));
+            try {
+                TreeNode tree = MAPPER.readTree(carsDocUpdated.get(InferenceConstants.ENRICH_NODE).traverse());
+                assertEquals(((TextNode) tree.get("status")).asText(), (String) InferenceConfig.getInstance().getEnricherStatus().get("status"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         });
     }
 
@@ -775,8 +786,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
      */
     private void createDocumentWithEmbeddings(Tree index, String path, String inferenceModelConfigName,
                                               String inferenceModelName, List<Float> embeddings) throws IOException {
-        ObjectMapper mapper = new JsonMapper();
-        ObjectNode updateDoc = mapper.createObjectNode();
+        ObjectNode updateDoc = MAPPER.createObjectNode();
         VectorDocument vectorDocument = new VectorDocument(UUID.randomUUID().toString(), embeddings,
             Map.of("updatedAt", Instant.now().toEpochMilli(), "model", inferenceModelName));
         ObjectNode vectorSpacesNode = updateDoc.putObject(InferenceConstants.VECTOR_SPACES);
