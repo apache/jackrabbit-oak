@@ -408,6 +408,9 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             assertEquals("/test/a", result.next());
             assertTrue(result.hasNext());
             assertEquals("/test/b", result.next());
+            while (result.hasNext()) {
+                assertNotEquals("/test/c", result.next());
+            }
         });
         assertNotEquals(0, logCustomizer.getLogs().size());
         assertTrue("native query WARN message is not present, message in Logger is "
