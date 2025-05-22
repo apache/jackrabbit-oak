@@ -24,12 +24,10 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
-import java.util.Set;
 
 /**
  * AccessManager
