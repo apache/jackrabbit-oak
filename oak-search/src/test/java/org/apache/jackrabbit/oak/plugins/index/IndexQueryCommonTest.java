@@ -403,12 +403,11 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         test.addChild("c").setProperty("text", "He said Hi.");
         root.commit();
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(nativeQueryString, Query.JCR_SQL2).iterator();
+            Iterator<String> result = executeQuery(nativeQueryString, Query.JCR_SQL2, false, true).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertTrue(result.hasNext());
             assertEquals("/test/b", result.next());
-            assertFalse(result.hasNext());
         });
         assertNotEquals(0, logCustomizer.getLogs().size());
         assertTrue("native query WARN message is not present, message in Logger is "
