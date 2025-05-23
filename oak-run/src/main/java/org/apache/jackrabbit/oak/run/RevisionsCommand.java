@@ -411,9 +411,7 @@ public class RevisionsCommand implements Command {
                     version);
             System.exit(1);
         }
-        if (options.isEmbeddedVerificationEnabled()) {
-            builder.setEmbeddedVerificationEnabled(true);
-        }
+        builder.setEmbeddedVerificationEnabled(options.isEmbeddedVerificationEnabled());
         // set it read-only before the DocumentNodeStore is created
         // this prevents the DocumentNodeStore from writing a new
         // clusterId to the clusterNodes and nodes collections
@@ -654,6 +652,7 @@ public class RevisionsCommand implements Command {
         DocumentStore documentStore = builder.getDocumentStore();
         builder.setReadOnlyMode();
         useMemoryBlobStore(builder);
+        builder.setEmbeddedVerificationEnabled(options.isEmbeddedVerificationEnabled());
         DocumentNodeStore documentNodeStore = builder.build();
 
         VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
