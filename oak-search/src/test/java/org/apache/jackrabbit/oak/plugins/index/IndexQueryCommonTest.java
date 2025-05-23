@@ -394,6 +394,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-11736")
     public void repSimilarAsNativeQuery() throws Exception {
         String nativeQueryString = "select [jcr:path] from [nt:base] where " +
                 "native('lucene', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
