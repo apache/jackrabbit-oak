@@ -16,8 +16,10 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NAMESPACES;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
+import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_URIS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -25,6 +27,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import javax.jcr.NamespaceException;
@@ -121,43 +125,161 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
 
     @Test
     public void testNamespaceRegistryModel() throws Exception {
-        final ContentSession session = createContentSession();
-        final Root root = session.getLatestRoot();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ContentSession session = createContentSession();
+        Root root = session.getLatestRoot();
         ReadWriteNamespaceRegistry registry = (ReadWriteNamespaceRegistry) getNamespaceRegistry(session, root);
         Tree namespaces = root.getTree("/jcr:system/rep:namespaces");
         Tree nsdata = namespaces.getChild(REP_NSDATA);
-        PropertyState prefixes = nsdata.getProperty(REP_PREFIXES);
+        PropertyState prefixProp = nsdata.getProperty(REP_PREFIXES);
+        PropertyState namespaceProp = nsdata.getProperty(REP_URIS);
 
         assertTrue(registry.checkConsistency());
         NamespaceRegistryModel model = registry.createNamespaceRegistryModel();
         assertTrue(model.isConsistent());
         assertTrue(model.isFixable());
 
-        PropertyBuilder<String> builder = PropertyBuilder.copy(Type.STRING, prefixes);
+        assertEquals(0, model.getDanglingPrefixes().size());
+        assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
+        assertEquals(0, model.getRepairedMappings().size());
+
+        model.dump(out);
+        String dump = out.toString(StandardCharsets.UTF_8);
+        assertTrue(dump.contains("This namespace registry model is consistent"));
+        
+        // Add a registered prefix without any mapping
+        PropertyBuilder<String> builder = PropertyBuilder.copy(Type.STRING, prefixProp);
         builder.addValue("foo");
         nsdata.setProperty(builder.getPropertyState());
 
+        // Now it cannot be fixed automatically
         assertFalse(registry.checkConsistency());
         model = registry.createNamespaceRegistryModel();
         assertFalse(model.isConsistent());
         assertFalse(model.isFixable());
 
-        NamespaceRegistryModel fixedModel = model.tryRegistryRepair();
-        assertNull(fixedModel);
+        assertEquals(1, model.getDanglingPrefixes().size());
+        assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
+        assertEquals(0, model.getRepairedMappings().size());
 
+        model.dump(out);
+        dump = out.toString(StandardCharsets.UTF_8);
+        assertTrue(dump.contains("This namespace registry model is inconsistent. The inconsistency can NOT be fixed automatically."));
+
+        NamespaceRegistryModel fixedModel = model.tryRegistryRepair();
+        assertFalse(fixedModel.isConsistent());
+        assertFalse(fixedModel.isFixable());
+
+        fixedModel.dump(out);
+        dump = out.toString(StandardCharsets.UTF_8);
+        assertTrue(dump.contains("This namespace registry model is inconsistent. The inconsistency can NOT be fixed automatically."));
+
+        // Now add a mapping to a namespace uri, but not the reverse mapping
         namespaces.setProperty("foo", "urn:foo", Type.STRING);
+
+        // This is inconsistent, but can be fixed automatically
         assertFalse(registry.checkConsistency());
         model = registry.createNamespaceRegistryModel();
         assertFalse(model.isConsistent());
         assertTrue(model.isFixable());
 
+        assertEquals(0, model.getDanglingPrefixes().size());
+        assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
+        assertEquals(1, model.getRepairedMappings().size());
+
+        model.dump(out);
+        dump = out.toString(StandardCharsets.UTF_8);
+        assertTrue(dump.contains("This namespace registry model is inconsistent. The inconsistency can be fixed automatically."));
+
         fixedModel = model.tryRegistryRepair();
-        assertNotNull(fixedModel);
         assertTrue(fixedModel.isConsistent());
         assertTrue(fixedModel.isFixable());
 
+        fixedModel.dump(out);
+        dump = out.toString(StandardCharsets.UTF_8);
+        assertTrue(dump.contains("This namespace registry model is consistent"));
+
+        // Add a registered namespace uri without any mapping
+        builder = PropertyBuilder.copy(Type.STRING, namespaceProp);
+        builder.addValue("urn:bar");
+        nsdata.setProperty(builder.getPropertyState());
+
+        // Now it again cannot be fixed automatically
+        assertFalse(registry.checkConsistency());
+        model = registry.createNamespaceRegistryModel();
+        assertFalse(model.isConsistent());
+        assertFalse(model.isFixable());
+
+        assertEquals(0, model.getDanglingPrefixes().size());
+        assertEquals(1, model.getDanglingEncodedNamespaceUris().size());
+        assertEquals(1, model.getRepairedMappings().size());
+
+        fixedModel = model.tryRegistryRepair();
+        assertFalse(fixedModel.isConsistent());
+        assertFalse(fixedModel.isFixable());
+
+        // Now add a reverse mapping to a prefix, but not the forward mapping
+        nsdata.setProperty("urn%3Abar", "bar", Type.STRING);
+
+        // Now it can be fixed automatically again
+        assertFalse(registry.checkConsistency());
+        model = registry.createNamespaceRegistryModel();
+        assertFalse(model.isConsistent());
+        assertTrue(model.isFixable());
+
+        assertEquals(0, model.getDanglingPrefixes().size());
+        assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
+        assertEquals(2, model.getRepairedMappings().size());
+
+        fixedModel = model.tryRegistryRepair();
+        assertTrue(fixedModel.isConsistent());
+        assertTrue(fixedModel.isFixable());
+
+        // Double a registered prefix
+        builder = PropertyBuilder.copy(Type.STRING, prefixProp);
+        builder.addValue("foo");
+        nsdata.setProperty(builder.getPropertyState());
+
+        // Can still be fixed automatically
+        assertFalse(registry.checkConsistency());
+        model = registry.createNamespaceRegistryModel();
+        assertFalse(model.isConsistent());
+        assertTrue(model.isFixable());
+
+        assertEquals(0, model.getDanglingPrefixes().size());
+        assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
+        assertEquals(2, model.getRepairedMappings().size());
+
+        fixedModel = model.tryRegistryRepair();
+        assertTrue(fixedModel.isConsistent());
+        assertTrue(fixedModel.isFixable());
+
+        // Double a registered namespace uri
+        builder = PropertyBuilder.copy(Type.STRING, namespaceProp);
+        builder.addValue("urn:bar");
+        nsdata.setProperty(builder.getPropertyState());
+
+        // Can still be fixed automatically
+        assertFalse(registry.checkConsistency());
+        model = registry.createNamespaceRegistryModel();
+        assertFalse(model.isConsistent());
+        assertTrue(model.isFixable());
+
+        assertEquals(0, model.getDanglingPrefixes().size());
+        assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
+        assertEquals(2, model.getRepairedMappings().size());
+
+        fixedModel = model.tryRegistryRepair();
+        assertTrue(fixedModel.isConsistent());
+        assertTrue(fixedModel.isFixable());
+
+        // Apply the fixed model
         registry.applyModel(fixedModel);
         assertTrue(registry.checkConsistency());
+
+        assertEquals(0, fixedModel.getDanglingPrefixes().size());
+        assertEquals(0, fixedModel.getDanglingEncodedNamespaceUris().size());
+        assertEquals(0, fixedModel.getRepairedMappings().size());
     }
 
     private static NamespaceRegistry getNamespaceRegistry(ContentSession session, Root root) {
