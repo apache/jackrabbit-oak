@@ -153,7 +153,7 @@ public class GlobalNameMapper implements NameMapper {
             }
             if (uri == null) {
                 throw new IllegalStateException(
-                        "No namespace mapping found for " + oakName);
+                    new NamespaceException("No namespace mapping found for " + oakName));
             }
             localName = oakName.substring(colon + 1);
             // check namespace name for validity in Oak
