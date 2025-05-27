@@ -101,6 +101,11 @@
     <url>http://issues.apache.org/jira/browse/OAK</url>
   </issueManagement>
 
+  <ciManagement>
+    <system>GitHub Actions</system>
+    <url>https://github.com/apache/jackrabbit-oak/actions/workflows/build.yml</url>
+  </ciManagement>
+
   <url>http://jackrabbit.apache.org/</url>
   <inceptionYear>2012</inceptionYear>
   <description>
