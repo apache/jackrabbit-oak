@@ -72,8 +72,6 @@ The build consists of the following components:
   
   - oak-jcr           - JCR binding for the Oak repository
 
-  - oak-solr-core     - Apache Solr indexing and search
-  - oak-solr-osgi
   - oak-lucene        - Lucene-based query index
   
   - oak-auth-external - External authentication support

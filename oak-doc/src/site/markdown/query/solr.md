@@ -17,6 +17,8 @@
   
 ## Solr Index
 
+*NOTE:* Solr support has been removed in Oak 1.82 (see [OAK-11346](https://issues.apache.org/jira/browse/OAK-11346)).
+
 The Solr index is mainly meant for full-text search (the 'contains' type of queries):
 
     //*[jcr:contains(., 'text')]
