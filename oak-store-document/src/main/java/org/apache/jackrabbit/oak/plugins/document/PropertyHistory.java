@@ -23,9 +23,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -77,7 +77,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
     private Iterator<NodeDocument> ensureOrder(final Iterable<Map.Entry<Revision, NodeDocument>> docs) {
         return new AbstractIterator<NodeDocument>() {
             PeekingIterator<Map.Entry<Revision, NodeDocument>> input
-                    = Iterators.peekingIterator(docs.iterator());
+                    = PeekingIterator.peekingIterator(docs.iterator());
             TreeMap<Revision, NodeDocument> queue =
                     new TreeMap<Revision, NodeDocument>(StableRevisionComparator.INSTANCE);
 

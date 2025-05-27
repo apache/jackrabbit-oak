@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
@@ -42,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 
 /**
  * Represents a union query.
@@ -454,8 +454,8 @@ public class UnionQueryImpl implements Query {
                 return;
             }
 
-            PeekingIterator<ResultRowImpl> lPeekIter = Iterators.peekingIterator(lIter);
-            PeekingIterator<ResultRowImpl> rPeekIter = Iterators.peekingIterator(rIter);
+            PeekingIterator<ResultRowImpl> lPeekIter = PeekingIterator.peekingIterator(lIter);
+            PeekingIterator<ResultRowImpl> rPeekIter = PeekingIterator.peekingIterator(rIter);
 
             ResultRow lRow = lPeekIter.peek();
             ResultRow rRow = rPeekIter.peek();
