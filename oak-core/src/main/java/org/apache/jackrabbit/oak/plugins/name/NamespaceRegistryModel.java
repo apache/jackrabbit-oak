@@ -314,16 +314,18 @@ public final class NamespaceRegistryModel {
             if (consistent) {
                 writer.write("This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:");
                 writer.newLine();
+                writer.newLine();
                 for (Map.Entry<String, String> entry : prefixToNamespaceMap.entrySet()) {
                     writer.write(entry.getKey() + " -> " + entry.getValue());
                     writer.newLine();
                 }
             } else {
-                writer.write("This namespace registry model is inconsistent. The inconsistency can " + (isFixable()? "" : "NOT ") + "be fixed automatically.");
+                writer.write("This namespace registry model is inconsistent. The inconsistency can " + (isFixable()? "" : "NOT ") + "be fixed.");
                 writer.newLine();
-                writer.write("Registered prefixes without a correct namespace mapping: " + danglingPrefixes);
                 writer.newLine();
-                writer.write("Registered (encoded) namespace URIs without a correct prefix mapping: " + danglingNamespacesEncoded);
+                writer.write("Registered prefixes without any namespace mapping: " + danglingPrefixes);
+                writer.newLine();
+                writer.write("Registered (encoded) namespace URIs without any prefix mapping: " + danglingNamespacesEncoded);
                 writer.newLine();
                 writer.write("Duplicate prefixes: " + duplicatePrefixes);
                 writer.newLine();
@@ -332,17 +334,27 @@ public final class NamespaceRegistryModel {
                 writer.write("Mapped unregistered prefixes: " + SetUtils.difference(SetUtils.union(mappedPrefixes, mappedToPrefixes), registeredPrefixes));
                 writer.newLine();
                 writer.write("Mapped unregistered (encoded) namespace URIs: " + SetUtils.difference(SetUtils.union(mappedNamespaces, mappedToNamespacesEncoded), registeredNamespacesEncoded));
+                writer.newLine();
+                writer.write("Mapped prefixes without a reverse mapping: " + SetUtils.difference(mappedToPrefixes, mappedPrefixes));
+                writer.newLine();
+                writer.write("Mapped (encoded) namespace URIs without a reverse mapping: " + SetUtils.difference(mappedToNamespacesEncoded, mappedNamespaces));
+                writer.newLine();
+                writer.newLine();
                 if (isFixable()) {
                     NamespaceRegistryModel repaired = tryRegistryRepair();
                     writer.newLine();
-                    writer.write("The following mappings can be repaired automatically:");
+                    writer.write("The following mappings could be repaired:");
+                    writer.newLine();
                     writer.newLine();
                     for (Map.Entry<String, String> entry : getRepairedMappings().entrySet()) {
                         writer.write(entry.getKey() + " -> " + entry.getValue());
                         writer.newLine();
                     }
                     writer.newLine();
+                    writer.newLine();
                     writer.write("The repaired registry would contain the following mappings:");
+                    writer.newLine();
+                    writer.newLine();
                     for (Map.Entry<String, String> entry : repaired.prefixToNamespaceMap.entrySet()) {
                         writer.write(entry.getKey() + " -> " + entry.getValue());
                         writer.newLine();
@@ -350,10 +362,12 @@ public final class NamespaceRegistryModel {
                 } else {
                     writer.write("The following mappings could be repaired automatically:");
                     writer.newLine();
+                    writer.newLine();
                     for (Map.Entry<String, String> entry : getRepairedMappings().entrySet()) {
                         writer.write(entry.getKey() + " -> " + entry.getValue());
                         writer.newLine();
                     }
+                    writer.newLine();
                     writer.newLine();
                     writer.write("To create a fixed model, use #tryRegistryRepair(Map<String, String>) and supply missing prefix to namespace mappings as parameters");
                     writer.newLine();
