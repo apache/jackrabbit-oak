@@ -33,8 +33,6 @@ import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 /**
  * A value map contains the versioned values of a property. The key into this
  * map is the revision when the value was set.

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.junit.Test;
 

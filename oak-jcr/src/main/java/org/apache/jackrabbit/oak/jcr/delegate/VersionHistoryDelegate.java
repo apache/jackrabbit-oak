@@ -29,8 +29,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;

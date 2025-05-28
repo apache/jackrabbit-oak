@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.apache.commons.collections4.iterators.PeekingIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
  * <code>MergeSortedIterators</code> is a specialized implementation of a

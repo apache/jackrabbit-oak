@@ -28,8 +28,6 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;

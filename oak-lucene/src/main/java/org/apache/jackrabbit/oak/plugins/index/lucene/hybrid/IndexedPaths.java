@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Iterator;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Multimap;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;

@@ -25,7 +25,6 @@ import java.util.stream.StreamSupport;
 
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
