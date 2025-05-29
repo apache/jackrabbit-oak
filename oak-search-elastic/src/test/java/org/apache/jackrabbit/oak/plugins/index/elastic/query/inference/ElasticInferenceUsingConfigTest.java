@@ -83,7 +83,7 @@ import static org.junit.Assert.assertTrue;
 public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticInferenceUsingConfigTest.class);
-    private  static ObjectMapper MAPPER = new JsonMapper();
+    private static ObjectMapper MAPPER = new JsonMapper();
 
     private ScheduledExecutorService executorService;
     private StatisticsProvider statisticsProvider;
