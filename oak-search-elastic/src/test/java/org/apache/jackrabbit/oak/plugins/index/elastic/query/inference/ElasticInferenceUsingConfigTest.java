@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
 import ch.qos.logback.classic.Level;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -36,6 +39,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticAbstractQueryTest;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -45,7 +49,6 @@ import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -355,9 +358,20 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
 
     /**
      * Adds test content for the hybrid search test.
+     * default path for node creation is under /content
      */
     private void addTestContent() throws CommitFailedException {
-        Tree content = root.getTree("/").addChild("content");
+        addTestContent("/content");
+    }
+
+    /**
+     * Adds test content on a specified path.
+     */
+    private void addTestContent(String path) throws CommitFailedException {
+        Tree content = root.getTree("/");
+        for (String element : PathUtils.elements(path)) {
+            content = content.addChild(element);
+        }
 
         // Health content
         Tree health = content.addChild("health");
@@ -400,7 +414,8 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         List<String> paths = executeQuery("select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and title is not null", SQL2);
 
         for (String path : paths) {
-            URL json = this.getClass().getResource("/inferenceUsingConfig" + path + ".json");
+            String docName = PathUtils.getName(path);
+            URL json = this.getClass().getResource("/inferenceUsingConfig/content/" + docName + ".json");
             if (json != null) {
                 Map<String, Collection<Double>> map = mapper.readValue(json, Map.class);
                 ObjectNode updateDoc = mapper.createObjectNode();
@@ -492,7 +507,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
     private void verifyErrorHandling(String jcrIndexName, String inferenceConfigInQuery) {
         // Test server error handling
         String queryPath3 = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '"
-            + inferenceConfigInQuery  + "machine learning')";
+            + inferenceConfigInQuery + "machine learning')";
         assertQuery(queryPath3, List.of("/content/ml", "/content/programming"));
 
         // Test timeout handling
@@ -800,5 +815,167 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
         protected String getMetricName(String baseName) {
             return uniquePrefix + "_" + baseName;
         }
+    }
+
+    /**
+     * Count documents under a specific path
+     */
+    private int countDocuments(Tree index, String path) {
+        try {
+            return (int) getIndexedPaths(index).stream()
+                .filter(indexPath -> indexPath.startsWith(path))
+                .count();
+        } catch (IOException e) {
+            LOG.error("Error counting documents", e);
+            return 0;
+        }
+    }
+
+    /**
+     * Get all paths indexed in the given index
+     */
+    private List<String> getIndexedPaths(Tree index) throws IOException {
+        ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
+
+        try {
+            // Query to get all documents
+            SearchRequest searchRequest = SearchRequest.of(r -> r
+                .index(esIdxDef.getIndexAlias())
+                .size(10000)  // Set a high limit, adjust if needed
+                .query(q -> q.matchAll(m -> m))
+            );
+
+            SearchResponse<JsonData> response = esConnection.getClient().search(searchRequest, JsonData.class);
+
+            // Extract paths from all hits
+            return response.hits().hits().stream()
+                .map(hit -> hit.id())
+                .collect(Collectors.toList());
+        } catch (ElasticsearchException e) {
+            throw new IOException("Error getting indexed paths", e);
+        }
+    }
+
+    /**
+     * Tests KNN search functionality with a large number of documents.
+     * This test verifies that vector search works correctly with filters when the
+     * number of documents exceeds the default KNN result limit.
+     */
+    @Test
+    public void testHugeIngestionForKNNFilters() throws Exception {
+        // Setup test parameters
+        String jcrIndexName = UUID.randomUUID().toString();
+        String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
+        String inferenceModelConfigName = "ada-test-model";
+        String inferenceModelName = "text-embedding-ada-002";
+        String inferenceConfigInQuery = "?{}?";
+
+        // Create inference configuration
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+            inferenceModelName, inferenceServiceUrl, 0.8, 1L, true, true);
+        setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
+
+        // Create index definition with searchable properties
+        IndexDefinitionBuilder builder = createIndexDefinition("title", "description", "updatedBy");
+        Tree index = setIndex(jcrIndexName, builder);
+        root.commit();
+
+        // Setup mock inference service
+        setupMockInferenceService(inferenceModelConfigName, jcrIndexName);
+
+        // Create and index test content
+        LOG.info("Starting large-scale document ingestion test for KNN search");
+
+        // Add regular test documents to be searched against these will be used when searching with filters
+        addTestContent("/content/filterPath");
+
+        // Remove the cars node as we'll be searching for content similar to "cars" query
+        // but need to verify we get the next best result (ML content)
+        root.getTree("/").getChild("content").getChild("filterPath").getChild("cars").remove();
+        root.commit();
+
+        // Let the index catch up with initial content
+        assertEventually(() -> assertEquals(7, countDocuments(index)));
+
+        // Enrich the initial test documents with embeddings
+        setupEmbeddingsForContent(index, inferenceModelConfigName, inferenceModelName);
+
+        // Create a large number of documents with car-related content
+        Tree hugeIngestion = root.getTree("/").addChild("content").addChild("hugeIngestion");
+        root.commit();
+
+        // Default KNN result limit is 100, so we create more documents to test post-filtering
+        int numberOfDocuments = 200;
+
+        // Load the embeddings from cars.json to reuse for all test documents
+        URL jsonUrl = this.getClass().getResource("/inferenceUsingConfig/content/cars.json");
+        ObjectMapper mapper = new JsonMapper();
+        Map<String, Collection<Double>> embeddingsMap = mapper.readValue(jsonUrl, Map.class);
+        List<Float> embeddings = embeddingsMap.get("embedding").stream()
+            .map(d -> ((Double) d).floatValue())
+            .collect(Collectors.toList());
+
+        // Create a large number of car-related documents
+        LOG.info("Creating {} car-related documents", numberOfDocuments);
+        for (int i = 0; i < numberOfDocuments; i++) {
+            String nodeName = "cars_" + i;
+            Tree document = hugeIngestion.addChild(nodeName);
+            document.setProperty("title", "The Future of Electric Cars " + i);
+            document.setProperty("description",
+                "Electric vehicles are revolutionizing the automobile industry. Document " + i +
+                    " explores advancements in battery technology, charging infrastructure, and sustainability.");
+        }
+        root.commit();
+
+        // Wait for initial indexing to complete
+        LOG.info("Waiting for initial indexing to complete");
+        assertEventually(() -> {
+            int docCount = countDocuments(index, "/content/hugeIngestion");
+            LOG.info("Current document count: {}", docCount);
+            assertTrue("Expected at least " + numberOfDocuments + " documents, found " + docCount,
+                docCount >= numberOfDocuments);
+        });
+
+        // Add vector embeddings to all documents
+        LOG.info("Adding vector embeddings to all documents");
+        for (int i = 0; i < numberOfDocuments; i++) {
+            String path = "/content/hugeIngestion/cars_" + i;
+            VectorDocument vectorDocument = new VectorDocument(
+                UUID.randomUUID().toString(),
+                embeddings,
+                Map.of("updatedAt", Instant.now().toEpochMilli(), "model", inferenceModelName)
+            );
+
+            ObjectNode updateDoc = mapper.createObjectNode();
+            ObjectNode vectorSpacesNode = updateDoc.putObject(InferenceConstants.VECTOR_SPACES);
+            ArrayNode inferenceModelConfigNode = vectorSpacesNode.putArray(inferenceModelConfigName);
+            inferenceModelConfigNode.addPOJO(vectorDocument);
+
+            updateDocument(index, path, updateDoc);
+
+            // Log progress periodically
+            if (i % 50 == 0) {
+                LOG.info("Added embeddings to {} documents", i);
+            }
+        }
+
+        LOG.info("All documents have been ingested with embeddings");
+
+        // Test vector search query that should match car-related content
+        // but only return results from the filterPath (not from hugeIngestion)
+        String searchQuery = "technological advancements in electric vehicles";
+        String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content/filterPath') and contains(*, '"
+            + inferenceConfigInQuery + searchQuery + "')";
+
+        // Execute query and verify results
+        LOG.info("Executing vector search query with path filter: {}", queryPath);
+        assertEventually(() -> {
+            List<String> results = executeQuery(queryPath, SQL2, true, true);
+
+            // Since we removed the cars node, we should still get ML content as the next best match
+            assertFalse("Should have returned at least one result", results.isEmpty());
+            LOG.info("Search returned {} results with machine learning content", results.size());
+            assertEquals("/content/filterPath/ml", results.get(0));
+        });
     }
 }
