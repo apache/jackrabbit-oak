@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.segment;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.MapRecord.HASH_MASK;
 
+import java.util.Comparator;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
-import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.jetbrains.annotations.NotNull;
@@ -152,7 +152,7 @@ class MapEntry extends AbstractChildNodeEntry
         return ComparisonChain.start()
                 .compare(getHash() & HASH_MASK, that.getHash() & HASH_MASK)
                 .compare(name, that.name)
-                .compare(value, that.value, Ordering.natural().nullsLast())
+                .compare(value, that.value, Comparator.nullsLast(Comparator.naturalOrder()))
                 .result();
     }
 
