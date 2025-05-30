@@ -2550,7 +2550,7 @@ public final class NodeDocument extends Document {
 
         static final Comparator<Entry<Revision, String>> REVERSE = Collections.reverseOrder(INSTANCE);
 
-        private static final Comparator<String> STRING_ORDERING = Comparator.nullsLast(Comparator.naturalOrder());
+        private static final Comparator<String> STRING_ORDERING = Comparator.nullsFirst(Comparator.naturalOrder());
 
         @Override
         public int compare(Entry<Revision, String> o1,
