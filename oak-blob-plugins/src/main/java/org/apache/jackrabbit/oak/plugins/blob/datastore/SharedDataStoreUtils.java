@@ -16,20 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Utility class for {@link SharedDataStore}.
@@ -53,14 +51,7 @@ public class SharedDataStoreUtils {
      * @return the earliest record
      */
     public static DataRecord getEarliestRecord(List<DataRecord> recs) {
-        return Ordering.natural().onResultOf(
-                new Function<DataRecord, Long>() {
-                    @Override
-                    @Nullable
-                    public Long apply(@NotNull DataRecord input) {
-                        return input.getLastModified();
-                    }
-                }::apply).min(recs);
+        return Collections.min(recs, Comparator.comparing(DataRecord::getLastModified, Comparator.naturalOrder()));
     }
 
     /**
