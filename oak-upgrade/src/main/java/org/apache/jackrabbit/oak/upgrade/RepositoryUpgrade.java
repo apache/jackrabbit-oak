@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,7 +56,6 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.jackrabbit.JcrConstants;
@@ -772,7 +772,7 @@ public class RepositoryUpgrade {
             while (it.hasNext()) {
                 Privilege aggrPriv = it.next();
 
-                List<String> aggrNames = Lists.transform(ImmutableList.copyOf(aggrPriv.getDeclaredAggregatePrivileges()),
+                List<String> aggrNames = Lists.transform(Arrays.asList(aggrPriv.getDeclaredAggregatePrivileges()),
                         input -> (input == null) ? null : input.getName());
                 if (allAggregatesRegistered(pMgr, aggrNames)) {
                     pMgr.registerPrivilege(aggrPriv.getName(), aggrPriv.isAbstract(), aggrNames.toArray(new String[aggrNames.size()]));
