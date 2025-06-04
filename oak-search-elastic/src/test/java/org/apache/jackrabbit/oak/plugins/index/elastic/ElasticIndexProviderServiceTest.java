@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -152,6 +153,28 @@ public class ElasticIndexProviderServiceTest {
         assertEquals(0, WhiteboardUtils.getServices(wb, Runnable.class).size());
 
         MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+    @Test
+    public void testDisabledInferenceStatistics() throws Exception {
+        // Create a spy of the service to be able to override just the environment check method
+        ElasticIndexProviderService serviceSpy = spy(service);
+        when(serviceSpy.isInferenceStatisticsDisabled()).thenReturn(true);
+
+        // Setup the rest as normal
+        MockOsgi.injectServices(serviceSpy, context.bundleContext());
+
+        // Activate the service with inference enabled
+        Map<String, Object> props = new HashMap<>(getElasticConfig());
+        props.put("isInferenceEnabled", true);
+        MockOsgi.activate(serviceSpy, context.bundleContext(), props);
+
+        // Verify that InferenceConfig.reInitialize was called with nodeStore and path but not statisticsProvider
+        InferenceConfig inferenceConfig = serviceSpy.getInferenceConfig();
+        assertNotNull(inferenceConfig);
+        assertEquals(StatisticsProvider.NOOP.getClass(), inferenceConfig.getStatisticsProvider().getClass());
+
+        MockOsgi.deactivate(serviceSpy, context.bundleContext());
     }
 
     private HashMap<String, Object> getElasticConfig() {

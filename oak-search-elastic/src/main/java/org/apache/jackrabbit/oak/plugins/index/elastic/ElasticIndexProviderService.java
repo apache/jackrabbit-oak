@@ -192,7 +192,7 @@ public class ElasticIndexProviderService {
             this.isInferenceEnabled = config.isInferenceEnabled();
         }
 
-        if (Boolean.parseBoolean(System.getenv(ENV_VAR_OAK_INFERENCE_STATISTICS_DISABLED))) {
+        if (isInferenceStatisticsDisabled()) {
             InferenceConfig.reInitialize(nodeStore, config.inferenceConfigPath(), isInferenceEnabled);
         } else {
             InferenceConfig.reInitialize(nodeStore, statisticsProvider, config.inferenceConfigPath(), isInferenceEnabled);
@@ -302,5 +302,13 @@ public class ElasticIndexProviderService {
 
     public InferenceConfig getInferenceConfig() {
         return InferenceConfig.getInstance();
+    }
+
+    /**
+     * Checks if inference statistics are disabled via environment variable
+     * @return true if the environment variable is set to true
+     */
+    protected boolean isInferenceStatisticsDisabled() {
+        return Boolean.parseBoolean(System.getenv(ENV_VAR_OAK_INFERENCE_STATISTICS_DISABLED));
     }
 }
