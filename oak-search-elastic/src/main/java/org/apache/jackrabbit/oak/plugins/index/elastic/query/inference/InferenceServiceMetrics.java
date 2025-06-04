@@ -202,11 +202,11 @@ public class InferenceServiceMetrics {
     }
 
     private MeterStats getMeter(String name) {
-        return statisticsProvider.getMeter(getMetricName(this.metricsServiceKey + ";" + name), StatsOptions.DEFAULT);
+        return statisticsProvider.getMeter(getMetricName(this.metricsServiceKey + "-" + name), StatsOptions.DEFAULT);
     }
 
     private TimerStats getTimer(String name) {
-        return statisticsProvider.getTimer(this.metricsServiceKey + ";" + getMetricName(name), StatsOptions.DEFAULT);
+        return statisticsProvider.getTimer(this.metricsServiceKey + "-" + getMetricName(name), StatsOptions.DEFAULT);
     }
 
     /**
