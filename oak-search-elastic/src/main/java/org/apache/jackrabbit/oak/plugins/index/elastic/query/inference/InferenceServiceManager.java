@@ -54,8 +54,7 @@ public class InferenceServiceManager {
 
     public static InferenceService getInstance(InferenceModelConfig inferenceModelConfig) {
         //TODO we should use hash here, as hash takes care of all properties in model config.
-        String key = inferenceModelConfig.getEmbeddingServiceUrl()
-            + "|" + inferenceModelConfig.getInferenceModelConfigName()
+        String key = inferenceModelConfig.getInferenceModelConfigName()
             + "|" + inferenceModelConfig.getModel();
 
         if (SERVICES.size() >= MAX_CACHED_SERVICES) {
