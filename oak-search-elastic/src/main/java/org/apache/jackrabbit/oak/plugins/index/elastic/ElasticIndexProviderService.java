@@ -75,6 +75,7 @@ public class ElasticIndexProviderService {
     protected static final String PROP_ELASTIC_API_KEY_SECRET = "elasticsearch.apiKeySecret";
     protected static final String PROP_LOCAL_TEXT_EXTRACTION_DIR = "localTextExtractionDir";
     private static final boolean DEFAULT_IS_INFERENCE_ENABLED = false;
+    private static final String ENV_VAR_OAK_INFERENCE_STATISTICS_DISABLED = "OAK_INFERENCE_STATISTICS_DISABLED";
 
     @ObjectClassDefinition(name = "ElasticIndexProviderService", description = "Apache Jackrabbit Oak ElasticIndexProvider")
     public @interface Config {
@@ -190,7 +191,12 @@ public class ElasticIndexProviderService {
         } else {
             this.isInferenceEnabled = config.isInferenceEnabled();
         }
-        InferenceConfig.reInitialize(nodeStore, statisticsProvider, config.inferenceConfigPath(), isInferenceEnabled);
+
+        if (Boolean.parseBoolean(System.getenv(ENV_VAR_OAK_INFERENCE_STATISTICS_DISABLED))) {
+            InferenceConfig.reInitialize(nodeStore, config.inferenceConfigPath(), isInferenceEnabled);
+        } else {
+            InferenceConfig.reInitialize(nodeStore, statisticsProvider, config.inferenceConfigPath(), isInferenceEnabled);
+        }
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);
