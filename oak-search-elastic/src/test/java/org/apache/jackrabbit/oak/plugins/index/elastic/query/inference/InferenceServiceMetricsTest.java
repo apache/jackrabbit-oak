@@ -245,12 +245,12 @@ public class InferenceServiceMetricsTest {
         // Methods to directly access the stats for verification
         public CounterStats getDirectCounter(String name) {
             // Format the name the same way it's done in the parent class
-            return statisticsProvider.getCounterStats(getMetricName(TEST_SERVICE_KEY + ";" + name), StatsOptions.DEFAULT);
+            return statisticsProvider.getCounterStats(getMetricName(TEST_SERVICE_KEY + "-" + name), StatsOptions.DEFAULT);
         }
 
         public MeterStats getDirectMeter(String name) {
             // Format the name the same way it's done in the parent getMeter() method
-            return statisticsProvider.getMeter(getMetricName(TEST_SERVICE_KEY + ";" + name), StatsOptions.DEFAULT);
+            return statisticsProvider.getMeter(getMetricName(TEST_SERVICE_KEY + "-" + name), StatsOptions.DEFAULT);
         }
     }
 } 
