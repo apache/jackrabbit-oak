@@ -237,7 +237,7 @@ public class InferenceServiceMetricsTest {
 
         @Override
         protected String getMetricName(String baseName) {
-            // This method is called with metricsServiceKey + ";" + name, so we need to preserve that format
+            // This method is called with metricsServiceKey + "-" + name, so we need to preserve that format
             // but still add our test prefix for uniqueness
             return testPrefix + "_" + baseName;
         }
