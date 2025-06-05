@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -44,7 +45,6 @@ import java.util.concurrent.Executors;
 import javax.jcr.PropertyType;
 
 import org.apache.commons.io.input.CountingInputStream;
-import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -3264,11 +3264,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         }
 
         @Override
-        public int compareTo(Tuple2 o) {
-            return ComparisonChain.start()
-                    .compare(value, o.value)
-                    .compare(value2, o.value2, Collections.reverseOrder())
-                    .result();
+        public int compareTo(@NotNull Tuple2 o) {
+            return Comparator.comparing((Tuple2 t) -> t.value)
+                    .thenComparing( t -> ((Tuple2) t).value2, Comparator.reverseOrder())
+                    .compare(this, o);
         }
 
         @Override
