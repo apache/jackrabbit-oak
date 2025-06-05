@@ -237,7 +237,7 @@ public class InferenceServiceMetricsTest {
 
         @Override
         protected String getMetricName(String baseName) {
-            // This method is called with metricsServiceKey + ";" + name, so we need to preserve that format
+            // This method is called with metricsServiceKey + "-" + name, so we need to preserve that format
             // but still add our test prefix for uniqueness
             return testPrefix + "_" + baseName;
         }
@@ -245,12 +245,12 @@ public class InferenceServiceMetricsTest {
         // Methods to directly access the stats for verification
         public CounterStats getDirectCounter(String name) {
             // Format the name the same way it's done in the parent class
-            return statisticsProvider.getCounterStats(getMetricName(TEST_SERVICE_KEY + ";" + name), StatsOptions.DEFAULT);
+            return statisticsProvider.getCounterStats(getMetricName(TEST_SERVICE_KEY + "-" + name), StatsOptions.DEFAULT);
         }
 
         public MeterStats getDirectMeter(String name) {
             // Format the name the same way it's done in the parent getMeter() method
-            return statisticsProvider.getMeter(getMetricName(TEST_SERVICE_KEY + ";" + name), StatsOptions.DEFAULT);
+            return statisticsProvider.getMeter(getMetricName(TEST_SERVICE_KEY + "-" + name), StatsOptions.DEFAULT);
         }
     }
 } 
