@@ -33,8 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
 /**
  * The {@code RepMembersConflictHandler} takes care of merging the {@code rep:members} property
  * during parallel updates.
@@ -162,13 +160,13 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
         Set<String> ourMembers = Collections.unmodifiableSet(SetUtils.toLinkedSet(ours.getValue(Type.STRINGS)));
 
         // merge ours and theirs to a de-duplicated set
-        Set<String> combined = new LinkedHashSet<>(Sets.intersection(ourMembers, theirMembers));
-        for (String m : Sets.difference(ourMembers, theirMembers)) {
+        Set<String> combined = new LinkedHashSet<>(SetUtils.intersection(ourMembers, theirMembers));
+        for (String m : SetUtils.difference(ourMembers, theirMembers)) {
             if (!base.contains(m)) {
                 combined.add(m);
             }
         }
-        for (String m : Sets.difference(theirMembers, ourMembers)) {
+        for (String m : SetUtils.difference(theirMembers, ourMembers)) {
             if (!base.contains(m)) {
                 combined.add(m);
             }
