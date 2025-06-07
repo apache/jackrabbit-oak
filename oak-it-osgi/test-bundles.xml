@@ -39,6 +39,7 @@
         <include>commons-logging:commons-logging</include>
         <include>com.fasterxml.jackson.core:jackson-core</include>
         <include>org.apache.commons:commons-lang3</include>
+        <include>org.apache.commons:commons-text</include>
         <include>org.apache.commons:commons-collections4</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
         <include>org.apache.jackrabbit:jackrabbit-data</include>
