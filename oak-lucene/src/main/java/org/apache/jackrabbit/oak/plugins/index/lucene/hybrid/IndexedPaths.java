@@ -20,16 +20,16 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Iterator;
 
-import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 
 import static java.util.Objects.requireNonNull;
 
 class IndexedPaths implements JournalProperty, Iterable<IndexedPathInfo> {
-    private final Multimap<String, String> indexedPaths;
+    private final MultiValuedMap<String, String> indexedPaths;
 
-    public IndexedPaths(Multimap<String, String> indexedPaths) {
+    public IndexedPaths(MultiValuedMap<String, String> indexedPaths) {
         this.indexedPaths = requireNonNull(indexedPaths);
     }
 
