@@ -57,8 +57,6 @@ import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NAM
 
 public final class NamespaceRegistryModel {
 
-    //private static final Logger LOG = LoggerFactory.getLogger(NamespaceRegistryModel.class);
-
     private final Map<String, String> prefixToNamespaceMap;
     private final Map<String, String> namespaceToPrefixMap;
 
