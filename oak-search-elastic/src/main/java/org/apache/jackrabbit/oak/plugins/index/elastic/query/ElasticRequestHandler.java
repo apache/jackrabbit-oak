@@ -694,6 +694,7 @@ public class ElasticRequestHandler {
                         knnQueryBuilder.field(InferenceConstants.VECTOR_SPACES + "." + inferenceModelConfigName + "." + InferenceConstants.VECTOR);
                         knnQueryBuilder.numCandidates(inferenceModelConfig.getNumCandidates());
                         knnQueryBuilder.queryVector(embeddings);
+                        knnQueryBuilder.similarity((float) inferenceModelConfig.getSimilarityThreshold());
                         // filters in knn are only applicable if filters are defined in knn query itself.
                         // the filters outside knn query are applicable as post filters which can lead to missing results.
                         if (planResult.evaluateNonFullTextConstraints()) {

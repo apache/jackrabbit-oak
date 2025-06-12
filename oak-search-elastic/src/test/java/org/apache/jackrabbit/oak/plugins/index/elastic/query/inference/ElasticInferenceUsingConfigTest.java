@@ -883,7 +883,7 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
 
         // Create inference configuration
         createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
-            inferenceModelName, inferenceServiceUrl, 0.8, 1L, true, true);
+            inferenceModelName, inferenceServiceUrl, 0.7, 1L, true, true);
         setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
 
         // Create index definition with searchable properties
@@ -988,5 +988,66 @@ public class ElasticInferenceUsingConfigTest extends ElasticAbstractQueryTest {
             LOG.info("Search returned {} results with machine learning content", results.size());
             assertEquals("/content/filterPath/ml", results.get(0));
         });
+    }
+
+    @Test
+    public void testSimilarityThresholdInKnnQuery() throws Exception {
+        String inferenceConfigInQuery = "?{}?";
+        String jcrIndexName = UUID.randomUUID().toString();
+        String inferenceServiceUrl = "http://localhost:" + wireMock.port() + "/v1/embeddings";
+        String inferenceModelConfigName = "ada-test-model";
+        String inferenceModelName = "text-embedding-ada-002";
+
+        // Create inference config
+        Double initialSimilarityThreshold = 0.2;
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+            inferenceModelName, inferenceServiceUrl, initialSimilarityThreshold, 1L, true, true);
+        setupEnricherStatus(defaultEnricherStatusMapping, defaultEnricherStatusData);
+        // Create index definition with multiple properties
+        IndexDefinitionBuilder builder = createIndexDefinition("title", "description", "updatedBy");
+        Tree index = setIndex(jcrIndexName, builder);
+        root.commit();
+
+        // Add test content
+        addTestContent();
+
+        // Let the index catch up
+        assertEventually(() -> assertEquals(7, countDocuments(index)));
+
+        // Enrich documents with embeddings
+        setupEmbeddingsForContent(index, inferenceModelConfigName, inferenceModelName);
+
+        // Setup wiremock stubs for inference service
+        setupMockInferenceService(inferenceModelConfigName, jcrIndexName);
+
+        String searchQuery = "technological advancements in electric vehicles";
+        String queryPath = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/content') and contains(*, '"
+            + inferenceConfigInQuery + searchQuery + "')";
+        LOG.info("Running initial query with similarity threshold {}: {}", initialSimilarityThreshold, queryPath);
+        assertEventually(() -> {
+            List<String> results = executeQuery(queryPath, SQL2, true, true);
+            LOG.info("Query with similarity threshold {} returned {} results: {}",
+                initialSimilarityThreshold, results.size(), results);
+            assertEquals(5, results.size());
+        });
+
+        // update similarity threshold
+        double newThreshold = 0.8;
+        LOG.info("Updating similarity threshold from {} to {}", initialSimilarityThreshold, newThreshold);
+        // using same parameters as above apart from similarityThreshold,
+        // affectively updating similarityThreshold value.
+        createInferenceConfig(jcrIndexName, true, defaultEnricherConfig, inferenceModelConfigName,
+            inferenceModelName, inferenceServiceUrl, newThreshold, 1L, true, true);
+        InferenceConfig.reInitialize();
+
+        // With higher threshold number of documents should decrease
+        LOG.info("Running query with updated similarity threshold {}: {}", newThreshold, queryPath);
+        assertEventually(() -> {
+            List<String> results = executeQuery(queryPath, SQL2, true, true);
+            LOG.info("Query with similarity threshold {} returned {} results: {}",
+                newThreshold, results.size(), results);
+            assertEquals(1, results.size());
+        });
+
     }
 }
