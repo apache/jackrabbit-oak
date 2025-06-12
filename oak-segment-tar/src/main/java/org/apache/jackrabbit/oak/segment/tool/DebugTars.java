@@ -252,7 +252,7 @@ public class DebugTars {
             value = value.substring(0, maxCharDisplay) + "... (" + value.length() + " chars)";
         }
 
-        String escaped = StringEscapeUtils.ESCAPE_JAVA.translate(value);
+        String escaped = StringEscapeUtils.escapeJava(value);
 
         return '"' + escaped + '"';
     }

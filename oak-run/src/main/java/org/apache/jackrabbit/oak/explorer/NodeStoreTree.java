@@ -373,7 +373,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             value = value.substring(0, MAX_CHAR_DISPLAY) + "... ("
                     + value.length() + " chars)";
         }
-        String escaped = StringEscapeUtils.ESCAPE_JAVA.translate(value);
+        String escaped = StringEscapeUtils.escapeJava(value);
         return '"' + escaped + '"';
     }
 
