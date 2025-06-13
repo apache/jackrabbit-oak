@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -140,35 +141,39 @@ public final class NamespaceRegistryModel {
         }
     }
 
-    public static @NotNull NamespaceRegistryModel create(@NotNull Root root) {
+    public static @Nullable NamespaceRegistryModel create(@NotNull Root root) {
         Tree rootTree = root.getTree("/");
         Tree namespaces = rootTree.getChild( JcrConstants.JCR_SYSTEM ).getChild(REP_NAMESPACES);
-        Tree nsdata = namespaces.getChild(NamespaceConstants.REP_NSDATA);
-        Map<String, String> prefixToNamespaceMap = new HashMap<>();
-        Map<String, String> namespaceToPrefixMap = new HashMap<>();
-        for (PropertyState propertyState : namespaces.getProperties()) {
-            String prefix = propertyState.getName();
-            if (!prefix.equals(NodeTypeConstants.JCR_PRIMARYTYPE)) {
-                prefixToNamespaceMap.put(prefix, propertyState.getValue(STRING));
+        if (namespaces.exists()) {
+            Tree nsdata = namespaces.getChild(NamespaceConstants.REP_NSDATA);
+            Map<String, String> prefixToNamespaceMap = new HashMap<>();
+            Map<String, String> namespaceToPrefixMap = new HashMap<>();
+            for (PropertyState propertyState : namespaces.getProperties()) {
+                String prefix = propertyState.getName();
+                if (!prefix.equals(NodeTypeConstants.JCR_PRIMARYTYPE)) {
+                    prefixToNamespaceMap.put(prefix, propertyState.getValue(STRING));
+                }
             }
-        }
-        for (PropertyState propertyState : nsdata.getProperties()) {
-            String encodedUri = propertyState.getName();
-            switch (encodedUri) {
-                case NamespaceConstants.REP_PREFIXES:
-                case NamespaceConstants.REP_URIS:
-                case NodeTypeConstants.JCR_PRIMARYTYPE:
-                    break;
-                default:
-                    namespaceToPrefixMap.put(encodedUri, propertyState.getValue(STRING));
+            for (PropertyState propertyState : nsdata.getProperties()) {
+                String encodedUri = propertyState.getName();
+                switch (encodedUri) {
+                    case NamespaceConstants.REP_PREFIXES:
+                    case NamespaceConstants.REP_URIS:
+                    case NodeTypeConstants.JCR_PRIMARYTYPE:
+                        break;
+                    default:
+                        namespaceToPrefixMap.put(encodedUri, propertyState.getValue(STRING));
+                }
             }
+            Iterable<String> uris = Objects.requireNonNull(nsdata.getProperty(NamespaceConstants.REP_URIS))
+                    .getValue(STRINGS);
+            return new NamespaceRegistryModel(
+                    Arrays.asList(IterableUtils.toArray(Objects.requireNonNull(nsdata.getProperty(NamespaceConstants.REP_PREFIXES)).getValue(STRINGS), String.class)),
+                    StreamUtils.toStream(uris).map(Namespaces::encodeUri).collect(Collectors.toList()),
+                    prefixToNamespaceMap, namespaceToPrefixMap);
+        } else {
+            return null;
         }
-        Iterable<String> uris = Objects.requireNonNull(nsdata.getProperty(NamespaceConstants.REP_URIS))
-                .getValue(STRINGS);
-        return new NamespaceRegistryModel(
-                Arrays.asList(IterableUtils.toArray(Objects.requireNonNull(nsdata.getProperty(NamespaceConstants.REP_PREFIXES)).getValue(STRINGS), String.class)),
-                StreamUtils.toStream(uris).map(Namespaces::encodeUri).collect(Collectors.toList()),
-                prefixToNamespaceMap, namespaceToPrefixMap);
     }
 
     public NamespaceRegistryModel tryRegistryRepair() {
