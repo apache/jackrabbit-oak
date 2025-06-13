@@ -66,9 +66,7 @@
                             *
                         </Import-Package>
                         <Export-Package>
-                            org.apache.jackrabbit.oak.segment.azure,
-                            org.apache.jackrabbit.oak.segment.azure.queue,
-                            org.apache.jackrabbit.oak.segment.azure.util,
+                            !org.apache.jackrabbit.oak.segment.azure.*,
                             com.microsoft.azure.storage,
                             com.microsoft.azure.storage.core,
                             com.microsoft.azure.storage.blob,
