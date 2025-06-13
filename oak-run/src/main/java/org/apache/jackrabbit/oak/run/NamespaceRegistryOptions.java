@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import joptsimple.OptionParser;
@@ -37,18 +38,14 @@ public class NamespaceRegistryOptions implements OptionsBean {
 
     private final OptionSpec<Void> analyseOpt;
     private final OptionSpec<Void> fixOpt;
+    private final OptionSpec<String> mappingsOpt;
 
     public NamespaceRegistryOptions(OptionParser parser) {
         analyseOpt = parser.accepts("analyse", "List the prefix to namespace map and check for consistency.");
         fixOpt = parser.accepts("fix", "List the prefix to namespace map, check for consistency and fix any inconsistencies, if possible.");
+        mappingsOpt = parser.accepts("mappings", "Optionally specify explicit prefix to namespace mappings ad a list of prefix=uri expressions").withRequiredArg();
         actionOpts = Set.of(analyseOpt, fixOpt);
         operationNames = collectionOperationNames(actionOpts);
-//        userOpt = parser
-//                .accepts("user", "User name").withOptionalArg()
-//                .defaultsTo("admin");
-//        passwordOpt = parser
-//                .accepts("password", "Password").withOptionalArg()
-//                .defaultsTo("admin");
     }
 
     @Override
@@ -76,16 +73,8 @@ public class NamespaceRegistryOptions implements OptionsBean {
         return operationNames;
     }
 
-//    public String getUser() {
-//        return userOpt.value(options);
-//    }
-//
-//    public String getPassword() {
-//        return passwordOpt.value(options);
-//    }
-
     public boolean anyActionSelected() {
-        for (OptionSpec spec : actionOpts) {
+        for (OptionSpec<Void> spec : actionOpts) {
             if (options.has(spec)){
                 return true;
             }
@@ -101,9 +90,13 @@ public class NamespaceRegistryOptions implements OptionsBean {
         return  options.has(fixOpt);
     }
 
+    public List<String> mappings() {
+        return  options.valuesOf(mappingsOpt);
+    }
+
     private static Set<String> collectionOperationNames(Set<OptionSpec<Void>> actionOpts) {
         Set<String> result = new HashSet<>();
-        for (OptionSpec spec : actionOpts){
+        for (OptionSpec<Void> spec : actionOpts){
             result.addAll(spec.options());
         }
         return result;

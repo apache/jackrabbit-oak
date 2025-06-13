@@ -34,11 +34,15 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.codelibs.jhighlight.fastutil.Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.SimpleCredentials;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class NamespaceRegistryCommand implements Command {
@@ -101,6 +105,7 @@ public class NamespaceRegistryCommand implements Command {
 
         boolean analyse = namespaceRegistryOptions.analyse();
         boolean fix = namespaceRegistryOptions.fix();
+        List<String> mappings = namespaceRegistryOptions.mappings();
         //TODO decide whether admin credentials should be required for this command
         NodeStore store = fixture.getStore();
         NodeState rootState = store.getRoot();
@@ -114,11 +119,23 @@ public class NamespaceRegistryCommand implements Command {
             protected Root getWriteRoot() {
                 return root;
             }
-       };
-       if (analyse || fix) {
+        };
+        if (analyse || fix) {
             NamespaceRegistryModel registryModel = namespaceRegistry.createNamespaceRegistryModel(root);
             if (fix) {
-                if (registryModel.isConsistent()) {
+                Map<String, String> additionalMappings = new HashMap<>();
+                if (mappings != null) {
+                    for (String mapping : mappings) {
+                        String[] parts = mapping.split("=");
+                        if (parts.length != 2) {
+                            System.err.println("Invalid mapping: " + mapping);
+                            return;
+                        }
+                        additionalMappings.put(parts[0].trim(), parts[1].trim());
+                    }
+                }
+                registryModel = registryModel.setMappings(additionalMappings);
+                if (registryModel.isConsistent() && additionalMappings.isEmpty()) {
                     System.out.println("The namespace registry is already consistent. No action is required.");
                 } else if (registryModel.isFixable()) {
                     registryModel.dump(System.out);
