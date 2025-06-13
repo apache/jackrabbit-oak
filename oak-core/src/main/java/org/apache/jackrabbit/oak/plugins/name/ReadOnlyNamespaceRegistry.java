@@ -130,7 +130,7 @@ public class ReadOnlyNamespaceRegistry
     public boolean checkConsistency(Root root) throws IllegalStateException {
         NamespaceRegistryModel model = createNamespaceRegistryModel(root);
         if (model == null) {
-            LOG.warn("Consistency check skipped, because there is no namespace registry.");
+            LOG.warn("Consistency check skipped because there is no namespace registry.");
         }
         return model == null || model.isConsistent();
     }
