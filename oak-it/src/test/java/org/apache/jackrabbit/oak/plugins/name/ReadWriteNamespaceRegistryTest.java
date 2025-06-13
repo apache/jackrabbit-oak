@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 
 import javax.jcr.NamespaceException;
@@ -165,12 +166,12 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         assertTrue(dump.contains("This namespace registry model is inconsistent. The inconsistency can NOT be fixed."));
         assertFalse(model.isConsistent());
 
-        NamespaceRegistryModel fixedModel = model.tryRegistryRepair();
-        assertFalse(fixedModel.isConsistent());
-        assertFalse(fixedModel.isFixable());
+        model = model.tryRegistryRepair();
+        assertFalse(model.isConsistent());
+        assertFalse(model.isFixable());
 
         out = new ByteArrayOutputStream();
-        fixedModel.dump(out);
+        model.dump(out);
         dump = out.toString(StandardCharsets.UTF_8);
         assertTrue(dump.contains("This namespace registry model is inconsistent. The inconsistency can NOT be fixed."));
 
@@ -192,12 +193,12 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         dump = out.toString(StandardCharsets.UTF_8);
         assertTrue(dump.contains("This namespace registry model is inconsistent. The inconsistency can be fixed."));
 
-        fixedModel = model.tryRegistryRepair();
-        assertTrue(fixedModel.isConsistent());
-        assertTrue(fixedModel.isFixable());
+        model = model.tryRegistryRepair();
+        assertTrue(model.isConsistent());
+        assertTrue(model.isFixable());
 
         out = new ByteArrayOutputStream();
-        fixedModel.dump(out);
+        model.dump(out);
         dump = out.toString(StandardCharsets.UTF_8);
         assertTrue(dump.contains("This namespace registry model is consistent"));
 
@@ -216,9 +217,9 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         assertEquals(1, model.getDanglingEncodedNamespaceUris().size());
         assertEquals(1, model.getRepairedMappings().size());
 
-        fixedModel = model.tryRegistryRepair();
-        assertFalse(fixedModel.isConsistent());
-        assertFalse(fixedModel.isFixable());
+        model = model.tryRegistryRepair();
+        assertFalse(model.isConsistent());
+        assertFalse(model.isFixable());
 
         // Now add a reverse mapping to a prefix, but not the forward mapping
         nsdata.setProperty("urn%3Abar", "bar", Type.STRING);
@@ -233,9 +234,9 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
         assertEquals(2, model.getRepairedMappings().size());
 
-        fixedModel = model.tryRegistryRepair();
-        assertTrue(fixedModel.isConsistent());
-        assertTrue(fixedModel.isFixable());
+        model = model.tryRegistryRepair();
+        assertTrue(model.isConsistent());
+        assertTrue(model.isFixable());
 
         // Double a registered prefix
         builder = PropertyBuilder.copy(Type.STRING, prefixProp);
@@ -252,9 +253,9 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
         assertEquals(2, model.getRepairedMappings().size());
 
-        fixedModel = model.tryRegistryRepair();
-        assertTrue(fixedModel.isConsistent());
-        assertTrue(fixedModel.isFixable());
+        model = model.tryRegistryRepair();
+        assertTrue(model.isConsistent());
+        assertTrue(model.isFixable());
 
         // Double a registered namespace uri
         builder = PropertyBuilder.copy(Type.STRING, namespaceProp);
@@ -271,18 +272,25 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
         assertEquals(2, model.getRepairedMappings().size());
 
-        fixedModel = model.tryRegistryRepair();
-        assertTrue(fixedModel.isConsistent());
-        assertTrue(fixedModel.isFixable());
+        // remap a prefix
+        model = model.setMappings(Collections.singletonMap("foo", "urn:foo2"));
+        assertFalse(model.isConsistent());
+        assertTrue(model.isFixable());
 
         // Apply the fixed model
-        fixedModel.apply(root);
+        model = model.tryRegistryRepair();
+        assertTrue(model.isConsistent());
+        assertTrue(model.isFixable());
+        model.apply(root);
         assertTrue(registry.createNamespaceRegistryModel(root).isConsistent());
         assertTrue(registry.checkConsistency(root));
 
-        assertEquals(0, fixedModel.getDanglingPrefixes().size());
-        assertEquals(0, fixedModel.getDanglingEncodedNamespaceUris().size());
-        assertEquals(0, fixedModel.getRepairedMappings().size());
+        assertEquals(0, model.getDanglingPrefixes().size());
+        assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
+        assertEquals(0, model.getRepairedMappings().size());
+
+        // Check the remapping
+        assertEquals("urn:foo2", registry.getURI("foo"));
     }
 
     private static NamespaceRegistry getNamespaceRegistry(ContentSession session, Root root) {
