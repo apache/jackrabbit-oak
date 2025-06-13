@@ -94,6 +94,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.jcr.InvalidItemStateException;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jackrabbit.guava.common.base.Throwables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -2130,7 +2131,7 @@ public class DocumentNodeStoreTest {
                 StringBuffer message = new StringBuffer(assertMessage);
                 if (cfe != null) {
                     message.append("\n");
-                    message.append(Throwables.getStackTraceAsString(cfe));
+                    message.append(ExceptionUtils.getStackTrace(cfe));
                 }
                 fail(message.toString());
             }
