@@ -25,6 +25,7 @@ import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
+import org.apache.jackrabbit.guava.common.base.CaseFormat;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -36,6 +37,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -392,4 +394,42 @@ public class ElasticIndexHelperTest {
         assertThat(status._kind(), is(Property.Kind.Keyword));
     }
 
+    private void testCamelConversion(Function<String, String> f) {
+        assertEquals("foo_bar", f.apply("FooBar"));
+        assertEquals("foo_bar", f.apply("fooBar"));
+        assertEquals("foo _bar", f.apply("foo Bar"));
+        assertEquals("foo _bar", f.apply("Foo Bar"));
+        assertEquals("f_o_o__b_a_r", f.apply("FOO_BAR"));
+        assertEquals("foo__bar", f.apply("Foo_Bar"));
+        assertEquals("foo_bar ", f.apply("FooBar "));
+        assertEquals(" _foo_bar", f.apply(" FooBar"));
+        assertEquals(" _foo_bar", f.apply(" FooBar"));
+    }
+
+    private String convertUpperCamelToLowerUnderscore(String s) {
+        StringBuilder result = new StringBuilder();
+        for (char c: s.toCharArray()) {
+            // start?
+            if (result.length() == 0) {
+                result.append(Character.toLowerCase(c));
+            } else {
+                if (Character.isUpperCase(c)) {
+                    result.append('_');
+                }
+                result.append(Character.toLowerCase(c));
+            }
+        }
+
+        return result.toString();
+    }
+
+    @Test
+    public void testCamelConversionGuava() {
+        testCamelConversion(s -> CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, s));
+    }
+
+    @Test
+    public void testCamelConversionOurs() {
+        testCamelConversion(this::convertUpperCamelToLowerUnderscore);
+    }
 }
