@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.codelibs.jhighlight.fastutil.Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
