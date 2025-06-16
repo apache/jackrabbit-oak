@@ -25,7 +25,6 @@ import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
-import org.apache.jackrabbit.guava.common.base.CaseFormat;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -406,30 +405,10 @@ public class ElasticIndexHelperTest {
         assertEquals(" _foo_bar", f.apply(" FooBar"));
     }
 
-    private String convertUpperCamelToLowerUnderscore(String s) {
-        StringBuilder result = new StringBuilder();
-        for (char c: s.toCharArray()) {
-            // start?
-            if (result.length() == 0) {
-                result.append(Character.toLowerCase(c));
-            } else {
-                if (Character.isUpperCase(c)) {
-                    result.append('_');
-                }
-                result.append(Character.toLowerCase(c));
-            }
-        }
 
-        return result.toString();
-    }
-
-    @Test
-    public void testCamelConversionGuava() {
-        testCamelConversion(s -> CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, s));
-    }
-
+    // verify that convertUpperCamelToLowerUnderscore does what it's supposed to do (see OAK-11753)
     @Test
     public void testCamelConversionOurs() {
-        testCamelConversion(this::convertUpperCamelToLowerUnderscore);
+        testCamelConversion(ElasticIndexHelper::convertUpperCamelToLowerUnderscore);
     }
 }
