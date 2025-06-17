@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.jcr.NamespaceException;
@@ -277,20 +278,44 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         assertFalse(model.isConsistent());
         assertTrue(model.isFixable());
 
+        // Add a registered namespace uri without any mapping
+        builder = PropertyBuilder.copy(Type.STRING, namespaceProp);
+        builder.addValue("urn:bar2");
+        nsdata.setProperty(builder.getPropertyState());
+
+        // Cannot be fixed automatically
+        assertFalse(registry.checkConsistency(root));
+        model = registry.createNamespaceRegistryModel(root);
+        assertFalse(model.isConsistent());
+        assertFalse(model.isFixable());
+
+        // remap a prefix and map the new URI to make it fixable
+        HashMap<String, String> mappings = new HashMap<>();
+        mappings.put("foo", "urn:foo2");
+        mappings.put("bar2", "urn:bar2");
+        assertFalse(registry.checkConsistency(root));
+        model = model.setMappings(mappings);
+        assertFalse(model.isConsistent());
+        assertTrue(model.isFixable());
+
         // Apply the fixed model
         model = model.tryRegistryRepair();
         assertTrue(model.isConsistent());
         assertTrue(model.isFixable());
+        assertFalse(registry.checkConsistency(root));
         model.apply(root);
-        assertTrue(registry.createNamespaceRegistryModel(root).isConsistent());
         assertTrue(registry.checkConsistency(root));
+        assertTrue(registry.createNamespaceRegistryModel(root).isConsistent());
 
         assertEquals(0, model.getDanglingPrefixes().size());
         assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
         assertEquals(0, model.getRepairedMappings().size());
 
-        // Check the remapping
+        // Check the extra mappings
         assertEquals("urn:foo2", registry.getURI("foo"));
+        assertEquals("foo", registry.getPrefix("urn:foo2"));
+        assertEquals("urn:bar2", registry.getURI("bar2"));
+        assertEquals("bar2", registry.getPrefix("urn:bar2"));
     }
 
     private static NamespaceRegistry getNamespaceRegistry(ContentSession session, Root root) {
