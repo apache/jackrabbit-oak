@@ -125,8 +125,8 @@ public final class NamespaceRegistryModel {
             }
             if (doesRoundtrip) {
                 for (String ns : mappedNamespacesEncoded) {
-                    String revMapped = Namespaces.encodeUri(prefixToNamespaceMap.get(encodedNamespaceToPrefixMap.get(ns)));
-                    if (revMapped == null || !revMapped.equals(ns)) {
+                    String uri = prefixToNamespaceMap.get(encodedNamespaceToPrefixMap.get(ns));
+                    if (uri == null || !Namespaces.encodeUri(uri).equals(ns)) {
                         doesRoundtrip = false;
                         break;
                     }
