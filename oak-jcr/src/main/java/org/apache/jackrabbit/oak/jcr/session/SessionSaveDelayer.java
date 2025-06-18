@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +54,7 @@ public class SessionSaveDelayer implements Closeable {
     private final Whiteboard whiteboard;
     private final AtomicBoolean closed = new AtomicBoolean();
 
-    private RepositoryManagementMBean mbean;
+    private RepositoryManagementMBean cachedMbean;
     private String lastConfigJson;
     private SessionSaveDelayerConfig lastConfig;
     private volatile boolean logNextDelay;
@@ -79,35 +78,11 @@ public class SessionSaveDelayer implements Closeable {
         return Thread.currentThread().getName();
     }
 
-    /**
-     * Gets the stack trace of the current thread as a string.
-     *
-     * @return the current stack trace as a formatted string, or null if no stack trace is available
-     */
-    @Nullable
-    public static String getCurrentStackTrace() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        if (stackTrace == null || stackTrace.length == 0) {
-            return null;
-        }
-
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < stackTrace.length; i++) {
-            if (i > 0) {
-                sb.append("\n\tat ");
-            } else {
-                sb.append("at ");
-            }
-            sb.append(stackTrace[i]);
-        }
-        return sb.toString();
-    }
-
     private RepositoryManagementMBean getRepositoryMBean() {
-        if (mbean == null) {
-            mbean = WhiteboardUtils.getService(whiteboard, RepositoryManagementMBean.class);
+        if (cachedMbean == null) {
+            cachedMbean = WhiteboardUtils.getService(whiteboard, RepositoryManagementMBean.class);
         }
-        return mbean;
+        return cachedMbean;
     }
 
     public long delayIfNeeded() {
@@ -155,6 +130,7 @@ public class SessionSaveDelayer implements Closeable {
                 Thread.sleep(millis, nanos);
             } catch (InterruptedException e) {
                 // ignore
+                Thread.currentThread().interrupt();
             }
         }
         return delayNanos;

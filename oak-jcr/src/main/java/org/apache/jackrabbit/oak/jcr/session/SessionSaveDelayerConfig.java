@@ -146,6 +146,29 @@ public class SessionSaveDelayerConfig {
         return JsopBuilder.prettyPrint(json.toString());
     }
 
+    /**
+     * Gets the stack trace of the current thread as a string.
+     *
+     * @return the current stack trace as a formatted string, or null if no stack trace is available
+     */
+    @Nullable
+    public static String getCurrentStackTrace() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        if (stackTrace == null || stackTrace.length == 0) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < stackTrace.length; i++) {
+            if (i > 0) {
+                sb.append("\n\tat ");
+            } else {
+                sb.append("at ");
+            }
+            sb.append(stackTrace[i]);
+        }
+        return sb.toString();
+    }
+
     public static class DelayEntry {
         private final long delayNanos;
         private final Pattern threadNamePattern;
@@ -177,7 +200,7 @@ public class SessionSaveDelayerConfig {
             }
             if (stackTracePattern != null) {
                 if (stackTrace == null) {
-                    stackTrace = SessionSaveDelayer.getCurrentStackTrace();
+                    stackTrace = SessionSaveDelayerConfig.getCurrentStackTrace();
                 }
                 return stackTracePattern.matcher(stackTrace).find();
             }
