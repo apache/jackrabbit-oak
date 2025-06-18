@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.run;
 
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
@@ -29,15 +28,10 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.SimpleCredentials;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -51,20 +45,13 @@ public class NamespaceRegistryCommand implements Command {
     private static final Logger LOG = LoggerFactory.getLogger(NamespaceRegistryCommand.class);
     private final String SUMMARY = "Provides commands to analyse the integrity of the namespace registry and repair it if necessary.";
 
-    private Options opts;
+    private OptionParser parser = new OptionParser();
     private NamespaceRegistryOptions namespaceRegistryOpts;
 
     @Override
     public void execute(String... args) throws Exception {
-        OptionParser parser = new OptionParser();
 
-        opts = new Options();
-        opts.setCommandName(NAME);
-        opts.setSummary(SUMMARY);
-        opts.setConnectionString(CommonOptions.DEFAULT_CONNECTION_STRING);
-        opts.registerOptionsFactory(NamespaceRegistryOptions.FACTORY);
-        opts.parseAndConfigure(parser, args);
-
+        Options opts = getOptions(args);
         namespaceRegistryOpts = opts.getOptionBean(NamespaceRegistryOptions.class);
 
         try (Closer closer = Utils.createCloserWithShutdownHook()) {
@@ -72,7 +59,7 @@ public class NamespaceRegistryCommand implements Command {
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
             closer.register(fixture);
 
-            if (!checkParameters(namespaceRegistryOpts, opts, fixture, parser)) {
+            if (!checkParameters(namespaceRegistryOpts, opts, fixture)) {
                 return;
             }
             doExecute(fixture, namespaceRegistryOpts, opts, closer);
@@ -82,10 +69,19 @@ public class NamespaceRegistryCommand implements Command {
         }
     }
 
-    private static boolean checkParameters(NamespaceRegistryOptions namespaceRegistryOptions,
+    Options getOptions(String... args) throws IOException {
+        Options opts = new Options();
+        opts.setCommandName(NAME);
+        opts.setSummary(SUMMARY);
+        opts.setConnectionString(CommonOptions.DEFAULT_CONNECTION_STRING);
+        opts.registerOptionsFactory(NamespaceRegistryOptions.FACTORY);
+        opts.parseAndConfigure(parser, args);
+        return opts;
+    }
+
+    private boolean checkParameters(NamespaceRegistryOptions namespaceRegistryOptions,
                                            Options opts,
-                                           NodeStoreFixture fixture,
-                                           OptionParser parser) throws IOException {
+                                           NodeStoreFixture fixture) throws IOException {
 
         if (!namespaceRegistryOptions.anyActionSelected()) {
             LOG.info("No actions specified");
@@ -105,60 +101,59 @@ public class NamespaceRegistryCommand implements Command {
         boolean analyse = namespaceRegistryOptions.analyse();
         boolean fix = namespaceRegistryOptions.fix();
         List<String> mappings = namespaceRegistryOptions.mappings();
-        //TODO decide whether admin credentials should be required for this command
-        NodeStore store = fixture.getStore();
-        NodeState rootState = store.getRoot();
-        Oak oak = new Oak(store).with(SecurityProviderBuilder.newBuilder().build());
-        //Oak oak = new Oak(fixture.getStore()).with(new OpenSecurityProvider());
-        ContentRepository cr = oak.createContentRepository();
-        ContentSession contentSession = cr.login(new SimpleCredentials("admin", "admin".toCharArray()), null);
-        Root root = contentSession.getLatestRoot();
-        ReadWriteNamespaceRegistry namespaceRegistry = new ReadWriteNamespaceRegistry(root) {
-            @Override
-            protected Root getWriteRoot() {
-                return root;
-            }
-        };
-        if (analyse || fix) {
-            NamespaceRegistryModel registryModel = namespaceRegistry.createNamespaceRegistryModel(root);
-            if (fix) {
-                Map<String, String> additionalMappings = new HashMap<>();
-                if (mappings != null) {
-                    for (String mapping : mappings) {
-                        String[] parts = mapping.split("=");
-                        if (parts.length != 2) {
-                            System.err.println("Invalid mapping: " + mapping);
+        Oak oak = new Oak(fixture.getStore()).with(new OpenSecurityProvider());
+        try (ContentSession contentSession = oak.createContentSession()) {
+            Root root = contentSession.getLatestRoot();
+            ReadWriteNamespaceRegistry namespaceRegistry = new ReadWriteNamespaceRegistry(root) {
+                @Override
+                protected Root getWriteRoot() {
+                    return root;
+                }
+            };
+            if (analyse || fix) {
+                NamespaceRegistryModel registryModel = namespaceRegistry.createNamespaceRegistryModel(root);
+                if (fix) {
+                    Map<String, String> additionalMappings = new HashMap<>();
+                    if (mappings != null) {
+                        for (String mapping : mappings) {
+                            String[] parts = mapping.split("=");
+                            if (parts.length != 2) {
+                                System.err.println("Invalid mapping: " + mapping);
+                                return;
+                            }
+                            additionalMappings.put(parts[0].trim(), parts[1].trim());
+                        }
+                    }
+                    registryModel = registryModel.setMappings(additionalMappings);
+                    if (registryModel.isConsistent() && additionalMappings.isEmpty()) {
+                        System.out.println("The namespace registry is already consistent. No action is required.");
+                    } else if (registryModel.isFixable()) {
+                        registryModel.dump(System.out);
+                        System.out.println();
+                        System.out.println("Now fixing the registry.");
+                        System.out.println();
+                        System.out.flush();
+                        NamespaceRegistryModel repaired = registryModel.tryRegistryRepair();
+                        if (repaired == null) {
+                            System.out.println("An unknown error has occurred. No changes have been made to the namespace registry.");
                             return;
                         }
-                        additionalMappings.put(parts[0].trim(), parts[1].trim());
+                        repaired.apply(root);
+                        root.commit();
+                        repaired.dump();
+                    } else {
+                        registryModel.dump();
                     }
-                }
-                registryModel = registryModel.setMappings(additionalMappings);
-                if (registryModel.isConsistent() && additionalMappings.isEmpty()) {
-                    System.out.println("The namespace registry is already consistent. No action is required.");
-                } else if (registryModel.isFixable()) {
-                    registryModel.dump(System.out);
-                    System.out.println();
-                    System.out.println("Now fixing the registry.");
-                    System.out.println();
-                    System.out.flush();
-                    NamespaceRegistryModel repaired = registryModel.tryRegistryRepair();
-                    if (repaired == null) {
-                        System.out.println("An unknown error has occurred. No changes have been made to the namespace registry.");
-                        return;
-                    }
-                    repaired.apply(root);
-                    root.commit();
-                    store.merge(rootState.builder(), EmptyHook.INSTANCE, CommitInfo.EMPTY);
-                    repaired.dump();
                 } else {
-                    registryModel.dump();
+                    if (registryModel == null) {
+                        System.out.println("There is no namespace registry in the repository.");
+                    } else {
+                        registryModel.dump();
+                    }
                 }
             } else {
-                registryModel.dump();
+                System.err.println("No action specified. Use --analyse to check the integrity of the namespace registry. Use --fix to repair it if necessary and possible.");
             }
-        } else {
-            System.err.println("No action specified. Use --analyse to check the integrity of the namespace registry. Use --fix to repair it if necessary and possible.");
         }
     }
 }
