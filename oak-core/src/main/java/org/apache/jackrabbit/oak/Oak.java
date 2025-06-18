@@ -696,7 +696,9 @@ public class Oak {
         initHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors)));
 
         CommitHook initHook = CompositeHook.compose(initHooks);
-        OakInitializer.initialize(store, new CompositeInitializer(initializers), initHook);
+        if (!initializers.isEmpty()) {
+            OakInitializer.initialize(store, new CompositeInitializer(initializers), initHook);
+        }
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace

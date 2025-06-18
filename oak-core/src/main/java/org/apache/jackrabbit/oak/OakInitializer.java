@@ -54,14 +54,21 @@ public final class OakInitializer {
                                   @NotNull NodeStore store,
                                   @NotNull String workspaceName,
                                   @NotNull CommitHook hook) {
+        boolean needsMerge = false;
         NodeBuilder builder = store.getRoot().builder();
         for (WorkspaceInitializer wspInit : initializer) {
-            wspInit.initialize(builder, workspaceName);
+            // default initializer is a no-op -> ignore
+            if (wspInit != WorkspaceInitializer.DEFAULT) {
+                wspInit.initialize(builder, workspaceName);
+                needsMerge = true;
+            }
         }
-        try {
-            store.merge(builder, hook, createCommitInfo());
-        } catch (CommitFailedException e) {
-            throw new RuntimeException(e);
+        if (needsMerge) {
+            try {
+                store.merge(builder, hook, createCommitInfo());
+            } catch (CommitFailedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
