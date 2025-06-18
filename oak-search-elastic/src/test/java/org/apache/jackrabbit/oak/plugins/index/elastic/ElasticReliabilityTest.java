@@ -20,7 +20,9 @@ import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,8 +57,15 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
 
     private Proxy proxy;
 
+    // Tests are hardcoded for these values
+    private final static int BULK_ACTIONS_TEST = 2;
+    private final static int BULK_SIZE_BYTES_TEST = 2 * 1024;
+
     @Override
     public void before() throws Exception {
+        // Use a low value for the tests
+        System.setProperty(ElasticBulkProcessorHandler.BULK_ACTIONS_PROP, Integer.toString(BULK_ACTIONS_TEST));
+        System.setProperty(ElasticBulkProcessorHandler.BULK_SIZE_BYTES_PROP, Integer.toString(BULK_SIZE_BYTES_TEST));
         toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
                 .withStartupAttempts(3)
                 .withNetwork(elasticRule.elastic.getNetwork());
@@ -125,5 +134,35 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
             assertThat(explain(query), containsString("elasticsearch:" + indexName));
             assertQuery(query, List.of("/test/a", "/test/b"));
         });
+    }
+
+    @Test
+    public void connectionCutOnIndex() throws Exception {
+        String indexName = UUID.randomUUID().toString();
+        setIndex(indexName, createIndex("propa", "propb"));
+
+        // simulate an upstream connection cut
+        LimitData cutConnectionUpstream = proxy.toxics()
+                .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.UPSTREAM, 8192L);
+
+        System.out.println("Adding test node");
+        Tree testBefore = root.getTree("/").addChild("test");
+        try {
+            for (int i = 0; i < 100; i++) {
+                testBefore.setProperty("propa", "a" + i);
+                root.commit();
+            }
+        } catch (CommitFailedException cfe) {
+            // ignore commit failures, we expect some due to the connection cut
+            System.out.println("Commit failed: " + cfe.getMessage());
+            cfe.printStackTrace();
+            cutConnectionUpstream.remove();
+        }
+
+        Tree testAfter = root.getTree("/").addChild("test");
+        for (int i = 0; i < 10; i++) {
+            testAfter.setProperty("propa", "a" + i);
+            root.commit();
+        }
     }
 }
