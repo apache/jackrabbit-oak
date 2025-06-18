@@ -56,6 +56,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class RepositoryManager extends AnnotatedStandardMBean implements RepositoryManagementMBean {
     private final Whiteboard whiteboard;
+    private String sessionSaveConfig;
 
     public RepositoryManager(@NotNull Whiteboard whiteboard) {
         super(RepositoryManagementMBean.class);
@@ -276,5 +277,15 @@ public class RepositoryManager extends AnnotatedStandardMBean implements Reposit
                 return succeeded("OK");
             }
         }));
+    }
+
+    @Override
+    public String getSessionSaveDelayerConfig() {
+        return sessionSaveConfig;
+    }
+
+    @Override
+    public void setSessionSaveDelayerConfig(String config) {
+        this.sessionSaveConfig = config;
     }
 }

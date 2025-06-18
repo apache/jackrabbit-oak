@@ -263,4 +263,20 @@ public interface RepositoryManagementMBean {
     @Description("Refresh all currently open sessions")
     TabularData refreshAllSessions();
 
+    /**
+     * Get the Session.save() delay configuration.
+     *
+     * @return the configuration
+     */
+    @Description("The Session.save() delay configuration")
+    String getSessionSaveDelayerConfig();
+
+    /**
+     * Set the Session.save() delay configuration.
+     *
+     * @param config the new configuration
+     */
+    @Description("The Session.save() delay configuration")
+    void setSessionSaveDelayerConfig(String config);
+
 }
