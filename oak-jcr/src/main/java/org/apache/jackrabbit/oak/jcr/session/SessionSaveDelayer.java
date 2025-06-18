@@ -42,13 +42,13 @@ import org.slf4j.LoggerFactory;
  * emergency situation, specially for cases where some threads write too much.
  */
 public class SessionSaveDelayer implements Closeable {
-   
+
     private static final Logger LOG = LoggerFactory.getLogger(SessionSaveDelayer.class);
 
     private static final String FT_SAVE_DELAY_NAME = "FT_SAVE_DELAY_OAK-11766";
     private static final String ENABLED_PROP_NAME = "oak.sessionSaveDelayer";
     private static final String CONFIG_PROP_NAME = "oak.sessionSaveDelayerConfig";
-    
+
     private final boolean enabledViaSysPropertey = Boolean.getBoolean(ENABLED_PROP_NAME);
     private final String sysPropertyConfig = System.getProperty(CONFIG_PROP_NAME, "");
     private final Feature feature;
@@ -58,29 +58,30 @@ public class SessionSaveDelayer implements Closeable {
     private RepositoryManagementMBean mbean;
     private String lastConfigJson;
     private SessionSaveDelayerConfig lastConfig;
-    
+    private volatile boolean logNextDelay;
+
     public SessionSaveDelayer(@NotNull Whiteboard whiteboard) {
         this.feature = newFeature(FT_SAVE_DELAY_NAME, whiteboard);
         LOG.info("Initialized");
         if (enabledViaSysPropertey) {
-            LOG.info("Enabled via system property " + ENABLED_PROP_NAME);
+            LOG.info("Enabled via system property: " + ENABLED_PROP_NAME);
         }
         this.whiteboard = whiteboard;
     }
-    
+
     /**
      * Gets the name of the current thread.
-     * 
+     *
      * @return the current thread name
      */
     @NotNull
     public static String getCurrentThreadName() {
         return Thread.currentThread().getName();
     }
-    
+
     /**
      * Gets the stack trace of the current thread as a string.
-     * 
+     *
      * @return the current stack trace as a formatted string, or null if no stack trace is available
      */
     @Nullable
@@ -89,7 +90,7 @@ public class SessionSaveDelayer implements Closeable {
         if (stackTrace == null || stackTrace.length == 0) {
             return null;
         }
-        
+
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < stackTrace.length; i++) {
             if (i > 0) {
@@ -101,14 +102,14 @@ public class SessionSaveDelayer implements Closeable {
         }
         return sb.toString();
     }
-    
+
     private RepositoryManagementMBean getRepositoryMBean() {
         if (mbean == null) {
             mbean = WhiteboardUtils.getService(whiteboard, RepositoryManagementMBean.class);
         }
         return mbean;
     }
-    
+
     public long delayIfNeeded() {
         if (closed.get() || (!feature.isEnabled() && !enabledViaSysPropertey)) {
             return 0;
@@ -125,13 +126,15 @@ public class SessionSaveDelayer implements Closeable {
             return 0;
         }
         if (!config.equals(lastConfigJson)) {
+            logNextDelay = true;
             lastConfigJson = config;
             try {
                 // reset, if already set
                 lastConfig = null;
                 lastConfig = SessionSaveDelayerConfig.fromJson(config);
+                LOG.info("New config: {}", lastConfig.toString());
             } catch (IllegalArgumentException e) {
-                LOG.warn("Can not parse config " + config, e);
+                LOG.warn("Can not parse config {}", e);
                 // don't delay
                 return 0;
             }
@@ -144,6 +147,10 @@ public class SessionSaveDelayer implements Closeable {
         if (delayNanos > 0) {
             long millis = delayNanos / 1_000_000;
             int nanos = (int) (delayNanos % 1_000_000);
+            if (logNextDelay) {
+                LOG.info("Sleep {} ms {} ns", millis, nanos);
+                logNextDelay = false;
+            }
             try {
                 Thread.sleep(millis, nanos);
             } catch (InterruptedException e) {
@@ -152,7 +159,7 @@ public class SessionSaveDelayer implements Closeable {
         }
         return delayNanos;
     }
-    
+
     @Override
     public void close() {
         if (!closed.getAndSet(true)) {

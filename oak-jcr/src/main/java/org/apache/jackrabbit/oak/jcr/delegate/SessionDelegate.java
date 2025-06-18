@@ -458,7 +458,6 @@ public class SessionDelegate {
         } catch (IOException e) {
             log.warn("Error while closing connection", e);
         }
-        sessionSaveDelayer.close();
     }
 
     @NotNull

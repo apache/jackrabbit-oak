@@ -49,15 +49,15 @@ import org.slf4j.LoggerFactory;
  * </pre>
  */
 public class SessionSaveDelayerConfig {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(SessionSaveDelayerConfig.class);
-    
+
     private final List<DelayEntry> entries;
-    
+
     public SessionSaveDelayerConfig(@NotNull List<DelayEntry> entries) {
         this.entries = new ArrayList<>(entries);
     }
-    
+
     @NotNull
     public static SessionSaveDelayerConfig fromJson(@NotNull String jsonConfig) throws IllegalArgumentException {
         if (Strings.isNullOrEmpty(jsonConfig)) {
@@ -91,11 +91,11 @@ public class SessionSaveDelayerConfig {
             throw new IllegalArgumentException("Failed to parse JSON configuration: " + e.getMessage(), e);
         }
     }
-    
+
     public List<DelayEntry> getEntries() {
         return entries;
     }
-    
+
     public long getDelayNanos(@NotNull String threadName, @Nullable String stackTrace) {
         for (DelayEntry d : entries) {
             if (d.matches(threadName, stackTrace)) {
@@ -103,8 +103,8 @@ public class SessionSaveDelayerConfig {
             }
         }
         return 0;
-    }    
-    
+    }
+
     @Nullable
     private static DelayEntry parseDelayEntry(JsonObject entryObj) {
         String delayMillis = entryObj.getProperties().get("delayMillis");
@@ -134,7 +134,7 @@ public class SessionSaveDelayerConfig {
             return null;
         }
     }
-    
+
     @Override
     public String toString() {
         JsopBuilder json = new JsopBuilder();
@@ -145,12 +145,12 @@ public class SessionSaveDelayerConfig {
         json.endArray().endObject();
         return JsopBuilder.prettyPrint(json.toString());
     }
-    
+
     public static class DelayEntry {
         private final long delayNanos;
         private final Pattern threadNamePattern;
         private final Pattern stackTracePattern;
-        
+
         public DelayEntry(double delayMillis, @NotNull Pattern threadNamePattern, @Nullable Pattern stackTracePattern) {
             this.delayNanos = (long) (delayMillis * 1_000_000);
             this.threadNamePattern = threadNamePattern;
@@ -160,7 +160,7 @@ public class SessionSaveDelayerConfig {
         public long getDelayNanos() {
             return delayNanos;
         }
-        
+
         @NotNull
         public Pattern getThreadNamePattern() {
             return threadNamePattern;
@@ -170,7 +170,7 @@ public class SessionSaveDelayerConfig {
         public Pattern getStackTracePattern() {
             return stackTracePattern;
         }
-        
+
         boolean matches(@NotNull String threadName, @Nullable String stackTrace) {
             if (!threadNamePattern.matcher(threadName).matches()) {
                 return false;
@@ -183,7 +183,7 @@ public class SessionSaveDelayerConfig {
             }
             return true;
         }
-        
+
         @Override
         public String toString() {
             return toJson(new JsopBuilder()).toString();
@@ -201,4 +201,4 @@ public class SessionSaveDelayerConfig {
         }
 
     }
-} 
+}
