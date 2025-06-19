@@ -297,7 +297,6 @@ public class ElasticBulkProcessorHandler {
 
         // Some of the operations for this index pending may be buffered for sending in the bulk ingester.
         // Force sending them now.
-        LOG.trace("Flushing bulk ingester {}", bulkIngester);
         bulkIngester.flush();
 
         if (indexInfo.waitForESAcknowledgement) {
@@ -348,6 +347,7 @@ public class ElasticBulkProcessorHandler {
             }
         }
 
+        checkConnectionFailures();
         checkFailuresForIndex(indexInfo);
         LOG.trace("Bulk identifier -> update status = {}", registeredIndexes);
         return indexInfo.indexModified;

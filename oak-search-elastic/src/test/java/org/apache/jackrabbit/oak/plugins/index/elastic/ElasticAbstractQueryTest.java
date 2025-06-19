@@ -130,6 +130,10 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         return false;
     }
 
+    protected long getIndexCorruptIntervalInMillis() {
+        return INDEX_CORRUPT_INTERVAL_IN_MILLIS;
+    }
+
     protected Oak addAsyncIndexingLanesToOak(Oak oak) {
         // Override this in extending classes to configure different
         // indexing lanes with different time limits.
@@ -160,7 +164,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         ));
 
         TrackingCorruptIndexHandler trackingCorruptIndexHandler = new TrackingCorruptIndexHandler();
-        trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS, TimeUnit.MILLISECONDS);
+        trackingCorruptIndexHandler.setCorruptInterval(getIndexCorruptIntervalInMillis(), TimeUnit.MILLISECONDS);
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
 
         Oak oak = new Oak(nodeStore)
