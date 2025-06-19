@@ -276,10 +276,12 @@ public class VersionGCRecommendations {
             // success, we would not expect to encounter revisions older than this in the future
             setVGCSetting(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs);
 
-            final Map<String, Object> updateVGCMap = new HashMap<>();
-            updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
-            updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
-            updateVGCSetting(updateVGCMap);
+            if (fullGCEnabled) {
+                final Map<String, Object> updateVGCMap = new HashMap<>();
+                updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
+                updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+                updateVGCSetting(updateVGCMap);
+            }
 
             int count = stats.deletedDocGCCount - stats.deletedLeafDocGCCount;
             double usedFraction;
