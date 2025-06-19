@@ -100,7 +100,7 @@ public class AutoMembershipAwareTest extends AbstractExternalAuthTest {
         AutoMembershipConfig amc = mock(AutoMembershipConfig.class);
         when(amc.getName()).thenReturn(sh.getName());
         when(amc.getAutoMembership(any(Authorizable.class))).thenReturn(groupIds);
-        when(amc.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Iterators.singletonIterator(authorizable));
+        when(amc.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Collections.singleton(authorizable).iterator());
 
         context.registerService(AutoMembershipConfig.class, amc, Collections.singletonMap(AutoMembershipConfig.PARAM_SYNC_HANDLER_NAME, sh.getName()));
 
@@ -110,7 +110,7 @@ public class AutoMembershipAwareTest extends AbstractExternalAuthTest {
         
         assertEquals(sh.getName(), config.getName());
         assertEquals(groupIds, config.getAutoMembership(authorizable));
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(authorizable), config.getAutoMembers(userManager, gr)));
+        assertTrue(Iterators.elementsEqual(Collections.singleton(authorizable).iterator(), config.getAutoMembers(userManager, gr)));
         
         // verify that DefaultSyncHandler was notified about the service
         verify(amc).getAutoMembership(authorizable);

@@ -100,7 +100,7 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
     public void testGetGroupMembershipNonGroupPrincipal() throws Exception {
         // Group.getPrincipal doesn't return a GroupPrincipal
         Group gr = when(mock(Group.class).getPrincipal()).thenReturn(new PrincipalImpl("group")).getMock();
-        Authorizable mockAuthorizable = when(mock(User.class).memberOf()).thenReturn(Iterators.singletonIterator(gr)).getMock();
+        Authorizable mockAuthorizable = when(mock(User.class).memberOf()).thenReturn(Collections.singleton(gr).iterator()).getMock();
         UserManager umMock = when(mock(UserManager.class).getAuthorizable(any(Principal.class))).thenReturn(mockAuthorizable).getMock();
 
         Set<Principal> membership = createPrincipalProvider(umMock).getMembershipPrincipals(new PrincipalImpl("userPrincipal"));
@@ -128,19 +128,19 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
         assertFalse(result.hasNext());
 
         result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(EveryonePrincipal.getInstance()), result));
+        assertTrue(Iterators.elementsEqual(Collections.singleton(EveryonePrincipal.getInstance()).iterator(), result));
     }
 
     @Test
     public void testFindWithUnexpectedNullPrincipal() throws Exception {
         Authorizable userMock = when(mock(Authorizable.class).getPrincipal()).thenReturn(null).getMock();
         UserManager umMock = mock(UserManager.class);
-        when(umMock.findAuthorizables(any(Query.class))).thenReturn(Iterators.singletonIterator(userMock));
+        when(umMock.findAuthorizables(any(Query.class))).thenReturn(Collections.singleton(userMock).iterator());
 
         Iterator<? extends Principal> result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertFalse(result.hasNext());
 
         result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(EveryonePrincipal.getInstance()), result));
+        assertTrue(Iterators.elementsEqual(Collections.singleton(EveryonePrincipal.getInstance()).iterator(), result));
     }
 }

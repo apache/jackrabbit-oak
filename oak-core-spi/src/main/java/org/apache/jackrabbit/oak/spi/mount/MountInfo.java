@@ -30,7 +30,6 @@ import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;

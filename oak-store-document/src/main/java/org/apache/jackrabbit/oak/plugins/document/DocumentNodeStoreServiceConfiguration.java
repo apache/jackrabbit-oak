@@ -39,13 +39,13 @@ import static java.util.Objects.requireNonNull;
  * entries in the following sequence:
  * <ul>
  *     <li>Framework/system properties, potentially with mapped names. See
- *          {@link #frameworkPropertyNameFor(String)}.</li>
+ *          {@link #frameworkPropertyNameFor(String)}.
  *     <li>OSGi configuration for {@link DocumentNodeStoreService} with
  *          {@link Configuration#PID} if the property is set via the
- *          OSGi Configuration Admin.</li>
+ *          OSGi Configuration Admin.
  *     <li>OSGi configuration with {@link Configuration#PRESET_PID}. The
  *          default value for a configuration entry will be provided if the
- *          OSGi Configuration Admin does not have an entry as a preset.</li>
+ *          OSGi Configuration Admin does not have an entry as a preset.
  * </ul>
  */
 final class DocumentNodeStoreServiceConfiguration {

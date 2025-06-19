@@ -48,14 +48,14 @@ import org.slf4j.LoggerFactory;
  * granted on it's own 'home directory' being represented by the new node
  * associated with that new authorizable.
  *
- * <p>The following to configuration parameters are available with this implementation:</p>
+ * <p>The following to configuration parameters are available with this implementation:
  * <ul>
  *    <li><strong>groupPrivilegeNames</strong>: the value is expected to be a
  *    comma separated list of privileges that will be granted to the new group on
- *    the group node</li>
+ *    the group node
  *    <li><strong>userPrivilegeNames</strong>: the value is expected to be a
  *    comma separated list of privileges that will be granted to the new user on
- *    the user node.</li>
+ *    the user node.
  * </ul>
  * <p>Example configuration:
  * <pre>
@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
  * </pre>
  * <p>This configuration could for example lead to the following content
  * structure upon user or group creation. Note however that the resulting
- * structure depends on the actual access control management being in place:</p>
+ * structure depends on the actual access control management being in place:
  *
  * <pre>
  *     UserManager umgr = ((JackrabbitSession) session).getUserManager();

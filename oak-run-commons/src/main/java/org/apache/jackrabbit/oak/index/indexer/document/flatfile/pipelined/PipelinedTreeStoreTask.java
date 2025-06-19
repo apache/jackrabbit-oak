@@ -33,10 +33,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedSortBatchTask.Result;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;

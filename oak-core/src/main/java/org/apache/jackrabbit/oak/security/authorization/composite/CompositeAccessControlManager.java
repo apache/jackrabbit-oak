@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.AccessDeniedException;
@@ -31,12 +33,12 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
@@ -71,12 +73,11 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     @NotNull
     @Override
     public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
-        ImmutableSet.Builder<Privilege> privs = ImmutableSet.builder();
+        Set<Privilege> privs = new LinkedHashSet<>();
         for (AccessControlManager acMgr : acMgrs) {
-            privs.add(acMgr.getSupportedPrivileges(absPath));
+            privs.addAll(Arrays.asList(acMgr.getSupportedPrivileges(absPath)));
         }
-        Set<Privilege> s = privs.build();
-        return s.toArray(new Privilege[0]);
+        return privs.toArray(new Privilege[0]);
     }
 
     @Override
@@ -109,7 +110,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
                 l.add(acMgr.getApplicablePolicies(absPath));
             }
         }
-        return new AccessControlPolicyIteratorAdapter(Iterators.concat(l.toArray(new AccessControlPolicyIterator[0])));
+        return new AccessControlPolicyIteratorAdapter(IteratorUtils.chainedIterator(l.toArray(new AccessControlPolicyIterator[0])));
     }
 
     @Override
@@ -190,6 +191,6 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
                 }
             }
         }
-        return Iterators.concat(iterators.build().toArray(new Iterator[0]));
+        return IteratorUtils.chainedIterator(iterators.build().toArray(new Iterator[0]));
     }
 }

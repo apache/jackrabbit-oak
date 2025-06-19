@@ -48,14 +48,14 @@ import org.slf4j.LoggerFactory;
  *
  * <ul>
  *     <li>{@link #REP_GLOB}: A simple paths matching pattern. See {@link GlobPattern}
- *     for details.</li>
+ *     for details.
  *     <li>{@link #REP_NT_NAMES}: A restriction that allows to limit the effect
  *     of a given access control entries to JCR nodes of any of the specified
  *     primary node type. In case of a JCR property the primary type of the
- *     parent node is taken into consideration when evaluating the permissions.</li>
+ *     parent node is taken into consideration when evaluating the permissions.
  *     <li>{@link #REP_PREFIXES}: A multivalued access control restriction
  *     which matches by name space prefix. The corresponding restriction type
- *     is {@link org.apache.jackrabbit.oak.api.Type#STRINGS}.</li>
+ *     is {@link org.apache.jackrabbit.oak.api.Type#STRINGS}.
  * </ul>
  */
 @Component(

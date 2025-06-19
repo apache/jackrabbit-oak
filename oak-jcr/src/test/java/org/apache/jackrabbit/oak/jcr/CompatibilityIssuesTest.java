@@ -198,7 +198,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
     /**
      * Type checks are deferred to the Session#save call instead of the
      * Node#addNode method like in Jackrabbit2.
-     * <p>Stacktrace in JR2:</p>
+     * <p>Stacktrace in JR2:
      * <pre>
      * {@code
      * javax.jcr.nodetype.ConstraintViolationException: No child node definition for fail found in node /f1362578560413
@@ -211,7 +211,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
      *     at org.apache.jackrabbit.core.NodeImpl.addNode(NodeImpl.java:1774)
      * }
      * <pre>
-     * <p>Stacktrace in Oak:</p>
+     * <p>Stacktrace in Oak:
      * <pre>
      * {@code
      *javax.jcr.nodetype.ConstraintViolationException

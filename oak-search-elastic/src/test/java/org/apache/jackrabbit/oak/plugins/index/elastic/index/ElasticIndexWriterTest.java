@@ -36,6 +36,8 @@ import static org.hamcrest.number.OrderingComparison.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,6 +58,8 @@ public class ElasticIndexWriterTest {
 
     private ElasticIndexWriter indexWriter;
 
+    private String indexAlias;
+
     private AutoCloseable closeable;
 
     @Before
@@ -63,6 +67,7 @@ public class ElasticIndexWriterTest {
         closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
         indexWriter = new ElasticIndexWriter(indexTrackerMock, elasticConnectionMock, indexDefinitionMock, bulkProcessorHandlerMock);
+        indexAlias = indexDefinitionMock.getIndexAlias();
     }
 
     @After
@@ -76,7 +81,7 @@ public class ElasticIndexWriterTest {
 
         ArgumentCaptor<ElasticDocument> esDocumentCaptor = ArgumentCaptor.forClass(ElasticDocument.class);
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
-        verify(bulkProcessorHandlerMock).index(idCaptor.capture(), esDocumentCaptor.capture());
+        verify(bulkProcessorHandlerMock).index(eq(indexAlias), idCaptor.capture(), esDocumentCaptor.capture());
 
         assertEquals("/foo", idCaptor.getValue());
         assertEquals("/foo", esDocumentCaptor.getValue().path);
@@ -87,7 +92,7 @@ public class ElasticIndexWriterTest {
         indexWriter.deleteDocuments("/bar");
 
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
-        verify(bulkProcessorHandlerMock).delete(idCaptor.capture());
+        verify(bulkProcessorHandlerMock).delete(eq(indexAlias), idCaptor.capture());
 
         String id = idCaptor.getValue();
         assertEquals("/bar", id);
@@ -100,8 +105,8 @@ public class ElasticIndexWriterTest {
         indexWriter.deleteDocuments("/foo");
         indexWriter.deleteDocuments("/bar");
 
-        verify(bulkProcessorHandlerMock, times(2)).index(anyString(), any(ElasticDocument.class));
-        verify(bulkProcessorHandlerMock, times(2)).delete(anyString());
+        verify(bulkProcessorHandlerMock, times(2)).index(eq(indexAlias), anyString(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock, times(2)).delete(eq(indexAlias), anyString());
     }
 
     @Test
@@ -111,7 +116,7 @@ public class ElasticIndexWriterTest {
         indexWriter.updateDocument(generatedPath, new ElasticDocument(generatedPath));
 
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
-        verify(bulkProcessorHandlerMock).index(idCaptor.capture(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock).index(eq(indexAlias), idCaptor.capture(), any(ElasticDocument.class));
 
         String id = idCaptor.getValue();
         assertThat(id, not(generatedPath));
@@ -119,16 +124,18 @@ public class ElasticIndexWriterTest {
     }
 
     @Test
-    public void closeBulkProcessor() throws IOException {
+    public void closeIndex() throws IOException {
         indexWriter.close(System.currentTimeMillis());
-        verify(bulkProcessorHandlerMock).close();
+        // Closes the index but not the bulk processor
+        verify(bulkProcessorHandlerMock).flushIndex(eq(indexAlias));
+        verify(bulkProcessorHandlerMock, never()).close();
     }
 
     @Test
     public void externallyModifiableIndexes() throws IOException {
         when(indexDefinitionMock.isExternallyModifiable()).thenReturn(true);
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
-        verify(bulkProcessorHandlerMock).update(anyString(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock).update(eq(indexAlias), anyString(), any(ElasticDocument.class));
     }
 
     @Test

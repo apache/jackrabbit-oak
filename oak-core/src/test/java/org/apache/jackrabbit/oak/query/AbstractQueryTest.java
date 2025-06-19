@@ -413,7 +413,6 @@ public abstract class AbstractQueryTest {
      * or
      * <p>
      * "/ - "test"
-     * </p>
      *
      * @param root
      * @param commit the commit string

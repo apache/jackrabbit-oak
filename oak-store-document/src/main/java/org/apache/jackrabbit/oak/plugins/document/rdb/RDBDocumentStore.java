@@ -63,9 +63,11 @@ import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -90,7 +92,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
@@ -103,13 +104,13 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
  * simplify testing, and <em>that</em> code specifically supports these
  * databases:
  * <ul>
- * <li>H2DB</li>
- * <li>Apache Derby</li>
- * <li>IBM DB2</li>
- * <li>PostgreSQL</li>
- * <li>MariaDB (MySQL)</li>
- * <li>Microsoft SQL Server</li>
- * <li>Oracle</li>
+ * <li>H2DB
+ * <li>Apache Derby
+ * <li>IBM DB2
+ * <li>PostgreSQL
+ * <li>MariaDB (MySQL)
+ * <li>Microsoft SQL Server
+ * <li>Oracle
  * </ul>
  * 
  * <h3 id="apidocs.table-layout">Table Layout</h3>
@@ -216,9 +217,9 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
  * <p>
  * Databases need to be configured so that:
  * <ul>
- * <li>Text fields support all Unicode code points,</li>
- * <li>Collation of text fields happens by Unicode code point,</li>
- * <li>and BLOBs need to support at least 16 MB.</li>
+ * <li>Text fields support all Unicode code points,
+ * <li>Collation of text fields happens by Unicode code point,
+ * <li>and BLOBs need to support at least 16 MB.
  * </ul>
  * <p>
  * See the
@@ -1854,7 +1855,7 @@ public class RDBDocumentStore implements DocumentStore {
                     Iterator<RDBRow> res = db.queryAsIterator(ch, tmd, from, to, excludeKeyPatterns, conditions,
                             limit, sortBy);
                     returned.add(res);
-                    Iterator<T> tmp = Iterators.transform(res, input -> convertFromDBObject(collection, input));
+                    Iterator<T> tmp = IteratorUtils.transform(res, input -> convertFromDBObject(collection, input));
                     return CloseableIterator.wrap(tmp, (Closeable) res);
                 } catch (SQLException ex) {
                     throw new RuntimeException(ex);

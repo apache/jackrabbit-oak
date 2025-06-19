@@ -82,11 +82,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * defined in {@code rep:NodeType}.
  *
  * <ul>
- *   <li>validate new definitions,</li>
- *   <li>detect collisions,</li>
- *   <li>prevent circular inheritance,</li>
- *   <li>reject modifications to definitions that render existing content invalid,</li>
- *   <li>etc.</li>
+ *   <li>validate new definitions,
+ *   <li>detect collisions,
+ *   <li>prevent circular inheritance,
+ *   <li>reject modifications to definitions that render existing content invalid,
+ *   <li>etc.
  * </ul>
  */
 class TypeRegistration extends DefaultNodeStateDiff {

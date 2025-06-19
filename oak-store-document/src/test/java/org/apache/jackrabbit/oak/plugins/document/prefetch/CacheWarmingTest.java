@@ -35,6 +35,7 @@ import java.util.TreeSet;
 import com.mongodb.MongoTimeoutException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.CountingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -59,7 +60,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 public class CacheWarmingTest {
 

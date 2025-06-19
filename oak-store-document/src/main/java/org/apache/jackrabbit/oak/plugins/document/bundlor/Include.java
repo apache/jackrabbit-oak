@@ -31,15 +31,15 @@ import static java.util.Objects.checkIndex;
  * Include represents a single path pattern which captures the path which
  * needs to be included in bundling. Path patterns can be like below.
  * <ul>
- *     <li>* - Match any immediate child</li>
- *     <li>*\/* - Match child with any name upto 2 levels of depth</li>
- *     <li>jcr:content - Match immediate child with name jcr:content</li>
- *     <li>jcr:content\/** - Match jcr:content and all its child</li>
+ *     <li>* - Match any immediate child
+ *     <li>*\/* - Match child with any name upto 2 levels of depth
+ *     <li>jcr:content - Match immediate child with name jcr:content
+ *     <li>jcr:content\/** - Match jcr:content and all its child
  * </ul>
  *
  * The last path element can specify a directive. Supported directive
  * <ul>
- *     <li>all - Include all nodes under given path</li>
+ *     <li>all - Include all nodes under given path
  * </ul>
  */
 public class Include {

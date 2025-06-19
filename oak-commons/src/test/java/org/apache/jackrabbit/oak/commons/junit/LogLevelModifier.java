@@ -42,7 +42,6 @@ import ch.qos.logback.core.filter.Filter;
  * The LogLevelModifier Rule can be used to fine-tune log levels during a particular
  * test. This could be used together with LogDumper to have enough details
  * in case of test failure without setting the global log level to DEBUG for example.
- * <p/>
  * <pre>
  *     public class LoginTestIT {
  *

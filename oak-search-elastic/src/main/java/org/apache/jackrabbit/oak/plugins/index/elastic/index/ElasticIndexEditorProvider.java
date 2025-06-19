@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -34,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.TYPE_ELASTICSEARCH;
 
@@ -42,6 +43,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     private final ElasticIndexTracker indexTracker;
     private final ElasticConnection elasticConnection;
     private final ExtractedTextCache extractedTextCache;
+    private final ElasticBulkProcessorHandler bulkProcessorHandler;
 
     public final static String OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY = "oak.index.elastic.writer.disable";
 
@@ -50,9 +52,17 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
                                       @NotNull ElasticConnection elasticConnection,
                                       ExtractedTextCache extractedTextCache) {
+        this(indexTracker, elasticConnection, extractedTextCache, new ElasticBulkProcessorHandler(elasticConnection));
+    }
+
+    public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
+                                      @NotNull ElasticConnection elasticConnection,
+                                      ExtractedTextCache extractedTextCache,
+                                      ElasticBulkProcessorHandler bulkProcessorHandler) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
+        this.bulkProcessorHandler = bulkProcessorHandler;
     }
 
     @Override
@@ -69,7 +79,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
             ElasticIndexDefinition indexDefinition =
                     new ElasticIndexDefinition(root, definition.getNodeState(), indexPath, elasticConnection.getIndexPrefix());
 
-            ElasticIndexWriterFactory writerFactory = new ElasticIndexWriterFactory(elasticConnection, indexTracker);
+            ElasticIndexWriterFactory writerFactory = new ElasticIndexWriterFactory(elasticConnection, indexTracker, bulkProcessorHandler);
 
             ElasticIndexEditorContext context = new ElasticIndexEditorContext(root,
                     definition, indexDefinition,
@@ -91,11 +101,20 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
         return extractedTextCache;
     }
 
+    @Override
+    public void close() {
+        try {
+            this.bulkProcessorHandler.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     /**
      * This is a no-op editor, so that elastic index is not updated
      * where OAK_INDEX_ELASTIC_WRITER_DISABLE = true is set as system property.
      */
-    private class NOOPIndexEditor<D> extends FulltextIndexEditor<D> {
+    private static class NOOPIndexEditor<D> extends FulltextIndexEditor<D> {
         public NOOPIndexEditor(FulltextIndexEditorContext<D> context) {
             super(context);
         }
@@ -136,7 +155,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
         }
 
         @Override
-        public Editor childNodeDeleted(String name, NodeState before) throws CommitFailedException {
+        public Editor childNodeDeleted(String name, NodeState before) {
             return this;
         }
 

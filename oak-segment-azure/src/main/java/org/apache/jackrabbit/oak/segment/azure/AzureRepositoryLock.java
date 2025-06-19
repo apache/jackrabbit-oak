@@ -30,9 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class AzureRepositoryLock implements RepositoryLock {
 
@@ -75,7 +72,7 @@ public class AzureRepositoryLock implements RepositoryLock {
     public AzureRepositoryLock(BlockBlobClient blockBlobClient, BlobLeaseClient leaseClient, Runnable shutdownHook, WriteAccessController writeAccessController, int timeoutSec) {
         this.shutdownHook = shutdownHook;
         this.blockBlobClient = blockBlobClient;
-        this.leaseClient =  leaseClient;
+        this.leaseClient = leaseClient;
         this.refresherThread = new Thread(this::refreshLease, REFRESHER_THREAD_NAME);
         this.refresherThread.setDaemon(true);
         this.timeoutSec = timeoutSec;
@@ -132,41 +129,43 @@ public class AzureRepositoryLock implements RepositoryLock {
         long lastUpdate = 0;
         setInError(false);
         while (doUpdate) {
-            long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
             try {
-                if (timeSinceLastUpdate > renewalInterval) {
-                    leaseId = leaseClient.renewLeaseWithResponse((RequestConditions) null, Duration.ofMillis(LEASE_RENEWAL_TIMEOUT_MS), Context.NONE).getValue();
+                long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
+                try {
+                    if (timeSinceLastUpdate > renewalInterval) {
 
-                    writeAccessController.enableWriting();
-                    if (isInError()) {
-                        log.info("Lease renewal successful again.");
-                        setInError(false);
+                        leaseId = leaseClient.renewLeaseWithResponse((RequestConditions) null, Duration.ofMillis(LEASE_RENEWAL_TIMEOUT_MS), Context.NONE).getValue();
+                        writeAccessController.enableWriting();
+                        if (isInError()) {
+                            log.info("Lease renewal successful again.");
+                            setInError(false);
+                        }
+                        lastUpdate = System.currentTimeMillis();
                     }
-                    lastUpdate = System.currentTimeMillis();
-                }
-            } catch (Exception e) {
-                timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
+                } catch (Exception e) {
+                    timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
 
-                if (timeSinceLastUpdate > timeToWaitBeforeWriteBlock) {
-                    writeAccessController.disableWriting();
-                }
+                    if (timeSinceLastUpdate > timeToWaitBeforeWriteBlock) {
+                        writeAccessController.disableWriting();
+                    }
 
-                if (e instanceof BlobStorageException) {
-                    BlobStorageException storageException = (BlobStorageException) e;
-                    BlobErrorCode errorCode = storageException.getErrorCode();
-                    if (errorCode != null &&
-                        Set.of(BlobErrorCode.OPERATION_TIMED_OUT,
-                            BlobErrorCode.SERVER_BUSY,
-                            BlobErrorCode.INTERNAL_ERROR).contains(errorCode)) {
-                        log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
+                    if (e instanceof BlobStorageException) {
+                        BlobStorageException storageException = (BlobStorageException) e;
+                        BlobErrorCode errorCode = storageException.getErrorCode();
+                        if (errorCode != null &&
+                                Set.of(BlobErrorCode.OPERATION_TIMED_OUT,
+                                        BlobErrorCode.SERVER_BUSY,
+                                        BlobErrorCode.INTERNAL_ERROR).contains(errorCode)) {
+                            log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
+                        } else {
+                            log.warn("Could not renew lease due to storage exception. Retry in progress ... ", e);
+                        }
                     } else {
-                        log.warn("Could not renew lease due to storage exception. Retry in progress ... ", e);
+                        log.error("Can't renew the lease", e);
+                        shutdownHook.run();
+                        doUpdate = false;
+                        return;
                     }
-                } else {
-                    log.error("Can't renew the lease", e);
-                    shutdownHook.run();
-                    doUpdate = false;
-                    return;
                 }
                 waitABit(100);
             } catch (Throwable t) {

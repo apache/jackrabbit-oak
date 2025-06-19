@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.commons;
 /**
  * A utility class to time an operation.
  */
-public class StopWatch {
+public class TestStopWatch {
 
     private static final long NANOS_PER_SECOND = 1000 * 1000 * 1000;
 

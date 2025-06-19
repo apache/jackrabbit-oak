@@ -26,12 +26,12 @@ import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.azure.AzureBlobMetadata;
 import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptionsV8;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;

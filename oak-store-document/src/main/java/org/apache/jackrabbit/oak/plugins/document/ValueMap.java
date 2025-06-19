@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
 import org.jetbrains.annotations.NotNull;
 
@@ -65,9 +66,9 @@ class ValueMap {
                     // merge sort local map into maps of previous documents
                     List<Iterator<NodeDocument>> iterators = 
                             new ArrayList<Iterator<NodeDocument>>(2);
-                    iterators.add(Iterators.singletonIterator(doc));
+                    iterators.add(Collections.singleton(doc).iterator());
                     iterators.add(doc.getPreviousDocs(property, null).iterator());
-                    docs = Iterators.mergeSorted(iterators, new Comparator<NodeDocument>() {
+                    docs = IteratorUtils.mergeSorted(iterators, new Comparator<NodeDocument>() {
                                 @Override
                                 public int compare(NodeDocument o1,
                                                    NodeDocument o2) {

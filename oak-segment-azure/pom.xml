@@ -72,7 +72,6 @@
                             com.microsoft.azure.storage,
                             com.microsoft.azure.storage.core,
                             com.microsoft.azure.storage.blob,
-                            com.azure.core.credential,
                             com.azure.identity,
                             com.azure.blob,
                             com.azure.storage.common,

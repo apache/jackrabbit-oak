@@ -62,21 +62,21 @@ import java.util.stream.Stream;
  *
  * <ul>
  *     <li>{@code Credentials} as specified in {@link javax.jcr.Repository#login(javax.jcr.Credentials)}
- *     in which case they are retrieved from the {@code CallbackHandler}.</li>
+ *     in which case they are retrieved from the {@code CallbackHandler}.
  *     <li>A {@link #SHARED_KEY_CREDENTIALS} entry in the shared state. The
- *     expected value is a validated single {@code Credentials} object.</li>
+ *     expected value is a validated single {@code Credentials} object.
  *     <li>If neither of the above variants provides Credentials this module
  *     tries to obtain them from the subject. See also
- *     {@link javax.security.auth.Subject#getSubject(java.security.AccessControlContext)}</li>
+ *     {@link javax.security.auth.Subject#getSubject(java.security.AccessControlContext)}
  * </ul>
  *
  * This implementation of the {@code LoginModule} currently supports the following
  * types of JCR Credentials:
  *
  * <ul>
- *     <li>{@link SimpleCredentials}</li>
- *     <li>{@link GuestCredentials}</li>
- *     <li>{@link ImpersonationCredentials}</li>
+ *     <li>{@link SimpleCredentials}
+ *     <li>{@link GuestCredentials}
+ *     <li>{@link ImpersonationCredentials}
  * </ul>
  *
  * The {@link Credentials} obtained during the {@code #login()} are added to

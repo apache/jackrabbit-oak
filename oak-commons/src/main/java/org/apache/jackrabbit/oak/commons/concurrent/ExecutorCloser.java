@@ -30,12 +30,10 @@ import org.slf4j.LoggerFactory;
 /**
  * <p>
  * Utility class to properly close any ExecutorService.
- * </p>
  * 
  * <p>
  * It will attempt a graceful close within the provided timeout. If after such any of the contained
  * tasks are not terminated yet, it will force a shutdown and track a warning in the logs.
- * </p>
  * 
  */
 public final class ExecutorCloser implements Closeable {

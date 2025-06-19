@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -169,16 +170,16 @@ import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
  *
  * Under it follows the index definition node that:
  * <ul>
- * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
- * <li>must have the <code>type</code> property set to <b><code>lucene</code></b></li>
- * <li>must have the <code>async</code> property set to <b><code>async</code></b></li>
+ * <li>must be of type <code>oak:QueryIndexDefinition</code>
+ * <li>must have the <code>type</code> property set to <b><code>lucene</code></b>
+ * <li>must have the <code>async</code> property set to <b><code>async</code></b>
  * </ul>
  * <p>
  * Optionally you can add
  * <ul>
- * <li>what subset of property types to be included in the index via the <code>includePropertyTypes</code> property</li>
- * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property</li>
- * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.</li>
+ * <li>what subset of property types to be included in the index via the <code>includePropertyTypes</code> property
+ * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property
+ * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.
  * </ul>
  * <pre>{@code
  * {
@@ -1618,7 +1619,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 .transform(path -> new FulltextResultRow(path, 0, null, null, null));
 
         //Property index itr should come first
-        return Iterators.concat(propIndex.iterator(), itr);
+        return IteratorUtils.chainedIterator(propIndex.iterator(), itr);
     }
 
     class DelayedLuceneFacetProvider implements FacetProvider {

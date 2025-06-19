@@ -51,9 +51,9 @@ import org.osgi.annotation.versioning.ProviderType;
  * The interfaces derived from Authorizable are defined as follows:
  * <ul>
  * <li>{@link User}: defined to be an Authorizable that can be authenticated
- * (by using Credentials) and impersonated.</li>
+ * (by using Credentials) and impersonated.
  * <li>{@link Group}: defined to be a collection of other
- * <code>Authorizable</code>s.</li>
+ * <code>Authorizable</code>s.
  * </ul>
  *
  * @see User

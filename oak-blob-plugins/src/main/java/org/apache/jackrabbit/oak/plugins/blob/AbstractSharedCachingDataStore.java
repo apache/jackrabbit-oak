@@ -39,6 +39,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.core.data.AbstractDataStore;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -56,7 +58,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 
@@ -273,7 +274,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
      */
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-        return Iterators.concat(Iterators.transform(cache.getStagingCache().getAllIdentifiers(),
+        return IteratorUtils.chainedIterator(IteratorUtils.transform(cache.getStagingCache().getAllIdentifiers(),
             id -> new DataIdentifier(id)), backend.getAllIdentifiers());
     }
 

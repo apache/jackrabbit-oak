@@ -37,13 +37,13 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.benchmark.CSVResultGenerator;
 import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.scalability.ScalabilitySuite;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
@@ -74,14 +74,11 @@ import org.slf4j.LoggerFactory;
  * <ul>
  * <li>
  *     <code>profile</code> - Controls whether to profile the benchmark or not. Defaults to false.
- * </li>
  * <li>
  *     <code>noWarmup</code> - Controls whether to run warmup or not before each benchmark. Defaults to false.
- * </li>
  * <li>
  *     <code>increments</code> - Comma separated list which controls the incremental load for each iteration.
  *     Defaults to 1,2,5.
- * </li>
  * </ul>
  */
 public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVResultGenerator {

@@ -18,15 +18,20 @@
  */
 package org.apache.jackrabbit.oak.commons.collections;
 
+import org.apache.commons.collections4.iterators.IteratorChain;
 import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Utility methods for {@link Iterator} conversions.
@@ -230,4 +235,199 @@ public class IteratorUtils {
             }
         }
     }
+
+    /**
+     * Checks if the given iterator contains the specified element.
+     * <p>
+     * This method iterates through the iterator, checking each element for equality with
+     * the specified object using {@link Objects#equals(Object, Object)}. The iteration stops
+     * once a match is found or the iterator is exhausted.
+     * <p>
+     * Note that this method will consume the iterator.
+     *
+     * @param <?> the type of objects in the iterator
+     * @param iterator the iterator to check, must not be null
+     * @param element the element to find, may be null
+     * @return {@code true} if the iterator contains the element, {@code false} otherwise
+     * @throws NullPointerException if the iterator is null
+     */
+    public static boolean contains(Iterator<?> iterator, Object element) {
+        Objects.requireNonNull(iterator, "Iterator must not be null");
+        return org.apache.commons.collections4.IteratorUtils.contains(iterator, element);
+    }
+
+    /**
+     * Converts an iterator to an array of a specific type.
+     * <p>
+     * This method consumes the iterator and returns an array containing all of its elements.
+     * The type of the array is determined by the provided {@code type} parameter.
+     *
+     * @param <T>      the component type of the resulting array
+     * @param iterator the iterator to convert, must not be null
+     * @param type     the {@link Class} object representing the component type of the array, must not be null
+     * @return an array containing all the elements from the iterator
+     * @throws NullPointerException if the iterator or type is null
+     */
+    public static <T> T[] toArray(Iterator<? extends T> iterator, Class<T> type) {
+        return org.apache.commons.collections4.IteratorUtils.toArray(iterator, type);
+    }
+
+    /**
+     * Converts an iterator to an enumeration.
+     * <p>
+     * This method creates an {@link Enumeration} that will use the provided {@link Iterator}
+     * as its source of elements. The enumeration will iterate through the same elements
+     * as the iterator in the same order.
+     * <p>
+     * The enumeration's {@code hasMoreElements()} and {@code nextElement()} methods
+     * delegate to the iterator's {@code hasNext()} and {@code next()} methods respectively.
+     *
+     * @param <T> the type of elements in the iterator and enumeration
+     * @param iterator the iterator to convert to an enumeration, must not be null
+     * @return an enumeration that uses the provided iterator as its source
+     * @throws NullPointerException if the iterator is null
+     */
+    public static <T> Enumeration<T> asEnumeration(final Iterator<T> iterator) {
+        return org.apache.commons.collections4.IteratorUtils.asEnumeration(iterator);
+    }
+
+    /**
+     * Returns an iterator that iterates through two iterators in sequence.
+     * <p>
+     * This method creates a new iterator that will first iterate through the elements
+     * in the first iterator and then, when the first iterator is exhausted, will iterate
+     * through the elements in the second iterator.
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the provided iterators
+     * support it.
+     *
+     * @param <E> the element type
+     * @param iterator1 the first iterator to chain, may be null
+     * @param iterator2 the second iterator to chain, may be null
+     * @return an iterator that chains the specified iterators together
+     * @throws NullPointerException if any of the iterator is null
+     */
+    public static <E> Iterator<E> chainedIterator(final Iterator<? extends E> iterator1,
+                                                  final Iterator<? extends E> iterator2) {
+        return org.apache.commons.collections4.IteratorUtils.chainedIterator(iterator1, iterator2);
+    }
+
+    /**
+     * Returns an iterator that iterates through varargs of iterators in sequence.
+     * <p>
+     * This method creates a new iterator that will first iterate through the elements
+     * in the first iterator and then, when the first iterator is exhausted, will iterate
+     * through the elements in the second iterator and so on...
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the underlying iterator
+     * support it.
+     *
+     * @param <E> the element type
+     * @param iterators array of iterators to chain must not be null
+     * @return an iterator that chains the specified iterators together
+     * @throws NullPointerException if iterators array is null or contains a null iterator
+     */
+    @SafeVarargs
+    public static <E> Iterator<E> chainedIterator(final Iterator<? extends E>... iterators) {
+        return org.apache.commons.collections4.IteratorUtils.chainedIterator(iterators);
+    }
+
+    /**
+     * Returns an iterator that iterates through a collection of iterators in sequence.
+     * <p>
+     * This method creates a new iterator that will first iterate through the elements
+     * in the first iterator and then, when the first iterator is exhausted, will iterate
+     * through the elements in the second iterator and so on...
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the underlying iterator
+     * support it.
+     *
+     * @param <E> the element type
+     * @param iterators collection of iterators to chain must not be null
+     * @return an iterator that chains the specified iterators together
+     * @throws NullPointerException if an iterators collection is null or contains a null iterator
+     */
+    public static <E> Iterator<E> chainedIterator(final Collection<Iterator<? extends E>> iterators) {
+        return org.apache.commons.collections4.IteratorUtils.chainedIterator(iterators);
+    }
+
+    /**
+     * Returns an iterator that iterates through an iterator of iterators in sequence.
+     * <p>
+     * This method creates a new iterator that will first iterate through the elements
+     * in the first iterator and then, when the first iterator is exhausted, will iterate
+     * through the elements in the second iterator and so on...
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the underlying iterator
+     * support it.
+     *
+     * @param <E> the element type
+     * @param iterators an iterator of iterators to chain must not be null
+     * @return an iterator that chains the specified iterators together
+     * @throws NullPointerException if an iterators collection is null or contains a null iterator
+     */
+    public static <E> Iterator<E> chainedIterator(final Iterator<? extends Iterator<? extends E>> iterators) {
+        final IteratorChain<E> eIteratorChain = new IteratorChain<>();
+        iterators.forEachRemaining(eIteratorChain::addIterator);
+        return eIteratorChain;
+    }
+
+    /**
+     * Returns an iterator containing only the elements that match the given predicate.
+     * <p>
+     * This method creates a new iterator that will iterate through elements from the
+     * source iterator but only return elements that satisfy the specified predicate.
+     * The filtering occurs during iteration and the method doesn't consume the source iterator
+     * until the returned iterator is advanced.
+     * <p>
+     * Example usage:
+     * <pre>
+     * Iterator&lt;Integer&gt; numbers = Arrays.asList(1, 2, 3, 4, 5).iterator();
+     * Predicate&lt;Integer&gt; isEven = n -> n % 2 == 0;
+     * Iterator&lt;Integer&gt; evenNumbers = IteratorUtils.filter(numbers, isEven);
+     * // evenNumbers will iterate through 2, 4
+     * </pre>
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the source iterator supports it.
+     *
+     * @param <T> the type of objects in the iterator
+     * @param itr the source iterator, must not be null
+     * @param predicate the predicate to apply to each element, must not be null
+     * @return a filtered iterator
+     * @throws NullPointerException if either the iterator or predicate is null
+     */
+    public static <T> Iterator<T> filter(final Iterator<? extends T> itr, final Predicate<? super T> predicate) {
+        return org.apache.commons.collections4.IteratorUtils.filteredIterator(itr, predicate::test);
+    }
+
+    /**
+     * Returns an iterator that transforms the elements of another iterator.
+     * <p>
+     * This method creates a new iterator that will apply the given transformation
+     * function to each element of the source iterator as the new iterator is traversed.
+     * Transformations occur lazily during iteration and the source iterator is not
+     * consumed until the returned iterator is advanced.
+     * <p>
+     * Example usage:
+     * <pre>
+     * Iterator&lt;Integer&gt; numbers = Arrays.asList(1, 2, 3).iterator();
+     * Function&lt;Integer, String&gt; toString = n -> "Number: " + n;
+     * Iterator&lt;String&gt; stringNumbers = IteratorUtils.transform(numbers, toString);
+     * // stringNumbers will iterate through "Number: 1", "Number: 2", "Number: 3"
+     * </pre>
+     * <p>
+     * The returned iterator supports {@link Iterator#remove()} if the source iterator
+     * supports it.
+     *
+     * @param <F> the type of elements in the source iterator
+     * @param <T> the type of elements in the transformed iterator
+     * @param itr the source iterator to transform, must not be null
+     * @param transform the function to transform the elements of the source iterator, must not be null
+     * @return an iterator that transforms the elements of the source iterator
+     * @throws NullPointerException if either the iterator or the transform function is null
+     */
+    public static <F, T> Iterator<T> transform(Iterator<? extends F> itr, final Function<? super F, ? extends T> transform) {
+        return org.apache.commons.collections4.IteratorUtils.transformedIterator(itr, transform::apply);
+    }
 }
+

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -166,12 +165,7 @@ public class AsyncIndexerService {
                 registerMBean(whiteboard, PropertyIndexAsyncReindexMBean.class, asyncPI,
                         PropertyIndexAsyncReindexMBean.TYPE, "async"),
                 registerMBean(whiteboard, IndexStatsMBean.class, task.getIndexStats(), IndexStatsMBean.TYPE, name));
-        closer.register(new Closeable() {
-            @Override
-            public void close() throws IOException {
-                reg.unregister();
-            }
-        });
+        closer.register(reg::unregister);
     }
 
     @Deactivate

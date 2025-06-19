@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.function.Predicate;
 
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.query.FilterIterators;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -42,7 +43,7 @@ public class PathCursor extends AbstractCursor {
     public PathCursor(Iterator<String> paths, boolean distinct, final QueryLimits settings) {
         Iterator<String> it = paths;
         if (distinct) {
-            it = Iterators.filter(it, new Predicate<String>() {
+            it = IteratorUtils.filter(it, new Predicate<String>() {
 
                 private final HashSet<String> known = new HashSet<String>();
 

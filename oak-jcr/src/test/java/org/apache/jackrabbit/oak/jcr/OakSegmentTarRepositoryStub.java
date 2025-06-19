@@ -71,7 +71,7 @@ public class OakSegmentTarRepositoryStub extends BaseRepositoryStub {
      * {@link Jcr} builder before the repository is created. This default
      * implementation set query engine settings as returned by
      * {@link #getQueryEngineSettings()} and adds a
-     * {@link org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer}.
+     * {@link org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer}.
      *
      * @param jcr the builder.
      * @param whiteboard the oak whiteboard

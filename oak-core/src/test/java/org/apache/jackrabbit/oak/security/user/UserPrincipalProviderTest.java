@@ -280,7 +280,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
             root.commit();
 
             Iterator<? extends Principal> principals = principalProvider.findPrincipals(null, SEARCH_TYPE_GROUP);
-            Iterator filtered = Iterators.filter(principals, principal -> EveryonePrincipal.NAME.equals(principal.getName()));
+            Iterator filtered = IteratorUtils.filter(principals, principal -> EveryonePrincipal.NAME.equals(principal.getName()));
             assertEquals(1, IteratorUtils.size(filtered));
         } finally {
             if (everyoneGroup != null) {

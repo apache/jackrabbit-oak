@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;

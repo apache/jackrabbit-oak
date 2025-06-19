@@ -48,8 +48,8 @@ import java.util.stream.Stream;
  * <p>
  * It requires 2 calls to Elastic:
  * <ul>
- *     <li>get all the possible spellchecked suggestions</li>
- *     <li>multi search query to get a sample of 100 results for each suggestion for ACL check</li>
+ *     <li>get all the possible spellchecked suggestions
+ *     <li>multi search query to get a sample of 100 results for each suggestion for ACL check
  * </ul>
  */
 class ElasticSpellcheckIterator implements ElasticQueryIterator {

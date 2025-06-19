@@ -84,9 +84,9 @@ public class TypeEditor extends DefaultEditor {
          * Invoked whenever a constraint violation is detected.
          * 
          * <p>Implementors may choose to throw a {@link org.apache.jackrabbit.oak.api.CommitFailedException} or to handle the error
-         * internally, for instance by logging.</p>
+         * internally, for instance by logging.
          * 
-         * <p>Implementors may <b>not</b> throw other exception types from this method.</p>
+         * <p>Implementors may <b>not</b> throw other exception types from this method.
          * 
          * @param path the path where the constraint violation was detected
          * @param nodeTypeNames the node type names of the node

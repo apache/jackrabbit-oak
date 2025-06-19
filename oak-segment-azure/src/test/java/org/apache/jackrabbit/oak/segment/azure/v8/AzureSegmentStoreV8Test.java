@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.v8;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.*;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.azure.AzureSegmentStoreService;
 import org.apache.jackrabbit.oak.segment.azure.Configuration;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
@@ -70,7 +71,7 @@ public class AzureSegmentStoreV8Test {
 
     private static final EnumSet<SharedAccessBlobPermissions> READ_ONLY = EnumSet.of(READ, LIST);
     private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
-    private static final ImmutableSet<String> BLOBS = ImmutableSet.of("blob1", "blob2");
+    private static final Set<String> BLOBS = Set.of("blob1", "blob2");
 
     private CloudBlobContainer container;
     
@@ -244,8 +245,11 @@ public class AzureSegmentStoreV8Test {
         return Instant.now().minus(Duration.ofDays(1));
     }
     
-    private static ImmutableSet<String> concat(ImmutableSet<String> blobs, String element) {
-        return ImmutableSet.<String>builder().addAll(blobs).add(element).build();
+    private static Set<String> concat(Set<String> blobs, String element) {
+
+        final Set<String> set = SetUtils.toLinkedSet(blobs);
+        set.add(element);
+        return Collections.unmodifiableSet(set);
     }
 
     private static Configuration getConfigurationWithSharedAccessSignature(String sasToken) {

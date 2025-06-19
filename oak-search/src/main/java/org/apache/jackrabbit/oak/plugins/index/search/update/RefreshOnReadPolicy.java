@@ -37,9 +37,9 @@ import org.apache.jackrabbit.oak.stats.Clock;
  *
  * <ul>
  * <li>Upon write if refreshDelta time has elapsed then readers would be
- * refreshed</li>
+ * refreshed
  * <li>Upon read if index is found to be updated then again readers would be
- * refreshed</li>
+ * refreshed
  * </ul>
  *
  * <p>

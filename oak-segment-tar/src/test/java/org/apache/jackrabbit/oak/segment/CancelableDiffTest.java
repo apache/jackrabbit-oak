@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -100,7 +99,7 @@ public class CancelableDiffTest {
     }
 
     private NodeStateDiff newCancelableDiff(NodeStateDiff wrapped, boolean cancel) {
-        return new CancelableDiff(wrapped, Suppliers.ofInstance(cancel));
+        return new CancelableDiff(wrapped, () -> cancel);
     }
 
 }

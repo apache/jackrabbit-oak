@@ -20,7 +20,6 @@ import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
@@ -36,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
@@ -117,7 +117,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     static final int UPDATE_LIMIT = Integer.getInteger("update.limit", DEFAULT_UPDATE_LIMIT);
 
-    protected Supplier<DocumentStore> documentStoreSupplier = ofInstance(new MemoryDocumentStore());
+    protected Supplier<DocumentStore> documentStoreSupplier = Suppliers.memoize(() -> new MemoryDocumentStore());
     protected Supplier<BlobStore> blobStoreSupplier;
     private DiffCache diffCache;
     private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
@@ -181,6 +181,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Set<String> fullGCExcludePaths = Set.of();
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
     private int fullGCMode = DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
+    private long fullGCGeneration = DocumentNodeStoreService.DEFAULT_FULL_GC_GENERATION;
     private long fullGcMaxAgeMillis = TimeUnit.SECONDS.toMillis(DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE);
     private int fullGCBatchSize = DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
     private int fullGCProgressSize = DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
@@ -371,6 +372,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.fullGCMode;
     }
 
+    public T setFullGCGeneration(long v) {
+        this.fullGCGeneration = v;
+        return thisBuilder();
+    }
+
+    public long getFullGCGeneration() {
+        return this.fullGCGeneration;
+    }
+
     /**
      * The maximum age for nodes in milliseconds. Older entries are candidates for full gc
      * @param v max age in millis
@@ -512,7 +522,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      * @return this
      */
     public T setDocumentStore(DocumentStore documentStore) {
-        this.documentStoreSupplier = ofInstance(documentStore);
+        this.documentStoreSupplier = () -> documentStore;
         return thisBuilder();
     }
 
@@ -534,13 +544,13 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      * @return this
      */
     public T setBlobStore(BlobStore blobStore) {
-        this.blobStoreSupplier = ofInstance(blobStore);
+        this.blobStoreSupplier = () -> blobStore;
         return thisBuilder();
     }
 
     public BlobStore getBlobStore() {
         if (blobStoreSupplier == null) {
-            blobStoreSupplier = ofInstance(new MemoryBlobStore());
+            blobStoreSupplier = () -> new MemoryBlobStore();
         }
         BlobStore blobStore = blobStoreSupplier.get();
         configureBlobStore(blobStore);
