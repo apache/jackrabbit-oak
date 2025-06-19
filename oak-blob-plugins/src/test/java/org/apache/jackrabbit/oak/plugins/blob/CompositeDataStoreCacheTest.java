@@ -85,7 +85,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         LOG.info("Starting setup");
 
         root = folder.newFolder();
-        loader = new TestCacheLoader<String, InputStream>(folder.newFolder());
+        loader = new TestCacheLoader(folder.newFolder());
         uploader = new TestStagingUploader(folder.newFolder());
 
         // create executor

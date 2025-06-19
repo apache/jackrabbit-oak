@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.User;
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -104,7 +104,7 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
 
         // create additional ACEs for each principal in the subject
         List<Privilege> allPrivileges = Arrays.asList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
-        Iterator<Principal> principalIterator = Iterators.cycle(subject.getPrincipals());
+        Iterator<Principal> principalIterator = IteratorUtils.cycle(subject.getPrincipals());
         int cnt = 0;
         while (cnt < numberOfACEs) {
             if (!principalIterator.hasNext()) {

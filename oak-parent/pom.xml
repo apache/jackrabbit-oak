@@ -30,13 +30,13 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.79-SNAPSHOT</version>
+  <version>1.81-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <project.build.outputTimestamp>1743619919</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1747400914</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -57,7 +57,6 @@
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
-    <solr.version>8.11.3</solr.version>
     <mongo.driver.version>3.12.14</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
@@ -65,8 +64,8 @@
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.15.2.0</derby.version>
-    <jackson.version>2.17.2</jackson.version>
-    <testcontainers.version>1.20.6</testcontainers.version>
+    <jackson.version>2.17.3</jackson.version>
+    <testcontainers.version>1.21.1</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <groovy.version>3.0.24</groovy.version>
     <netty.version>4.1.119.Final</netty.version>
@@ -212,12 +211,6 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.document.spi</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene.util</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.configuration</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.index</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.query</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.server</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.util</filter>
                   <filter>!org.apache.jackrabbit.oak.segment.spi.monitor</filter>
                   <filter>!org.apache.jackrabbit.oak.segment.spi.persistence</filter>
                   <!-- OAK-10838: we can't control the package version for the EOLd copy of lucene-core -->
@@ -342,19 +335,6 @@
                     <execute />
                   </action>
                 </pluginExecution>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.jacoco</groupId>
-                    <artifactId>jacoco-maven-plugin</artifactId>
-                    <versionRange>[0.7.1.201405082137,)</versionRange>
-                    <goals>
-                      <goal>prepare-agent</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore />
-                  </action>
-                </pluginExecution>
               </pluginExecutions>
             </lifecycleMappingMetadata>
           </configuration>
@@ -372,7 +352,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.12</version>
+          <version>0.8.13</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -547,12 +527,12 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>5.4.0</version>
+        <version>5.5.0</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>5.13.0</version>
+        <version>5.17.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -609,12 +589,17 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-collections4</artifactId>
-        <version>4.4</version>
+        <version>4.5.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
         <version>3.17.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>1.13.1</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
@@ -624,7 +609,7 @@
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.17.2</version>
+        <version>1.18.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -634,12 +619,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>9.0.102</version>
+        <version>9.0.105</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>9.0.102</version>
+        <version>9.0.105</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -1057,7 +1042,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.7.4</version>
+          <version>42.7.7</version>
           <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
           <scope>compile</scope>
         </dependency>
@@ -1280,6 +1265,6 @@
     <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
     <url>https://github.com/apache/jackrabbit/tree/${project.scm.tag}</url>
-    <tag>jackrabbit-oak-1.76.0</tag>
+    <tag>jackrabbit-oak-1.80</tag>
   </scm>
 </project>

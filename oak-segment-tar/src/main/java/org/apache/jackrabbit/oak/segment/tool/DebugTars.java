@@ -34,7 +34,7 @@ import java.util.UUID;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.escape.Escapers;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -252,12 +252,7 @@ public class DebugTars {
             value = value.substring(0, maxCharDisplay) + "... (" + value.length() + " chars)";
         }
 
-        String escaped = Escapers.builder()
-                .setSafeRange(' ', '~')
-                .addEscape('"', "\\\"")
-                .addEscape('\\', "\\\\")
-                .build()
-                .escape(value);
+        String escaped = StringEscapeUtils.escapeJava(value);
 
         return '"' + escaped + '"';
     }

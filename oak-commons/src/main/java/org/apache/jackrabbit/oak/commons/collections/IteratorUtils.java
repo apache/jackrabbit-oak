@@ -20,12 +20,17 @@ package org.apache.jackrabbit.oak.commons.collections;
 
 import org.apache.commons.collections4.iterators.IteratorChain;
 import org.apache.commons.collections4.iterators.PeekingIterator;
+import org.apache.commons.collections4.iterators.UnmodifiableIterator;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.PriorityQueue;
@@ -428,6 +433,130 @@ public class IteratorUtils {
      */
     public static <F, T> Iterator<T> transform(Iterator<? extends F> itr, final Function<? super F, ? extends T> transform) {
         return org.apache.commons.collections4.IteratorUtils.transformedIterator(itr, transform::apply);
+    }
+
+    /**
+     * Creates an iterator that cycles indefinitely over the provided elements.
+     * <p>
+     * The returned iterator will continuously loop through the given elements in the same order.
+     * If no elements are provided, the iterator will be empty.
+     * <p>
+     * Example usage:
+     * <pre>
+     * Iterator&lt;String&gt; cyclingIterator = IteratorUtils.cycle("a", "b", "c");
+     * // Iterates: "a", "b", "c", "a", "b", "c", ...
+     * </pre>
+     *
+     * @param <E> the type of elements in the iterator
+     * @param elements the elements to cycle through, must not be null
+     * @return an iterator that cycles indefinitely over the provided elements
+     * @throws NullPointerException if the elements array is null
+     */
+    @SafeVarargs
+    public static <E> Iterator<E> cycle(final E... elements) {
+        Objects.requireNonNull(elements, "elements must not be null");
+        return IteratorUtils.cycle(SetUtils.toLinkedSet(elements));
+    }
+
+    /**
+     * Creates an iterator that cycles indefinitely over the elements of the given iterable.
+     * <p>
+     * The returned iterator will continuously loop through the elements of the iterable in the same order.
+     * If the iterable is empty, the iterator will also be empty.
+     * <p>
+     * Example usage:
+     * <pre>
+     * List&lt;String&gt; list = Arrays.asList("a", "b", "c");
+     * Iterator&lt;String&gt; cyclingIterator = IteratorUtils.cycle(list);
+     * // Iterates: "a", "b", "c", "a", "b", "c", ...
+     * </pre>
+     *
+     * @param <E> the type of elements in the iterable
+     * @param iterable the iterable to cycle through, must not be null
+     * @return an iterator that cycles indefinitely over the elements of the iterable
+     * @throws NullPointerException if the iterable is null
+     */
+    public static <E> Iterator<E> cycle(final Iterable<E> iterable) {
+        return org.apache.commons.collections4.IteratorUtils.loopingIterator(CollectionUtils.toCollection(iterable));
+    }
+
+    /**
+     * Returns an iterator that partitions the elements of another iterator into fixed-size lists.
+     * <p>
+     * This method creates a new iterator that will group elements from the source iterator
+     * into lists of the specified size. The final list may be smaller than the requested size
+     * if there are not enough elements remaining in the source iterator.
+     * <p>
+     * The returned lists are unmodifiable. The source iterator is consumed only as the
+     * returned iterator is advanced.
+     * <p>
+     * Example usage:
+     * <pre>
+     * Iterator&lt;Integer&gt; numbers = Arrays.asList(1, 2, 3, 4, 5).iterator();
+     * Iterator&lt;List&lt;Integer&gt;&gt; partitioned = IteratorUtils.partition(numbers, 2);
+     * // partitioned will iterate through [1, 2], [3, 4], [5]
+     * </pre>
+     *
+     * @param <T> the type of elements in the source iterator
+     * @param iterator the source iterator to partition, must not be null
+     * @param size the size of each partition, must be greater than 0
+     * @return an iterator of fixed-size lists containing the elements of the source iterator
+     * @throws NullPointerException if the iterator is null
+     * @throws IllegalArgumentException if size is less than or equal to 0
+     */
+    public static <T> Iterator<List<T>> partition(final Iterator<T> iterator, final int size) {
+
+        Objects.requireNonNull(iterator, "Iterator must not be null.");
+        Validate.checkArgument(size > 0, "Size must be greater than 0.");
+
+        return UnmodifiableIterator.unmodifiableIterator(new Iterator<>() {
+
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public List<T> next() {
+                // check if there are elements left, throw an exception if not
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+
+                final List<T> currentPartition = new ArrayList<>(size);
+                for (int i = 0; i < size && iterator.hasNext(); i++) {
+                    currentPartition.add(iterator.next());
+                }
+                return Collections.unmodifiableList(currentPartition);
+            }
+        });
+    }
+
+    /**
+     * Returns an iterator that will only provide at most the first N elements from given iterator.
+     * <p>
+     * This method returns an iterator that will stop after returning the
+     * specified number of elements or when the source iterator is exhausted,
+     * whichever comes first.
+     * <p>
+     * Example usage:
+     * <pre>
+     * Iterator&lt;String&gt; names = Arrays.asList("Alice", "Bob", "Charlie", "David").iterator();
+     * Iterator&lt;String&gt; firstTwo = IteratorUtils.limit(names, 2);
+     * // firstTwo will iterate through "Alice", "Bob" only
+     * </pre>
+     *
+     * @param <T> the type of elements in the iterator
+     * @param iterator the source iterator to limit, must not be null
+     * @param limit the maximum number of elements to return, must not be negative
+     * @return an iterator limited to the specified number of elements
+     * @throws NullPointerException if the iterator is null
+     * @throws IllegalArgumentException if limit is negative
+     */
+    public static <T> Iterator<T> limit(final Iterator<T> iterator, final int limit) {
+        Objects.requireNonNull(iterator);
+        Validate.checkArgument(limit >= 0, "limit is negative");
+        return org.apache.commons.collections4.IteratorUtils.boundedIterator(iterator, limit);
     }
 }
 

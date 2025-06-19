@@ -42,7 +42,6 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
@@ -554,7 +553,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
             //With property index at time traversing index wins (somehow reporting lower cost)
             //and that leads to warning. So limit the iterator size
-            resultSize += IteratorUtils.size(Iterators.limit(result.getNodes(), 500));
+            resultSize += IteratorUtils.size(IteratorUtils.limit(result.getNodes(), 500));
         }
     }
 

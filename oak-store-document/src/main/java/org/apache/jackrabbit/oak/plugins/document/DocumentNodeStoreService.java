@@ -157,6 +157,7 @@ public class DocumentNodeStoreService {
     static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
     static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
     static final boolean DEFAULT_PREFETCH_EXTERNAL_CHANGES = false;
+    static final boolean DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK = false;
     private static final String DEFAULT_PROP_HOME = "./repository";
     static final long DEFAULT_MAX_REPLICATION_LAG = 6 * 60 * 60;
     static final boolean DEFAULT_BUNDLING_DISABLED = false;
@@ -203,6 +204,11 @@ public class DocumentNodeStoreService {
      * Feature toggle name to enable full GC for Mongo Document Store
      */
     private static final String FT_NAME_FULL_GC = "FT_FULL_GC_OAK-10199";
+
+    /**
+     * Feature toggle name to avoid exclusive merge lock for merging changes in repository in case of a conflict
+     */
+    private static final String FT_NAME_AVOID_MERGE_LOCK = "FT_AVOID_MERGE_LOCK_OAK-11720";
 
     /**
      * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
@@ -257,6 +263,7 @@ public class DocumentNodeStoreService {
     private Feature cancelInvalidationFeature;
     private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
+    private Feature docStoreAvoidMergeLockFeature;
     private Feature prevNoPropCacheFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
@@ -296,6 +303,7 @@ public class DocumentNodeStoreService {
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
         docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
         docStoreEmbeddedVerificationFeature = Feature.newFeature(FT_NAME_EMBEDDED_VERIFICATION, whiteboard);
+        docStoreAvoidMergeLockFeature = Feature.newFeature(FT_NAME_AVOID_MERGE_LOCK, whiteboard);
         prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
 
         registerNodeStoreIfPossible();
@@ -524,8 +532,10 @@ public class DocumentNodeStoreService {
                 setCancelInvalidationFeature(cancelInvalidationFeature).
                 setDocStoreFullGCFeature(docStoreFullGCFeature).
                 setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
+                setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
                 setPrevNoPropCacheFeature(prevNoPropCacheFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
+                setAvoidMergeLock(config.avoidExclusiveMergeLock()).
                 setFullGCEnabled(config.fullGCEnabled()).
                 setFullGCIncludePaths(config.fullGCIncludePaths()).
                 setFullGCExcludePaths(config.fullGCExcludePaths()).
@@ -681,7 +691,7 @@ public class DocumentNodeStoreService {
         }
 
         closeFeatures(prefetchFeature, docStoreThrottlingFeature, cancelInvalidationFeature, docStoreFullGCFeature,
-                docStoreEmbeddedVerificationFeature, prevNoPropCacheFeature);
+                docStoreEmbeddedVerificationFeature, prevNoPropCacheFeature, docStoreAvoidMergeLockFeature);
 
         unregisterNodeStore();
     }

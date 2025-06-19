@@ -39,6 +39,7 @@
         <include>commons-logging:commons-logging</include>
         <include>com.fasterxml.jackson.core:jackson-core</include>
         <include>org.apache.commons:commons-lang3</include>
+        <include>org.apache.commons:commons-text</include>
         <include>org.apache.commons:commons-collections4</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
         <include>org.apache.jackrabbit:jackrabbit-data</include>
@@ -63,7 +64,6 @@
         <include>org.apache.jackrabbit:oak-query-spi</include>
         <include>org.apache.jackrabbit:oak-security-spi</include>
         <include>org.apache.jackrabbit:oak-blob-plugins</include>
-        <include>org.apache.jackrabbit:oak-solr-osgi</include>
         <include>org.apache.jackrabbit:oak-auth-external</include>
         <include>org.apache.jackrabbit:oak-auth-ldap</include>
         <include>io.dropwizard.metrics:metrics-core</include>

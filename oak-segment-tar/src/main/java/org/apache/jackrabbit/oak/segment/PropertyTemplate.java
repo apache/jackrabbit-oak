@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
+import java.util.Comparator;
 
 /**
  * A property definition within a template (the property name, the type, and the
@@ -74,11 +74,10 @@ public class PropertyTemplate implements Comparable<PropertyTemplate> {
     @Override
     public int compareTo(@NotNull PropertyTemplate template) {
         requireNonNull(template);
-        return ComparisonChain.start()
-                .compare(hashCode(), template.hashCode()) // important
-                .compare(name, template.name)
-                .compare(type, template.type)
-                .result();
+        return Comparator.comparingInt(PropertyTemplate::hashCode)
+                .thenComparing(PropertyTemplate::getName)
+                .thenComparing(PropertyTemplate::getType)
+                .compare(this, template);
     }
 
     //------------------------------------------------------------< Object >--

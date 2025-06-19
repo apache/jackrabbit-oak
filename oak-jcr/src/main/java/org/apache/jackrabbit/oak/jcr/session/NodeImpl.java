@@ -66,7 +66,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.ItemNameMatcher;

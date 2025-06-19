@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;

@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -109,8 +108,8 @@ public class ConfigurationParametersTest {
         dict.put("a", "b");
 
         ConfigurationParameters cp = ConfigurationParameters.of(dict);
-        assertEquals(SetUtils.toSet(Iterators.forEnumeration(dict.keys())), Set.copyOf(cp.keySet()));
-        assertEquals(SetUtils.toSet(Iterators.forEnumeration(dict.elements())), Set.copyOf(cp.values()));
+        assertEquals(SetUtils.toSet(dict.keys().asIterator()), Set.copyOf(cp.keySet()));
+        assertEquals(SetUtils.toSet(dict.elements().asIterator()), Set.copyOf(cp.values()));
 
     }
 

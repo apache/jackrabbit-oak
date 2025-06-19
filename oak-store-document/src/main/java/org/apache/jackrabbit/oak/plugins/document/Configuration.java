@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_GENERATION;
@@ -417,4 +418,11 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
         name = "Enable Full GC Persistent Audit Logging",
         description = "This parameter will enable/disable the saving of deleted document IDs and properties during FullGC into a persistent storage, e.g Mongo collection")
     boolean fullGCAuditLoggingEnabled() default false;
+
+    @AttributeDefinition(
+            name = "Avoid Exclusive Merge lock",
+            description = "Boolean value indicating whether we need to avoid the exclusive merge lock while " +
+                    "merging the changes in case of a conflict. The Default value is " + DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK +
+                    " Note that this value can be overridden via framework property 'oak.documentstore.avoidExclusiveMergeLock'")
+    boolean avoidExclusiveMergeLock() default DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK;
 }

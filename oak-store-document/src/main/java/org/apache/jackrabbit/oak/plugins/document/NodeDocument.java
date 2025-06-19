@@ -51,7 +51,6 @@ import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.DequeUtils;
@@ -2551,7 +2550,7 @@ public final class NodeDocument extends Document {
 
         static final Comparator<Entry<Revision, String>> REVERSE = Collections.reverseOrder(INSTANCE);
 
-        private static final Ordering<String> STRING_ORDERING = Ordering.natural().nullsFirst();
+        private static final Comparator<String> STRING_ORDERING = Comparator.nullsFirst(Comparator.naturalOrder());
 
         @Override
         public int compare(Entry<Revision, String> o1,

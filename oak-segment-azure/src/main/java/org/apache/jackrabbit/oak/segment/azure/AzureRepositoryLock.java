@@ -89,7 +89,7 @@ public class AzureRepositoryLock implements RepositoryLock {
         Exception ex = null;
         do {
             try {
-                blockBlobClient.getBlobOutputStream().close();
+                blockBlobClient.getBlobOutputStream(true).close();
 
                 log.info("{} = {}", LEASE_DURATION_PROP, leaseDuration);
                 log.info("{} = {}", RENEWAL_INTERVAL_PROP, renewalInterval);

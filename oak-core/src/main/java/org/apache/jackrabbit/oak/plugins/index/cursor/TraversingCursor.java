@@ -38,8 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 /**
  * A cursor that reads all nodes in a given subtree.
  */

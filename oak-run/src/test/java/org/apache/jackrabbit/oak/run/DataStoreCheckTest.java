@@ -42,7 +42,6 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import joptsimple.internal.Strings;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;

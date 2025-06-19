@@ -42,7 +42,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
@@ -77,7 +76,6 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.partition;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
@@ -129,7 +127,12 @@ public class VersionGarbageCollector {
     /**
      * Document id stored in settings collection that keeps info about version gc
      */
-    static final String SETTINGS_COLLECTION_ID = "versionGC";
+    public static final String SETTINGS_COLLECTION_ID = "versionGC";
+
+    /**
+     * Property name to sum the total size of removed garbage in bytes
+     */
+    public static final String SETTINGS_COLLECTION_FULL_GC_REMOVED_TOTAL_BSON_SIZE = "fullGcRemovedTotalBsonSize";
 
     /**
      * Property name to timestamp when last gc run happened
@@ -994,9 +997,6 @@ public class VersionGarbageCollector {
                             // now remove the garbage in one go, if any
                             if (gc.hasGarbage() && phases.start(GCPhase.FULL_GC_CLEANUP)) {
                                 gc.removeGarbage(phases.stats);
-                                if (fullGCMetricsExporter != null) {
-                                    fullGCMetricsExporter.onIterationComplete();
-                                }
                                 phases.stop(GCPhase.FULL_GC_CLEANUP);
                             } else {
                                 if (log.isDebugEnabled()) {
@@ -1006,6 +1006,9 @@ public class VersionGarbageCollector {
                             if (lastDoc != null) {
                                 fromModifiedMs = lastDoc.getModified() == null ? oldModifiedMs : SECONDS.toMillis(lastDoc.getModified());
                                 fromId = lastDoc.getId();
+                            }
+                            if (fullGCMetricsExporter != null) {
+                                fullGCMetricsExporter.onIterationComplete();
                             }
                         } finally {
                             Utils.closeIfCloseable(itr);
@@ -2436,7 +2439,7 @@ public class VersionGarbageCollector {
             }
             monitor.info("Proceeding to delete [{}] documents [{}]", numDocuments, label);
 
-            Iterator<List<String>> idListItr = partition(docIdsToDelete, DELETE_BATCH_SIZE);
+            Iterator<List<String>> idListItr = IteratorUtils.partition(docIdsToDelete, DELETE_BATCH_SIZE);
             int deletedCount = 0;
             int lastLoggedCount = 0;
             int recreatedCount = 0;
@@ -2537,8 +2540,7 @@ public class VersionGarbageCollector {
 
             int deletedCount = 0;
             int lastLoggedCount = 0;
-            Iterator<List<String>> idListItr =
-                    partition(getPrevDocIdsToDelete(), DELETE_BATCH_SIZE);
+            Iterator<List<String>> idListItr = IteratorUtils.partition(getPrevDocIdsToDelete(), DELETE_BATCH_SIZE);
             while (idListItr.hasNext() && !cancel.get()) {
                 List<String> deletionBatch = idListItr.next();
                 deletedCount += deletionBatch.size();

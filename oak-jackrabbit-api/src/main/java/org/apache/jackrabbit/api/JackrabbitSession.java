@@ -25,6 +25,7 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.Session;
 import javax.jcr.AccessDeniedException;
+import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
@@ -282,7 +283,10 @@ public interface JackrabbitSession extends Session {
      * Returns the expanded name of the given {@code Item}.
      * @param item the item for which to retrieve the name
      * @return the name of the item in expanded form.
-     * @throws RepositoryException if another error occurs.
+     * @throws NamespaceException when no expanded name can
+     * be determined (for instance, if the registered namespace
+     * (name) is invalid)
+     * @throws RepositoryException if another error occurs
      * @since 1.78.0
      * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form">JCR 2.0, 3.2.5.1 Expanded Form</a>
      */
@@ -292,6 +296,9 @@ public interface JackrabbitSession extends Session {
      * Returns the expanded path of the given {@code Item}.
      * @param item the item for which to retrieve the name
      * @return the path of the item in expanded form.
+     * @throws NamespaceException when no expanded name can
+     * be determined (for instance, if the registered namespace
+     * (name) is invalid)
      * @throws RepositoryException if another error occurs.
      * @since 1.78.0
      * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form">JCR 2.0, 3.2.5.1 Expanded Form</a>

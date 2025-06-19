@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.HashMultimap;
-import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -36,8 +36,8 @@ import org.slf4j.LoggerFactory;
 
 class LuceneJournalPropertyBuilder implements JournalPropertyBuilder<LuceneDocumentHolder> {
     private final static Logger log = LoggerFactory.getLogger(LuceneJournalPropertyBuilder.class);
-    //Use HashMultimap to ensure that indexPath is not duplicated per node path
-    private final Multimap<String, String> indexedNodes = HashMultimap.create();
+    //Use HashSetValuedHashMap to ensure that indexPath is not duplicated per node path
+    private final MultiValuedMap<String, String> indexedNodes = new HashSetValuedHashMap<>();
     private boolean limitWarningLogged = false;
     private final int maxSize;
 

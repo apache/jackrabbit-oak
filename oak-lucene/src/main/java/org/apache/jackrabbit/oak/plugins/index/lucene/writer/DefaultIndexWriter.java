@@ -173,7 +173,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
                     config.setMergePolicy(definition.getMergePolicy());
                     writer = localRefWriter = new IndexWriter(directory, config);
                     genAtStart = getLatestGeneration(directory);
-                    log.info("Creating writer for index: {}. Config: {}", definition.getIndexPath(), config);
+                    log.debug("Creating writer for index: {}. Config: {}", definition.getIndexPath(), config);
                     PERF_LOGGER.end(start, -1, "Created IndexWriter for directory {}", definition);
                 }
             }

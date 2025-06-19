@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
