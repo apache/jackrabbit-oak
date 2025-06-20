@@ -199,14 +199,8 @@ class ElasticIndexHelper {
                                         )
                         )
                 )
-                .properties(ElasticIndexDefinition.LAST_UPDATED, b -> b.date(d -> d));
-        // TODO: the mapping below is for features currently not supported. These need to be reviewed
-        // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
-        //  .field("type", "keyword")
-        //  .endObject();
-        // mappingBuilder.startObject(FieldNames.NULL_PROPS)
-        // .field("type", "keyword")
-        // .endObject();
+                .properties(ElasticIndexDefinition.LAST_UPDATED, b -> b.date(d -> d))
+                .properties(FieldNames.NULL_PROPS, p -> p.keyword(k -> k.docValues(false)));
     }
 
     private static void mapInferenceDefinition(@NotNull TypeMapping.Builder builder, @NotNull ElasticIndexDefinition.InferenceDefinition inferenceDefinition) {
