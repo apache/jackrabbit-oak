@@ -1132,7 +1132,7 @@ public class ElasticRequestHandler {
                 // check if the default mapping is >= 1.5.0
                 if (ElasticIndexDefinition.MAPPING_VERSION != null &&
                         ElasticIndexDefinition.MAPPING_VERSION.compareTo(new ElasticSemVer(1, 5, 0)) >= 0) {
-                    LOG.warn("Backward compatibility for null check is not supported anymore. Query results may be incorrect. " +
+                    LOG.error("Backward compatibility for null check is not supported anymore. Query results may be incorrect. " +
                             "Please reindex to update the internal mapping version.");
                 } else {
                     LOG.warn("Using deprecated null check strategy for field: {}. Please reindex tho update the internal mapping version. " +
