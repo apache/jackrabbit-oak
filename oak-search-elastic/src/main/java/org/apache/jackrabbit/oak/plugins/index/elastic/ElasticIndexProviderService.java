@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
@@ -116,6 +117,11 @@ public class ElasticIndexProviderService {
 
         @AttributeDefinition(name = "Elasticsearch API key secret", description = "Elasticsearch API key secret")
         String elasticsearch_apiKeySecret() default ElasticConnection.DEFAULT_API_KEY_SECRET;
+
+        @AttributeDefinition(
+                name = "Elasticsearch Max Retry time",
+                description = "Time in seconds that Elasticsearch should retry failed operations. 0 means disabled, no retries. Default is 30 seconds.")
+        int elasticsearch_maxRetryTime() default 30;
 
         @AttributeDefinition(name = "Local text extraction cache path",
                 description = "Local file system path where text extraction cache stores/load entries to recover from timed out operation")
@@ -227,7 +233,8 @@ public class ElasticIndexProviderService {
         LOG.info("Registering Index and Editor providers with connection {}", elasticConnection);
 
         registerIndexProvider(bundleContext);
-        this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache);
+        ElasticRetryPolicy retryPolicy = new ElasticRetryPolicy(100, config.elasticsearch_maxRetryTime() * 1000L, 5, 100);
+        this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache,retryPolicy);
         registerIndexEditor(bundleContext, elasticIndexEditorProvider);
         if (isElasticAvailable) {
             registerIndexCleaner(config);

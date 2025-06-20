@@ -34,6 +34,8 @@ import java.io.IOException;
  */
 abstract public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
 
+    public static final String TOXIPROXY_IMAGE_NAME = "ghcr.io/shopify/toxiproxy:2.12.0";
+
     // set cache expiration and refresh to low values to avoid cached results in tests
     @Rule
     public final ProvideSystemProperty updateSystemProperties
@@ -43,7 +45,7 @@ abstract public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
     @Rule
     public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.12.0");
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse(TOXIPROXY_IMAGE_NAME);
 
     protected ToxiproxyContainer toxiproxy;
 

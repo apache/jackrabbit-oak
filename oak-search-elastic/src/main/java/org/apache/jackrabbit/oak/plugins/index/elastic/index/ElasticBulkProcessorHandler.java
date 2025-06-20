@@ -374,7 +374,7 @@ public class ElasticBulkProcessorHandler {
 
     private void checkConnectionFailures() throws IOException {
         if (lastConnectionError != null) {
-            IOException ioe = new IOException("Exception while indexing.", lastConnectionError);
+            IOException ioe = new IOException("Service error while indexing.", lastConnectionError);
             lastConnectionError = null; // Clear the last connection error after throwing it
             throw ioe;
         }
@@ -387,7 +387,7 @@ public class ElasticBulkProcessorHandler {
             String overflowMessage = suppressedErrors.size() >= MAX_SUPPRESSED_ERROR_CAUSES ?
                     ". (Too many failed operations in last bulk request, including only " + suppressedErrors.size() + " errors)"
                     : "";
-            IOException ioe = new IOException("Exception while indexing " + indexInfo.indexName + ". See suppressed for details" + overflowMessage);
+            IOException ioe = new IOException("Error indexing documents for index: " + indexInfo.indexName + ". See suppressed errors for details" + overflowMessage);
             suppressedErrors.forEach(ec -> ioe.addSuppressed(new IllegalStateException(ec.reason())));
             throw ioe;
         }

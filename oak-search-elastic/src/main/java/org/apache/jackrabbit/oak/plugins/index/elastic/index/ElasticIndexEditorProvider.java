@@ -44,6 +44,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     private final ElasticConnection elasticConnection;
     private final ExtractedTextCache extractedTextCache;
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
+    private final ElasticRetryPolicy retryPolicy;
 
     public final static String OAK_INDEX_ELASTIC_WRITER_DISABLE_KEY = "oak.index.elastic.writer.disable";
 
@@ -52,17 +53,26 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
                                       @NotNull ElasticConnection elasticConnection,
                                       ExtractedTextCache extractedTextCache) {
-        this(indexTracker, elasticConnection, extractedTextCache, new ElasticBulkProcessorHandler(elasticConnection));
+        this(indexTracker, elasticConnection, extractedTextCache, new ElasticBulkProcessorHandler(elasticConnection), ElasticRetryPolicy.NO_RETRY);
     }
 
     public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
                                       @NotNull ElasticConnection elasticConnection,
                                       ExtractedTextCache extractedTextCache,
-                                      ElasticBulkProcessorHandler bulkProcessorHandler) {
+                                      ElasticRetryPolicy retryPolicy) {
+        this(indexTracker, elasticConnection, extractedTextCache, new ElasticBulkProcessorHandler(elasticConnection), retryPolicy);
+    }
+
+    public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
+                                      @NotNull ElasticConnection elasticConnection,
+                                      ExtractedTextCache extractedTextCache,
+                                      ElasticBulkProcessorHandler bulkProcessorHandler,
+                                      ElasticRetryPolicy retryPolicy) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
         this.bulkProcessorHandler = bulkProcessorHandler;
+        this.retryPolicy = retryPolicy;
     }
 
     @Override
@@ -79,7 +89,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
             ElasticIndexDefinition indexDefinition =
                     new ElasticIndexDefinition(root, definition.getNodeState(), indexPath, elasticConnection.getIndexPrefix());
 
-            ElasticIndexWriterFactory writerFactory = new ElasticIndexWriterFactory(elasticConnection, indexTracker, bulkProcessorHandler);
+            ElasticIndexWriterFactory writerFactory = new ElasticIndexWriterFactory(elasticConnection, indexTracker, bulkProcessorHandler, retryPolicy);
 
             ElasticIndexEditorContext context = new ElasticIndexEditorContext(root,
                     definition, indexDefinition,

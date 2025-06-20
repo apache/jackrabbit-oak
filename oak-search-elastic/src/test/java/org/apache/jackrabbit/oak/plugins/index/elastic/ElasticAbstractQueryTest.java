@@ -154,7 +154,9 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         InferenceConfig.reInitialize(nodeStore, INFERENCE_CONFIG_PATH, isInferenceEnabled());
         indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
-            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100)
+//            new ElasticRetryPolicy(10, 1000, 5,100)
+                );
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
 
 
