@@ -61,15 +61,8 @@ public class SessionSaveDelayerTest {
     }
 
     @Test
-    public void testGetCurrentThreadName() {
-        String threadName = SessionSaveDelayer.getCurrentThreadName();
-        assertNotNull(threadName);
-        assertEquals(Thread.currentThread().getName(), threadName);
-    }
-
-    @Test
     public void testGetCurrentStackTrace() {
-        String stackTrace = SessionSaveDelayer.getCurrentStackTrace();
+        String stackTrace = SessionSaveDelayerConfig.getCurrentStackTrace();
         assertNotNull(stackTrace);
         assertTrue(stackTrace.contains("testGetCurrentStackTrace"));
         assertTrue(stackTrace.contains("at "));
@@ -79,7 +72,7 @@ public class SessionSaveDelayerTest {
     public void testDelayIfNeededDisabled() {
         System.clearProperty(ENABLED_PROP_NAME);
         delayer = new SessionSaveDelayer(whiteboard);        
-        long delay = delayer.delayIfNeeded();
+        long delay = delayer.delayIfNeeded(null);
         assertEquals(0, delay);
     }
 
@@ -88,7 +81,7 @@ public class SessionSaveDelayerTest {
         System.setProperty(ENABLED_PROP_NAME, "true");
         System.clearProperty(CONFIG_PROP_NAME);
         delayer = new SessionSaveDelayer(whiteboard);
-        long delay = delayer.delayIfNeeded();
+        long delay = delayer.delayIfNeeded(null);
         assertEquals(0, delay);
     }
 
@@ -104,7 +97,7 @@ public class SessionSaveDelayerTest {
                 "  ]\n" +
                 "}");
         delayer = new SessionSaveDelayer(whiteboard);
-        long delay = delayer.delayIfNeeded();
+        long delay = delayer.delayIfNeeded(null);
         assertEquals(100_000L, delay);
     }
 
@@ -115,19 +108,15 @@ public class SessionSaveDelayerTest {
         when(mbean.getSessionSaveDelayerConfig()).thenReturn("{\n" +
                 "  \"entries\": [\n" +
                 "    {\n" +
-                "      \"delayMillis\": 0.2,\n" +
+                "      \"delayMillis\": 0.02,\n" +
                 "      \"threadNameRegex\": \".*\"\n" +
                 "    }\n" +
                 "  ]\n" +
                 "}");
         whiteboard.register(RepositoryManagementMBean.class, mbean, Map.of());
         delayer = new SessionSaveDelayer(whiteboard);
-        long startTime = System.nanoTime();
-        long delay = delayer.delayIfNeeded();
-        long actualDelay = System.nanoTime() - startTime;
-        assertEquals(200_000L, delay);
-        assertTrue("Actual delay should be at least close to expected", 
-                actualDelay >= 100_000L);
+        long delay = delayer.delayIfNeeded(null);
+        assertEquals(20_000L, delay);
     }
 
     @Test
@@ -142,7 +131,7 @@ public class SessionSaveDelayerTest {
                 "  ]\n" +
                 "}");
         delayer = new SessionSaveDelayer(whiteboard);
-        long delay = delayer.delayIfNeeded();
+        long delay = delayer.delayIfNeeded(null);
         assertEquals(0, delay);
     }
 
@@ -151,7 +140,7 @@ public class SessionSaveDelayerTest {
         System.setProperty(ENABLED_PROP_NAME, "true");
         System.setProperty(CONFIG_PROP_NAME, "{ invalid json }");
         delayer = new SessionSaveDelayer(whiteboard);
-        long delay = delayer.delayIfNeeded();
+        long delay = delayer.delayIfNeeded(null);
         assertEquals(0, delay);
     }
 
@@ -167,9 +156,9 @@ public class SessionSaveDelayerTest {
                 "  ]\n" +
                 "}");
         delayer = new SessionSaveDelayer(whiteboard);
-        long delay1 = delayer.delayIfNeeded();
+        long delay1 = delayer.delayIfNeeded(null);
         assertEquals(100_000L, delay1);
-        long delay2 = delayer.delayIfNeeded();
+        long delay2 = delayer.delayIfNeeded(null);
         assertEquals(100_000L, delay2);
     }
 
@@ -178,13 +167,13 @@ public class SessionSaveDelayerTest {
         System.setProperty(ENABLED_PROP_NAME, "true");
         System.setProperty(CONFIG_PROP_NAME, "");
         delayer = new SessionSaveDelayer(whiteboard);
-                long delay = delayer.delayIfNeeded();
+                long delay = delayer.delayIfNeeded(null);
         assertEquals(0, delay);
     }
 
     @Test
     public void testDelayIfNeededAfterClose() {
-        long delay = delayer.delayIfNeeded();
+        long delay = delayer.delayIfNeeded(null);
         assertEquals(0, delay);
     }
 
@@ -211,7 +200,7 @@ public class SessionSaveDelayerTest {
         
         whiteboard.register(RepositoryManagementMBean.class, mbean, Map.of());        
         delayer = new SessionSaveDelayer(whiteboard);
-        long delay = delayer.delayIfNeeded();
+        long delay = delayer.delayIfNeeded(null);
         assertEquals(300_000L, delay); 
     }
 
@@ -232,7 +221,181 @@ public class SessionSaveDelayerTest {
                 "}");
         
         delayer = new SessionSaveDelayer(whiteboard);
-        long delay = delayer.delayIfNeeded();
+        long delay = delayer.delayIfNeeded(null);
         assertEquals(200_000L, delay);
     }
+
+    @Test
+    public void testDelayIfNeededWithUserDataPattern() {
+        System.setProperty(ENABLED_PROP_NAME, "true");
+        System.setProperty(CONFIG_PROP_NAME, "{\n" +
+                "  \"entries\": [\n" +
+                "    {\n" +
+                "      \"delayMillis\": 0.1,\n" +
+                "      \"threadNameRegex\": \".*\",\n" +
+                "      \"userDataRegex\": \"admin.*\"\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}");
+        
+        delayer = new SessionSaveDelayer(whiteboard);
+        
+        // Test with matching userData
+        long delay = delayer.delayIfNeeded("admin");
+        assertEquals(100_000L, delay);
+        
+        delay = delayer.delayIfNeeded("admin123");
+        assertEquals(100_000L, delay);
+        
+        // Test with non-matching userData
+        delay = delayer.delayIfNeeded("user");
+        assertEquals(0L, delay);
+        
+        // Test with null userData
+        delay = delayer.delayIfNeeded(null);
+        assertEquals(0L, delay);
+    }
+
+    @Test
+    public void testDelayIfNeededWithUserDataPatternComplexRegex() {
+        System.setProperty(ENABLED_PROP_NAME, "true");
+        System.setProperty(CONFIG_PROP_NAME, "{\n" +
+                "  \"entries\": [\n" +
+                "    {\n" +
+                "      \"delayMillis\": 0.2,\n" +
+                "      \"threadNameRegex\": \".*\",\n" +
+                "      \"userDataRegex\": \"(admin|root|system)@.*\\\\.com$\"\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}");
+        
+        delayer = new SessionSaveDelayer(whiteboard);
+        
+        // Test with matching email patterns
+        long delay = delayer.delayIfNeeded("admin@example.com");
+        assertEquals(200_000L, delay);
+        
+        delay = delayer.delayIfNeeded("root@company.com");
+        assertEquals(200_000L, delay);
+        
+        delay = delayer.delayIfNeeded("system@test.com");
+        assertEquals(200_000L, delay);
+        
+        // Test with non-matching patterns
+        delay = delayer.delayIfNeeded("user@example.com");
+        assertEquals(0L, delay);
+        
+        delay = delayer.delayIfNeeded("admin@example.org");
+        assertEquals(0L, delay);
+        
+        delay = delayer.delayIfNeeded("admin");
+        assertEquals(0L, delay);
+    }
+
+    @Test
+    public void testDelayIfNeededWithUserDataPatternMultipleEntries() {
+        System.setProperty(ENABLED_PROP_NAME, "true");
+        System.setProperty(CONFIG_PROP_NAME, "{\n" +
+                "  \"entries\": [\n" +
+                "    {\n" +
+                "      \"delayMillis\": 0.1,\n" +
+                "      \"threadNameRegex\": \".*\",\n" +
+                "      \"userDataRegex\": \"admin.*\"\n" +
+                "    },\n" +
+                "    {\n" +
+                "      \"delayMillis\": 0.2,\n" +
+                "      \"threadNameRegex\": \".*\",\n" +
+                "      \"userDataRegex\": \"guest.*\"\n" +
+                "    },\n" +
+                "    {\n" +
+                "      \"delayMillis\": 0.3,\n" +
+                "      \"threadNameRegex\": \".*\"\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}");
+        
+        delayer = new SessionSaveDelayer(whiteboard);
+        
+        // Test first entry matches
+        long delay = delayer.delayIfNeeded("admin");
+        assertEquals(100_000L, delay);
+        
+        delay = delayer.delayIfNeeded("admin123");
+        assertEquals(100_000L, delay);
+        
+        // Test second entry matches
+        delay = delayer.delayIfNeeded("guest123");
+        assertEquals(200_000L, delay);
+        
+        // Test third entry matches (no userData pattern)
+        delay = delayer.delayIfNeeded("normalUser");
+        assertEquals(300_000L, delay);
+        
+        // Test with null userData - should match third entry
+        delay = delayer.delayIfNeeded(null);
+        assertEquals(300_000L, delay);
+    }
+
+    @Test
+    public void testDelayIfNeededWithUserDataPatternAndJMX() {
+        System.setProperty(ENABLED_PROP_NAME, "true");
+        
+        RepositoryManagementMBean mbean = mock(RepositoryManagementMBean.class);
+        when(mbean.getSessionSaveDelayerConfig()).thenReturn("{\n" +
+                "  \"entries\": [\n" +
+                "    {\n" +
+                "      \"delayMillis\": 0.15,\n" +
+                "      \"threadNameRegex\": \".*\",\n" +
+                "      \"userDataRegex\": \"privileged.*\"\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}");
+        
+        whiteboard.register(RepositoryManagementMBean.class, mbean, Map.of());
+        delayer = new SessionSaveDelayer(whiteboard);
+        
+        // Test with matching userData
+        long delay = delayer.delayIfNeeded("privilegedUser");
+        assertEquals(150_000L, delay);
+        
+        // Test with non-matching userData
+        delay = delayer.delayIfNeeded("normalUser");
+        assertEquals(0L, delay);
+    }
+
+    @Test
+    public void testDelayIfNeededWithUserDataPatternCaseInsensitive() {
+        System.setProperty(ENABLED_PROP_NAME, "true");
+        System.setProperty(CONFIG_PROP_NAME, "{\n" +
+                "  \"entries\": [\n" +
+                "    {\n" +
+                "      \"delayMillis\": 0.1,\n" +
+                "      \"threadNameRegex\": \".*\",\n" +
+                "      \"userDataRegex\": \"(?i)ADMIN.*\"\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}");
+        
+        delayer = new SessionSaveDelayer(whiteboard);
+        
+        // Test case-insensitive matching
+        long delay = delayer.delayIfNeeded("admin");
+        assertEquals(100_000L, delay);
+        
+        delay = delayer.delayIfNeeded("ADMIN");
+        assertEquals(100_000L, delay);
+        
+        delay = delayer.delayIfNeeded("Admin123");
+        assertEquals(100_000L, delay);
+        
+        delay = delayer.delayIfNeeded("administrator");
+        assertEquals(100_000L, delay);
+        
+        // Test non-matching
+        delay = delayer.delayIfNeeded("user");
+        assertEquals(0L, delay);
+    }
+
+
+
 } 

@@ -68,16 +68,6 @@ public class SessionSaveDelayer implements Closeable {
         this.whiteboard = whiteboard;
     }
 
-    /**
-     * Gets the name of the current thread.
-     *
-     * @return the current thread name
-     */
-    @NotNull
-    public static String getCurrentThreadName() {
-        return Thread.currentThread().getName();
-    }
-
     private RepositoryManagementMBean getRepositoryMBean() {
         if (cachedMbean == null) {
             cachedMbean = WhiteboardUtils.getService(whiteboard, RepositoryManagementMBean.class);
@@ -85,7 +75,7 @@ public class SessionSaveDelayer implements Closeable {
         return cachedMbean;
     }
 
-    public long delayIfNeeded() {
+    public long delayIfNeeded(String userData) {
         if (closed.get() || (!feature.isEnabled() && !enabledViaSysPropertey)) {
             return 0;
         }
@@ -118,12 +108,12 @@ public class SessionSaveDelayer implements Closeable {
             return 0;
         }
         String threadName = Thread.currentThread().getName();
-        long delayNanos = lastConfig.getDelayNanos(threadName, null);
+        long delayNanos = lastConfig.getDelayNanos(threadName, userData, null);
         if (delayNanos > 0) {
             long millis = delayNanos / 1_000_000;
             int nanos = (int) (delayNanos % 1_000_000);
             if (logNextDelay) {
-                LOG.info("Sleep {} ms {} ns", millis, nanos);
+                LOG.info("Sleep {} ms {} ns for user {}", millis, nanos, userData);
                 logNextDelay = false;
             }
             try {

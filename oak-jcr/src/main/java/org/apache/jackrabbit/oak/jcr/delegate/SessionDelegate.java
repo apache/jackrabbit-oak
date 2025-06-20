@@ -398,7 +398,7 @@ public class SessionDelegate {
         if (userData != null) {
             info.put(EventFactory.USER_DATA, userData);
         }
-        sessionSaveDelayer.delayIfNeeded();
+        sessionSaveDelayer.delayIfNeeded(userData);
         root.commit(Collections.unmodifiableMap(info));
         if (permissionProvider != null && refreshPermissionProvider) {
             permissionProvider.refresh();

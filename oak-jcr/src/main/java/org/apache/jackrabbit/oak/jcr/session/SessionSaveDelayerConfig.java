@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr.session;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -96,10 +97,10 @@ public class SessionSaveDelayerConfig {
         return entries;
     }
 
-    public long getDelayNanos(@NotNull String threadName, @Nullable String stackTrace) {
+    public long getDelayNanos(@NotNull String threadName, @Nullable String userData, @Nullable String stackTrace) {
         for (DelayEntry d : entries) {
-            if (d.matches(threadName, stackTrace)) {
-                return d.delayNanos;
+            if (d.matches(threadName, userData, stackTrace)) {
+                return d.getDelayNanos();
             }
         }
         return 0;
@@ -109,7 +110,9 @@ public class SessionSaveDelayerConfig {
     private static DelayEntry parseDelayEntry(JsonObject entryObj) {
         String delayMillis = entryObj.getProperties().get("delayMillis");
         String threadNameRegex = entryObj.getProperties().get("threadNameRegex");
+        String userDataRegex = entryObj.getProperties().get("userDataRegex");
         String stackTraceRegex = entryObj.getProperties().get("stackTraceRegex");
+        String maxSavesPerSecond = entryObj.getProperties().get("maxSavesPerSecond");
         if (delayMillis == null || threadNameRegex == null) {
             LOG.warn("Skipping entry with missing required fields (delay or threadNameRegex)");
             return null;
@@ -120,14 +123,26 @@ public class SessionSaveDelayerConfig {
                 LOG.warn("Skipping entry with negative delay");
                 return null;
             }
+            double maxSaves = 0.0;
+            if (maxSavesPerSecond != null) {
+                maxSaves = Double.parseDouble(maxSavesPerSecond);
+                if (maxSaves < 0) {
+                    LOG.warn("Skipping entry with negative maxSavesPerSecond");
+                    return null;
+                }
+            }
             Pattern threadPattern = Pattern.compile(JsopTokenizer.decodeQuoted(threadNameRegex));
             Pattern stackPattern = null;
             if (stackTraceRegex != null) {
                 stackPattern = Pattern.compile(JsopTokenizer.decodeQuoted(stackTraceRegex));
             }
-            return new DelayEntry(delay, threadPattern, stackPattern);
+            Pattern userDataPattern = null;
+            if (userDataRegex != null) {
+                userDataPattern = Pattern.compile(JsopTokenizer.decodeQuoted(userDataRegex));
+            }
+            return new DelayEntry(delay, threadPattern, userDataPattern, stackPattern, maxSaves);
         } catch (NumberFormatException e) {
-            LOG.warn("Skipping entry with invalid delay value: {}", delayMillis);
+            LOG.warn("Skipping entry with invalid delay value or maxSavesPerSecond: {}", e.getMessage());
             return null;
         } catch (PatternSyntaxException e) {
             LOG.warn("Skipping entry with invalid regex pattern: {}", e.getMessage());
@@ -170,18 +185,45 @@ public class SessionSaveDelayerConfig {
     }
 
     public static class DelayEntry {
-        private final long delayNanos;
+        private final long baseDelayNanos;
         private final Pattern threadNamePattern;
         private final Pattern stackTracePattern;
+        private final Pattern userDataPattern;
+        private final double maxSavesPerSecond;
+        private final AtomicLong lastMatch = new AtomicLong(0);
 
-        public DelayEntry(double delayMillis, @NotNull Pattern threadNamePattern, @Nullable Pattern stackTracePattern) {
-            this.delayNanos = (long) (delayMillis * 1_000_000);
+        public DelayEntry(double delayMillis, @NotNull Pattern threadNamePattern, @Nullable Pattern userDataPattern, @Nullable Pattern stackTracePattern, double maxSavesPerSecond) {
+            this.baseDelayNanos = (long) (delayMillis * 1_000_000);
             this.threadNamePattern = threadNamePattern;
+            this.userDataPattern = userDataPattern;
             this.stackTracePattern = stackTracePattern;
+            this.maxSavesPerSecond = maxSavesPerSecond;
         }
 
         public long getDelayNanos() {
-            return delayNanos;
+            long totalDelayNanos = baseDelayNanos;
+            if (maxSavesPerSecond > 0) {
+                long currentTime = System.currentTimeMillis();
+                double intervalMs = 1000.0 / maxSavesPerSecond;
+                long lastMatchTime = lastMatch.get();
+                if (lastMatchTime > 0) {
+                    long nextAllowedTime = lastMatchTime + (long) intervalMs;
+                    if (currentTime < nextAllowedTime) {
+                        long rateLimitDelayMs = nextAllowedTime - currentTime;
+                        totalDelayNanos += rateLimitDelayMs * 1_000_000;
+                    }
+                }
+                lastMatch.set(currentTime);
+            }
+            return totalDelayNanos;
+        }
+
+        public long getBaseDelayNanos() {
+            return baseDelayNanos;
+        }
+
+        public double getMaxSavesPerSecond() {
+            return maxSavesPerSecond;
         }
 
         @NotNull
@@ -194,9 +236,22 @@ public class SessionSaveDelayerConfig {
             return stackTracePattern;
         }
 
-        boolean matches(@NotNull String threadName, @Nullable String stackTrace) {
+        @Nullable
+        public Pattern getUserDataPattern() {
+            return userDataPattern;
+        }
+
+        boolean matches(@NotNull String threadName, @Nullable String userData, @Nullable String stackTrace) {
             if (!threadNamePattern.matcher(threadName).matches()) {
                 return false;
+            }
+            if (userDataPattern != null) {
+                if (userData == null) {
+                    return false;
+                }
+                if (!userDataPattern.matcher(userData).find()) {
+                    return false;
+                }
             }
             if (stackTracePattern != null) {
                 if (stackTrace == null) {
@@ -214,11 +269,17 @@ public class SessionSaveDelayerConfig {
 
         public JsopBuilder toJson(JsopBuilder json) {
             json.object();
-            double delayMillis = delayNanos / 1_000_000.0;
+            double delayMillis = baseDelayNanos / 1_000_000.0;
             json.key("delayMillis").encodedValue(Double.toString(delayMillis));
             json.key("threadNameRegex").value(threadNamePattern.pattern());
+            if (userDataPattern != null) {
+                json.key("userDataRegex").value(userDataPattern.pattern());
+            }
             if (stackTracePattern != null) {
                 json.key("stackTraceRegex").value(stackTracePattern.pattern());
+            }
+            if (maxSavesPerSecond > 0) {
+                json.key("maxSavesPerSecond").encodedValue(Double.toString(maxSavesPerSecond));
             }
             return json.endObject();
         }
