@@ -1132,7 +1132,7 @@ public class ElasticRequestHandler {
                 // check if the default mapping is >= 1.5.0. Tests will fail in that case, meaning that we can remove this code
                 if (ElasticIndexDefinition.MAPPING_VERSION != null &&
                         ElasticIndexDefinition.MAPPING_VERSION.compareTo(new ElasticSemVer(1, 5, 0)) >= 0) {
-                    throw new IllegalStateException("Backward compatibility for null check not needed with " + ElasticIndexDefinition.MAPPING_VERSION);
+                    throw new IllegalStateException("Backward compatibility for null check is not supported anymore");
                 }
                 LOG.warn("Using deprecated null check strategy for field: {}. Please reindex tho update the internal mapping version. " +
                         "It will be removed with default index mapping version 1.5.0.", field);
