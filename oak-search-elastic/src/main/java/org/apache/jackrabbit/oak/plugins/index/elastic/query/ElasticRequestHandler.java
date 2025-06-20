@@ -1134,7 +1134,7 @@ public class ElasticRequestHandler {
                         ElasticIndexDefinition.MAPPING_VERSION.compareTo(new ElasticSemVer(1, 5, 0)) >= 0) {
                     throw new IllegalStateException("Backward compatibility for null check not needed with " + ElasticIndexDefinition.MAPPING_VERSION);
                 }
-                LOG.warn("Using deprecated null property check for field: {}. Please update your index definition to use the new nullProps field. " +
+                LOG.warn("Using deprecated null check strategy for field: {}. Please reindex tho update the internal mapping version. " +
                         "It will be removed with default index mapping version 1.5.0.", field);
                 return Query.of(q -> q.bool(b -> b.mustNot(mn -> mn.exists(e -> e.field(field)))));
             }
