@@ -1135,7 +1135,7 @@ public class ElasticRequestHandler {
                     LOG.error("Backward compatibility for null check is not supported anymore. Query results may be incorrect. " +
                             "Please reindex to update the internal mapping version.");
                 } else {
-                    LOG.warn("Using deprecated null check strategy for field: {}. Please reindex tho update the internal mapping version. " +
+                    LOG.warn("Using deprecated null check strategy for field: {}. Please reindex to update the internal mapping version. " +
                             "It will be removed with default index mapping version 1.5.0.", field);
                     return Query.of(q -> q.bool(b -> b.mustNot(mn -> mn.exists(e -> e.field(field)))));
                 }
