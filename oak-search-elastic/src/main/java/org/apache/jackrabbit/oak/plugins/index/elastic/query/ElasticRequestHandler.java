@@ -1129,14 +1129,16 @@ public class ElasticRequestHandler {
         if (pr.isNullRestriction()) {
             // nullProps check has been added since 1.4.0. Use the old strategy when version is lower
             if (elasticIndexDefinition.getMappingVersion().compareTo(MINIMUM_NULL_CHECK_VERSION) < 0) {
-                // check if the default mapping is >= 1.5.0. Tests will fail in that case, meaning that we can remove this code
+                // check if the default mapping is >= 1.5.0
                 if (ElasticIndexDefinition.MAPPING_VERSION != null &&
                         ElasticIndexDefinition.MAPPING_VERSION.compareTo(new ElasticSemVer(1, 5, 0)) >= 0) {
-                    throw new IllegalStateException("Backward compatibility for null check is not supported anymore");
+                    LOG.warn("Backward compatibility for null check is not supported anymore. Query results may be incorrect. " +
+                            "Please reindex to update the internal mapping version.");
+                } else {
+                    LOG.warn("Using deprecated null check strategy for field: {}. Please reindex tho update the internal mapping version. " +
+                            "It will be removed with default index mapping version 1.5.0.", field);
+                    return Query.of(q -> q.bool(b -> b.mustNot(mn -> mn.exists(e -> e.field(field)))));
                 }
-                LOG.warn("Using deprecated null check strategy for field: {}. Please reindex tho update the internal mapping version. " +
-                        "It will be removed with default index mapping version 1.5.0.", field);
-                return Query.of(q -> q.bool(b -> b.mustNot(mn -> mn.exists(e -> e.field(field)))));
             }
             return Query.of(q -> q.term(t -> t.field(FieldNames.NULL_PROPS).value(field)));
         }
