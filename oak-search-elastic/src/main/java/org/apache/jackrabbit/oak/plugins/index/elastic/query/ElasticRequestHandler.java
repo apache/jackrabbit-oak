@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticSemVer;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
@@ -142,6 +143,9 @@ public class ElasticRequestHandler {
     private final ElasticIndexDefinition elasticIndexDefinition;
     private final String propertyRestrictionQuery;
     private final NodeState rootState;
+
+    // Minimum version of ElasticSearch that supports null checks
+    private static final ElasticSemVer MINIMUM_NULL_CHECK_VERSION = new ElasticSemVer(1, 4, 0);
 
     ElasticRequestHandler(@NotNull IndexPlan indexPlan, @NotNull FulltextIndexPlanner.PlanResult planResult,
                           NodeState rootState) {
@@ -1123,7 +1127,18 @@ public class ElasticRequestHandler {
         final String field = elasticIndexDefinition.getElasticKeyword(propertyName);
 
         if (pr.isNullRestriction()) {
-            return Query.of(q -> q.bool(b -> b.mustNot(m -> m.exists(e -> e.field(field)))));
+            // nullProps check has been added since 1.4.0. Use the old strategy when version is lower
+            if (elasticIndexDefinition.getMappingVersion().compareTo(MINIMUM_NULL_CHECK_VERSION) < 0) {
+                // check if the default mapping is >= 1.5.0. Tests will fail in that case, meaning that we can remove this code
+                if (ElasticIndexDefinition.MAPPING_VERSION != null &&
+                        ElasticIndexDefinition.MAPPING_VERSION.compareTo(new ElasticSemVer(1, 5, 0)) >= 0) {
+                    throw new IllegalStateException("Backward compatibility for null check not needed with " + ElasticIndexDefinition.MAPPING_VERSION);
+                }
+                LOG.warn("Using deprecated null property check for field: {}. Please update your index definition to use the new nullProps field. " +
+                        "It will be removed with default index mapping version 1.5.0.", field);
+                return Query.of(q -> q.bool(b -> b.mustNot(mn -> mn.exists(e -> e.field(field)))));
+            }
+            return Query.of(q -> q.term(t -> t.field(FieldNames.NULL_PROPS).value(field)));
         }
         if (pr.isNotNullRestriction()) {
             return Query.of(q -> q.exists(e -> e.field(field)));
