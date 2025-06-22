@@ -419,19 +419,19 @@ public class RevisionsCommand implements Command {
         useMemoryBlobStore(builder);
         // create a version GC that operates on a read-only DocumentNodeStore
         // and a GC support with a writable DocumentStore
-        System.out.println("DryRun is enabled : " + options.isDryRun());
-        System.out.println("EmbeddedVerification is enabled : " + options.isEmbeddedVerificationEnabled());
+        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
+        System.out.println("DryRun is enabled : " + gc.isFullGCDryRun());
+        System.out.println("EmbeddedVerification is enabled : " + gc.isEmbeddedVerificationEnabled());
         System.out.println("ResetFullGC is enabled : " + options.isResetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
-        System.out.println("IncludePaths are : " + Arrays.toString(options.getIncludePaths()));
-        System.out.println("ExcludePaths are : " + Arrays.toString(options.getExcludePaths()));
-        System.out.println("FullGcMode is : " + options.getFullGcMode());
-        System.out.println("FullGcDelayFactory is : " + options.getFullGcDelayFactor());
-        System.out.println("FullGcBatchSize is : " + options.getFullGcBatchSize());
-        System.out.println("FullGcProgressSize is : " + options.getFullGcProgressSize());
+        System.out.println("IncludePaths are : " + gc.getFullGCIncludePaths());
+        System.out.println("ExcludePaths are : " + gc.getFullGCExcludePaths());
+        System.out.println("FullGcMode is : " + VersionGarbageCollector.getFullGcMode());
+        System.out.println("FullGcDelayFactor is : " + gc.getFullGcDelayFactor());
+        System.out.println("FullGcBatchSize is : " + gc.getFullGcBatchSize());
+        System.out.println("FullGcProgressSize is : " + gc.getFullGcProgressSize());
         System.out.println("FullGcMaxAgeInSecs is : " + options.getFullGcMaxAge());
-        System.out.println("FullGcMaxAgeMillis is : " + builder.getFullGcMaxAgeMillis());
-        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
+        System.out.println("FullGcMaxAgeMillis is : " + gc.getFullGcMaxAgeInMillis());
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
