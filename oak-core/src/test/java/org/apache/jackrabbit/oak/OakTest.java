@@ -208,7 +208,7 @@ public class OakTest {
         CommitInfoCapturingStore store = new CommitInfoCapturingStore();
         Oak oak = new Oak(store);
 
-        ContentRepository repo = oak.with(new OpenSecurityProvider()).createContentRepository();
+        ContentRepository repo = oak.with(new OpenSecurityProvider()).with(new InitialContent()).createContentRepository();
         assertThat(store.infos, is(not(empty())));
         for (CommitInfo ci : store.infos){
             assertNotNull(ci.getInfo().get(CommitContext.NAME));

@@ -30,6 +30,8 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.OakInitializer;
+import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.FilePacker;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -43,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
@@ -51,6 +54,9 @@ public class TreeStoreTest {
 
     @ClassRule
     public static TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+
+    @Rule
+    public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
 
     @Test
     public void convertPathTest() {
@@ -203,6 +209,36 @@ public class TreeStoreTest {
         }
     }
 
+    @Test
+    public void skipSuffixTest() throws IOException {
+        File testFolder = temporaryFolder.newFolder();
+        // thanks to the TemporarySystemProperty rule, this is reset
+        // at the end of the test
+        System.setProperty(
+                PipelinedStrategy.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP,
+                "/unimportant");
+        TreeStore store = new TreeStore("test", testFolder, null, 1);
+        try {
+            store.getSession().init();
+            store.putNode("/", "{}");
+            store.putNode("/content", "{}");
+            store.putNode("/content/abc", "{}");
+            store.putNode("/content/abc/unimportant", "{}");
+            store.putNode("/content/def", "{}");
+            store.putNode("/jcr:system", "{}");
+
+            Set<IndexDefinition> defs = inMemoryIndexDefinitions("/content", "/var", "/tmp");
+            store.setIndexDefinitions(defs);
+
+            Iterator<String> it = store.iteratorOverPaths();
+            assertEquals("/content", it.next());
+            assertEquals("/content/abc", it.next());
+            assertEquals("/content/def", it.next());
+            assertFalse(it.hasNext());
+        } finally {
+            store.close();
+        }
+    }
     private static Set<IndexDefinition> inMemoryIndexDefinitions(String... includedPaths) {
         NodeStore store = new MemoryNodeStore();
         EditorHook hook = new EditorHook(

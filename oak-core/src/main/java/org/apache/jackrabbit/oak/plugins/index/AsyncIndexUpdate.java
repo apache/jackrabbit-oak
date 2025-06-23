@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Throwables.getStackTraceAsString;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -50,6 +49,7 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 
 import com.codahale.metrics.MetricRegistry;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -1085,7 +1085,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 return;
             }
 
-            latestError = getStackTraceAsString(e);
+            latestError = ExceptionUtils.getStackTrace(e);
             latestErrorTime = now();
             consecutiveFailures++;
             if (!failing) {
