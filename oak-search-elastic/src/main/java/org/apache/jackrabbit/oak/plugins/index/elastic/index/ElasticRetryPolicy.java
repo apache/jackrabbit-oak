@@ -18,7 +18,13 @@ public class ElasticRetryPolicy {
         void execute() throws IOException;
     }
 
-    public static final ElasticRetryPolicy NO_RETRY = new ElasticRetryPolicy(0, 0, 0, 0);
+    public static final ElasticRetryPolicy NO_RETRY = new ElasticRetryPolicy(0, 0, 0, 0) {
+        @Override
+        public void withRetries(IOOperation callable) throws IOException {
+            // No retries, just execute the operation
+            callable.execute();
+        }
+    };
 
     public static ElasticRetryPolicy createRetryPolicyFromSystemProperties() {
         long connectionRetrySeconds = ConfigHelper.getSystemPropertyAsInt(
@@ -43,21 +49,21 @@ public class ElasticRetryPolicy {
     }
 
     public void withRetries(IOOperation callable) throws IOException {
-        int retried = 0;
+        int timesRetried = 0;
         long retryUntil = 0;
         long waitTime = initialIntervalMs;
         while (true) {
-            if (retried > 0) {
+            if (timesRetried > 0) {
                 // Log the retry attempt only if it's not the first attempt
-                LOG.info("Retrying operation (attempt {}/{})", retried + 1, maxRetries + 1);
+                LOG.info("Retrying operation (attempt {}/{})", timesRetried + 1, maxRetries + 1);
             }
             try {
                 callable.execute();
                 return; // Success, exit the loop
             } catch (IOException e) {
-                retried++;
-                if (retried > maxRetries && maxRetries > 0) {
-                    LOG.warn("Max retries exceeded. Operation failed {} attempts. Exception: {}", retried, e.toString());
+                timesRetried++;
+                if (timesRetried > maxRetries) {
+                    LOG.warn("Maximum retries exceeded, giving up. Operation failed {} times. Exception: {}", timesRetried, e.toString());
                     throw e;
                 }
                 long now = System.nanoTime();
@@ -65,10 +71,10 @@ public class ElasticRetryPolicy {
                     retryUntil = now + TimeUnit.MILLISECONDS.toNanos(maxRetryTimeMs);
                 }
                 if (now > retryUntil) {
-                    LOG.warn("Max retry time exceeded. Operation failed after {} ms and {} attempts", maxRetryTimeMs, retried, e);
+                    LOG.warn("Max retry time exceeded. Operation failed after {} ms and {} attempts", maxRetryTimeMs, timesRetried, e);
                     throw e;
                 }
-                LOG.warn("Operation failed. Retrying after {} ms (attempt {}/{})", waitTime, retried, maxRetries, e);
+                LOG.warn("Operation failed. Retrying after {} ms (attempt {}/{})", waitTime, timesRetried, maxRetries, e);
                 try {
                     Thread.sleep(waitTime);
                     // Exponential backoff with a cap at maxIntervalMs

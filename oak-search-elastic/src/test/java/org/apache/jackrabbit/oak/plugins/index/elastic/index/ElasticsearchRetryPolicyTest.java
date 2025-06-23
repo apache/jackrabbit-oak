@@ -62,7 +62,6 @@ public class ElasticsearchRetryPolicyTest {
         }
     }
 
-
     @Test
     public void succeedAfterNAttempts() throws IOException {
         testPolicy(ElasticRetryPolicy.NO_RETRY, 0);
@@ -88,7 +87,6 @@ public class ElasticsearchRetryPolicyTest {
             //pass
         }
     }
-
 
     private void testPolicy(ElasticRetryPolicy retryPolicy, int expectedMaxRetries) throws IOException {
         // These should all succeed because the number of retries is higher than the number of attempts until the task succeeds
