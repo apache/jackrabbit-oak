@@ -121,7 +121,7 @@ public class ElasticIndexProviderService {
 
         @AttributeDefinition(
                 name = "Elasticsearch Max Retry time",
-                description = "Time in seconds that Elasticsearch should retry failed operations. 0 means disabled, no retries. Default is 2 seconds.")
+                description = "Time in seconds that Elasticsearch should retry failed operations. 0 means disabled, no retries. Default is 0 seconds (disabled).")
         int elasticsearch_maxRetryTime() default ElasticConnection.DEFAULT_MAX_RETRY_TIME;
 
         @AttributeDefinition(name = "Local text extraction cache path",
