@@ -12,7 +12,7 @@ public class ElasticRetryPolicy {
 
     // 0 - disabled, > 0 - retry for this number of seconds to reconnect to Elastic
     public static final String OAK_INDEXER_ELASTIC_CONNECTION_RETRY_SECONDS = "oak.indexer.elastic.connectionRetrySeconds";
-    public static final int DEFAULT_OAK_INDEXER_ELASTIC_CONNECTION_RETRY_SECONDS = 0;
+    public static final int DEFAULT_OAK_INDEXER_ELASTIC_CONNECTION_RETRY_SECONDS = 30;
 
     public interface IOOperation {
         void execute() throws IOException;
@@ -33,7 +33,7 @@ public class ElasticRetryPolicy {
         if (connectionRetrySeconds <= 0) {
             return NO_RETRY;
         }
-        return new ElasticRetryPolicy(100, connectionRetrySeconds * 1000, 50, 1000);
+        return new ElasticRetryPolicy(100, connectionRetrySeconds * 1000, 50, 5000);
     }
 
     private final int maxRetries;
@@ -46,6 +46,19 @@ public class ElasticRetryPolicy {
         this.maxRetryTimeMs = maxRetryTimeMs;
         this.initialIntervalMs = initialIntervalMs;
         this.maxIntervalMs = maxIntervalMs;
+    }
+
+    public int getMaxRetries() {
+        return maxRetries;
+    }
+    public long getMaxRetryTimeMs() {
+        return maxRetryTimeMs;
+    }
+    public long getInitialIntervalMs() {
+        return initialIntervalMs;
+    }
+    public long getMaxIntervalMs() {
+        return maxIntervalMs;
     }
 
     public void withRetries(IOOperation callable) throws IOException {

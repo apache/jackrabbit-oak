@@ -59,7 +59,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
     public ElasticIndexEditorProvider(@NotNull ElasticIndexTracker indexTracker,
                                       @NotNull ElasticConnection elasticConnection,
                                       ExtractedTextCache extractedTextCache,
-                                      ElasticRetryPolicy retryPolicy) {
+                                      @NotNull ElasticRetryPolicy retryPolicy) {
         this(indexTracker, elasticConnection, extractedTextCache, new ElasticBulkProcessorHandler(elasticConnection), retryPolicy);
     }
 
@@ -67,7 +67,7 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
                                       @NotNull ElasticConnection elasticConnection,
                                       ExtractedTextCache extractedTextCache,
                                       ElasticBulkProcessorHandler bulkProcessorHandler,
-                                      ElasticRetryPolicy retryPolicy) {
+                                      @NotNull ElasticRetryPolicy retryPolicy) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
@@ -109,6 +109,11 @@ public class ElasticIndexEditorProvider implements IndexEditorProvider {
 
     public ExtractedTextCache getExtractedTextCache() {
         return extractedTextCache;
+    }
+
+    @NotNull
+    public ElasticRetryPolicy getRetryPolicy() {
+        return retryPolicy;
     }
 
     @Override

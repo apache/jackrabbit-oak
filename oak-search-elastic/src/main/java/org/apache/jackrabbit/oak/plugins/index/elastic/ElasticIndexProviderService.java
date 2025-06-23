@@ -74,6 +74,7 @@ public class ElasticIndexProviderService {
     protected static final String PROP_ELASTIC_PORT = "elasticsearch.port";
     protected static final String PROP_ELASTIC_API_KEY_ID = "elasticsearch.apiKeyId";
     protected static final String PROP_ELASTIC_API_KEY_SECRET = "elasticsearch.apiKeySecret";
+    protected static final String PROP_ELASTIC_MAX_RETRY_TIME = "elasticsearch.maxRetryTime";
     protected static final String PROP_LOCAL_TEXT_EXTRACTION_DIR = "localTextExtractionDir";
     private static final boolean DEFAULT_IS_INFERENCE_ENABLED = false;
     private static final String ENV_VAR_OAK_INFERENCE_STATISTICS_DISABLED = "OAK_INFERENCE_STATISTICS_DISABLED";
@@ -120,8 +121,8 @@ public class ElasticIndexProviderService {
 
         @AttributeDefinition(
                 name = "Elasticsearch Max Retry time",
-                description = "Time in seconds that Elasticsearch should retry failed operations. 0 means disabled, no retries. Default is 30 seconds.")
-        int elasticsearch_maxRetryTime() default 30;
+                description = "Time in seconds that Elasticsearch should retry failed operations. 0 means disabled, no retries. Default is 2 seconds.")
+        int elasticsearch_maxRetryTime() default ElasticConnection.DEFAULT_MAX_RETRY_TIME;
 
         @AttributeDefinition(name = "Local text extraction cache path",
                 description = "Local file system path where text extraction cache stores/load entries to recover from timed out operation")
@@ -234,7 +235,7 @@ public class ElasticIndexProviderService {
 
         registerIndexProvider(bundleContext);
         ElasticRetryPolicy retryPolicy = new ElasticRetryPolicy(100, config.elasticsearch_maxRetryTime() * 1000L, 5, 100);
-        this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache,retryPolicy);
+        this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache, retryPolicy);
         registerIndexEditor(bundleContext, elasticIndexEditorProvider);
         if (isElasticAvailable) {
             registerIndexCleaner(config);

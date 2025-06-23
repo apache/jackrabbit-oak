@@ -56,6 +56,7 @@ public class ElasticConnection implements Closeable {
     protected static final int DEFAULT_PORT = 9200;
     protected static final String DEFAULT_API_KEY_ID = "";
     protected static final String DEFAULT_API_KEY_SECRET = "";
+    protected static final int DEFAULT_MAX_RETRY_TIME = 0;
     protected static final int ES_SOCKET_TIMEOUT = 120000;
 
     private final String indexPrefix;
