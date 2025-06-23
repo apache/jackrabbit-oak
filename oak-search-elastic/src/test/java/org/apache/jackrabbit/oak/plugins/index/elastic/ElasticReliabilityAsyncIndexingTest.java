@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
 import org.junit.Test;
 
 import java.util.List;
@@ -42,6 +43,11 @@ public class ElasticReliabilityAsyncIndexingTest extends ElasticReliabilityTest 
     @Override
     public long getIndexCorruptIntervalInMillis() {
         return TimeUnit.DAYS.toMillis(7);
+    }
+
+    @Override
+    public ElasticRetryPolicy getElasticRetryPolicy() {
+        return ElasticRetryPolicy.NO_RETRY;
     }
 
     @Test

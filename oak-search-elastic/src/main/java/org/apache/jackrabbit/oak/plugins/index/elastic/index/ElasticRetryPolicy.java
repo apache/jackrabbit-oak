@@ -34,7 +34,7 @@ public class ElasticRetryPolicy {
         void execute() throws IOException;
     }
 
-    public static final ElasticRetryPolicy NO_RETRY = new ElasticRetryPolicy(0, 0, 0, 0) {
+    public static final ElasticRetryPolicy NO_RETRY = new ElasticRetryPolicy(1, 0, 0, 0) {
         @Override
         public void withRetries(IOOperation callable) throws IOException {
             // No retries, just execute the operation
@@ -52,47 +52,62 @@ public class ElasticRetryPolicy {
         return new ElasticRetryPolicy(100, connectionRetrySeconds * 1000, 50, 5000);
     }
 
-    private final int maxRetries;
+    private final int maxAttempts;
     private final long maxRetryTimeMs;
     private final long initialIntervalMs;
     private final long maxIntervalMs;
 
-    public ElasticRetryPolicy(int maxRetries, long maxRetryTimeMs, long initialIntervalMs, long maxIntervalMs) {
-        this.maxRetries = maxRetries;
+    public ElasticRetryPolicy(int maxAttempts, long maxRetryTimeMs, long initialIntervalMs, long maxIntervalMs) {
+        if (maxAttempts <= 0) {
+            throw new IllegalArgumentException("Invalid value for maxAttempts: " + maxAttempts + ". Must be greater than 0");
+        }
+        if (maxRetryTimeMs < 0) {
+            throw new IllegalArgumentException("Invalid value for maxRetryTimeMs: " + maxRetryTimeMs + ". Must be non-negative");
+        }
+        if (initialIntervalMs < 0) {
+            throw new IllegalArgumentException("Invalid value for initialIntervalMs: " + initialIntervalMs + ". Must be non-negative");
+        }
+        if (maxIntervalMs < 0) {
+            throw new IllegalArgumentException("Invalid value for maxIntervalMs: " + maxIntervalMs + ". Must be non-negative");
+        }
+        this.maxAttempts = maxAttempts;
         this.maxRetryTimeMs = maxRetryTimeMs;
         this.initialIntervalMs = initialIntervalMs;
         this.maxIntervalMs = maxIntervalMs;
     }
 
-    public int getMaxRetries() {
-        return maxRetries;
+    public int getMaxAttempts() {
+        return maxAttempts;
     }
+
     public long getMaxRetryTimeMs() {
         return maxRetryTimeMs;
     }
+
     public long getInitialIntervalMs() {
         return initialIntervalMs;
     }
+
     public long getMaxIntervalMs() {
         return maxIntervalMs;
     }
 
     public void withRetries(IOOperation callable) throws IOException {
-        int timesRetried = 0;
+        int numberOfAttempts = 0;
         long retryUntil = 0;
         long waitTime = initialIntervalMs;
         while (true) {
-            if (timesRetried > 0) {
+            numberOfAttempts++;
+            if (numberOfAttempts > 1) {
                 // Log the retry attempt only if it's not the first attempt
-                LOG.info("Retrying operation (attempt {}/{})", timesRetried + 1, maxRetries + 1);
+                LOG.info("Retrying operation (attempt {}/{})", numberOfAttempts, maxAttempts);
             }
             try {
                 callable.execute();
                 return; // Success, exit the loop
             } catch (IOException e) {
-                timesRetried++;
-                if (timesRetried > maxRetries) {
-                    LOG.warn("Maximum retries exceeded, giving up. Operation failed {} times. Exception: {}", timesRetried, e.toString());
+                if (numberOfAttempts >= maxAttempts) {
+                    LOG.warn("Maximum retries exceeded, giving up. Operation failed {} times. Exception: {}", numberOfAttempts, e.toString());
                     throw e;
                 }
                 long now = System.nanoTime();
@@ -100,10 +115,10 @@ public class ElasticRetryPolicy {
                     retryUntil = now + TimeUnit.MILLISECONDS.toNanos(maxRetryTimeMs);
                 }
                 if (now > retryUntil) {
-                    LOG.warn("Max retry time exceeded. Operation failed after {} ms and {} attempts", maxRetryTimeMs, timesRetried, e);
+                    LOG.warn("Max retry time exceeded. Operation failed after {} ms and {} attempts", maxRetryTimeMs, numberOfAttempts, e);
                     throw e;
                 }
-                LOG.warn("Operation failed. Retrying after {} ms (attempt {}/{})", waitTime, timesRetried, maxRetries, e);
+                LOG.warn("Operation failed in attempt {}/{}. Retrying after {} ms", numberOfAttempts, maxAttempts, waitTime, e);
                 try {
                     Thread.sleep(waitTime);
                     // Exponential backoff with a cap at maxIntervalMs
@@ -113,5 +128,15 @@ public class ElasticRetryPolicy {
                 }
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "ElasticRetryPolicy{" +
+                "maxRetries=" + maxAttempts +
+                ", maxRetryTimeMs=" + maxRetryTimeMs +
+                ", initialIntervalMs=" + initialIntervalMs +
+                ", maxIntervalMs=" + maxIntervalMs +
+                '}';
     }
 }

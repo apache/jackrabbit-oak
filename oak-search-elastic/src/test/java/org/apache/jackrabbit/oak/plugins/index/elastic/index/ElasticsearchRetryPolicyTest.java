@@ -65,8 +65,9 @@ public class ElasticsearchRetryPolicyTest {
     @Test
     public void succeedAfterNAttempts() throws IOException {
         testPolicy(ElasticRetryPolicy.NO_RETRY, 0);
-        testPolicy(new ElasticRetryPolicy(1, 1000, 1, 1), 1);
-        testPolicy(new ElasticRetryPolicy(5, 1000, 1, 1), 5);
+        testPolicy(new ElasticRetryPolicy(1, 1000, 1, 1), 0);
+        testPolicy(new ElasticRetryPolicy(2, 1000, 1, 1), 1);
+        testPolicy(new ElasticRetryPolicy(5, 1000, 1, 1), 4);
     }
 
     @Test
