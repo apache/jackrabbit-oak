@@ -19,7 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -51,6 +53,9 @@ public class IndexLookup {
         return collectIndexNodePaths(filter, true);
     }
 
+    /**
+     * Collects the paths of all index nodes that match the given filter. Indexes are returned in alphabetical order.
+     */
     public Collection<String> collectIndexNodePaths(Filter filter, boolean recurse) {
         Set<String> paths = new HashSet<>();
 
@@ -61,13 +66,13 @@ public class IndexLookup {
             NodeState nodeState = root;
             for (String element : PathUtils.elements(filter.getPath())) {
                 nodeState = nodeState.getChildNode(element);
-                collectIndexNodePaths(nodeState,
-                        sb.append("/").append(element).toString(),
-                        paths);
+                collectIndexNodePaths(nodeState, sb.append("/").append(element).toString(), paths);
             }
         }
 
-        return paths;
+        ArrayList<String> pathsList = new ArrayList<>(paths);
+        Collections.sort(pathsList);
+        return pathsList;
     }
 
     private void collectIndexNodePaths(NodeState nodeState, String parentPath, Collection<String> paths) {
