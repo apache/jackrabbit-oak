@@ -42,6 +42,8 @@ import static org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendation
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_JOB_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_JOB_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP;
@@ -75,11 +77,19 @@ public class VersionGCRecommendations {
     private final boolean scopeIsComplete;
     private final boolean fullGCScopeIsComplete;
     private final boolean fullGCEnabled;
+    private final boolean isOakRunJob;
 
     // whether fullGC is running in dryRun or not. Please note that this mode is to be run only
     // either via command line i.e. oak-run or as management bean command.
     // It will also run only if fullGC is not running.
     private final boolean isFullGCDryRun;
+
+    VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, boolean checkpointCleanup, Clock clock,
+                             VersionGCSupport vgc, VersionGCOptions options, GCMonitor gcMonitor,
+                             boolean fullGCEnabled, boolean isFullGCDryRun, long fullGcMaxAgeMs) {
+        this(maxRevisionAgeMs, checkpoints, checkpointCleanup, clock, vgc, options, gcMonitor,
+                fullGCEnabled, isFullGCDryRun, fullGcMaxAgeMs, false);
+    }
 
     /**
      * With the given maximum age of revisions to keep (earliest time in the past to collect),
@@ -108,7 +118,7 @@ public class VersionGCRecommendations {
      */
     VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, boolean checkpointCleanup, Clock clock,
                                     VersionGCSupport vgc, VersionGCOptions options, GCMonitor gcMonitor,
-                                    boolean fullGCEnabled, boolean isFullGCDryRun, long fullGcMaxAgeMs) {
+                                    boolean fullGCEnabled, boolean isFullGCDryRun, long fullGcMaxAgeMs, boolean isOakRunJob) {
         boolean ignoreDueToCheckPoint;
         boolean ignoreFullGCDueToCheckPoint;
         long deletedOnceCount = 0;
@@ -125,6 +135,7 @@ public class VersionGCRecommendations {
         this.originalCollectLimit = options.collectLimit;
         this.fullGCEnabled = fullGCEnabled;
         this.isFullGCDryRun = isFullGCDryRun;
+        this.isOakRunJob = isOakRunJob;
 
         TimeInterval keep = new TimeInterval(clock.getTime() - maxRevisionAgeMs, Long.MAX_VALUE);
 
@@ -141,8 +152,10 @@ public class VersionGCRecommendations {
         TimeInterval scope = new TimeInterval(oldestPossible, Long.MAX_VALUE);
         scope = scope.notLaterThan(keep.fromMs);
 
-        final long fullGCTimestamp = (long) settings.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP);
-        oldestModifiedDocId = (String) settings.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP);
+        final long fullGCTimestamp = isOakRunJob ? (long)settings.get (SETTINGS_COLLECTION_FULL_GC_JOB_TIMESTAMP_PROP)
+                : (long) settings.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP);
+        oldestModifiedDocId = isOakRunJob ? (String) settings.get(SETTINGS_COLLECTION_FULL_GC_JOB_DOCUMENT_ID_PROP)
+                : (String) settings.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP);
 
         final long fullGCDryRunTimestamp = (long) settings.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP);
         oldestModifiedDryRunDocId = (String) settings.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP);
@@ -178,9 +191,16 @@ public class VersionGCRecommendations {
                         () -> oldestModifiedDocTimeStamp.set(0L));
                 oldestModifiedDocId = MIN_ID_VALUE;
                 log.info("fullGCTimestamp found: {}", timestampToString(oldestModifiedDocTimeStamp.get()));
+
                 // initialize the fullGC database variables i.e. fullGCTimestamp and fullGCId
-                setVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, oldestModifiedDocTimeStamp.get(),
-                        SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, oldestModifiedDocId));
+                if (!isOakRunJob) {
+                    setVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, oldestModifiedDocTimeStamp.get(),
+                            SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, oldestModifiedDocId));
+                }
+                else {
+                    setVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_JOB_TIMESTAMP_PROP, oldestModifiedDocTimeStamp.get(),
+                            SETTINGS_COLLECTION_FULL_GC_JOB_DOCUMENT_ID_PROP, oldestModifiedDocId));
+                }
             } else {
                 oldestModifiedDocTimeStamp.set(fullGCTimestamp);
             }
@@ -276,10 +296,16 @@ public class VersionGCRecommendations {
             // success, we would not expect to encounter revisions older than this in the future
             setVGCSetting(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs);
 
-            if (fullGCEnabled) {
+            if (fullGCEnabled && !stats.ignoredFullGCDueToCheckPoint) {
                 final Map<String, Object> updateVGCMap = new HashMap<>();
-                updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
-                updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+                if (!isOakRunJob) {
+                    updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
+                    updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+                }
+                else {
+                    updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_JOB_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
+                    updateVGCMap.put(SETTINGS_COLLECTION_FULL_GC_JOB_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+                }
                 updateVGCSetting(updateVGCMap);
             }
 
@@ -316,8 +342,14 @@ public class VersionGCRecommendations {
                 setVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp,
                         SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP, stats.oldestModifiedDocId));
             } else {
-                updateVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp,
-                        SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId));
+                if (!isOakRunJob) {
+                    updateVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp,
+                            SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId));
+                }
+                else {
+                    updateVGCSetting(of(SETTINGS_COLLECTION_FULL_GC_JOB_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp,
+                            SETTINGS_COLLECTION_FULL_GC_JOB_DOCUMENT_ID_PROP, stats.oldestModifiedDocId));
+                }
             }
 
             final long scopeEnd = scopeFullGC.toMs;
@@ -338,6 +370,8 @@ public class VersionGCRecommendations {
         settings.put(SETTINGS_COLLECTION_REC_INTERVAL_PROP, 0L);
         settings.put(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, 0L);
         settings.put(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, MIN_ID_VALUE);
+        settings.put(SETTINGS_COLLECTION_FULL_GC_JOB_TIMESTAMP_PROP, 0L);
+        settings.put(SETTINGS_COLLECTION_FULL_GC_JOB_DOCUMENT_ID_PROP, MIN_ID_VALUE);
         settings.put(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP, 0L);
         settings.put(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP, MIN_ID_VALUE);
         if (versionGCDoc != null) {

@@ -434,6 +434,7 @@ public class RevisionsCommand implements Command {
         System.out.println("FullGcMaxAgeInSecs is : " + options.getFullGcMaxAge());
         System.out.println("FullGcMaxAgeMillis is : " + builder.getFullGcMaxAgeMillis());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
+        gc.setIsOakRunJob(true);
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());

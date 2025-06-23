@@ -155,6 +155,16 @@ public class VersionGarbageCollector {
     static final String SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP = "fullGCId";
 
     /**
+     * Property name to timestamp till when last full-GC run happened
+     */
+    static final String SETTINGS_COLLECTION_FULL_GC_JOB_TIMESTAMP_PROP = "fullGCRunAsJob_TimeStamp";
+
+    /**
+     * Property name to _id till when last full-GC run happened
+     */
+    static final String SETTINGS_COLLECTION_FULL_GC_JOB_DOCUMENT_ID_PROP = "fullGCRunAsJob_Id";
+
+    /**
      * Property name to timestamp till when last full-GC run happened in dryRun mode only
      */
     static final String SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP = "fullGCDryRunTimeStamp";
@@ -276,6 +286,7 @@ public class VersionGarbageCollector {
     private RevisionGCStats gcStats = new RevisionGCStats(NOOP);
     private FullGCStatsCollector fullGCStats = new FullGCStatsCollectorImpl(NOOP);
     private FullGCMetricsExporter fullGCMetricsExporter;
+    private boolean isOakRunJob = false;
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport,
@@ -442,6 +453,10 @@ public class VersionGarbageCollector {
 
     public void setOptions(VersionGCOptions options) {
         this.options = options;
+    }
+
+    public void setIsOakRunJob(boolean isOakRunJob) {
+        this.isOakRunJob = isOakRunJob;
     }
 
     public void reset() {
@@ -849,7 +864,7 @@ public class VersionGarbageCollector {
             stats.active.start();
             VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
                     !nodeStore.isReadOnlyMode(), nodeStore.getClock(), versionStore, options, gcMonitor, fullGCEnabled,
-                    isFullGCDryRun, fullGcMaxAgeInMillis);
+                    isFullGCDryRun, fullGcMaxAgeInMillis, isOakRunJob);
             GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
             try {
                 if (!isFullGCDryRun) {
