@@ -128,17 +128,17 @@ public class QueryImpl implements Query {
 
     SourceImpl source;
     private String statement;
-    final HashMap<String, PropertyValue> bindVariableMap = new HashMap<>();
+    final HashMap<String, PropertyValue> bindVariableMap = new HashMap<String, PropertyValue>();
     
     /**
      * The map of indexes (each selector uses one index)
      */
-    final HashMap<String, Integer> selectorIndexes = new HashMap<>();
+    final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
     
     /**
      * The list of selectors of this query. For a join, there can be multiple selectors.
      */
-    final ArrayList<SelectorImpl> selectors = new ArrayList<>();
+    final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
     
     ConstraintImpl constraint;
 
@@ -776,9 +776,9 @@ public class QueryImpl implements Query {
             return last;
         }
         List<SourceImpl> selectors = result.getInnerJoinSelectors();
-        Set<SourceImpl> oldSelectors = new HashSet<>();
+        Set<SourceImpl> oldSelectors = new HashSet<SourceImpl>();
         oldSelectors.addAll(selectors);
-        Set<SourceImpl> newSelectors = new HashSet<>();
+        Set<SourceImpl> newSelectors = new HashSet<SourceImpl>();
         newSelectors.addAll(selectors);
         newSelectors.add(last);
         for (JoinConditionImpl j : conditions) {
@@ -809,9 +809,9 @@ public class QueryImpl implements Query {
      * query iterator to lazily execute and return counts.
      */
     abstract static class MeasuringIterator extends AbstractIterator<ResultRowImpl> {
-        private final Iterator<ResultRowImpl> delegate;
-        private final Query query;
-        private final List<ResultRowImpl> results;
+        private Iterator<ResultRowImpl> delegate;
+        private Query query;
+        private List<ResultRowImpl> results;
         private boolean init;
 
         MeasuringIterator(Query query, Iterator<ResultRowImpl> delegate) {
@@ -1049,7 +1049,7 @@ public class QueryImpl implements Query {
 
     @Override
     public List<String> getBindVariableNames() {
-        return new ArrayList<>(bindVariableMap.keySet());
+        return new ArrayList<String>(bindVariableMap.keySet());
     }
 
     @Override
