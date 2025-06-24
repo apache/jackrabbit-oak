@@ -38,6 +38,9 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+/**
+ * Tests for the {@link NamespaceRegistryCommand}.
+ */
 public class NamespaceRegistryCommandTest {
 
     private static final NamespaceRegistryCommand cmd = new NamespaceRegistryCommand();

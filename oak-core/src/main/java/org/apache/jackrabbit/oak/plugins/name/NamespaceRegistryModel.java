@@ -113,10 +113,7 @@ public final class NamespaceRegistryModel {
         consistentNamespacesEncoded = SetUtils.intersection(SetUtils.intersection(registeredNamespacesEncoded, mappedNamespacesEncoded), mappedToNamespacesEncoded);
         danglingPrefixes = SetUtils.difference(registeredPrefixes, SetUtils.union(mappedPrefixes, mappedToPrefixes));
         danglingNamespacesEncoded = SetUtils.difference(registeredNamespacesEncoded, SetUtils.union(mappedNamespacesEncoded, mappedToNamespacesEncoded));;
-        refresh();
-    }
 
-    private void refresh() {
         boolean sizeMatches = duplicatePrefixes.isEmpty()
                 && duplicateNamespacesEncoded.isEmpty()
                 && consistentNamespacesEncoded.size() == allNamespacesEncoded.size()
@@ -148,6 +145,14 @@ public final class NamespaceRegistryModel {
         }
     }
 
+    /**
+     * Creates a new {@link NamespaceRegistryModel} from the namespace registry
+     * stored in the system tree under the given repository {@link Root}.
+     *
+     * @param root the root of the repository
+     * @return a new {@link NamespaceRegistryModel} or {@code null} if the
+     *         namespace registry does not exist
+     */
     public static @Nullable NamespaceRegistryModel create(@NotNull Root root) {
         Tree rootTree = root.getTree("/");
         Tree namespaces = rootTree.getChild( JcrConstants.JCR_SYSTEM ).getChild(REP_NAMESPACES);
@@ -183,6 +188,13 @@ public final class NamespaceRegistryModel {
         }
     }
 
+    /**
+     * Creates a new {@link NamespaceRegistryModel} with the given mappings. Used by {@see NamespaceRegistryCommand} to
+     * repair a namespace registry that cannot be fixed automatically because mapping information is missing.
+     *
+     * @param additionalPrefixToUrisMappings a map from prefixes to namespace URIs
+     * @return a new {@link NamespaceRegistryModel}
+     */
     public NamespaceRegistryModel setMappings(@NotNull Map<String, String> additionalPrefixToUrisMappings) {
         List<String> newRegisteredPrefixesList = new ArrayList<>(registeredPrefixes);
         HashMap<String, String> newPrefixToNamespaceMap = new HashMap<>(prefixToNamespaceMap);
@@ -212,6 +224,13 @@ public final class NamespaceRegistryModel {
                 newPrefixToNamespaceMap, newEncodedNamespaceToPrefixMap);
     }
 
+    /** Tries to repair the namespace registry model by fixing the mappings
+     * from prefixes to namespace URIs and vice versa. If the model is not
+     * fixable, it returns the original model.
+     *
+     * @return a new {@link NamespaceRegistryModel} with fixed mappings or the
+     *         original model if it cannot be fixed
+     */
     public NamespaceRegistryModel tryRegistryRepair() {
         if (fixable) {
             List<String> fixedRegisteredPrefixesList = new ArrayList<>();
@@ -252,6 +271,13 @@ public final class NamespaceRegistryModel {
         return this;
     }
 
+    /**
+     * Applies this namespace registry model to the given repository {@link Root}.
+     *
+     * @param root the root of the repository
+     * @throws RepositoryException if an error occurs while applying the changes
+     * @throws CommitFailedException if the commit fails
+     */
     public void apply(Root root) throws RepositoryException, CommitFailedException {
         Tree rootTree = root.getTree("/");
         Tree namespaces = rootTree.getChild( JcrConstants.JCR_SYSTEM ).getChild(REP_NAMESPACES);
@@ -295,21 +321,27 @@ public final class NamespaceRegistryModel {
         return fixable;
     }
 
-    // Prefixes that are registered, but not mapped to or from a namespace uri.
-    // This kind of inconsistency cannot be fixed automatically, because the namespace uri
-    // corresponding to the prefix is unknown.
+    /** Prefixes that are registered, but not mapped to or from a namespace uri.
+     * This kind of inconsistency cannot be fixed automatically, because the namespace uri
+     * corresponding to the prefix is unknown.
+     * Apply the {@link #setMappings(Map)} method to create a new model with the missing mappings.
+     */
     public Set<String> getDanglingPrefixes() {
         return danglingPrefixes;
     }
 
-    // Namespace uris that are registered, but not mapped to or from a prefix.
-    // This kind of inconsistency cannot be fixed automatically, because the prefix
-    // corresponding to the namespace uri is unknown.
+    /** Namespace uris that are registered, but not mapped to or from a prefix.
+     * This kind of inconsistency cannot be fixed automatically, because the prefix
+     * corresponding to the namespace uri is unknown.
+     * Apply the {@link #setMappings(Map)} method to create a new model with the missing mappings.
+     */
     public Set<String> getDanglingEncodedNamespaceUris() {
         return danglingNamespacesEncoded;
     }
 
-    // Broken mappings completed with the missing prefix or namespace uri.
+    /**
+     * Broken mappings completed with the missing prefix or namespace uri.
+     */
     public Map<String, String> getRepairedMappings() {
         Map<String, String> map = new HashMap<>();
         Set<String> repairablePrefixes = SetUtils.difference(SetUtils.difference(allPrefixes, consistentPrefixes), danglingPrefixes);
@@ -336,10 +368,20 @@ public final class NamespaceRegistryModel {
         return c.stream().filter(t -> !uniques.add(t)).collect(Collectors.toSet());
     }
 
+    /**
+     * Write a human-readable analysis of the namespace registry model to System.out.
+     */
     public void dump() throws IOException {
         dump(System.out);
     }
 
+    /**
+     * Write a human-readable analysis of the namespace registry model to the
+     * given {@link OutputStream}.
+     *
+     * @param out the output stream to write to
+     * @throws IOException if an error occurs while writing to the output stream
+     */
     public void dump(OutputStream out) throws IOException {
         dump(new OutputStreamWriter(out, StandardCharsets.UTF_8));
         out.flush();

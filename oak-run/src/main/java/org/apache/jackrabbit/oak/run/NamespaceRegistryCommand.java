@@ -37,7 +37,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
+/**
+ * Command to analyze and repair the namespace registry in an Oak repository ({@link NamespaceRegistryModel}).
+ * Possible options are: --analyse, --fix, and --mappings, which will execute corresponding operations on
+ * the namespace registry.
+ * <p>
+ * --analyse executes an operation that will print the current consistency state of the namespace registry to
+ * the console. If the namespace registry is inconsistent and fixable, it will also perform a dry run of the
+ * --fix operation and print the result to the console.
+ * <p>
+ * --fix executes an operation that will attempt to repair an inconsistent the namespace registry.
+ * <p>
+ * --mappings is an option for both operations, allowing to specify additional namespace mappings in
+ * the format "prefix=uri", which will be applied during the operation.
+ */
 public class NamespaceRegistryCommand implements Command {
 
     public static final String NAME = "namespace-registry";

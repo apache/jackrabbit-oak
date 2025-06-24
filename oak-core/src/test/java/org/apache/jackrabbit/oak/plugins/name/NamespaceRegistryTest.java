@@ -42,6 +42,11 @@ import static org.junit.Assert.assertTrue;
 
 public class NamespaceRegistryTest {
 
+    /**
+     * Artificially apply inconsistencies to the namespace registry and test if the NamespaceRegistryModel
+     * handles them correctly.
+     * @throws Exception
+     */
     @Test
     public void testNamespaceRegistryModel() throws Exception {
         try (ContentSession session = new Oak()
@@ -65,6 +70,7 @@ public class NamespaceRegistryTest {
             PropertyState prefixProp = nsdata.getProperty(REP_PREFIXES);
             PropertyState namespaceProp = nsdata.getProperty(REP_URIS);
 
+            // Check the initial state of the namespace registry
             assertTrue(registry.checkConsistency(root));
             NamespaceRegistryModel model = registry.createNamespaceRegistryModel(root);
             assertTrue(model.isConsistent());
