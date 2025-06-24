@@ -144,8 +144,9 @@ public class ElasticRequestHandler {
     private final String propertyRestrictionQuery;
     private final NodeState rootState;
 
-    // Minimum version of ElasticSearch that supports null checks
+    // Min/max version of ElasticSearch that supports null checks
     private static final ElasticSemVer MINIMUM_NULL_CHECK_VERSION = new ElasticSemVer(1, 4, 0);
+    private static final ElasticSemVer MAXIMUM_NULL_CHECK_VERSION = new ElasticSemVer(1, 5, 0);
 
     ElasticRequestHandler(@NotNull IndexPlan indexPlan, @NotNull FulltextIndexPlanner.PlanResult planResult,
                           NodeState rootState) {
@@ -1127,11 +1128,11 @@ public class ElasticRequestHandler {
         final String field = elasticIndexDefinition.getElasticKeyword(propertyName);
 
         if (pr.isNullRestriction()) {
-            // nullProps check has been added since 1.4.0. Use the old strategy when version is lower
+            // nullProps check has been added in 1.4.0. Use the old strategy when version is lower
             if (elasticIndexDefinition.getMappingVersion().compareTo(MINIMUM_NULL_CHECK_VERSION) < 0) {
                 // check if the default mapping is >= 1.5.0
                 if (ElasticIndexDefinition.MAPPING_VERSION != null &&
-                        ElasticIndexDefinition.MAPPING_VERSION.compareTo(new ElasticSemVer(1, 5, 0)) >= 0) {
+                        ElasticIndexDefinition.MAPPING_VERSION.compareTo(MAXIMUM_NULL_CHECK_VERSION) >= 0) {
                     LOG.error("Backward compatibility for null check is not supported anymore. Query results may be incorrect. " +
                             "Please reindex to update the internal mapping version.");
                 } else {
