@@ -52,7 +52,6 @@ import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -121,10 +120,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState, runIsActiveIndexCheck());
         }
         List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
-        // Iterate in sorted order to ensure determinism also if several indexes have the same optimal cost
-        ArrayList<String> sortedIndexPaths = new ArrayList<>(indexPaths);
-        Collections.sort(sortedIndexPaths);
-        for (String path : sortedIndexPaths) {
+        for (String path : indexPaths) {
             IndexNode indexNode = null;
             try {
                 indexNode = acquireIndexNode(path);

@@ -128,17 +128,17 @@ public class QueryImpl implements Query {
 
     SourceImpl source;
     private String statement;
-    final HashMap<String, PropertyValue> bindVariableMap = new HashMap<String, PropertyValue>();
+    final HashMap<String, PropertyValue> bindVariableMap = new HashMap<>();
     
     /**
      * The map of indexes (each selector uses one index)
      */
-    final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
+    final HashMap<String, Integer> selectorIndexes = new HashMap<>();
     
     /**
      * The list of selectors of this query. For a join, there can be multiple selectors.
      */
-    final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
+    final ArrayList<SelectorImpl> selectors = new ArrayList<>();
     
     ConstraintImpl constraint;
 
@@ -776,9 +776,9 @@ public class QueryImpl implements Query {
             return last;
         }
         List<SourceImpl> selectors = result.getInnerJoinSelectors();
-        Set<SourceImpl> oldSelectors = new HashSet<SourceImpl>();
+        Set<SourceImpl> oldSelectors = new HashSet<>();
         oldSelectors.addAll(selectors);
-        Set<SourceImpl> newSelectors = new HashSet<SourceImpl>();
+        Set<SourceImpl> newSelectors = new HashSet<>();
         newSelectors.addAll(selectors);
         newSelectors.add(last);
         for (JoinConditionImpl j : conditions) {
@@ -809,9 +809,9 @@ public class QueryImpl implements Query {
      * query iterator to lazily execute and return counts.
      */
     abstract static class MeasuringIterator extends AbstractIterator<ResultRowImpl> {
-        private Iterator<ResultRowImpl> delegate;
-        private Query query;
-        private List<ResultRowImpl> results;
+        private final Iterator<ResultRowImpl> delegate;
+        private final Query query;
+        private final List<ResultRowImpl> results;
         private boolean init;
 
         MeasuringIterator(Query query, Iterator<ResultRowImpl> delegate) {
@@ -1049,7 +1049,7 @@ public class QueryImpl implements Query {
 
     @Override
     public List<String> getBindVariableNames() {
-        return new ArrayList<String>(bindVariableMap.keySet());
+        return new ArrayList<>(bindVariableMap.keySet());
     }
 
     @Override
@@ -1132,7 +1132,8 @@ public class QueryImpl implements Query {
                         String msg = String.format("cost for [%s] of type (%s) with plan [%s] is %1.2f", p.getPlanName(), indexName, plan, c);
                         logDebug(msg);
                     }
-                    if (c < bestCost) {
+                    // In case of cost being the same, chose the index with the lowest name by alphabetic order
+                    if (c < bestCost || (c == bestCost && bestPlan != null && p.getPlanName().compareTo(bestPlan.getPlanName()) < 0 )) {
                         almostBestCost = bestCost;
                         almostBestIndex = bestIndex;
                         almostBestPlan = bestPlan;
