@@ -51,13 +51,17 @@ public class ElasticsearchRetryPolicyTest {
         }
 
         public void execute() throws IOException {
+            long now = System.nanoTime();
+            long elapsedTimeMillis;
             if (firstExecutionTime == -1) {
-                firstExecutionTime = System.nanoTime();
+                firstExecutionTime = now;
+                elapsedTimeMillis = 0;
+            } else {
+                elapsedTimeMillis = TimeUnit.NANOSECONDS.toMillis(now - firstExecutionTime);
             }
-            long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - firstExecutionTime);
-            if (elapsedTime < succeedAfterElapsedTimeMillis) {
+            if (elapsedTimeMillis < succeedAfterElapsedTimeMillis) {
                 // Simulate a failure until the elapsed time is reached
-                throw new IOException("Simulated failure. Elapsed time: " + elapsedTime + "ms, will succeed after " + succeedAfterElapsedTimeMillis + "ms.");
+                throw new IOException("Simulated failure. Elapsed time: " + elapsedTimeMillis + "ms, will succeed after " + succeedAfterElapsedTimeMillis + "ms.");
             }
         }
     }
@@ -80,9 +84,12 @@ public class ElasticsearchRetryPolicyTest {
         retryPolicy.withRetries(new PassAfterElapsedTime(20));
         assertTrue(System.nanoTime() - startTime >= TimeUnit.MILLISECONDS.toNanos(20));
 
-        // This task will fail for 60 ms, so the retry policy will also fail because it is set to wait for 50 ms.
+        // This check verifies that a retry policy will stop trying after the maximum amount of time has passed,
+        // 40 ms in this case. We use a task that will only succeed very far into the future, to avoid the case where the
+        // 40 ms have elapsed but the thread running the test is suspended until enough time passes that the task would
+        // succeed.
         try {
-            retryPolicy.withRetries(new PassAfterElapsedTime(60));
+            retryPolicy.withRetries(new PassAfterElapsedTime(Integer.MAX_VALUE));
             fail("Expected IOException not thrown");
         } catch (IOException e) {
             //pass
