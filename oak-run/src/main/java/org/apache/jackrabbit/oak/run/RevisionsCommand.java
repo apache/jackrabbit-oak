@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +31,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -81,7 +82,6 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToS
 import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
 import static org.apache.jackrabbit.oak.run.Utils.getMongoConnection;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
 
 /**
  * Gives information about current node revisions state.
@@ -424,8 +424,8 @@ public class RevisionsCommand implements Command {
         System.out.println("EmbeddedVerification is enabled : " + gc.isEmbeddedVerificationEnabled());
         System.out.println("ResetFullGC is enabled : " + options.isResetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
-        System.out.println("IncludePaths are : " + gc.getFullGCIncludePaths());
-        System.out.println("ExcludePaths are : " + gc.getFullGCExcludePaths());
+        System.out.println("IncludePaths are : " + sortedSet(gc.getFullGCIncludePaths()));
+        System.out.println("ExcludePaths are : " + sortedSet(gc.getFullGCExcludePaths()));
         System.out.println("FullGcMode is : " + VersionGarbageCollector.getFullGcMode());
         System.out.println("FullGcDelayFactor is : " + gc.getFullGcDelayFactor());
         System.out.println("FullGcBatchSize is : " + gc.getFullGcBatchSize());
@@ -690,5 +690,11 @@ public class RevisionsCommand implements Command {
         // collection. Use an in-memory blob store instead, because the
         // revisions command does not read blobs anyway.
         builder.setBlobStore(new MemoryBlobStore());
+    }
+
+    private List<String> sortedSet(Set<String> set) {
+        return set.stream()
+                .sorted()
+                .collect(Collectors.toList());
     }
 }

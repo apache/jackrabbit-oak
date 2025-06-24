@@ -26,13 +26,28 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder.PropertyRule;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 
 public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
+
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
+
+    @Before
+    public void before() throws Exception {
+        // Use a low value for the tests
+        System.setProperty(ElasticBulkProcessorHandler.FAIL_ON_ERROR_PROP, "true");
+        super.before();
+    }
+
 
     @Test
     public void regexPropertyWithFlattened() throws Exception {
@@ -125,7 +140,7 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
             Throwable cause = e.getCause();
             String msg = cause.getMessage();
             assertTrue("Unexpected exception type. Expected IOException. Was " + cause, cause instanceof IOException);
-            assertTrue(msg, msg.contains("Exception while indexing "));
+            assertTrue(msg, msg.contains("Error indexing documents for index:"));
             // Typically, the root cause is "Limit of total fields [1000] has been exceeded"
             // but something this is suppressed, and so we can not have an assertion on it
         }

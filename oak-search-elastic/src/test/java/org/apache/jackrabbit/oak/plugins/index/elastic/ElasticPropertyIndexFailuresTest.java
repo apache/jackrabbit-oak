@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 
 import java.util.List;
 
@@ -32,6 +33,8 @@ public class ElasticPropertyIndexFailuresTest extends ElasticAbstractQueryTest {
 
     @Rule
     public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     @Before
     public void before() throws Exception {
