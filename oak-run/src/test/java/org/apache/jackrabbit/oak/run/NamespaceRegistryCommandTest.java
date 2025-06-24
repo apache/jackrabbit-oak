@@ -28,9 +28,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -47,7 +44,7 @@ public class NamespaceRegistryCommandTest {
     private static DocumentNodeStore store;
 
     @BeforeClass
-    public static void before() throws CommitFailedException {
+    public static void beforeClass() throws CommitFailedException {
         assumeTrue(MongoUtils.isAvailable());
         try {
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(cmd.getOptions(MongoUtils.URL, "--fix", "--read-write"));
@@ -62,6 +59,7 @@ public class NamespaceRegistryCommandTest {
         namespaces.remove();
         Namespaces.setupNamespaces(rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM));
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
     }
 
     @Test
@@ -79,8 +77,8 @@ public class NamespaceRegistryCommandTest {
         NodeBuilder rootBuilder = store.getRoot().builder();
         NodeBuilder namespaces = rootBuilder.getChildNode(JcrConstants.JCR_SYSTEM).getChildNode(NamespaceConstants.REP_NAMESPACES);
         namespaces.setProperty("foo", "urn:foo");
-        store.runBackgroundOperations();
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
     }
 
     @Test

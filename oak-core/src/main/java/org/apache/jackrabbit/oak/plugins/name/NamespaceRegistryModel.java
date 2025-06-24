@@ -25,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +55,14 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NAMESPACES;
 
+/**
+ * A model of the namespace registry, containing the mappings from prefixes to
+ * namespace URIs and vice versa.
+ * <p>
+ * The model is created from the namespace registry stored in the repository.
+ * It can be used to check the consistency of the registry, repair it if
+ * possible, and apply the changes back to the repository.
+ */
 public final class NamespaceRegistryModel {
 
     private final Map<String, String> prefixToNamespaceMap;
