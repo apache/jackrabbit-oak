@@ -52,6 +52,7 @@ import javax.jcr.PropertyType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -120,7 +121,10 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState, runIsActiveIndexCheck());
         }
         List<IndexPlan> plans = new ArrayList<>(indexPaths.size());
-        for (String path : indexPaths) {
+        // Iterate in sorted order to ensure determinism also if several indexes have the same optimal cost
+        ArrayList<String> sortedIndexPaths = new ArrayList<>(indexPaths);
+        Collections.sort(sortedIndexPaths);
+        for (String path : sortedIndexPaths) {
             IndexNode indexNode = null;
             try {
                 indexNode = acquireIndexNode(path);
@@ -411,7 +415,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                                   final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
             this.sizeEstimator = sizeEstimator;
-            Iterator<String> pathIterator = new Iterator<String>() {
+            Iterator<String> pathIterator = new Iterator<>() {
 
                 private int readCount;
                 private int rewoundCount;
@@ -556,7 +560,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             return pathRow.getValue(columnName);
         }
 
-    };
+    }
 
     public interface IteratorRewoundStateProvider {
         int rewoundCount();

@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import java.util.List;
 import java.util.Set;
 
 import static javax.jcr.PropertyType.TYPENAME_STRING;
@@ -49,7 +48,8 @@ public class LuceneIndexLookupTest {
         IndexLookup lookup = LuceneIndexLookupUtil.getLuceneIndexLookup(builder.getNodeState());
         FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/", Filter.PathRestriction.EXACT);
-        assertEquals(List.of("/oak:index/l1", "/oak:index/l2"), lookup.collectIndexNodePaths(f));
+        assertEquals(Set.of("/oak:index/l1", "/oak:index/l2"),
+            lookup.collectIndexNodePaths(f));
     }
 
     @Test
@@ -66,9 +66,11 @@ public class LuceneIndexLookupTest {
         IndexLookup lookup = LuceneIndexLookupUtil.getLuceneIndexLookup(builder.getNodeState());
         FilterImpl f = FilterImpl.newTestInstance();
         f.restrictPath("/a", Filter.PathRestriction.EXACT);
-        assertEquals(List.of("/a/oak:index/l2", "/oak:index/l1"), lookup.collectIndexNodePaths(f));
+        assertEquals(Set.of("/oak:index/l1", "/a/oak:index/l2"),
+            lookup.collectIndexNodePaths(f));
 
         f.restrictPath("/a/b", Filter.PathRestriction.EXACT);
-        assertEquals(List.of("/a/b/oak:index/l3", "/a/oak:index/l2", "/oak:index/l1"), lookup.collectIndexNodePaths(f));
+        assertEquals(Set.of("/oak:index/l1", "/a/oak:index/l2", "/a/b/oak:index/l3"),
+            lookup.collectIndexNodePaths(f));
     }
 }
