@@ -112,7 +112,7 @@ public final class NamespaceRegistryModel {
         consistentPrefixes = SetUtils.intersection(SetUtils.intersection(registeredPrefixes, mappedPrefixes), mappedToPrefixes);
         consistentNamespacesEncoded = SetUtils.intersection(SetUtils.intersection(registeredNamespacesEncoded, mappedNamespacesEncoded), mappedToNamespacesEncoded);
         danglingPrefixes = SetUtils.difference(registeredPrefixes, SetUtils.union(mappedPrefixes, mappedToPrefixes));
-        danglingNamespacesEncoded = SetUtils.difference(registeredNamespacesEncoded, SetUtils.union(mappedNamespacesEncoded, mappedToNamespacesEncoded));;
+        danglingNamespacesEncoded = SetUtils.difference(registeredNamespacesEncoded, SetUtils.union(mappedNamespacesEncoded, mappedToNamespacesEncoded));
 
         boolean sizeMatches = duplicatePrefixes.isEmpty()
                 && duplicateNamespacesEncoded.isEmpty()
