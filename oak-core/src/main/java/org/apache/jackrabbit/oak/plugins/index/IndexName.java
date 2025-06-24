@@ -210,7 +210,7 @@ public class IndexName implements Comparable<IndexName> {
      * @return the filtered list
      */
     public static Collection<String> filterReplacedIndexes(Collection<String> indexPaths, NodeState rootState, boolean checkIsActive) {
-        HashMap<String, IndexName> latestVersions = new HashMap<String, IndexName>();
+        HashMap<String, IndexName> latestVersions = new HashMap<>();
         for (String p : indexPaths) {
             IndexName indexName = IndexName.parse(p);
             if (indexName.isVersioned && checkIsActive) {

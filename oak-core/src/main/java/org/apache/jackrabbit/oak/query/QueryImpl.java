@@ -128,17 +128,17 @@ public class QueryImpl implements Query {
 
     SourceImpl source;
     private String statement;
-    final HashMap<String, PropertyValue> bindVariableMap = new HashMap<String, PropertyValue>();
+    final HashMap<String, PropertyValue> bindVariableMap = new HashMap<>();
     
     /**
      * The map of indexes (each selector uses one index)
      */
-    final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
+    final HashMap<String, Integer> selectorIndexes = new HashMap<>();
     
     /**
      * The list of selectors of this query. For a join, there can be multiple selectors.
      */
-    final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
+    final ArrayList<SelectorImpl> selectors = new ArrayList<>();
     
     ConstraintImpl constraint;
 
@@ -603,7 +603,7 @@ public class QueryImpl implements Query {
                                     .replaceFirst("(?i)\\bexplain\\s+", ""))
                     },
                     null, null);
-            return Arrays.asList(r).iterator();
+            return List.of(r).iterator();
         }
         if (LOG.isDebugEnabled()) {
             logDebug("query execute " + statement);
@@ -731,13 +731,13 @@ public class QueryImpl implements Query {
 
         // use a greedy algorithm
         SourceImpl result = null;
-        Set<SourceImpl> available = new HashSet<SourceImpl>();
+        Set<SourceImpl> available = new HashSet<>();
         // the query is only slow if all possible join orders are slow
         // (in theory, due to using the greedy algorithm, a query might be considered
         // slow even thought there is a plan that doesn't need to use traversal, but
         // only for 3-way and higher joins, and only if traversal is considered very fast)
         boolean isPotentiallySlowJoin = true;
-        while (sources.size() > 0) {
+        while (!sources.isEmpty()) {
             int bestIndex = 0;
             double bestCost = Double.POSITIVE_INFINITY;
             ExecutionPlan bestPlan = null;
@@ -776,10 +776,8 @@ public class QueryImpl implements Query {
             return last;
         }
         List<SourceImpl> selectors = result.getInnerJoinSelectors();
-        Set<SourceImpl> oldSelectors = new HashSet<SourceImpl>();
-        oldSelectors.addAll(selectors);
-        Set<SourceImpl> newSelectors = new HashSet<SourceImpl>();
-        newSelectors.addAll(selectors);
+        Set<SourceImpl> oldSelectors = new HashSet<>(selectors);
+        Set<SourceImpl> newSelectors = new HashSet<>(selectors);
         newSelectors.add(last);
         for (JoinConditionImpl j : conditions) {
             // only join conditions can now be evaluated,
@@ -809,9 +807,9 @@ public class QueryImpl implements Query {
      * query iterator to lazily execute and return counts.
      */
     abstract static class MeasuringIterator extends AbstractIterator<ResultRowImpl> {
-        private Iterator<ResultRowImpl> delegate;
-        private Query query;
-        private List<ResultRowImpl> results;
+        private final Iterator<ResultRowImpl> delegate;
+        private final Query query;
+        private final List<ResultRowImpl> results;
         private boolean init;
 
         MeasuringIterator(Query query, Iterator<ResultRowImpl> delegate) {
@@ -1049,7 +1047,7 @@ public class QueryImpl implements Query {
 
     @Override
     public List<String> getBindVariableNames() {
-        return new ArrayList<String>(bindVariableMap.keySet());
+        return new ArrayList<>(bindVariableMap.keySet());
     }
 
     @Override
@@ -1291,7 +1289,7 @@ public class QueryImpl implements Query {
         if (orderings == null) {
             return null;
         }
-        ArrayList<OrderEntry> sortOrder = new ArrayList<OrderEntry>();
+        ArrayList<OrderEntry> sortOrder = new ArrayList<>();
         for (OrderingImpl o : orderings) {
             DynamicOperandImpl op = o.getOperand();
             OrderEntry e = op.getOrderEntry(filter.getSelector(), o);
@@ -1300,7 +1298,7 @@ public class QueryImpl implements Query {
             }
             sortOrder.add(e);
         }
-        if (sortOrder.size() == 0) {
+        if (sortOrder.isEmpty()) {
             return null;
         }
         return sortOrder;
@@ -1500,7 +1498,7 @@ public class QueryImpl implements Query {
         } else {
             recomputed.append(original.substring(0, origUpper.indexOf(where) + whereOffset));
             recomputed.append(query.getConstraint());
-            if (origUpper.indexOf(orderBy) > -1) {
+            if (origUpper.contains(orderBy)) {
                 recomputed.append(original.substring(origUpper.indexOf(orderBy)));
             }
         }

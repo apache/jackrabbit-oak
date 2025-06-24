@@ -127,7 +127,7 @@ public class LuceneIndexTest {
 
     private NodeBuilder builder = root.builder();
 
-    private Set<File> dirs = new HashSet<>();
+    private final Set<File> dirs = new HashSet<>();
 
     private IndexTracker tracker;
 
