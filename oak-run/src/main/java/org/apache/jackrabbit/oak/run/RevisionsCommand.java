@@ -411,9 +411,7 @@ public class RevisionsCommand implements Command {
                     version);
             System.exit(1);
         }
-        if (options.isEmbeddedVerificationEnabled()) {
-            builder.setEmbeddedVerificationEnabled(true);
-        }
+        builder.setEmbeddedVerificationEnabled(options.isEmbeddedVerificationEnabled());
         // set it read-only before the DocumentNodeStore is created
         // this prevents the DocumentNodeStore from writing a new
         // clusterId to the clusterNodes and nodes collections
@@ -421,19 +419,19 @@ public class RevisionsCommand implements Command {
         useMemoryBlobStore(builder);
         // create a version GC that operates on a read-only DocumentNodeStore
         // and a GC support with a writable DocumentStore
-        System.out.println("DryRun is enabled : " + options.isDryRun());
-        System.out.println("EmbeddedVerification is enabled : " + options.isEmbeddedVerificationEnabled());
+        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
+        System.out.println("DryRun is enabled : " + gc.isFullGCDryRun());
+        System.out.println("EmbeddedVerification is enabled : " + gc.isEmbeddedVerificationEnabled());
         System.out.println("ResetFullGC is enabled : " + options.isResetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
-        System.out.println("IncludePaths are : " + Arrays.toString(options.getIncludePaths()));
-        System.out.println("ExcludePaths are : " + Arrays.toString(options.getExcludePaths()));
-        System.out.println("FullGcMode is : " + options.getFullGcMode());
-        System.out.println("FullGcDelayFactory is : " + options.getFullGcDelayFactor());
-        System.out.println("FullGcBatchSize is : " + options.getFullGcBatchSize());
-        System.out.println("FullGcProgressSize is : " + options.getFullGcProgressSize());
+        System.out.println("IncludePaths are : " + gc.getFullGCIncludePaths());
+        System.out.println("ExcludePaths are : " + gc.getFullGCExcludePaths());
+        System.out.println("FullGcMode is : " + VersionGarbageCollector.getFullGcMode());
+        System.out.println("FullGcDelayFactor is : " + gc.getFullGcDelayFactor());
+        System.out.println("FullGcBatchSize is : " + gc.getFullGcBatchSize());
+        System.out.println("FullGcProgressSize is : " + gc.getFullGcProgressSize());
         System.out.println("FullGcMaxAgeInSecs is : " + options.getFullGcMaxAge());
-        System.out.println("FullGcMaxAgeMillis is : " + builder.getFullGcMaxAgeMillis());
-        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
+        System.out.println("FullGcMaxAgeMillis is : " + gc.getFullGcMaxAgeInMillis());
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
@@ -654,6 +652,7 @@ public class RevisionsCommand implements Command {
         DocumentStore documentStore = builder.getDocumentStore();
         builder.setReadOnlyMode();
         useMemoryBlobStore(builder);
+        builder.setEmbeddedVerificationEnabled(options.isEmbeddedVerificationEnabled());
         DocumentNodeStore documentNodeStore = builder.build();
 
         VersionGarbageCollector gc = bootstrapVGC(options, closer, true);

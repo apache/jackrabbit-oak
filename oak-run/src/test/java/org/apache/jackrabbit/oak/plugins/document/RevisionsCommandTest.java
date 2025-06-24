@@ -195,10 +195,10 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("ResetFullGC is enabled : false\n"));
         assertTrue(output.contains("Compaction is enabled : false\n"));
         assertTrue(output.contains("starting gc collect\n"));
-        assertTrue(output.contains("IncludePaths are : [/]\n"));
+        assertTrue(output.contains("IncludePaths are : []\n"));
         assertTrue(output.contains("ExcludePaths are : []\n"));
-        assertTrue(output.contains("FullGcMode is : 0\n"));
-        assertTrue(output.contains("FullGcDelayFactory is : 2.0\n"));
+        assertTrue(output.contains("FullGcMode is : NONE\n"));
+        assertTrue(output.contains("FullGcDelayFactor is : 2.0\n"));
         assertTrue(output.contains("FullGcBatchSize is : 1000\n"));
         assertTrue(output.contains("FullGcProgressSize is : 10000\n"));
         assertTrue(output.contains("FullGcMaxAgeInSecs is : 86400\n"));
@@ -220,7 +220,7 @@ public class RevisionsCommandTest {
         ns.dispose();
 
         String output = captureSystemOut(new RevisionsCmd("fullGC", "--fullGcDelayFactor", "2.5", "--entireRepo"));
-        assertTrue(output.contains("FullGcDelayFactory is : 2.5\n"));
+        assertTrue(output.contains("FullGcDelayFactor is : 2.5\n"));
         assertTrue(output.contains("starting gc collect"));
     }
 
@@ -251,7 +251,19 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("ResetFullGC is enabled : false"));
         assertTrue(output.contains("Compaction is enabled : false"));
         assertTrue(output.contains("starting gc collect"));
-        assertTrue(output.contains("FullGcMode is : 3"));
+        assertTrue(output.contains("FullGcMode is : GAP_ORPHANS_EMPTYPROPS"));
+    }
+
+    @Test
+    public void fullGCWithModeAllOrphans() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo", "--fullGcMode", "4"));
+        assertTrue(output.contains("DryRun is enabled : true"));
+        assertTrue(output.contains("ResetFullGC is enabled : false"));
+        assertTrue(output.contains("Compaction is enabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+        assertTrue(output.contains("FullGcMode is : ALL_ORPHANS_EMPTYPROPS"));
     }
 
     @Test
