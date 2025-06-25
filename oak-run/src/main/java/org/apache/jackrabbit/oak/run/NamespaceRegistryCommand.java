@@ -56,26 +56,25 @@ public class NamespaceRegistryCommand implements Command {
     public static final String NAME = "namespace-registry";
 
     private static final Logger LOG = LoggerFactory.getLogger(NamespaceRegistryCommand.class);
-    private final String SUMMARY = "Provides commands to analyse the integrity of the namespace registry and repair it if necessary.";
+    private static final String SUMMARY = "Provides commands to analyse the integrity of the namespace registry and repair it if necessary.";
 
-    private OptionParser parser = new OptionParser();
-    private NamespaceRegistryOptions namespaceRegistryOpts;
+    private final OptionParser parser = new OptionParser();
 
     @Override
     public void execute(String... args) throws Exception {
 
         Options opts = getOptions(args);
-        namespaceRegistryOpts = opts.getOptionBean(NamespaceRegistryOptions.class);
+        NamespaceRegistryOptions namespaceRegistryOpts = opts.getOptionBean(NamespaceRegistryOptions.class);
 
         try (Closer closer = Utils.createCloserWithShutdownHook()) {
 
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
             closer.register(fixture);
 
-            if (!checkParameters(namespaceRegistryOpts, opts, fixture)) {
+            if (!checkParameters(namespaceRegistryOpts, fixture)) {
                 return;
             }
-            doExecute(fixture, namespaceRegistryOpts, opts, closer);
+            doExecute(fixture, namespaceRegistryOpts);
         } catch (Throwable e) {
             LOG.error("Error occurred while performing namespace registry operation", e);
             e.printStackTrace(System.err);
@@ -92,10 +91,8 @@ public class NamespaceRegistryCommand implements Command {
         return opts;
     }
 
-    private boolean checkParameters(NamespaceRegistryOptions namespaceRegistryOptions,
-                                           Options opts,
-                                           NodeStoreFixture fixture) throws IOException {
-
+    private boolean checkParameters(NamespaceRegistryOptions namespaceRegistryOptions, NodeStoreFixture fixture)
+            throws IOException {
         if (!namespaceRegistryOptions.anyActionSelected()) {
             LOG.info("No actions specified");
             parser.printHelpOn(System.out);
@@ -108,7 +105,7 @@ public class NamespaceRegistryCommand implements Command {
         return true;
     }
 
-    private void doExecute(NodeStoreFixture fixture, NamespaceRegistryOptions namespaceRegistryOptions, Options opts, Closer closer)
+    private void doExecute(NodeStoreFixture fixture, NamespaceRegistryOptions namespaceRegistryOptions)
             throws Exception {
 
         boolean analyse = namespaceRegistryOptions.analyse();
