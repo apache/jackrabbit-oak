@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import org.apache.commons.math3.util.Precision;
 import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -33,7 +34,6 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.apache.jackrabbit.guava.common.math.DoubleMath.fuzzyEquals;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.abs;
 import static java.lang.Math.ceil;
@@ -100,7 +100,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdater implements Closeable {
         final BsonTimestamp startTime = first.get(TS_TIME, BsonTimestamp.class);
         final BsonTimestamp lastTime = last.get(TS_TIME, BsonTimestamp.class);
 
-        if (Objects.equals(startTime, lastTime) || fuzzyEquals(usedSize, 0, 0.00001)) {
+        if (Objects.equals(startTime, lastTime) || Precision.equals(usedSize, 0, 0.00001)) {
             return MAX_VALUE;
         }
         long timeDiffSec = abs(lastTime.getTime() - startTime.getTime());

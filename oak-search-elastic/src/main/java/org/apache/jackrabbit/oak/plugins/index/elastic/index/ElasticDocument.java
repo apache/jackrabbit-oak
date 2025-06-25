@@ -52,6 +52,8 @@ public class ElasticDocument {
     public final Set<Map<String, String>> suggest;
     @JsonProperty(FieldNames.SPELLCHECK)
     public final Set<String> spellcheck;
+    @JsonProperty(FieldNames.NULL_PROPS)
+    public final Set<String> nullProperties;
     @JsonProperty(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT)
     public final Set<String> dbFullText;
     @JsonProperty(ElasticIndexDefinition.SIMILARITY_TAGS)
@@ -79,6 +81,7 @@ public class ElasticDocument {
         this.fulltext = new LinkedHashSet<>();
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();
+        this.nullProperties = new LinkedHashSet<>();
         this.properties = new HashMap<>();
         this.dynamicProperties = new ArrayList<>();
         this.dbFullText = new LinkedHashSet<>();
@@ -122,6 +125,10 @@ public class ElasticDocument {
 
     void addSpellcheck(String value) {
         spellcheck.add(value);
+    }
+
+    void addNullProperty(String fieldName) {
+        nullProperties.add(fieldName);
     }
 
     // ES for String values (that are not interpreted as date or numbers etc.) would analyze in the same

@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import org.apache.commons.math3.util.Precision;
 import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.math.DoubleMath.fuzzyCompare;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 
@@ -78,13 +78,13 @@ public final class MongoThrottlerFactory {
             final double oplogWindow = this.oplogWindow.doubleValue();
             long throttleTime = throttlingTime;
 
-            if (fuzzyCompare(oplogWindow,threshold/8,  0.001) <= 0) {
+            if (Precision.compareTo(oplogWindow,threshold/8,  0.001) <= 0) {
                 throttleTime = throttleTime * 8;
-            } else if (fuzzyCompare(oplogWindow,threshold/4, 0.001) <= 0) {
+            } else if (Precision.compareTo(oplogWindow,threshold/4, 0.001) <= 0) {
                 throttleTime = throttleTime * 4;
-            } else if (fuzzyCompare(oplogWindow, threshold/2, 0.001) <= 0) {
+            } else if (Precision.compareTo(oplogWindow, threshold/2, 0.001) <= 0) {
                 throttleTime = throttleTime * 2;
-            } else if (fuzzyCompare(oplogWindow, threshold,0.001) <= 0) {
+            } else if (Precision.compareTo(oplogWindow, threshold,0.001) <= 0) {
                 throttleTime = throttlingTime;
             } else {
                 throttleTime = 0;
