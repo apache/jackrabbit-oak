@@ -130,9 +130,8 @@ public class LuceneIndexEditorProviderTest {
     }
 
     private CommitInfo newCommitInfo() {
-        CommitInfo info = new CommitInfo("admin", "s1",
+        return new CommitInfo("admin", "s1",
                 Map.of(CommitContext.NAME, new SimpleCommitContext()));
-        return info;
     }
 
     private static class TestCallback implements IndexUpdateCallback, IndexingContext, ContextAwareCallback {
