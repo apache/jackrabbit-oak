@@ -586,7 +586,7 @@ public class LuceneIndexPlannerCommonTest extends IndexPlannerCommonTest {
         planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
         plan = planner.getPlan();
 
-        //Because path transormation comes into play only when direct prop defs don't match
+        //Because path transformation comes into play only when direct prop defs don't match
         assertEquals(documentsPerValue(numOfDocs), plan.getEstimatedEntryCount());
 
         filter = createFilter("nt:base");
