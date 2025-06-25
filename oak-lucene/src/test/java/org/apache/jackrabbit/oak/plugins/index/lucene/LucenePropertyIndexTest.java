@@ -315,7 +315,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     public void declaringNodeTypeSameProp() throws Exception {
         createIndex("test1", Set.of("propa"));
 
-        Tree indexWithType = createIndex("test2", Set.of("propa"));
+        Tree indexWithType = createIndex("atest2", Set.of("propa"));
         indexWithType.setProperty(PropertyStates
                 .createProperty(DECLARING_NODE_TYPES, Set.of("nt:unstructured"),
                         Type.STRINGS));
@@ -337,12 +337,40 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String propabQuery = "select [jcr:path] from [nt:unstructured] where [propa] = 'foo'";
-        assertThat(explain(propabQuery), containsString("lucene:test2"));
+        assertThat(explain(propabQuery), containsString("lucene:atest2"));
         assertQuery(propabQuery, List.of("/test/a", "/test/b"));
 
         String propcdQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo'";
         assertThat(explain(propcdQuery), containsString("lucene:test1"));
         assertQuery(propcdQuery, List.of("/test/a", "/test/b", "/test/c", "/test/d"));
+    }
+
+
+    @Test
+    public void selectLowerAlphabeticOrderWhenSameCost() throws Exception {
+        createIndex("test3", Set.of("propa"));
+        createIndex("test1", Set.of("propa"));
+        createIndex("test2", Set.of("propa"));
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        root.commit();
+
+        Tree a = test.addChild("a");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("propa", "foo");
+        Tree b = test.addChild("b");
+        b.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        b.setProperty("propa", "foo");
+
+        test.addChild("c").setProperty("propa", "foo");
+        test.addChild("d").setProperty("propa", "foo");
+
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [nt:unstructured] where [propa] = 'foo'";
+        assertThat(explain(propabQuery), containsString("lucene:test1"));
+        assertQuery(propabQuery, List.of("/test/a", "/test/b"));
     }
 
     @Test

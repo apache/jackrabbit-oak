@@ -35,12 +35,12 @@ import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 
 public class LuceneIndexLookupTest {
-    private NodeState root = INITIAL_CONTENT;
+    private final NodeState root = INITIAL_CONTENT;
 
-    private NodeBuilder builder = root.builder();
+    private final NodeBuilder builder = root.builder();
 
     @Test
-    public void collectPathOnRootNode() throws Exception{
+    public void collectPathOnRootNode() {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLuceneIndexDefinition(index, "l1", Set.of(TYPENAME_STRING));
         newLuceneIndexDefinition(index, "l2", Set.of(TYPENAME_STRING));
@@ -53,7 +53,7 @@ public class LuceneIndexLookupTest {
     }
 
     @Test
-    public void collectPathOnSubNode() throws Exception{
+    public void collectPathOnSubNode() {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLuceneIndexDefinition(index, "l1", Set.of(TYPENAME_STRING));
 

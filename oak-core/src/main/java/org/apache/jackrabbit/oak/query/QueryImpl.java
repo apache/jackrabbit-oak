@@ -1130,7 +1130,8 @@ public class QueryImpl implements Query {
                         String msg = String.format("cost for [%s] of type (%s) with plan [%s] is %1.2f", p.getPlanName(), indexName, plan, c);
                         logDebug(msg);
                     }
-                    if (c < bestCost) {
+                    // In case of cost being the same, chose the index with the lowest name by alphabetic order
+                    if (c < bestCost || (c == bestCost && bestPlan != null && p.getPlanName().compareTo(bestPlan.getPlanName()) < 0 )) {
                         almostBestCost = bestCost;
                         almostBestIndex = bestIndex;
                         almostBestPlan = bestPlan;
