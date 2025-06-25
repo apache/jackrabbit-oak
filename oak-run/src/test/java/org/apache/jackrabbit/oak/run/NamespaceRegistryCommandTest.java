@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -43,11 +43,11 @@ import static org.junit.Assume.assumeTrue;
  */
 public class NamespaceRegistryCommandTest {
 
-    private static final NamespaceRegistryCommand cmd = new NamespaceRegistryCommand();
-    private static DocumentNodeStore store;
+    private final NamespaceRegistryCommand cmd = new NamespaceRegistryCommand();
+    private DocumentNodeStore store;
 
-    @BeforeClass
-    public static void beforeClass() throws CommitFailedException {
+    @Before
+    public void before() throws CommitFailedException {
         assumeTrue(MongoUtils.isAvailable());
         try {
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(cmd.getOptions(MongoUtils.URL, "--fix", "--read-write"));
@@ -82,6 +82,8 @@ public class NamespaceRegistryCommandTest {
         namespaces.setProperty("foo", "urn:foo");
         store.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store.runBackgroundOperations();
+        testCmd(new String[] { MongoUtils.URL, "--analyse" }, new String[] { "This namespace registry model is inconsistent. The inconsistency can be fixed.", "The repaired registry would contain the following mappings:", "foo -> urn:foo" });
+        testCmd(new String[] { MongoUtils.URL, "--fix", "--read-write" }, new String[] { "This namespace registry model is consistent, containing the following mappings from prefixes to namespace uris:", "foo -> urn:foo" });
     }
 
     @Test
