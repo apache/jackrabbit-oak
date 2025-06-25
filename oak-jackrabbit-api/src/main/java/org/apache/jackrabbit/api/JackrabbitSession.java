@@ -31,7 +31,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -313,9 +316,32 @@ public interface JackrabbitSession extends Session {
      * Returns the set of principals associated with this session.
      * @return the set of principals associated with this session.
      * @throws RepositoryException in case principal information cannot be retrieved.
-     * @since 1.82
+     * @throws IllegalStateException if user information is not available or if the user is a system user.
+     * @since 1.81
      */
-    @NotNull Set<Principal> getPrincipals() throws RepositoryException;
+    @NotNull default Set<Principal> getPrincipals() throws RepositoryException {
+        String userId = getUserID();
+        if (userId == null) {
+            throw new IllegalStateException("No user ID associated with this session.");
+        }
 
+        Authorizable authorizable = getUserManager().getAuthorizable(userId);
+        if (authorizable == null) {
+            throw new IllegalStateException("No authorizable found for user ID: " + userId);
+        }
+        
+        if (!authorizable.isGroup() && ((User) authorizable).isSystemUser()) {
+            throw new IllegalStateException("Unable to calculate effective set of principals for system user " + userId);
+        }
+        
+        Principal userPrincipal = authorizable.getPrincipal();
+        Set<Principal> principals = new java.util.HashSet<>();
+        principals.add(userPrincipal);
+        PrincipalIterator iterator =  getPrincipalManager().getGroupMembership(userPrincipal);
+        while (iterator.hasNext()) {
+            principals.add(iterator.nextPrincipal());
+        }
+        return principals;
+    }
 }
 
