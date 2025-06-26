@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.api;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Set;
 
 import javax.jcr.AccessDeniedException;
@@ -312,7 +313,7 @@ public interface JackrabbitSession extends Session {
 
     /**
      * Returns the set of principals associated with this session.
-     * @return the set of principals associated with this session.
+     * @return the set of principals associated with this session. Usually this set is unmodifiable.
      * @throws RepositoryException in case principal information cannot be retrieved.
      * @throws IllegalStateException if user information is not available or if the user is a system user.
      * @since 1.84
@@ -339,7 +340,7 @@ public interface JackrabbitSession extends Session {
         while (iterator.hasNext()) {
             principals.add(iterator.nextPrincipal());
         }
-        return principals;
+        return Collections.unmodifiableSet(principals);
     }
 }
 
