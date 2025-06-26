@@ -25,10 +25,8 @@ import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.Session;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
@@ -317,7 +315,7 @@ public interface JackrabbitSession extends Session {
      * @return the set of principals associated with this session.
      * @throws RepositoryException in case principal information cannot be retrieved.
      * @throws IllegalStateException if user information is not available or if the user is a system user.
-     * @since 1.81
+     * @since 1.82
      */
     @NotNull default Set<Principal> getPrincipals() throws RepositoryException {
         String userId = getUserID();

@@ -87,7 +87,6 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         }
     }
 
-<<<<<<< Upstream, based on trunk
     public void testGetExpandedName() throws RepositoryException {
         // empty namespace uri
         assertEquals("{}testroot", s.getExpandedName(testRootNode));
@@ -134,7 +133,8 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         // now remap namespace uri - should not affect expanded name
         s.setNamespacePrefix("test", "urn:foo");
         assertEquals("/{}testroot/{http://www.apache.org/jackrabbit/test}bar/{internal}bar", s.getExpandedPath(n));
-=======
+    }
+
     public void testGetPrincipalsForAdminSession() throws RepositoryException {
         Set<Principal> principals = s.getPrincipals();
         assertNotNull(principals);
@@ -152,6 +152,5 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         } finally {
             guest.logout();
         }
->>>>>>> fc756c5 OAK-11498: Expose Session-bound principals via JackrabbitSession
     }
 }
