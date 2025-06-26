@@ -288,7 +288,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public Object getAttribute(String name) {
         if (RepositoryImpl.BOUND_PRINCIPALS.equals(name)) {
-            return sd.getAuthInfo().getPrincipals();
+            return internalGetBoundPrincipals();
         }
         Object attribute = sd.getAuthInfo().getAttribute(name);
         if (attribute == null) {
@@ -848,7 +848,12 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     @NotNull
-    public Set<Principal> getPrincipals() throws RepositoryException {
+    public Set<Principal> getBoundPrincipals() throws RepositoryException {
+        return internalGetBoundPrincipals();
+    }
+
+    @NotNull
+    private Set<Principal> internalGetBoundPrincipals() {
         return sd.getAuthInfo().getPrincipals();
     }
 

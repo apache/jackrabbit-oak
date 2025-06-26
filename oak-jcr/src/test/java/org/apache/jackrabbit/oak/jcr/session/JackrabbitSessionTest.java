@@ -136,7 +136,7 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
     }
 
     public void testGetPrincipalsForAdminSession() throws RepositoryException {
-        Set<Principal> principals = s.getPrincipals();
+        Set<Principal> principals = s.getBoundPrincipals();
         assertNotNull(principals);
         assertTrue("Admin principal expected", principals.contains(s.getPrincipalManager().getPrincipal("admin")));
         assertTrue("Everyone principal expected", principals.contains(s.getPrincipalManager().getEveryone()));
@@ -145,7 +145,7 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
     public void testGetPrincipalsForGuestSession() throws RepositoryException {
         JackrabbitSession guest = (JackrabbitSession) getHelper().getRepository().login(new GuestCredentials());
         try {
-            Set<Principal> principals = guest.getPrincipals();
+            Set<Principal> principals = guest.getBoundPrincipals();
             assertNotNull(principals);
             assertFalse("Admin principal not expected", principals.contains(s.getPrincipalManager().getPrincipal("admin")));
             assertTrue("Everyone principal expected", principals.contains(s.getPrincipalManager().getEveryone()));

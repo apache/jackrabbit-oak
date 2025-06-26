@@ -315,9 +315,9 @@ public interface JackrabbitSession extends Session {
      * @return the set of principals associated with this session.
      * @throws RepositoryException in case principal information cannot be retrieved.
      * @throws IllegalStateException if user information is not available or if the user is a system user.
-     * @since 1.82
+     * @since 1.84
      */
-    @NotNull default Set<Principal> getPrincipals() throws RepositoryException {
+    @NotNull default Set<Principal> getBoundPrincipals() throws RepositoryException {
         String userId = getUserID();
         if (userId == null) {
             throw new IllegalStateException("No user ID associated with this session.");
