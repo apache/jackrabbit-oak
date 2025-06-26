@@ -204,7 +204,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
     private static final BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
     private static final BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
-    private static final DateTimeFormatter MODIFIED_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("GMT"));
+    private static final DateTimeFormatter MODIFIED_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"));
 
     static final String THREAD_NAME_PREFIX = "mongo-dump";
 
