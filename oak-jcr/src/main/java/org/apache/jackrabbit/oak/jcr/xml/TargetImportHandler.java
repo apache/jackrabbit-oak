@@ -59,7 +59,6 @@ public abstract class TargetImportHandler extends DefaultHandler {
     @Override
     public void startPrefixMapping(String prefix, String uri) throws SAXException {
         documentContext.put(prefix, uri);
-        documentPrefixMap = createCurrentPrefixMap();
     }
 
     @Override
@@ -68,7 +67,6 @@ public abstract class TargetImportHandler extends DefaultHandler {
         if (!uris.isEmpty()) {
             uris.remove(uris.size() - 1);
         }
-        documentPrefixMap = createCurrentPrefixMap();
     }
 
     /**
@@ -107,6 +105,7 @@ public abstract class TargetImportHandler extends DefaultHandler {
     //--------------------------------------------------------
 
     public NamePathMapper currentNamePathMapper() {
+        documentPrefixMap = createCurrentPrefixMap();
         return new NamePathMapperImpl(new LocalNameMapper(
                 sessionContext.getSessionDelegate().getRoot(),
                 documentPrefixMap));
