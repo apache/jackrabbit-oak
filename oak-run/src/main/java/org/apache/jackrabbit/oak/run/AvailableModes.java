@@ -82,7 +82,6 @@ public final class AvailableModes {
         builder.put("server", new ServerCommand());
         builder.put("purge-index-versions", new LucenePurgeOldIndexVersionCommand());
         builder.put("create-test-garbage", new CreateGarbageCommand());
-        builder.put("namespace-registry", new NamespaceRegistryCommand());
 
         return Collections.unmodifiableMap(builder);
     }

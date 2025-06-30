@@ -63,7 +63,6 @@ Improvement
 Task
 
     [OAK-11346] - remove oak-solr
-    [OAK-11617] - Provide oak-run commands to analyze and fix inconsistencies in the namespace registry
     [OAK-11702] - Update commons-codec dependency to 1.18.0
     [OAK-11730] - Bump elasticsearch version to 8.18.1 / lucene 9.12.1
     [OAK-11732] - Fix oak-segment-azure create persistence with service principals
