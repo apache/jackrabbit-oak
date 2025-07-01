@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.80.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.82.0
 
 Introduction
 ------------
@@ -7,119 +7,72 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.80.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.82.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.80.0 compiles and tests successfully on Java 24.
+While Oak 1.82.0 compiles and tests successfully on Java 24.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.80.0
+Changes in Oak 1.82.0
 ---------------------
-
-Sub-task
-
-    [OAK-11696] - remove (shaded) Guava common.io package
 
 Technical task
 
-    [OAK-11473] - Remove usage of Guava ImmutableSet (again)
-    [OAK-11585] - Add Iterators.contains replacement in IteratorUtils
-    [OAK-11587] - Add Iterators.asEnumeration replacement in IteratorUtils
-    [OAK-11588] - Add Iterators.toArray replacement in IteratorUtils
-    [OAK-11590] - Remove usage of Iterators.getLast()
-    [OAK-11591] - Remove usage of Iterators.contains()
-    [OAK-11592] - Remove usage of Iterators.asEnumeration()
-    [OAK-11593] - Remove usage of Iterators.toArray()
-    [OAK-11612] - Remove usage of Sets.union [2]
-    [OAK-11618] - Remove usage of Guava Stopwatch
-    [OAK-11620] - Create replacement for Guava Stopwatch
-    [OAK-11621] - Reduce usage of Guava Ticker
-    [OAK-11640] - Remove usage of Guava ImmutableSet.Builder
-    [OAK-11646] - Remove usage of Guava ImmutableSet.of
-    [OAK-11652] - Remove usage of Guava Iterators.forArray
-    [OAK-11654] - Remove usage of Guava Suppliers.ofInstance
-    [OAK-11663] - Remove usage of Guava Iterators.filter()
-    [OAK-11664] - Remove usage of Guava Iterators.transform()
-    [OAK-11665] - Remove usage of Guava Iterators.singletonIterator()
-    [OAK-11666] - Remove usage of Guava Iterators.concat()
-    [OAK-11668] - Remove usage of Guava Iterators.mergeSorted()
-    [OAK-11669] - Add Iterators.concat() replacement in IteratorUtils
-    [OAK-11674] - Add Iterators.filter() replacement in IteratorUtils
-    [OAK-11676] - Add Iterators.transform() replacement in IteratorUtils
-    [OAK-11677] - Remove usage of Guava Iterators.elementsEqual()
-    [OAK-11678] - Remove usage of Guava Iterators.cycle()
-    [OAK-11680] - Add Iterators.cycle() replacement in IteratorUtils
-    [OAK-11688] - Remove usage of Guava Iterators.getOnlyElement()
-    [OAK-11689] - Remove usage of Guava Iterators.addAll()
-    [OAK-11690] - Remove usage of Guava Iterators.partition()
-    [OAK-11691] - Add Iterators.partition() replacement in IteratorUtils
-    [OAK-11705] - Remove usage of Guava Iterators.asEnumeration()
-    [OAK-11706] - Add Iterators.limit() replacement in IteratorUtils
-    [OAK-11707] - Remove usage of Guava Iterators.limit()
+    [OAK-11667] - Remove usage of Guava Iterators.peekingIterator()
+    [OAK-11740] - Remove Guava Iterators imports
+    [OAK-11742] - Remove usage of Guava Ordering
+    [OAK-11744] - Remove usage of Guava ImmutableList
+    [OAK-11747] - Remove usage of Guava ComparisonChain
+    [OAK-11748] - Remove usage of Guava Escapers
+    [OAK-11751] - Remove usage of Guava Sets
+    [OAK-11752] - Remove usage of Guava's Lists.transform()
+    [OAK-11754] - Remove usage of Guava HashMultimap
+    [OAK-11762] - Remove usage of Throwables.getStackTraceAsString
+    [OAK-11763] - Remove usage of Guava Throwables.getRootCause(e)
+    [OAK-11769] - Remove usage of Guava's DoubleMath.fuzzyCompare
+    [OAK-11770] - Remove usage of Guava's DoubleMath.fuzzyEquals
 
 Bug
 
-    [OAK-9584] - JCR methods only support qualified names but not expanded names for namespace prefix "rep:".
-    [OAK-11452] - Expose FullGC OSGi config via metrics
-    [OAK-11634] - Add Osgi config for FullGC generation value
-    [OAK-11639] - oak-run-commons: IncrementalFlatFileStoreStrategy uses com.google.common classes (instead of shaded ones)
-    [OAK-11673] - Oak-segment-azure v12 CPU increase caused by refreshLease
-    [OAK-11685] - Reduce log level for MongoFullGcNodeBin class
-    [OAK-11695] - Elasticsearch queries might produce inconsistent results
-    [OAK-11704] - Update Mockito dependency to 5.17.0
-    [OAK-11719] - vector query should not break normal query
-
-Epic
-
-    [OAK-11703] - Oak should compile & test on Java 24
-
-Story
-
-    [OAK-11671] - [full-gc] Persist the avg object size and avg size of props per document in Mongo settings
-
-New Feature
-
-    [OAK-11720] - Put the usage of exclusive merge lock for large transactions behind a FeatureToggle/OSGI config
+    [OAK-11657] - JackrabbitSession.getExpandedName/Path need to return stable expanded names, getExpandedName needs to fail for broken namespace names
+    [OAK-11736] - Occasional failures in ElasticIndexQueryCommonTest.repSimilarAsNativeQuery
+    [OAK-11743] - Filters only work inside knn query, So filters should be moved to knn query also.
+    [OAK-11757] - Implement similarityThreshold for inference
+    [OAK-11759] - Repo lock cannot be acquired if repo.lock blob is already present
+    [OAK-11764] - Query planner: when multiple indexes have same cost, planner should choose index deterministically
+    [OAK-11765] - BulkProcessor unable to insert after a failure
+    [OAK-11777] - Fix flaky test
 
 Improvement
 
-    [OAK-11545] - oak-search-elastic: implement bulk processor pool to optimize indexing
-    [OAK-11607] - Node.getNodes() not lazy for orderable nodetypes
-    [OAK-11638] - Elastic: ignore standard token filter configurations
-    [OAK-11655] - Do not create redundant instances of ElasticBulkProcessorHandler
-    [OAK-11658] - Indexing job: fix "jcr:uuid" issue
-    [OAK-11687] - DataStore FileCache Memory Usage
-    [OAK-11692] - Add inference config in oak.
-    [OAK-11693] - Parse inference query and extract out inference config and text query
-    [OAK-11694] - Implement inference in oak-search-elastic
-    [OAK-11709] - Merging index definitions: merge "tags" and override "type", "async"
-    [OAK-11721] - experimental and inferenceConfig implementation should be backward compatible
-    [OAK-11722] - Donot read compatibility system property in VectorQuery for each query
+    [OAK-11712] - oak-search-elastic: :path does not need to be stored with index=true
+    [OAK-11734] - Update inferenceConfigTest to check status is updated properly
+    [OAK-11735] - Index merge: merge aggregation definitions
+    [OAK-11739] - Reduce logging verbosity in DefaultIndexWriter when creating writers
+    [OAK-11746] - Bump testcontainers to v1.21.1 / toxiproxy 2.12.0
+    [OAK-11750] - Add flag to enable/disable inference stats collection
+    [OAK-11766] - Write Throttling Mechanism - Session.save() delay
+    [OAK-11767] - Use "suffixesToSkip" for indexing with the index store
+    [OAK-11768] - Repository on read-only NodeStore
+    [OAK-11775] - oak-search-elastic: improve (not) NullCheckEnabled
 
 Task
 
-    [OAK-11572] - Add api(s) in IteratorUtils to remove guava Iterators usage
-    [OAK-11609] - Add Prometheus metrics export via pushgateway to RevisionsCommand (oak-run)
-    [OAK-11622] - Clock improvements
-    [OAK-11625] - Move o.a.j.o.plugins.bundlor.BundlingConfigInitializer to a suitable API package and export that package.
-    [OAK-11642] - oak-segment-tar uses unmaintained concurrentlinkedhashmap-lru
-    [OAK-11643] - Update (shaded) Guava to 33.4.7
-    [OAK-11650] - Fix Javadoc errors
-    [OAK-11675] - Clean oak-segment-azure lib exporting
-    [OAK-11681] - Clean oak-segment-azure lib exporting
-    [OAK-11684] - Send fullGC metrics to Prometheus pushgateway on each garbage collection iteration
-    [OAK-11698] - webapp: update Tomcat dependency to 9.0.104
-    [OAK-11699] - Update commons-collections4 to 4.5.0
-    [OAK-11700] - Update (shaded) Guava to 33.4.8
-    [OAK-11701] - Upgrade jackson-databind dependency to 2.17.3
-    [OAK-11708] - Update Easymock dependency to 5.5
-    [OAK-11710] - Update jacoco plugin to 0.8.13
-    [OAK-11714] - Add jmx to expose inferenceConfig
-    [OAK-11716] - Capture inference service stats
+    [OAK-11346] - remove oak-solr
+    [OAK-11702] - Update commons-codec dependency to 1.18.0
+    [OAK-11730] - Bump elasticsearch version to 8.18.1 / lucene 9.12.1
+    [OAK-11732] - Fix oak-segment-azure create persistence with service principals
+    [OAK-11737] - FullGC can't disable embeddedVerification when executed via oak-run command
+    [OAK-11745] - examples: update commons-beanutils to version 1.11.0
+    [OAK-11749] - update Tomcat dependency to 9.0.106
+    [OAK-11758] - RDBMK: update PostgreSQL driver to version 42.7.7
+    [OAK-11760] - remove dead code in AzureSegmentStoreV8
+    [OAK-11761] - remove unused package exports from segment-azure
+    [OAK-11772] - Prevent fullGC checkpoint data from being updated in MongoDB when fullGCEnabled = false
 
 
 In addition to the above-mentioned changes, this release contains all
