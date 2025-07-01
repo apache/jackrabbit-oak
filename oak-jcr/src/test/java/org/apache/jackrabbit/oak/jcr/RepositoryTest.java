@@ -38,6 +38,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,6 +49,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.jcr.Binary;
@@ -2297,6 +2299,87 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 "/", new ByteArrayInputStream(out.toByteArray()), IMPORT_UUID_CREATE_NEW);
         session.save();
         assertEquals("fooValue", session.getProperty("/node/fooProp").getString());
+    }
+
+    // tests DocViewImport with namespace prefixes re-used for different namespace names
+    @Test
+    public void reusedNameSpacePrefixesInDocViewImport() throws Exception {
+        String ns1 = "urn:uuid:" + UUID.randomUUID();
+        String ns2 = "urn:uuid:" + UUID.randomUUID();
+
+        String test =
+                "<a:foo xmlns:a=\"" + ns1 + "\">" +
+                "  <a:qux xmlns:a=\"" + ns2 + "\">" +
+                "    <a:xyz xmlns:a=\"" + ns1 + "\"/>" +
+                "  </a:qux>" +
+                "  <a:bar/>" +
+                "</a:foo>";
+
+        Session session = getAdminSession();
+        session.getWorkspace().importXML(
+                "/", new ByteArrayInputStream(test.getBytes(StandardCharsets.UTF_8)), IMPORT_UUID_CREATE_NEW);
+        session.save();
+
+        String pref1 = session.getNamespacePrefix(ns1);
+        String pref2 = session.getNamespacePrefix(ns2);
+        assertFalse("prefixes should be different - " + pref1 + " vs " + pref2, pref1.equals(pref2));
+
+        Node nPrefFoo = session.getNode("/" + pref1 + ":foo");
+        Node nExpFoo = session.getNode("/{" + ns1 + "}foo");
+        assertTrue(nPrefFoo.isSame(nExpFoo));
+
+        Node nPrefQux = nPrefFoo.getNode(pref2 + ":qux");
+        Node nExpQux = nExpFoo.getNode("{" + ns2 + "}qux");
+        assertTrue(nPrefQux.isSame(nExpQux));
+
+        Node nPrefXyz = nPrefQux.getNode(pref1 + ":xyz");
+        Node nExpXyz = nExpQux.getNode("{" + ns1 + "}xyz");
+        assertTrue(nPrefXyz.isSame(nExpXyz));
+
+        Node nPrefBar = nPrefFoo.getNode( pref1 + ":" + "bar");
+        Node nExpBar = nExpFoo.getNode("{" + ns1 + "}bar");
+        assertTrue(nPrefBar.isSame(nExpBar));
+    }
+
+    // tests DocViewImport with no namespace prefixes
+    @Ignore("OAK-11783")
+    @Test
+    public void noNameSpacePrefixesInDocViewImport() throws Exception {
+        String ns1 = "urn:uuid:" + UUID.randomUUID();
+        String ns2 = "urn:uuid:" + UUID.randomUUID();
+
+        String test =
+                "<foo xmlns=\"" + ns1 + "\">" +
+                "  <qux xmlns=\"" + ns2 + "\">" +
+                "    <xyz xmlns=\"" + ns1 + "\"/>" +
+                "  </qux>" +
+                "  <bar/>" +
+                "</foo>";
+
+        Session session = getAdminSession();
+        session.getWorkspace().importXML(
+                "/", new ByteArrayInputStream(test.getBytes(StandardCharsets.UTF_8)), IMPORT_UUID_CREATE_NEW);
+        session.save();
+
+        String pref1 = session.getNamespacePrefix(ns1);
+        String pref2 = session.getNamespacePrefix(ns2);
+        assertFalse("prefixes should be different - " + pref1 + " vs " + pref2, pref1.equals(pref2));
+
+        Node nPrefFoo = session.getNode("/" + pref1 + ":foo");
+        Node nExpFoo = session.getNode("/{" + ns1 + "}foo");
+        assertTrue(nPrefFoo.isSame(nExpFoo));
+
+        Node nPrefQux = nPrefFoo.getNode(pref2 + ":qux");
+        Node nExpQux = nExpFoo.getNode("{" + ns2 + "}qux");
+        assertTrue(nPrefQux.isSame(nExpQux));
+
+        Node nPrefXyz = nPrefQux.getNode(pref1 + ":xyz");
+        Node nExpXyz = nExpQux.getNode("{" + ns1 + "}xyz");
+        assertTrue(nPrefXyz.isSame(nExpXyz));
+
+        Node nPrefBar = nPrefFoo.getNode( pref1 + ":" + "bar");
+        Node nExpBar = nExpFoo.getNode("{" + ns1 + "}bar");
+        assertTrue(nPrefBar.isSame(nExpBar));
     }
 
     @Test
