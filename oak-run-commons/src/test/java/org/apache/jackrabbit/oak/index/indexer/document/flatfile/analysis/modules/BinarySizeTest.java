@@ -173,7 +173,7 @@ public class BinarySizeTest {
                 + "total reference count million: 0\n"
                 + "total reference size: 5000000000\n"
                 + "total reference size GiB: 4\n"
-                + "storage size: 0 MB; 15 entries\n"
+                + "storage size: 0 MB; 16 entries\n"
                 + "time: 0 seconds\n"
                 + "\n"
                 + "TopLargestBinaries\n"
