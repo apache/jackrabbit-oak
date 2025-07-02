@@ -26,19 +26,30 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 
+import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Objects;
 
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_URIS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class NamespaceRegistryTest {
 
@@ -55,24 +66,16 @@ public class NamespaceRegistryTest {
                 .with(new NamespaceEditorProvider())
                 .createContentSession()) {
             Root root = session.getLatestRoot();
-            ReadWriteNamespaceRegistry registry = new ReadWriteNamespaceRegistry(root) {
-                @Override
-                protected Root getWriteRoot() {
-                    return session.getLatestRoot();
-                }
-                @Override
-                protected void refresh() {
-                    root.refresh();
-                }
-            };
+            ReadWriteNamespaceRegistry registry = new TestNamespaceRegistry(root);
             Tree namespaces = root.getTree("/jcr:system/rep:namespaces");
             Tree nsdata = namespaces.getChild(REP_NSDATA);
             PropertyState prefixProp = nsdata.getProperty(REP_PREFIXES);
             PropertyState namespaceProp = nsdata.getProperty(REP_URIS);
 
             // Check the initial state of the namespace registry
-            assertTrue(registry.checkConsistency(root));
-            NamespaceRegistryModel model = registry.createNamespaceRegistryModel(root);
+            assertTrue(registry.checkConsistency());
+            NamespaceRegistryModel model = NamespaceRegistryModel.create(root);
+            assertNotNull(model);
             assertTrue(model.isConsistent());
             assertTrue(model.isFixable());
 
@@ -92,7 +95,8 @@ public class NamespaceRegistryTest {
 
             // Now it cannot be fixed automatically
             assertFalse(registry.checkConsistency(root));
-            model = registry.createNamespaceRegistryModel(root);
+            model = NamespaceRegistryModel.create(root);
+            assertNotNull(model);
             assertFalse(model.isConsistent());
             assertFalse(model.isFixable());
 
@@ -123,7 +127,8 @@ public class NamespaceRegistryTest {
 
             // This is inconsistent, but can be fixed automatically
             assertFalse(registry.checkConsistency(root));
-            model = registry.createNamespaceRegistryModel(root);
+            model = NamespaceRegistryModel.create(root);
+            assertNotNull(model);
             assertFalse(model.isConsistent());
             assertTrue(model.isFixable());
 
@@ -152,7 +157,8 @@ public class NamespaceRegistryTest {
 
             // Now it again cannot be fixed automatically
             assertFalse(registry.checkConsistency(root));
-            model = registry.createNamespaceRegistryModel(root);
+            model = NamespaceRegistryModel.create(root);
+            assertNotNull(model);
             assertFalse(model.isConsistent());
             assertFalse(model.isFixable());
 
@@ -169,7 +175,7 @@ public class NamespaceRegistryTest {
 
             // Now it can be fixed automatically again
             assertFalse(registry.checkConsistency(root));
-            model = registry.createNamespaceRegistryModel(root);
+            model = NamespaceRegistryModel.create(root);
             assertFalse(model.isConsistent());
             assertTrue(model.isFixable());
 
@@ -188,7 +194,8 @@ public class NamespaceRegistryTest {
 
             // Can still be fixed automatically
             assertFalse(registry.checkConsistency(root));
-            model = registry.createNamespaceRegistryModel(root);
+            model = NamespaceRegistryModel.create(root);
+            assertNotNull(model);
             assertFalse(model.isConsistent());
             assertTrue(model.isFixable());
 
@@ -207,7 +214,7 @@ public class NamespaceRegistryTest {
 
             // Can still be fixed automatically
             assertFalse(registry.checkConsistency(root));
-            model = registry.createNamespaceRegistryModel(root);
+            model = NamespaceRegistryModel.create(root);
             assertFalse(model.isConsistent());
             assertTrue(model.isFixable());
 
@@ -227,7 +234,8 @@ public class NamespaceRegistryTest {
 
             // Cannot be fixed automatically
             assertFalse(registry.checkConsistency(root));
-            model = registry.createNamespaceRegistryModel(root);
+            model = NamespaceRegistryModel.create(root);
+            assertNotNull(model);
             assertFalse(model.isConsistent());
             assertFalse(model.isFixable());
 
@@ -247,7 +255,7 @@ public class NamespaceRegistryTest {
             assertFalse(registry.checkConsistency(root));
             model.apply(root);
             assertTrue(registry.checkConsistency(root));
-            assertTrue(registry.createNamespaceRegistryModel(root).isConsistent());
+            assertTrue(Objects.requireNonNull(NamespaceRegistryModel.create(root)).isConsistent());
 
             assertEquals(0, model.getDanglingPrefixes().size());
             assertEquals(0, model.getDanglingEncodedNamespaceUris().size());
@@ -258,6 +266,33 @@ public class NamespaceRegistryTest {
             assertEquals("foo", registry.getPrefix("urn:foo2"));
             assertEquals("urn:bar2", registry.getURI("bar2"));
             assertEquals("bar2", registry.getPrefix("urn:bar2"));
+        }
+    }
+
+    @Test
+    public void testConsistencyCheckInvocationCount() throws Exception {
+        Oak oak = new Oak()
+                .with(new OpenSecurityProvider())
+                .with(new InitialContent())
+                .with(new NamespaceEditorProvider());
+        try (ContentSession session = oak.createContentSession()) {
+            Root root = session.getLatestRoot();
+            ReadWriteNamespaceRegistry registry = new TestNamespaceRegistry(root);
+            ReadWriteNamespaceRegistry spy = spy(registry);
+            verify(spy, times(0)).checkConsistency(any(Root.class));
+            new TestNamespaceRegistry(root);
+            verify(spy, times(0)).checkConsistency(any(Root.class));
+        }
+    }
+
+    static class TestNamespaceRegistry extends ReadWriteNamespaceRegistry {
+        public TestNamespaceRegistry(Root root) {
+            super(root);
+        }
+
+        @Override
+        protected Root getWriteRoot() {
+            return root;
         }
     }
 }

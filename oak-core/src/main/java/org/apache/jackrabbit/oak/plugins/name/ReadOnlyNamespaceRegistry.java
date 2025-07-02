@@ -50,14 +50,17 @@ public class ReadOnlyNamespaceRegistry
 
     private static volatile boolean CONSISTENCY_CHECKED;
 
+    protected final Root root;
     protected final Tree namespaces;
     protected final Tree nsdata;
 
     public ReadOnlyNamespaceRegistry(Root root) {
+        this.root = root;
         this.namespaces = root.getTree(NAMESPACES_PATH);
         this.nsdata = namespaces.getChild(REP_NSDATA);
         if (!CONSISTENCY_CHECKED) {
             checkConsistency(root);
+            CONSISTENCY_CHECKED = true;
         }
     }
 
@@ -127,16 +130,15 @@ public class ReadOnlyNamespaceRegistry
                 "No namespace prefix registered for URI " + uri);
     }
 
+    public boolean checkConsistency() throws IllegalStateException {
+        return checkConsistency(root);
+    }
+
     public boolean checkConsistency(Root root) throws IllegalStateException {
-        NamespaceRegistryModel model = createNamespaceRegistryModel(root);
+        NamespaceRegistryModel model = NamespaceRegistryModel.create(root);
         if (model == null) {
             LOG.warn("Consistency check skipped because there is no namespace registry.");
         }
         return model == null || model.isConsistent();
     }
-
-    public NamespaceRegistryModel createNamespaceRegistryModel(Root root) {
-        return NamespaceRegistryModel.create(root);
-    }
-
 }
