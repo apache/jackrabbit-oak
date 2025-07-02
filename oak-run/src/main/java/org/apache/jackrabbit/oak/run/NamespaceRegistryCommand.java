@@ -121,7 +121,7 @@ public class NamespaceRegistryCommand implements Command {
                 }
             };
             if (analyse || fix) {
-                NamespaceRegistryModel registryModel = namespaceRegistry.createNamespaceRegistryModel(root);
+                NamespaceRegistryModel registryModel = NamespaceRegistryModel.create(root);
                 if (fix) {
                     Map<String, String> additionalMappings = new HashMap<>();
                     if (mappings != null) {
