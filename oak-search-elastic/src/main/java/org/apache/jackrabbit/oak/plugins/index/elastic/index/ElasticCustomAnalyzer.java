@@ -24,7 +24,6 @@ import co.elastic.clients.elasticsearch._types.analysis.TokenFilterDefinition;
 import co.elastic.clients.elasticsearch._types.analysis.TokenizerDefinition;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.json.JsonData;
-import org.apache.jackrabbit.guava.common.base.CaseFormat;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -350,7 +349,7 @@ public class ElasticCustomAnalyzer {
         // and take the last part
         String name = anlClassTokens[anlClassTokens.length - 1];
         // all options in elastic are in snake case
-        name = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, name);
+        name = ElasticIndexHelper.convertUpperCamelToLowerUnderscore(name);
         // if it ends with analyzer we need to get rid of it
         if (name.endsWith("_analyzer")) {
             name = name.substring(0, name.length() - "_analyzer".length());

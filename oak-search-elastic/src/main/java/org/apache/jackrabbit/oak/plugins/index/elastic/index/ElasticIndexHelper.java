@@ -408,6 +408,28 @@ class ElasticIndexHelper {
         return typeMapping.properties();
     }
 
+    /**
+     * Convert a String from (upper case) CamelCase to lowercase underscore
+     * @param string
+     * @return converted string (best effort)
+     */
+    protected static String convertUpperCamelToLowerUnderscore(String string) {
+        StringBuilder result = new StringBuilder();
+        for (char c : string.toCharArray()) {
+            // start?
+            if (result.length() == 0) {
+                result.append(Character.toLowerCase(c));
+            } else {
+                if (Character.isUpperCase(c)) {
+                    result.append('_');
+                }
+                result.append(Character.toLowerCase(c));
+            }
+        }
+
+        return result.toString();
+    }
+
     // https://discuss.elastic.co/t/reusing-internal-implementation-to-transform-json-mapping-to-es-mapping/300597/3
 
     /**

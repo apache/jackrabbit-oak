@@ -42,7 +42,6 @@ public class TransformStageStatistics {
     private final BoundedHistogram hiddenPathsRejectedHistogram = new BoundedHistogram("Hidden paths", MAX_HISTOGRAM_SIZE);
     private final BoundedHistogram filteredPathsRejectedHistogram = new BoundedHistogram("Filtered paths", MAX_HISTOGRAM_SIZE);
     private final BoundedHistogram splitDocumentsHistogram = new BoundedHistogram("Split documents", MAX_HISTOGRAM_SIZE);
-    private final BoundedHistogram emptyNodeStateHistogram = new BoundedHistogram("Empty node state", MAX_HISTOGRAM_SIZE);
 
     public long getMongoDocumentsTraversed() {
         return mongoDocumentsTraversed.sum();
@@ -70,10 +69,6 @@ public class TransformStageStatistics {
 
     public BoundedHistogram getSplitDocumentsHistogram() {
         return splitDocumentsHistogram;
-    }
-
-    public BoundedHistogram getEmptyNodeStateHistogram() {
-        return emptyNodeStateHistogram;
     }
 
     public void incrementMongoDocumentsTraversed() {
@@ -104,8 +99,6 @@ public class TransformStageStatistics {
 
     public void addEmptyNodeStateEntry(String mongoDocId) {
         this.documentsRejectedEmptyNodeState.increment();
-        String key = getPathPrefix(mongoDocId, 4);
-        this.emptyNodeStateHistogram.addEntry(key);
     }
 
     public void addRejectedHiddenPath(String path) {
@@ -125,7 +118,6 @@ public class TransformStageStatistics {
         return "TransformStageStatistics{" +
                 "mongoDocumentsProcessed=" + mongoDocumentsTraversed +
                 ", splitDocumentsRejected=" + documentsRejectedSplit +
-                ", emptyNodeStateDocuments=" + documentsRejectedEmptyNodeState +
                 ", entriesAccepted=" + entriesAccepted +
                 ", entriesRejected=" + entriesRejected +
                 ", entriesRejectedHiddenPaths=" + entriesRejectedHiddenPaths +
