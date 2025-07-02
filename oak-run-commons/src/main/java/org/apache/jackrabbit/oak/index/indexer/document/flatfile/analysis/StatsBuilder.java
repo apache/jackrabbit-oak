@@ -90,7 +90,7 @@ public class StatsBuilder {
         collectors.add(new BinarySizeHistogram(1));
         collectors.add(new TopLargestBinaries(10));
         collectors.add(new DistinctBinarySizeHistogram(1));
-        collectors.add(new DistinctBinarySize(32, 128));
+        collectors.add(new DistinctBinarySize(16, 16));
 
         Profiler prof = null;
         if (profiler) {

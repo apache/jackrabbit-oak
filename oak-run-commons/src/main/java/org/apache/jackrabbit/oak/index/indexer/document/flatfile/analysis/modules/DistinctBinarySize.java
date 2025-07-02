@@ -174,7 +174,6 @@ public class DistinctBinarySize implements StatsCollector {
         double fpp = BloomFilter.calculateFpp(smallBinariesEstimatedCount, bloomFilter.getBitCount(), bloomFilter.getK());
         long bloomFilterEstimatedSize = bloomFilterMinSize;
         bloomFilterEstimatedSize += fpp * bloomFilterIgnoredSize;
-        storage.add("small Bloom filter ffp*1000", (long) (fpp * 1000));
         storage.add("small binaries count", smallBinariesEstimatedCount);
         storage.add("small binaries HLL count", smallBinariesEstimatedCountHLL);
         storage.add("small binaries size", bloomFilterEstimatedSize);

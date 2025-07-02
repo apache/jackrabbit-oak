@@ -61,6 +61,7 @@
                       <artifact>*:*</artifact>
                       <excludes>
                           <exclude>com/google/common/annotations/**</exclude>
+                          <exclude>com/google/common/escape/**</exclude>
                           <exclude>com/google/common/eventbus/**</exclude>
                           <exclude>com/google/common/html/**</exclude>
                           <exclude>com/google/common/io/**</exclude>
@@ -99,7 +100,6 @@
               ${pref}.common.base;version="33.5.0",
               ${pref}.common.cache;version="33.4.1";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent",
               ${pref}.common.collect;version="34.0.0";uses:="${pref}.common.base",
-              ${pref}.common.escape;version="33.4.1";uses:="${pref}.common.base",
               ${pref}.common.graph;version="33.4.1";uses:="${pref}.common.collect",
               ${pref}.common.hash;version="33.5.0";uses:="${pref}.common.base",
               ${pref}.common.math;version="33.4.1",
