@@ -21,7 +21,7 @@ import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
 import java.io.Closeable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -83,11 +83,11 @@ public class SessionSaveDelayer implements Closeable {
         RepositoryManagementMBean mbean = getRepositoryMBean();
         if (mbean != null) {
             String jmxConfig = mbean.getSessionSaveDelayerConfig();
-            if (!Strings.isNullOrEmpty(jmxConfig)) {
+            if (!StringUtils.isEmpty(jmxConfig)) {
                 config = jmxConfig;
             }
         }
-        if (Strings.isNullOrEmpty(config)) {
+        if (StringUtils.isEmpty(config)) {
             return 0;
         }
         if (!config.equals(lastConfigJson)) {

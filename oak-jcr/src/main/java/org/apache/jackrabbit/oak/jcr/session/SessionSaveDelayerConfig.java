@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -61,7 +61,7 @@ public class SessionSaveDelayerConfig {
 
     @NotNull
     public static SessionSaveDelayerConfig fromJson(@NotNull String jsonConfig) throws IllegalArgumentException {
-        if (Strings.isNullOrEmpty(jsonConfig)) {
+        if (StringUtils.isEmpty(jsonConfig)) {
             return new SessionSaveDelayerConfig(List.of());
         }
         try {
