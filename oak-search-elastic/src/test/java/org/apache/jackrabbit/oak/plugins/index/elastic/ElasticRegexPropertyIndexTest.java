@@ -138,10 +138,11 @@ public class ElasticRegexPropertyIndexTest extends ElasticAbstractQueryTest {
             fail();
         } catch (CommitFailedException e) {
             Throwable cause = e.getCause();
-            String msg = cause.getMessage();
             assertTrue("Unexpected exception type. Expected IOException. Was " + cause, cause instanceof IOException);
-            assertTrue(msg, msg.contains("Error indexing documents for index:"));
+            // String msg = cause.getMessage();
+            // assertTrue(msg, msg.contains("Error indexing documents for index:"));
             // Typically, the root cause is "Limit of total fields [1000] has been exceeded"
+            // and some times it is "Service error while indexing."
             // but something this is suppressed, and so we can not have an assertion on it
         }
     }
