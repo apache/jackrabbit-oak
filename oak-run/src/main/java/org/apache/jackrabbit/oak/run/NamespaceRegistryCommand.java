@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.run;
 
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
@@ -32,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -62,10 +64,8 @@ public class NamespaceRegistryCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-
         Options opts = getOptions(args);
         NamespaceRegistryOptions namespaceRegistryOpts = opts.getOptionBean(NamespaceRegistryOptions.class);
-
         try (Closer closer = Utils.createCloserWithShutdownHook()) {
 
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
@@ -75,9 +75,10 @@ public class NamespaceRegistryCommand implements Command {
                 return;
             }
             doExecute(fixture, namespaceRegistryOpts);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             LOG.error("Error occurred while performing namespace registry operation", e);
             e.printStackTrace(System.err);
+            throw e;
         }
     }
 
@@ -106,8 +107,7 @@ public class NamespaceRegistryCommand implements Command {
     }
 
     private void doExecute(NodeStoreFixture fixture, NamespaceRegistryOptions namespaceRegistryOptions)
-            throws Exception {
-
+            throws IOException, RepositoryException, CommitFailedException {
         boolean analyse = namespaceRegistryOptions.analyse();
         boolean fix = namespaceRegistryOptions.fix();
         List<String> mappings = namespaceRegistryOptions.mappings();
