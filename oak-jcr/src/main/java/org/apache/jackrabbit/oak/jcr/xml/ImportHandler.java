@@ -19,15 +19,17 @@ package org.apache.jackrabbit.oak.jcr.xml;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.jcr.NamespaceException;
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
+import org.apache.jackrabbit.util.XMLChar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
@@ -61,6 +63,7 @@ public class ImportHandler extends DefaultHandler {
     private final SessionContext sessionContext;
     private final Importer importer;
     private final boolean isWorkspaceImport;
+    private final NamespaceRegistry namespaceRegistry;
 
     protected Locator locator;
     private TargetImportHandler targetHandler;
@@ -70,6 +73,7 @@ public class ImportHandler extends DefaultHandler {
                          int uuidBehavior, boolean isWorkspaceImport) throws RepositoryException {
         this.sessionContext = sessionContext;
         this.isWorkspaceImport = isWorkspaceImport;
+        this.namespaceRegistry = sessionContext.getSession().getWorkspace().getNamespaceRegistry();
 
         SessionDelegate sd = sessionContext.getSessionDelegate();
         root = (isWorkspaceImport) ? sd.getContentSession().getLatestRoot() : sd.getRoot();
@@ -136,8 +140,7 @@ public class ImportHandler extends DefaultHandler {
     public void startPrefixMapping(String prefix, String uri)
             throws SAXException {
         try {
-            new NamespaceHelper(sessionContext.getSession()).registerNamespace(
-                    prefix, uri);
+            registerNamespace(prefix, uri);
             if (targetHandler != null) {
                 targetHandler.startPrefixMapping(prefix, uri);
             } else {
@@ -200,6 +203,38 @@ public class ImportHandler extends DefaultHandler {
     @Override
     public void setDocumentLocator(Locator locator) {
         this.locator = locator;
+    }
+
+    /**
+     * This version is adapted from the org.apache.jackrabbit.commons.NamespaceHelper.registerNamespace()
+     */
+    private void registerNamespace(String prefix, String uri)
+            throws RepositoryException {
+        try {
+            // Check if the namespace is registered
+            namespaceRegistry.getPrefix(uri);
+        } catch (NamespaceException e1) {
+             // Replace troublesome prefix hints
+            if (prefix == null || prefix.length() == 0
+                    || prefix.toLowerCase().startsWith("xml")
+                    || !XMLChar.isValidNCName(prefix)) {
+                prefix = "ns"; // ns, ns2, ns3, ns4, ...
+            }
+
+            // Loop until an unused prefix is found
+            try {
+                String base = prefix;
+                for (int i = 2; true; i++) {
+                    namespaceRegistry.getURI(prefix);
+                    prefix = base + i;
+                }
+            } catch (NamespaceException e2) {
+                // Exit the loop
+            }
+
+            // Register the namespace
+            namespaceRegistry.registerNamespace(prefix, uri);
+        }
     }
 
 }
