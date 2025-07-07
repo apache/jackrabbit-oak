@@ -18,9 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.junit.Test;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoThrottlerFactory.exponentialThrottler;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoThrottlerFactory.noThrottler;
@@ -46,67 +47,67 @@ public class MongoThrottlerFactoryTest {
 
     @Test
     public void testExpThrottler() {
-        Throttler throttler = exponentialThrottler(10, new AtomicDouble(11), 10);
+        Throttler throttler = exponentialThrottler(10, new AtomicReference<>(11.0), 10);
         assertEquals(0L, throttler.throttlingTime());
     }
 
     @Test
     public void testExpThrottler_2() {
-        Throttler throttler = exponentialThrottler(10, new AtomicDouble(10.002), 10);
+        Throttler throttler = exponentialThrottler(10, new AtomicReference<>(10.002), 10);
         assertEquals(0L, throttler.throttlingTime());
     }
 
     @Test
     public void testExpThrottlerNormalPace() {
-        Throttler throttler = exponentialThrottler(10, new AtomicDouble(10.001), 10);
+        Throttler throttler = exponentialThrottler(10, new AtomicReference<>(10.001), 10);
         assertEquals(10L, throttler.throttlingTime());
     }
 
     @Test
     public void testThrottlingNormalPace_2() {
-        Throttler throttler = exponentialThrottler(10, new AtomicDouble(5.001), 10);
+        Throttler throttler = exponentialThrottler(10, new AtomicReference<>(5.001), 10);
         assertEquals(10L, throttler.throttlingTime());
     }
 
     @Test
     public void testThrottlingDoublePace() {
-        Throttler throttler = exponentialThrottler(10, new AtomicDouble(5.0), 10);
+        Throttler throttler = exponentialThrottler(10, new AtomicReference<>(5.0), 10);
         assertEquals(20L, throttler.throttlingTime());
     }
 
     @Test
     public void testThrottlingDoublePace_2() {
-        Throttler throttler = exponentialThrottler(10, new AtomicDouble(5.0001), 10);
+        Throttler throttler = exponentialThrottler(10, new AtomicReference<>(5.0001), 10);
         assertEquals(20L, throttler.throttlingTime());
     }
 
     @Test
     public void testThrottlingDoublePace_3() {
-        Throttler throttler = exponentialThrottler(20, new AtomicDouble(5.001), 10);
+        Throttler throttler = exponentialThrottler(20, new AtomicReference<>(5.001), 10);
         assertEquals(20L, throttler.throttlingTime());
     }
 
     @Test
     public void testThrottlingQuadruplePace() {
-        Throttler throttler = exponentialThrottler(20, new AtomicDouble(5.0001), 10);
+        Throttler throttler = exponentialThrottler(20, new AtomicReference<>(5.0001), 10);
         assertEquals(40L, throttler.throttlingTime());
     }
 
     @Test
     public void testThrottlingQuadruplePace_2() {
-        Throttler throttler = exponentialThrottler(40, new AtomicDouble(5.001), 10);
+        Throttler throttler = exponentialThrottler(40, new AtomicReference<>(5.001), 10);
         assertEquals(40L, throttler.throttlingTime());
     }
 
     @Test
     public void testThrottlingOctagonalPace() {
-        Throttler throttler = exponentialThrottler(80, new AtomicDouble(5.0001), 10);
+        Throttler throttler = exponentialThrottler(80, new AtomicReference<>(5.0001), 10);
         assertEquals(80L, throttler.throttlingTime());
     }
 
     @Test
     public void testThrottlingOctagonalPace_2() {
-        Throttler throttler = exponentialThrottler(160, new AtomicDouble(5.0001), 10);
+        Throttler throttler = exponentialThrottler(160, new AtomicReference<>(5.0001), 10);
         assertEquals(80L, throttler.throttlingTime());
     }
 
