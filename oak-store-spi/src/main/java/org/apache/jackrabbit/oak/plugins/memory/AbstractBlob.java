@@ -20,12 +20,11 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.guava.common.hash.HashCode;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.jetbrains.annotations.NotNull;
@@ -121,12 +120,20 @@ public abstract class AbstractBlob implements Blob {
         // Blobs are immutable so we can safely cache the hash
         if (hashCode == null) {
             try {
-                hashCode = HashCode.of(this.getNewStream().readAllBytes());
+                hashCode = Hashing.sha256().hashBytes(this.getNewStream().readAllBytes());
             } catch (IOException e) {
                 throw new IllegalStateException("Hash calculation failed", e);
             }
         }
         return hashCode;
+    }
+
+    /**
+     * This hash code implementation returns the hash code of the underlying stream
+     * @return a byte array of the hash
+     */
+    protected byte[] sha256() {
+        return getSha256().asBytes();
     }
 
     //--------------------------------------------------------------< Blob >--
@@ -182,39 +189,4 @@ public abstract class AbstractBlob implements Blob {
         return getSha256().toString();
     }
 
-    public static class HashCode {
-
-        private byte[] digest;
-
-        private HashCode(byte[] digest){
-            this.digest = digest;
-        }
-
-        private static HashCode of(byte[] bytes) {
-            try {
-                return new HashCode(MessageDigest.getInstance("SHA-256").digest(bytes));
-            } catch (NoSuchAlgorithmException ex) {
-                throw new IllegalStateException("no SHA256 digest", ex);
-            }
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == null || getClass() != o.getClass()) return false;
-            return Arrays.equals(digest, ((HashCode)o).digest);
-        }
-
-        @Override
-        public int hashCode() {
-            return Arrays.hashCode(digest);
-        }
-
-        @Override
-        public String toString() {
-            // could use commons-coded
-            BigInteger bigInteger = new BigInteger(1, digest);
-            return String.format(
-            "%0" + (digest.length << 1) + "x", bigInteger);
-        }
-    }
 }
