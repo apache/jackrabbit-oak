@@ -400,6 +400,7 @@ public class RevisionsCommand implements Command {
         builder.setFullGCBatchSize(options.getFullGcBatchSize());
         builder.setFullGCProgressSize(options.getFullGcProgressSize());
         builder.setFullGcMaxAgeMillis(SECONDS.toMillis(options.getFullGcMaxAge()));
+        builder.setFullGCAuditLoggingEnabled(options.isFullGCAuditLoggingEnabled());
 
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
@@ -424,6 +425,7 @@ public class RevisionsCommand implements Command {
         System.out.println("EmbeddedVerification is enabled : " + gc.isEmbeddedVerificationEnabled());
         System.out.println("ResetFullGC is enabled : " + options.isResetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
+        System.out.println("FullGCAuditLoggingEnabled : " + builder.isFullGCAuditLoggingEnabled());
         System.out.println("IncludePaths are : " + sortedSet(gc.getFullGCIncludePaths()));
         System.out.println("ExcludePaths are : " + sortedSet(gc.getFullGCExcludePaths()));
         System.out.println("FullGcMode is : " + VersionGarbageCollector.getFullGcMode());
