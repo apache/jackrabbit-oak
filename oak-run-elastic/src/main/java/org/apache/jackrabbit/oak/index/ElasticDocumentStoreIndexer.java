@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexerProvider
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
 
-import java.io.IOException;
 import java.util.List;
 
 /*
@@ -45,7 +44,7 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
     public ElasticDocumentStoreIndexer(IndexHelper indexHelper, IndexerSupport indexerSupport,
                                        String indexPrefix, String scheme,
                                        String host, int port,
-                                       String apiKeyId, String apiSecretId) throws IOException {
+                                       String apiKeyId, String apiSecretId) {
         super(indexHelper, indexerSupport);
         this.indexHelper = indexHelper;
         this.indexPrefix = indexPrefix;
@@ -55,7 +54,6 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
         this.apiKeyId = apiKeyId;
         this.apiSecretId = apiSecretId;
         this.retryPolicy = ElasticRetryPolicy.createRetryPolicyFromSystemProperties();
-        setProvider();
     }
 
     protected NodeStateIndexerProvider createProvider() {
