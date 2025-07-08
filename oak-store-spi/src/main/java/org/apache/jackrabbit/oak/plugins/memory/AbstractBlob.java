@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.guava.common.hash.HashCode;
@@ -27,7 +26,6 @@ import org.apache.jackrabbit.guava.common.hash.Hashing;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +64,7 @@ public abstract class AbstractBlob implements Blob {
 
         //Check for identity first. If they are same then its
         //definitely same blob. If not we need to check further.
-        if (ai != null && bi != null && ai.equals(bi)){
+        if (ai != null && ai.equals(bi)){
             return true;
         }
 
@@ -79,31 +77,6 @@ public abstract class AbstractBlob implements Blob {
         } catch (IOException e) {
             throw new IllegalStateException("Blob equality check failed", e);
         }
-    }
-
-    public static HashCode calculateSha256(final Blob blob) {
-        AbstractBlob ab;
-        if (blob instanceof AbstractBlob) {
-            ab = ((AbstractBlob) blob);
-        } else {
-            ab = new AbstractBlob() {
-                @Override
-                public long length() {
-                    return blob.length();
-                }
-
-                @Override public boolean isInlined() {
-                    return blob.isInlined();
-                }
-
-                @NotNull
-                @Override
-                public InputStream getNewStream() {
-                    return blob.getNewStream();
-                }
-            };
-        }
-        return ab.getSha256();
     }
 
     private HashCode hashCode; // synchronized access
@@ -126,14 +99,6 @@ public abstract class AbstractBlob implements Blob {
             }
         }
         return hashCode;
-    }
-
-    /**
-     * This hash code implementation returns the hash code of the underlying stream
-     * @return a byte array of the hash
-     */
-    protected byte[] sha256() {
-        return getSha256().asBytes();
     }
 
     //--------------------------------------------------------------< Blob >--
