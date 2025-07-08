@@ -373,6 +373,33 @@ public class RevisionsCommandTest {
     }
 
     @Test
+    public void auditLoggingEnabled() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo", "--fullGCAuditLoggingEnabled", "true"));
+        assertTrue(output.contains("FullGCAuditLoggingEnabled : true"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void auditLoggingDisabled() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo", "--fullGCAuditLoggingEnabled", "false"));
+        assertTrue(output.contains("FullGCAuditLoggingEnabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void auditLoggingNotSet() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo"));
+        assertTrue(output.contains("FullGCAuditLoggingEnabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
     public void fullGCWithEmbeddedWithPath() {
         ns.dispose();
 

@@ -218,7 +218,7 @@ public class RevisionsCommand implements Command {
                             "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge). Default: 86400 (one day)")
                     .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toSeconds(1));
             fullGCAuditLoggingEnabled = parser.accepts("fullGCAuditLoggingEnabled", "Enable audit logging for Full GC")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(FALSE);
+                    .withRequiredArg().ofType(Boolean.class).defaultsTo(FALSE);
             exportMetrics = parser.accepts("exportMetrics",
                     "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
         }
@@ -321,7 +321,7 @@ public class RevisionsCommand implements Command {
         }
 
         Boolean isFullGCAuditLoggingEnabled() {
-            return options.has(fullGCAuditLoggingEnabled);
+            return options.valueOf(fullGCAuditLoggingEnabled);
         }
 
         boolean exportMetrics() {
