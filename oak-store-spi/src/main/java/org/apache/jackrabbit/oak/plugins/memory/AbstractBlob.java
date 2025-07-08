@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -155,6 +156,10 @@ public abstract class AbstractBlob implements Blob {
 
     @Override
     public String toString() {
-        return getSha256().toString();
+        // https://www.baeldung.com/java-byte-arrays-hex-strings#using-thebiginteger-class
+        // could use Java 17 HexFormat in the future
+        byte[] bytes = getSha256().array();
+        BigInteger bigInteger = new BigInteger(1, bytes);
+        return String.format("%0" + (bytes.length << 1) + "x", bigInteger);
     }
 }
