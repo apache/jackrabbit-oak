@@ -19,10 +19,11 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.guava.common.hash.HashCode;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -79,9 +80,9 @@ public abstract class AbstractBlob implements Blob {
         }
     }
 
-    private HashCode hashCode; // synchronized access
+    private ByteBuffer hashCode; // synchronized access
 
-    protected AbstractBlob(HashCode hashCode) {
+    protected AbstractBlob(ByteBuffer hashCode) {
         this.hashCode = hashCode;
     }
 
@@ -89,13 +90,16 @@ public abstract class AbstractBlob implements Blob {
         this(null);
     }
 
-    private synchronized HashCode getSha256() {
+    private synchronized ByteBuffer getSha256() {
         // Blobs are immutable so we can safely cache the hash
         if (hashCode == null) {
             try {
-                hashCode = Hashing.sha256().hashBytes(this.getNewStream().readAllBytes());
+                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                hashCode = ByteBuffer.wrap(sha256.digest(this.getNewStream().readAllBytes()));
             } catch (IOException e) {
                 throw new IllegalStateException("Hash calculation failed", e);
+            } catch (NoSuchAlgorithmException e) {
+                throw new IllegalStateException(e);
             }
         }
         return hashCode;
@@ -117,7 +121,7 @@ public abstract class AbstractBlob implements Blob {
 
     /**
      * To {@code Blob} instances are considered equal iff they have the
-     * same SHA-256 hash code  are equal.
+     * same SHA-256 hash code or are equal.
      * @param other
      */
     @Override
@@ -153,5 +157,4 @@ public abstract class AbstractBlob implements Blob {
     public String toString() {
         return getSha256().toString();
     }
-
 }
