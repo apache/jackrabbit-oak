@@ -19,12 +19,14 @@
 package org.apache.jackrabbit.oak.scalability.suites;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -48,8 +50,6 @@ import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Splitter;
 
 /**
  * The suite test will incrementally increase the load and execute searches.
@@ -99,8 +99,10 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
     public static final String OBJECT_ID = "objectId";
     public static final String TARGET = "target";
 
-    protected static final List<String> NODE_LEVELS = Splitter.on(",").trimResults()
-        .omitEmptyStrings().splitToList(System.getProperty("nodeLevels", "10,5,2,1"));
+    protected static final List<String> NODE_LEVELS = Arrays.stream(System.getProperty("nodeLevels", "10,5,2,1").split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toList());
 
     protected static final List<String> NODE_LEVELS_DEFAULT = List.of("10","5","2","1");
 

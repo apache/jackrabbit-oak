@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -179,7 +178,7 @@ public class PermissionsTest {
             for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, SetUtils.toSet(Splitter.on(',').split(Permissions.getString(key))));
+            assertEquals(expected, SetUtils.toSet(Permissions.getString(key).split(",")));
         });
     }
 
@@ -201,7 +200,7 @@ public class PermissionsTest {
             for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, SetUtils.toSet(Splitter.on(',').split(Permissions.getString(key))));
+            assertEquals(expected, SetUtils.toSet(Permissions.getString(key).split(",")));
         });
     }
 

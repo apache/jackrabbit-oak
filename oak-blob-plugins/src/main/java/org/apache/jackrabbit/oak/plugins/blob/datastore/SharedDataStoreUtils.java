@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
@@ -117,8 +117,11 @@ public class SharedDataStoreUtils {
         }
 
         public String getIdFromName(String name) {
-            return Splitter.on("_").limit(2).splitToList(
-                Splitter.on(DELIM).limit(2).splitToList(name).get(1)).get(0);
+            return Arrays.stream(name.split(DELIM, 2))
+                    .skip(1)
+                    .findFirst()
+                    .map(s -> s.split("_", 2)[0])
+                    .orElse(null);
         }
 
         public String getNameFromId(String id) {

@@ -59,7 +59,6 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
 import org.jetbrains.annotations.Nullable;
@@ -96,7 +95,11 @@ public class FileIOUtilsTest {
         File f = folder.newFile();
         int count = writeStrings(added.iterator(), f, false, new java.util.function.Function<String, String>() {
             @Nullable @Override public String apply(@Nullable String input) {
-                return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
+                return Arrays.stream(input.split("-"))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .findFirst()
+                        .orElse(null);
             }
         }, null, null);
         assertEquals(added.size(), count);

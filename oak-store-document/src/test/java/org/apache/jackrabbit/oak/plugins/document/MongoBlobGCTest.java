@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -34,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 
 import ch.qos.logback.classic.Level;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
@@ -407,7 +407,9 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         try (InputStream is = new FileInputStream(getMarkedFile(rootFolder))) {
             Set<String> records = FileIOUtils.readStringsAsSet(is, true);
             for (String rec : records) {
-                assertEquals(expected, Splitter.on(",").omitEmptyStrings().splitToList(rec).size());
+                assertEquals(expected, Arrays.stream(rec.split(","))
+                        .filter(s -> !s.isEmpty())
+                        .count());
             }
         }
     }
