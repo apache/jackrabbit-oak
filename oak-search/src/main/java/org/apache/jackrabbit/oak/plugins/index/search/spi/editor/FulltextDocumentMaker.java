@@ -43,7 +43,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
@@ -182,13 +181,12 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             facet |= pd.facet;
         }
 
-        boolean[] dirties = indexAggregates(path, document, state);
-        dirty |= dirties[0]; // any (aggregate) indexing happened
-        facet |= dirties[1]; // facet indexing during (index-time) aggregation
+        ResultCollector resultCollector = indexAggregates(path, document, state);
+        dirty |= resultCollector.dirtyFlag; // any (aggregate) indexing happened
+        facet |= resultCollector.facetFlag; // facet indexing during (index-time) aggregation
         dirty |= indexNullCheckEnabledProps(path, document, state);
         dirty |= indexFunctionRestrictions(path, document, state);
         dirty |= indexNotNullCheckEnabledProps(path, document, state);
-
         dirty |= augmentCustomFields(path, document, state);
 
         // Check if a node having a single property was modified/deleted
@@ -565,37 +563,41 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     /*
      * index aggregates on a certain path
      */
-    private boolean[] indexAggregates(final String path, final D document, final NodeState state) {
-        final AtomicBoolean dirtyFlag = new AtomicBoolean();
-        final AtomicBoolean facetFlag = new AtomicBoolean();
-        indexingRule.getAggregate().collectAggregates(state, new Aggregate.ResultCollector() {
-            @Override
-            public void onResult(Aggregate.NodeIncludeResult result) {
-                boolean dirty = indexAggregatedNode(path, document, result);
-                if (dirty) {
-                    dirtyFlag.set(true);
-                }
-            }
+    private ResultCollector indexAggregates(final String path, final D document, final NodeState state) {
+        ResultCollector resultCollector = new ResultCollector(path, document, state);
+        indexingRule.getAggregate().collectAggregates(state, resultCollector);
+        return resultCollector;
+    }
 
-            @Override
-            public void onResult(Aggregate.PropertyIncludeResult result) {
-                boolean dirty = false;
-                if (result.pd.ordered) {
-                    dirty |= addTypedOrderedFields(document, result.propertyState,
-                            result.propertyPath, result.pd);
-                }
-                dirty |= indexProperty(path, document, state, result.propertyState,
-                        result.propertyPath, result.pd);
+    private class ResultCollector implements Aggregate.ResultCollector {
+        private final String path;
+        private final D document;
+        private final NodeState state;
+        private boolean dirtyFlag = false;
+        private boolean facetFlag = false;
 
-                if (result.pd.facet) {
-                    facetFlag.set(true);
-                }
-                if (dirty) {
-                    dirtyFlag.set(true);
-                }
+        ResultCollector(String path, D document, NodeState state) {
+            this.path = path;
+            this.document = document;
+            this.state = state;
+        }
+
+        @Override
+        public void onResult(Aggregate.NodeIncludeResult result) {
+            dirtyFlag |= indexAggregatedNode(path, document, result);
+        }
+
+        @Override
+        public void onResult(Aggregate.PropertyIncludeResult result) {
+            if (result.pd.ordered) {
+                dirtyFlag |= addTypedOrderedFields(document, result.propertyState, result.propertyPath, result.pd);
             }
-        });
-        return new boolean[]{dirtyFlag.get(), facetFlag.get()};
+            dirtyFlag |= indexProperty(path, document, state, result.propertyState, result.propertyPath, result.pd);
+
+            if (result.pd.facet) {
+                facetFlag = true;
+            }
+        }
     }
 
     /*
