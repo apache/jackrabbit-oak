@@ -28,7 +28,6 @@ import java.util.Arrays;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,9 +64,9 @@ public abstract class AbstractBlob implements Blob {
         String ai = a.getContentIdentity();
         String bi = b.getContentIdentity();
 
-        //Check for identity first. If they are same then its
-        //definitely same blob. If not we need to check further.
-        if (ai != null && bi != null && ai.equals(bi)){
+        // Check for identity first. If they are same then its
+        // definitely same blob. If not we need to check further.
+        if (ai != null && ai.equals(bi)){
             return true;
         }
 
@@ -80,31 +79,6 @@ public abstract class AbstractBlob implements Blob {
         } catch (IOException e) {
             throw new IllegalStateException("Blob equality check failed", e);
         }
-    }
-
-    public static HashCode calculateSha256(final Blob blob) {
-        AbstractBlob ab;
-        if (blob instanceof AbstractBlob) {
-            ab = ((AbstractBlob) blob);
-        } else {
-            ab = new AbstractBlob() {
-                @Override
-                public long length() {
-                    return blob.length();
-                }
-
-                @Override public boolean isInlined() {
-                    return blob.isInlined();
-                }
-
-                @NotNull
-                @Override
-                public InputStream getNewStream() {
-                    return blob.getNewStream();
-                }
-            };
-        }
-        return ab.getSha256();
     }
 
     private HashCode hashCode; // synchronized access
