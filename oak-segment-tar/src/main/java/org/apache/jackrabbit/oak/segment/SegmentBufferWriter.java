@@ -327,22 +327,22 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                         segment.getSegmentId(), referencedSegmentIdCount, recordNumberCount, length, totalLength));
             }
 
-            statistics.size = length = totalLength;
+            statistics.size = totalLength;
 
             int pos = HEADER_SIZE;
-            if (pos + length <= buffer.length) {
+            if (pos + totalLength <= buffer.length) {
                 // the whole segment fits to the space *after* the referenced
                 // segment identifiers we've already written, so we can safely
                 // copy those bits ahead even if concurrent code is still
                 // reading from that part of the buffer
-                arraycopy(buffer, 0, buffer, buffer.length - length, pos);
-                pos += buffer.length - length;
+                arraycopy(buffer, 0, buffer, buffer.length - totalLength, pos);
+                pos += buffer.length - totalLength;
             } else {
                 // this might leave some empty space between the header and
                 // the record data, but this case only occurs when the
                 // segment is >252kB in size and the maximum overhead is <<4kB,
                 // which is acceptable
-                length = buffer.length;
+                totalLength = buffer.length;
             }
 
             for (SegmentId segmentId : segmentReferences) {
@@ -358,7 +358,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
             SegmentId segmentId = segment.getSegmentId();
             LOG.debug("Writing data segment: {} ", statistics);
-            store.writeSegment(segmentId, buffer, buffer.length - length, length);
+            store.writeSegment(segmentId, buffer, buffer.length - totalLength, totalLength);
             newSegment(store);
         }
     }
