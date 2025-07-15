@@ -162,9 +162,13 @@ public class SegmentStoreMigrator implements Closeable  {
         List<String> targetArchives = targetManager.listArchives();
 
         if (appendMode && !targetArchives.isEmpty()) {
-            //last archive can be updated since last copy and needs to be recopied
-            String lastArchive = targetArchives.get(targetArchives.size() - 1);
-            targetArchives.remove(lastArchive);
+            // last archive could have been updated since last copy and needs to be recopied
+            try {
+                targetArchives.sort(String::compareTo);
+                targetArchives.remove(targetArchives.size() - 1);
+            } catch (UnsupportedOperationException e) {
+                targetArchives = targetArchives.subList(0, targetArchives.size() - 1);
+            }
         }
 
         for (String archiveName : sourceManager.listArchives()) {
