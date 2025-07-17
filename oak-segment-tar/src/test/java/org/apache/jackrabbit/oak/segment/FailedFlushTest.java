@@ -71,6 +71,10 @@ public class FailedFlushTest {
             writer.writeString(randomStrings.nextAlphanumeric(16));
         }
 
+        // Repeatedly fail flush before segment write to provoke OAK-11807.
+        // Without the fix, SegmentBufferWriter.flush() will end up in a
+        // state where any further flush will fail with an IllegalStateException
+        // saying "Too much data for a segment".
         failBeforeSegmentWrite = true;
         for (int i = 0; i < 100; i++) {
             try {
@@ -82,7 +86,8 @@ public class FailedFlushTest {
         }
         failBeforeSegmentWrite = false;
 
-        // must succeed now
+        // Without the fix for OAK-11807 this flush would continue to
+        // fail with an IllegalStateException.
         writer.flush();
     }
 
