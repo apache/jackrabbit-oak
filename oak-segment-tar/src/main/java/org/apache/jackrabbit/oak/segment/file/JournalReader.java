@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.segment.file;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
@@ -55,13 +55,7 @@ public final class JournalReader extends AbstractIterator<JournalEntry> implemen
             String line = null;
             while ((line = reader.readLine()) != null) {
                 if (line.indexOf(' ') != -1) {
-                    List<String> splits;
-                    if (line.trim().isEmpty()) {
-                        // special case handling for empty lines where we need to split by space
-                        splits = Arrays.stream(line.split("")).map(String::trim).collect(Collectors.toList());
-                    } else {
-                        splits = Arrays.stream(line.split(" ")).collect(Collectors.toList());
-                    }
+                    List<String> splits = Stream.of(line.split(" ", -1)).collect(Collectors.toList());
                     String revision = splits.get(0);
                     long timestamp = -1L;
                     
