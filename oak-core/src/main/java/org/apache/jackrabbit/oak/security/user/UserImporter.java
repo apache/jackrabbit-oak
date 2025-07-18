@@ -214,7 +214,14 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
          * can be costly; this is often a redundant operation, because a UserImporter is typically much more
          * frequent initialized than actually used.
          */
-        userMonitorSupplier = () -> {
+        userMonitorSupplier = getUserMonitorSupplier(securityProvider);
+
+        initialized = true;
+        return initialized;
+    }
+
+    private Supplier<UserMonitor> getUserMonitorSupplier(SecurityProvider securityProvider) {
+        return () -> {
             if (userMonitor == null) {
                 if (securityProvider instanceof WhiteboardAware) {
                     Whiteboard whiteboard = ((WhiteboardAware) securityProvider).getWhiteboard();
@@ -229,9 +236,6 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             }
             return userMonitor;
         };
-
-        initialized = true;
-        return initialized;
     }
 
     private static boolean canInitUserManager(@NotNull JackrabbitSession session, boolean isWorkspaceImport) {
