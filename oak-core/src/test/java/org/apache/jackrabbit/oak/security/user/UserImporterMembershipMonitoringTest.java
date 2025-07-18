@@ -26,7 +26,7 @@ import org.junit.After;
 
 import java.lang.reflect.Field;
 
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.atLeastOnce;
@@ -84,11 +84,10 @@ public class UserImporterMembershipMonitoringTest extends UserImporterMembership
     boolean init(boolean createAction, Class<?>... extraInterfaces) throws Exception {
         boolean b = super.init(createAction, extraInterfaces);
 
-        // verify that the usermonitor has been properly initialized and replace it with the spied instance
+        // verify that the userMonitor is not initialized on init, but only on demand
         Field f = UserImporter.class.getDeclaredField("userMonitor");
         f.setAccessible(true);
-        assertSame(userMonitor, f.get(importer));
-
+        assertNull(f.get(importer));
         return b;
     }
 }
