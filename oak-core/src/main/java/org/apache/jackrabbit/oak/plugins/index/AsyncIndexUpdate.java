@@ -1249,12 +1249,6 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 return msg;
             }
 
-            if (!this.isFailing()) {
-                String msg = "The lane is not failing. This operation should only be performed if the lane is failing, it should first be allowed to catch up on its own.";
-                log.warn(msg);
-                return msg;
-            }
-
             try {
                 log.info("Running a forced catch-up for indexing lane [{}]. ", name);
                 // First we need to abort and pause the running indexing task
