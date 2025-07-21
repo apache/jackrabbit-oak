@@ -621,7 +621,7 @@ public class AsyncIndexUpdateTest {
         assertEquals(Set.of("testRoot", "testRoot1"), find(lookup, "foo", "abc"));
 
         // Index catchup should work even if the async lane is not failing. Refer: https://issues.apache.org/jira/browse/OAK-11729
-        // So changing lane will skip indexing this node.
+        // So force catchup will skip indexing this node.
         builder.child("testRoot2").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         async.getIndexStats().forceIndexLaneCatchup("CONFIRM");
@@ -653,7 +653,8 @@ public class AsyncIndexUpdateTest {
         assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
                 ":conflict"));
         lookup = new PropertyIndexLookup(root);
-        // both testRoot2 and testRoot3 will not be indexed, because these were created after the last successfully run index update and before the forceUpdate.
+        // both testRoot2 and testRoot3 will not be indexed, because these were created after the last successfully run
+        // index update and before the force catchup.
         // So it lands in the missing content diff that needs to be reindexed.
         assertEquals(Set.of("testRoot", "testRoot1", "testRoot4"), find(lookup, "foo", "abc"));
         // Check if failing index update is fixed
