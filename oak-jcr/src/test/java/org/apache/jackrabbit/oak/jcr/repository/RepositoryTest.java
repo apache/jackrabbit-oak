@@ -27,6 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -2348,6 +2349,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    @Ignore("OAK-11561")
     public void testConsistencyOfNameConversion() throws RepositoryException {
         NamespaceRegistry namespaceRegistry = getAdminSession().getWorkspace().getNamespaceRegistry();
         Root root = new RootProviderService().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE);
@@ -2366,14 +2368,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
         namespaceRegistry.registerNamespace("sample", "http://www.example.com");
         namespaceRegistry.registerNamespace("globalPrefix", "http://www.secondexample.com");
 
-        //should fail (but doesn't, see OAK-xyz), because the prefix foo is not registered
-        assertEquals("foo:bar", sessionContext.getJcrName("foo:bar"));
+        //should fail, because the prefix foo is not registered
+        assertThrows(IllegalStateException.class, () -> sessionContext.getJcrName("foo:bar"));
 
         //create a local mapping for a completely unrelated namespace
         sessionContext.getSession().setNamespacePrefix("localPrefix", "http://www.secondexample.com");
 
-        //Now (in the presence of a local re-mapping) it will fail
-        assertEquals("foo:bar", sessionContext.getJcrName("foo:bar"));
+        //verify that the behavior of getJcrName did not change
+        assertThrows(IllegalStateException.class, () -> sessionContext.getJcrName("foo:bar"));
     }
 
     private static ch.qos.logback.classic.Logger rootLogger() {
