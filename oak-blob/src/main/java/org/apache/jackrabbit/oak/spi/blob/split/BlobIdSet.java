@@ -21,20 +21,20 @@ package org.apache.jackrabbit.oak.spi.blob.split;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
+import org.apache.commons.collections4.bloomfilter.BloomFilter;
+import org.apache.commons.collections4.bloomfilter.Hasher;
+import org.apache.commons.collections4.bloomfilter.SimpleBloomFilter;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.BloomFilterUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.hash.BloomFilter;
-import org.apache.jackrabbit.guava.common.hash.Funnels;
 
 class BlobIdSet {
 
@@ -42,19 +42,20 @@ class BlobIdSet {
 
     private final File store;
 
-    private final BloomFilter<CharSequence> bloomFilter;
+    private final BloomFilter<SimpleBloomFilter> bloomFilter;
 
     private final Cache<String, Boolean> cache;
 
     BlobIdSet(String repositoryDir, String filename) {
         store = new File(new File(repositoryDir), filename);
-        bloomFilter = BloomFilter.create(Funnels.stringFunnel(StandardCharsets.UTF_8), 9000000); // about 8MB
+        bloomFilter = BloomFilterUtils.createFilter(9000000, 0.03); // about 8MB & 3% false positive rate
         cache = CacheBuilder.newBuilder().maximumSize(1000).build();
         fillBloomFilter();
     }
 
     synchronized boolean contains(String blobId) throws IOException {
-        if (!bloomFilter.apply(blobId)) {
+        final Hasher hasher = BloomFilterUtils.hasher(blobId);
+        if (!bloomFilter.contains(hasher)) {
             return false;
         }
         Boolean cached = cache.getIfPresent(blobId);
@@ -64,7 +65,7 @@ class BlobIdSet {
 
         if (isPresentInStore(blobId)) {
             cache.put(blobId, Boolean.TRUE);
-            bloomFilter.put(blobId);
+            bloomFilter.merge(hasher);
             return true;
         } else {
             cache.put(blobId, Boolean.FALSE);
@@ -74,11 +75,11 @@ class BlobIdSet {
 
     synchronized void add(String blobId) throws IOException {
         addToStore(blobId);
-        bloomFilter.put(blobId);
+        bloomFilter.merge(BloomFilterUtils.hasher(blobId));
         cache.put(blobId, Boolean.TRUE);
     }
 
-    private boolean isPresentInStore(String blobId) throws FileNotFoundException, IOException {
+    private boolean isPresentInStore(String blobId) throws IOException {
         if (!store.exists()) {
             return false;
         }
@@ -114,7 +115,7 @@ class BlobIdSet {
             reader = new BufferedReader(new FileReader(store));
             String line;
             while ((line = reader.readLine()) != null) {
-                bloomFilter.put(line);
+                bloomFilter.merge(BloomFilterUtils.hasher(line));
             }
         } catch (IOException e) {
             log.error("Can't fill bloom filter", e);

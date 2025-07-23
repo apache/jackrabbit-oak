@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import org.apache.jackrabbit.guava.common.hash.BloomFilter;
-import org.apache.jackrabbit.guava.common.hash.Funnel;
-import org.apache.jackrabbit.guava.common.hash.PrimitiveSink;
+import org.apache.commons.collections4.bloomfilter.BloomFilter;
+import org.apache.commons.collections4.bloomfilter.Shape;
+import org.apache.commons.collections4.bloomfilter.SimpleBloomFilter;
+import org.apache.jackrabbit.oak.commons.collections.BloomFilterUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +66,8 @@ public class CacheChangesTracker implements Closeable {
             if (lazyBloomFilter.filter == null) {
                 LOG.debug("Disposing CacheChangesTracker for {}, no filter was needed", keyFilter);
             } else {
-                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, lazyBloomFilter.filter.expectedFpp());
+                Shape shape = lazyBloomFilter.filter.getShape();
+                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, shape.getProbability((int)shape.estimateMaxN()));
             }
         }
     }
@@ -76,14 +78,14 @@ public class CacheChangesTracker implements Closeable {
 
         private final int entries;
 
-        private volatile BloomFilter<String> filter;
+        private volatile BloomFilter<SimpleBloomFilter> filter;
 
         public LazyBloomFilter(int entries) {
             this.entries = entries;
         }
 
         public synchronized void put(String entry) {
-            getFilter().put(entry);
+            getFilter().merge(BloomFilterUtils.hasher(entry));
         }
 
         public boolean mightContain(String entry) {
@@ -91,21 +93,14 @@ public class CacheChangesTracker implements Closeable {
                 return false;
             } else {
                 synchronized (this) {
-                    return filter.mightContain(entry);
+                    return filter.contains(BloomFilterUtils.hasher(entry));
                 }
             }
         }
 
-        private BloomFilter<String> getFilter() {
+        private BloomFilter<SimpleBloomFilter> getFilter() {
             if (filter == null) {
-                filter = BloomFilter.create(new Funnel<String>() {
-                    private static final long serialVersionUID = -7114267990225941161L;
-
-                    @Override
-                    public void funnel(String from, PrimitiveSink into) {
-                        into.putUnencodedChars(from);
-                    }
-                }, entries, FPP);
+                filter = BloomFilterUtils.createFilter(entries, FPP);
             }
             return filter;
         }
