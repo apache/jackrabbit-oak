@@ -41,8 +41,6 @@ import java.util.stream.StreamSupport;
 
 import ch.qos.logback.classic.Level;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import joptsimple.OptionException;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
@@ -723,7 +721,7 @@ public class DataStoreCommandTest {
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath()));
         if (!StringUtils.isEmpty(additionalParams)) {
-            argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
+            argsList.addAll(Arrays.stream(additionalParams.split(" ")).collect(Collectors.toList()));
         }
 
         if (verbose) {
@@ -764,7 +762,7 @@ public class DataStoreCommandTest {
                         storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                         temporaryFolder.newFolder().getAbsolutePath()));
         if (!StringUtils.isEmpty(additionalParams)) {
-            argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
+            argsList.addAll(Arrays.stream(additionalParams.split(" ")).collect(Collectors.toList()));
         }
 
         if (verbose) {
@@ -786,7 +784,7 @@ public class DataStoreCommandTest {
                         storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                         temporaryFolder.newFolder().getAbsolutePath()));
         if (!StringUtils.isEmpty(additionalParams)) {
-            argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
+            argsList.addAll(Arrays.stream(additionalParams.split(" ")).collect(Collectors.toList()));
         }
 
         if (verbose) {
@@ -808,7 +806,7 @@ public class DataStoreCommandTest {
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath()));
         if (!StringUtils.isEmpty(additionalParams)) {
-            argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
+            argsList.addAll(Arrays.stream(additionalParams.split(" ")).collect(Collectors.toList()));
         }
 
         DataStoreCommand cmd = new DataStoreCommand();
@@ -931,7 +929,10 @@ public class DataStoreCommandTest {
 
 
     static String encodeId(String id, Type dsType) {
-        List<String> idLengthSepList = Splitter.on(HASH).trimResults().omitEmptyStrings().splitToList(id);
+        List<String> idLengthSepList = Arrays.stream(id.split(HASH))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
         String blobId = idLengthSepList.get(0);
 
         if (dsType == Type.FDS) {

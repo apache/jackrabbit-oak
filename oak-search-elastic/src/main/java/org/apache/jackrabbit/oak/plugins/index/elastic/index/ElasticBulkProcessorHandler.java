@@ -26,11 +26,11 @@ import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import co.elastic.clients.json.JsonData;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
@@ -38,13 +38,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,6 +55,7 @@ import java.util.stream.Collectors;
 public class ElasticBulkProcessorHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticBulkProcessorHandler.class);
+    private static final LogSilencer LOG_SILENCER = new LogSilencer(Duration.ofSeconds(5).toMillis(), 50);
 
     /**
      * Keeps information about an index that is being written by the bulk processor
@@ -118,18 +116,20 @@ public class ElasticBulkProcessorHandler {
     private static final int BULK_MAX_CONCURRENT_REQUESTS_DEFAULT = 1;
     // when true, fails indexing in case of bulk failures
     public static final String FAIL_ON_ERROR_PROP = "oak.indexer.elastic.bulkProcessor.failOnError";
-    public static final boolean FAIL_ON_ERROR_DEFAULT = true;
+    public static final boolean FAIL_ON_ERROR_DEFAULT = false;
 
     private static final String SYNC_MODE_PROPERTY = "sync-mode";
     private static final String SYNC_RT_MODE = "rt";
     private static final int MAX_SUPPRESSED_ERROR_CAUSES = 50;
 
-    private final int failedDocCountForStatusNode = ConfigHelper.getSystemPropertyAsInt("oak.failedDocStatusLimit", 10000);
     private final int bulkMaxOperations = ConfigHelper.getSystemPropertyAsInt(BULK_ACTIONS_PROP, BULK_ACTIONS_DEFAULT);
     private final int bulkMaxSizeBytes = ConfigHelper.getSystemPropertyAsInt(BULK_SIZE_BYTES_PROP, BULK_SIZE_BYTES_DEFAULT);
     private final int bulkFlushIntervalMillis = ConfigHelper.getSystemPropertyAsInt(BULK_FLUSH_INTERVAL_MS_PROP, BULK_FLUSH_INTERVAL_MS_DEFAULT);
     private final int bulkMaxConcurrentRequests = ConfigHelper.getSystemPropertyAsInt(BULK_MAX_CONCURRENT_REQUESTS_PROP, BULK_MAX_CONCURRENT_REQUESTS_DEFAULT);
-    private final boolean failOnError = ConfigHelper.getSystemPropertyAsBoolean(FAIL_ON_ERROR_PROP, FAIL_ON_ERROR_DEFAULT);
+    // If false, failures to index documents will not throw an exception, but will be logged instead. If true, if a document
+    // fails to index, an exception will be thrown in the next call done to that particular index (add a document or close the index).
+    // Connection errors will always throw an exception, regardless of this setting, because they relate to the connection to the Elasticsearch server.
+    private final boolean failOnIndexingError = ConfigHelper.getSystemPropertyAsBoolean(FAIL_ON_ERROR_PROP, FAIL_ON_ERROR_DEFAULT);
 
     private final ElasticConnection elasticConnection;
     private final BulkIngester<OperationContext> bulkIngester;
@@ -142,7 +142,7 @@ public class ElasticBulkProcessorHandler {
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ConcurrentHashMap<String, IndexInfo> registeredIndexes = new ConcurrentHashMap<>();
-    private final ConcurrentLinkedQueue<ErrorCause> globalSuppressedErrorCauses = new ConcurrentLinkedQueue<>();
+    private volatile Throwable lastConnectionError = null;
 
     // Time blocked waiting to add operations to the bulk processor.
     private final long startTime = System.nanoTime();
@@ -297,7 +297,6 @@ public class ElasticBulkProcessorHandler {
 
         // Some of the operations for this index pending may be buffered for sending in the bulk ingester.
         // Force sending them now.
-        LOG.trace("Flushing bulk ingester {}", bulkIngester);
         bulkIngester.flush();
 
         if (indexInfo.waitForESAcknowledgement) {
@@ -348,6 +347,7 @@ public class ElasticBulkProcessorHandler {
             }
         }
 
+        checkConnectionFailures();
         checkFailuresForIndex(indexInfo);
         LOG.trace("Bulk identifier -> update status = {}", registeredIndexes);
         return indexInfo.indexModified;
@@ -368,24 +368,27 @@ public class ElasticBulkProcessorHandler {
             if (!registeredIndexes.isEmpty()) {
                 LOG.warn("Some indexes were not closed properly: {}", Collections.list(registeredIndexes.keys()));
             }
-            if (!globalSuppressedErrorCauses.isEmpty()) {
-                IOException ioe = new IOException("Exception while indexing. See suppressed for details");
-                globalSuppressedErrorCauses.stream().map(ec -> new IllegalStateException(ec.reason())).forEach(ioe::addSuppressed);
-                throw ioe;
-            }
+            checkConnectionFailures();
+        }
+    }
+
+    private void checkConnectionFailures() throws IOException {
+        if (lastConnectionError != null) {
+            IOException ioe = new IOException("Service error while indexing.", lastConnectionError);
+            lastConnectionError = null; // Clear the last connection error after throwing it
+            throw ioe;
         }
     }
 
     private void checkFailuresForIndex(IndexInfo indexInfo) throws IOException {
-        // Also consider the global failures
-        if (!(indexInfo.suppressedErrorCauses.isEmpty() && globalSuppressedErrorCauses.isEmpty())) {
-            List<ErrorCause> errors = new ArrayList<>();
-            errors.addAll(indexInfo.suppressedErrorCauses);
-            errors.addAll(globalSuppressedErrorCauses);
-            String overflowMessage = (errors.size() >= MAX_SUPPRESSED_ERROR_CAUSES) ?
-                    ". (Too many failed operations in last bulk request, including only " + errors.size() + " errors)" : "";
-            IOException ioe = new IOException("Exception while indexing " + indexInfo.indexName + ". See suppressed for details" + overflowMessage);
-            errors.stream().map(ec -> new IllegalStateException(ec.reason())).forEach(ioe::addSuppressed);
+        if (!indexInfo.suppressedErrorCauses.isEmpty()) {
+            List<ErrorCause> suppressedErrors = new ArrayList<>(indexInfo.suppressedErrorCauses);
+            indexInfo.suppressedErrorCauses.clear();
+            String overflowMessage = suppressedErrors.size() >= MAX_SUPPRESSED_ERROR_CAUSES ?
+                    ". (Too many failed operations in last bulk request, including only " + suppressedErrors.size() + " errors)"
+                    : "";
+            IOException ioe = new IOException("Error indexing documents for index: " + indexInfo.indexName + ". See suppressed errors for details" + overflowMessage);
+            suppressedErrors.forEach(ec -> ioe.addSuppressed(new IllegalStateException(ec.reason())));
             throw ioe;
         }
     }
@@ -400,7 +403,10 @@ public class ElasticBulkProcessorHandler {
 
     private void add(BulkOperation operation, OperationContext context) throws IOException {
         // fail fast: we don't want to wait until the processor gets closed to fail
-        checkFailuresForIndex(context.indexInfo);
+        checkConnectionFailures();
+        if (failOnIndexingError) {
+            checkFailuresForIndex(context.indexInfo);
+        }
         long start = System.nanoTime();
         bulkIngester.add(operation, context);
         long end = System.nanoTime();
@@ -418,44 +424,6 @@ public class ElasticBulkProcessorHandler {
     }
 
     private class OakBulkListener implements BulkListener<OperationContext> {
-
-        private final class FailedDocSetTracker {
-            final HashSet<String> failedDocSet;
-            private final NodeBuilder status;
-            private boolean updated = false;
-            private boolean overflow = false;
-
-            public FailedDocSetTracker(NodeBuilder definitionBuilder) {
-                this.failedDocSet = new LinkedHashSet<>();
-                this.status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
-                // Read the current failed paths (if any) on the :status node into failedDocList
-                PropertyState failedDocsProperty = status.getProperty(IndexDefinition.FAILED_DOC_PATHS);
-                if (failedDocsProperty != null) {
-                    for (String str : failedDocsProperty.getValue(Type.STRINGS)) {
-                        failedDocSet.add(str);
-                    }
-                }
-            }
-
-            public void addFailedDocument(String documentId) {
-                if (failedDocSet.size() < failedDocCountForStatusNode) {
-                    failedDocSet.add(documentId);
-                    updated = true;
-                } else {
-                    this.overflow = true;
-                }
-            }
-
-            public void saveFailedDocSets() {
-                if (overflow) {
-                    LOG.info("Cannot store all new Failed Docs because {} has been filled up. " +
-                            "See previous log entries to find out the details of failed paths", IndexDefinition.FAILED_DOC_PATHS);
-                }
-                if (updated) {
-                    status.setProperty(IndexDefinition.FAILED_DOC_PATHS, failedDocSet, Type.STRINGS);
-                }
-            }
-        }
 
         @Override
         public void beforeBulk(long executionId, BulkRequest request, List<OperationContext> contexts) {
@@ -481,40 +449,34 @@ public class ElasticBulkProcessorHandler {
 
         @Override
         public void afterBulk(long executionId, BulkRequest request, List<OperationContext> contexts, BulkResponse response) {
+            // Bullk request has been processed successfully. Some operations may have failed, but the request itself was successful.
             try {
                 LOG.debug("Bulk with id {} processed in {} ms", executionId, response.took());
                 if (LOG.isTraceEnabled()) {
                     LOG.trace(response.toString());
                 }
 
-                HashMap<String, FailedDocSetTracker> failedDocSetMap = new HashMap<>();
                 for (int i = 0; i < contexts.size(); i++) {
                     IndexInfo indexInfo = contexts.get(i).indexInfo;
                     BulkResponseItem item = response.items().get(i);
                     if (item.error() == null) {
                         indexInfo.indexModified = true;
                     } else {
-                        FailedDocSetTracker failedDocSet = failedDocSetMap.computeIfAbsent(
-                                indexInfo.indexName,
-                                // TODO: this must be thread safe because there may be several callback threads.
-                                //   However, this is not performance critical so we can use coarse grained locking
-                                k -> new FailedDocSetTracker(indexInfo.definitionBuilder));
-
-                        if (failOnError && indexInfo.suppressedErrorCauses.size() < MAX_SUPPRESSED_ERROR_CAUSES) {
+                        if (failOnIndexingError && indexInfo.suppressedErrorCauses.size() < MAX_SUPPRESSED_ERROR_CAUSES) {
                             indexInfo.suppressedErrorCauses.add(item.error());
                         }
-                        String documentId = contexts.get(i).documentId;
-                        failedDocSet.addFailedDocument(documentId);
-
-                        // Log entry to be used to parse logs to get the failed doc id/path if needed
-                        LOG.error("ElasticIndex Update Doc Failure: Error while adding/updating doc with id: [{}]", documentId);
-                        LOG.error("Failure Details: BulkItem ID: {}, Index: {}, Failure Cause: {}",
-                                item.id(), item.index(), item.error());
+                        String type = item.error().type() != null ? item.error().type() : "type-unknown";
+                        String reason = item.error().reason() != null ? item.error().reason() : "reason-unknown";
+                        if (reason.length() > 20) {
+                            reason = reason.substring(0, 20) + "...";
+                        }
+                        String logSilenceKey = indexInfo.indexName + ":" + type + ":" + reason;
+                        if (!LOG_SILENCER.silence(logSilenceKey)) {
+                            // Log entry to be used to parse logs to get the failed doc id/path if needed
+                            LOG.warn("Failure Details: BulkItem ID: {}, Index: {}, Failure Cause: {} - {}",
+                                    item.id(), item.index(), item.error(), LogSilencer.SILENCING_POSTFIX);
+                        }
                     }
-                }
-
-                for (FailedDocSetTracker failedDocSet : failedDocSetMap.values()) {
-                    failedDocSet.saveFailedDocSets();
                 }
             } finally {
                 lock.lock();
@@ -532,14 +494,11 @@ public class ElasticBulkProcessorHandler {
 
         @Override
         public void afterBulk(long executionId, BulkRequest request, List<OperationContext> contexts, Throwable failure) {
+            // Called in case of a connection failure or other error that prevented the full bulk request from being executed
             try {
-                LOG.error("ElasticIndex Update Bulk Failure : Bulk with id {} threw an error", executionId, failure);
-                globalSuppressedErrorCauses.add(ErrorCause.of(ec -> {
-                    StringWriter sw = new StringWriter();
-                    PrintWriter pw = new PrintWriter(sw);
-                    failure.printStackTrace(pw);
-                    return ec.reason(failure.getMessage()).stackTrace(sw.toString());
-                }));
+                LOG.warn("ElasticIndex Update Bulk Failure : Bulk with id {} threw an error", executionId, failure);
+                // Keep only the last connection error
+                lastConnectionError = failure;
             } finally {
                 lock.lock();
                 try {

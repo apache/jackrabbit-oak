@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import static org.apache.jackrabbit.guava.common.escape.Escapers.builder;
 import static java.util.Collections.sort;
 import static javax.jcr.PropertyType.BINARY;
 import static javax.jcr.PropertyType.STRING;
@@ -52,6 +51,7 @@ import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -373,9 +373,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener, Closeable {
             value = value.substring(0, MAX_CHAR_DISPLAY) + "... ("
                     + value.length() + " chars)";
         }
-        String escaped = builder().setSafeRange(' ', '~')
-                .addEscape('"', "\\\"").addEscape('\\', "\\\\").build()
-                .escape(value);
+        String escaped = StringEscapeUtils.escapeJava(value);
         return '"' + escaped + '"';
     }
 

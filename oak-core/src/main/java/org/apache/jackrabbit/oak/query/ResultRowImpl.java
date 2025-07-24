@@ -229,44 +229,40 @@ public class ResultRowImpl implements ResultRow {
         if (orderings == null) {
             return null;
         }
-        return new Comparator<ResultRowImpl>() {
-
-            @Override
-            public int compare(ResultRowImpl o1, ResultRowImpl o2) {
-                PropertyValue[] orderValues = o1.getOrderValues();
-                PropertyValue[] orderValues2 = o2.getOrderValues();
-                int comp = 0;
-                for (int i = 0, size = orderings.length; i < size; i++) {
-                    PropertyValue a = orderValues[i];
-                    PropertyValue b = orderValues2[i];
-                    if (a == null || b == null) {
-                        if (a == b) {
-                            comp = 0;
-                        } else if (a == null) {
-                            // TODO order by: nulls first (it looks like), or
-                            // low?
-                            comp = -1;
-                        } else {
-                            comp = 1;
-                        }
+        return (o1, o2) -> {
+            PropertyValue[] orderValues = o1.getOrderValues();
+            PropertyValue[] orderValues2 = o2.getOrderValues();
+            int comp = 0;
+            for (int i = 0, size = orderings.length; i < size; i++) {
+                PropertyValue a = orderValues[i];
+                PropertyValue b = orderValues2[i];
+                if (a == null || b == null) {
+                    if (a == b) {
+                        comp = 0;
+                    } else if (a == null) {
+                        // TODO order by: nulls first (it looks like), or
+                        // low?
+                        comp = -1;
                     } else {
-                        comp = a.compareTo(b);
+                        comp = 1;
                     }
-                    if (comp != 0) {
-                        if (orderings[i].isDescending()) {
-                            comp = -comp;
-                        }
-                        break;
-                    }
+                } else {
+                    comp = a.compareTo(b);
                 }
-                return comp;
+                if (comp != 0) {
+                    if (orderings[i].isDescending()) {
+                        comp = -comp;
+                    }
+                    break;
+                }
             }
+            return comp;
         };
 
     }
 
     static ResultRowImpl getMappingResultRow(ResultRowImpl delegate, final Map<String, String> columnToFacetMap) {
-        if (columnToFacetMap.size() == 0) {
+        if (columnToFacetMap.isEmpty()) {
             return delegate;
         }
 

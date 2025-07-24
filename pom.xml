@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.81-SNAPSHOT</version>
+    <version>1.83-SNAPSHOT</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -61,8 +61,6 @@
     <module>oak-http</module>
     <module>oak-search</module>
     <module>oak-lucene</module>
-    <module>oak-solr-core</module>
-    <module>oak-solr-osgi</module>
     <module>oak-auth-external</module>
     <module>oak-auth-ldap</module>
     <module>oak-run-commons</module>
@@ -81,9 +79,8 @@
     <module>oak-benchmarks</module>
     <module>oak-search-elastic</module>
     <module>oak-benchmarks-lucene</module>
-    <module>oak-benchmarks-solr</module>
     <module>oak-benchmarks-elastic</module>
-      <module>oak-run-elastic</module>
+    <module>oak-run-elastic</module>
   </modules>
 
   <build>

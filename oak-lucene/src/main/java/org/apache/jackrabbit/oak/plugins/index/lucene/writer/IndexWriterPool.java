@@ -275,7 +275,7 @@ public class IndexWriterPool {
         this.workerFutures = workers.stream()
                 .map(writersPool::submit)
                 .collect(Collectors.toList());
-        monitorTaskExecutor.scheduleAtFixedRate(this::printStatistics, 30, 30, TimeUnit.SECONDS);
+        monitorTaskExecutor.scheduleAtFixedRate(this::printStatistics, 60, 60, TimeUnit.SECONDS);
         LOG.info("Writing thread started");
     }
 

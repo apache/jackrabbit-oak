@@ -30,8 +30,6 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 /**
  * <code>PathCursor</code> implements a simple {@link Cursor} that iterates
  * over a {@link String} based path {@link Iterable}.

@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Throwables.getStackTraceAsString;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -29,6 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,6 +40,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -50,13 +51,13 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 
 import com.codahale.metrics.MetricRegistry;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
@@ -98,8 +99,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Splitter;
 
 public class AsyncIndexUpdate implements Runnable, Closeable {
     /**
@@ -1085,7 +1084,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 return;
             }
 
-            latestError = getStackTraceAsString(e);
+            latestError = ExceptionUtils.getStackTrace(e);
             latestErrorTime = now();
             consecutiveFailures++;
             if (!failing) {
@@ -1246,12 +1245,6 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
             if (!"CONFIRM".equals(confirmMessage)) {
                 String msg = "Please confirm that you want to force the lane catch-up by passing 'CONFIRM' as argument";
-                log.warn(msg);
-                return msg;
-            }
-
-            if (!this.isFailing()) {
-                String msg = "The lane is not failing. This operation should only be performed if the lane is failing, it should first be allowed to catch up on its own.";
                 log.warn(msg);
                 return msg;
             }
@@ -1448,8 +1441,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
         @Override
         public void splitIndexingTask(String paths, String newIndexTaskName) {
-            splitIndexingTask(SetUtils.toSet(Splitter.on(",").trimResults()
-                    .omitEmptyStrings().split(paths)), newIndexTaskName);
+            splitIndexingTask(Arrays.stream(paths.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toSet()), newIndexTaskName);
         }
 
         private void splitIndexingTask(Set<String> paths,

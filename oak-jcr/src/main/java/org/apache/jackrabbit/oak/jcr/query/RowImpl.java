@@ -77,13 +77,13 @@ public class RowImpl implements Row {
     }
 
     @Override
-    public double getScore() throws RepositoryException {
+    public double getScore() {
         // TODO row score
         return 0.01;
     }
 
     @Override
-    public double getScore(String selectorName) throws RepositoryException {
+    public double getScore(String selectorName) {
         // TODO row score
         return 0.01;
     }

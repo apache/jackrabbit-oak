@@ -30,7 +30,6 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.oak.api.ContentSession;

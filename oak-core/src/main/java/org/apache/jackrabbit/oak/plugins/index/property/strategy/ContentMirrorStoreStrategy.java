@@ -48,8 +48,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 /**
  * An IndexStoreStrategy implementation that saves the nodes under a hierarchy
  * that mirrors the repository tree. <br>

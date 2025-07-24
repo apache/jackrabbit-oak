@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.junit.Test;
 

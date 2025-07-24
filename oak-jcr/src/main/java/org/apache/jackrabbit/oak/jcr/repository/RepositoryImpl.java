@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
+import org.apache.jackrabbit.oak.jcr.session.SessionSaveDelayer;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.jcr.version.FrozenNodeLogger;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
@@ -120,6 +121,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final MountInfoProvider mountInfoProvider;
     private final BlobAccessProvider blobAccessProvider;
     private final SessionQuerySettingsProvider sessionQuerySettingsProvider;
+    private final SessionSaveDelayer sessionSaveDelayer;
 
     /**
      * {@link ThreadLocal} counter that keeps track of the save operations
@@ -176,6 +178,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.frozenNodeLogger = new FrozenNodeLogger(clock, whiteboard);
         this.sessionQuerySettingsProvider = Optional.ofNullable(WhiteboardUtils.getService(whiteboard, SessionQuerySettingsProvider.class))
                 .orElseGet(() -> new FastQuerySizeSettingsProvider(fastQueryResultSize));
+        this.sessionSaveDelayer = new SessionSaveDelayer(whiteboard);
     }
 
     //---------------------------------------------------------< Repository >---
@@ -324,7 +327,7 @@ public class RepositoryImpl implements JackrabbitRepository {
 
         return new SessionDelegate(
                 contentSession, securityProvider, refreshStrategy,
-                threadSaveCount, statisticManager, clock) {
+                threadSaveCount, statisticManager, clock, sessionSaveDelayer) {
             
             // Defer session MBean registration to avoid cluttering the
             // JMX name space with short lived sessions
@@ -354,6 +357,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         statisticManager.dispose();
         gcMonitorRegistration.unregister();
         frozenNodeLogger.close();
+        sessionSaveDelayer.close();
         clock.close();
         new ExecutorCloser(scheduledExecutor).close();
         if (contentRepository instanceof Closeable) {

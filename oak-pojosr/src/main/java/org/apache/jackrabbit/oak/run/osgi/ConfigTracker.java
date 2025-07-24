@@ -22,12 +22,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -104,7 +105,10 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
             return configs;
         }
 
-        List<String> files = Splitter.on(',').trimResults().omitEmptyStrings().splitToList(jsonFilePath);
+        List<String> files = Arrays.stream(jsonFilePath.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
         for (String filePath : files) {
             File jsonFile = new File(filePath);
             if (!jsonFile.exists()) {

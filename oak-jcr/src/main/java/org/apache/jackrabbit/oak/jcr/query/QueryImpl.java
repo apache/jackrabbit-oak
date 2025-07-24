@@ -28,7 +28,6 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
 import javax.jcr.version.VersionException;
@@ -48,7 +47,7 @@ public class QueryImpl implements Query {
 
     private final SessionContext sessionContext;
     private final QueryManagerImpl manager;
-    private final HashMap<String, Value> bindVariableMap = new HashMap<String, Value>();
+    private final HashMap<String, Value> bindVariableMap = new HashMap<>();
     private final String language;
     private final String statement;
     private Optional<Long> limit = Optional.empty();
@@ -76,12 +75,12 @@ public class QueryImpl implements Query {
         bindVariableMap.put(varName, value);
     }
 
-    private void parse() throws InvalidQueryException, RepositoryException {
+    private void parse() throws RepositoryException {
         if (parsed) {
             return;
         }
         List<String> names = sessionContext.getSessionDelegate().perform(
-                new SessionOperation<List<String>>("parse") {
+                new SessionOperation<>("parse") {
                     @NotNull
                     @Override
                     public List<String> perform() throws RepositoryException {
@@ -98,7 +97,7 @@ public class QueryImpl implements Query {
     @Override
     public QueryResult execute() throws RepositoryException {
         return sessionContext.getSessionDelegate().perform(
-                new SessionOperation<QueryResult>("execute") {
+                new SessionOperation<>("execute") {
                     @NotNull
                     @Override
                     public QueryResult perform() throws RepositoryException {

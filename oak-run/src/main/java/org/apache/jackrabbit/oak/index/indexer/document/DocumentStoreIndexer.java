@@ -29,10 +29,9 @@ public class DocumentStoreIndexer extends DocumentStoreIndexerBase implements Cl
 
     private final ExtendedIndexHelper extendedIndexHelper;
 
-    public DocumentStoreIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
+    public DocumentStoreIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) {
         super(extendedIndexHelper, indexerSupport);
         this.extendedIndexHelper = extendedIndexHelper;
-        setProvider();
     }
 
     private NodeStateIndexerProvider createLuceneIndexProvider() throws IOException {

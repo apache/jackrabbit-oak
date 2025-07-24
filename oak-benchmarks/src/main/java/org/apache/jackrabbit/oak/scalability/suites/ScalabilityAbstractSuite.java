@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.scalability.suites;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,14 +30,13 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
-
-import org.apache.jackrabbit.guava.common.base.Splitter;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
@@ -102,8 +102,10 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
     /**
      * Controls the incremental load for each iteration
      */
-    protected static final List<String> INCREMENTS = Splitter.on(",").trimResults()
-                    .omitEmptyStrings().splitToList(System.getProperty("increments", "1,2,5"));
+    protected static final List<String> INCREMENTS = Arrays.stream(System.getProperty("increments", "1,2,5").split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toList());
 
     protected static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin"
             .toCharArray());

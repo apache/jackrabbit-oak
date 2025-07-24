@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
  * An aggregation aware cursor.

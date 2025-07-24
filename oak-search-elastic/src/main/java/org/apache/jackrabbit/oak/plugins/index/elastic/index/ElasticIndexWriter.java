@@ -63,18 +63,21 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
     private final boolean reindex;
     private final String indexName;
+    private final ElasticRetryPolicy retryPolicy;
 
     ElasticIndexWriter(@NotNull ElasticIndexTracker indexTracker,
                        @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull NodeBuilder definitionBuilder,
                        boolean reindex, CommitInfo commitInfo,
-                       ElasticBulkProcessorHandler bulkProcessorHandler) {
+                       ElasticBulkProcessorHandler bulkProcessorHandler,
+                       ElasticRetryPolicy retryPolicy) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
         this.reindex = reindex;
         this.bulkProcessorHandler = bulkProcessorHandler;
+        this.retryPolicy = retryPolicy;
 
         // We don't use stored index definitions with elastic. Every time a new writer gets created we
         // use the actual index name (based on the current seed) while reindexing, or the alias (pointing to the
@@ -119,7 +122,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                        @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull ElasticBulkProcessorHandler bulkProcessorHandler) {
-        this(indexTracker, elasticConnection, indexDefinition, bulkProcessorHandler, false);
+        this(indexTracker, elasticConnection, indexDefinition, bulkProcessorHandler, ElasticRetryPolicy.NO_RETRY, false);
     }
 
     @TestOnly
@@ -127,12 +130,14 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
                        @NotNull ElasticConnection elasticConnection,
                        @NotNull ElasticIndexDefinition indexDefinition,
                        @NotNull ElasticBulkProcessorHandler bulkProcessorHandler,
+                       @NotNull ElasticRetryPolicy retryPolicy,
                        boolean reindex) {
         this.indexTracker = indexTracker;
         this.elasticConnection = elasticConnection;
         this.indexDefinition = indexDefinition;
         this.bulkProcessorHandler = bulkProcessorHandler;
         this.indexName = indexDefinition.getIndexAlias();
+        this.retryPolicy = retryPolicy;
         this.reindex = reindex;
     }
 
@@ -153,15 +158,15 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             || (!indexDefinition.isExternallyModifiable()
             && !InferenceConfig.getInstance().isInferenceEnabled()
             && (InferenceIndexConfig.NOOP.equals(InferenceConfig.getInstance().getInferenceIndexConfig(jcrIndexName))))) {
-            bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc);
+            retryPolicy.withRetries(() -> bulkProcessorHandler.index(indexName, ElasticIndexUtils.idFromPath(path), doc));
         } else {
-            bulkProcessorHandler.update(indexName, ElasticIndexUtils.idFromPath(path), doc);
+            retryPolicy.withRetries(() -> bulkProcessorHandler.update(indexName, ElasticIndexUtils.idFromPath(path), doc));
         }
     }
 
     @Override
     public void deleteDocuments(String path) throws IOException {
-        bulkProcessorHandler.delete(indexName, ElasticIndexUtils.idFromPath(path));
+        retryPolicy.withRetries(() -> bulkProcessorHandler.delete(indexName, ElasticIndexUtils.idFromPath(path)));
     }
 
     @Override

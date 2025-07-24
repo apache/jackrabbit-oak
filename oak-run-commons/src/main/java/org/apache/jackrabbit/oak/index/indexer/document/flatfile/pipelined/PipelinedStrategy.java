@@ -177,11 +177,9 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         if (printHistogramAtInfo) {
             LOG.info("Top hidden paths rejected: {}", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
             LOG.info("Top paths filtered: {}", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
-            LOG.info("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
         } else {
             LOG.debug("Top hidden paths rejected: {}", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
             LOG.debug("Top paths filtered: {}", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
-            LOG.debug("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
         }
     }
 
@@ -363,6 +361,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
         // to detect this failure.
+        @SuppressWarnings("rawtypes")
         ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
         try {
             // download -> transform thread.
@@ -388,6 +387,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
 
+            @SuppressWarnings("unchecked")
             Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
                     mongoClientURI,
                     docStore,
@@ -403,20 +403,23 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             ArrayList<Future<PipelinedTransformTask.Result>> transformFutures = new ArrayList<>(numberOfTransformThreads);
             for (int i = 0; i < numberOfTransformThreads; i++) {
                 NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
-                transformFutures.add(ecs.submit(new PipelinedTransformTask(
-                        docStore,
-                        documentNodeStore,
-                        nodeDocumentCodec,
-                        rootRevision,
-                        this.getPathPredicate(),
-                        entryWriter,
-                        mongoDocQueue,
-                        emptyBatchesQueue,
-                        nonEmptyBatchesQueue,
-                        transformStageStatistics
-                )));
+                @SuppressWarnings("unchecked")
+                Future<PipelinedTransformTask.Result> future = ecs.submit(new PipelinedTransformTask(
+                                docStore,
+                                documentNodeStore,
+                                nodeDocumentCodec,
+                                rootRevision,
+                                this.getPathPredicate(),
+                                entryWriter,
+                                mongoDocQueue,
+                                emptyBatchesQueue,
+                                nonEmptyBatchesQueue,
+                                transformStageStatistics
+                        ));
+                transformFutures.add(future);
             }
 
+            @SuppressWarnings("unchecked")
             Future<PipelinedSortBatchTask.Result> sortBatchFuture = ecs.submit(new PipelinedSortBatchTask(
                     this.getStoreDir().toPath(),
                     pathComparator,
@@ -436,6 +439,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     statisticsProvider,
                     indexingReporter);
 
+            @SuppressWarnings("unchecked")
             Future<PipelinedMergeSortTask.Result> mergeSortFuture = ecs.submit(mergeSortTask);
 
             Path flatFileStore = null;

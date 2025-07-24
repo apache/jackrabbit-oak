@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -44,7 +45,6 @@ import java.util.concurrent.Executors;
 import javax.jcr.PropertyType;
 
 import org.apache.commons.io.input.CountingInputStream;
-import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -155,7 +155,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
      */
     static final int NUMBER_OF_NODES = LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE * 2;
 
-    private ExecutorService executorService = Executors.newFixedThreadPool(2);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
@@ -165,15 +165,13 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private LuceneIndexEditorProvider editorProvider;
 
-    private TestUtil.OptionalEditorProvider optionalEditorProvider = new TestUtil.OptionalEditorProvider();
+    private final TestUtil.OptionalEditorProvider optionalEditorProvider = new TestUtil.OptionalEditorProvider();
 
     private NodeStore nodeStore;
 
-    private LuceneIndexProvider provider;
-
     private ResultCountingIndexProvider queryIndexProvider;
 
-    private QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
+    private final QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
 
     @After
     public void after() {
@@ -190,7 +188,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         IndexCopier copier = createIndexCopier();
         editorProvider = new LuceneIndexEditorProvider(copier, new ExtractedTextCache(10* FileUtils.ONE_MB, 100));
-        provider = new LuceneIndexProvider(copier);
+        LuceneIndexProvider provider = new LuceneIndexProvider(copier);
         queryIndexProvider = new ResultCountingIndexProvider(provider);
         nodeStore = new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT);
         return new Oak(nodeStore)
@@ -317,7 +315,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     public void declaringNodeTypeSameProp() throws Exception {
         createIndex("test1", Set.of("propa"));
 
-        Tree indexWithType = createIndex("test2", Set.of("propa"));
+        Tree indexWithType = createIndex("atest2", Set.of("propa"));
         indexWithType.setProperty(PropertyStates
                 .createProperty(DECLARING_NODE_TYPES, Set.of("nt:unstructured"),
                         Type.STRINGS));
@@ -339,12 +337,40 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String propabQuery = "select [jcr:path] from [nt:unstructured] where [propa] = 'foo'";
-        assertThat(explain(propabQuery), containsString("lucene:test2"));
+        assertThat(explain(propabQuery), containsString("lucene:atest2"));
         assertQuery(propabQuery, List.of("/test/a", "/test/b"));
 
         String propcdQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo'";
         assertThat(explain(propcdQuery), containsString("lucene:test1"));
         assertQuery(propcdQuery, List.of("/test/a", "/test/b", "/test/c", "/test/d"));
+    }
+
+
+    @Test
+    public void selectLowerAlphabeticOrderWhenSameCost() throws Exception {
+        createIndex("test3", Set.of("propa"));
+        createIndex("test1", Set.of("propa"));
+        createIndex("test2", Set.of("propa"));
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        root.commit();
+
+        Tree a = test.addChild("a");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("propa", "foo");
+        Tree b = test.addChild("b");
+        b.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        b.setProperty("propa", "foo");
+
+        test.addChild("c").setProperty("propa", "foo");
+        test.addChild("d").setProperty("propa", "foo");
+
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [nt:unstructured] where [propa] = 'foo'";
+        assertThat(explain(propabQuery), containsString("lucene:test1"));
+        assertQuery(propabQuery, List.of("/test/a", "/test/b"));
     }
 
     @Test
@@ -1423,8 +1449,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         n.setProperty("mytext", "the quick brown fox jumps over the lazy dog.");
         root.commit();
 
-        String sql = "SELECT * FROM [nt:base] WHERE [jcr:path] LIKE \'" + r.getPath() + "/%\'"
-            + " AND CONTAINS(*, \'text \'\'fox jumps\'\' -other\')";
+        String sql = "SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '" + r.getPath() + "/%'"
+            + " AND CONTAINS(*, 'text ''fox jumps'' -other')";
         assertQuery(sql, List.of("/test/node1"));
     }
 
@@ -1434,7 +1460,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 NO_MAPPINGS).getRows());
 
         String measure = "";
-        if (result.size() > 0) {
+        if (!result.isEmpty()) {
             measure = result.get(0).toString();
         }
         return measure;
@@ -2064,7 +2090,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             s.append("foo bar ").append(k).append(" ");
         }
         String text = s.toString();
-        List<String> names = new LinkedList<String>();
+        List<String> names = new LinkedList<>();
         for (int j = 0; j < 30; j++) {
             Tree test = root.getTree("/").addChild("ex-test-" + j);
             for (int i = 0; i < 100; i++) {
@@ -2083,11 +2109,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         // execute the query again to assert the excerpts value of the first row
         Result result = executeQuery(query, SQL2, NO_BINDINGS);
-        Iterator<? extends ResultRow> rowsIt = result.getRows().iterator();
-        while (rowsIt.hasNext()) {
-            ResultRow row = rowsIt.next();
+        for (ResultRow row : result.getRows()) {
             PropertyValue excerptValue = row.getValue("rep:excerpt");
-            assertFalse("There is an excerpt expected for each result row for term 'foo'", excerptValue == null || "".equals(excerptValue.getValue(STRING)));
+            assertFalse("There is an excerpt expected for each result row for term 'foo'", excerptValue == null || excerptValue.getValue(STRING).isEmpty());
         }
     }
 
@@ -2110,11 +2134,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertTrue(resultRows.hasNext());
         ResultRow firstRow = result.getRows().iterator().next();
         PropertyValue excerptValue = firstRow.getValue("rep:excerpt");
-        assertTrue("There is an excerpt expected for rep:excerpt",excerptValue != null && !"".equals(excerptValue.getValue(STRING)));
+        assertTrue("There is an excerpt expected for rep:excerpt",excerptValue != null && !excerptValue.getValue(STRING).isEmpty());
         excerptValue = firstRow.getValue("rep:excerpt(.)");
-        assertTrue("There is an excerpt expected for rep:excerpt(.)",excerptValue != null && !"".equals(excerptValue.getValue(STRING)));
+        assertTrue("There is an excerpt expected for rep:excerpt(.)",excerptValue != null && !excerptValue.getValue(STRING).isEmpty());
         excerptValue = firstRow.getValue("rep:excerpt(bar)");
-        assertTrue("There is an excerpt expected for rep:excerpt(bar) ",excerptValue != null && !"".equals(excerptValue.getValue(STRING)));
+        assertTrue("There is an excerpt expected for rep:excerpt(bar) ",excerptValue != null && !excerptValue.getValue(STRING).isEmpty());
     }
 
     @Test
@@ -2835,7 +2859,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
         long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
 
-        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+        assertEquals("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed, clonedSeed);
     }
 
     @Test
@@ -2860,7 +2884,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
 
         assertEquals("Random seed not updated", seed, defSeed);
-        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+        assertEquals("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed, clonedSeed);
     }
 
     @Test
@@ -2884,7 +2908,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
 
         assertEquals("Random seed not updated", seed, defSeed);
-        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+        assertEquals("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed, clonedSeed);
     }
 
     @Test
@@ -2911,7 +2935,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertNotEquals("Random seed not updated", orignalSeed, defSeed);
         assertNotEquals("Random seed updated to garbage", "garbage", defSeed);
-        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+        assertEquals("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed, clonedSeed);
     }
 
     @Test
@@ -2932,7 +2956,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
 
         assertEquals("Random seed udpated to garbage", -12312, defSeed);
-        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+        assertEquals("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed, clonedSeed);
     }
 
     @Test
@@ -3144,7 +3168,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 
-    private Tree createFullTextIndex(Tree index, String name) throws CommitFailedException {
+    private Tree createFullTextIndex(Tree index, String name) {
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
@@ -3171,7 +3195,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private static List<String> getSortedPaths(List<Tuple> tuples, OrderDirection dir) {
         if (OrderDirection.DESC == dir) {
-            Collections.sort(tuples, Collections.reverseOrder());
+            tuples.sort(Collections.reverseOrder());
         } else {
             Collections.sort(tuples);
         }
@@ -3264,11 +3288,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         }
 
         @Override
-        public int compareTo(Tuple2 o) {
-            return ComparisonChain.start()
-                    .compare(value, o.value)
-                    .compare(value2, o.value2, Collections.reverseOrder())
-                    .result();
+        public int compareTo(@NotNull Tuple2 o) {
+            return Comparator.comparing((Tuple2 t) -> t.value)
+                    .thenComparing( t -> ((Tuple2) t).value2, Comparator.reverseOrder())
+                    .compare(this, o);
         }
 
         @Override
@@ -3334,7 +3357,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         int accessCount = 0;
 
         @Override
-        public ExtractedText getText(String propertyPath, Blob blob) throws IOException {
+        public ExtractedText getText(String propertyPath, Blob blob) {
             ExtractedText result = idMap.get(blob.getContentIdentity());
             if (result != null){
                 accessCount++;

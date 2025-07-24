@@ -77,6 +77,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -169,7 +170,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
      */
     private final Map<String, Principal> principals = new HashMap<>();
 
-    private UserMonitor userMonitor = UserMonitor.NOOP;
+    private UserMonitor userMonitor; // do not access directly, but only via the userMonitorSupplier
+    private Supplier<UserMonitor> userMonitorSupplier;
 
     UserImporter(ConfigurationParameters config) {
         importBehavior = UserUtil.getImportBehavior(config);
@@ -207,16 +209,33 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             return false;
         }
 
-        if (securityProvider instanceof WhiteboardAware) {
-            Whiteboard whiteboard = ((WhiteboardAware) securityProvider).getWhiteboard();
-            UserMonitor monitor = WhiteboardUtils.getService(whiteboard, UserMonitor.class);
-            if (monitor != null) {
-                userMonitor = monitor;
-            }
-        }
+        /*
+         * resolve the userMonitor lazily, as resolving that service via the OSGi service registry
+         * can be costly; this is often a redundant operation, because a UserImporter is typically much more
+         * frequent initialized than actually used.
+         */
+        userMonitorSupplier = getUserMonitorSupplier(securityProvider);
 
         initialized = true;
         return initialized;
+    }
+
+    private Supplier<UserMonitor> getUserMonitorSupplier(SecurityProvider securityProvider) {
+        return () -> {
+            if (userMonitor == null) {
+                if (securityProvider instanceof WhiteboardAware) {
+                    Whiteboard whiteboard = ((WhiteboardAware) securityProvider).getWhiteboard();
+                    UserMonitor monitor = WhiteboardUtils.getService(whiteboard, UserMonitor.class);
+                    if (monitor != null) {
+                        userMonitor = monitor;
+                    }
+                }
+                if (userMonitor == null) { // always fall back to the NOOP version
+                    userMonitor = UserMonitor.NOOP;
+                }
+            }
+            return userMonitor;
+        };
     }
 
     private static boolean canInitUserManager(@NotNull JackrabbitSession session, boolean isWorkspaceImport) {
@@ -647,7 +666,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 memberContentIds.removeAll(failedContentIds);
 
                 userManager.onGroupUpdate(gr, false, true, memberContentIds, failedContentIds);
-                userMonitor.doneUpdateMembers(watch.elapsed(NANOSECONDS), totalSize, failedContentIds.size(), false);
+                userMonitorSupplier.get().doneUpdateMembers(watch.elapsed(NANOSECONDS), totalSize, failedContentIds.size(), false);
             }
         }
 

@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcesso
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticDocument;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryTextExtractor;
@@ -55,13 +56,13 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ElasticIndexEditorProvider elasticIndexEditorProvider;
 
-    public ElasticIndexerProvider(IndexHelper indexHelper, ElasticConnection connection) {
+    public ElasticIndexerProvider(IndexHelper indexHelper, ElasticConnection connection, ElasticRetryPolicy retryPolicy) {
         this.indexHelper = indexHelper;
         this.connection = connection;
         this.bulkProcessorHandler = new ElasticBulkProcessorHandler(connection);
         ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection, new ElasticMetricHandler(StatisticsProvider.NOOP));
-        this.indexWriterFactory = new ElasticIndexWriterFactory(connection, indexTracker, bulkProcessorHandler);
-        this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, connection, null, bulkProcessorHandler);
+        this.indexWriterFactory = new ElasticIndexWriterFactory(connection, indexTracker, bulkProcessorHandler, retryPolicy);
+        this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, connection, null, bulkProcessorHandler, retryPolicy);
 
     }
 

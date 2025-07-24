@@ -60,6 +60,8 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -201,6 +203,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
     private static final BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
     private static final BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
+    private static final DateTimeFormatter MODIFIED_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"));
 
     static final String THREAD_NAME_PREFIX = "mongo-dump";
 
@@ -647,6 +650,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         private final MongoParallelDownloadCoordinator parallelDownloadCoordinator;
         private long documentsDownloadedTotalBytes;
         private long documentsDownloadedTotal;
+        private long documentsDownloadedSinceLastProgressReport;
         private long nextLastModified;
         // Accessed from the main download thread
         private volatile long firstModifiedValueSeen = -1;
@@ -669,6 +673,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             this.parallelDownloadCoordinator = parallelDownloadCoordinator;
             this.documentsDownloadedTotalBytes = 0;
             this.documentsDownloadedTotal = 0;
+            this.documentsDownloadedSinceLastProgressReport = 0;
             this.nextLastModified = -1;
         }
 
@@ -825,6 +830,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
                         documentsDownloadedTotalBytes += docSize;
                         documentsDownloadedTotal++;
+                        documentsDownloadedSinceLastProgressReport++;
                         downloadStageStatistics.incrementDocumentsDownloadedTotalBytes(docSize);
                         downloadStatics.incrementDocumentsDownloadedTotal();
 
@@ -876,8 +882,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         }
                         docsInCurrentModified++;
 
-                        if (this.documentsDownloadedTotal % 100_000 == 0) {
-                            reportProgress("modified: " + currentDocModified);
+                        if (this.documentsDownloadedSinceLastProgressReport >= 200_000) {
+                            this.documentsDownloadedSinceLastProgressReport = 0;
+                            reportProgress("modified: " + currentDocModified + " (" + MODIFIED_FORMATTER.format(Instant.ofEpochSecond(currentDocModified)) + ")");
                         }
                         TRAVERSAL_LOG.trace("{}", currentDocModified);
 

@@ -18,11 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
+import org.apache.commons.math3.util.Precision;
 import org.apache.jackrabbit.oak.plugins.document.Throttler;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.math.DoubleMath.fuzzyCompare;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 
@@ -41,7 +42,7 @@ public final class MongoThrottlerFactory {
      * @param throttlingTime time duration for throttling
      * @return an exponential throttler to throttle system if required
      */
-    public static Throttler exponentialThrottler(final int threshold, final AtomicDouble oplogWindow, final long throttlingTime) {
+    public static Throttler exponentialThrottler(final int threshold, final AtomicReference<Double> oplogWindow, final long throttlingTime) {
         requireNonNull(oplogWindow);
         return new ExponentialThrottler(threshold, oplogWindow, throttlingTime);
     }
@@ -58,10 +59,10 @@ public final class MongoThrottlerFactory {
 
         private final int threshold;
         @NotNull
-        private final AtomicDouble oplogWindow;
+        private final AtomicReference<Double> oplogWindow;
         private final long throttlingTime;
 
-        public ExponentialThrottler(final int threshold, final @NotNull AtomicDouble oplogWindow, final long throttlingTime) {
+        public ExponentialThrottler(final int threshold, final @NotNull AtomicReference<Double> oplogWindow, final long throttlingTime) {
             this.threshold = threshold;
             this.oplogWindow = oplogWindow;
             this.throttlingTime = throttlingTime;
@@ -75,16 +76,16 @@ public final class MongoThrottlerFactory {
         @Override
         public long throttlingTime() {
             final double threshold = this.threshold;
-            final double oplogWindow = this.oplogWindow.doubleValue();
+            final double oplogWindow = this.oplogWindow.get();
             long throttleTime = throttlingTime;
 
-            if (fuzzyCompare(oplogWindow,threshold/8,  0.001) <= 0) {
+            if (Precision.compareTo(oplogWindow,threshold/8,  0.001) <= 0) {
                 throttleTime = throttleTime * 8;
-            } else if (fuzzyCompare(oplogWindow,threshold/4, 0.001) <= 0) {
+            } else if (Precision.compareTo(oplogWindow,threshold/4, 0.001) <= 0) {
                 throttleTime = throttleTime * 4;
-            } else if (fuzzyCompare(oplogWindow, threshold/2, 0.001) <= 0) {
+            } else if (Precision.compareTo(oplogWindow, threshold/2, 0.001) <= 0) {
                 throttleTime = throttleTime * 2;
-            } else if (fuzzyCompare(oplogWindow, threshold,0.001) <= 0) {
+            } else if (Precision.compareTo(oplogWindow, threshold,0.001) <= 0) {
                 throttleTime = throttlingTime;
             } else {
                 throttleTime = 0;

@@ -47,7 +47,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.CIHelper;

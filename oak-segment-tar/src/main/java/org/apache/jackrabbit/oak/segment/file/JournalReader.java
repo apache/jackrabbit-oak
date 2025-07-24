@@ -22,13 +22,14 @@ package org.apache.jackrabbit.oak.segment.file;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 
 /**
@@ -54,7 +55,7 @@ public final class JournalReader extends AbstractIterator<JournalEntry> implemen
             String line = null;
             while ((line = reader.readLine()) != null) {
                 if (line.indexOf(' ') != -1) {
-                    List<String> splits = Splitter.on(' ').splitToList(line);
+                    List<String> splits = Stream.of(line.split(" ", -1)).collect(Collectors.toList());
                     String revision = splits.get(0);
                     long timestamp = -1L;
                     

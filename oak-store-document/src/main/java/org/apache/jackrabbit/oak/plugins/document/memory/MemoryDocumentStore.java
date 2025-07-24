@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.assertUncon
 import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,8 +31,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -411,7 +412,10 @@ public class MemoryDocumentStore implements DocumentStore {
         }
         lastReadWriteMode = readWriteMode;
         try {
-            Map<String, String> map = Splitter.on(", ").withKeyValueSeparator(":").split(readWriteMode);
+            Map<String, String> map = Arrays.stream(readWriteMode.split(", "))
+                    .map(s -> s.split(":", 2))
+                    .filter(arr -> arr.length == 2)
+                    .collect(Collectors.toMap(arr -> arr[0], arr -> arr[1]));
             String read = map.get("read");
             if (read != null) {
                 ReadPreference readPref = ReadPreference.valueOf(read);

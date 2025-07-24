@@ -32,8 +32,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 
 /**

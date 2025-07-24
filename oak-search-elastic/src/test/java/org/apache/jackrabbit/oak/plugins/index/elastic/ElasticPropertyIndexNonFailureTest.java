@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,6 +35,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class ElasticPropertyIndexNonFailureTest extends ElasticAbstractQueryTest {
     @Rule
     public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     // Tests are hardcoded for these values
     private final static int BULK_ACTIONS_TEST = 250;
@@ -44,6 +47,7 @@ public class ElasticPropertyIndexNonFailureTest extends ElasticAbstractQueryTest
         // Use a low value for the tests
         System.setProperty(ElasticBulkProcessorHandler.BULK_ACTIONS_PROP, Integer.toString(BULK_ACTIONS_TEST));
         System.setProperty(ElasticBulkProcessorHandler.BULK_SIZE_BYTES_PROP, Integer.toString(BULK_SIZE_BYTES_TEST));
+        System.setProperty(ElasticBulkProcessorHandler.FAIL_ON_ERROR_PROP, "true");
         super.before();
     }
 

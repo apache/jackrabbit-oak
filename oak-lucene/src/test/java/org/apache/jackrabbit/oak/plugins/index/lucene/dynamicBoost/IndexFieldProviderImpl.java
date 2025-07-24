@@ -52,8 +52,8 @@ public class IndexFieldProviderImpl implements IndexFieldProvider {
     private static final String NT_DAM_ASSET = "dam:Asset";    
 
     @Override
-    public Set<String> getSupportedTypes() {
-        Set<String> supportedTypes = new HashSet<String>();
+    public @NotNull Set<String> getSupportedTypes() {
+        Set<String> supportedTypes = new HashSet<>();
         supportedTypes.add(NT_DAM_ASSET);
         return supportedTypes;
     }
@@ -65,14 +65,14 @@ public class IndexFieldProviderImpl implements IndexFieldProvider {
         for (String nodeName : dynaTags.getChildNodeNames()) {
             NodeState dynaTag = dynaTags.getChildNode(nodeName);
             String dynaTagName = dynaTag.getProperty(PREDICTED_TAG_NAME).getValue(Type.STRING);
-            Double dynaTagConfidence = dynaTag.getProperty(PREDICTED_TAG_CONFIDENCE).getValue(Type.DOUBLE);
+            double dynaTagConfidence = dynaTag.getProperty(PREDICTED_TAG_CONFIDENCE).getValue(Type.DOUBLE);
 
             List<String> tokens = new ArrayList<>(splitForIndexing(dynaTagName));
             if (tokens.size() > 1) { // Actual name not in tokens
                 tokens.add(dynaTagName);
             }
             for (String token : tokens) {
-                if (token.length() > 0) {
+                if (!token.isEmpty()) {
                     fields.add(new AugmentedField(PREDICTED_TAGS_REL_PATH + token.toLowerCase(), dynaTagConfidence));
                 }
             }

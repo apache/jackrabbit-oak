@@ -24,7 +24,6 @@ import java.util.function.Predicate;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;

@@ -39,7 +39,6 @@ import java.util.UUID;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;

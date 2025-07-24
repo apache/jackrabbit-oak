@@ -86,6 +86,20 @@ public class AzureRepositoryLockTest {
     }
 
     @Test
+    public void repoLockNotDeletedTest() throws IOException, BlobStorageException {
+        BlockBlobClient blockBlobClient = readBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
+
+        // create repo.lock blob
+        blockBlobClient.getBlobOutputStream(true).close();
+
+        BlockBlobClient noRetrtBlockBlobClient = noRetryBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
+        BlobLeaseClient blobLeaseClient = new BlobLeaseClientBuilder().blobClient(noRetrtBlockBlobClient).buildClient();
+
+        // no exception should be present when calling lock
+        new AzureRepositoryLock(blockBlobClient, blobLeaseClient, () -> {}, new WriteAccessController()).lock();
+    }
+
+    @Test
     public void testWaitingLock() throws BlobStorageException, InterruptedException, IOException {
         BlockBlobClient blockBlobClient = readBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();
         BlockBlobClient noRetrtBlockBlobClient = noRetryBlobContainerClient.getBlobClient("oak/repo.lock").getBlockBlobClient();

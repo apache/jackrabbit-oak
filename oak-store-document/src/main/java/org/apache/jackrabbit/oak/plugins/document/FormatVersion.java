@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
@@ -259,11 +258,10 @@ public final class FormatVersion implements Comparable<FormatVersion> {
     @Override
     public int compareTo(@NotNull FormatVersion other) {
         requireNonNull(other);
-        return ComparisonChain.start()
-                .compare(major, other.major)
-                .compare(minor, other.minor)
-                .compare(micro, other.micro)
-                .result();
+        return Comparator.comparingInt((FormatVersion fv) -> fv.major)
+                .thenComparingInt(fv -> fv.minor)
+                .thenComparingInt(fv -> fv.micro)
+                .compare(this, other);
     }
 
     private static DocumentStoreException concurrentUpdate() {

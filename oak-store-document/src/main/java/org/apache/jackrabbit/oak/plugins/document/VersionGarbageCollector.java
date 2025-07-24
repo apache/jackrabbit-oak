@@ -42,7 +42,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
@@ -173,8 +172,44 @@ public class VersionGarbageCollector {
     private static FullGCMode fullGcMode = GAP_ORPHANS_EMPTYPROPS;
     private final long fullGcGen;
 
-    static FullGCMode getFullGcMode() {
+    public static FullGCMode getFullGcMode() {
         return fullGcMode;
+    }
+    
+    public boolean isFullGCEnabled() {
+        return fullGCEnabled;
+    }
+
+    public boolean isFullGCDryRun() {
+        return isFullGCDryRun;
+    }
+
+    public boolean isEmbeddedVerificationEnabled() {
+        return embeddedVerification;
+    }
+
+    public double getFullGcDelayFactor() {
+        return fullGCDelayFactor;
+    }
+
+    public long getFullGcMaxAgeInMillis() {
+        return fullGcMaxAgeInMillis;
+    }
+
+    public int getFullGcBatchSize() {
+        return fullGCBatchSize;
+    }
+
+    public int getFullGcProgressSize() {
+        return fullGCProgressSize;
+    }
+
+    public Set<String> getFullGCIncludePaths() {
+        return fullGCIncludePaths;
+    }
+
+    public Set<String> getFullGCExcludePaths() {
+        return fullGCExcludePaths;
     }
 
     /**

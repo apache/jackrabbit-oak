@@ -36,6 +36,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -43,8 +44,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -368,7 +367,7 @@ public class MongoDocumentStore implements DocumentStore {
 
             if (ol.isPresent()) {
                 // oplog window based on current oplog filling rate
-                final AtomicDouble oplogWindow = new AtomicDouble(MAX_VALUE);
+                final AtomicReference<Double> oplogWindow = new AtomicReference<>((double) MAX_VALUE);
                 throttler = exponentialThrottler(DEFAULT_THROTTLING_THRESHOLD, oplogWindow, DEFAULT_THROTTLING_TIME_MS);
                 throttlingMetricsUpdater = new MongoDocumentStoreThrottlingMetricsUpdater(localDb, oplogWindow);
                 throttlingMetricsUpdater.scheduleUpdateMetrics();

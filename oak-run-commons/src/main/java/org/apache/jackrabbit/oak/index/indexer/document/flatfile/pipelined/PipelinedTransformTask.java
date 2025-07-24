@@ -183,7 +183,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                         if (nodeDoc == NodeDocument.NULL) {
                             continue;
                         }
-                        if (mongoObjectsProcessedSinceLastLog >= 100_000) {
+                        if (mongoObjectsProcessedSinceLastLog >= 200_000) {
                             mongoObjectsProcessedSinceLastLog = 0;
                             LOG.info("Processing: {}, {}. Total documents: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
                                     nodeDoc.getModified(), nodeDoc.getId(),

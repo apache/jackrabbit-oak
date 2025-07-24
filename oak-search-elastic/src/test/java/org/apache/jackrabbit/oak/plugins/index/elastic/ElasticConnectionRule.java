@@ -125,6 +125,7 @@ public class ElasticConnectionRule extends ExternalResource {
             elasticConnectionModel.elasticApiKey = apiKey;
             elasticConnectionModel.elasticApiSecret = apiSecret;
             elasticConnectionModel.indexPrefix = indexPrefix;
+            elasticConnectionModel.maxRetryTime = 0;
         } catch (URISyntaxException e) {
             LOG.error("Provided elastic connection string is not valid ", e);
         }
@@ -138,6 +139,7 @@ public class ElasticConnectionRule extends ExternalResource {
         elasticConnectionModel.elasticApiKey = null;
         elasticConnectionModel.elasticApiSecret = null;
         elasticConnectionModel.indexPrefix = indexPrefix;
+        elasticConnectionModel.maxRetryTime = 0;
     }
 
     private Map<String, String> getUriQueryParams(URI uri) {
@@ -231,6 +233,7 @@ public class ElasticConnectionRule extends ExternalResource {
         private String elasticHost;
         private int elasticPort;
         private String indexPrefix;
+        private int maxRetryTime;
 
         public String getElasticApiSecret() {
             return elasticApiSecret;
@@ -254,6 +257,10 @@ public class ElasticConnectionRule extends ExternalResource {
 
         public String getIndexPrefix() {
             return indexPrefix;
+        }
+
+        public int getMaxRetryTime() {
+            return maxRetryTime;
         }
     }
 }

@@ -182,15 +182,17 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private final List<PropertyDefinition> similarityProperties;
     private final List<PropertyDefinition> similarityTagsProperties;
     private final String[] similarityTagsFields;
+    private final ElasticSemVer mappingVersion;
 
     public ElasticIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
         this.indexPrefix = indexPrefix;
+        this.mappingVersion = ElasticSemVer.fromString(getOptionalValue(definition, PROP_INDEX_MAPPING_VERSION, "1.0.0"));
         // the alias contains the internal mapping major version. In case of a breaking change, an index with the new version can
         // be created without affecting the existing queries of an instance running with the old version.
         // This strategy has been introduced from version 1. For compatibility reasons, the alias is not changed for the first version.
-        if (MAPPING_VERSION.getMajor() > 1) {
-            this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath() + "_v" + MAPPING_VERSION.getMajor());
+        if (this.mappingVersion.getMajor() > 1) {
+            this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath() + "_v" + mappingVersion.getMajor());
         } else {
             this.indexAlias = ElasticIndexNameHelper.getElasticSafeIndexName(indexPrefix, getIndexPath());
         }
@@ -367,8 +369,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
      * Returns the mapping version for this index definition.
      * If the version is not specified, the default value is {@code 1.0.0}.
      */
-    public String getMappingVersion() {
-        return getOptionalValue(definition, PROP_INDEX_MAPPING_VERSION, "1.0.0");
+    public ElasticSemVer getMappingVersion() {
+        return mappingVersion;
     }
 
     @Override

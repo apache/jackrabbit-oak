@@ -38,7 +38,7 @@ documentation page.
 * [Lucene](./lucene.html)
 * [Elastic](./elastic.html)
 * [Property](./property-index.html)
-* [Solr](./solr.html)
+* [Solr](./solr.html) (*NOTE:* Solr support has been removed in Oak 1.82 (see [OAK-11346](https://issues.apache.org/jira/browse/OAK-11346))
 
 For more details on how indexing works (for all index types):
 
