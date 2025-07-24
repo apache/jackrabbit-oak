@@ -136,7 +136,7 @@ public abstract class TargetImportHandler extends DefaultHandler {
         NameInfo(String docQualifiedName) throws RepositoryException {
             int idx = docQualifiedName.indexOf(':');
             if (idx == -1) {
-                docPrefix = null;
+                docPrefix = "";
                 localName = docQualifiedName;
             } else {
                 String[] splits = docQualifiedName.split(":", 2);
@@ -153,19 +153,14 @@ public abstract class TargetImportHandler extends DefaultHandler {
         }
 
         private void init() throws RepositoryException {
-            if (docPrefix == null) {
-                namespaceUri = "";
-                repoPrefix = null;
+            Tree rootTree = sessionContext.getSessionDelegate().getRoot().getTree("/");
+            List<String> uris = documentContext.get(docPrefix);
+            if (uris.isEmpty()) {
+                namespaceUri = Namespaces.getNamespaceURI(rootTree, docPrefix);
+                repoPrefix = docPrefix;
             } else {
-                List<String> uris = documentContext.get(docPrefix);
-                Tree tree = sessionContext.getSessionDelegate().getRoot().getTree("/");
-                if (uris.isEmpty()) {
-                    namespaceUri = Namespaces.getNamespaceURI(tree, docPrefix);
-                    repoPrefix = docPrefix;
-                } else {
-                    namespaceUri = uris.get(uris.size() - 1);
-                    repoPrefix = Namespaces.getNamespacePrefix(tree, namespaceUri);
-                }
+                namespaceUri = uris.get(uris.size() - 1);
+                repoPrefix = Namespaces.getNamespacePrefix(rootTree, namespaceUri);
             }
         }
 

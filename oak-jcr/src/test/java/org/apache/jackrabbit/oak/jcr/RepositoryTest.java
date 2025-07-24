@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -2289,7 +2290,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node node = session.getRootNode().addNode("node", "fooType");
         node.setProperty("fooProp", "fooValue");
         session.save();
-        
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         session.exportDocumentView("/node", out, true, false);
         node.remove();
@@ -2341,29 +2342,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(nPrefBar.isSame(nExpBar));
     }
 
-    // tests DocViewImport with no namespace prefixes
-    @Ignore("OAK-11783")
-    @Test
-    public void noNameSpacePrefixesInDocViewImport() throws Exception {
-        String ns1 = "urn:uuid:" + UUID.randomUUID();
-        String ns2 = "urn:uuid:" + UUID.randomUUID();
-
-        String test =
-                "<foo xmlns=\"" + ns1 + "\">" +
-                "  <qux xmlns=\"" + ns2 + "\">" +
-                "    <xyz xmlns=\"" + ns1 + "\"/>" +
-                "  </qux>" +
-                "  <bar/>" +
-                "</foo>";
-
+    private void internalNoNameSpacePrefixesInImport(String xml, String ns1, String ns2) throws Exception {
         Session session = getAdminSession();
         session.getWorkspace().importXML(
-                "/", new ByteArrayInputStream(test.getBytes(StandardCharsets.UTF_8)), IMPORT_UUID_CREATE_NEW);
+                "/", new ByteArrayInputStream(xml.getBytes()) , IMPORT_UUID_CREATE_NEW);
         session.save();
 
         String pref1 = session.getNamespacePrefix(ns1);
         String pref2 = session.getNamespacePrefix(ns2);
-        assertFalse("prefixes should be different - " + pref1 + " vs " + pref2, pref1.equals(pref2));
+        assertNotEquals("prefixes should be different - " + pref1 + " vs " + pref2, pref1, pref2);
 
         Node nPrefFoo = session.getNode("/" + pref1 + ":foo");
         Node nExpFoo = session.getNode("/{" + ns1 + "}foo");
@@ -2380,6 +2367,39 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node nPrefBar = nPrefFoo.getNode( pref1 + ":" + "bar");
         Node nExpBar = nExpFoo.getNode("{" + ns1 + "}bar");
         assertTrue(nPrefBar.isSame(nExpBar));
+    }
+
+    // tests import with no namespace prefixes
+    @Test
+    public void noNameSpacePrefixesInImport() throws Exception {
+        String ns1 = "urn:uuid:" + UUID.randomUUID();
+        String ns2 = "urn:uuid:" + UUID.randomUUID();
+
+        String docView =
+                "<foo xmlns=\"" + ns1 + "\">" +
+                        "  <qux xmlns=\"" + ns2 + "\">" +
+                        "    <xyz xmlns=\"" + ns1 + "\"/>" +
+                        "  </qux>" +
+                        "  <bar/>" +
+                        "</foo>";
+        String sysView =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                        "<sv:node xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\"" +
+                        "         xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\"" +
+                        "         xmlns:jcr=\"http://www.jcp.org/jcr/1.0\"" +
+                        "         xmlns=\"" + ns1 + "\"" +
+                        "         sv:name=\"foo\">" +
+                        "    <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+                        "        <sv:value>nt:unstructured</sv:value>" +
+                        "    </sv:property>" +
+                        "    <sv:node xmlns=\"" + ns2 + "\" sv:name=\"qux\">" +
+                        "        <sv:node xmlns=\"" + ns1 + "\" sv:name=\"xyz\"/>" +
+                        "    </sv:node>" +
+                        "    <sv:node sv:name=\"bar\"/>" +
+                        "</sv:node>";
+
+        internalNoNameSpacePrefixesInImport(docView, ns1, ns2);
+        internalNoNameSpacePrefixesInImport(sysView, ns1, ns2);
     }
 
     @Test
