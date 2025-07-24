@@ -2302,50 +2302,10 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals("fooValue", session.getProperty("/node/fooProp").getString());
     }
 
-    // tests DocViewImport with namespace prefixes re-used for different namespace names
-    @Test
-    public void reusedNameSpacePrefixesInDocViewImport() throws Exception {
-        String ns1 = "urn:uuid:" + UUID.randomUUID();
-        String ns2 = "urn:uuid:" + UUID.randomUUID();
-
-        String test =
-                "<a:foo xmlns:a=\"" + ns1 + "\">" +
-                "  <a:qux xmlns:a=\"" + ns2 + "\">" +
-                "    <a:xyz xmlns:a=\"" + ns1 + "\"/>" +
-                "  </a:qux>" +
-                "  <a:bar/>" +
-                "</a:foo>";
-
+    private void internalShadedNamespaceMappingsInImport(String xml, String ns1, String ns2) throws Exception {
         Session session = getAdminSession();
         session.getWorkspace().importXML(
-                "/", new ByteArrayInputStream(test.getBytes(StandardCharsets.UTF_8)), IMPORT_UUID_CREATE_NEW);
-        session.save();
-
-        String pref1 = session.getNamespacePrefix(ns1);
-        String pref2 = session.getNamespacePrefix(ns2);
-        assertFalse("prefixes should be different - " + pref1 + " vs " + pref2, pref1.equals(pref2));
-
-        Node nPrefFoo = session.getNode("/" + pref1 + ":foo");
-        Node nExpFoo = session.getNode("/{" + ns1 + "}foo");
-        assertTrue(nPrefFoo.isSame(nExpFoo));
-
-        Node nPrefQux = nPrefFoo.getNode(pref2 + ":qux");
-        Node nExpQux = nExpFoo.getNode("{" + ns2 + "}qux");
-        assertTrue(nPrefQux.isSame(nExpQux));
-
-        Node nPrefXyz = nPrefQux.getNode(pref1 + ":xyz");
-        Node nExpXyz = nExpQux.getNode("{" + ns1 + "}xyz");
-        assertTrue(nPrefXyz.isSame(nExpXyz));
-
-        Node nPrefBar = nPrefFoo.getNode( pref1 + ":" + "bar");
-        Node nExpBar = nExpFoo.getNode("{" + ns1 + "}bar");
-        assertTrue(nPrefBar.isSame(nExpBar));
-    }
-
-    private void internalNoNameSpacePrefixesInImport(String xml, String ns1, String ns2) throws Exception {
-        Session session = getAdminSession();
-        session.getWorkspace().importXML(
-                "/", new ByteArrayInputStream(xml.getBytes()) , IMPORT_UUID_CREATE_NEW);
+                "/", new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)) , IMPORT_UUID_CREATE_NEW);
         session.save();
 
         String pref1 = session.getNamespacePrefix(ns1);
@@ -2367,6 +2327,39 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node nPrefBar = nPrefFoo.getNode( pref1 + ":" + "bar");
         Node nExpBar = nExpFoo.getNode("{" + ns1 + "}bar");
         assertTrue(nPrefBar.isSame(nExpBar));
+    }
+
+    // tests import with namespace prefixes re-used for different namespace names
+    @Test
+    public void reusedNameSpacePrefixesInDocViewImport() throws Exception {
+        String ns1 = "urn:uuid:" + UUID.randomUUID();
+        String ns2 = "urn:uuid:" + UUID.randomUUID();
+
+        String docView =
+                "<a:foo xmlns:a=\"" + ns1 + "\">" +
+                "  <a:qux xmlns:a=\"" + ns2 + "\">" +
+                "    <a:xyz xmlns:a=\"" + ns1 + "\"/>" +
+                "  </a:qux>" +
+                "  <a:bar/>" +
+                "</a:foo>";
+        String sysView =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<sv:node xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\"" +
+                "         xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\"" +
+                "         xmlns:jcr=\"http://www.jcp.org/jcr/1.0\"" +
+                "         xmlns:a=\"" + ns1 + "\"" +
+                "         sv:name=\"a:foo\">" +
+                "    <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+                "        <sv:value>nt:unstructured</sv:value>" +
+                "    </sv:property>" +
+                "    <sv:node xmlns:a=\"" + ns2 + "\" sv:name=\"a:qux\">" +
+                "        <sv:node xmlns:a=\"" + ns1 + "\" sv:name=\"a:xyz\"/>" +
+                "    </sv:node>" +
+                "    <sv:node sv:name=\"a:bar\"/>" +
+                "</sv:node>";
+
+        internalShadedNamespaceMappingsInImport(docView, ns1, ns2);
+        internalShadedNamespaceMappingsInImport(sysView, ns1, ns2);
     }
 
     // tests import with no namespace prefixes
@@ -2398,8 +2391,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
                         "    <sv:node sv:name=\"bar\"/>" +
                         "</sv:node>";
 
-        internalNoNameSpacePrefixesInImport(docView, ns1, ns2);
-        internalNoNameSpacePrefixesInImport(sysView, ns1, ns2);
+        internalShadedNamespaceMappingsInImport(docView, ns1, ns2);
+        internalShadedNamespaceMappingsInImport(sysView, ns1, ns2);
     }
 
     @Test
