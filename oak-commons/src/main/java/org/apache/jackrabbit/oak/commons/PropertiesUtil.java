@@ -275,6 +275,8 @@ public final class PropertiesUtil {
                 throw new IllegalArgumentException(
                         "Configured class " + objectClass.getName()
                                 + " does not contain a property named " + name);
+            } else {
+                log.warn("Ignoring unknow property {}", name);
             }
         }
         buff.append('}');
