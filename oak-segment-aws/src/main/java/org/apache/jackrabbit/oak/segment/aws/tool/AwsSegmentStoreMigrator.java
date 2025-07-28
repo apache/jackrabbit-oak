@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.aws.tool;
 
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.fetchByteArray;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.storeDescription;
+import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.ArchiveIndexComparator;
 
 import java.io.Closeable;
 import java.io.File;
@@ -32,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
@@ -155,9 +157,12 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         List<String> targetArchives = targetManager.listArchives();
 
         if (appendMode && !targetArchives.isEmpty()) {
-            //last archive can be updated since last copy and needs to be recopied
-            String lastArchive = targetArchives.get(targetArchives.size() - 1);
-            targetArchives.remove(lastArchive);
+            // sort archives by index
+            // last archive could have been updated since last copy and may need to be recopied
+            targetArchives = targetArchives.stream()
+                    .sorted(new ArchiveIndexComparator())
+                    .limit(targetArchives.size() - 1)
+                    .collect(Collectors.toList());
         }
 
         for (String archiveName : sourceManager.listArchives()) {
