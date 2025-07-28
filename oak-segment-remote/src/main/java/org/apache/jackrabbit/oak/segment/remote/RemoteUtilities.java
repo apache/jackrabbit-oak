@@ -20,6 +20,7 @@ import static java.lang.Boolean.getBoolean;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Comparator;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,5 +50,18 @@ public final class RemoteUtilities {
             return null;
         }
         return UUID.fromString(m.group(2));
+    }
+
+    public static class ArchiveIndexComparator implements Comparator<String> {
+        final static Pattern indexPattern = Pattern.compile("[0-9]+");
+
+        @Override
+        public int compare(String archive1, String archive2) {
+            Matcher matcher1 = indexPattern.matcher(archive1);
+            int index1 = matcher1.find() ? Integer.parseInt(matcher1.group()) : 0;
+            Matcher matcher2 = indexPattern.matcher(archive2);
+            int index2 = matcher2.find() ? Integer.parseInt(matcher2.group()) : 0;
+            return index1 - index2;
+        }
     }
 }
