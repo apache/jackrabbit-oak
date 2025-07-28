@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.segment.aws.tool;
 
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.fetchByteArray;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.storeDescription;
-import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.ArchiveIndexComparator;
 
 import java.io.Closeable;
 import java.io.File;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -160,7 +160,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
             // sort archives by index
             // last archive could have been updated since last copy and may need to be recopied
             targetArchives = targetArchives.stream()
-                    .sorted(new ArchiveIndexComparator())
+                    .sorted(RemoteUtilities.ARCHIVE_INDEX_COMPARATOR)
                     .limit(targetArchives.size() - 1)
                     .collect(Collectors.toList());
         }

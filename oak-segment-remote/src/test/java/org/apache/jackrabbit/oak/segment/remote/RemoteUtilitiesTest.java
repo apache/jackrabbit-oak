@@ -53,7 +53,7 @@ public class RemoteUtilitiesTest {
     private void expectArchiveSortOrder(List<String> expectedOrder) {
         List<String> archives = new ArrayList<>(expectedOrder);
         Collections.shuffle(archives);
-        archives.sort(new RemoteUtilities.ArchiveIndexComparator());
+        archives.sort(RemoteUtilities.ARCHIVE_INDEX_COMPARATOR);
         assertEquals(expectedOrder, archives);
     }
 

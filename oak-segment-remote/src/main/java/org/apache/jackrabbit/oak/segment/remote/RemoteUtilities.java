@@ -29,6 +29,7 @@ public final class RemoteUtilities {
     public static final boolean OFF_HEAP = getBoolean("access.off.heap");
     public static final String SEGMENT_FILE_NAME_PATTERN = "^([0-9a-f]{4})\\.([0-9a-f-]+)$";
     public static final int MAX_ENTRY_COUNT = 0x10000;
+    public static final Comparator<String> ARCHIVE_INDEX_COMPARATOR = new ArchiveIndexComparator();
 
     private static final Pattern PATTERN = Pattern.compile(SEGMENT_FILE_NAME_PATTERN);
 
@@ -52,7 +53,7 @@ public final class RemoteUtilities {
         return UUID.fromString(m.group(2));
     }
 
-    public static class ArchiveIndexComparator implements Comparator<String> {
+    private static class ArchiveIndexComparator implements Comparator<String> {
         final static Pattern indexPattern = Pattern.compile("[0-9]+");
 
         @Override
