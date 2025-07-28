@@ -25,7 +25,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.slf4j.Logger;

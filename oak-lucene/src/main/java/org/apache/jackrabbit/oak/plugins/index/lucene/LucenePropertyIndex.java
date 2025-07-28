@@ -32,13 +32,14 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -1610,13 +1611,13 @@ public class LucenePropertyIndex extends FulltextIndex {
         FluentIterable<String> paths;
         if (pir != null) {
             Iterable<String> queryResult = lookup.query(plan.getFilter(), pir.propertyName, pir.pr);
-            paths = FluentIterable.from(queryResult)
+            paths = FluentIterable.of(queryResult)
                     .transform(path -> pr.isPathTransformed() ? pr.transformPath(path) : path)
-                    .filter(x -> x != null);
+                    .filter(Objects::nonNull);
         } else {
             Validate.checkState(pr.evaluateSyncNodeTypeRestriction()); //Either of property or nodetype should not be null
             Filter filter = plan.getFilter();
-            paths = FluentIterable.from(IterableUtils.chainedIterable(
+            paths = FluentIterable.of(IterableUtils.chainedIterable(
                     lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
                     lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()))));
         }
