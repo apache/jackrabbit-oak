@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.repository;
 
 import static java.util.Arrays.asList;
 import static javax.jcr.ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW;
@@ -27,9 +27,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -86,14 +90,27 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
 import org.apache.jackrabbit.core.security.principal.AdminPrincipal;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
+import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
+import org.apache.jackrabbit.oak.jcr.session.SessionNamespaces;
+import org.apache.jackrabbit.oak.jcr.session.SessionStats;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.stats.NoopStats;
+import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.spi.QValue;
 import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.QValueFactoryImpl;
@@ -2329,6 +2346,36 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 logMessages.toString(), containsString(p.getPath()));
         assertThat("Warn log message must contains a reference to the large array property path",
                 logMessages.toString(), containsString(p2.getPath()));
+    }
+
+    @Test
+    @Ignore("OAK-11561")
+    public void testConsistencyOfNameConversion() throws RepositoryException {
+        NamespaceRegistry namespaceRegistry = getAdminSession().getWorkspace().getNamespaceRegistry();
+        Root root = new RootProviderService().createReadOnlyRoot(EmptyNodeState.EMPTY_NODE);
+
+        SessionDelegate sessionDelegateMock = mock(SessionDelegate.class);
+        when(sessionDelegateMock.getSessionStats()).thenReturn(mock(SessionStats.class));
+        when(sessionDelegateMock.getRoot()).thenReturn(root);
+        SessionNamespaces sessionNamespaces = new SessionNamespaces(root);
+        when(sessionDelegateMock.getNamespaces()).thenReturn(sessionNamespaces);
+        StatisticManager statisticManagerMock = mock(StatisticManager.class);
+        when(statisticManagerMock.getStatsCounter(any(RepositoryStatistics.Type.class))).thenReturn(NoopStats.INSTANCE);
+        when(statisticManagerMock.getMeter(any(RepositoryStatistics.Type.class))).thenReturn(NoopStats.INSTANCE);
+        SessionContext sessionContext = ((RepositoryImpl) getRepository()).createSessionContext(statisticManagerMock, mock(SecurityProvider.class), Collections.emptyMap(), sessionDelegateMock, 100, mock(CommitRateLimiter.class));
+
+        //register global namespaces
+        namespaceRegistry.registerNamespace("sample", "http://www.example.com");
+        namespaceRegistry.registerNamespace("globalPrefix", "http://www.secondexample.com");
+
+        //should fail, because the prefix foo is not registered
+        assertThrows(IllegalStateException.class, () -> sessionContext.getJcrName("foo:bar"));
+
+        //create a local mapping for a completely unrelated namespace
+        sessionContext.getSession().setNamespacePrefix("localPrefix", "http://www.secondexample.com");
+
+        //verify that the behavior of getJcrName did not change
+        assertThrows(IllegalStateException.class, () -> sessionContext.getJcrName("foo:bar"));
     }
 
     private static ch.qos.logback.classic.Logger rootLogger() {
