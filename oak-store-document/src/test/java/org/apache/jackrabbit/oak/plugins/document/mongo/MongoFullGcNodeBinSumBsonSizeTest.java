@@ -137,7 +137,7 @@ public class MongoFullGcNodeBinSumBsonSizeTest {
         Bson update = updateCaptor.getValue();
         Document updateDoc = Document.parse(update.toBsonDocument(Document.class, MongoClientSettings.getDefaultCodecRegistry()).toJson());
         Document inc = updateDoc.get("$inc", Document.class);
-        assertEquals(50L, inc.get("fullGcRemovedTotalBsonSize"));
+        assertEquals(50, ((Number) inc.get("fullGcRemovedTotalBsonSize")).intValue());
     }
 
     @Test
@@ -227,7 +227,7 @@ public class MongoFullGcNodeBinSumBsonSizeTest {
         Bson update = updateCaptor.getValue();
         Document updateDoc = Document.parse(update.toBsonDocument(Document.class, MongoClientSettings.getDefaultCodecRegistry()).toJson());
         Document inc = updateDoc.get("$inc", Document.class);
-        assertEquals(200L, inc.get("fullGcRemovedTotalBsonSize"));
+        assertEquals(200, ((Number) inc.get("fullGcRemovedTotalBsonSize")).intValue());
     }
 
     @Test
