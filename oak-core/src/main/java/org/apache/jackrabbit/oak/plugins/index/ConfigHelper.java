@@ -35,6 +35,12 @@ public class ConfigHelper {
         return result;
     }
 
+    public static long getSystemPropertyAsLong(String name, long defaultValue) {
+        long result = Long.getLong(name, defaultValue);
+        LOG.info("Config {}={}", name, result);
+        return result;
+    }
+
     public static String getSystemPropertyAsString(String name, String defaultValue) {
         String result = System.getProperty(name, defaultValue);
         LOG.info("Config {}={}", name, result);

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -38,7 +39,11 @@ public class ElasticIndexProvider implements QueryIndexProvider {
     }
 
     public ElasticIndexProvider(ElasticIndexTracker indexTracker) {
-        this(indexTracker, Long.getLong(ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS_PROPERTY, DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS)); // default timeout of 60 seconds
+        this(indexTracker, ConfigHelper.getSystemPropertyAsLong(ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS_PROPERTY, DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS));
+    }
+
+    public long getAsyncIteratorEnqueueTimeoutMs() {
+        return asyncIteratorEnqueueTimeoutMs;
     }
 
     @Override
