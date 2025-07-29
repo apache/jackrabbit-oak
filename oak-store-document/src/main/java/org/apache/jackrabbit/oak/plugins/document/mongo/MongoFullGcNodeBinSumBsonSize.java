@@ -131,7 +131,7 @@ class MongoFullGcNodeBinSumBsonSize implements FullGcNodeBin {
                 new BasicDBObject("$group", new BasicDBObject("_id", null)
                     .append("totalSize", new BasicDBObject("$sum", new BasicDBObject("$bsonSize", "$$ROOT"))))
             )).first();
-            return first != null ? first.getLong("totalSize") : -1;
+            return first != null ? ((Number) first.get("totalSize")).longValue() : -1;
         } finally {
             LOG.info("getBsonSize for {} documents took {} ms", ids.size(), System.currentTimeMillis() - start);
         }
