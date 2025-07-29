@@ -48,8 +48,7 @@ public class LuceneIndexHelper extends IndexHelper {
             @NotNull NodeBuilder index, @NotNull String name,
             @Nullable Set<String> propertyTypes,
             @Nullable Set<String> excludes, @Nullable String async) {
-        return newLuceneIndexDefinition(index, name, propertyTypes, excludes,
-                async, null);
+        return newLuceneIndexDefinition(index, name, propertyTypes, excludes, async, null);
     }
 
     public static NodeBuilder newLuceneIndexDefinition(

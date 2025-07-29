@@ -18,6 +18,10 @@ package org.apache.jackrabbit.oak.segment.remote;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -35,14 +39,31 @@ public class RemoteUtilitiesTest {
         assertEquals(uuid, RemoteUtilities.getSegmentUUID(name));
     }
 
-  @Test
-  public void testInvalidEntryIndex() {
-    UUID uuid = UUID.randomUUID();
-    String name = RemoteUtilities.getSegmentFileName(
+    @Test
+    public void testInvalidEntryIndex() {
+        UUID uuid = UUID.randomUUID();
+        String name = RemoteUtilities.getSegmentFileName(
             RemoteUtilities.MAX_ENTRY_COUNT,
             uuid.getMostSignificantBits(),
             uuid.getLeastSignificantBits()
-    );
-    assertNotEquals(uuid, RemoteUtilities.getSegmentUUID(name));
-  }
+        );
+        assertNotEquals(uuid, RemoteUtilities.getSegmentUUID(name));
+    }
+
+    private void expectArchiveSortOrder(List<String> expectedOrder) {
+        List<String> archives = new ArrayList<>(expectedOrder);
+        Collections.shuffle(archives);
+        archives.sort(RemoteUtilities.ARCHIVE_INDEX_COMPARATOR);
+        assertEquals(expectedOrder, archives);
+    }
+
+    @Test
+    public void testSortArchives() {
+        expectArchiveSortOrder(Arrays.asList("data00001a.tar", "data00002a.tar", "data00003a.tar"));
+    }
+
+    @Test
+    public void testSortArchivesLargeIndices() {
+        expectArchiveSortOrder(Arrays.asList("data00003a.tar", "data20000a.tar", "data100000a.tar"));
+    }
 }
