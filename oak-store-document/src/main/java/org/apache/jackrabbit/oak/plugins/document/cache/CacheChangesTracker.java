@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import org.apache.jackrabbit.guava.common.hash.BloomFilter;
-import org.apache.jackrabbit.guava.common.hash.Funnel;
-import org.apache.jackrabbit.guava.common.hash.PrimitiveSink;
+import org.apache.jackrabbit.oak.commons.collections.BloomFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +63,7 @@ public class CacheChangesTracker implements Closeable {
             if (lazyBloomFilter.filter == null) {
                 LOG.debug("Disposing CacheChangesTracker for {}, no filter was needed", keyFilter);
             } else {
-                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, lazyBloomFilter.filter.expectedFpp());
+                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, LazyBloomFilter.FPP);
             }
         }
     }
@@ -76,14 +74,14 @@ public class CacheChangesTracker implements Closeable {
 
         private final int entries;
 
-        private volatile BloomFilter<String> filter;
+        private volatile BloomFilter filter;
 
         public LazyBloomFilter(int entries) {
             this.entries = entries;
         }
 
         public synchronized void put(String entry) {
-            getFilter().put(entry);
+            getFilter().add(entry);
         }
 
         public boolean mightContain(String entry) {
@@ -91,21 +89,14 @@ public class CacheChangesTracker implements Closeable {
                 return false;
             } else {
                 synchronized (this) {
-                    return filter.mightContain(entry);
+                    return filter.mayContain(entry);
                 }
             }
         }
 
-        private BloomFilter<String> getFilter() {
+        private BloomFilter getFilter() {
             if (filter == null) {
-                filter = BloomFilter.create(new Funnel<String>() {
-                    private static final long serialVersionUID = -7114267990225941161L;
-
-                    @Override
-                    public void funnel(String from, PrimitiveSink into) {
-                        into.putUnencodedChars(from);
-                    }
-                }, entries, FPP);
+                filter = BloomFilter.construct(entries, FPP);
             }
             return filter;
         }

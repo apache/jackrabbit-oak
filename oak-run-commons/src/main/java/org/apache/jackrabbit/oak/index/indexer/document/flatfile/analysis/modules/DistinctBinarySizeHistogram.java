@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.HyperLogLog;
+import org.apache.jackrabbit.oak.commons.collections.HyperLogLog;
 
 /**
  * A histogram of distinct binaries. For each size range, we calculate the

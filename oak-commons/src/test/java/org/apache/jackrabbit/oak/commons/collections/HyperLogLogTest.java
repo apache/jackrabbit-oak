@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
+package org.apache.jackrabbit.oak.commons.collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -53,14 +53,10 @@ public class HyperLogLogTest {
     @Test
     public void test() {
         int testCount = 50;
-        for (int m = 8; m <= 128; m *= 2) {
+        for (int m = 16; m <= 128; m *= 2) {
             double avg = Math.sqrt(averageOverRange(m, 30_000, testCount, false, 2));
             int min, max;
             switch (m) {
-            case 8:
-                min = 16;
-                max = 17;
-                break;
             case 16:
                 min = 22;
                 max = 23;
@@ -116,14 +112,10 @@ public class HyperLogLogTest {
         int runs = 2;
         for (int test = 0; test < testCount; test++) {
             HyperLogLog hll;
-            if (m == 8) {
-                hll = new HyperLogLogUsingLong(16, 0);
-            } else {
-                hll = new HyperLogLog(m, 0);
-            }
+            hll = new HyperLogLog(m, 0);
             long baseX = x;
             for (int i = 0; i < size; i++) {
-                hll.add(Hash.hash64(x));
+                hll.add(HashUtils.hash64(x));
                 x++;
             }
             long e = hll.estimate();
@@ -136,7 +128,7 @@ public class HyperLogLogTest {
             for (int add = 0; add < repeat; add++) {
                 long x2 = baseX;
                 for (int i = 0; i < size; i++) {
-                    hll.add(Hash.hash64(x2));
+                    hll.add(HashUtils.hash64(x2));
                     x2++;
                 }
             }
@@ -167,22 +159,4 @@ public class HyperLogLogTest {
         return Math.pow(relStdDevP, exponent);
     }
 
-    static class HyperLogLogUsingLong extends HyperLogLog {
-
-        private long value;
-
-        public HyperLogLogUsingLong(int m, int maxSmallSetSize) {
-            super(m, maxSmallSetSize);
-        }
-
-        public void add(long hash) {
-            value = HyperLogLog3Linear64.add(value, hash);
-        }
-
-        public long estimate() {
-            return HyperLogLog3Linear64.estimate(value);
-        }
-
-    }
-
-}
+} 

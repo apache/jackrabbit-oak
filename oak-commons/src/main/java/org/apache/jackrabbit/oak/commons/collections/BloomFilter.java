@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
+package org.apache.jackrabbit.oak.commons.collections;
 
 /**
  * A Bloom filter implementation.
@@ -44,6 +44,12 @@ public class BloomFilter {
      * @return the Bloom filter
      */
     public static BloomFilter construct(long n, double fpp) {
+        if (n <= 0) {
+            throw new IllegalArgumentException("n must be greater than 0");
+        }
+        if (fpp <= 0 || fpp >= 1) {
+            throw new IllegalArgumentException("fpp must be between 0 and 1");
+        }
         long m = calculateBits(n, fpp);
         int k = calculateK((double) m / n);
         return new BloomFilter(new long[(int) ((m + 63) / 64)], k);
@@ -97,6 +103,15 @@ public class BloomFilter {
     }
 
     /**
+     * Add an entry, using an int hash code.
+     *
+     * @param value the value to check
+     */
+    public void add(String value) {
+        add(HashUtils.hash64(value));
+    }
+
+    /**
      * Add an entry.
      *
      * @param hash the hash value (need to be a high quality hash code, with all
@@ -106,9 +121,20 @@ public class BloomFilter {
         long a = (hash >>> 32) | (hash << 32);
         long b = hash;
         for (int i = 0; i < k; i++) {
-            data[Hash.reduce((int) (a >>> 32), arraySize)] |= 1L << a;
+            data[HashUtils.reduce((int) (a >>> 32), arraySize)] |= 1L << a;
             a += b;
         }
+    }
+
+    /**
+     * Whether the entry may be in the set.
+     *
+     * @param value the value to check
+     * @return true if the entry was added, or, with a certain false positive
+     *         probability, even if it was not added
+     */
+    public boolean mayContain(String value) {
+        return mayContain(HashUtils.hash64(value));
     }
 
     /**
@@ -123,7 +149,7 @@ public class BloomFilter {
         long a = (hash >>> 32) | (hash << 32);
         long b = hash;
         for (int i = 0; i < k; i++) {
-            if ((data[Hash.reduce((int) (a >>> 32), arraySize)] & 1L << a) == 0) {
+            if ((data[HashUtils.reduce((int) (a >>> 32), arraySize)] & 1L << a) == 0) {
                 return false;
             }
             a += b;
@@ -159,4 +185,4 @@ public class BloomFilter {
         return (long) (-(m / k) * Math.log(1 - (x / m)));
     }
 
-}
+} 
