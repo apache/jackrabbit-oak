@@ -234,7 +234,8 @@ public class ElasticIndexProviderService {
         LOG.info("Registering Index and Editor providers with connection {}", elasticConnection);
 
         registerIndexProvider(bundleContext);
-        ElasticRetryPolicy retryPolicy = new ElasticRetryPolicy(100, config.elasticsearch_maxRetryTime() * 1000L, 5, 100);
+        final int maxRetryTime = Integer.getInteger(PROP_ELASTIC_MAX_RETRY_TIME, config.elasticsearch_maxRetryTime());
+        ElasticRetryPolicy retryPolicy = new ElasticRetryPolicy(100, maxRetryTime * 1000L, 5, 100);
         this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache, retryPolicy);
         registerIndexEditor(bundleContext, elasticIndexEditorProvider);
         if (isElasticAvailable) {
