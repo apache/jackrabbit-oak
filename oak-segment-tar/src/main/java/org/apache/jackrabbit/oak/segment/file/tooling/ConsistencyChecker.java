@@ -79,7 +79,7 @@ public class ConsistencyChecker {
         // Do nothing.
     }
 
-    protected  void onCheckChekpoints() {
+    protected  void onCheckCheckpoints() {
         // Do nothing.
     }
 
@@ -398,7 +398,7 @@ public class ConsistencyChecker {
                 boolean overall = checkHeadConsistency(sns, headPaths, journalEntry, binaries);
 
                 if (shouldCheckCheckpointsConsistency(checkpointPaths)) {
-                    onCheckChekpoints();
+                    onCheckCheckpoints();
                     overall = overall && checkCheckpointsConsistency(sns, checkpointPaths, journalEntry, binaries);
                 }
 

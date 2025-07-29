@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -176,11 +177,9 @@ public abstract class SegmentCopyTestBase {
             Buffer destBinRefBuffer = destArchiveReader.getBinaryReferences();
             assertEquals(srcBinRefBuffer, destBinRefBuffer);
 
-            assertEquals(srcArchiveReader.hasGraph(), destArchiveReader.hasGraph());
-
-            Buffer srcGraphBuffer = srcArchiveReader.getGraph();
-            Buffer destGraphBuffer = destArchiveReader.getGraph();
-            assertEquals(srcGraphBuffer, destGraphBuffer);
+            SegmentGraph srcGraph = srcArchiveReader.getGraph();
+            SegmentGraph destGraph = destArchiveReader.getGraph();
+            assertEquals(srcGraph, destGraph);
         }
     }
 

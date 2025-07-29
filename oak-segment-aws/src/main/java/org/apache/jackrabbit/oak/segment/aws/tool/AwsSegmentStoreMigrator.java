@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
@@ -212,11 +213,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
     }
 
     private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException {
-        if (reader.hasGraph()) {
-            Buffer graph = reader.getGraph();
-            byte[] array = fetchByteArray(graph);
-            writer.writeGraph(array);
-        }
+        SegmentGraph graph = reader.getGraph();
+        writer.writeGraph(graph.write());
     }
 
     private static <T> T runWithRetry(Producer<T> producer, int maxAttempts, int intervalSec) throws IOException {

@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
+import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
@@ -213,25 +214,14 @@ public class SegmentStoreMigrator implements Closeable  {
     private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
         Future<Buffer> future = executor.submit(() -> RETRIER.execute(reader::getBinaryReferences));
         Buffer binaryReferences = future.get();
-        if (binaryReferences != null) {
-            byte[] array = fetchByteArray(binaryReferences);
-            RETRIER.execute(() -> writer.writeBinaryReferences(array));
-        }
+        byte[] array = fetchByteArray(binaryReferences);
+        RETRIER.execute(() -> writer.writeBinaryReferences(array));
     }
 
     private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
-        Future<Buffer> future = executor.submit(() -> RETRIER.execute(() -> {
-            if (reader.hasGraph()) {
-                return reader.getGraph();
-            } else {
-                return null;
-            }
-        }));
-        Buffer graph = future.get();
-        if (graph != null) {
-            byte[] array = fetchByteArray(graph);
-            RETRIER.execute(() -> writer.writeGraph(array));
-        }
+        Future<SegmentGraph> future = executor.submit(() -> RETRIER.execute(reader::getGraph));
+        SegmentGraph graph = future.get();
+        RETRIER.execute(() -> writer.writeGraph(graph.write()));
     }
 
     @Override
