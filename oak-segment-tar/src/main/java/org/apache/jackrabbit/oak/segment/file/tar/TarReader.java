@@ -492,10 +492,7 @@ public class TarReader implements Closeable {
             return null;
         }
         if (afterSize >= beforeSize * 3 / 4) {
-            // the space savings are not worth it at less than 25%,
-            // unless this tar file lacks a pre-compiled segment graph
-            // in which case we'll always generate a new tar file with
-            // the graph to speed up future garbage collection runs.
+            // the space savings are not worth it at less than 25%
             log.debug("Not enough space savings. ({}/{}). Skipping clean up of {}",
                     archive.length() - afterSize, archive.length(), name);
             return this;
@@ -566,9 +563,9 @@ public class TarReader implements Closeable {
     }
 
     /**
-     * Loads and parses the optional pre-compiled graph entry from the given tar file.
+     * Loads and parses the pre-compiled graph entry from the tar file if it exists, computes it otherwise.
      *
-     * @return The parsed graph, or {@code null} if one was not found.
+     * @return A {@link SegmentGraph} instance
      */
     @NotNull SegmentGraph getGraph() throws IOException {
         return archive.getGraph();
