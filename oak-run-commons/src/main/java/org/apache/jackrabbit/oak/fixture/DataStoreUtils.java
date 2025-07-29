@@ -23,7 +23,7 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.storage.blob.BlobContainerClient;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -157,7 +157,7 @@ public class DataStoreUtils {
             log.warn("container name is null or blank, cannot initialize blob container");
             return;
         }
-        CloudBlobContainer container = getCloudBlobContainer(config, containerName);
+        BlobContainerClient container = getBlobContainerClient(config, containerName);
         if (container == null) {
             log.warn("cannot delete the container as it is not initialized");
             return;
@@ -171,8 +171,8 @@ public class DataStoreUtils {
     }
 
     @Nullable
-    private static CloudBlobContainer getCloudBlobContainer(@NotNull Map<String, ?> config,
-                                                            @NotNull String containerName) throws DataStoreException {
+    private static BlobContainerClient getBlobContainerClient(@NotNull Map<String, ?> config,
+                                                              @NotNull String containerName) throws DataStoreException {
         final String azureConnectionString = (String) config.get(AzureConstants.AZURE_CONNECTION_STRING);
         final String clientId = (String) config.get(AzureConstants.AZURE_CLIENT_ID);
         final String clientSecret = (String) config.get(AzureConstants.AZURE_CLIENT_SECRET);

@@ -41,10 +41,15 @@
                             com.fasterxml.jackson.annotation;resolution:=optional,
                             com.fasterxml.jackson.databind*;resolution:=optional,
                             com.fasterxml.jackson.dataformat.xml;resolution:=optional,
+                            com.fasterxml.jackson.dataformat.xml.annotation;resolution:=optional,
                             com.fasterxml.jackson.datatype*;resolution:=optional,
                             com.azure.identity.broker.implementation;resolution:=optional,
                             com.azure.xml;resolution:=optional,
+                            com.azure.storage.common*;resolution:=optional,
+                            com.azure.storage.internal*;resolution:=optional,
+                            com.microsoft.aad.*;resolution:=optional,
                             com.microsoft.aad.msal4jextensions*;resolution:=optional,
+                            com.microsoft.aad.msal4jextensions.persistence*;resolution:=optional,
                             com.sun.net.httpserver;resolution:=optional,
                             sun.misc;resolution:=optional,
                             net.jcip.annotations;resolution:=optional,
@@ -68,6 +73,13 @@
                             azure-core,
                             azure-identity,
                             azure-json,
+                            azure-xml,
+                            azure-storage-blob,
+                            azure-storage-common,
+                            azure-storage-internal-avro,
+                            com.microsoft.aad,
+                            com.microsoft.aad.msal4jextensions,
+                            com.microsoft.aad.msal4jextensions.persistence,
                             guava,
                             jsr305,
                             reactive-streams,
@@ -169,6 +181,11 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-storage</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
+            <version>12.27.1</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure</groupId>

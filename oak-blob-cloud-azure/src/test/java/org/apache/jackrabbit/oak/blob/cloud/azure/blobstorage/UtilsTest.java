@@ -16,13 +16,29 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class UtilsTest {
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
     public void testConnectionStringIsBasedOnProperty() {
@@ -77,5 +93,60 @@ public class UtilsTest {
                 String.format("BlobEndpoint=%s;SharedAccessSignature=%s", "endpoint", "sas"));
     }
 
+    @Test
+    public void testReadConfig() throws IOException {
+        File tempFile = folder.newFile("test.properties");
+        try(FileWriter writer = new FileWriter(tempFile)) {
+            writer.write("key1=value1\n");
+            writer.write("key2=value2\n");
+        }
 
+        Properties properties = Utils.readConfig(tempFile.getAbsolutePath());
+        assertEquals("value1", properties.getProperty("key1"));
+        assertEquals("value2", properties.getProperty("key2"));
+    }
+
+    @Test
+    public void testReadConfig_exception() {
+        assertThrows(IOException.class, () -> Utils.readConfig("non-existent-file"));
+    }
+
+    @Test
+    public void testGetBlobContainer() throws IOException, DataStoreException {
+        File tempFile = folder.newFile("azure.properties");
+        try (FileWriter writer = new FileWriter(tempFile)) {
+            writer.write("proxyHost=127.0.0.1\n");
+            writer.write("proxyPort=8888\n");
+        }
+
+        Properties properties = new Properties();
+        properties.load(new FileInputStream(tempFile));
+
+        String connectionString = Utils.getConnectionString(AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, "http://127.0.0.1:10000/devstoreaccount1" );
+        String containerName = "test-container";
+        RequestRetryOptions retryOptions = Utils.getRetryOptions("3", 3, null);
+
+        BlobContainerClient containerClient = Utils.getBlobContainer(connectionString, containerName, retryOptions, properties);
+        assertNotNull(containerClient);
+    }
+
+    @Test
+    public void testGetRetryOptions() {
+        RequestRetryOptions retryOptions = Utils.getRetryOptions("3", 3, null);
+        assertNotNull(retryOptions);
+        assertEquals(3, retryOptions.getMaxTries());
+    }
+
+    @Test
+    public void testGetRetryOptionsNoRetry() {
+        RequestRetryOptions retryOptions = Utils.getRetryOptions("0",3,  null);
+        assertNotNull(retryOptions);
+        assertEquals(1, retryOptions.getMaxTries());
+    }
+
+    @Test
+    public void testGetRetryOptionsInvalid() {
+        RequestRetryOptions retryOptions = Utils.getRetryOptions("-1", 3, null);
+        assertNull(retryOptions);
+    }
 }
