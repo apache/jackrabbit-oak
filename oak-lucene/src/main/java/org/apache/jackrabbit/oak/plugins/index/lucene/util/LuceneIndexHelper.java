@@ -119,7 +119,7 @@ public class LuceneIndexHelper extends IndexHelper {
     public static NodeBuilder newLucenePropertyIndexDefinition(
             @NotNull NodeBuilder index, @NotNull String name,
             @NotNull Set<String> includes,
-            @NotNull String async) {
+            String async) {
         checkArgument(!includes.isEmpty(), "Lucene property index " +
                 "requires explicit list of property names to be indexed");
 

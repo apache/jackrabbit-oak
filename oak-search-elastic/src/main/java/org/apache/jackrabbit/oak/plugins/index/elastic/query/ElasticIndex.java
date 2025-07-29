@@ -44,9 +44,11 @@ class ElasticIndex extends FulltextIndex {
     private static final IteratorRewoundStateProvider REWOUND_STATE_PROVIDER_NOOP = () -> 0;
 
     private final ElasticIndexTracker elasticIndexTracker;
+    private final long asyncIteratorEnqueueTimeoutMs;
 
-    ElasticIndex(ElasticIndexTracker elasticIndexTracker) {
+    ElasticIndex(ElasticIndexTracker elasticIndexTracker, long asyncIteratorEnqueueTimeoutMs) {
         this.elasticIndexTracker = elasticIndexTracker;
+        this.asyncIteratorEnqueueTimeoutMs = asyncIteratorEnqueueTimeoutMs;
     }
 
     @Override
@@ -131,7 +133,8 @@ class ElasticIndex extends FulltextIndex {
                         responseHandler,
                         plan,
                         partialShouldInclude.apply(getPathRestriction(plan), filter.getPathRestriction()),
-                        elasticIndexTracker.getElasticMetricHandler()
+                        elasticIndexTracker.getElasticMetricHandler(),
+                        asyncIteratorEnqueueTimeoutMs
                 );
             }
         } finally {

@@ -22,19 +22,27 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
 import java.util.List;
 
 public class ElasticIndexProvider implements QueryIndexProvider {
 
+    public static final String ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS_PROPERTY = "oak.index.elastic.query.asyncIteratorEnqueueTimeoutMs";
+    public static final long DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS = 60000L; // 60 seconds
+
     private final ElasticIndexTracker indexTracker;
+    private final long asyncIteratorEnqueueTimeoutMs;
+
+    public ElasticIndexProvider(ElasticIndexTracker indexTracker, long asyncIteratorEnqueueTimeoutMs) {
+        this.indexTracker = indexTracker;
+        this.asyncIteratorEnqueueTimeoutMs = asyncIteratorEnqueueTimeoutMs;
+    }
 
     public ElasticIndexProvider(ElasticIndexTracker indexTracker) {
-        this.indexTracker = indexTracker;
+        this(indexTracker, Long.getLong(ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS_PROPERTY, DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS)); // default timeout of 60 seconds
     }
 
     @Override
     public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return Collections.singletonList(new ElasticIndex(indexTracker));
+        return List.of(new ElasticIndex(indexTracker, asyncIteratorEnqueueTimeoutMs));
     }
 }
