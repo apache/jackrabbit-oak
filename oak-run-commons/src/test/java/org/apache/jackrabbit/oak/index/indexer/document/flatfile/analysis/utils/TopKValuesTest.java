@@ -39,8 +39,8 @@ public class TopKValuesTest {
         }
         assertEquals("{\"notSkewed\":5,\"skipped\":908191,\"counted\":91809,\"common0\":24231,\"common1\":23844,\"rare13\":2722}", v.toString());
         assertEquals(91809, v.getCount());
-        assertEquals(25336, v.getTopCount());
-        assertEquals(24679, v.getSecondCount());
+        assertEquals(24231, v.getTopCount());
+        assertEquals(23844, v.getSecondCount());
     }
 
 }
