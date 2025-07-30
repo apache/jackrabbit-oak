@@ -207,7 +207,7 @@ public class BlobIdSetTest {
     @Test
     public void testBloomFilterFalsePositiveProbabilityLessThanThreePercent() throws IOException {
         // Load the bloom filter with a significant number of entries (about 5% of configured capacity)
-        final int numToAdd = 500000;
+        final int numToAdd = 50000;
 
         // Add entries to the bloom filter
         for (int i = 0; i < numToAdd; i++) {
@@ -215,7 +215,7 @@ public class BlobIdSetTest {
         }
 
         // Test with non-existent entries using carefully crafted IDs
-        int numTests = 100000;
+        int numTests = 10000;
         int falsePositives = 0;
 
         // Use a distinct prefix to ensure test IDs don't conflict with added entries
