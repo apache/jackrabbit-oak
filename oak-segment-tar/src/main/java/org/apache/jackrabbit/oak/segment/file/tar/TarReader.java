@@ -411,7 +411,7 @@ public class TarReader implements Closeable {
         for (int i = entries.length - 1; i >= 0; i--) {
             // A bulk segments is *always* written before any data segment referencing it.
             // Backward iteration ensures we see all references to bulk segments before
-            // we see the bulk segment itself. Therefore we can remove a bulk reference
+            // we see the bulk segment itself. Therefore, we can remove a bulk reference
             // from the bulkRefs set once we encounter it, which save us some memory and
             // CPU on subsequent look-ups.
             SegmentArchiveEntry entry = entries[i];
@@ -588,7 +588,7 @@ public class TarReader implements Closeable {
             if (binaryReferences == null) {
                 // This can happen because segment files and binary references files are flushed one after another in
                 // {@link TarWriter#flush}
-                log.info("The remote archive directory {} still does not have file with binary references written.", archive.getName());
+                log.info("The archive directory {} still does not have file with binary references written.", archive.getName());
                 return null;
             }
             return BinaryReferencesIndexLoader.parseBinaryReferencesIndex(binaryReferences);

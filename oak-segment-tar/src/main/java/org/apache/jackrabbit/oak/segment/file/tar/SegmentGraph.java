@@ -63,7 +63,7 @@ public final class SegmentGraph {
      */
     private static final int MAGIC = ('\n' << 24) + ('0' << 16) + ('G' << 8) + '\n';
 
-    @NotNull Map<UUID, Set<UUID>> edgeMap;
+    private final @NotNull Map<UUID, Set<UUID>> edgeMap;
 
     public SegmentGraph() {
         this.edgeMap = new HashMap<>();

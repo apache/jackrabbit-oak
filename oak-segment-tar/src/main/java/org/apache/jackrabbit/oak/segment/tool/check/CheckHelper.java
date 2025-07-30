@@ -299,7 +299,7 @@ public class CheckHelper {
             }
 
             @Override
-            protected void onCheckCheckpoints() {
+            protected void onCheckChekpoints() {
                 print("\nChecking checkpoints");
             }
 
