@@ -128,6 +128,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
      */
     private static final Logger LOG = LoggerFactory.getLogger(NodeImpl.class);
 
+    private static final String CACHE_KEY_MIXIN_TPYES_READABLE = NodeImpl.class.getName() + ".MIXIN_TYPES_READABLE";
+
     private final int logWarnStringSizeThreshold;
 
     @Nullable
@@ -1342,8 +1344,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     private boolean canReadMixinTypes(@NotNull Tree tree) {
-        return sessionContext.getAccessManager().hasPermissions(
-                tree, EMPTY_MIXIN_TYPES, Permissions.READ_PROPERTY);
+        // cache this information per SessionContext, as it is valid independent of the node
+        // it is invoked on
+        return (Boolean) sessionContext.getCache().computeIfAbsent(CACHE_KEY_MIXIN_TPYES_READABLE,
+                s -> { return sessionContext.getAccessManager().hasPermissions(
+                        tree, EMPTY_MIXIN_TYPES, Permissions.READ_PROPERTY);});
     }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {

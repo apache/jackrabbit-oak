@@ -481,6 +481,8 @@ public class SessionImpl implements JackrabbitSession {
                 return true;
             }
         });
+        // clear the cache
+        sessionContext.getCache().clear();
     }
 
     @Override

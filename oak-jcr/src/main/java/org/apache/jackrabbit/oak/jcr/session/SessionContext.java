@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -117,6 +118,8 @@ public class SessionContext implements NamePathMapper {
     
     private final SessionQuerySettings sessionQuerySettings;
 
+    private final Map<String,Object> cacheMap;
+
     public SessionContext(
              @NotNull Repository repository, @NotNull StatisticManager statisticManager,
              @NotNull SecurityProvider securityProvider, @NotNull Whiteboard whiteboard,
@@ -152,6 +155,7 @@ public class SessionContext implements NamePathMapper {
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot(), namePathMapper, this.blobAccessProvider);
         this.sessionQuerySettings = sessionQuerySettings;
+        this.cacheMap = new HashMap<>();
     }
 
     public final Map<String, Object> getAttributes() {
@@ -424,6 +428,11 @@ public class SessionContext implements NamePathMapper {
     @NotNull
     public SecurityProvider getSecurityProvider() {
         return securityProvider;
+    }
+
+    @NotNull
+    public Map<String,Object> getCache() {
+        return this.cacheMap;
     }
 
     //-----------------------------------------------------------< internal >---
