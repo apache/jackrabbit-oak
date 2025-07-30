@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 public class CacheChangesTracker implements Closeable {
@@ -60,7 +61,7 @@ public class CacheChangesTracker implements Closeable {
         changeTrackers.remove(this);
 
         if (LOG.isDebugEnabled()) {
-            if (lazyBloomFilter.filter == null) {
+            if (lazyBloomFilter.filterRef.get() == null) {
                 LOG.debug("Disposing CacheChangesTracker for {}, no filter was needed", keyFilter);
             } else {
                 LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, LazyBloomFilter.FPP);
@@ -74,10 +75,11 @@ public class CacheChangesTracker implements Closeable {
 
         private final int entries;
 
-        private volatile BloomFilter filter;
+        private final AtomicReference<BloomFilter> filterRef;
 
         public LazyBloomFilter(int entries) {
             this.entries = entries;
+            this.filterRef = new AtomicReference<>();
         }
 
         public synchronized void put(String entry) {
@@ -85,20 +87,21 @@ public class CacheChangesTracker implements Closeable {
         }
 
         public boolean mightContain(String entry) {
-            if (filter == null) {
-                return false;
-            } else {
-                synchronized (this) {
-                    return filter.mayContain(entry);
-                }
-            }
+            BloomFilter f = filterRef.get();
+            return f != null && f.mayContain(entry);
         }
 
         private BloomFilter getFilter() {
-            if (filter == null) {
-                filter = BloomFilter.construct(entries, FPP);
+            BloomFilter result = filterRef.get();
+            if (result == null) {
+                BloomFilter newFilter = BloomFilter.construct(entries, FPP);
+                if (filterRef.compareAndSet(null, newFilter)) {
+                    result = newFilter;
+                } else {
+                    result = filterRef.get();
+                }
             }
-            return filter;
+            return result;
         }
     }
 }

@@ -78,7 +78,6 @@ public class HyperLogLogTest {
                 max = 0;
                 break;
             }
-            // System.out.println(type + " expected " + min + ".." + max + " got " + avg);
             assertTrue("m " + m + " expected " + min + ".." + max + " got " + avg, min < avg && avg < max);
         }
     }

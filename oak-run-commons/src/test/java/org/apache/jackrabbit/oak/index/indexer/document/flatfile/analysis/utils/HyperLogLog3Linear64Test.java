@@ -58,7 +58,6 @@ public class HyperLogLog3Linear64Test {
                 max = 0;
                 break;
             }
-            // System.out.println(type + " expected " + min + ".." + max + " got " + avg);
             assertTrue("m " + m + " expected " + min + ".." + max + " got " + avg, min < avg && avg < max);
         }
     }
@@ -151,10 +150,12 @@ public class HyperLogLog3Linear64Test {
             super(m, maxSmallSetSize);
         }
 
+        @Override
         public void add(long hash) {
             value = HyperLogLog3Linear64.add(value, hash);
         }
 
+        @Override
         public long estimate() {
             return HyperLogLog3Linear64.estimate(value);
         }
