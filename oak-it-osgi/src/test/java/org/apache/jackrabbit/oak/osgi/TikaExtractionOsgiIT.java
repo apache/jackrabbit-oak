@@ -212,7 +212,7 @@ public class TikaExtractionOsgiIT {
     }
 
     private void assertFileContains(String resName) throws Exception {
-            assertFileContains(resName, EXPECTED_TEXT_FRAGMENT);
+        assertFileContains(resName, EXPECTED_TEXT_FRAGMENT);
     }
 
     private void assertFileContains(String resName, String parsedContent) throws Exception {
