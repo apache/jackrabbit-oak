@@ -46,7 +46,7 @@ class BlobIdSet {
 
     BlobIdSet(String repositoryDir, String filename) {
         store = new File(new File(repositoryDir), filename);
-        bloomFilter = BloomFilter.construct(9000000, 0.01); // 9M entries, 1% false positive rate
+        bloomFilter = BloomFilter.construct(9000000, 0.03); // 9M entries, 3% false positive rate
         cache = CacheBuilder.newBuilder().maximumSize(1000).build();
         fillBloomFilter();
     }
