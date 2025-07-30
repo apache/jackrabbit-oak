@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.commons.collections4.FluentIterable;
-
 import java.io.IOException;
+
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 
 /**
  * Provides an iterator for binaries present under given path

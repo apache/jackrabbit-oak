@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.commons.collections4.FluentIterable;
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
@@ -277,7 +277,13 @@ public class TextPopulatorTest {
 
         @Override
         public FluentIterable<BinaryResource> getBinaries(String path) {
-            return FluentIterable.of(binaries);
+            return new FluentIterable<BinaryResource>() {
+                @NotNull
+                @Override
+                public Iterator<BinaryResource> iterator() {
+                    return binaries.iterator();
+                }
+            };
         }
     }
 }

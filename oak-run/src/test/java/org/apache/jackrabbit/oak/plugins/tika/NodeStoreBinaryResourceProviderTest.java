@@ -25,7 +25,6 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -61,7 +60,7 @@ public class NodeStoreBinaryResourceProviderTest {
         assertEquals(2, extractor.getBinaries("/").size());
         assertEquals(1, extractor.getBinaries("/a2").size());
 
-        BinaryResource bs = IterableUtils.getFirst(extractor.getBinaries("/a2"), null);
+        BinaryResource bs = extractor.getBinaries("/a2").first().get();
         assertEquals("text/foo", bs.getMimeType());
         assertEquals("bar", bs.getEncoding());
         assertEquals("id2", bs.getBlobId());

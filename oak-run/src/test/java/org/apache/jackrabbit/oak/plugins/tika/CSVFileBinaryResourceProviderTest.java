@@ -21,10 +21,8 @@ package org.apache.jackrabbit.oak.plugins.tika;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,24 +50,12 @@ public class CSVFileBinaryResourceProviderTest {
 
         CSVFileBinaryResourceProvider provider = new CSVFileBinaryResourceProvider(dataFile, new MemoryBlobStore());
 
-        Map<String, BinaryResource> binaries = StreamUtils.toStream(provider.getBinaries("/")).collect(Collectors.toMap(
-                BinarySourceMapper.BY_BLOBID,
-                element -> element,
-                (oldValue, newValue) -> {
-                    throw new IllegalArgumentException("Duplicate key found: " + BinarySourceMapper.BY_BLOBID.apply(newValue));
-                } // This handles the duplicate key scenario similar to uniqueIndex
-        ));
+        Map<String, BinaryResource> binaries = provider.getBinaries("/").uniqueIndex(BinarySourceMapper.BY_BLOBID::apply);
         assertEquals(3, binaries.size());
         assertEquals("a", binaries.get("a").getBlobId());
         assertEquals("/a", binaries.get("a").getPath());
 
-        binaries = StreamUtils.toStream(provider.getBinaries("/a")).collect(Collectors.toMap(
-                BinarySourceMapper.BY_BLOBID,
-                element -> element,
-                (oldValue, newValue) -> {
-                    throw new IllegalArgumentException("Duplicate key found: " + BinarySourceMapper.BY_BLOBID.apply(newValue));
-                } // This handles the duplicate key scenario similar to uniqueIndex
-        ));
+        binaries = provider.getBinaries("/a").uniqueIndex(BinarySourceMapper.BY_BLOBID::apply);
         assertEquals(1, binaries.size());
 
         provider.close();
