@@ -82,6 +82,7 @@
         <configuration>
           <excludes>
             <exclude>**/test.txt</exclude>
+            <exclude>**/test2.txt</exclude>
             <exclude>**/test.rtf</exclude>
             <exclude>**/test.doc</exclude>
             <exclude>**/test.docx</exclude>
