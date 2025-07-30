@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
-import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
@@ -54,7 +53,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class SegmentStoreMigrator implements Closeable  {
 
@@ -164,12 +162,9 @@ public class SegmentStoreMigrator implements Closeable  {
         List<String> targetArchives = targetManager.listArchives();
 
         if (appendMode && !targetArchives.isEmpty()) {
-            // sort archives by index
-            // last archive could have been updated since last copy and may need to be recopied
-            targetArchives = targetArchives.stream()
-                    .sorted(RemoteUtilities.ARCHIVE_INDEX_COMPARATOR)
-                    .limit(targetArchives.size() - 1)
-                    .collect(Collectors.toList());
+            //last archive can be updated since last copy and needs to be recopied
+            String lastArchive = targetArchives.get(targetArchives.size() - 1);
+            targetArchives.remove(lastArchive);
         }
 
         for (String archiveName : sourceManager.listArchives()) {
