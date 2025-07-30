@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
 import java.util.List;
 
 public class ElasticIndexProvider implements QueryIndexProvider {
@@ -34,6 +35,6 @@ public class ElasticIndexProvider implements QueryIndexProvider {
 
     @Override
     public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return List.of(new ElasticIndex(indexTracker));
+        return Collections.singletonList(new ElasticIndex(indexTracker));
     }
 }

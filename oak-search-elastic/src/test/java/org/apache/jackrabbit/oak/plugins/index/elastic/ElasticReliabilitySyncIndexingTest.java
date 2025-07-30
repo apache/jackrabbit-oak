@@ -32,6 +32,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticReliabilitySyncIndexingTest extends ElasticReliabilityTest {
 
+    @Override
+    public boolean useAsyncIndexing() {
+        return false;
+    }
+
     @Test
     public void connectionCutOnQuery() throws Exception {
         String indexName = UUID.randomUUID().toString();

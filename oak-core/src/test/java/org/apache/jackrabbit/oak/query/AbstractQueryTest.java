@@ -140,7 +140,7 @@ public abstract class AbstractQueryTest {
         ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
         PrintWriter w = new PrintWriter(new OutputStreamWriter(
                 new FileOutputStream(output)));
-        HashSet<String> knownQueries = new HashSet<>();
+        HashSet<String> knownQueries = new HashSet<String>();
         boolean errors = false;
         try {
             while (true) {
@@ -149,7 +149,7 @@ public abstract class AbstractQueryTest {
                     break;
                 }
                 line = line.trim();
-                if (line.startsWith("#") || line.isEmpty()) {
+                if (line.startsWith("#") || line.length() == 0) {
                     w.println(line);
                 } else if (line.startsWith("xpath2sql")) {
                     line = line.substring("xpath2sql".length()).trim();
@@ -196,7 +196,7 @@ public abstract class AbstractQueryTest {
                                 readEnd = false;
                             } else {
                                 line = line.trim();
-                                if (line.isEmpty()) {
+                                if (line.length() == 0) {
                                     errors = true;
                                     readEnd = false;
                                 } else {
@@ -215,7 +215,7 @@ public abstract class AbstractQueryTest {
                                 break;
                             }
                             line = line.trim();
-                            if (line.isEmpty()) {
+                            if (line.length() == 0) {
                                 break;
                             }
                             errors = true;
@@ -254,7 +254,10 @@ public abstract class AbstractQueryTest {
     }
 
     protected List<String> executeQuery(String query, String language) {
-        boolean pathsOnly = language.equals(QueryEngineImpl.XPATH);
+        boolean pathsOnly = false;
+        if (language.equals(QueryEngineImpl.XPATH)) {
+            pathsOnly = true;
+        }
         return executeQuery(query, language, pathsOnly);
     }
 
@@ -264,7 +267,7 @@ public abstract class AbstractQueryTest {
 
     protected List<String> executeQuery(String query, String language, boolean pathsOnly, boolean skipSort) {
         long time = System.currentTimeMillis();
-        List<String> lines = new ArrayList<>();
+        List<String> lines = new ArrayList<String>();
         try {
             Result result = executeQuery(query, language, NO_BINDINGS);
             if (query.startsWith("explain ")) {
@@ -585,7 +588,7 @@ public abstract class AbstractQueryTest {
      * A line reader that supports multi-line statements, where lines that start
      * with a space belong to the previous line.
      */
-    static class ContinueLineReader {
+    class ContinueLineReader {
 
         private final LineNumberReader reader;
 
@@ -599,7 +602,7 @@ public abstract class AbstractQueryTest {
 
         public String readLine() throws IOException {
             String line = reader.readLine();
-            if (line == null || line.trim().isEmpty()) {
+            if (line == null || line.trim().length() == 0) {
                 return line;
             }
             while (true) {
