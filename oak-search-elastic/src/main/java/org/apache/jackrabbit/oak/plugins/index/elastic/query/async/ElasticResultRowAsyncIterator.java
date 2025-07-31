@@ -288,7 +288,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
         // Semaphore to guarantee only one in-flight request to Elastic
         private final Semaphore semaphore = new Semaphore(1);
-        private CompletableFuture<SearchResponse<ObjectNode>> ongoingRequest;
+        volatile private CompletableFuture<SearchResponse<ObjectNode>> ongoingRequest;
 
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
             this.query = elasticRequestHandler.baseQuery();
@@ -528,8 +528,8 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
                 if (ongoingRequest != null) {
                     ongoingRequest.cancel(true);
+                    ongoingRequest = null;
                 }
-                ongoingRequest = null;
             } else {
                 LOG.info("ElasticQueryScanner for index {} is already closed", indexNode.getDefinition().getIndexPath());
             }
