@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
+import org.apache.jackrabbit.oak.index.ThreadMonitor;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -352,7 +353,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     @Override
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
-        ThreadMonitor threadMonitor = new ThreadMonitor();
+        ThreadMonitor threadMonitor = ThreadMonitor.newInstance();
         var threadFactory = new ThreadMonitor.AutoRegisteringThreadFactory(threadMonitor, new ThreadFactoryBuilder().setDaemon(true).build());
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads, threadFactory);
         MongoDocumentFilter documentFilter = new MongoDocumentFilter(filteredPath, suffixesToSkip);
@@ -456,7 +457,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         // Timeout waiting for a task to complete
                         if (monitorQueues) {
                             try {
-                                threadMonitor.printStatistics();
+                                LOG.info(threadMonitor.printStatistics());
                                 printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, false);
                             } catch (Exception e) {
                                 LOG.warn("Error while logging queue sizes", e);
@@ -530,7 +531,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         .build());
                 indexingReporter.addTiming("Build FFS (Dump+Merge)", FormattingUtils.formatToSeconds(elapsedSeconds));
                 // Unique heading to make it easier to find in the logs
-                threadMonitor.printStatistics("Final Thread/Memory report");
+                LOG.info(threadMonitor.printStatistics("Final Thread/Memory report"));
 
                 LOG.info("Documents filtered: docsFiltered: {}, longPathsFiltered: {}, filteredRenditionsTotal (top 10): {}",
                         documentFilter.getSkippedFields(), documentFilter.getLongPathSkipped(), documentFilter.formatTopK(10));
