@@ -69,7 +69,10 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "can be overridden via framework property 'oak.mongo.db'")
     String db() default DocumentNodeStoreService.DEFAULT_DB;
 
-
+    /**
+     * @deprecated Since Mongo Java Driver 3.5
+     */
+    @Deprecated
     @AttributeDefinition(
             name = "MongoDB socket keep-alive option",
             description = "Whether socket keep-alive should be enabled for " +

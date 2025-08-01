@@ -38,24 +38,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.IOUtils;
-import com.mongodb.client.model.IndexOptions;
-import com.mongodb.Block;
-import com.mongodb.DBObject;
-import com.mongodb.MongoBulkWriteException;
-import com.mongodb.MongoWriteException;
-import com.mongodb.MongoCommandException;
-import com.mongodb.WriteError;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.ReadPreference;
-
-import com.mongodb.client.model.CreateCollectionOptions;
-
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -99,19 +87,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.ConnectionString;
+import com.mongodb.DBObject;
+import com.mongodb.MongoBulkWriteException;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
+import com.mongodb.MongoWriteException;
+import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
+import com.mongodb.WriteError;
 import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
@@ -700,7 +699,7 @@ public class MongoDocumentStore implements DocumentStore {
             ReadPreference readPreference = getMongoReadPreference(collection, null, docReadPref);
             MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection, readPreference);
 
-            if(readPreference.isSlaveOk()){
+            if (readPreference.isSecondaryOk()) {
                 LOG.trace("Routing call to secondary for fetching [{}]", key);
                 isSlaveOk = true;
             }
@@ -846,7 +845,7 @@ public class MongoDocumentStore implements DocumentStore {
             ReadPreference readPreference =
                     getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
 
-            if(readPreference.isSlaveOk()){
+            if (readPreference.isSecondaryOk()) {
                 isSlaveOk = true;
                 LOG.trace("Routing call to secondary for fetching children from [{}] to [{}]", fromKey, toKey);
             }
@@ -1785,7 +1784,7 @@ public class MongoDocumentStore implements DocumentStore {
             ReadPreference readPreference = getMongoReadPreference(collection, null, getDefaultReadPreference(collection));
             MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection, readPreference);
 
-            if (readPreference.isSlaveOk()) {
+            if (readPreference.isSecondaryOk()) {
                 LOG.trace("Routing call to secondary for prefetching [{}]", keys);
             }
 
@@ -1867,7 +1866,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         nodes.withReadPreference(ReadPreference.primary())
                 .find(Filters.in(Document.ID, keys)).projection(fields)
-                .forEach((Block<BasicDBObject>) obj -> {
+                .forEach((Consumer<? super BasicDBObject>) obj -> {
                     String id = (String) obj.get(Document.ID);
                     Long modCount = Utils.asLong((Number) obj.get(Document.MOD_COUNT));
                     if (modCount == null) {
@@ -2228,15 +2227,19 @@ public class MongoDocumentStore implements DocumentStore {
             if(!readWriteMode.startsWith("mongodb://")){
                 rwModeUri = String.format("mongodb://localhost/?%s", readWriteMode);
             }
-            MongoClientURI uri = new MongoClientURI(rwModeUri);
-            ReadPreference readPref = uri.getOptions().getReadPreference();
+            ConnectionString connectionString = new ConnectionString(rwModeUri);
 
+            // Build MongoClientSettings from ConnectionString
+            MongoClientSettings settings = MongoClientSettings.builder()
+                 .applyConnectionString(connectionString)
+                 .build();
+            ReadPreference readPref = settings.getReadPreference();
             if (!readPref.equals(nodes.getReadPreference())) {
                 nodes = nodes.withReadPreference(readPref);
                 LOG.info("Using ReadPreference {} ", readPref);
             }
 
-            WriteConcern writeConcern = uri.getOptions().getWriteConcern();
+            WriteConcern writeConcern = settings.getWriteConcern();
             if (!writeConcern.equals(nodes.getWriteConcern())) {
                 nodes = nodes.withWriteConcern(writeConcern);
                 LOG.info("Using WriteConcern " + writeConcern);
@@ -2361,8 +2364,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private boolean secondariesWithinAcceptableLag() {
-        return getClient().getReplicaSetStatus() == null
-                || connection.getStatus().getReplicaSetLagEstimate() < acceptableLagMillis;
+        return connection.getStatus().getReplicaSetLagEstimate() < acceptableLagMillis;
     }
 
     private void lagTooHigh() {

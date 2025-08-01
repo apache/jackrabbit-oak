@@ -284,7 +284,12 @@ final class NodeStateAnalyzerFactory {
 
         @Override
         public <T> T newInstance(String cname, Class<T> expectedType) {
-            throw new UnsupportedOperationException();
+            try {
+                Class<? extends T> clazz = findClass(cname, expectedType);
+                return clazz.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create instance of " + cname, e);
+            }
         }
     }
 }

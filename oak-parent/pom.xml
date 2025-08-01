@@ -57,7 +57,7 @@
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
-    <mongo.driver.version>3.12.14</mongo.driver.version>
+    <mongo.driver.version>5.2.1</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.13</logback.version>
@@ -521,7 +521,7 @@
       </dependency>
       <dependency>
         <groupId>org.mongodb</groupId>
-        <artifactId>mongo-java-driver</artifactId>
+        <artifactId>mongodb-driver-sync</artifactId>
         <version>${mongo.driver.version}</version>
       </dependency>
       <dependency>

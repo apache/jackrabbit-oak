@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -172,7 +172,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
     }
 
     private final MongoDocumentStore docStore;
-    private final MongoClientURI mongoClientURI;
+    private final ConnectionString mongoClientURI;
     private final DocumentNodeStore documentNodeStore;
     private final RevisionVector rootRevision;
     private final BlobStore blobStore;
@@ -197,7 +197,7 @@ public class PipelinedTreeStoreStrategy extends IndexStoreSortStrategyBase {
      * @param statisticsProvider Used to collect statistics about the indexing process.
      * @param indexingReporter   Used to collect diagnostics, metrics and statistics and report them at the end of the indexing process.
      */
-    public PipelinedTreeStoreStrategy(MongoClientURI mongoClientURI,
+    public PipelinedTreeStoreStrategy(ConnectionString mongoClientURI,
                              MongoDocumentStore documentStore,
                              DocumentNodeStore documentNodeStore,
                              RevisionVector rootRevision,

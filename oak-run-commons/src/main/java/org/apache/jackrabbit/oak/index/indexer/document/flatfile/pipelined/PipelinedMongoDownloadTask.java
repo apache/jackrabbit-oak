@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.MongoIncompatibleDriverException;
 import com.mongodb.MongoInterruptedException;
@@ -208,7 +207,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     static final String THREAD_NAME_PREFIX = "mongo-dump";
 
-    private final MongoClientURI mongoClientURI;
+    private final ConnectionString mongoClientURI;
     private final MongoDocumentStore docStore;
     private final int maxBatchSizeBytes;
     private final int maxBatchNumberOfDocuments;
@@ -234,7 +233,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
     private final long minModified;
 
-    public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
+    public PipelinedMongoDownloadTask(ConnectionString mongoClientURI,
                                       MongoDocumentStore docStore,
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
@@ -247,7 +246,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 queue, pathFilters, statisticsProvider, reporter, threadFactory, 0);
     }
 
-    public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
+    public PipelinedMongoDownloadTask(ConnectionString mongoClientURI,
                                       MongoDocumentStore docStore,
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
@@ -348,7 +347,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // instead of using the default policy defined by readPreference configuration setting.
         // Here we create the configuration that is common to the two cases (parallelDump true or false).
         MongoClientSettings.Builder settingsBuilder = MongoClientSettings.builder()
-                .applyConnectionString(new ConnectionString(mongoClientURI.getURI()))
+                .applyConnectionString(mongoClientURI)
                 .readPreference(ReadPreference.secondaryPreferred());
         if (parallelDump && parallelDumpSecondariesOnly) {
             // Set a custom server selector that is able to distribute the two connections between the two secondaries.
