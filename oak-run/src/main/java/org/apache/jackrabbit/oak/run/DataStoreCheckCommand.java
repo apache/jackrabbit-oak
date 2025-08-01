@@ -42,7 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoClient;
@@ -56,6 +55,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -313,10 +313,7 @@ public class DataStoreCheckCommand implements Command {
     }
 
     static String encodeId(String id, String dsType) {
-        List<String> idLengthSepList = Arrays.stream(id.split(HASH))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
+        List<String> idLengthSepList = Splitter.on(HASH).trimResults().omitEmptyStrings().splitToList(id);
         String blobId = idLengthSepList.get(0);
 
         if (dsType.equals(FDS)) {
@@ -329,15 +326,9 @@ public class DataStoreCheckCommand implements Command {
     }
 
     private static String decodeId(String id) {
-        List<String> list = Arrays.stream(id.split(System.getProperty("file.separator")))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
+        List<String> list = Splitter.on(System.getProperty("file.separator")).trimResults().omitEmptyStrings().splitToList(id);
         String pathStrippedId = list.get(list.size() -1);
-        return Arrays.stream(pathStrippedId.split(DASH))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.joining(""));
+        return String.join("", Splitter.on(DASH).omitEmptyStrings().trimResults().splitToList(pathStrippedId));
     }
 
     static class FileRegister implements Closeable {
