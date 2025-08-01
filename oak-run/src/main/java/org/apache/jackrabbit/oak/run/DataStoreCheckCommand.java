@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.mongodb.ConnectionString;
@@ -329,7 +330,7 @@ public class DataStoreCheckCommand implements Command {
     }
 
     private static String decodeId(String id) {
-        List<String> list = Arrays.stream(id.split(System.getProperty("file.separator")))
+        List<String> list = Arrays.stream(id.split(Pattern.quote(System.getProperty("file.separator"))))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toList());
