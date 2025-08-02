@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.commons;
 
 import org.apache.commons.collections4.FluentIterable;
+import org.apache.commons.collections4.iterators.UnmodifiableIterator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayDeque;
@@ -31,9 +32,9 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class TreeTraverser {
+public class Traverser {
 
-    private TreeTraverser() {
+    private Traverser() {
         // no instances for you
     }
 
@@ -50,7 +51,7 @@ public class TreeTraverser {
      * @throws NullPointerException if childExtractor or any child is null
      */
     @NotNull
-    public static <T> FluentIterable<T> preOrderTraversal(final T root, final @NotNull Function<T, Iterable<T>> childExtractor) {
+    public static <T> FluentIterable<T> preOrderTraversal(final T root, final @NotNull Function<T, Iterable<? extends T>> childExtractor) {
 
         Objects.requireNonNull(childExtractor, "Children extractor function must not be null");
 
@@ -61,41 +62,46 @@ public class TreeTraverser {
         return FluentIterable.of(new Iterable<>() {
             @Override
             public @NotNull Iterator<T> iterator() {
-                return new Iterator<>() {
-                    private final Deque<T> stack = new ArrayDeque<>();
-
-                    {
-                        // add first element during initialization
-                        stack.push(root);
-                    }
-
-                    @Override
-                    public boolean hasNext() {
-                        return !stack.isEmpty();
-                    }
-
-                    @Override
-                    public T next() {
-                        if (!hasNext()) {
-                            throw new NoSuchElementException("No more nodes in the tree");
-                        }
-
-                        final T current = stack.pop();
-
-                        // Push children in reverse order so they're popped in correct order
-                        List<T> children = new ArrayList<>();
-                        // NPE if the current is null
-                        childExtractor.apply(current).forEach(children::add);
-
-                        for (int i = children.size() - 1; i >= 0; i--) {
-                            // NPE if the child is null
-                            stack.push(children.get(i));
-                        }
-                        return current;
-                    }
-                };
+                return UnmodifiableIterator.unmodifiableIterator(new PreOrderIterator<>(root, childExtractor));
             }
         });
+    }
+
+    private static final class PreOrderIterator<T> implements Iterator<T> {
+
+        private final Deque<T> stack;
+        private final Function<T, Iterable<? extends T>> childExtractor;
+
+        public PreOrderIterator(final T root, final Function<T, Iterable<? extends T>> childExtractor) {
+            this.childExtractor = childExtractor;
+            this.stack = new ArrayDeque<>();
+            // add first element during initialization
+            stack.push(root);
+        }
+        @Override
+        public boolean hasNext() {
+            return !stack.isEmpty();
+        }
+
+        @Override
+        public T next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more nodes in the tree");
+            }
+
+            final T current = stack.pop();
+
+            // Push children in reverse order so they're popped in correct order
+            List<T> children = new ArrayList<>();
+            // NPE if the current is null
+            childExtractor.apply(current).forEach(children::add);
+
+            for (int i = children.size() - 1; i >= 0; i--) {
+                // NPE if the child is null
+                stack.push(children.get(i));
+            }
+            return current;
+        }
     }
 
     /**
@@ -113,7 +119,7 @@ public class TreeTraverser {
      * @throws NullPointerException if childExtractor or any child is null
      */
     @NotNull
-    public static <T> FluentIterable<T> breadthFirstTraversal(final T root, final @NotNull Function<T, Iterable<T>> childExtractor) {
+    public static <T> FluentIterable<T> breadthFirstTraversal(final T root, final @NotNull Function<T, Iterable<? extends T>> childExtractor) {
         Objects.requireNonNull(childExtractor, "Children extractor function must not be null");
 
         if (root == null) {
@@ -123,36 +129,42 @@ public class TreeTraverser {
         return FluentIterable.of(new Iterable<>() {
             @Override
             public @NotNull Iterator<T> iterator() {
-                return new Iterator<>() {
-                    private final Deque<T> queue = new ArrayDeque<>();
-
-                    {
-                        // add first element during initialization
-                        queue.addLast(root);
-                    }
-
-                    @Override
-                    public boolean hasNext() {
-                        return !queue.isEmpty();
-                    }
-
-                    @Override
-                    public T next() {
-                        if (!hasNext()) {
-                            throw new NoSuchElementException("No more nodes in the tree");
-                        }
-
-                        final T current = queue.removeFirst();
-
-                        // Add all children to the queue (in order)
-                        for (T child : childExtractor.apply(current)) {
-                            // would throw NPE if the child is null
-                            queue.addLast(child);
-                        }
-                        return current;
-                    }
-                };
+                return UnmodifiableIterator.unmodifiableIterator(new BreadthFirstIterator<>(root, childExtractor));
             }
         });
     }
+
+    private static final class BreadthFirstIterator<T> implements Iterator<T> {
+
+        private final Deque<T> queue;
+        private final Function<T, Iterable<? extends T>> childExtractor;
+
+        public BreadthFirstIterator(final T root, final Function<T, Iterable<? extends T>> childExtractor) {
+            this.queue = new ArrayDeque<>();
+            this.childExtractor = childExtractor;
+            this.queue.add(root);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return !queue.isEmpty();
+        }
+
+        @Override
+        public T next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more nodes in the tree");
+            }
+
+            final T current = queue.removeFirst();
+
+            // Add all children to the queue (in order)
+            for (T child : childExtractor.apply(current)) {
+                // would throw NPE if the child is null
+                queue.addLast(child);
+            }
+            return current;
+        }
+    }
 }
+

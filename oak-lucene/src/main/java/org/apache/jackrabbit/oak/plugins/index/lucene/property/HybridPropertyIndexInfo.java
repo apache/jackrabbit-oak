@@ -23,7 +23,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.oak.commons.TreeTraverser;
+import org.apache.jackrabbit.oak.commons.Traverser;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -90,10 +90,10 @@ public class HybridPropertyIndexInfo {
 
     private void collectCounts(NodeState bucket) {
 
-        Function<NodeState, Iterable<NodeState>> children = root -> IterableUtils.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
+        Function<NodeState, Iterable<? extends NodeState>> children = root -> IterableUtils.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
 
         AtomicInteger matches = new AtomicInteger();
-        int totalCount = TreeTraverser.preOrderTraversal(bucket, children)
+        int totalCount = Traverser.preOrderTraversal(bucket, children)
                 .transform(st -> {
                     if (st.getBoolean("match")) {
                         matches.incrementAndGet();

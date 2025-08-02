@@ -29,9 +29,9 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Unit cases for {@link TreeTraverser}
+ * Unit cases for {@link Traverser}
  */
-public class TreeTraverserTest {
+public class TraverserTest {
 
     @Test
     public void testPreOrderTraversalWithNormalTree() {
@@ -49,7 +49,7 @@ public class TreeTraverserTest {
                         new Node(6),
                         new Node(7)));
 
-        List<Integer> result = TreeTraverser.preOrderTraversal(root, Node::getChildren)
+        List<Integer> result = Traverser.preOrderTraversal(root, Node::getChildren)
                 .transform(Node::getValue)
                 .toList();
 
@@ -59,14 +59,14 @@ public class TreeTraverserTest {
 
     @Test
     public void testPreOrderTraversalWithNullRoot() {
-        FluentIterable<Node> result = TreeTraverser.preOrderTraversal(null, Node::getChildren);
+        FluentIterable<Node> result = Traverser.preOrderTraversal(null, Node::getChildren);
         Assert.assertTrue(result.isEmpty());
     }
 
     @Test
     public void testPreOrderTraversalWithSingleNode() {
         Node root = new Node(1);
-        List<Integer> result = TreeTraverser.preOrderTraversal(root, Node::getChildren)
+        List<Integer> result = Traverser.preOrderTraversal(root, Node::getChildren)
                 .transform(Node::getValue)
                 .toList();
 
@@ -90,7 +90,7 @@ public class TreeTraverserTest {
                 new Node(3,
                         new Node(7)));
 
-        List<Integer> result = TreeTraverser.preOrderTraversal(root, Node::getChildren)
+        List<Integer> result = Traverser.preOrderTraversal(root, Node::getChildren)
                 .transform(Node::getValue)
                 .toList();
 
@@ -101,7 +101,7 @@ public class TreeTraverserTest {
     @Test
     public void testPreOrderTraversalWithNullChildExtractor() {
         Node root = new Node(1);
-        Assert.assertThrows(NullPointerException.class, () -> TreeTraverser.preOrderTraversal(root, null));
+        Assert.assertThrows(NullPointerException.class, () -> Traverser.preOrderTraversal(root, null));
     }
 
     @Test
@@ -118,7 +118,7 @@ public class TreeTraverserTest {
         n3.addChild(n4);
         n4.addChild(n5);
 
-        List<Integer> result = TreeTraverser.preOrderTraversal(n1, Node::getChildren)
+        List<Integer> result = Traverser.preOrderTraversal(n1, Node::getChildren)
                 .transform(Node::getValue)
                 .toList();
 
@@ -142,7 +142,7 @@ public class TreeTraverserTest {
                         new Node(5),
                         new Node(7)));
 
-        List<Integer> result = TreeTraverser.preOrderTraversal(root, Node::getChildren)
+        List<Integer> result = Traverser.preOrderTraversal(root, Node::getChildren)
                 .transform(Node::getValue)
                 .toList();
 
@@ -157,7 +157,7 @@ public class TreeTraverserTest {
                 null,
                 new Node(3));
 
-        TreeTraverser.preOrderTraversal(root, Node::getChildren).transform(Node::getValue).forEach(System.out::println);
+        Traverser.preOrderTraversal(root, Node::getChildren).transform(Node::getValue).forEach(System.out::println);
 
         Assert.fail("Shouldn't reach here");
     }
@@ -178,7 +178,7 @@ public class TreeTraverserTest {
                         new Node(6),
                         new Node(7)));
 
-        List<Integer> result = TreeTraverser.breadthFirstTraversal(root, Node::getChildren)
+        List<Integer> result = Traverser.breadthFirstTraversal(root, Node::getChildren)
                 .transform(Node::getValue)
                 .toList();
 
@@ -186,15 +186,42 @@ public class TreeTraverserTest {
     }
 
     @Test
+    public void testPreOrderTraversalWithTree() {
+        // Create a tree structure
+        //        4
+        //      /   \
+        //   0,2     6
+        //    /       \
+        //  1,3,5   7,8,9
+        Node root = new Node(4,
+                new Node(0),
+                new Node(2,
+                        new Node(1),
+                        new Node(3),
+                        new Node(5)),
+                new Node(6,
+                        new Node(7),
+                        new Node(8),
+                        new Node(9)));
+
+        List<Integer> result = Traverser.preOrderTraversal(root, Node::getChildren)
+                .transform(Node::getValue)
+                .toList();
+
+        // In post-order: left subtree, right subtree, root
+        Assert.assertEquals(Arrays.asList(4, 0, 2, 1, 3, 5, 6, 7, 8, 9), result);
+    }
+
+    @Test
     public void testBreadthFirstTraversalWithNullRoot() {
-        FluentIterable<Node> result = TreeTraverser.breadthFirstTraversal(null, Node::getChildren);
+        FluentIterable<Node> result = Traverser.breadthFirstTraversal(null, Node::getChildren);
         Assert.assertTrue(result.isEmpty());
     }
 
     @Test
     public void testBreadthFirstTraversalWithSingleNode() {
         Node root = new Node(1);
-        List<Integer> result = TreeTraverser.breadthFirstTraversal(root, Node::getChildren)
+        List<Integer> result = Traverser.breadthFirstTraversal(root, Node::getChildren)
                 .transform(Node::getValue)
                 .toList();
 
@@ -218,7 +245,7 @@ public class TreeTraverserTest {
                 new Node(3,
                         new Node(7)));
 
-        List<Integer> result = TreeTraverser.breadthFirstTraversal(root, Node::getChildren)
+        List<Integer> result = Traverser.breadthFirstTraversal(root, Node::getChildren)
                 .transform(Node::getValue)
                 .toList();
 
@@ -232,7 +259,7 @@ public class TreeTraverserTest {
                 null,
                 new Node(3));
 
-        TreeTraverser.breadthFirstTraversal(root, Node::getChildren).transform(Node::getValue).forEach(System.out::println);
+        Traverser.breadthFirstTraversal(root, Node::getChildren).transform(Node::getValue).forEach(System.out::println);
 
         Assert.fail("Shouldn't reach here");
     }
@@ -240,7 +267,7 @@ public class TreeTraverserTest {
     @Test
     public void testBreadthFirstTraversalWithNullChildExtractor() {
         Node root = new Node(1);
-        Assert.assertThrows(NullPointerException.class, () -> TreeTraverser.breadthFirstTraversal(root, null));
+        Assert.assertThrows(NullPointerException.class, () -> Traverser.breadthFirstTraversal(root, null));
     }
 
     @Test
@@ -257,11 +284,38 @@ public class TreeTraverserTest {
         n3.addChild(n4);
         n4.addChild(n5);
 
-        List<Integer> result = TreeTraverser.breadthFirstTraversal(n1, Node::getChildren)
+        List<Integer> result = Traverser.breadthFirstTraversal(n1, Node::getChildren)
                 .transform(Node::getValue)
                 .toList();
 
         Assert.assertEquals(Arrays.asList(1, 2, 3, 4, 5), result);
+    }
+
+    @Test
+    public void testBreadthFirstOrderTraversalWithTree() {
+        // Create a tree structure
+        //        4
+        //      /   \
+        //   0,2     6
+        //    /       \
+        //  1,3,5   7,8,9
+        Node root = new Node(4,
+                new Node(0),
+                new Node(2,
+                        new Node(1),
+                        new Node(3),
+                        new Node(5)),
+                new Node(6,
+                        new Node(7),
+                        new Node(8),
+                        new Node(9)));
+
+        List<Integer> result = Traverser.breadthFirstTraversal(root, Node::getChildren)
+                .transform(Node::getValue)
+                .toList();
+
+        // In post-order: left subtree, right subtree, root
+        Assert.assertEquals(Arrays.asList(4, 0, 2, 6, 1, 3, 5, 7, 8, 9), result);
     }
 
     // Helper class for testing tree traversal

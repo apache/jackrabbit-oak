@@ -48,7 +48,7 @@ import javax.management.openmbean.TabularType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.TreeTraverser;
+import org.apache.jackrabbit.oak.commons.Traverser;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -557,14 +557,14 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         topLevel:
         for (LuceneDoc doc : docs){
 
-            final Function<LuceneDoc, Iterable<LuceneDoc>> docGetter = root -> {
+            final Function<LuceneDoc, Iterable<? extends LuceneDoc>> docGetter = root -> {
                 if (root.depth >= maxLevel) {
                     return Collections.emptyList();
                 }
                 return root.getChildren();
             };
 
-            for (LuceneDoc node : TreeTraverser.breadthFirstTraversal(doc, docGetter)) {
+            for (LuceneDoc node : Traverser.breadthFirstTraversal(doc, docGetter)) {
                 if (paths.size() < maxPathCount) {
                     paths.add(node.path);
                 } else {

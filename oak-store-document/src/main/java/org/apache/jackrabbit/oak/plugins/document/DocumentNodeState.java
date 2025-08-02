@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.commons.TreeTraverser;
+import org.apache.jackrabbit.oak.commons.Traverser;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
@@ -497,9 +497,9 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     public Iterable<DocumentNodeState> getAllBundledNodesStates() {
-        final Function<DocumentNodeState, Iterable<DocumentNodeState>> children = root -> IterableUtils.transform(root::getBundledChildren, ce -> (DocumentNodeState) ce.getNodeState());
+        final Function<DocumentNodeState, Iterable<? extends DocumentNodeState>> children = root -> IterableUtils.transform(root::getBundledChildren, ce -> (DocumentNodeState) ce.getNodeState());
 
-        return TreeTraverser.preOrderTraversal(this, children)
+        return Traverser.preOrderTraversal(this, children)
                 .filter(dns -> !dns.getPath().equals(this.getPath()) ); //Exclude this
     }
 

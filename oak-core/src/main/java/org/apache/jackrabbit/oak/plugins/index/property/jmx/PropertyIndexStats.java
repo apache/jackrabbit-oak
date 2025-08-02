@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.TreeTraverser;
+import org.apache.jackrabbit.oak.commons.Traverser;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -169,7 +169,7 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
         for (ChildNodeEntry cne : values) {
             Tree t = TreeFactory.createReadOnlyTree(cne.getNodeState());
 
-            final Function<Tree, Iterable<Tree>> treeGetter = root -> {
+            final Function<Tree, Iterable<? extends Tree>> treeGetter = root -> {
                 //Break at maxLevel
                 if (PathUtils.getDepth(root.getPath()) >= maxDepth) {
                     return Collections.emptyList();
@@ -177,7 +177,7 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
                 return root.getChildren();
             };
 
-            for (Tree node : TreeTraverser.breadthFirstTraversal(t, treeGetter)) {
+            for (Tree node : Traverser.breadthFirstTraversal(t, treeGetter)) {
                 PropertyState matchState = node.getProperty("match");
                 boolean match = matchState == null ? false : matchState.getValue(Type.BOOLEAN);
                 int depth = PathUtils.getDepth(node.getPath());
