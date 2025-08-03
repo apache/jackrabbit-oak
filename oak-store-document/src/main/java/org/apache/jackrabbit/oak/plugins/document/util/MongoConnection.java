@@ -261,7 +261,8 @@ public class MongoConnection {
             attempts++;
             ClusterDescription clusterDescription = client.getClusterDescription();
             
-            if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
+            if (clusterDescription.getType() == ClusterType.REPLICA_SET || 
+                clusterDescription.getType() == ClusterType.SHARDED) {
                 return WriteConcern.MAJORITY;
             } else if (clusterDescription.getType() == ClusterType.STANDALONE) {
                 return WriteConcern.ACKNOWLEDGED;
