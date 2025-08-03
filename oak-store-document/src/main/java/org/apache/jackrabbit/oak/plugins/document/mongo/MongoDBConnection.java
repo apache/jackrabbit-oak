@@ -27,6 +27,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.WriteConcern;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.jetbrains.annotations.NotNull;
@@ -83,7 +84,10 @@ final class MongoDBConnection {
         serverMonitorListener.addListener(status);
         MongoDatabase db = client.getDatabase(name);
         if (!MongoConnection.hasWriteConcern(uri)) {
-            db = db.withWriteConcern(MongoConnection.getDefaultWriteConcern(client));
+            WriteConcern defaultWriteConcern = MongoConnection.getDefaultWriteConcern(client);
+            LOG.info("Setting default write concern: {} for cluster type: {}", 
+                    defaultWriteConcern, client.getClusterDescription().getType());
+            db = db.withWriteConcern(defaultWriteConcern);
         }
         if (status.isMajorityReadConcernSupported()
                 && status.isMajorityReadConcernEnabled()

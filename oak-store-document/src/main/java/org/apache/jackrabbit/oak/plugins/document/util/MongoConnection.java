@@ -41,10 +41,15 @@ import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
 
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+
 /**
  * The {@code MongoConnection} abstracts connection to the {@code MongoDB}.
  */
 public class MongoConnection {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoConnection.class);
 
     public static final String MONGODB_PREFIX = "mongodb://";
 
@@ -53,6 +58,12 @@ public class MongoConnection {
     private static final Set<ReadConcernLevel> REPLICA_RC = Set.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final ConnectionString mongoURI;
     private final MongoClient mongo;
+
+    // MongoDB cluster description timeout configuration
+    private static final String PROP_CLUSTER_DESCRIPTION_TIMEOUT_MS = "oak.mongo.clusterDescriptionTimeoutMs";
+    private static final String PROP_CLUSTER_DESCRIPTION_INTERVAL_MS = "oak.mongo.clusterDescriptionIntervalMs";
+    private static final long DEFAULT_CLUSTER_DESCRIPTION_TIMEOUT_MS = 5000L;
+    private static final long DEFAULT_CLUSTER_DESCRIPTION_INTERVAL_MS = 100L;
 
     /**
      * Constructs a new connection using the specified MongoDB connection string.
@@ -227,14 +238,44 @@ public class MongoConnection {
      * @return the default write concern to use for Oak.
      */
     public static WriteConcern getDefaultWriteConcern(@NotNull MongoClient client) {
-        WriteConcern w;
-        ClusterDescription clusterDescription = client.getClusterDescription();
-        if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
-            w = WriteConcern.MAJORITY;
-        } else {
-            w = WriteConcern.ACKNOWLEDGED;
+        long timeoutMs = Long.getLong(PROP_CLUSTER_DESCRIPTION_TIMEOUT_MS, DEFAULT_CLUSTER_DESCRIPTION_TIMEOUT_MS);
+        long intervalMs = Long.getLong(PROP_CLUSTER_DESCRIPTION_INTERVAL_MS, DEFAULT_CLUSTER_DESCRIPTION_INTERVAL_MS);
+        
+        // If timeout is 0, disable the retry functionality and use immediate detection
+        if (timeoutMs == 0) {
+            WriteConcern w;
+            ClusterDescription clusterDescription = client.getClusterDescription();
+            if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
+                w = WriteConcern.MAJORITY;
+            } else {
+                w = WriteConcern.ACKNOWLEDGED;
+            }
+            return w;
         }
-        return w;
+        
+        long startTime = System.currentTimeMillis();
+        long endTime = startTime + timeoutMs;
+        int attempts = 0;
+        
+        while (System.currentTimeMillis() < endTime) {
+            attempts++;
+            ClusterDescription clusterDescription = client.getClusterDescription();
+            
+            if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
+                return WriteConcern.MAJORITY;
+            } else if (clusterDescription.getType() == ClusterType.STANDALONE) {
+                return WriteConcern.ACKNOWLEDGED;
+            }
+            
+            try {
+                Thread.sleep(intervalMs);
+            } catch (InterruptedException e) {}
+        }
+        
+        // In case of timeout, default to ACKNOWLEDGED
+        LOG.warn("Cluster description timeout after {}ms ({} attempts). Defaulting to ACKNOWLEDGED write concern.", 
+                timeoutMs, attempts);
+        return WriteConcern.ACKNOWLEDGED;
     }
 
     /**
