@@ -50,6 +50,19 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private String collectionCompressionType;
     private MongoClient mongoClient;
 
+    // MongoDB connection pool settings
+    private Integer maxPoolSize;
+    private Integer minPoolSize;
+    private Integer maxConnecting;
+    private Integer maxIdleTimeMS;
+    private Integer maxLifeTimeMS;
+    private Integer connectTimeoutMS;
+    private Integer heartbeatFrequencyMS;
+    private Integer serverSelectionTimeoutMS;
+    private Integer waitQueueTimeoutMS;
+    private Integer readTimeoutMS;
+    private Integer minHeartbeatFrequencyMS;
+
     /**
      * Uses the given information to connect to to MongoDB as backend
      * storage for the DocumentNodeStore. The write concern is either
@@ -150,6 +163,61 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     public T setLeaseSocketTimeout(int timeoutMillis) {
 
         this.leaseSocketTimeout = timeoutMillis;
+        return thisBuilder();
+    }
+
+    public T setMongoMaxPoolSize(int maxPoolSize) {
+        this.maxPoolSize = maxPoolSize;
+        return thisBuilder();
+    }
+
+    public T setMongoMinPoolSize(int minPoolSize) {
+        this.minPoolSize = minPoolSize;
+        return thisBuilder();
+    }
+
+    public T setMongoMaxConnecting(int maxConnecting) {
+        this.maxConnecting = maxConnecting;
+        return thisBuilder();
+    }
+
+    public T setMongoMaxIdleTimeMS(int maxIdleTimeMS) {
+        this.maxIdleTimeMS = maxIdleTimeMS;
+        return thisBuilder();
+    }
+
+    public T setMongoMaxLifeTimeMS(int maxLifeTimeMS) {
+        this.maxLifeTimeMS = maxLifeTimeMS;
+        return thisBuilder();
+    }
+
+    public T setMongoConnectTimeoutMS(int connectTimeoutMS) {
+        this.connectTimeoutMS = connectTimeoutMS;
+        return thisBuilder();
+    }
+
+    public T setMongoHeartbeatFrequencyMS(int heartbeatFrequencyMS) {
+        this.heartbeatFrequencyMS = heartbeatFrequencyMS;
+        return thisBuilder();
+    }
+
+    public T setMongoServerSelectionTimeoutMS(int serverSelectionTimeoutMS) {
+        this.serverSelectionTimeoutMS = serverSelectionTimeoutMS;
+        return thisBuilder();
+    }
+
+    public T setMongoWaitQueueTimeoutMS(int waitQueueTimeoutMS) {
+        this.waitQueueTimeoutMS = waitQueueTimeoutMS;
+        return thisBuilder();
+    }
+
+    public T setMongoReadTimeoutMS(int readTimeoutMS) {
+        this.readTimeoutMS = readTimeoutMS;
+        return thisBuilder();
+    }
+
+    public T setMongoMinHeartbeatFrequencyMS(int minHeartbeatFrequencyMS) {
+        this.minHeartbeatFrequencyMS = minHeartbeatFrequencyMS;
         return thisBuilder();
     }
 

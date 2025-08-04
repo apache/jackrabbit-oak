@@ -369,6 +369,17 @@ public class DocumentNodeStoreService {
             configureBuilder(builder);
             builder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
             builder.setLeaseSocketTimeout(config.mongoLeaseSocketTimeout());
+            builder.setMongoMaxPoolSize(config.mongoMaxPoolSize());
+            builder.setMongoMinPoolSize(config.mongoMinPoolSize());
+            builder.setMongoMaxConnecting(config.mongoMaxConnecting());
+            builder.setMongoMaxIdleTimeMS(config.mongoMaxIdleTimeMS());
+            builder.setMongoMaxLifeTimeMS(config.mongoMaxLifeTimeMS());
+            builder.setMongoConnectTimeoutMS(config.mongoConnectTimeoutMS());
+            builder.setMongoHeartbeatFrequencyMS(config.mongoHeartbeatFrequencyMS());
+            builder.setMongoServerSelectionTimeoutMS(config.mongoServerSelectionTimeoutMS());
+            builder.setMongoWaitQueueTimeoutMS(config.mongoWaitQueueTimeoutMS());
+            builder.setMongoReadTimeoutMS(config.mongoReadTimeoutMS());
+            builder.setMongoMinHeartbeatFrequencyMS(config.mongoMinHeartbeatFrequencyMS());
             builder.setMongoDB(uri, db, config.blobCacheSize());
             builder.setCollectionCompressionType(config.collectionCompressionType());
             mkBuilder = builder;
