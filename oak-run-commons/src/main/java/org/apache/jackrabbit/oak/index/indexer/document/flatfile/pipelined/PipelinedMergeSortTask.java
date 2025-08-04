@@ -209,7 +209,6 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
     @Override
     public Result call() throws Exception {
         this.eagerMergeRuns = 0;
-        String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
         int intermediateFilesCount = 0;
         INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting merge sort task", THREAD_NAME.toUpperCase(Locale.ROOT));
@@ -268,8 +267,6 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                     t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
-        } finally {
-            Thread.currentThread().setName(originalName);
         }
     }
 

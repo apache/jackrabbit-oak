@@ -18,21 +18,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Filters.gt;
+import static com.mongodb.client.model.Filters.lt;
 import static com.mongodb.client.model.Filters.or;
 import static com.mongodb.client.model.Projections.include;
 import static com.mongodb.client.model.Sorts.ascending;
+
+import static java.util.Collections.emptyList;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.lt;
-import static java.util.Collections.emptyList;
-import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
-import org.apache.jackrabbit.oak.plugins.document.FullGcNodeBin;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -52,11 +51,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import com.mongodb.MongoClient;
-import com.mongodb.client.MongoCursor;
-
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.FullGcNodeBin;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.Path;
@@ -75,9 +73,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.Block;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 
 /**
@@ -85,7 +84,7 @@ import com.mongodb.client.model.Filters;
  * to fetch required NodeDocuments
  *
  * <p>Version collection involves looking into old record and mostly unmodified
- * documents. In such case read from secondaries are preferred
+ * documents. In such case read from secondaries are preferred</p>
  */
 public class MongoVersionGCSupport extends VersionGCSupport {
 
@@ -112,7 +111,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     private final int batchSize = SystemPropertySupplier.create(
         "oak.mongo.queryDeletedDocsBatchSize", 1000).get();
-    private final FullGcNodeBin fullGcBin;
+    private final MongoFullGcNodeBin fullGcBin;
 
     public MongoVersionGCSupport(MongoDocumentStore store) {
         this(store, false);
@@ -135,7 +134,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         } else {
             modifiedIdHint = null;
         }
-        this.fullGcBin = new MongoFullGcNodeBinSumBsonSize( new MongoFullGcNodeBin(store, fullGcBinEnabled));
+        this.fullGcBin = new MongoFullGcNodeBin(store, fullGcBinEnabled);
     }
 
     @Override
@@ -236,6 +235,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
      * then perform the comparison.
+     * <p/>
      *
      * @param fromModified the lower bound modified timestamp in millis (inclusive)
      * @param toModified   the upper bound modified timestamp in millis (exclusive)
@@ -273,7 +273,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         }
 
         if (LOG.isDebugEnabled()) {
-            BsonDocument bson = query.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
+            BsonDocument bson = query.toBsonDocument(BsonDocument.class, MongoClientSettings.getDefaultCodecRegistry());
             LOG.debug("getModifiedDocs : query is {}", bson);
         }
 
@@ -361,17 +361,13 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         Bson query = Filters.eq(DELETED_ONCE, Boolean.TRUE);
         Bson sort = ascending(MODIFIED_IN_SECS);
         List<Long> result = new ArrayList<>(1);
-        getNodeCollection().find(query).sort(sort).limit(1).forEach(
-                new Block<BasicDBObject>() {
-            @Override
-            public void apply(BasicDBObject document) {
-                NodeDocument doc = store.convertFromDBObject(NODES, document);
-                long modifiedMs = doc.getModified() * TimeUnit.SECONDS.toMillis(1);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("getOldestDeletedOnceTimestamp() -> {}", Utils.timestampToString(modifiedMs));
-                }
-                result.add(modifiedMs);
+        getNodeCollection().find(query).sort(sort).limit(1).forEach(document -> {
+            NodeDocument doc = store.convertFromDBObject(NODES, document);
+            long modifiedMs = doc.getModified() * TimeUnit.SECONDS.toMillis(1);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("getOldestDeletedOnceTimestamp() -> {}", Utils.timestampToString(modifiedMs));
             }
+            result.add(modifiedMs);
         });
         if (result.isEmpty()) {
             LOG.debug("getOldestDeletedOnceTimestamp() -> none found, return current time");
@@ -474,7 +470,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         getNodeCollection()
                 .withReadPreference(store.getConfiguredReadPreference(NODES))
                 .find(query).projection(keys)
-                .forEach((Block<BasicDBObject>) doc -> ids.add(getID(doc)));
+                .forEach(doc -> ids.add(getID(doc)));
 
         StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
         sb.append(String.join(System.getProperty("line.separator"), ids));

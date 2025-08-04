@@ -104,6 +104,6 @@ public class ReplicaSetStatusTest {
         reply.put("hosts", new BsonArray(hostValues));
         BsonDocument lastWrite = new BsonDocument("lastWriteDate", new BsonDateTime(lastWriteDate));
         reply.put("lastWrite", lastWrite);
-        return new ServerHeartbeatSucceededEvent(description.getConnectionId(), reply, 0);
+        return new ServerHeartbeatSucceededEvent(description.getConnectionId(), reply, 0, false);
     }
 }

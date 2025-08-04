@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.MongoIncompatibleDriverException;
 import com.mongodb.MongoInterruptedException;
@@ -208,7 +207,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     static final String THREAD_NAME_PREFIX = "mongo-dump";
 
-    private final MongoClientURI mongoClientURI;
+    private final ConnectionString mongoClientURI;
     private final MongoDocumentStore docStore;
     private final int maxBatchSizeBytes;
     private final int maxBatchNumberOfDocuments;
@@ -234,7 +233,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
     private final long minModified;
 
-    public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
+    public PipelinedMongoDownloadTask(ConnectionString mongoClientURI,
                                       MongoDocumentStore docStore,
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
@@ -247,7 +246,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 queue, pathFilters, statisticsProvider, reporter, threadFactory, 0);
     }
 
-    public PipelinedMongoDownloadTask(MongoClientURI mongoClientURI,
+    public PipelinedMongoDownloadTask(ConnectionString mongoClientURI,
                                       MongoDocumentStore docStore,
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
@@ -343,61 +342,56 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     @Override
     public Result call() throws Exception {
-        String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME_PREFIX);
-        try {
-            // When downloading in parallel, we must create the connection to Mongo using a custom instance of ServerSelector
-            // instead of using the default policy defined by readPreference configuration setting.
-            // Here we create the configuration that is common to the two cases (parallelDump true or false).
-            MongoClientSettings.Builder settingsBuilder = MongoClientSettings.builder()
-                    .applyConnectionString(new ConnectionString(mongoClientURI.getURI()))
-                    .readPreference(ReadPreference.secondaryPreferred());
-            if (parallelDump && parallelDumpSecondariesOnly) {
-                // Set a custom server selector that is able to distribute the two connections between the two secondaries.
-                // Overrides the readPreference setting. We also need to listen for changes in the cluster to detect
-                // when a node is promoted to primary, so we can stop downloading from that node
-                this.mongoServerSelector = new PipelinedMongoServerSelector(THREAD_NAME_PREFIX + "-");
-                settingsBuilder.applyToClusterSettings(builder -> builder
-                        .serverSelector(mongoServerSelector)
-                        .addClusterListener(mongoServerSelector)
-                );
-            } else {
-                // otherwise use the default server selector policy.
-                this.mongoServerSelector = null;
-            }
+        // When downloading in parallel, we must create the connection to Mongo using a custom instance of ServerSelector
+        // instead of using the default policy defined by readPreference configuration setting.
+        // Here we create the configuration that is common to the two cases (parallelDump true or false).
+        MongoClientSettings.Builder settingsBuilder = MongoClientSettings.builder()
+                .applyConnectionString(mongoClientURI)
+                .readPreference(ReadPreference.secondaryPreferred());
+        if (parallelDump && parallelDumpSecondariesOnly) {
+            // Set a custom server selector that is able to distribute the two connections between the two secondaries.
+            // Overrides the readPreference setting. We also need to listen for changes in the cluster to detect
+            // when a node is promoted to primary, so we can stop downloading from that node
+            this.mongoServerSelector = new PipelinedMongoServerSelector(THREAD_NAME_PREFIX + "-");
+            settingsBuilder.applyToClusterSettings(builder -> builder
+                    .serverSelector(mongoServerSelector)
+                    .addClusterListener(mongoServerSelector)
+            );
+        } else {
+            // otherwise use the default server selector policy.
+            this.mongoServerSelector = null;
+        }
 
-            String mongoDatabaseName = MongoDocumentStoreHelper.getMongoDatabaseName(docStore);
-            try (MongoClient client = MongoClients.create(settingsBuilder.build())) {
-                MongoDatabase mongoDatabase = client.getDatabase(mongoDatabaseName);
-                this.dbCollection = mongoDatabase.getCollection(Collection.NODES.toString(), RawBsonDocument.class);
+        String mongoDatabaseName = MongoDocumentStoreHelper.getMongoDatabaseName(docStore);
+        try (MongoClient client = MongoClients.create(settingsBuilder.build())) {
+            MongoDatabase mongoDatabase = client.getDatabase(mongoDatabaseName);
+            this.dbCollection = mongoDatabase.getCollection(Collection.NODES.toString(), RawBsonDocument.class);
 
-                INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting to download from MongoDB", Thread.currentThread().getName().toUpperCase(Locale.ROOT));
-                try {
-                    downloadStartWatch.start();
-                    if (retryOnConnectionErrors) {
-                        downloadWithRetryOnConnectionErrors();
-                    } else {
-                        downloadWithNaturalOrdering();
-                    }
-                    downloadStartWatch.stop();
-                    // Signal the end of the download
-                    mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
-                    long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
-                    downloadStageStatistics.publishStatistics(statisticsProvider, reporter, durationMillis);
-                    String metrics = downloadStageStatistics.formatStats(durationMillis);
-                    INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", Thread.currentThread().getName().toUpperCase(Locale.ROOT), metrics);
-                    reporter.addTiming("Mongo dump", FormattingUtils.formatToSeconds(downloadStartWatch));
-                    return new PipelinedMongoDownloadTask.Result(downloadStageStatistics.getDocumentsDownloadedTotal());
-                } catch (Throwable t) {
-                    INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
-                            Thread.currentThread().getName().toUpperCase(Locale.ROOT),
-                            MetricsFormatter.createMetricsWithDurationOnly(downloadStartWatch),
-                            t.toString());
-                    throw t;
+            INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting to download from MongoDB", Thread.currentThread().getName().toUpperCase(Locale.ROOT));
+            try {
+                downloadStartWatch.start();
+                if (retryOnConnectionErrors) {
+                    downloadWithRetryOnConnectionErrors();
+                } else {
+                    downloadWithNaturalOrdering();
                 }
+                downloadStartWatch.stop();
+                // Signal the end of the download
+                mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
+                long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
+                downloadStageStatistics.publishStatistics(statisticsProvider, reporter, durationMillis);
+                String metrics = downloadStageStatistics.formatStats(durationMillis);
+                INDEXING_PHASE_LOGGER.info("[TASK:{}:END] Metrics: {}", Thread.currentThread().getName().toUpperCase(Locale.ROOT), metrics);
+                reporter.addTiming("Mongo dump", FormattingUtils.formatToSeconds(downloadStartWatch));
+                return new PipelinedMongoDownloadTask.Result(downloadStageStatistics.getDocumentsDownloadedTotal());
+            } catch (Throwable t) {
+                INDEXING_PHASE_LOGGER.info("[TASK:{}:FAIL] Metrics: {}, Error: {}",
+                        Thread.currentThread().getName().toUpperCase(Locale.ROOT),
+                        MetricsFormatter.createMetricsWithDurationOnly(downloadStartWatch),
+                        t.toString());
+                throw t;
             }
-        } finally {
-            Thread.currentThread().setName(originalName);
         }
     }
 
@@ -584,7 +578,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     private Future<?> submitDownloadTask(ExecutorCompletionService<Void> executor, DownloadTask downloadTask, Bson mongoFilter, String name) {
         return executor.submit(() -> {
-            String originalName = Thread.currentThread().getName();
             Thread.currentThread().setName(name);
             try {
                 downloadTask.download(mongoFilter);
@@ -593,7 +586,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 if (mongoServerSelector != null) {
                     mongoServerSelector.threadFinished();
                 }
-                Thread.currentThread().setName(originalName);
             }
             return null;
         });

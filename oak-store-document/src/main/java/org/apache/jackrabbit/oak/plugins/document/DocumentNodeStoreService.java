@@ -52,7 +52,8 @@ import javax.sql.DataSource;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
@@ -136,6 +137,7 @@ public class DocumentNodeStoreService {
     static final int DEFAULT_CACHE = (int) (DEFAULT_MEMORY_CACHE_SIZE / MB);
     static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     static final String DEFAULT_DB = "oak";
+    @Deprecated
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
     static final boolean DEFAULT_FULL_GC_ENABLED = false;
@@ -347,9 +349,12 @@ public class DocumentNodeStoreService {
         } else {
             String uri = config.mongouri();
             String db = config.db();
-            boolean soKeepAlive = config.socketKeepAlive();
 
-            MongoClientURI mongoURI = new MongoClientURI(uri);
+            ConnectionString mongoURI = new ConnectionString(uri);
+            MongoClientSettings settings = MongoClientSettings.builder()
+                    .applyConnectionString(mongoURI)
+                    .build();
+
             String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
             String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
 
@@ -362,13 +367,12 @@ public class DocumentNodeStoreService {
                         mongoURI.getHosts(), db, config.cache(), persistentCache,
                         journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs(),
                         config.clusterIdReuseDelayAfterRecoveryMillis(), config.recoveryDelayMillis());
-                log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
+                log.info("Mongo Connection details {}", MongoConnection.toString(settings));
             }
 
             MongoDocumentNodeStoreBuilder builder = newMongoDocumentNodeStoreBuilder();
             configureBuilder(builder);
             builder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
-            builder.setSocketKeepAlive(soKeepAlive);
             builder.setLeaseSocketTimeout(config.mongoLeaseSocketTimeout());
             builder.setMongoDB(uri, db, config.blobCacheSize());
             builder.setCollectionCompressionType(config.collectionCompressionType());
