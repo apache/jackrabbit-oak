@@ -501,7 +501,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                     Thread.currentThread().interrupt();  // restore interrupt status
                     LOG.warn("Interrupted while trying to enqueue poison pill after error processing search response", e);
                 }
-                throw t;
+                // This method should not throw exceptions, see the whenComplete() contract.
             }
         }
 
