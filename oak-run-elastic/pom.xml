@@ -41,7 +41,7 @@
         103.5 MB: Azure Identity client library for Java (OAK-10604)
         105 MB: Azure updates
         107 MB: RDB/Tomcat (OAK-10752)
-        120 MB: added oak-commons for csv parsing (OAK-10790)
+        120 MB: added commons-csv for csv parsing (OAK-10790)
         -->
         <max.jar.size>120000000</max.jar.size>
                       
