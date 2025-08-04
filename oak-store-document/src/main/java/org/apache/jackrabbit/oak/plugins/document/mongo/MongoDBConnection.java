@@ -78,7 +78,10 @@ final class MongoDBConnection {
                 builder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS);
             }
         });
-        MongoClient client = MongoClients.create(options.build());
+        
+        MongoClientSettings settings = options.build();
+        LOG.info("Mongo Connection details {}", MongoConnection.toString(settings));
+        MongoClient client = MongoClients.create(settings);
 
         MongoStatus status = new MongoStatus(client, name);
         serverMonitorListener.addListener(status);

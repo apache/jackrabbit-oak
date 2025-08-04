@@ -350,24 +350,19 @@ public class DocumentNodeStoreService {
             String uri = config.mongouri();
             String db = config.db();
 
-            ConnectionString mongoURI = new ConnectionString(uri);
-            MongoClientSettings settings = MongoClientSettings.builder()
-                    .applyConnectionString(mongoURI)
-                    .build();
-
             String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
             String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
 
             if (log.isInfoEnabled()) {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
+                ConnectionString mongoURI = new ConnectionString(uri);
                 log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
                                 "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}, " +
                                 "clusterIdReuseDelayAfterRecoveryMillis={}, recoveryDelayMillis={}",
                         mongoURI.getHosts(), db, config.cache(), persistentCache,
                         journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs(),
                         config.clusterIdReuseDelayAfterRecoveryMillis(), config.recoveryDelayMillis());
-                log.info("Mongo Connection details {}", MongoConnection.toString(settings));
             }
 
             MongoDocumentNodeStoreBuilder builder = newMongoDocumentNodeStoreBuilder();
