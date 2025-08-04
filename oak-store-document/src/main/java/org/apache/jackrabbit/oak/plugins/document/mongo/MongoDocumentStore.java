@@ -401,7 +401,7 @@ public class MongoDocumentStore implements DocumentStore {
         MongoDBConnection mc;
         int leaseSocketTimeout = builder.getLeaseSocketTimeout();
         if (leaseSocketTimeout > 0) {
-            mc = builder.createMongoDBClient(leaseSocketTimeout);
+            mc = builder.createMongoDBClient(true);
         } else {
             // use same connection
             mc = connection;

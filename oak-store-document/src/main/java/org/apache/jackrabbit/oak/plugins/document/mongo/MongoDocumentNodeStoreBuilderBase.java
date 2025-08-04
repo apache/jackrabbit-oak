@@ -82,7 +82,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
                         int blobCacheSizeMB) {
         this.uri = uri;
         this.name = name;
-        setMongoDB(createMongoDBClient(0), blobCacheSizeMB);
+        setMongoDB(createMongoDBClient(false), blobCacheSizeMB);
         return thisBuilder();
     }
 
@@ -301,10 +301,21 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return mongoClock;
     }
 
-    MongoDBConnection createMongoDBClient(int socketTimeout) {
+    MongoDBConnection createMongoDBClient(boolean isLease) {
         if (uri == null || name == null) {
             throw new IllegalStateException("Cannot create MongoDB client without 'uri' or 'name'");
         }
+        
+        // Apply correct socket timeout based on connection type
+        int socketTimeout;
+        if (isLease) {
+            // Cluster nodes connection: always use lease socket timeout
+            socketTimeout = leaseSocketTimeout;
+        } else {
+            // Default connection: use OSGi read timeout if configured, otherwise 0
+            socketTimeout = readTimeoutMS != null && readTimeoutMS > 0 ? readTimeoutMS : 0;
+        }
+        
         return newMongoDBConnection(uri, name, mongoClock, socketTimeout);
     }
 
