@@ -164,7 +164,6 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @return this builder.
      */
     public T setLeaseSocketTimeout(int timeoutMillis) {
-
         this.leaseSocketTimeout = timeoutMillis;
         return thisBuilder();
     }
