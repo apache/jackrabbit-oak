@@ -57,7 +57,7 @@ public interface ElasticFacetProvider extends FulltextIndex.FacetProvider {
                 break;
             case STATISTICAL:
                 facetProvider = new ElasticStatisticalFacetAsyncProvider(connection, indexDefinition,
-                        requestHandler, responseHandler, isAccessible, facetConfiguration.getRandomSeed(),
+                        requestHandler, responseHandler, isAccessible,
                         facetConfiguration.getStatisticalFacetSampleSize()
                 );
                 break;

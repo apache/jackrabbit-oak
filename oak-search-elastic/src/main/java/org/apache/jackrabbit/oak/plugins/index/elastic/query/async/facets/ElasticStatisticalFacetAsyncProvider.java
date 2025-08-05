@@ -44,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -63,16 +62,20 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private final Predicate<String> isAccessible;
     private final Set<String> facetFields;
     private final Map<String, List<FulltextIndex.Facet>> allFacets = new HashMap<>();
-    private final Map<String, Map<String, MutableInt>> accessibleFacetCounts = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, MutableInt>> accessibleFacetCounts = new HashMap<>();
     private Map<String, List<FulltextIndex.Facet>> facets;
     private final SearchRequest searchRequest;
     private final CountDownLatch latch = new CountDownLatch(1);
     private int sampled;
     private long totalHits;
 
+    private long processHitsTimeNanos;
+    private long processAggregationsTimeNannos;
+    private long computeStatisticalFacetsTimeNanos;
+
     ElasticStatisticalFacetAsyncProvider(ElasticConnection connection, ElasticIndexDefinition indexDefinition,
                                          ElasticRequestHandler elasticRequestHandler, ElasticResponseHandler elasticResponseHandler,
-                                         Predicate<String> isAccessible, long randomSeed, int sampleSize) {
+                                         Predicate<String> isAccessible, int sampleSize) {
 
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
@@ -88,7 +91,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 .size(sampleSize)
                 .sort(s ->
                         s.field(fs -> fs.field(
-                                ElasticIndexDefinition.PATH_RANDOM_VALUE)
+                                        ElasticIndexDefinition.PATH_RANDOM_VALUE)
                                 // this will handle the case when the field is not present in the index
                                 .unmappedType(FieldType.Integer)
                         )
@@ -111,6 +114,11 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                         processAggregations(searchResponse.aggregations());
                         searchResponse.hits().hits().forEach(this::processHit);
                         computeStatisticalFacets();
+                        LOG.debug("Facet computation times: {processAggregations: {} ms, processHits: {} ms, computeStatisticalFacets: {} ms}. Total hits: {}, samples: {}",
+                                TimeUnit.NANOSECONDS.toMillis(processAggregationsTimeNannos),
+                                TimeUnit.NANOSECONDS.toMillis(processHitsTimeNanos),
+                                TimeUnit.NANOSECONDS.toMillis(computeStatisticalFacetsTimeNanos),
+                                totalHits, sampled);
                     }
                 }
             } finally {
@@ -138,10 +146,12 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     }
 
     private void processHit(Hit<ObjectNode> searchHit) {
+        long start = System.nanoTime();
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null && isAccessible.test(path)) {
+            ObjectNode source = searchHit.source();
             for (String field : facetFields) {
-                JsonNode value = searchHit.source().get(field);
+                JsonNode value = source.get(field);
                 if (value != null) {
                     accessibleFacetCounts.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {
@@ -163,9 +173,16 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 }
             }
         }
+        long durationNanos = System.nanoTime() - start;
+        long durationMillis = TimeUnit.NANOSECONDS.toMillis(durationNanos);
+        if (durationMillis > 1) {
+            LOG.debug("Slow path: {}, {} ms", path, durationMillis);
+        }
+        this.processHitsTimeNanos += durationNanos;
     }
 
     private void processAggregations(Map<String, Aggregate> aggregations) {
+        long start = System.nanoTime();
         for (String field : facetFields) {
             List<StringTermsBucket> buckets = aggregations.get(field).sterms().buckets().array();
             allFacets.put(field, buckets.stream()
@@ -173,9 +190,11 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                     .collect(Collectors.toList())
             );
         }
+        this.processAggregationsTimeNannos = System.nanoTime() - start;
     }
 
     private void computeStatisticalFacets() {
+        long start = System.nanoTime();
         for (String facetKey : allFacets.keySet()) {
             if (accessibleFacetCounts.containsKey(facetKey)) {
                 Map<String, MutableInt> accessibleFacet = accessibleFacetCounts.get(facetKey);
@@ -189,7 +208,6 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 }
             }
         }
-
         // create Facet objects, order by count (desc) and then by label (asc)
         Comparator<FulltextIndex.Facet> comparator = Comparator
                 .comparing(FulltextIndex.Facet::getCount).reversed()
@@ -204,6 +222,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                                 .collect(Collectors.toList())
                         )
                 );
+        this.computeStatisticalFacetsTimeNanos = System.nanoTime() - start;
         LOG.trace("Statistical facets {}", facets);
     }
 
