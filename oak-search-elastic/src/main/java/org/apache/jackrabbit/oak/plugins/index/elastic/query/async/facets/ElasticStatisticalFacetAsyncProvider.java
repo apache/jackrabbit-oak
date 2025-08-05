@@ -64,6 +64,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private final Set<String> facetFields;
     private final Map<String, List<FulltextIndex.Facet>> allFacets = new HashMap<>();
     private final Map<String, Map<String, MutableInt>> accessibleFacetCounts = new HashMap<>();
+    private final CompletableFuture<SearchResponse<ObjectNode>> searchFuture;
     private Map<String, List<FulltextIndex.Facet>> facets;
     private final SearchRequest searchRequest;
     private final CountDownLatch latch = new CountDownLatch(1);
@@ -92,8 +93,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 .aggregations(elasticRequestHandler.aggregations())
                 .size(sampleSize)
                 .sort(s ->
-                        s.field(fs -> fs.field(
-                                        ElasticIndexDefinition.PATH_RANDOM_VALUE)
+                        s.field(fs -> fs.field(ElasticIndexDefinition.PATH_RANDOM_VALUE)
                                 // this will handle the case when the field is not present in the index
                                 .unmappedType(FieldType.Integer)
                         )
@@ -101,8 +101,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         );
 
         LOG.trace("Kicking search query with random sampling {}", searchRequest);
-        CompletableFuture<SearchResponse<ObjectNode>> searchFuture =
-                connection.getAsyncClient().search(searchRequest, ObjectNode.class);
+        searchFuture = connection.getAsyncClient().search(searchRequest, ObjectNode.class);
 
         searchFuture.whenCompleteAsync((searchResponse, throwable) -> {
             try {
@@ -140,6 +139,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         try {
             boolean completed = latch.await(15, TimeUnit.SECONDS);
             if (!completed) {
+                searchFuture.cancel(true);
                 LOG.error("Timed out while waiting for facets. Search request: {}", searchRequest);
                 throw new IllegalStateException("Timed out while waiting for facets");
             }
