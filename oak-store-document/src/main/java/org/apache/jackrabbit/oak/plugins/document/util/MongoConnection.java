@@ -53,8 +53,6 @@ public class MongoConnection {
 
     public static final String MONGODB_PREFIX = "mongodb://";
 
-    private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
-    private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final Set<ReadConcernLevel> REPLICA_RC = Set.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final ConnectionString mongoURI;
     private final MongoClient mongo;
@@ -176,13 +174,7 @@ public class MongoConnection {
      */
     public static MongoClientSettings.Builder getDefaultBuilder() {
         return MongoClientSettings.builder()
-                .applicationName("MongoConnection for Oak DocumentMK")
-                .applyToConnectionPoolSettings(builder -> builder
-                        .maxWaitTime(DEFAULT_MAX_WAIT_TIME, java.util.concurrent.TimeUnit.MILLISECONDS))
-                .applyToServerSettings(builder -> builder
-                        .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS, java.util.concurrent.TimeUnit.MILLISECONDS))
-                .applyToConnectionPoolSettings(builder -> builder
-                        .maxSize(100));
+                .applicationName("MongoConnection for Oak DocumentMK");
     }
 
     public static String toString(MongoClientSettings settings) {
