@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.82.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.84.0
 
 Introduction
 ------------
@@ -7,72 +7,76 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.82.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.84.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.82.0 compiles and tests successfully on Java 24.
-
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.82.0
+Changes in Oak 1.84.0
 ---------------------
 
 Technical task
 
-    [OAK-11667] - Remove usage of Guava Iterators.peekingIterator()
-    [OAK-11740] - Remove Guava Iterators imports
-    [OAK-11742] - Remove usage of Guava Ordering
-    [OAK-11744] - Remove usage of Guava ImmutableList
-    [OAK-11747] - Remove usage of Guava ComparisonChain
     [OAK-11748] - Remove usage of Guava Escapers
-    [OAK-11751] - Remove usage of Guava Sets
-    [OAK-11752] - Remove usage of Guava's Lists.transform()
-    [OAK-11754] - Remove usage of Guava HashMultimap
-    [OAK-11762] - Remove usage of Throwables.getStackTraceAsString
-    [OAK-11763] - Remove usage of Guava Throwables.getRootCause(e)
-    [OAK-11769] - Remove usage of Guava's DoubleMath.fuzzyCompare
-    [OAK-11770] - Remove usage of Guava's DoubleMath.fuzzyEquals
+    [OAK-11753] - Remove usage of Guava base.CaseFormat
+    [OAK-11771] - Remove usage of Guava's AtomicDouble
+    [OAK-11774] - Remove usage of Guava's Splitter
+    [OAK-11785] - Remove usage of Guava preconditions.checkPositionIndex
+    [OAK-11786] - Remove usage of Guava base.Strings
+    [OAK-11789] - Remove usage of Guava collect.Lists.newArrayList in segment-azure
+    [OAK-11793] - Remove usage of Guava common.hash.HashCode
+    [OAK-11801] - Remove usage of Guava FluentIterable
 
 Bug
 
-    [OAK-11657] - JackrabbitSession.getExpandedName/Path need to return stable expanded names, getExpandedName needs to fail for broken namespace names
-    [OAK-11736] - Occasional failures in ElasticIndexQueryCommonTest.repSimilarAsNativeQuery
-    [OAK-11743] - Filters only work inside knn query, So filters should be moved to knn query also.
-    [OAK-11757] - Implement similarityThreshold for inference
-    [OAK-11759] - Repo lock cannot be acquired if repo.lock blob is already present
-    [OAK-11764] - Query planner: when multiple indexes have same cost, planner should choose index deterministically
-    [OAK-11765] - BulkProcessor unable to insert after a failure
-    [OAK-11777] - Fix flaky test
+    [OAK-11299] - Missing Segments With Oak Run Segment Copy
+    [OAK-11783] - Import fails for content not using namespace prefixes
+    [OAK-11787] - org.apache.jackrabbit.oak.plugins.index.elastic.ElasticRegexPropertyIndexTest.regexPropertyWithoutFlattened failure
+    [OAK-11794] - remove the unused commons-fileupload dependency from IT tests
+    [OAK-11807] - Duplicate header after failed SegmentBufferWriter.flush()
+    [OAK-11812] - Failure in running S3DataStoreServiceTest unit case
+    [OAK-11818] - Update Mockito dependency to 5.18.0
+    [OAK-11824] - oak-lucene: custom analyzer cannot load indirect filters
+
+New Feature
+
+    [OAK-11498] - Expose bound principals via JackrabbitSession
 
 Improvement
 
-    [OAK-11712] - oak-search-elastic: :path does not need to be stored with index=true
-    [OAK-11734] - Update inferenceConfigTest to check status is updated properly
-    [OAK-11735] - Index merge: merge aggregation definitions
-    [OAK-11739] - Reduce logging verbosity in DefaultIndexWriter when creating writers
-    [OAK-11746] - Bump testcontainers to v1.21.1 / toxiproxy 2.12.0
-    [OAK-11750] - Add flag to enable/disable inference stats collection
-    [OAK-11766] - Write Throttling Mechanism - Session.save() delay
-    [OAK-11767] - Use "suffixesToSkip" for indexing with the index store
-    [OAK-11768] - Repository on read-only NodeStore
-    [OAK-11775] - oak-search-elastic: improve (not) NullCheckEnabled
+    [OAK-9447] - Upgrade Mongo java driver to 5.2
+    [OAK-11729] - If the indexing lane is behind, we should allow catch up of a non-failing lane
+    [OAK-11778] - Fix compilation warnings in classes related to Query handling
+    [OAK-11779] - Mongo downloader: in the progress messages, print the dates corresponding to the _modified values
+    [OAK-11780] - XML import: calculate prefixMap only when required
+    [OAK-11781] - Binary reference statistics are inaccurate for very large repositories
+    [OAK-11784] - new instance of NamespaceRegistry is created whenever an item is added via XML DocViewImporter
+    [OAK-11797] - indexing document store: start lucene writer pool only before indexing, not before download
+    [OAK-11800] - Simplify code of full text indexer
+    [OAK-11810] - UserImporter: Resolve the UserMonitor lazily
+    [OAK-11814] - NPE in ElasticResultRowAsyncIterator
+    [OAK-11823] - Code cleanups in Elastic search module
+    [OAK-11825] - Improve thread monitoring in the OutOfBandIndexer
+    [OAK-11837] - Update commons-csv version to 1.14.1
 
 Task
 
-    [OAK-11346] - remove oak-solr
-    [OAK-11702] - Update commons-codec dependency to 1.18.0
-    [OAK-11730] - Bump elasticsearch version to 8.18.1 / lucene 9.12.1
-    [OAK-11732] - Fix oak-segment-azure create persistence with service principals
-    [OAK-11737] - FullGC can't disable embeddedVerification when executed via oak-run command
-    [OAK-11745] - examples: update commons-beanutils to version 1.11.0
-    [OAK-11749] - update Tomcat dependency to 9.0.106
-    [OAK-11758] - RDBMK: update PostgreSQL driver to version 42.7.7
-    [OAK-11760] - remove dead code in AzureSegmentStoreV8
-    [OAK-11761] - remove unused package exports from segment-azure
-    [OAK-11772] - Prevent fullGC checkpoint data from being updated in MongoDB when fullGCEnabled = false
+    [OAK-10790] - FullTextBinaryTextExtractor fails to extract text from csv
+    [OAK-11617] - Provide oak-run commands to analyze and fix inconsistencies in the namespace registry
+    [OAK-11711] - oak-standalone: update dependencies
+    [OAK-11792] - mark commons.cache package as internal
+    [OAK-11795] - FullGC Audit Logging doesn't get enabled in oak-run revisions command
+    [OAK-11802] - update Tomcat dependency to 9.0.107
+    [OAK-11803] - Update commons-lang3 dependency to 3.18.0
+    [OAK-11804] - Update Oak trunk to Jackrabbit 2.22.1
+    [OAK-11819] - Update commons-codec dependency to 1.19.0
+    [OAK-11820] - Update commons-io dependency to 2.20.0
+    [OAK-11822] - Update commons-lang dependency to 1.14.0
+    [OAK-11831] - Update Oak trunk to Jackrabbit 2.22.2
+    [OAK-11834] - ClusterType can take longer during Mongo cluster initialization
 
 
 In addition to the above-mentioned changes, this release contains all
