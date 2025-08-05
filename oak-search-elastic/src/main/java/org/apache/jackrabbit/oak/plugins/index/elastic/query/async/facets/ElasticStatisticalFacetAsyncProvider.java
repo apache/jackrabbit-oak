@@ -73,11 +73,15 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private long totalHits;
 
     private final long queryStartTimeNanos;
-    private volatile long queryTimeNanos;
-    private volatile long processAggregationsTimeNannos;
+    // All these variables are updated only by the event handler thread of Elastic. They are read either by that
+    // same thread or by the client thread that waits for the latch to complete. Since the latch causes a memory barrier,
+    // the updated values will be visible to the client thread.
+    private long queryTimeNanos;
+    private long processAggregationsTimeNannos;
+    // It is written by multiple threads, so we use LongAdder for better performance than AtomicLong
     private final LongAdder aclTestTimeNanos = new LongAdder();
-    private final LongAdder processHitsTimeNanos = new LongAdder();
-    private volatile long computeStatisticalFacetsTimeNanos;
+    private long processHitsTimeNanos;
+    private long computeStatisticalFacetsTimeNanos;
 
     ElasticStatisticalFacetAsyncProvider(ElasticConnection connection, ElasticIndexDefinition indexDefinition,
                                          ElasticRequestHandler elasticRequestHandler, ElasticResponseHandler elasticResponseHandler,
@@ -156,9 +160,14 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
     private boolean isAccessible(Hit<ObjectNode> searchHit) {
         long start = System.nanoTime();
-        final String path = elasticResponseHandler.getPath(searchHit);
+        String path = elasticResponseHandler.getPath(searchHit);
         boolean result = path != null && isAccessible.test(path);
-        aclTestTimeNanos.add(System.nanoTime() - start);
+        long durationNanos = System.nanoTime() - start;
+        long durationMillis = TimeUnit.NANOSECONDS.toMillis(durationNanos);
+        if (durationMillis > 10) {
+            LOG.debug("Slow path checking ACLs: {}, {} ms", path, durationMillis);
+        }
+        aclTestTimeNanos.add(durationNanos);
         return result;
     }
 
@@ -187,12 +196,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 });
             }
         }
-        long durationNanos = System.nanoTime() - start;
-        long durationMillis = TimeUnit.NANOSECONDS.toMillis(durationNanos);
-        if (durationMillis > 1) {
-            LOG.debug("Slow path: {}, {} ms", elasticResponseHandler.getPath(searchHit), durationMillis);
-        }
-        this.processHitsTimeNanos.add(durationNanos);
+        this.processHitsTimeNanos += System.nanoTime() - start;
     }
 
     private void processAggregations(Map<String, Aggregate> aggregations) {
@@ -241,11 +245,11 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     }
 
     private String timingsToString() {
-        return String.format("Facet computation times: {query: %d, processAggregations: %d ms, filterByAcl: %d,  processHits: %d ms, computeStatisticalFacets: %d ms}. Total hits: %d, samples: %d",
+        return String.format("Facet computation times: {query: %d ms, processAggregations: %d ms, filterByAcl: %d ms, processHits: %d ms, computeStatisticalFacets: %d ms}. Total hits: %d, samples: %d",
                 queryTimeNanos > 0 ? TimeUnit.NANOSECONDS.toMillis(queryTimeNanos) : -1,
                 processAggregationsTimeNannos > 0 ? TimeUnit.NANOSECONDS.toMillis(processAggregationsTimeNannos) : -1,
                 aclTestTimeNanos.sum() > 0 ? TimeUnit.NANOSECONDS.toMillis(aclTestTimeNanos.sum()) : -1,
-                processHitsTimeNanos.sum() > 0 ? TimeUnit.NANOSECONDS.toMillis(processHitsTimeNanos.sum()) : -1,
+                processHitsTimeNanos > 0 ? TimeUnit.NANOSECONDS.toMillis(processHitsTimeNanos) : -1,
                 computeStatisticalFacetsTimeNanos > 0 ? TimeUnit.NANOSECONDS.toMillis(computeStatisticalFacetsTimeNanos) : -1,
                 totalHits, sampled);
     }
