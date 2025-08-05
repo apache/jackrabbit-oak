@@ -182,20 +182,20 @@ public class MongoConnection {
                         .maxSize(DocumentNodeStoreService.DEFAULT_MONGO_MAX_POOL_SIZE)
                         .minSize(DocumentNodeStoreService.DEFAULT_MONGO_MIN_POOL_SIZE)
                         .maxConnecting(DocumentNodeStoreService.DEFAULT_MONGO_MAX_CONNECTING)
-                        .maxConnectionIdleTime(DocumentNodeStoreService.DEFAULT_MONGO_MAX_IDLE_TIME_MS, TimeUnit.MILLISECONDS)
-                        .maxConnectionLifeTime(DocumentNodeStoreService.DEFAULT_MONGO_MAX_LIFE_TIME_MS, TimeUnit.MILLISECONDS)
-                        .maxWaitTime(DocumentNodeStoreService.DEFAULT_MONGO_WAIT_QUEUE_TIMEOUT_MS, TimeUnit.MILLISECONDS))
+                        .maxConnectionIdleTime(DocumentNodeStoreService.DEFAULT_MONGO_MAX_IDLE_TIME_MILLIS, TimeUnit.MILLISECONDS)
+                        .maxConnectionLifeTime(DocumentNodeStoreService.DEFAULT_MONGO_MAX_LIFE_TIME_MILLIS, TimeUnit.MILLISECONDS)
+                        .maxWaitTime(DocumentNodeStoreService.DEFAULT_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
                 // Apply default socket settings
                 .applyToSocketSettings(socketBuilder -> socketBuilder
-                        .connectTimeout(DocumentNodeStoreService.DEFAULT_MONGO_CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                        .readTimeout(DocumentNodeStoreService.DEFAULT_MONGO_READ_TIMEOUT_MS, TimeUnit.MILLISECONDS))
+                        .connectTimeout(DocumentNodeStoreService.DEFAULT_MONGO_CONNECT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                        .readTimeout(DocumentNodeStoreService.DEFAULT_MONGO_READ_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
                 // Apply default server settings
                 .applyToServerSettings(serverBuilder -> serverBuilder
-                        .heartbeatFrequency(DocumentNodeStoreService.DEFAULT_MONGO_HEARTBEAT_FREQUENCY_MS, TimeUnit.MILLISECONDS)
-                        .minHeartbeatFrequency(DocumentNodeStoreService.DEFAULT_MONGO_MIN_HEARTBEAT_FREQUENCY_MS, TimeUnit.MILLISECONDS))
+                        .heartbeatFrequency(DocumentNodeStoreService.DEFAULT_MONGO_HEARTBEAT_FREQUENCY_MILLIS, TimeUnit.MILLISECONDS)
+                        .minHeartbeatFrequency(DocumentNodeStoreService.DEFAULT_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS, TimeUnit.MILLISECONDS))
                 // Apply default cluster settings
                 .applyToClusterSettings(clusterBuilder -> clusterBuilder
-                        .serverSelectionTimeout(DocumentNodeStoreService.DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS));
+                        .serverSelectionTimeout(DocumentNodeStoreService.DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS));
     }
 
     public static String toString(MongoClientSettings settings) {

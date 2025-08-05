@@ -371,14 +371,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(100, config.mongoMaxPoolSize());
         assertEquals(0, config.mongoMinPoolSize());
         assertEquals(2, config.mongoMaxConnecting());
-        assertEquals(0, config.mongoMaxIdleTimeMS());
-        assertEquals(0, config.mongoMaxLifeTimeMS());
-        assertEquals(60000, config.mongoWaitQueueTimeoutMS());
-        assertEquals(10000, config.mongoConnectTimeoutMS());
-        assertEquals(0, config.mongoReadTimeoutMS());
-        assertEquals(5000, config.mongoHeartbeatFrequencyMS());
-        assertEquals(500, config.mongoMinHeartbeatFrequencyMS());
-        assertEquals(30000, config.mongoServerSelectionTimeoutMS());
+        assertEquals(0, config.mongoMaxIdleTimeMillis());
+        assertEquals(0, config.mongoMaxLifeTimeMillis());
+        assertEquals(60000, config.mongoWaitQueueTimeoutMillis());
+        assertEquals(10000, config.mongoConnectTimeoutMillis());
+        assertEquals(0, config.mongoReadTimeoutMillis());
+        assertEquals(5000, config.mongoHeartbeatFrequencyMillis());
+        assertEquals(500, config.mongoMinHeartbeatFrequencyMillis());
+        assertEquals(30000, config.mongoServerSelectionTimeoutMillis());
     }
     
     @Test
@@ -402,14 +402,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(50, config.mongoMaxPoolSize());
         assertEquals(5, config.mongoMinPoolSize());
         assertEquals(3, config.mongoMaxConnecting());
-        assertEquals(60000, config.mongoMaxIdleTimeMS());
-        assertEquals(300000, config.mongoMaxLifeTimeMS());
-        assertEquals(30000, config.mongoWaitQueueTimeoutMS());
-        assertEquals(5000, config.mongoConnectTimeoutMS());
-        assertEquals(20000, config.mongoReadTimeoutMS());
-        assertEquals(15000, config.mongoHeartbeatFrequencyMS());
-        assertEquals(1000, config.mongoMinHeartbeatFrequencyMS());
-        assertEquals(10000, config.mongoServerSelectionTimeoutMS());
+        assertEquals(60000, config.mongoMaxIdleTimeMillis());
+        assertEquals(300000, config.mongoMaxLifeTimeMillis());
+        assertEquals(30000, config.mongoWaitQueueTimeoutMillis());
+        assertEquals(5000, config.mongoConnectTimeoutMillis());
+        assertEquals(20000, config.mongoReadTimeoutMillis());
+        assertEquals(15000, config.mongoHeartbeatFrequencyMillis());
+        assertEquals(1000, config.mongoMinHeartbeatFrequencyMillis());
+        assertEquals(10000, config.mongoServerSelectionTimeoutMillis());
     }
     
     @Test
@@ -424,11 +424,11 @@ public class DocumentNodeStoreServiceConfigurationTest {
         Configuration config = createConfiguration();
         
         // Verify zero values are preserved (disabled/unlimited timeouts)
-        assertEquals(0, config.mongoMaxIdleTimeMS());
-        assertEquals(0, config.mongoMaxLifeTimeMS());
-        assertEquals(0, config.mongoConnectTimeoutMS());
-        assertEquals(0, config.mongoReadTimeoutMS());
-        assertEquals(0, config.mongoServerSelectionTimeoutMS());
+        assertEquals(0, config.mongoMaxIdleTimeMillis());
+        assertEquals(0, config.mongoMaxLifeTimeMillis());
+        assertEquals(0, config.mongoConnectTimeoutMillis());
+        assertEquals(0, config.mongoReadTimeoutMillis());
+        assertEquals(0, config.mongoServerSelectionTimeoutMillis());
     }
 
     @Test
@@ -443,9 +443,9 @@ public class DocumentNodeStoreServiceConfigurationTest {
         
         // Verify the configuration values are read correctly
         assertEquals(50, config.mongoMaxPoolSize());
-        assertEquals(20000, config.mongoReadTimeoutMS());
-        assertEquals(5000, config.mongoConnectTimeoutMS());
-        assertEquals(15000, config.mongoHeartbeatFrequencyMS());
+        assertEquals(20000, config.mongoReadTimeoutMillis());
+        assertEquals(5000, config.mongoConnectTimeoutMillis());
+        assertEquals(15000, config.mongoHeartbeatFrequencyMillis());
     }
 
     private Configuration createConfiguration() throws IOException {

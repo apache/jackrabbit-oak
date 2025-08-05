@@ -110,50 +110,50 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             description = "The maximum idle time in milliseconds of a MongoDB pooled connection. " +
                     "A value of 0 means no limit. " +
                     "Note that this value can be overridden via framework property 'oak.mongo.maxIdleTimeMS'")
-    int mongoMaxIdleTimeMS() default DocumentNodeStoreService.DEFAULT_MONGO_MAX_IDLE_TIME_MS;
+    int mongoMaxIdleTimeMillis() default DocumentNodeStoreService.DEFAULT_MONGO_MAX_IDLE_TIME_MILLIS;
 
     @AttributeDefinition(
             name = "MongoDB Max Life Time (ms)",
             description = "The maximum lifetime in milliseconds of a MongoDB pooled connection. " +
                     "A value of 0 means no limit. " +
                     "Note that this value can be overridden via framework property 'oak.mongo.maxLifeTimeMS'")
-    int mongoMaxLifeTimeMS() default DocumentNodeStoreService.DEFAULT_MONGO_MAX_LIFE_TIME_MS;
+    int mongoMaxLifeTimeMillis() default DocumentNodeStoreService.DEFAULT_MONGO_MAX_LIFE_TIME_MILLIS;
 
     @AttributeDefinition(
             name = "MongoDB Connect Timeout (ms)",
             description = "The connection timeout in milliseconds for establishing connections to MongoDB. " +
                     "Note that this value can be overridden via framework property 'oak.mongo.connectTimeoutMS'")
-    int mongoConnectTimeoutMS() default DocumentNodeStoreService.DEFAULT_MONGO_CONNECT_TIMEOUT_MS;
+    int mongoConnectTimeoutMillis() default DocumentNodeStoreService.DEFAULT_MONGO_CONNECT_TIMEOUT_MILLIS;
 
     @AttributeDefinition(
             name = "MongoDB Heartbeat Frequency (ms)", 
             description = "The frequency in milliseconds of the driver checking the state of MongoDB servers. " +
                     "Note that this value can be overridden via framework property 'oak.mongo.heartbeatFrequencyMS'")
-    int mongoHeartbeatFrequencyMS() default DocumentNodeStoreService.DEFAULT_MONGO_HEARTBEAT_FREQUENCY_MS;
+    int mongoHeartbeatFrequencyMillis() default DocumentNodeStoreService.DEFAULT_MONGO_HEARTBEAT_FREQUENCY_MILLIS;
 
     @AttributeDefinition(
             name = "MongoDB Server Selection Timeout (ms)",
             description = "How long the driver will wait for server selection to succeed before throwing an exception, in milliseconds. " +
                     "Note that this value can be overridden via framework property 'oak.mongo.serverSelectionTimeoutMS'")
-    int mongoServerSelectionTimeoutMS() default DocumentNodeStoreService.DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MS;
+    int mongoServerSelectionTimeoutMillis() default DocumentNodeStoreService.DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS;
 
     @AttributeDefinition(
             name = "MongoDB Wait Queue Timeout (ms)",
             description = "The maximum time in milliseconds that a thread can wait for a connection to become available (deprecated but still supported). " +
                     "Note that this value can be overridden via framework property 'oak.mongo.waitQueueTimeoutMS'")
-    int mongoWaitQueueTimeoutMS() default DocumentNodeStoreService.DEFAULT_MONGO_WAIT_QUEUE_TIMEOUT_MS;
+    int mongoWaitQueueTimeoutMillis() default DocumentNodeStoreService.DEFAULT_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS;
 
     @AttributeDefinition(
             name = "MongoDB Socket Read Timeout (ms)",
             description = "The socket read timeout in milliseconds. A value of 0 means no timeout. " +
                     "Note that this value can be overridden via framework property 'oak.mongo.readTimeoutMS'")
-    int mongoReadTimeoutMS() default DocumentNodeStoreService.DEFAULT_MONGO_READ_TIMEOUT_MS;
+    int mongoReadTimeoutMillis() default DocumentNodeStoreService.DEFAULT_MONGO_READ_TIMEOUT_MILLIS;
 
     @AttributeDefinition(
             name = "MongoDB Min Heartbeat Frequency (ms)",
             description = "The minimum heartbeat frequency in milliseconds for MongoDB server monitoring. " +
                     "Note that this value can be overridden via framework property 'oak.mongo.minHeartbeatFrequencyMS'")
-    int mongoMinHeartbeatFrequencyMS() default DocumentNodeStoreService.DEFAULT_MONGO_MIN_HEARTBEAT_FREQUENCY_MS;
+    int mongoMinHeartbeatFrequencyMillis() default DocumentNodeStoreService.DEFAULT_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS;
 
     @AttributeDefinition(
             name = "Cache Size (in MB)",
