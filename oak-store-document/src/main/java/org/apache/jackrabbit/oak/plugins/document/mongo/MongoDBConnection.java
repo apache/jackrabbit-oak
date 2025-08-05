@@ -16,10 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.concurrent.TimeUnit;
-
 import com.mongodb.BasicDBObject;
-import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.ReadConcernLevel;
 import com.mongodb.client.ClientSession;
@@ -65,20 +62,17 @@ final class MongoDBConnection {
     static MongoDBConnection newMongoDBConnection(@NotNull String uri,
                                                   @NotNull String name,
                                                   @NotNull MongoClock clock,
-                                                  int socketTimeout) {
+                                                  @NotNull MongoClientSettings settings) {
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
 
-        MongoClientSettings.Builder options = MongoConnection.getDefaultBuilder();
-        options.applyConnectionString(new ConnectionString(uri));
-        options.applyToServerSettings(builder ->
-                builder.addServerMonitorListener(serverMonitorListener)
+        MongoClientSettings.Builder optionsBuilder = MongoClientSettings.builder(settings);
+        optionsBuilder.applyToServerSettings(settingsBuilder ->
+                settingsBuilder.addServerMonitorListener(serverMonitorListener)
         );
-        options.applyToSocketSettings(builder -> {
-            if (socketTimeout > 0) {
-                builder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS);
-            }
-        });
-        MongoClient client = MongoClients.create(options.build());
+        
+        MongoClientSettings mongoClientSettings = optionsBuilder.build();
+        LOG.info("Mongo Connection details {}", MongoConnection.toString(mongoClientSettings));
+        MongoClient client = MongoClients.create(mongoClientSettings);
 
         MongoStatus status = new MongoStatus(client, name);
         serverMonitorListener.addListener(status);
@@ -96,6 +90,8 @@ final class MongoDBConnection {
         }
         return new MongoDBConnection(client, db, status, clock);
     }
+    
+
 
     @NotNull
     MongoClient getClient() {

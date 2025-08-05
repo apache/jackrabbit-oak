@@ -399,9 +399,9 @@ public class MongoDocumentStore implements DocumentStore {
     @NotNull
     private MongoDBConnection getOrCreateClusterNodesConnection(@NotNull MongoDocumentNodeStoreBuilderBase<?> builder) {
         MongoDBConnection mc;
-        int leaseSocketTimeout = builder.getLeaseSocketTimeout();
-        if (leaseSocketTimeout > 0) {
-            mc = builder.createMongoDBClient(leaseSocketTimeout);
+        // Only create separate lease connection if timeout was explicitly set
+        if (builder.hasLeaseSocketTimeout()) {
+            mc = builder.createMongoDBClient(true);
         } else {
             // use same connection
             mc = connection;

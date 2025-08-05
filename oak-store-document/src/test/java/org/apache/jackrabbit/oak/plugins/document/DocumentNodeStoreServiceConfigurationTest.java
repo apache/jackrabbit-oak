@@ -363,6 +363,91 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(60000L, config.recoveryDelayMillis());
     }
 
+    @Test
+    public void mongoConnectionPoolDefaults() throws IOException {
+        Configuration config = createConfiguration();
+        
+        // Verify MongoDB connection pool defaults match MongoDB Java Driver defaults
+        assertEquals(100, config.mongoMaxPoolSize());
+        assertEquals(0, config.mongoMinPoolSize());
+        assertEquals(2, config.mongoMaxConnecting());
+        assertEquals(0, config.mongoMaxIdleTimeMillis());
+        assertEquals(0, config.mongoMaxLifeTimeMillis());
+        assertEquals(60000, config.mongoWaitQueueTimeoutMillis());
+        assertEquals(10000, config.mongoConnectTimeoutMillis());
+        assertEquals(0, config.mongoReadTimeoutMillis());
+        assertEquals(5000, config.mongoHeartbeatFrequencyMillis());
+        assertEquals(500, config.mongoMinHeartbeatFrequencyMillis());
+        assertEquals(30000, config.mongoServerSelectionTimeoutMillis());
+    }
+    
+    @Test
+    public void mongoConnectionPoolCustomValues() throws IOException {
+        // Set custom values for all MongoDB connection pool parameters
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_MAX_POOL_SIZE, 50);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_MIN_POOL_SIZE, 5);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_MAX_CONNECTING, 3);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_MAX_IDLE_TIME_MILLIS, 60000);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_MAX_LIFE_TIME_MILLIS, 300000);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS, 30000);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_CONNECT_TIMEOUT_MILLIS, 5000);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_READ_TIMEOUT_MILLIS, 20000);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_HEARTBEAT_FREQUENCY_MILLIS, 15000);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS, 1000);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS, 10000);
+        
+        Configuration config = createConfiguration();
+        
+        // Verify custom values are properly applied
+        assertEquals(50, config.mongoMaxPoolSize());
+        assertEquals(5, config.mongoMinPoolSize());
+        assertEquals(3, config.mongoMaxConnecting());
+        assertEquals(60000, config.mongoMaxIdleTimeMillis());
+        assertEquals(300000, config.mongoMaxLifeTimeMillis());
+        assertEquals(30000, config.mongoWaitQueueTimeoutMillis());
+        assertEquals(5000, config.mongoConnectTimeoutMillis());
+        assertEquals(20000, config.mongoReadTimeoutMillis());
+        assertEquals(15000, config.mongoHeartbeatFrequencyMillis());
+        assertEquals(1000, config.mongoMinHeartbeatFrequencyMillis());
+        assertEquals(10000, config.mongoServerSelectionTimeoutMillis());
+    }
+    
+    @Test
+    public void mongoConnectionPoolZeroValues() throws IOException {
+        // Test zero values (should be allowed for "unlimited/disabled" semantics)
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_MAX_IDLE_TIME_MILLIS, 0);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_MAX_LIFE_TIME_MILLIS, 0);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_CONNECT_TIMEOUT_MILLIS, 0);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_READ_TIMEOUT_MILLIS, 0);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS, 0);
+        
+        Configuration config = createConfiguration();
+        
+        // Verify zero values are preserved (disabled/unlimited timeouts)
+        assertEquals(0, config.mongoMaxIdleTimeMillis());
+        assertEquals(0, config.mongoMaxLifeTimeMillis());
+        assertEquals(0, config.mongoConnectTimeoutMillis());
+        assertEquals(0, config.mongoReadTimeoutMillis());
+        assertEquals(0, config.mongoServerSelectionTimeoutMillis());
+    }
+
+    @Test
+    public void mongoConnectionPoolSettingsIntegration() throws IOException {
+        // Set some custom MongoDB connection pool values
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_MAX_POOL_SIZE, 50);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_READ_TIMEOUT_MILLIS, 20000);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_CONNECT_TIMEOUT_MILLIS, 5000);
+        addConfigurationEntry(preset, DocumentNodeStoreServiceConfiguration.PROP_MONGO_HEARTBEAT_FREQUENCY_MILLIS, 15000);
+        
+        Configuration config = createConfiguration();
+        
+        // Verify the configuration values are read correctly
+        assertEquals(50, config.mongoMaxPoolSize());
+        assertEquals(20000, config.mongoReadTimeoutMillis());
+        assertEquals(5000, config.mongoConnectTimeoutMillis());
+        assertEquals(15000, config.mongoHeartbeatFrequencyMillis());
+    }
+
     private Configuration createConfiguration() throws IOException {
         return DocumentNodeStoreServiceConfiguration.create(
                 context.componentContext(), configAdmin,
