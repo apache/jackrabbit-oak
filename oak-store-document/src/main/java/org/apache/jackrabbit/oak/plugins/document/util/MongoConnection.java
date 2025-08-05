@@ -31,6 +31,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.connection.ClusterSettings;
 import com.mongodb.connection.ClusterDescription;
 import com.mongodb.connection.ClusterType;
 import com.mongodb.connection.ConnectionPoolSettings;
@@ -201,14 +202,25 @@ public class MongoConnection {
         ConnectionPoolSettings poolSettings = settings.getConnectionPoolSettings();
         SocketSettings socketSettings = settings.getSocketSettings();
         ServerSettings serverSettings = settings.getServerSettings();
+        ClusterSettings clusterSettings = settings.getClusterSettings();
 
         return new StringJoiner(", ", MongoClientSettings.class.getSimpleName() + "[", "]")
-                .add("connectionsPerHost=" + poolSettings.getMaxSize())
-                .add("connectTimeout=" + socketSettings.getConnectTimeout(TimeUnit.MILLISECONDS))
-                .add("socketTimeout=" + socketSettings.getReadTimeout(TimeUnit.MILLISECONDS))
-                .add("maxWaitTime=" + poolSettings.getMaxWaitTime(TimeUnit.MILLISECONDS))
-                .add("heartbeatFrequency=" + serverSettings.getHeartbeatFrequency(TimeUnit.MILLISECONDS))
-                .add("threadsAllowedToBlockForConnectionMultiplier=" + poolSettings.getMaxSize())  // Handled via maxSize in connection pool
+                // Connection Pool Settings
+                .add("pool.maxSize=" + poolSettings.getMaxSize())
+                .add("pool.minSize=" + poolSettings.getMinSize())
+                .add("pool.maxConnecting=" + poolSettings.getMaxConnecting())
+                .add("pool.maxIdleTime=" + poolSettings.getMaxConnectionIdleTime(TimeUnit.MILLISECONDS))
+                .add("pool.maxLifeTime=" + poolSettings.getMaxConnectionLifeTime(TimeUnit.MILLISECONDS))
+                .add("pool.maxWaitTime=" + poolSettings.getMaxWaitTime(TimeUnit.MILLISECONDS))
+                // Socket Settings
+                .add("socket.connectTimeout=" + socketSettings.getConnectTimeout(TimeUnit.MILLISECONDS))
+                .add("socket.readTimeout=" + socketSettings.getReadTimeout(TimeUnit.MILLISECONDS))
+                // Server Settings
+                .add("server.heartbeatFreq=" + serverSettings.getHeartbeatFrequency(TimeUnit.MILLISECONDS))
+                .add("server.minHeartbeatFreq=" + serverSettings.getMinHeartbeatFrequency(TimeUnit.MILLISECONDS))
+                // Cluster Settings
+                .add("cluster.serverSelectionTimeout=" + clusterSettings.getServerSelectionTimeout(TimeUnit.MILLISECONDS))
+                // Connection Settings
                 .add("readPreference=" + settings.getReadPreference().getName())
                 .add("writeConcern=" + settings.getWriteConcern())
                 .toString();

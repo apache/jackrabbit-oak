@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.concurrent.TimeUnit;
-
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.ReadConcernLevel;
@@ -74,7 +72,6 @@ final class MongoDBConnection {
         
         MongoClientSettings mongoClientSettings = optionsBuilder.build();
         LOG.info("Mongo Connection details {}", MongoConnection.toString(mongoClientSettings));
-        logConnectionPoolDetails(mongoClientSettings);
         MongoClient client = MongoClients.create(mongoClientSettings);
 
         MongoStatus status = new MongoStatus(client, name);
@@ -94,39 +91,7 @@ final class MongoDBConnection {
         return new MongoDBConnection(client, db, status, clock);
     }
     
-    /**
-     * Logs detailed connection pool and socket settings
-     */
-    private static void logConnectionPoolDetails(MongoClientSettings settings) {
-        if (LOG.isInfoEnabled()) {
-            StringBuilder details = new StringBuilder("MongoDB Connection Pool Settings: ");
-            
-            // Connection Pool Settings
-            var poolSettings = settings.getConnectionPoolSettings();
-            details.append("Pool[maxSize=").append(poolSettings.getMaxSize())
-                   .append(", minSize=").append(poolSettings.getMinSize())
-                   .append(", maxConnecting=").append(poolSettings.getMaxConnecting())
-                   .append(", maxIdleTime=").append(poolSettings.getMaxConnectionIdleTime(TimeUnit.MILLISECONDS)).append("ms")
-                   .append(", maxLifeTime=").append(poolSettings.getMaxConnectionLifeTime(TimeUnit.MILLISECONDS)).append("ms")
-                   .append(", maxWaitTime=").append(poolSettings.getMaxWaitTime(TimeUnit.MILLISECONDS)).append("ms] ");
-            
-            // Socket Settings
-            var socketSettings = settings.getSocketSettings();
-            details.append("Socket[connectTimeout=").append(socketSettings.getConnectTimeout(TimeUnit.MILLISECONDS)).append("ms")
-                   .append(", readTimeout=").append(socketSettings.getReadTimeout(TimeUnit.MILLISECONDS)).append("ms] ");
-            
-            // Server Settings
-            var serverSettings = settings.getServerSettings();
-            details.append("Server[heartbeatFreq=").append(serverSettings.getHeartbeatFrequency(TimeUnit.MILLISECONDS)).append("ms")
-                   .append(", minHeartbeatFreq=").append(serverSettings.getMinHeartbeatFrequency(TimeUnit.MILLISECONDS)).append("ms] ");
-            
-            // Cluster Settings
-            var clusterSettings = settings.getClusterSettings();
-            details.append("Cluster[serverSelectionTimeout=").append(clusterSettings.getServerSelectionTimeout(TimeUnit.MILLISECONDS)).append("ms]");
-            
-            LOG.info(details.toString());
-        }
-    }
+
 
     @NotNull
     MongoClient getClient() {
