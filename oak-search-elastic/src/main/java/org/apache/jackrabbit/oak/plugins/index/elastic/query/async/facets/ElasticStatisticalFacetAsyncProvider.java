@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -69,8 +70,9 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private int sampled;
     private long totalHits;
 
-    private long processHitsTimeNanos;
     private long processAggregationsTimeNannos;
+    private final LongAdder aclTestTimeNanos = new LongAdder();
+    private long processHitsTimeNanos;
     private long computeStatisticalFacetsTimeNanos;
 
     ElasticStatisticalFacetAsyncProvider(ElasticConnection connection, ElasticIndexDefinition indexDefinition,
@@ -112,10 +114,15 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                     if (sampled > 0) {
                         this.totalHits = searchResponse.hits().total().value();
                         processAggregations(searchResponse.aggregations());
-                        searchResponse.hits().hits().forEach(this::processHit);
+                        searchResponse.hits().hits()
+                                // Parallel
+                                .parallelStream().filter(this::isAccessible)
+                                // Sequential to avoid concurrency issues with accessibleFacetCounts
+                                .sequential().forEach(this::processFilteredHit);
                         computeStatisticalFacets();
-                        LOG.debug("Facet computation times: {processAggregations: {} ms, processHits: {} ms, computeStatisticalFacets: {} ms}. Total hits: {}, samples: {}",
+                        LOG.debug("Facet computation times: {processAggregations: {} ms, filterByAcl: {},  processHits: {} ms, computeStatisticalFacets: {} ms}. Total hits: {}, samples: {}",
                                 TimeUnit.NANOSECONDS.toMillis(processAggregationsTimeNannos),
+                                TimeUnit.NANOSECONDS.toMillis(aclTestTimeNanos.sum()),
                                 TimeUnit.NANOSECONDS.toMillis(processHitsTimeNanos),
                                 TimeUnit.NANOSECONDS.toMillis(computeStatisticalFacetsTimeNanos),
                                 totalHits, sampled);
@@ -145,38 +152,43 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         return facets != null ? facets.get(field) : null;
     }
 
-    private void processHit(Hit<ObjectNode> searchHit) {
+    private boolean isAccessible(Hit<ObjectNode> searchHit) {
         long start = System.nanoTime();
         final String path = elasticResponseHandler.getPath(searchHit);
-        if (path != null && isAccessible.test(path)) {
-            ObjectNode source = searchHit.source();
-            for (String field : facetFields) {
-                JsonNode value = source.get(field);
-                if (value != null) {
-                    accessibleFacetCounts.compute(field, (column, facetValues) -> {
-                        if (facetValues == null) {
-                            Map<String, MutableInt> values = new HashMap<>();
-                            values.put(value.asText(), new MutableInt(1));
-                            return values;
-                        } else {
-                            facetValues.compute(value.asText(), (k, v) -> {
-                                if (v == null) {
-                                    return new MutableInt(1);
-                                } else {
-                                    v.increment();
-                                    return v;
-                                }
-                            });
-                            return facetValues;
-                        }
-                    });
-                }
+        boolean result = path != null && isAccessible.test(path);
+        aclTestTimeNanos.add(System.nanoTime() - start);
+        return result;
+    }
+
+    private void processFilteredHit(Hit<ObjectNode> searchHit) {
+        long start = System.nanoTime();
+        ObjectNode source = searchHit.source();
+        for (String field : facetFields) {
+            JsonNode value = source.get(field);
+            if (value != null) {
+                accessibleFacetCounts.compute(field, (column, facetValues) -> {
+                    if (facetValues == null) {
+                        Map<String, MutableInt> values = new HashMap<>();
+                        values.put(value.asText(), new MutableInt(1));
+                        return values;
+                    } else {
+                        facetValues.compute(value.asText(), (k, v) -> {
+                            if (v == null) {
+                                return new MutableInt(1);
+                            } else {
+                                v.increment();
+                                return v;
+                            }
+                        });
+                        return facetValues;
+                    }
+                });
             }
         }
         long durationNanos = System.nanoTime() - start;
         long durationMillis = TimeUnit.NANOSECONDS.toMillis(durationNanos);
         if (durationMillis > 1) {
-            LOG.debug("Slow path: {}, {} ms", path, durationMillis);
+            LOG.debug("Slow path: {}, {} ms", elasticResponseHandler.getPath(searchHit), durationMillis);
         }
         this.processHitsTimeNanos += durationNanos;
     }
