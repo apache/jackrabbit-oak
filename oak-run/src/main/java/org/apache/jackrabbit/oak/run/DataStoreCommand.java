@@ -39,7 +39,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -538,8 +537,10 @@ public class DataStoreCommand implements Command {
 
         private void getInclusionListFromRegex(NodeState rootState, String rootPath, String inclusionRegex,
             Map<NodeState, String> inclusionNodeStates) {
-            Splitter delimSplitter = Splitter.on("/").trimResults().omitEmptyStrings();
-            List<String> pathElementList = delimSplitter.splitToList(inclusionRegex);
+            List<String> pathElementList = Arrays.stream(inclusionRegex.split("/"))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
 
             // Get the first pathElement from the regexPath
             String pathElement = pathElementList.get(0);
@@ -574,8 +575,6 @@ public class DataStoreCommand implements Command {
                 return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
             }
         };
-        private final static Splitter delimSplitter = Splitter.on(DELIM).trimResults().omitEmptyStrings();
-
         private final BlobStoreOptions optionBean;
         private final BlobStoreOptions.Type blobStoreType;
         private final File outDir;
@@ -638,11 +637,17 @@ public class DataStoreCommand implements Command {
             // Line would be like b47b58169f121822cd4a0a0a153ba5910e581ad2bc450b6af7e51e6214c2b173#123311,/a/b/c
             // In case of dumping ids, there would not be any paths associated and there the line would simply be
             // b47b58169f121822cd4a0a0a153ba5910e581ad2bc450b6af7e51e6214c2b173#123311
-            List<String> list = delimSplitter.splitToList(line);
+            List<String> list = Arrays.stream(line.split(DELIM))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
 
             String id = list.get(0);
             // Split b47b58169f121822cd4a0a0a153ba5910e581ad2bc450b6af7e51e6214c2b173#123311 on # to get the id
-            List<String> idLengthSepList = Splitter.on(HASH).trimResults().omitEmptyStrings().splitToList(id);
+            List<String> idLengthSepList = Arrays.stream(id.split(HASH))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
             String blobId = idLengthSepList.get(0);
 
             if (dsType == FAKE || dsType == FDS) {

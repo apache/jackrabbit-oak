@@ -16,11 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.apache.jackrabbit.test.NotExecutableException;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
+import java.security.Principal;
+import java.util.Collection;
+import java.util.Set;
+import java.util.UUID;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.Item;
@@ -28,10 +32,18 @@ import javax.jcr.NamespaceException;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
 
-import java.util.UUID;
-
-import static org.mockito.Mockito.mock;
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.test.AbstractJCRTest;
+import org.apache.jackrabbit.test.NotExecutableException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class JackrabbitSessionTest extends AbstractJCRTest {
     
@@ -130,5 +142,49 @@ public class JackrabbitSessionTest extends AbstractJCRTest {
         // now remap namespace uri - should not affect expanded name
         s.setNamespacePrefix("test", "urn:foo");
         assertEquals("/{}testroot/{http://www.apache.org/jackrabbit/test}bar/{internal}bar", s.getExpandedPath(n));
+    }
+
+    public void testGetPrincipalsForAdminSession() throws RepositoryException {
+        Set<Principal> principals = s.getBoundPrincipals();
+        assertEquals("Principals returned via getBoundPrincipals and session attribute must be equal", principals, s.getAttribute(RepositoryImpl.BOUND_PRINCIPALS));
+        assertImmutablePrincipals(principals, "admin", EveryonePrincipal.getInstance().getName());
+    }
+
+    public void testGetPrincipalsForCustomUser() throws RepositoryException {
+        // add test user being member of one group directly and another group transitively
+        UserManager uMgr = s.getUserManager();
+        // create the testUser
+        String uid = generateId("testUser");
+        SimpleCredentials creds = new SimpleCredentials(uid, uid.toCharArray());
+        User testUser = uMgr.createUser(uid, uid);
+        String gid = generateId("testGroup");
+        Group testGroup = uMgr.createGroup(gid);
+        testGroup.addMember(testUser);
+        String gid2 = generateId("testGroup2");
+        Group testGroup2 = uMgr.createGroup(gid2);
+        testGroup2.addMember(testGroup);
+        s.save();
+        JackrabbitSession guest = (JackrabbitSession) getHelper().getRepository().login(creds);
+        try {
+            Set<Principal> principals = guest.getBoundPrincipals();
+            assertEquals("Principals returned via getBoundPrincipals and session attribute must be equal", principals, guest.getAttribute(RepositoryImpl.BOUND_PRINCIPALS));
+            assertImmutablePrincipals(principals, EveryonePrincipal.getInstance().getName(), gid, uid, gid2);
+            assertFalse("Admin principal not expected", principals.contains(s.getPrincipalManager().getPrincipal("admin")));
+        } finally {
+            guest.logout();
+        }
+    }
+
+    protected static String generateId(@NotNull String hint) {
+        return hint + UUID.randomUUID();
+    }
+
+    public static void assertImmutablePrincipals(Collection<Principal> actualPrincipals, String... expectedPrincipalNames) {
+        assertNotNull(actualPrincipals);
+        for (String expectedPrincipalName  : expectedPrincipalNames) {
+            assertTrue("Given collection did not contain expected principal name \'" + expectedPrincipalName + "'", actualPrincipals.stream().anyMatch(p -> p.getName().equals(expectedPrincipalName) ));
+        }
+        // make sure it is not modifiable
+        assertThrows(UnsupportedOperationException.class, actualPrincipals::clear);
     }
 }

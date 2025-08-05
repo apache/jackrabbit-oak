@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.List;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;

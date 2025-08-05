@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -130,6 +131,15 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         return false;
     }
 
+    protected long getIndexCorruptIntervalInMillis() {
+        return INDEX_CORRUPT_INTERVAL_IN_MILLIS;
+    }
+
+    protected ElasticRetryPolicy getElasticRetryPolicy() {
+        // Override this in extending classes to provide a different retry policy
+        return ElasticRetryPolicy.NO_RETRY;
+    }
+
     protected Oak addAsyncIndexingLanesToOak(Oak oak) {
         // Override this in extending classes to configure different
         // indexing lanes with different time limits.
@@ -147,11 +157,13 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         nodeStore = getNodeStore();
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
         queryEngineSettings.setInferenceEnabled(isInferenceEnabled());
+        queryEngineSettings.setLimitReads(limitReads());
         InferenceConfig.reInitialize(nodeStore, INFERENCE_CONFIG_PATH, isInferenceEnabled());
         indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
-            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
+                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100),
+                getElasticRetryPolicy());
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker, getAsyncIteratorEnqueueTimeoutMs());
 
 
         asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(
@@ -160,7 +172,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         ));
 
         TrackingCorruptIndexHandler trackingCorruptIndexHandler = new TrackingCorruptIndexHandler();
-        trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS, TimeUnit.MILLISECONDS);
+        trackingCorruptIndexHandler.setCorruptInterval(getIndexCorruptIntervalInMillis(), TimeUnit.MILLISECONDS);
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
 
         Oak oak = new Oak(nodeStore)
@@ -176,6 +188,14 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
             oak = addAsyncIndexingLanesToOak(oak);
         }
         return oak.createContentRepository();
+    }
+
+    protected long getAsyncIteratorEnqueueTimeoutMs() {
+        return ElasticIndexProvider.DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS;
+    }
+
+    protected long limitReads() {
+        return QueryEngineSettings.DEFAULT_QUERY_LIMIT_READS;
     }
 
     protected boolean isInferenceEnabled() {

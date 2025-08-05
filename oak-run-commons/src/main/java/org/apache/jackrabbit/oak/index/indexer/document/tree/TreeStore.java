@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.TreeSession;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.FilePacker;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SieveCache;
+import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -87,6 +89,7 @@ public class TreeStore implements ParallelIndexStore {
     private long iterationCount;
     private PathIteratorFilter filter = new PathIteratorFilter();
     private ArrayList<String> splitPoints;
+    private final List<String> suffixesToSkip = ConfigHelper.getSystemPropertyAsStringList(PipelinedStrategy.OAK_INDEXER_PIPELINED_NODE_DOCUMENT_FILTER_SUFFIXES_TO_SKIP, "", ';');
 
     // the prefetcher, if any. we keep a references so we can shut it down on close
     private Prefetcher prefetcher;
@@ -120,6 +123,7 @@ public class TreeStore implements ParallelIndexStore {
         this.session = new TreeSession(store);
         // we don not want to merge too early during the download
         session.setMaxRoots(1000);
+        LOG.info("Suffixed to skip: " + suffixesToSkip);
     }
 
     public void init() {
@@ -153,6 +157,15 @@ public class TreeStore implements ParallelIndexStore {
         return iteratorOverPaths(null, null);
     }
 
+    private boolean canSkip(String path) {
+        for (String suffix : suffixesToSkip) {
+            if (path.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Iterator<String> iteratorOverPaths(String start, String end) {
         startPrefetch();
         final Iterator<Entry<String, String>> firstIterator = session.iterator(start);
@@ -176,6 +189,9 @@ public class TreeStore implements ParallelIndexStore {
                     // if the value is empty (not null!) this is a child node reference,
                     // without node data
                     if (value.isEmpty()) {
+                        continue;
+                    }
+                    if (canSkip(key)) {
                         continue;
                     }
                     if (!filter.includes(key)) {

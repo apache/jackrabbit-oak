@@ -620,10 +620,8 @@ public class AsyncIndexUpdateTest {
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         assertEquals(Set.of("testRoot", "testRoot1"), find(lookup, "foo", "abc"));
 
-        // Run force index catchup with correct confirm message
-        // But the async lane is NOT failing
-        // Due to this the force update should be skipped and the
-        // new node testRoot2 will  be indexed.
+        // Index catchup should work even if the async lane is not failing. Refer: https://issues.apache.org/jira/browse/OAK-11729
+        // So force catchup will skip indexing this node.
         builder.child("testRoot2").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         async.getIndexStats().forceIndexLaneCatchup("CONFIRM");
@@ -635,7 +633,7 @@ public class AsyncIndexUpdateTest {
         assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
                 ":conflict"));
         lookup = new PropertyIndexLookup(root);
-        assertEquals(Set.of("testRoot", "testRoot1", "testRoot2"), find(lookup, "foo", "abc"));
+        assertEquals(Set.of("testRoot", "testRoot1"), find(lookup, "foo", "abc"));
 
 
         // Now run force index update on a failing lane with correct confirm message
@@ -655,9 +653,10 @@ public class AsyncIndexUpdateTest {
         assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
                 ":conflict"));
         lookup = new PropertyIndexLookup(root);
-        // testRoot3 will not be indexed, because it was created after the last successfully run index update and before the forceUpdate was called.
+        // both testRoot2 and testRoot3 will not be indexed, because these were created after the last successfully run
+        // index update and before the force catchup.
         // So it lands in the missing content diff that needs to be reindexed.
-        assertEquals(Set.of("testRoot", "testRoot1", "testRoot2", "testRoot4"), find(lookup, "foo", "abc"));
+        assertEquals(Set.of("testRoot", "testRoot1", "testRoot4"), find(lookup, "foo", "abc"));
         // Check if failing index update is fixed
         assertFalse(async.isFailing());
     }

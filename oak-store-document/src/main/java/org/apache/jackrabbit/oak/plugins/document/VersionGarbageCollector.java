@@ -172,8 +172,44 @@ public class VersionGarbageCollector {
     private static FullGCMode fullGcMode = GAP_ORPHANS_EMPTYPROPS;
     private final long fullGcGen;
 
-    static FullGCMode getFullGcMode() {
+    public static FullGCMode getFullGcMode() {
         return fullGcMode;
+    }
+    
+    public boolean isFullGCEnabled() {
+        return fullGCEnabled;
+    }
+
+    public boolean isFullGCDryRun() {
+        return isFullGCDryRun;
+    }
+
+    public boolean isEmbeddedVerificationEnabled() {
+        return embeddedVerification;
+    }
+
+    public double getFullGcDelayFactor() {
+        return fullGCDelayFactor;
+    }
+
+    public long getFullGcMaxAgeInMillis() {
+        return fullGcMaxAgeInMillis;
+    }
+
+    public int getFullGcBatchSize() {
+        return fullGCBatchSize;
+    }
+
+    public int getFullGcProgressSize() {
+        return fullGCProgressSize;
+    }
+
+    public Set<String> getFullGCIncludePaths() {
+        return fullGCIncludePaths;
+    }
+
+    public Set<String> getFullGCExcludePaths() {
+        return fullGCExcludePaths;
     }
 
     /**

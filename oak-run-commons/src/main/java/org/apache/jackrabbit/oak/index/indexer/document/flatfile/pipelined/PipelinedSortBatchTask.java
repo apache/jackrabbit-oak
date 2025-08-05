@@ -103,7 +103,6 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     @Override
     public Result call() throws Exception {
         Stopwatch taskStartTime = Stopwatch.createStarted();
-        String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
         INDEXING_PHASE_LOGGER.info("[TASK:{}:START] Starting sort-and-save task", THREAD_NAME.toUpperCase(Locale.ROOT));
         try {
@@ -151,8 +150,6 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                     t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
-        } finally {
-            Thread.currentThread().setName(originalName);
         }
     }
 

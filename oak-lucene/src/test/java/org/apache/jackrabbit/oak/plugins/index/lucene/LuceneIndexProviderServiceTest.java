@@ -27,7 +27,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -148,7 +147,7 @@ public class LuceneIndexProviderServiceTest {
         assertNotNull(context.getService(JournalPropertyService.class));
         assertNotNull(context.getService(IndexImporterProvider.class));
 
-        assertNotNull(WhiteboardUtils.getServices(wb, Runnable.class, (Predicate<Runnable>)r -> r instanceof PropertyIndexCleaner));
+        assertNotNull(WhiteboardUtils.getServices(wb, Runnable.class, r -> r instanceof PropertyIndexCleaner));
 
         MockOsgi.deactivate(service, context.bundleContext());
 
@@ -401,7 +400,7 @@ public class LuceneIndexProviderServiceTest {
         MockOsgi.activate(service, context.bundleContext(), config);
         ServiceReference[] sr = context.bundleContext().getAllServiceReferences(Runnable.class.getName(),
                 "(scheduler.name="+ PropertyIndexCleaner.class.getName()+")");
-        assertEquals(sr.length, 1);
+        assertEquals(1, sr.length);
 
         assertEquals(142L, sr[0].getProperty("scheduler.period"));
     }

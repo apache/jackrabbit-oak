@@ -19,15 +19,15 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.guava.common.hash.HashCode;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +66,7 @@ public abstract class AbstractBlob implements Blob {
 
         //Check for identity first. If they are same then its
         //definitely same blob. If not we need to check further.
-        if (ai != null && bi != null && ai.equals(bi)){
+        if (ai != null && ai.equals(bi)){
             return true;
         }
 
@@ -81,34 +81,9 @@ public abstract class AbstractBlob implements Blob {
         }
     }
 
-    public static HashCode calculateSha256(final Blob blob) {
-        AbstractBlob ab;
-        if (blob instanceof AbstractBlob) {
-            ab = ((AbstractBlob) blob);
-        } else {
-            ab = new AbstractBlob() {
-                @Override
-                public long length() {
-                    return blob.length();
-                }
+    private ByteBuffer hashCode; // synchronized access
 
-                @Override public boolean isInlined() {
-                    return blob.isInlined();
-                }
-
-                @NotNull
-                @Override
-                public InputStream getNewStream() {
-                    return blob.getNewStream();
-                }
-            };
-        }
-        return ab.getSha256();
-    }
-
-    private HashCode hashCode; // synchronized access
-
-    protected AbstractBlob(HashCode hashCode) {
+    protected AbstractBlob(ByteBuffer hashCode) {
         this.hashCode = hashCode;
     }
 
@@ -116,24 +91,19 @@ public abstract class AbstractBlob implements Blob {
         this(null);
     }
 
-    private synchronized HashCode getSha256() {
+    private synchronized ByteBuffer getSha256() {
         // Blobs are immutable so we can safely cache the hash
         if (hashCode == null) {
             try {
-                hashCode = Hashing.sha256().hashBytes(this.getNewStream().readAllBytes());
+                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                hashCode = ByteBuffer.wrap(sha256.digest(this.getNewStream().readAllBytes()));
             } catch (IOException e) {
                 throw new IllegalStateException("Hash calculation failed", e);
+            } catch (NoSuchAlgorithmException e) {
+                throw new IllegalStateException(e);
             }
         }
         return hashCode;
-    }
-
-    /**
-     * This hash code implementation returns the hash code of the underlying stream
-     * @return a byte array of the hash
-     */
-    protected byte[] sha256() {
-        return getSha256().asBytes();
     }
 
     //--------------------------------------------------------------< Blob >--
@@ -152,7 +122,7 @@ public abstract class AbstractBlob implements Blob {
 
     /**
      * To {@code Blob} instances are considered equal iff they have the
-     * same SHA-256 hash code  are equal.
+     * same SHA-256 hash code or are equal.
      * @param other
      */
     @Override
@@ -186,7 +156,10 @@ public abstract class AbstractBlob implements Blob {
 
     @Override
     public String toString() {
-        return getSha256().toString();
+        // https://www.baeldung.com/java-byte-arrays-hex-strings#using-thebiginteger-class
+        // could use Java 17 HexFormat in the future
+        byte[] bytes = getSha256().array();
+        BigInteger bigInteger = new BigInteger(1, bytes);
+        return String.format("%0" + (bytes.length << 1) + "x", bigInteger);
     }
-
 }

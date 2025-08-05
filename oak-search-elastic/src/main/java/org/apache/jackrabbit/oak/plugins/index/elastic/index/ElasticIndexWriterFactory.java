@@ -29,11 +29,17 @@ public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<Ela
     private final ElasticConnection elasticConnection;
     private final ElasticIndexTracker indexTracker;
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
+    private final ElasticRetryPolicy retryPolicy;
 
     public ElasticIndexWriterFactory(@NotNull ElasticConnection elasticConnection, @NotNull ElasticIndexTracker indexTracker, ElasticBulkProcessorHandler bulkProcessorHandler) {
+        this(elasticConnection, indexTracker, bulkProcessorHandler, ElasticRetryPolicy.NO_RETRY);
+    }
+
+    public ElasticIndexWriterFactory(@NotNull ElasticConnection elasticConnection, @NotNull ElasticIndexTracker indexTracker, ElasticBulkProcessorHandler bulkProcessorHandler, ElasticRetryPolicy retryPolicy) {
         this.elasticConnection = elasticConnection;
         this.indexTracker = indexTracker;
         this.bulkProcessorHandler = bulkProcessorHandler;
+        this.retryPolicy = retryPolicy;
     }
 
     @Override
@@ -46,6 +52,6 @@ public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<Ela
 
         ElasticIndexDefinition esDefinition = (ElasticIndexDefinition) definition;
 
-        return new ElasticIndexWriter(indexTracker, elasticConnection, esDefinition, definitionBuilder, reindex, commitInfo, bulkProcessorHandler);
+        return new ElasticIndexWriter(indexTracker, elasticConnection, esDefinition, definitionBuilder, reindex, commitInfo, bulkProcessorHandler, retryPolicy);
     }
 }

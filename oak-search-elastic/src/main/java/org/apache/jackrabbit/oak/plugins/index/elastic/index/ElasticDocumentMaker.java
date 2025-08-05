@@ -229,12 +229,15 @@ public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument>
 
     @Override
     protected void indexNotNullProperty(ElasticDocument doc, PropertyDefinition pd) {
-        // Elastic support exist queries for specific fields
+        // Elastic efficiently supports exist queries thanks to the special _field_names metadata field
+        // to determine which fields are present in each document
     }
 
     @Override
     protected void indexNullProperty(ElasticDocument doc, PropertyDefinition pd) {
-        // Elastic support not exist queries for specific fields
+        // Elasticsearch performs poorly with must_not + exists because it needs to identify documents that do not
+        // have a field — and it has no inverted index for "non-existence"
+        doc.addNullProperty(pd.name);
     }
 
     @Override

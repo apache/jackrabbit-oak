@@ -50,7 +50,7 @@ public class QueryOptions {
         FAIL,
         // the default setting
         DEFAULT
-    };
+    }
 
     public QueryOptions() {
     }

@@ -32,6 +32,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 
 import java.util.List;
 
@@ -42,6 +43,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
     @Rule
     public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     // Tests are hardcoded for these values
     private final static int BULK_ACTIONS_TEST = 250;

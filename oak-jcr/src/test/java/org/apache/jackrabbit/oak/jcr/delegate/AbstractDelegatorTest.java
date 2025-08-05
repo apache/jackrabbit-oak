@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
+import org.apache.jackrabbit.oak.jcr.session.SessionSaveDelayer;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionAware;
@@ -63,7 +64,8 @@ public abstract class AbstractDelegatorTest {
         Whiteboard wb = new DefaultWhiteboard();
         StatisticManager statisticManager = new StatisticManager(wb, executorService);
         return spy(new SessionDelegate(mockContentSession(root), mockSecurityProvider(root, pp),
-                RefreshStrategy.Composite.create(), new ThreadLocal<>(), statisticManager, new Clock.Virtual()));
+                RefreshStrategy.Composite.create(), new ThreadLocal<>(), statisticManager, new Clock.Virtual(),
+                new SessionSaveDelayer(wb)));
     }
 
     @NotNull

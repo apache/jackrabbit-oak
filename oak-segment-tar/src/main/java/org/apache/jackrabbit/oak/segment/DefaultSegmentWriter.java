@@ -28,7 +28,6 @@ import static java.util.Objects.checkIndex;
 import static java.util.Objects.requireNonNull;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndex;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -332,7 +331,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             requireNonNull(entries);
             int size = entries.size();
             checkIndex(size, MapRecord.MAX_SIZE);
-            checkPositionIndex(level, MapRecord.MAX_NUMBER_OF_LEVELS);
+            checkIndex(level, MapRecord.MAX_NUMBER_OF_LEVELS + 1);
             checkArgument(size != 0 || level == MapRecord.MAX_NUMBER_OF_LEVELS);
             return writeOperationHandler.execute(gcGeneration, newWriteOperation(
                 RecordWriters.newMapLeafWriter(level, entries)));

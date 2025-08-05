@@ -18,28 +18,27 @@
 Known issues
 ============
 All known issues are listed in the Apache [JIRA](https://issues.apache.org/jira/browse/OAK).
-Changes with respect to Jackrabbit-core are collected in [OAK-14]
-(https://issues.apache.org/jira/browse/OAK-14) and its sub-tasks.
+Changes with respect to Jackrabbit-core are collected in [OAK-14](https://issues.apache.org/jira/browse/OAK-14) 
+and its sub-tasks.
 
 * Workspace Operations:
     * Cross workspace operations are not implemented yet
-      See [OAK-118](https://issues.apache.org/jira/browse/OAK-118)
+      ([OAK-118](https://issues.apache.org/jira/browse/OAK-118))
     * Workspace Management (creating/deleting workspaces) is not implemented yet
-      See [OAK-118](https://issues.apache.org/jira/browse/OAK-118)
+      ([OAK-118](https://issues.apache.org/jira/browse/OAK-118))
 
 * Observation queues handling
     * With an excessively large commit rate, the observation queues can fill up
       and if not prevented and the queue hits a certain threshold and/or the limit
       then it would result in Local events reported as external event
-      [OAK-2683][OAK-2683]​
+      ([OAK-2683][OAK-2683])​
 
 * Changing an observation listener's filter:
     * Prefiltering of observation queues means that if an observation listener's
       filter is changed, that new filter will only fully be applied to newly
       added changes to the observation queues. Those changes that potentially
       were still in the queue will have gone through both the old prefilter
-      and the new (post-)filter. [OAK-5208]
+      and the new (post-)filter ([OAK-5208][OAK-5208])
     
-[OAK-300]: https://issues.apache.org/jira/browse/OAK-300
 [OAK-2683]: https://issues.apache.org/jira/browse/OAK-2683
 [OAK-5208]: https://issues.apache.org/jira/browse/OAK-5208

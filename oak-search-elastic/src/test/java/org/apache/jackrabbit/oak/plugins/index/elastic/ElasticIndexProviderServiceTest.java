@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -32,6 +34,7 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -42,11 +45,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_DISABLED;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_API_KEY_ID;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_API_KEY_SECRET;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_HOST;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_MAX_RETRY_TIME;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_PORT;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_SCHEME;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_INDEX_PREFIX;
@@ -122,6 +128,9 @@ public class ElasticIndexProviderServiceTest {
 
         assertEquals(0, WhiteboardUtils.getServices(wb, Runnable.class).size());
 
+        ElasticIndexEditorProvider editorProvider = (ElasticIndexEditorProvider) context.getService(IndexEditorProvider.class);
+        assertEquals(0, editorProvider.getRetryPolicy().getMaxRetryTimeMs());
+
         MockOsgi.deactivate(service, context.bundleContext());
     }
 
@@ -177,6 +186,36 @@ public class ElasticIndexProviderServiceTest {
         MockOsgi.deactivate(serviceSpy, context.bundleContext());
     }
 
+    @Test
+    public void withMaxRetryInterval() {
+        Map<String, Object> props = new HashMap<>(getElasticConfig());
+        props.put(PROP_ELASTIC_MAX_RETRY_TIME, 600);
+        MockOsgi.activate(service, context.bundleContext(), props);
+
+        assertNotNull(context.getService(QueryIndexProvider.class));
+        IndexEditorProvider indexEditorProvider = context.getService(IndexEditorProvider.class);
+        assertNotNull(indexEditorProvider);
+        ElasticIndexEditorProvider editorProvider = (ElasticIndexEditorProvider) indexEditorProvider;
+        assertEquals(TimeUnit.SECONDS.toMillis(600), editorProvider.getRetryPolicy().getMaxRetryTimeMs());
+
+        MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+    @Test
+    public void withAsyncIteratorEnqueueTimeoutMs() {
+        Map<String, Object> props = new HashMap<>(getElasticConfig());
+        props.put(PROP_ELASTIC_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS, 123);
+        MockOsgi.activate(service, context.bundleContext(), props);
+
+        QueryIndexProvider queryIndexProvider = context.getService(QueryIndexProvider.class);
+        assertNotNull(queryIndexProvider);
+        ElasticIndexProvider elasticIndexProvider = (ElasticIndexProvider) queryIndexProvider;
+        assertEquals(123, elasticIndexProvider.getAsyncIteratorEnqueueTimeoutMs());
+
+        MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+
     private HashMap<String, Object> getElasticConfig() {
         HashMap<String, Object> config = new HashMap<>();
         config.put(PROP_INDEX_PREFIX, "elastic");
@@ -185,6 +224,7 @@ public class ElasticIndexProviderServiceTest {
         config.put(PROP_ELASTIC_PORT, elasticRule.getElasticConnectionModel().getElasticPort());
         config.put(PROP_ELASTIC_API_KEY_ID, elasticRule.getElasticConnectionModel().getElasticApiKey());
         config.put(PROP_ELASTIC_API_KEY_SECRET, elasticRule.getElasticConnectionModel().getElasticApiSecret());
+        config.put(PROP_ELASTIC_MAX_RETRY_TIME, elasticRule.getElasticConnectionModel().getMaxRetryTime());
         try {
             config.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
         } catch (IOException e) {

@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import com.codahale.metrics.MetricRegistry;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -97,16 +97,16 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     public static final String INDEXER_METRICS_PREFIX = "oak_indexer_";
     public static final String METRIC_INDEXING_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "indexing_duration_seconds";
     public static final String METRIC_FULL_INDEX_CREATION_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "full_index_creation_duration_seconds";
+    private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
+
+    protected final Closer closer = Closer.create();
+    protected final IndexHelper indexHelper;
+    protected final IndexerSupport indexerSupport;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Logger traversalLog = LoggerFactory.getLogger(DocumentStoreIndexerBase.class.getName() + ".traversal");
-    protected final Closer closer = Closer.create();
-    protected final IndexHelper indexHelper;
     private final IndexingReporter indexingReporter;
     private final StatisticsProvider statisticsProvider;
-    protected NodeStateIndexerProvider indexerProvider;
-    protected final IndexerSupport indexerSupport;
-    private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
 
     private static final int TOP_SLOWEST_PATHS_TO_LOG = ConfigHelper.getSystemPropertyAsInt(
             "oak.indexer.topSlowestPathsToLog", 20);
@@ -116,10 +116,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         this.indexerSupport = indexerSupport;
         this.indexingReporter = indexHelper.getIndexReporter();
         this.statisticsProvider = indexHelper.getStatisticsProvider();
-    }
-
-    protected void setProvider() throws IOException {
-        this.indexerProvider = createProvider();
     }
 
     private static class MongoNodeStateEntryTraverserFactory implements NodeStateEntryTraverserFactory {
@@ -381,8 +377,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             NodeBuilder builder = copyOnWriteStore.getRoot().builder();
             INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:START] Starting indexing");
             Stopwatch indexerWatch = Stopwatch.createStarted();
-            try {
-                try (CompositeIndexer compositeIndexer = prepareIndexers(copyOnWriteStore, builder, progressReporter)) {
+            try (NodeStateIndexerProvider indexerProvider = createProvider()) {
+                try (CompositeIndexer compositeIndexer = prepareIndexers(indexerProvider, copyOnWriteStore, builder, progressReporter)) {
                     preIndexOperations(compositeIndexer.getIndexers());
                     if (indexStores.size() > 1) {
                         indexParallel(indexStores, compositeIndexer, progressReporter);
@@ -413,7 +409,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 ExtractedTextCache extractedTextCache = indexerProvider.getTextCache();
                 CacheStats cacheStats = extractedTextCache == null ? null : extractedTextCache.getCacheStats();
                 log.info("Text extraction cache statistics: {}", cacheStats == null ? "N/A" : cacheStats.cacheInfoAsString());
-                indexerProvider.close();
 
                 progressReporter.reindexingTraversalEnd();
                 progressReporter.logReport();
@@ -479,8 +474,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return requireNonNull(indexHelper.getService(MongoDocumentStore.class));
     }
 
-    private MongoClientURI getMongoClientURI() {
-        return requireNonNull(indexHelper.getService(MongoClientURI.class));
+    private ConnectionString getMongoClientURI() {
+        return requireNonNull(indexHelper.getService(ConnectionString.class));
     }
 
     private void configureEstimators(IndexingProgressReporter progressReporter) {
@@ -500,7 +495,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     private long getEstimatedDocumentCount() {
         MongoConnection mongoConnection = indexHelper.getService(MongoConnection.class);
         if (mongoConnection != null) {
-            return mongoConnection.getDatabase().getCollection("nodes").count();
+            return mongoConnection.getDatabase().getCollection("nodes").estimatedDocumentCount();
         }
         return 0;
     }
@@ -519,7 +514,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         traversalLog.trace(id);
     }
 
-    protected CompositeIndexer prepareIndexers(NodeStore copyOnWriteStore, NodeBuilder builder,
+    protected CompositeIndexer prepareIndexers(NodeStateIndexerProvider indexerProvider, NodeStore copyOnWriteStore, NodeBuilder builder,
                                                IndexingProgressReporter progressReporter) {
         NodeState root = copyOnWriteStore.getRoot();
         List<NodeStateIndexer> indexers = new ArrayList<>();

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import java.util.Objects;
 
-public class ElasticSemVer {
+public class ElasticSemVer implements Comparable<ElasticSemVer> {
     private final int major;
     private final int minor;
     private final int patch;
@@ -60,6 +60,17 @@ public class ElasticSemVer {
 
     public int getPatch() {
         return patch;
+    }
+
+    @Override
+    public int compareTo(ElasticSemVer other) {
+        if (this.major != other.major) {
+            return Integer.compare(this.major, other.major);
+        }
+        if (this.minor != other.minor) {
+            return Integer.compare(this.minor, other.minor);
+        }
+        return Integer.compare(this.patch, other.patch);
     }
 
     @Override

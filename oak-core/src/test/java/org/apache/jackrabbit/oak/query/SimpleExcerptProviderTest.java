@@ -26,6 +26,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.junit.Test;
 
 public class SimpleExcerptProviderTest {
@@ -125,6 +128,48 @@ public class SimpleExcerptProviderTest {
         assertEquals(expected, highlight(sb(text), Set.of("question", "be")));
         assertEquals(expected, highlight(sb(text), Set.of("quest*", "be")));
         assertEquals(expected, highlight(sb(text), Set.of("quest*", "b*")));
+    }
+
+    @Test
+    public void testGetExcerptSingleValue() {
+        PropertyValue value = PropertyValues.newString("test");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span>test</span></div>", result.getValue(Type.STRING));
+    }
+
+    @Test
+    public void testGetExcerptMultipleValues() {
+        PropertyValue value = PropertyValues.newString("one,two,three");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span>onetwothree</span></div>", result.getValue(Type.STRING));
+    }
+
+    @Test
+    public void testGetExcerptWithWhitespace() {
+        PropertyValue value = PropertyValues.newString("  one  ,  two  ,  three  ");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span>onetwothree</span></div>", result.getValue(Type.STRING));
+    }
+
+    @Test
+    public void testGetExcerptWithEmptyValues() {
+        PropertyValue value = PropertyValues.newString("one,,three");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span>onethree</span></div>", result.getValue(Type.STRING));
+    }
+
+    @Test
+    public void testGetExcerptWithEmptyInput() {
+        PropertyValue value = PropertyValues.newString("");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span></span></div>", result.getValue(Type.STRING));
+    }
+
+    @Test
+    public void testGetExcerptWithOnlyDelimiters() {
+        PropertyValue value = PropertyValues.newString(" , , ");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span></span></div>", result.getValue(Type.STRING));
     }
 
     private static String randomString(Random r, String set) {

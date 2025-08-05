@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.xml;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +46,6 @@ public abstract class TargetImportHandler extends DefaultHandler {
     protected final Importer importer;
     protected final SessionContext sessionContext;
     private final ListValuedMap<String, String> documentContext = new ArrayListValuedHashMap<>();
-    private Map<String, String> documentPrefixMap = Collections.emptyMap();
 
     protected TargetImportHandler(Importer importer, SessionContext sessionContext) {
         this.importer = importer;
@@ -59,7 +57,6 @@ public abstract class TargetImportHandler extends DefaultHandler {
     @Override
     public void startPrefixMapping(String prefix, String uri) throws SAXException {
         documentContext.put(prefix, uri);
-        documentPrefixMap = createCurrentPrefixMap();
     }
 
     @Override
@@ -68,7 +65,6 @@ public abstract class TargetImportHandler extends DefaultHandler {
         if (!uris.isEmpty()) {
             uris.remove(uris.size() - 1);
         }
-        documentPrefixMap = createCurrentPrefixMap();
     }
 
     /**
@@ -109,7 +105,7 @@ public abstract class TargetImportHandler extends DefaultHandler {
     public NamePathMapper currentNamePathMapper() {
         return new NamePathMapperImpl(new LocalNameMapper(
                 sessionContext.getSessionDelegate().getRoot(),
-                documentPrefixMap));
+                createCurrentPrefixMap()));
     }
 
     private Map<String, String> createCurrentPrefixMap() {
@@ -136,7 +132,7 @@ public abstract class TargetImportHandler extends DefaultHandler {
         NameInfo(String docQualifiedName) throws RepositoryException {
             int idx = docQualifiedName.indexOf(':');
             if (idx == -1) {
-                docPrefix = null;
+                docPrefix = "";
                 localName = docQualifiedName;
             } else {
                 String[] splits = docQualifiedName.split(":", 2);
@@ -153,19 +149,14 @@ public abstract class TargetImportHandler extends DefaultHandler {
         }
 
         private void init() throws RepositoryException {
-            if (docPrefix == null) {
-                namespaceUri = "";
-                repoPrefix = null;
+            Tree rootTree = sessionContext.getSessionDelegate().getRoot().getTree("/");
+            List<String> uris = documentContext.get(docPrefix);
+            if (uris.isEmpty()) {
+                namespaceUri = Namespaces.getNamespaceURI(rootTree, docPrefix);
+                repoPrefix = docPrefix;
             } else {
-                List<String> uris = documentContext.get(docPrefix);
-                Tree tree = sessionContext.getSessionDelegate().getRoot().getTree("/");
-                if (uris.isEmpty()) {
-                    namespaceUri = Namespaces.getNamespaceURI(tree, docPrefix);
-                    repoPrefix = docPrefix;
-                } else {
-                    namespaceUri = uris.get(uris.size() - 1);
-                    repoPrefix = Namespaces.getNamespacePrefix(tree, namespaceUri);
-                }
+                namespaceUri = uris.get(uris.size() - 1);
+                repoPrefix = Namespaces.getNamespacePrefix(rootTree, namespaceUri);
             }
         }
 

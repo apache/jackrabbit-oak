@@ -18,17 +18,16 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
-
 public class NotFullTextSearchImpl extends FullTextSearchImpl {
     private static final Set<String> KEYWORDS = Set.of("or");
-    private static final Splitter SPACE_SPLITTER = Splitter.on(' ').omitEmptyStrings().trimResults();
 
     public NotFullTextSearchImpl(String selectorName, String propertyName,
                                  StaticOperandImpl fullTextSearchExpression) {
@@ -47,7 +46,10 @@ public class NotFullTextSearchImpl extends FullTextSearchImpl {
 
     @Override
     String getRawText(PropertyValue v) {
-        Iterable<String> terms = SPACE_SPLITTER.split(super.getRawText(v));
+        Iterable<String> terms = Arrays.stream(super.getRawText(v).split(" "))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
         StringBuilder raw = new StringBuilder();
         for (String term : terms) {
             if (isKeyword(term)) {

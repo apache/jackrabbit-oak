@@ -100,11 +100,11 @@ import static org.junit.Assume.assumeFalse;
 public class LuceneIndexEditorTest {
     private EditorHook HOOK;
 
-    private NodeState root = INITIAL_CONTENT;
+    private final NodeState root = INITIAL_CONTENT;
 
     private NodeBuilder builder = root.builder();
 
-    private IndexTracker tracker = new IndexTracker();
+    private final IndexTracker tracker = new IndexTracker();
 
     private LuceneIndexNode indexNode;
 
@@ -602,7 +602,7 @@ public class LuceneIndexEditorTest {
         @Override
         public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
                                      @NotNull NodeState root,
-                                     @NotNull IndexUpdateCallback callback) throws CommitFailedException {
+                                     @NotNull IndexUpdateCallback callback) {
             if (PropertyIndexEditorProvider.TYPE.equals(type)) {
                 return new FailOnDemandEditor();
             }

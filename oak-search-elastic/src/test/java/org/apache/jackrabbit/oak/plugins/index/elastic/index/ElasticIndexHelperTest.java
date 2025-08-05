@@ -36,6 +36,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -392,4 +393,22 @@ public class ElasticIndexHelperTest {
         assertThat(status._kind(), is(Property.Kind.Keyword));
     }
 
+    private void testCamelConversion(Function<String, String> f) {
+        assertEquals("foo_bar", f.apply("FooBar"));
+        assertEquals("foo_bar", f.apply("fooBar"));
+        assertEquals("foo _bar", f.apply("foo Bar"));
+        assertEquals("foo _bar", f.apply("Foo Bar"));
+        assertEquals("f_o_o__b_a_r", f.apply("FOO_BAR"));
+        assertEquals("foo__bar", f.apply("Foo_Bar"));
+        assertEquals("foo_bar ", f.apply("FooBar "));
+        assertEquals(" _foo_bar", f.apply(" FooBar"));
+        assertEquals(" _foo_bar", f.apply(" FooBar"));
+    }
+
+
+    // verify that convertUpperCamelToLowerUnderscore does what it's supposed to do (see OAK-11753)
+    @Test
+    public void testCamelConversionOurs() {
+        testCamelConversion(ElasticIndexHelper::convertUpperCamelToLowerUnderscore);
+    }
 }

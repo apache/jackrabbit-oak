@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.jackrabbit.oak.plugins.tika.BinaryStats.MimeTypeStats;
 import org.junit.Assert;
 import org.junit.Test;

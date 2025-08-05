@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.81-SNAPSHOT</version>
+    <version>1.83-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -82,6 +82,7 @@
         <configuration>
           <excludes>
             <exclude>**/test.txt</exclude>
+            <exclude>**/test2.txt</exclude>
             <exclude>**/test.rtf</exclude>
             <exclude>**/test.doc</exclude>
             <exclude>**/test.docx</exclude>
@@ -214,11 +215,6 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-text</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>commons-fileupload</groupId>
-      <artifactId>commons-fileupload</artifactId>
-      <version>1.5</version>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>

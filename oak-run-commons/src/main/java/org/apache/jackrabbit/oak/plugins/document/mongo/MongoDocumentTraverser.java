@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -73,7 +73,7 @@ public class MongoDocumentTraverser {
         cursor = closeableCursor;
 
         @SuppressWarnings("Guava")
-        Iterable<T> result = FluentIterable.from(cursor)
+        Iterable<T> result = FluentIterable.of(cursor)
                 .filter(o -> filter.test((String) o.get(Document.ID)))
                 .transform(o -> {
                     T doc = mongoStore.convertFromDBObject(collection, o);

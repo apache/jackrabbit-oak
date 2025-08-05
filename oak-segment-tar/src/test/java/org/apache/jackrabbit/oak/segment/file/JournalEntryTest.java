@@ -25,9 +25,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
@@ -86,7 +87,7 @@ public class JournalEntryTest {
     }
 
     private List<String> journalParts(String line){
-        return Splitter.on(' ').splitToList(line);
+        return Arrays.stream(line.split(" ")).collect(Collectors.toList());
     }
 
 }

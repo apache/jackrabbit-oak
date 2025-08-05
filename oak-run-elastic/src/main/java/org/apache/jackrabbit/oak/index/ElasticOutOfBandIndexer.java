@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
@@ -38,6 +39,7 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
     private final int port;
     private final String apiKeyId;
     private final String apiSecretId;
+    private final ElasticRetryPolicy retryPolicy;
 
     public ElasticOutOfBandIndexer(IndexHelper indexHelper, IndexerSupport indexerSupport,
                                    String indexPrefix, String scheme,
@@ -50,6 +52,7 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
         this.port = port;
         this.apiKeyId = apiKeyId;
         this.apiSecretId = apiSecretId;
+        this.retryPolicy = ElasticRetryPolicy.createRetryPolicyFromSystemProperties();
     }
 
     @Override
@@ -76,6 +79,6 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexerBase {
         ElasticIndexTracker indexTracker = new ElasticIndexTracker(connection,
                 new ElasticMetricHandler(StatisticsProvider.NOOP));
         return new ElasticIndexEditorProvider(indexTracker, connection,
-                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100), retryPolicy);
     }
 }

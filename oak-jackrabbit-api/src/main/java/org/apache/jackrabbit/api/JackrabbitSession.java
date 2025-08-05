@@ -16,19 +16,25 @@
  */
 package org.apache.jackrabbit.api;
 
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Set;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.Session;
-import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -304,4 +310,37 @@ public interface JackrabbitSession extends Session {
      * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form">JCR 2.0, 3.2.5.1 Expanded Form</a>
      */
     @NotNull String getExpandedPath(@NotNull Item item) throws RepositoryException;
+
+    /**
+     * Returns the set of principals associated with this session.
+     * @return the set of principals associated with this session. Usually this set is unmodifiable.
+     * @throws RepositoryException in case principal information cannot be retrieved.
+     * @throws IllegalStateException if user information is not available or if the user is a system user.
+     * @since 1.84
+     */
+    @NotNull default Set<Principal> getBoundPrincipals() throws RepositoryException {
+        String userId = getUserID();
+        if (userId == null) {
+            throw new IllegalStateException("No user ID associated with this session.");
+        }
+
+        Authorizable authorizable = getUserManager().getAuthorizable(userId);
+        if (authorizable == null) {
+            throw new IllegalStateException("No authorizable found for user ID: " + userId);
+        }
+        
+        if (!authorizable.isGroup() && ((User) authorizable).isSystemUser()) {
+            throw new IllegalStateException("Unable to calculate effective set of principals for system user " + userId);
+        }
+        
+        Principal userPrincipal = authorizable.getPrincipal();
+        Set<Principal> principals = new java.util.HashSet<>();
+        principals.add(userPrincipal);
+        PrincipalIterator iterator =  getPrincipalManager().getGroupMembership(userPrincipal);
+        while (iterator.hasNext()) {
+            principals.add(iterator.nextPrincipal());
+        }
+        return Collections.unmodifiableSet(principals);
+    }
 }
+

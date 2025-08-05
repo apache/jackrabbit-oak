@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.81-SNAPSHOT</version>
+    <version>1.83-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -33,7 +33,7 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.java.client.version>8.18.1</elasticsearch.java.client.version>
+    <elasticsearch.java.client.version>8.18.2</elasticsearch.java.client.version>
     <lucene.version>9.12.1</lucene.version>
   </properties>
 

@@ -48,7 +48,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 
 /**
  * Test for external events from another cluster node.
@@ -108,7 +108,7 @@ public class NonLocalObservationIT extends AbstractClusterTest {
                 nodeStores.remove(nodeStore);
                 if (nodeStores.size() == 0) {
                     try (MongoClient c = createClient()) {
-                        c.dropDatabase(dbName);
+                        c.getDatabase(dbName).drop();
                     } catch (Exception e) {
                         log.error("dispose: Can't close Mongo", e);
                     }

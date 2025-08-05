@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
-import org.apache.jackrabbit.guava.common.base.CaseFormat;
 import org.apache.lucene.analysis.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
 import org.apache.lucene.analysis.cjk.CJKBigramFilterFactory;
@@ -233,7 +232,7 @@ public class ElasticCustomAnalyzerMappings {
         LUCENE_ELASTIC_TRANSFORMERS.put(AbstractAnalysisFactory.class, luceneParams ->
                 luceneParams.entrySet().stream()
                         .collect(Collectors.toMap(
-                                entry -> CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, entry.getKey()),
+                                entry -> ElasticIndexHelper.convertUpperCamelToLowerUnderscore(entry.getKey()),
                                 Map.Entry::getValue, // keep the original value
                                 (oldValue, newValue) -> oldValue, // in case of duplicate keys, keep the old value
                                 LinkedHashMap::new // preserve the original order

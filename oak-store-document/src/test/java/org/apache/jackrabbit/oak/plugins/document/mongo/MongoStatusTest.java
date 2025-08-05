@@ -19,11 +19,14 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCommandException;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ServerDescription;
 
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -199,12 +202,20 @@ public class MongoStatusTest {
             }
 
             private void unauthorizedIfServerStatus(Bson command) {
-                if (command.toBsonDocument(BasicDBObject.class, getDefaultCodecRegistry()).containsKey("serverStatus")) {
+                if (command.toBsonDocument(BasicDBObject.class, MongoClientSettings.getDefaultCodecRegistry())
+                        .containsKey("serverStatus")) {
                     BsonDocument response = new BsonDocument("ok", new BsonDouble(0.0));
                     response.put("errmsg", new BsonString("command serverStatus requires authentication"));
                     response.put("code", new BsonInt32(13));
                     response.put("codeName", new BsonString("Unauthorized"));
-                    ServerAddress address = getAddress();
+
+                    ServerAddress address = null;
+                    ClusterDescription clusterDescription = getClusterDescription();
+                    for (ServerDescription serverDescription : clusterDescription.getServerDescriptions()) {
+                        address = serverDescription.getAddress();
+                        break;
+                    }
+
                     if (address == null) {
                         // OAK-8459: use dummy/default address instead
                         address = new ServerAddress();

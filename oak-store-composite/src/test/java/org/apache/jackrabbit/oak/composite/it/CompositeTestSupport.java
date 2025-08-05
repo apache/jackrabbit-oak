@@ -90,8 +90,8 @@ public abstract class CompositeTestSupport extends TestSupport {
 
     public static Option jackrabbit() {
         return composite(
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-data").version("2.20.4"),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-jcr-commons").version("2.20.4"),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-data").versionAsInProject(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-jcr-commons").versionAsInProject(),
             mavenBundle().groupId("javax.jcr").artifactId("jcr").versionAsInProject(),
             mavenBundle().groupId("commons-codec").artifactId("commons-codec").versionAsInProject(),
             mavenBundle().groupId("commons-io").artifactId("commons-io").versionAsInProject(),
