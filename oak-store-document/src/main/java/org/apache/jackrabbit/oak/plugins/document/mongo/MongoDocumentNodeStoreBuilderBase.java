@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.concurrent.TimeUnit;
 
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -26,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
@@ -229,6 +232,72 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return leaseSocketTimeout;
     }
 
+    /**
+     * Builds a configured MongoClientSettings with all settings applied.
+     *
+     * @param isLease true for cluster nodes connection, false for default connection pool
+     * @return fully configured MongoClientSettings
+     */
+    MongoClientSettings buildMongoClientSettings(boolean isLease) {
+        MongoClientSettings.Builder options = MongoConnection.getDefaultBuilder();
+        options.applyConnectionString(new ConnectionString(uri));
+        
+        // Apply socket timeout based on connection type
+        int socketTimeout;
+        if (isLease) {
+            // Cluster nodes connection: use lease socket timeout
+            socketTimeout = leaseSocketTimeout;
+        } else {
+            // Default connection: use OSGi read timeout if configured, otherwise 0
+            socketTimeout = readTimeoutMS != null && readTimeoutMS > 0 ? readTimeoutMS : 0;
+        }
+        
+        // Apply connection pool settings
+        options.applyToConnectionPoolSettings(poolBuilder -> {
+            if (maxPoolSize != null) poolBuilder.maxSize(maxPoolSize);
+            if (minPoolSize != null) poolBuilder.minSize(minPoolSize);
+            if (maxConnecting != null) poolBuilder.maxConnecting(maxConnecting);
+            if (maxIdleTimeMS != null) {
+                poolBuilder.maxConnectionIdleTime(maxIdleTimeMS, TimeUnit.MILLISECONDS);
+            }
+            if (maxLifeTimeMS != null) {
+                poolBuilder.maxConnectionLifeTime(maxLifeTimeMS, TimeUnit.MILLISECONDS);
+            }
+            if (waitQueueTimeoutMS != null) {
+                poolBuilder.maxWaitTime(waitQueueTimeoutMS, TimeUnit.MILLISECONDS);
+            }
+        });
+        
+        // Apply socket settings
+        options.applyToSocketSettings(socketBuilder -> {
+            if (socketTimeout > 0) {
+                socketBuilder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS);
+            }
+            if (connectTimeoutMS != null) {
+                socketBuilder.connectTimeout(connectTimeoutMS, TimeUnit.MILLISECONDS);
+            }
+        });
+        
+        // Apply server settings
+        options.applyToServerSettings(serverBuilder -> {
+            if (heartbeatFrequencyMS != null && heartbeatFrequencyMS > 0) {
+                serverBuilder.heartbeatFrequency(heartbeatFrequencyMS, TimeUnit.MILLISECONDS);
+            }
+            if (minHeartbeatFrequencyMS != null && minHeartbeatFrequencyMS > 0) {
+                serverBuilder.minHeartbeatFrequency(minHeartbeatFrequencyMS, TimeUnit.MILLISECONDS);
+            }
+        });
+        
+        // Apply cluster settings
+        options.applyToClusterSettings(clusterBuilder -> {
+            if (serverSelectionTimeoutMS != null) {
+                clusterBuilder.serverSelectionTimeout(serverSelectionTimeoutMS, TimeUnit.MILLISECONDS);
+            }
+        });
+        
+        return options.build();
+    }
+
     public T setMaxReplicationLag(long duration, TimeUnit unit){
         maxReplicationLagMillis = unit.toMillis(duration);
         return thisBuilder();
@@ -306,17 +375,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
             throw new IllegalStateException("Cannot create MongoDB client without 'uri' or 'name'");
         }
         
-        // Apply correct socket timeout based on connection type
-        int socketTimeout;
-        if (isLease) {
-            // Cluster nodes connection: always use lease socket timeout
-            socketTimeout = leaseSocketTimeout;
-        } else {
-            // Default connection: use OSGi read timeout if configured, otherwise 0
-            socketTimeout = readTimeoutMS != null && readTimeoutMS > 0 ? readTimeoutMS : 0;
-        }
-        
-        return newMongoDBConnection(uri, name, mongoClock, socketTimeout);
+        MongoClientSettings settings = buildMongoClientSettings(isLease);
+        return newMongoDBConnection(uri, name, mongoClock, settings);
     }
 
     private T setMongoDB(@NotNull MongoDBConnection mongoDBConnection,

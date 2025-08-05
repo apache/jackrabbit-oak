@@ -65,23 +65,17 @@ final class MongoDBConnection {
     static MongoDBConnection newMongoDBConnection(@NotNull String uri,
                                                   @NotNull String name,
                                                   @NotNull MongoClock clock,
-                                                  int socketTimeout) {
+                                                  @NotNull MongoClientSettings settings) {
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
 
-        MongoClientSettings.Builder options = MongoConnection.getDefaultBuilder();
-        options.applyConnectionString(new ConnectionString(uri));
-        options.applyToServerSettings(builder ->
-                builder.addServerMonitorListener(serverMonitorListener)
+        MongoClientSettings.Builder optionsBuilder = MongoClientSettings.builder(settings);
+        optionsBuilder.applyToServerSettings(settingsBuilder ->
+                settingsBuilder.addServerMonitorListener(serverMonitorListener)
         );
-        options.applyToSocketSettings(builder -> {
-            if (socketTimeout > 0) {
-                builder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS);
-            }
-        });
         
-        MongoClientSettings settings = options.build();
-        LOG.info("Mongo Connection details {}", MongoConnection.toString(settings));
-        MongoClient client = MongoClients.create(settings);
+        MongoClientSettings mongoClientSettings = optionsBuilder.build();
+        LOG.info("Mongo Connection details {}", MongoConnection.toString(mongoClientSettings));
+        MongoClient client = MongoClients.create(mongoClientSettings);
 
         MongoStatus status = new MongoStatus(client, name);
         serverMonitorListener.addListener(status);
