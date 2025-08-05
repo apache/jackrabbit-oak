@@ -142,7 +142,7 @@ public class DocumentNodeStoreService {
     static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
     static final int DEFAULT_FULL_GC_MODE = 0;
     static final int DEFAULT_FULL_GC_GENERATION = 0;
-    static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
+    public static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     // MongoDB Connection Pool Settings
     public static final int DEFAULT_MONGO_MAX_POOL_SIZE = 100;
     public static final int DEFAULT_MONGO_MIN_POOL_SIZE = 0;

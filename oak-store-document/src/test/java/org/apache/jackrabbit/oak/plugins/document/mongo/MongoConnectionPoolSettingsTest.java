@@ -166,12 +166,11 @@ public class MongoConnectionPoolSettingsTest {
     @Test
     public void testLeaseConnectionWithDefaultTimeout() throws Exception {
         MongoDocumentNodeStoreBuilder builder = createTestBuilder();
-        // Use default lease socket timeout (20000ms per DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS)
 
         MongoClientSettings settings = builder.buildMongoClientSettings(true);
         
         // Lease connection should use default lease socket timeout 
-        assertEquals(60000, settings.getSocketSettings().getReadTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(30000, settings.getSocketSettings().getReadTimeout(TimeUnit.MILLISECONDS));
     }
 
     @Test
