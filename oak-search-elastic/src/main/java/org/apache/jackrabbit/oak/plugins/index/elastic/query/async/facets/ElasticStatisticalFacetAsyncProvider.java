@@ -65,16 +65,19 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private final Map<String, List<FulltextIndex.Facet>> allFacets = new HashMap<>();
     private final Map<String, Map<String, MutableInt>> accessibleFacetCounts = new HashMap<>();
     private final CompletableFuture<SearchResponse<ObjectNode>> searchFuture;
+
     private Map<String, List<FulltextIndex.Facet>> facets;
     private final SearchRequest searchRequest;
     private final CountDownLatch latch = new CountDownLatch(1);
     private int sampled;
     private long totalHits;
 
-    private long processAggregationsTimeNannos;
+    private final long queryStartTimeNanos;
+    private volatile long queryTimeNanos;
+    private volatile long processAggregationsTimeNannos;
     private final LongAdder aclTestTimeNanos = new LongAdder();
-    private long processHitsTimeNanos;
-    private long computeStatisticalFacetsTimeNanos;
+    private final LongAdder processHitsTimeNanos = new LongAdder();
+    private volatile long computeStatisticalFacetsTimeNanos;
 
     ElasticStatisticalFacetAsyncProvider(ElasticConnection connection, ElasticIndexDefinition indexDefinition,
                                          ElasticRequestHandler elasticRequestHandler, ElasticResponseHandler elasticResponseHandler,
@@ -100,6 +103,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 )
         );
 
+        this.queryStartTimeNanos = System.nanoTime();
         LOG.trace("Kicking search query with random sampling {}", searchRequest);
         searchFuture = connection.getAsyncClient().search(searchRequest, ObjectNode.class);
 
@@ -108,6 +112,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 if (throwable != null) {
                     LOG.error("Error while retrieving sample documents. Search request: {}", searchRequest, throwable);
                 } else {
+                    this.queryTimeNanos = System.nanoTime() - queryStartTimeNanos;
                     List<Hit<ObjectNode>> searchHits = searchResponse.hits().hits();
                     this.sampled = searchHits != null ? searchHits.size() : 0;
                     if (sampled > 0) {
@@ -119,12 +124,9 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                                 // Sequential to avoid concurrency issues with accessibleFacetCounts
                                 .sequential().forEach(this::processFilteredHit);
                         computeStatisticalFacets();
-                        LOG.debug("Facet computation times: {processAggregations: {} ms, filterByAcl: {},  processHits: {} ms, computeStatisticalFacets: {} ms}. Total hits: {}, samples: {}",
-                                TimeUnit.NANOSECONDS.toMillis(processAggregationsTimeNannos),
-                                TimeUnit.NANOSECONDS.toMillis(aclTestTimeNanos.sum()),
-                                TimeUnit.NANOSECONDS.toMillis(processHitsTimeNanos),
-                                TimeUnit.NANOSECONDS.toMillis(computeStatisticalFacetsTimeNanos),
-                                totalHits, sampled);
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug(timingsToString());
+                        }
                     }
                 }
             } finally {
@@ -140,7 +142,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
             boolean completed = latch.await(15, TimeUnit.SECONDS);
             if (!completed) {
                 searchFuture.cancel(true);
-                LOG.error("Timed out while waiting for facets. Search request: {}", searchRequest);
+                LOG.error("Timed out while waiting for facets. Search request: {}. {}", searchRequest, timingsToString());
                 throw new IllegalStateException("Timed out while waiting for facets");
             }
         } catch (InterruptedException e) {
@@ -190,7 +192,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         if (durationMillis > 1) {
             LOG.debug("Slow path: {}, {} ms", elasticResponseHandler.getPath(searchHit), durationMillis);
         }
-        this.processHitsTimeNanos += durationNanos;
+        this.processHitsTimeNanos.add(durationNanos);
     }
 
     private void processAggregations(Map<String, Aggregate> aggregations) {
@@ -238,4 +240,13 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         LOG.trace("Statistical facets {}", facets);
     }
 
+    private String timingsToString() {
+        return String.format("Facet computation times: {query: %d, processAggregations: %d ms, filterByAcl: %d,  processHits: %d ms, computeStatisticalFacets: %d ms}. Total hits: %d, samples: %d",
+                queryTimeNanos > 0 ? TimeUnit.NANOSECONDS.toMillis(queryTimeNanos) : -1,
+                processAggregationsTimeNannos > 0 ? TimeUnit.NANOSECONDS.toMillis(processAggregationsTimeNannos) : -1,
+                aclTestTimeNanos.sum() > 0 ? TimeUnit.NANOSECONDS.toMillis(aclTestTimeNanos.sum()) : -1,
+                processHitsTimeNanos.sum() > 0 ? TimeUnit.NANOSECONDS.toMillis(processHitsTimeNanos.sum()) : -1,
+                computeStatisticalFacetsTimeNanos > 0 ? TimeUnit.NANOSECONDS.toMillis(computeStatisticalFacetsTimeNanos) : -1,
+                totalHits, sampled);
+    }
 }
