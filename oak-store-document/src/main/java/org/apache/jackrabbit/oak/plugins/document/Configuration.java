@@ -41,6 +41,8 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_PERFLOGGER_INFO_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_TIME_MILLIS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS;
 
 @ObjectClassDefinition(
         pid = {PID},
@@ -380,6 +382,23 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     ". Note that this value can be overridden via framework " +
                     "property 'oak.documentstore.throttlingEnabled'")
     boolean throttlingEnabled() default DEFAULT_THROTTLING_ENABLED;
+
+
+    @AttributeDefinition(
+            name = "Document Node Store throttling time in millis",
+            description = "Time (in millis) for which we need to throttle the document store in case system is under heavy load. " +
+                    "The Default value is " + DEFAULT_THROTTLING_TIME_MILLIS + "ms" +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.throttlingTimeMillis'")
+    int throttlingTimeMillis() default DEFAULT_THROTTLING_TIME_MILLIS;
+
+    @AttributeDefinition(
+            name = "Document Node Store throttling job period in secs",
+            description = "Time (in secs) after which the throttling background job would run (in cycles) to keep updating the throttling values." +
+                    "The Default value is " + DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS + "secs" +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.throttlingJobSchedulePeriodSecs'")
+    int throttlingJobSchedulePeriodSecs() default DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS;
 
     @AttributeDefinition(
             name = "Document Node Store Compression",

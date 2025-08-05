@@ -138,6 +138,8 @@ public class DocumentNodeStoreService {
     @Deprecated
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
+    static final int DEFAULT_THROTTLING_TIME_MILLIS = 10;
+    static final int DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS = 20;
     static final boolean DEFAULT_FULL_GC_ENABLED = false;
     static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
     static final int DEFAULT_FULL_GC_MODE = 0;
@@ -555,6 +557,8 @@ public class DocumentNodeStoreService {
                 setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
                 setPrevNoPropCacheFeature(prevNoPropCacheFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
+                setThrottlingTimeMillis(config.throttlingTimeMillis()).
+                setThrottlingJobSchedulePeriodSecs(config.throttlingJobSchedulePeriodSecs()).
                 setAvoidMergeLock(config.avoidExclusiveMergeLock()).
                 setFullGCEnabled(config.fullGCEnabled()).
                 setFullGCIncludePaths(config.fullGCIncludePaths()).

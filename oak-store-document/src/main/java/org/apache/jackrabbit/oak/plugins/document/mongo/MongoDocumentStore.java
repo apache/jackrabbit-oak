@@ -133,7 +133,6 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoThrottlerFactory.exponentialThrottler;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
@@ -161,11 +160,6 @@ public class MongoDocumentStore implements DocumentStore {
      * For mongo based document store this value is threshold for the oplog replication window.
      */
     public static final int DEFAULT_THROTTLING_THRESHOLD = Integer.getInteger("oak.mongo.throttlingThreshold", 2);
-    /**
-     * The default throttling time (in millis) when throttling is enabled. This is the time for
-     * which we block any data modification operation when system has been throttled.
-     */
-    public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
 
     private static final @NotNull String BIN_COLLECTION = "bin";
     /**
@@ -297,7 +291,7 @@ public class MongoDocumentStore implements DocumentStore {
     /**
      * An updater instance to periodically updates mongo oplog window
      */
-    private MongoDocumentStoreThrottlingMetricsUpdater throttlingMetricsUpdater;
+    private MongoDocumentStoreThrottlingFactorUpdater throttlingFactorUpdater;
 
     private boolean hasModifiedIdCompoundIndex = true;
 
@@ -367,12 +361,12 @@ public class MongoDocumentStore implements DocumentStore {
 
             if (ol.isPresent()) {
                 // oplog window based on current oplog filling rate
-                final AtomicReference<Double> oplogWindow = new AtomicReference<>((double) MAX_VALUE);
-                throttler = exponentialThrottler(DEFAULT_THROTTLING_THRESHOLD, oplogWindow, DEFAULT_THROTTLING_TIME_MS);
-                throttlingMetricsUpdater = new MongoDocumentStoreThrottlingMetricsUpdater(localDb, oplogWindow);
-                throttlingMetricsUpdater.scheduleUpdateMetrics();
-                LOG.info("Started MongoDB throttling metrics with threshold {}, throttling time {}",
-                        DEFAULT_THROTTLING_THRESHOLD, DEFAULT_THROTTLING_TIME_MS);
+                final AtomicReference<Integer> factor = new AtomicReference<>(0);
+                throttler = MongoThrottlerFactory.extFactorThrottler(factor, builder.getThrottlingTimeMillis());
+                throttlingFactorUpdater = new MongoDocumentStoreThrottlingFactorUpdater(localDb, factor, builder.getThrottlingJobSchedulePeriodSecs());
+                throttlingFactorUpdater.scheduleFactorUpdates();
+                LOG.info("Started MongoDB throttling with factor {}, throttling time {}, schedule period {}",
+                        factor.get(), builder.getThrottlingTimeMillis(), builder.getThrottlingJobSchedulePeriodSecs());
             } else {
                 LOG.warn("Connected to MongoDB with replication not detected and hence oplog based throttling is not supported");
             }
@@ -2046,7 +2040,7 @@ public class MongoDocumentStore implements DocumentStore {
             clusterNodesConnection.close();
         }
         try {
-            IOUtils.close(throttlingMetricsUpdater);
+            IOUtils.close(throttlingFactorUpdater);
         } catch (IOException e) {
             LOG.warn("Error occurred while closing throttlingMetricsUpdater", e);
         }

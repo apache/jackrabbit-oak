@@ -43,6 +43,8 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_GENERATION;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_TIME_MILLIS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -98,6 +100,8 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals("STRICT", config.leaseCheckMode());
         assertEquals(DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK, config.avoidExclusiveMergeLock());
         assertEquals(DEFAULT_THROTTLING_ENABLED, config.throttlingEnabled());
+        assertEquals(DEFAULT_THROTTLING_TIME_MILLIS, config.throttlingTimeMillis());
+        assertEquals(DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS, config.throttlingJobSchedulePeriodSecs());
         assertEquals(DEFAULT_FULL_GC_ENABLED, config.fullGCEnabled());
         assertEquals(DEFAULT_FULL_GC_MODE, config.fullGCMode());
         assertEquals(DEFAULT_FULL_GC_GENERATION, config.fullGCGeneration());
@@ -125,6 +129,22 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "throttlingEnabled", throttleDocStore);
         Configuration config = createConfiguration();
         assertEquals(throttleDocStore, config.throttlingEnabled());
+    }
+
+    @Test
+    public void throttleTimeMillis() throws Exception {
+        int throttlingTimeMillis = 20;
+        addConfigurationEntry(preset, "throttlingTimeMillis", throttlingTimeMillis);
+        Configuration config = createConfiguration();
+        assertEquals(throttlingTimeMillis, config.throttlingTimeMillis());
+    }
+
+    @Test
+    public void throttlingJobSchedulePeriodSecs() throws Exception {
+        int throttlingJobSchedulePeriodSecs = 200;
+        addConfigurationEntry(preset, "throttlingJobSchedulePeriodSecs", throttlingJobSchedulePeriodSecs);
+        Configuration config = createConfiguration();
+        assertEquals(throttlingJobSchedulePeriodSecs, config.throttlingJobSchedulePeriodSecs());
     }
 
     @Test
