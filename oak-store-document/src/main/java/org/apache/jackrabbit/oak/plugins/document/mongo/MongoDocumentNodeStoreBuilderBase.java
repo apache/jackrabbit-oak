@@ -48,7 +48,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
     private boolean clientSessionDisabled = false;
-    private int leaseSocketTimeout = DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS;
+    private Integer leaseSocketTimeout;
     private String uri;
     private String name;
     private String collectionCompressionType;
@@ -229,7 +229,14 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      *      zero is returned.
      */
     int getLeaseSocketTimeout() {
-        return leaseSocketTimeout;
+        return leaseSocketTimeout != null ? leaseSocketTimeout : 0;
+    }
+
+    /**
+     * @return true if lease socket timeout was explicitly set via setLeaseSocketTimeout()
+     */
+    boolean hasLeaseSocketTimeout() {
+        return leaseSocketTimeout != null;
     }
 
     /**
@@ -245,8 +252,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         // Apply socket timeout based on connection type
         int socketTimeout;
         if (isLease) {
-            // Cluster nodes connection: use lease socket timeout
-            socketTimeout = leaseSocketTimeout;
+            // Cluster nodes connection: use lease socket timeout, or default if not explicitly set
+            socketTimeout = leaseSocketTimeout != null ? leaseSocketTimeout : DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS;
         } else {
             // Default connection: use OSGi read timeout if configured, otherwise 0
             socketTimeout = readTimeoutMS != null && readTimeoutMS > 0 ? readTimeoutMS : 0;
