@@ -16,9 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
+import co.elastic.clients.elasticsearch._types.mapping.FieldType;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
@@ -29,16 +37,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
-import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
-import co.elastic.clients.elasticsearch._types.mapping.FieldType;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.elasticsearch.core.search.SourceConfig;
-
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +63,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private final Predicate<String> isAccessible;
     private final Set<String> facetFields;
     private final Map<String, List<FulltextIndex.Facet>> allFacets = new HashMap<>();
-    private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, MutableInt>> accessibleFacetCounts = new ConcurrentHashMap<>();
     private Map<String, List<FulltextIndex.Facet>> facets;
     private final SearchRequest searchRequest;
     private final CountDownLatch latch = new CountDownLatch(1);
@@ -145,11 +145,18 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 if (value != null) {
                     accessibleFacetCounts.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {
-                            Map<String, Integer> values = new HashMap<>();
-                            values.put(value.asText(), 1);
+                            Map<String, MutableInt> values = new HashMap<>();
+                            values.put(value.asText(), new MutableInt(1));
                             return values;
                         } else {
-                            facetValues.merge(value.asText(), 1, Integer::sum);
+                            facetValues.compute(value.asText(), (k, v) -> {
+                                if (v == null) {
+                                    return new MutableInt(1);
+                                } else {
+                                    v.increment();
+                                    return v;
+                                }
+                            });
                             return facetValues;
                         }
                     });
@@ -171,31 +178,29 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private void computeStatisticalFacets() {
         for (String facetKey : allFacets.keySet()) {
             if (accessibleFacetCounts.containsKey(facetKey)) {
-                Map<String, Integer> accessibleFacet = accessibleFacetCounts.get(facetKey);
+                Map<String, MutableInt> accessibleFacet = accessibleFacetCounts.get(facetKey);
                 List<FulltextIndex.Facet> uncheckedFacet = allFacets.get(facetKey);
                 for (FulltextIndex.Facet facet : uncheckedFacet) {
                     if (accessibleFacet.containsKey(facet.getLabel())) {
-                        double sampleProportion = (double) accessibleFacet.get(facet.getLabel()) / sampled;
+                        double sampleProportion = (double) accessibleFacet.get(facet.getLabel()).intValue() / sampled;
                         // returned count is the minimum between the accessible count and the count computed from the sample
-                        accessibleFacet.put(facet.getLabel(), Math.min(facet.getCount(), (int) (sampleProportion * totalHits)));
+                        accessibleFacet.put(facet.getLabel(), new MutableInt(Math.min(facet.getCount(), (int) (sampleProportion * totalHits))));
                     }
                 }
             }
         }
+
         // create Facet objects, order by count (desc) and then by label (asc)
+        Comparator<FulltextIndex.Facet> comparator = Comparator
+                .comparing(FulltextIndex.Facet::getCount).reversed()
+                .thenComparing(FulltextIndex.Facet::getLabel);
         facets = accessibleFacetCounts.entrySet()
                 .stream()
                 .collect(Collectors.toMap
                         (Map.Entry::getKey, x -> x.getValue().entrySet()
                                 .stream()
-                                .map(e -> new FulltextIndex.Facet(e.getKey(), e.getValue()))
-                                .sorted((f1, f2) -> {
-                                    int f1Count = f1.getCount();
-                                    int f2Count = f2.getCount();
-                                    if (f1Count == f2Count) {
-                                        return f1.getLabel().compareTo(f2.getLabel());
-                                    } else return f2Count - f1Count;
-                                })
+                                .map(e -> new FulltextIndex.Facet(e.getKey(), e.getValue().intValue()))
+                                .sorted(comparator)
                                 .collect(Collectors.toList())
                         )
                 );
