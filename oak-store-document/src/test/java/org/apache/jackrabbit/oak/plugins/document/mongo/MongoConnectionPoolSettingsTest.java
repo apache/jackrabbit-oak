@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.MongoClientSettings;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -62,20 +63,20 @@ public class MongoConnectionPoolSettingsTest {
         assertNotNull(settings);
         
         // Verify default connection pool settings
-        assertEquals(100, settings.getConnectionPoolSettings().getMaxSize());
-        assertEquals(0, settings.getConnectionPoolSettings().getMinSize());
-        assertEquals(2, settings.getConnectionPoolSettings().getMaxConnecting());
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_MAX_POOL_SIZE, settings.getConnectionPoolSettings().getMaxSize());
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_MIN_POOL_SIZE, settings.getConnectionPoolSettings().getMinSize());
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_MAX_CONNECTING, settings.getConnectionPoolSettings().getMaxConnecting());
         
         // Verify default socket settings
-        assertEquals(0, settings.getSocketSettings().getReadTimeout(TimeUnit.MILLISECONDS));
-        assertEquals(10000, settings.getSocketSettings().getConnectTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_READ_TIMEOUT_MILLIS, settings.getSocketSettings().getReadTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_CONNECT_TIMEOUT_MILLIS, settings.getSocketSettings().getConnectTimeout(TimeUnit.MILLISECONDS));
         
         // Verify default server settings
-        assertEquals(5000, settings.getServerSettings().getHeartbeatFrequency(TimeUnit.MILLISECONDS));
-        assertEquals(500, settings.getServerSettings().getMinHeartbeatFrequency(TimeUnit.MILLISECONDS));
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_HEARTBEAT_FREQUENCY_MILLIS, settings.getServerSettings().getHeartbeatFrequency(TimeUnit.MILLISECONDS));
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS, settings.getServerSettings().getMinHeartbeatFrequency(TimeUnit.MILLISECONDS));
         
         // Verify default cluster settings
-        assertEquals(30000, settings.getClusterSettings().getServerSelectionTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS, settings.getClusterSettings().getServerSelectionTimeout(TimeUnit.MILLISECONDS));
     }
 
     @Test
@@ -85,17 +86,17 @@ public class MongoConnectionPoolSettingsTest {
                 .setMongoMaxPoolSize(57)
                 .setMongoMinPoolSize(13)
                 .setMongoMaxConnecting(7)
-                .setMongoMaxIdleTimeMS(61113)
-                .setMongoMaxLifeTimeMS(303030)
-                .setMongoWaitQueueTimeoutMS(41091)
+                .setMongoMaxIdleTimeMillis(61113)
+                .setMongoMaxLifeTimeMillis(303030)
+                .setMongoWaitQueueTimeoutMillis(41091)
                 // Set custom socket settings
-                .setMongoConnectTimeoutMS(5123)
-                .setMongoReadTimeoutMS(29011)
+                .setMongoConnectTimeoutMillis(5123)
+                .setMongoReadTimeoutMillis(29011)
                 // Set custom server settings
-                .setMongoHeartbeatFrequencyMS(15013)
-                .setMongoMinHeartbeatFrequencyMS(1009)
+                .setMongoHeartbeatFrequencyMillis(15013)
+                .setMongoMinHeartbeatFrequencyMillis(1009)
                 // Set custom cluster settings
-                .setMongoServerSelectionTimeoutMS(10999);
+                .setMongoServerSelectionTimeoutMillis(10999);
 
         // Test default connection (isLease = false)
         MongoClientSettings settings = builder.buildMongoClientSettings(false);
@@ -123,7 +124,7 @@ public class MongoConnectionPoolSettingsTest {
     @Test
     public void testLeaseConnectionSocketTimeout() throws Exception {
         MongoDocumentNodeStoreBuilder builder = createTestBuilder()
-                .setMongoReadTimeoutMS(55001)  // Default connection timeout
+                .setMongoReadTimeoutMillis(55001)  // Default connection timeout
                 .setLeaseSocketTimeout(33002); // Lease connection timeout
 
         // Test default connection pool (isLease = false) - should use readTimeout
@@ -138,11 +139,11 @@ public class MongoConnectionPoolSettingsTest {
     @Test
     public void testZeroTimeoutValues() throws Exception {
         MongoDocumentNodeStoreBuilder builder = createTestBuilder()
-                .setMongoMaxIdleTimeMS(0)           // Disabled
-                .setMongoMaxLifeTimeMS(0)           // Disabled
-                .setMongoConnectTimeoutMS(0)        // Disabled
-                .setMongoReadTimeoutMS(0)           // Disabled
-                .setMongoServerSelectionTimeoutMS(0); // Disabled
+                .setMongoMaxIdleTimeMillis(0)           // Disabled
+                .setMongoMaxLifeTimeMillis(0)           // Disabled
+                .setMongoConnectTimeoutMillis(0)        // Disabled
+                .setMongoReadTimeoutMillis(0)           // Disabled
+                .setMongoServerSelectionTimeoutMillis(0); // Disabled
 
         MongoClientSettings settings = builder.buildMongoClientSettings(false);
         
@@ -172,7 +173,7 @@ public class MongoConnectionPoolSettingsTest {
         MongoClientSettings settings = builder.buildMongoClientSettings(true);
         
         // Lease connection should use default lease socket timeout 
-        assertEquals(30000, settings.getSocketSettings().getReadTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS, settings.getSocketSettings().getReadTimeout(TimeUnit.MILLISECONDS));
     }
 
     @Test
@@ -180,7 +181,7 @@ public class MongoConnectionPoolSettingsTest {
         MongoDocumentNodeStoreBuilder builder = createTestBuilder()
                 .setMongoMaxPoolSize(75)
                 .setMongoMinPoolSize(10)
-                .setMongoConnectTimeoutMS(15000);
+                .setMongoConnectTimeoutMillis(15000);
 
         // Test that setters return the builder itself
         assertSame(builder, builder.setMongoMaxPoolSize(75));

@@ -58,14 +58,14 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private Integer maxPoolSize;
     private Integer minPoolSize;
     private Integer maxConnecting;
-    private Integer maxIdleTimeMS;
-    private Integer maxLifeTimeMS;
-    private Integer connectTimeoutMS;
-    private Integer heartbeatFrequencyMS;
-    private Integer serverSelectionTimeoutMS;
-    private Integer waitQueueTimeoutMS;
-    private Integer readTimeoutMS;
-    private Integer minHeartbeatFrequencyMS;
+    private Integer maxIdleTimeMillis;
+    private Integer maxLifeTimeMillis;
+    private Integer connectTimeoutMillis;
+    private Integer heartbeatFrequencyMillis;
+    private Integer serverSelectionTimeoutMillis;
+    private Integer waitQueueTimeoutMillis;
+    private Integer readTimeoutMillis;
+    private Integer minHeartbeatFrequencyMillis;
 
     /**
      * Uses the given information to connect to to MongoDB as backend
@@ -184,43 +184,43 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return thisBuilder();
     }
 
-    public T setMongoMaxIdleTimeMS(int maxIdleTimeMS) {
-        this.maxIdleTimeMS = maxIdleTimeMS;
+    public T setMongoMaxIdleTimeMillis(int maxIdleTimeMillis) {
+        this.maxIdleTimeMillis = maxIdleTimeMillis;
         return thisBuilder();
     }
 
-    public T setMongoMaxLifeTimeMS(int maxLifeTimeMS) {
-        this.maxLifeTimeMS = maxLifeTimeMS;
+    public T setMongoMaxLifeTimeMillis(int maxLifeTimeMillis) {
+        this.maxLifeTimeMillis = maxLifeTimeMillis;
         return thisBuilder();
     }
 
-    public T setMongoConnectTimeoutMS(int connectTimeoutMS) {
-        this.connectTimeoutMS = connectTimeoutMS;
+    public T setMongoConnectTimeoutMillis(int connectTimeoutMillis) {
+        this.connectTimeoutMillis = connectTimeoutMillis;
         return thisBuilder();
     }
 
-    public T setMongoHeartbeatFrequencyMS(int heartbeatFrequencyMS) {
-        this.heartbeatFrequencyMS = heartbeatFrequencyMS;
+    public T setMongoHeartbeatFrequencyMillis(int heartbeatFrequencyMillis) {
+        this.heartbeatFrequencyMillis = heartbeatFrequencyMillis;
         return thisBuilder();
     }
 
-    public T setMongoServerSelectionTimeoutMS(int serverSelectionTimeoutMS) {
-        this.serverSelectionTimeoutMS = serverSelectionTimeoutMS;
+    public T setMongoServerSelectionTimeoutMillis(int serverSelectionTimeoutMillis) {
+        this.serverSelectionTimeoutMillis = serverSelectionTimeoutMillis;
         return thisBuilder();
     }
 
-    public T setMongoWaitQueueTimeoutMS(int waitQueueTimeoutMS) {
-        this.waitQueueTimeoutMS = waitQueueTimeoutMS;
+    public T setMongoWaitQueueTimeoutMillis(int waitQueueTimeoutMillis) {
+        this.waitQueueTimeoutMillis = waitQueueTimeoutMillis;
         return thisBuilder();
     }
 
-    public T setMongoReadTimeoutMS(int readTimeoutMS) {
-        this.readTimeoutMS = readTimeoutMS;
+    public T setMongoReadTimeoutMillis(int readTimeoutMillis) {
+        this.readTimeoutMillis = readTimeoutMillis;
         return thisBuilder();
     }
 
-    public T setMongoMinHeartbeatFrequencyMS(int minHeartbeatFrequencyMS) {
-        this.minHeartbeatFrequencyMS = minHeartbeatFrequencyMS;
+    public T setMongoMinHeartbeatFrequencyMillis(int minHeartbeatFrequencyMillis) {
+        this.minHeartbeatFrequencyMillis = minHeartbeatFrequencyMillis;
         return thisBuilder();
     }
 
@@ -256,7 +256,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
             socketTimeout = leaseSocketTimeout != null ? leaseSocketTimeout : DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS;
         } else {
             // Default connection: use OSGi read timeout if configured, otherwise 0
-            socketTimeout = readTimeoutMS != null && readTimeoutMS > 0 ? readTimeoutMS : 0;
+            socketTimeout = readTimeoutMillis != null && readTimeoutMillis > 0 ? readTimeoutMillis : 0;
         }
         
         // Apply connection pool settings
@@ -264,14 +264,14 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
             if (maxPoolSize != null) poolBuilder.maxSize(maxPoolSize);
             if (minPoolSize != null) poolBuilder.minSize(minPoolSize);
             if (maxConnecting != null) poolBuilder.maxConnecting(maxConnecting);
-            if (maxIdleTimeMS != null) {
-                poolBuilder.maxConnectionIdleTime(maxIdleTimeMS, TimeUnit.MILLISECONDS);
+            if (maxIdleTimeMillis != null) {
+                poolBuilder.maxConnectionIdleTime(maxIdleTimeMillis, TimeUnit.MILLISECONDS);
             }
-            if (maxLifeTimeMS != null) {
-                poolBuilder.maxConnectionLifeTime(maxLifeTimeMS, TimeUnit.MILLISECONDS);
+            if (maxLifeTimeMillis != null) {
+                poolBuilder.maxConnectionLifeTime(maxLifeTimeMillis, TimeUnit.MILLISECONDS);
             }
-            if (waitQueueTimeoutMS != null) {
-                poolBuilder.maxWaitTime(waitQueueTimeoutMS, TimeUnit.MILLISECONDS);
+            if (waitQueueTimeoutMillis != null) {
+                poolBuilder.maxWaitTime(waitQueueTimeoutMillis, TimeUnit.MILLISECONDS);
             }
         });
         
@@ -280,25 +280,25 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
             if (socketTimeout > 0) {
                 socketBuilder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS);
             }
-            if (connectTimeoutMS != null) {
-                socketBuilder.connectTimeout(connectTimeoutMS, TimeUnit.MILLISECONDS);
+            if (connectTimeoutMillis != null) {
+                socketBuilder.connectTimeout(connectTimeoutMillis, TimeUnit.MILLISECONDS);
             }
         });
         
         // Apply server settings
         options.applyToServerSettings(serverBuilder -> {
-            if (heartbeatFrequencyMS != null && heartbeatFrequencyMS > 0) {
-                serverBuilder.heartbeatFrequency(heartbeatFrequencyMS, TimeUnit.MILLISECONDS);
+            if (heartbeatFrequencyMillis != null && heartbeatFrequencyMillis > 0) {
+                serverBuilder.heartbeatFrequency(heartbeatFrequencyMillis, TimeUnit.MILLISECONDS);
             }
-            if (minHeartbeatFrequencyMS != null && minHeartbeatFrequencyMS > 0) {
-                serverBuilder.minHeartbeatFrequency(minHeartbeatFrequencyMS, TimeUnit.MILLISECONDS);
+            if (minHeartbeatFrequencyMillis != null && minHeartbeatFrequencyMillis > 0) {
+                serverBuilder.minHeartbeatFrequency(minHeartbeatFrequencyMillis, TimeUnit.MILLISECONDS);
             }
         });
         
         // Apply cluster settings
         options.applyToClusterSettings(clusterBuilder -> {
-            if (serverSelectionTimeoutMS != null) {
-                clusterBuilder.serverSelectionTimeout(serverSelectionTimeoutMS, TimeUnit.MILLISECONDS);
+            if (serverSelectionTimeoutMillis != null) {
+                clusterBuilder.serverSelectionTimeout(serverSelectionTimeoutMillis, TimeUnit.MILLISECONDS);
             }
         });
         
