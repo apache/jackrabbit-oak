@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -357,7 +358,9 @@ class SecureNodeBuilder implements NodeBuilder {
                 treePermission = permissionProvider.get().getTreePermission(baseTree, TreePermission.EMPTY);
                 rootPermission = treePermission;
             } else {
-                treePermission = parent.getTreePermission().getChildPermission(name, base);
+                treePermission =
+                        Objects.requireNonNull(parent.getTreePermission().getChildPermission(name, base),
+                                "see OAK-11790 and OAK-11843");
                 rootPermission = parent.rootPermission;
             }
         }
