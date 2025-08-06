@@ -353,14 +353,15 @@ class SecureNodeBuilder implements NodeBuilder {
         if (treePermission == null
                 || rootPermission != rootBuilder.treePermission) {
             NodeState base = builder.getBaseState();
+            String msg = "see OAK-11790 and OAK-11843";
             if (parent == null) {
                 Tree baseTree = TreeFactory.createReadOnlyTree(base);
-                treePermission = permissionProvider.get().getTreePermission(baseTree, TreePermission.EMPTY);
+                PermissionProvider provider = requireNonNull(permissionProvider.get(), msg);
+                treePermission = requireNonNull(provider.getTreePermission(baseTree, TreePermission.EMPTY), msg);
                 rootPermission = treePermission;
             } else {
-                treePermission =
-                        Objects.requireNonNull(parent.getTreePermission().getChildPermission(name, base),
-                                "see OAK-11790 and OAK-11843");
+                TreePermission parentTreePermission = Objects.requireNonNull(parent.getTreePermission(), msg);
+                treePermission = Objects.requireNonNull(parentTreePermission.getChildPermission(name, base), msg);
                 rootPermission = parent.rootPermission;
             }
         }
