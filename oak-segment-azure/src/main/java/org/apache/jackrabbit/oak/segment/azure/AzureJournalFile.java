@@ -33,7 +33,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Iterator;
+import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -245,7 +250,7 @@ public class AzureJournalFile implements JournalFile {
         }
 
         private int parseCurrentSuffix() {
-            String name = AzureUtilities.getName(currentBlob);
+            String name = currentBlob.getBlobName();
             Pattern pattern = Pattern.compile(Pattern.quote(journalNamePrefix) + "\\.(\\d+)");
             Matcher matcher = pattern.matcher(name);
             int parsedSuffix;

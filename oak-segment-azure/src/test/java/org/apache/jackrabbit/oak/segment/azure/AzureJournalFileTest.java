@@ -53,13 +53,15 @@ public class AzureJournalFileTest {
 
     private AzureJournalFile journal;
 
+    private final String rootPrefix = "oak";
+
     @Before
     public void setup() throws BlobStorageException {
         readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
         writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
-        journal = new AzureJournalFile(readBlobContainerClient, writeBlobContainerClient, "journal.log", writeAccessController, 50);
+        journal = new AzureJournalFile(readBlobContainerClient, writeBlobContainerClient, rootPrefix + "journal.log", writeAccessController, 50);
     }
 
     @Test
@@ -85,7 +87,7 @@ public class AzureJournalFileTest {
 
     private int countJournalBlobs() {
         ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-        listBlobsOptions.setPrefix("journal.log");
+        listBlobsOptions.setPrefix(rootPrefix + "journal.log");
 
         List<BlobItem> result  = readBlobContainerClient.listBlobs(listBlobsOptions, null).stream().collect(Collectors.toList());
         return result.size();
