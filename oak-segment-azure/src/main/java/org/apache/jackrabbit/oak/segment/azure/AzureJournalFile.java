@@ -33,16 +33,19 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class AzureJournalFile implements JournalFile {
 
     private static final Logger log = LoggerFactory.getLogger(AzureJournalFile.class);
 
-    private static final int JOURNAL_LINE_LIMIT = Integer.getInteger("org.apache.jackrabbit.oak.segment.azure.journal.lines", 40_000);
+    static final int JOURNAL_LINE_LIMIT = Integer.getInteger("org.apache.jackrabbit.oak.segment.azure.journal.lines", 40_000);
 
     private final BlobContainerClient readBlobContainerClient;
 
@@ -245,23 +248,22 @@ public class AzureJournalFile implements JournalFile {
         }
 
         private int parseCurrentSuffix() {
-            String name = AzureUtilities.getName(currentBlob);
-            Pattern pattern = Pattern.compile(Pattern.quote(journalNamePrefix) + "\\.(\\d+)");
-            Matcher matcher = pattern.matcher(name);
-            int parsedSuffix;
-            if (matcher.find()) {
-                String suffix = matcher.group(1);
-                try {
-                    parsedSuffix = Integer.parseInt(suffix);
-                } catch (NumberFormatException e) {
-                    log.warn("Can't parse suffix for journal file {}", name);
-                    parsedSuffix = 0;
+            String name = currentBlob.getBlobName();
+            String index;
+            if (name.startsWith(journalNamePrefix + ".")) {
+                index = name.substring(journalNamePrefix.length() + 1);
+                if (index.chars().allMatch(Character::isDigit)) {
+                    try {
+                        return Integer.parseInt(index);
+                    } catch (NumberFormatException e) {
+                        // fall through to next warning
+                    }
                 }
+                log.warn("Can't parse suffix for journal file {}, unable to rotate journal", name);
             } else {
-                log.warn("Can't parse journal file name {}", name);
-                parsedSuffix = 0;
+                log.warn("Journal file {} doesn't start with {}, unable to rotate journal", name, journalNamePrefix);
             }
-            return parsedSuffix;
+            return 0;
         }
 
         @Override

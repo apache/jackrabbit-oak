@@ -49,6 +49,8 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     protected final String rootPrefix;
 
+    protected final int journalLineLimit;
+
     protected AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy;
 
     protected WriteAccessController writeAccessController = new WriteAccessController();
@@ -61,12 +63,17 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         this(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefix, null);
     }
 
-    public AzurePersistence(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient noRetryBlobContainerClient, String rootPrefix, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy) {
+    AzurePersistence(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient noRetryBlobContainerClient, String rootPrefix, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy) {
+        this(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefix, azureHttpRequestLoggingPolicy, AzureJournalFile.JOURNAL_LINE_LIMIT);
+    }
+
+    AzurePersistence(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, BlobContainerClient noRetryBlobContainerClient, String rootPrefix, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, int journalLineLimit) {
         this.readBlobContainerClient = readBlobContainerClient;
         this.writeBlobContainerClient = writeBlobContainerClient;
         this.noRetryBlobContainerClient = noRetryBlobContainerClient;
         this.azureHttpRequestLoggingPolicy = azureHttpRequestLoggingPolicy;
         this.rootPrefix = rootPrefix;
+        this.journalLineLimit = journalLineLimit;
     }
 
     @Override
@@ -89,7 +96,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     @Override
     public JournalFile getJournalFile() {
-        return new AzureJournalFile(readBlobContainerClient, writeBlobContainerClient, rootPrefix + "/journal.log", writeAccessController);
+        return new AzureJournalFile(readBlobContainerClient, writeBlobContainerClient, rootPrefix + "/journal.log", writeAccessController, journalLineLimit);
     }
 
     @Override
