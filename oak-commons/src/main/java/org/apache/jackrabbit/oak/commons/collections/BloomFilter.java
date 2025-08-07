@@ -37,8 +37,7 @@ public class BloomFilter {
      * Construct a Bloom filter. With a fpp of 0.01, the memory usage is roughly 1
      * byte per entry.
      *
-     * @param bytes the size in number of bytes (eg. 64_000_000 for 64 MB memory
-     *              usage)
+     * @param n     the number of expected entries (eg. 1_000_000)
      * @param fpp   the false-positive probability (eg. 0.01 for a 1% false-positive
      *              probability)
      * @return the Bloom filter
@@ -59,6 +58,7 @@ public class BloomFilter {
 
     /**
      * Calculate the best k parameter for a Bloom filter.
+     * (k is the number of hash functions to use for one entry).
      *
      * @param bitsPerKey the number of bits per key (eg. 10)
      * @return the k parameter
@@ -68,7 +68,8 @@ public class BloomFilter {
     }
 
     /**
-     * Calculate the number of bits needed for a Bloom filter, given a number of entries and the k parameter.
+     * Calculate the number of bits needed for a Bloom filter,
+     * for a given false positive probability.
      *
      * @param n the number of entries (eg. 1_000_000)
      * @param fpp the false positive probability (eg. 0.01)
@@ -79,7 +80,7 @@ public class BloomFilter {
     }
 
     /**
-     * Calculate the maximum number of entries in the set, given the the memory size
+     * Calculate the maximum number of entries in the set, given the memory size
      * in bits, and a target false positive probability.
      *
      * @param bits the number of bits (eg. 10_000_000)
@@ -93,9 +94,10 @@ public class BloomFilter {
     /**
      * Calculate the false positive probability.
      *
+     * @param n    the number of entries (eg. 1_000_000)
      * @param bits the number of bits (eg. 10_000_000)
-     * @param fpp  the false positive probability (eg. 0.01)
-     * @return the maximum number of entries to be added
+     * @param k    the number of hash functions
+     * @return the false positive probability (eg. 0.01)
      */
     public static double calculateFpp(long n, long bits, int k) {
         // p = pow(1 - exp(-k / (m / n)), k)
@@ -103,9 +105,9 @@ public class BloomFilter {
     }
 
     /**
-     * Add an entry, using an int hash code.
+     * Add an entry.
      *
-     * @param value the value to check
+     * @param value the value to add
      */
     public void add(String value) {
         add(HashUtils.hash64(value));
@@ -113,6 +115,10 @@ public class BloomFilter {
 
     /**
      * Add an entry.
+     *
+     * Note that the false positive rate will increase if the quality of the hash
+     * value is low, eg. if only 32 bit hash values are used.
+     * If needed, use HashUtils.hash64(value) as a supplemental hash.
      *
      * @param hash the hash value (need to be a high quality hash code, with all
      *             bits having high entropy)
@@ -127,7 +133,7 @@ public class BloomFilter {
     }
 
     /**
-     * Whether the entry may be in the set.
+     * Tests whether the entry might be in the set.
      *
      * @param value the value to check
      * @return true if the entry was added, or, with a certain false positive
@@ -138,7 +144,7 @@ public class BloomFilter {
     }
 
     /**
-     * Whether the entry may be in the set.
+     * Tests whether the entry might be in the set.
      *
      * @param hash the hash value (need to be a high quality hash code, with all
      *             bits having high entropy)
@@ -166,6 +172,11 @@ public class BloomFilter {
         return data.length * 64L;
     }
 
+    /**
+     * Get the k parameter (the number of hash functions for an entry).
+     *
+     * @return the k parameter
+     */
     public int getK() {
         return k;
     }
@@ -174,7 +185,8 @@ public class BloomFilter {
      * Get the estimated entry count (number of distinct items added). This
      * operation is relatively slow, as it loops over all the entries.
      *
-     * @return the estimated entry count, or Long.MAX_VALUE if the number can not be estimated.
+     * @return the estimated entry count,
+     *         or Long.MAX_VALUE if the number can not be estimated.
      */
     public long getEstimatedEntryCount() {
         long x = 0;
