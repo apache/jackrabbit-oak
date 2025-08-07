@@ -156,7 +156,12 @@ class SecureNodeBuilder implements NodeBuilder {
         return builder.isReplaced(name) && !isNew(name);
     }
 
-    public synchronized void baseChanged() {
+    public void baseChanged() {
+        if (threadOfGetTreePermission != null && Thread.currentThread() != threadOfGetTreePermission) {
+            throw new RuntimeException("baseChanged() called from thread " +
+                    Thread.currentThread() + " while getTreePermission is executed by " +
+                    threadOfGetTreePermission);
+        }
         Validate.checkState(parent == null);
         treePermission = null; // trigger re-evaluation
         rootPermission = null;
@@ -343,13 +348,25 @@ class SecureNodeBuilder implements NodeBuilder {
         return builder.createBlob(stream);
     }
 
+    private volatile Thread threadOfGetTreePermission = null;
+
+    @NotNull
+    private TreePermission getTreePermission() {
+        threadOfGetTreePermission = Thread.currentThread();
+        try {
+            return internalGetTreePermission();
+        } finally {
+            threadOfGetTreePermission = null;
+        }
+    }
+
     /**
      * Permissions of this tree.
      *
      * @return The permissions for this tree.
      */
     @NotNull
-    private synchronized TreePermission getTreePermission() {
+    private TreePermission internalGetTreePermission() {
         if (treePermission == null
                 || rootPermission != rootBuilder.treePermission) {
             NodeState base = builder.getBaseState();
@@ -360,7 +377,7 @@ class SecureNodeBuilder implements NodeBuilder {
                 treePermission = requireNonNull(provider.getTreePermission(baseTree, TreePermission.EMPTY), msg);
                 rootPermission = treePermission;
             } else {
-                TreePermission parentTreePermission = Objects.requireNonNull(parent.getTreePermission(), msg);
+                TreePermission parentTreePermission = Objects.requireNonNull(parent.internalGetTreePermission(), msg);
                 treePermission = Objects.requireNonNull(parentTreePermission.getChildPermission(name, base), msg);
                 rootPermission = parent.rootPermission;
             }
