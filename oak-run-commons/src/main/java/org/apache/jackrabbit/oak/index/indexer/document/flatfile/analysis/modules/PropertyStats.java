@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
-import org.apache.jackrabbit.oak.commons.collections.HashUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.Hash;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.HyperLogLog3Linear64;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.TopKValues;
 
@@ -123,7 +123,7 @@ public class PropertyStats implements StatsCollector {
         stats.values += p.getValues().length;
         if (stats.count > MIN_PROPERTY_COUNT) {
             for (String v : p.getValues()) {
-                long hash = HashUtils.hash64(v.hashCode(), seed);
+                long hash = Hash.hash64(v.hashCode(), seed);
                 stats.hll = HyperLogLog3Linear64.add(stats.hll, hash);
                 stats.size += v.length();
                 stats.maxSize = Math.max(stats.maxSize, v.length());

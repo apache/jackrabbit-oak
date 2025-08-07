@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import org.apache.jackrabbit.oak.commons.collections.BloomFilter;
+import org.apache.jackrabbit.guava.common.hash.BloomFilter;
+import org.apache.jackrabbit.guava.common.hash.Funnel;
+import org.apache.jackrabbit.guava.common.hash.PrimitiveSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 public class CacheChangesTracker implements Closeable {
@@ -61,10 +62,10 @@ public class CacheChangesTracker implements Closeable {
         changeTrackers.remove(this);
 
         if (LOG.isDebugEnabled()) {
-            if (lazyBloomFilter.filterRef.get() == null) {
+            if (lazyBloomFilter.filter == null) {
                 LOG.debug("Disposing CacheChangesTracker for {}, no filter was needed", keyFilter);
             } else {
-                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, LazyBloomFilter.FPP);
+                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, lazyBloomFilter.filter.expectedFpp());
             }
         }
     }
@@ -75,33 +76,38 @@ public class CacheChangesTracker implements Closeable {
 
         private final int entries;
 
-        private final AtomicReference<BloomFilter> filterRef;
+        private volatile BloomFilter<String> filter;
 
         public LazyBloomFilter(int entries) {
             this.entries = entries;
-            this.filterRef = new AtomicReference<>();
         }
 
         public synchronized void put(String entry) {
-            getFilter().add(entry);
+            getFilter().put(entry);
         }
 
         public boolean mightContain(String entry) {
-            BloomFilter f = filterRef.get();
-            return f != null && f.mayContain(entry);
-        }
-
-        private BloomFilter getFilter() {
-            BloomFilter result = filterRef.get();
-            if (result == null) {
-                BloomFilter newFilter = BloomFilter.construct(entries, FPP);
-                if (filterRef.compareAndSet(null, newFilter)) {
-                    result = newFilter;
-                } else {
-                    result = filterRef.get();
+            if (filter == null) {
+                return false;
+            } else {
+                synchronized (this) {
+                    return filter.mightContain(entry);
                 }
             }
-            return result;
+        }
+
+        private BloomFilter<String> getFilter() {
+            if (filter == null) {
+                filter = BloomFilter.create(new Funnel<String>() {
+                    private static final long serialVersionUID = -7114267990225941161L;
+
+                    @Override
+                    public void funnel(String from, PrimitiveSink into) {
+                        into.putUnencodedChars(from);
+                    }
+                }, entries, FPP);
+            }
+            return filter;
         }
     }
 }

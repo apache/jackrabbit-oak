@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.apache.jackrabbit.oak.commons.collections.HashUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
 /**
@@ -92,7 +91,7 @@ public class TopKValues {
         if (countedCount > 1000) {
             skipRemaining = SKIP;
         }
-        long hash = HashUtils.hash64(value);
+        long hash = Hash.hash64(value.hashCode());
         long est = sketch.addAndEstimate(hash);
         if (est < min) {
             return;

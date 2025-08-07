@@ -67,7 +67,7 @@ public class PropertyStatsTest {
             pc.add(n);
         }
         assertEquals("PropertyStats\n"
-                + "skewed weight 3 count 1000000 distinct 394382 avgSize 7 maxSize 11 top {\"skipped\":899091,\"counted\":90910,\"false\":25618,\"true\":25543,\"-411461567\":1,\"1483286044\":1,\"1310925467\":1,\"-1752252714\":1,\"-1433290908\":1,\"-1209544007\":1}\n"
+                + "skewed weight 3 count 1000000 distinct 394382 avgSize 7 maxSize 11 top {\"skipped\":899091,\"counted\":90910,\"false\":25583,\"true\":25518,\"-411461567\":1,\"1483286044\":1,\"1310925467\":1,\"-1752252714\":1,\"-1433290908\":1,\"-1209544007\":1}\n"
                 + "", pc.toString());
     }
 

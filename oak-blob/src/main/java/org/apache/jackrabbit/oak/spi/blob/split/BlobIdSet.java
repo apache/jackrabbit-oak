@@ -25,6 +25,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -32,7 +33,8 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.oak.commons.collections.BloomFilter;
+import org.apache.jackrabbit.guava.common.hash.BloomFilter;
+import org.apache.jackrabbit.guava.common.hash.Funnels;
 
 class BlobIdSet {
 
@@ -40,19 +42,19 @@ class BlobIdSet {
 
     private final File store;
 
-    private final BloomFilter bloomFilter;
+    private final BloomFilter<CharSequence> bloomFilter;
 
     private final Cache<String, Boolean> cache;
 
     BlobIdSet(String repositoryDir, String filename) {
         store = new File(new File(repositoryDir), filename);
-        bloomFilter = BloomFilter.construct(9000000, 0.03); // 9M entries, 3% false positive rate
+        bloomFilter = BloomFilter.create(Funnels.stringFunnel(StandardCharsets.UTF_8), 9000000); // about 8MB
         cache = CacheBuilder.newBuilder().maximumSize(1000).build();
         fillBloomFilter();
     }
 
     synchronized boolean contains(String blobId) throws IOException {
-        if (!bloomFilter.mayContain(blobId)) {
+        if (!bloomFilter.apply(blobId)) {
             return false;
         }
         Boolean cached = cache.getIfPresent(blobId);
@@ -62,7 +64,7 @@ class BlobIdSet {
 
         if (isPresentInStore(blobId)) {
             cache.put(blobId, Boolean.TRUE);
-            bloomFilter.add(blobId);
+            bloomFilter.put(blobId);
             return true;
         } else {
             cache.put(blobId, Boolean.FALSE);
@@ -72,7 +74,7 @@ class BlobIdSet {
 
     synchronized void add(String blobId) throws IOException {
         addToStore(blobId);
-        bloomFilter.add(blobId);
+        bloomFilter.put(blobId);
         cache.put(blobId, Boolean.TRUE);
     }
 
@@ -112,7 +114,7 @@ class BlobIdSet {
             reader = new BufferedReader(new FileReader(store));
             String line;
             while ((line = reader.readLine()) != null) {
-                bloomFilter.add(line);
+                bloomFilter.put(line);
             }
         } catch (IOException e) {
             log.error("Can't fill bloom filter", e);
