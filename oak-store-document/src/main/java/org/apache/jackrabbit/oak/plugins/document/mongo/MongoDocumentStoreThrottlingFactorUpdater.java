@@ -48,7 +48,7 @@ public class MongoDocumentStoreThrottlingFactorUpdater implements Closeable {
     private static final String TS_TIME = "ts";
     public static final String SIZE = "size";
     private final ScheduledExecutorService throttlingFactorExecutor;
-    private final AtomicReference<Integer> factor;
+    private final AtomicReference<Integer> factorRef;
     private final MongoDatabase localDb;
     private final int period;
 
@@ -56,13 +56,13 @@ public class MongoDocumentStoreThrottlingFactorUpdater implements Closeable {
                                                      final @NotNull AtomicReference<Integer> factor,
                                                      int period) {
         this.throttlingFactorExecutor = Executors.newSingleThreadScheduledExecutor();
-        this.factor = factor;
+        this.factorRef = factor;
         this.localDb = localDb;
         this.period = period;
     }
 
     public void scheduleFactorUpdates() {
-        throttlingFactorExecutor.scheduleAtFixedRate(() -> factor.set(updateFactor()), 10, period, SECONDS);
+        throttlingFactorExecutor.scheduleAtFixedRate(() -> factorRef.set(updateFactor()), 10, period, SECONDS);
     }
 
     // visible for testing only
