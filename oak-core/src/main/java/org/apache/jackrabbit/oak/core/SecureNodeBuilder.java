@@ -156,7 +156,7 @@ class SecureNodeBuilder implements NodeBuilder {
         return builder.isReplaced(name) && !isNew(name);
     }
 
-    public void baseChanged() {
+    public synchronized void baseChanged() {
         Validate.checkState(parent == null);
         treePermission = null; // trigger re-evaluation
         rootPermission = null;
@@ -349,7 +349,7 @@ class SecureNodeBuilder implements NodeBuilder {
      * @return The permissions for this tree.
      */
     @NotNull
-    private TreePermission getTreePermission() {
+    private synchronized TreePermission getTreePermission() {
         if (treePermission == null
                 || rootPermission != rootBuilder.treePermission) {
             NodeState base = builder.getBaseState();
