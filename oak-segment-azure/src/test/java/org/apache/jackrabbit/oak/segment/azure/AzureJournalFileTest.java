@@ -26,9 +26,12 @@ import com.azure.storage.blob.models.ListBlobsOptions;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -51,15 +54,27 @@ public class AzureJournalFileTest {
 
     private BlobContainerClient writeBlobContainerClient;
 
-    private AzureJournalFile journal;
+    private RepositoryLock repositoryLock;
+
+    private JournalFile journal;
+
+    private String rootPrefix;
 
     @Before
-    public void setup() throws BlobStorageException {
+    public void setup() throws BlobStorageException, IOException {
         readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
         writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
-        journal = new AzureJournalFile(readBlobContainerClient, writeBlobContainerClient, "journal.log", writeAccessController, 50);
+        rootPrefix = "folder";
+        AzurePersistence azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, readBlobContainerClient, rootPrefix, null, 50);
+        repositoryLock = azurePersistence.lockRepository();
+        journal = azurePersistence.getJournalFile();
+    }
+
+    @After
+    public void tearDown() throws IOException {
+        repositoryLock.unlock();
     }
 
     @Test
@@ -85,7 +100,7 @@ public class AzureJournalFileTest {
 
     private int countJournalBlobs() {
         ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-        listBlobsOptions.setPrefix("journal.log");
+        listBlobsOptions.setPrefix(rootPrefix + "/journal.log");
 
         List<BlobItem> result  = readBlobContainerClient.listBlobs(listBlobsOptions, null).stream().collect(Collectors.toList());
         return result.size();
