@@ -35,6 +35,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.Iterator;
 import java.util.HashMap;
@@ -59,11 +60,11 @@ public class AzureJournalFile implements JournalFile {
 
     private final WriteAccessController writeAccessController;
 
-    AzureJournalFile(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, String journalNamePrefix, WriteAccessController writeAccessController, int lineLimit) {
+    AzureJournalFile(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, String journalNamePrefix, WriteAccessController writeAccessController, Integer lineLimit) {
         this.readBlobContainerClient = readBlobContainerClient;
         this.writeBlobContainerClient = writeBlobContainerClient;
         this.journalNamePrefix = journalNamePrefix;
-        this.lineLimit = lineLimit;
+        this.lineLimit = Objects.requireNonNullElse(lineLimit, JOURNAL_LINE_LIMIT);
         this.writeAccessController = writeAccessController;
     }
 
