@@ -29,6 +29,7 @@ Technical task
     [OAK-11789] - Remove usage of Guava collect.Lists.newArrayList in segment-azure
     [OAK-11793] - Remove usage of Guava common.hash.HashCode
     [OAK-11801] - Remove usage of Guava FluentIterable
+    [OAK-11843] - Improve diagnostics for NPE in SecureNodeBuilder
 
 Bug
 
@@ -40,6 +41,9 @@ Bug
     [OAK-11812] - Failure in running S3DataStoreServiceTest unit case
     [OAK-11818] - Update Mockito dependency to 5.18.0
     [OAK-11824] - oak-lucene: custom analyzer cannot load indirect filters
+    [OAK-11838] - DocumentNodeStoreService.registerNodeStore() ignores Mongo settings
+    [OAK-11839] - Implement oak background thread that reads throttle flag from settings collection
+    [OAK-11847] - AzureJournalFile fails to rotate journal
 
 New Feature
 
@@ -77,6 +81,7 @@ Task
     [OAK-11822] - Update commons-lang dependency to 1.14.0
     [OAK-11831] - Update Oak trunk to Jackrabbit 2.22.2
     [OAK-11834] - ClusterType can take longer during Mongo cluster initialization
+    [OAK-11835] - Expose Mongo connection pool parameters
 
 
 In addition to the above-mentioned changes, this release contains all
