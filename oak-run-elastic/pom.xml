@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.81-SNAPSHOT</version>
+        <version>1.83-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -41,8 +41,9 @@
         103.5 MB: Azure Identity client library for Java (OAK-10604)
         105 MB: Azure updates
         107 MB: RDB/Tomcat (OAK-10752)
+        120 MB: added commons-csv for csv parsing (OAK-10790)
         -->
-        <max.jar.size>119000000</max.jar.size>
+        <max.jar.size>120000000</max.jar.size>
                       
     </properties>
 

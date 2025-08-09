@@ -30,13 +30,13 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.81-SNAPSHOT</version>
+  <version>1.83-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <!-- build time stamp: should be updated prior to a release -->
     <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
-    <project.build.outputTimestamp>1747400914</project.build.outputTimestamp>
+    <project.build.outputTimestamp>1751129729</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -48,7 +48,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.22.0</jackrabbit.version>
+    <jackrabbit.version>2.22.2</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -57,7 +57,7 @@
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.2</lucene.version>
-    <mongo.driver.version>3.12.14</mongo.driver.version>
+    <mongo.driver.version>5.2.1</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.13</logback.version>
@@ -521,7 +521,7 @@
       </dependency>
       <dependency>
         <groupId>org.mongodb</groupId>
-        <artifactId>mongo-java-driver</artifactId>
+        <artifactId>mongodb-driver-sync</artifactId>
         <version>${mongo.driver.version}</version>
       </dependency>
       <dependency>
@@ -532,7 +532,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>5.17.0</version>
+        <version>5.18.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -594,22 +594,27 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.17.0</version>
+        <version>3.18.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
-        <version>1.13.1</version>
+        <version>1.14.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-csv</artifactId>
+        <version>1.14.1</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.18.0</version>
+        <version>2.20.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.18.0</version>
+        <version>1.19.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -619,12 +624,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>9.0.106</version>
+        <version>9.0.107</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>9.0.106</version>
+        <version>9.0.107</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -1265,6 +1270,6 @@
     <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
     <url>https://github.com/apache/jackrabbit/tree/${project.scm.tag}</url>
-    <tag>jackrabbit-oak-1.80</tag>
+    <tag>jackrabbit-oak-1.82.0</tag>
   </scm>
 </project>
