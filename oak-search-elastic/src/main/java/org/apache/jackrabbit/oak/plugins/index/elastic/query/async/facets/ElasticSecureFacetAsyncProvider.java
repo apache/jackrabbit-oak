@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
@@ -45,7 +46,8 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     private static final Logger LOG = LoggerFactory.getLogger(ElasticSecureFacetAsyncProvider.class);
 
     private final Set<String> facetFields;
-    private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
+    private final long facetsEvaluationTimeoutMs;
+    private final Map<String, Map<String, MutableInt>> accessibleFacetCounts = new ConcurrentHashMap<>();
     private final ElasticResponseHandler elasticResponseHandler;
     private final Predicate<String> isAccessible;
     private final CountDownLatch latch = new CountDownLatch(1);
@@ -54,13 +56,14 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     ElasticSecureFacetAsyncProvider(
             ElasticRequestHandler elasticRequestHandler,
             ElasticResponseHandler elasticResponseHandler,
-            Predicate<String> isAccessible
-    ) {
+            Predicate<String> isAccessible,
+            long facetsEvaluationTimeoutMs) {
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
         this.facetFields = elasticRequestHandler.facetFields().
                 map(ElasticIndexUtils::fieldName).
-                collect(Collectors.toSet());
+                collect(Collectors.toUnmodifiableSet());
+        this.facetsEvaluationTimeoutMs = facetsEvaluationTimeoutMs;
     }
 
     @Override
@@ -82,11 +85,18 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
                 if (value != null) {
                     accessibleFacetCounts.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {
-                            Map<String, Integer> values = new HashMap<>();
-                            values.put(value.asText(), 1);
+                            Map<String, MutableInt> values = new HashMap<>();
+                            values.put(value.asText(), new MutableInt(1));
                             return values;
                         } else {
-                            facetValues.merge(value.asText(), 1, Integer::sum);
+                            facetValues.compute(value.asText(), (k, v) -> {
+                                if (v == null) {
+                                    return new MutableInt(1);
+                                } else {
+                                    v.increment();
+                                    return v;
+                                }
+                            });
                             return facetValues;
                         }
                     });
@@ -104,7 +114,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
                 .collect(Collectors.toMap
                         (Map.Entry::getKey, x -> x.getValue().entrySet()
                                 .stream()
-                                .map(e -> new FulltextIndex.Facet(e.getKey(), e.getValue()))
+                                .map(e -> new FulltextIndex.Facet(e.getKey(), e.getValue().intValue()))
                                 .sorted((f1, f2) -> {
                                     int f1Count = f1.getCount();
                                     int f2Count = f2.getCount();
@@ -123,7 +133,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     public List<FulltextIndex.Facet> getFacets(int numberOfFacets, String columnName) {
         LOG.trace("Requested facets for {} - Latch count: {}", columnName, latch.getCount());
         try {
-            boolean completed = latch.await(15, TimeUnit.SECONDS);
+            boolean completed = latch.await(facetsEvaluationTimeoutMs, TimeUnit.MILLISECONDS);
             if (!completed) {
                 throw new IllegalStateException("Timed out while waiting for facets");
             }

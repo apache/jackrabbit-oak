@@ -37,14 +37,24 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 
 public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
+    private static ElasticConnection createElasticConnection(ElasticConnectionRule rule, String host, int mappedPort) {
+        if (rule.useDocker()) {
+            if (host != null && mappedPort > 0) {
+                return rule.getElasticConnectionForDocker(host, mappedPort);
+            } else {
+                return rule.getElasticConnectionForDocker();
+            }
+        } else {
+            return rule.getElasticConnectionFromString();
+        }
+    }
 
     protected final ElasticConnection esConnection;
     protected final ElasticIndexTracker indexTracker;
     private final int asyncIndexingTimeInSeconds = 1;
 
-    public ElasticTestRepositoryBuilder(ElasticConnectionRule elasticRule) {
-        this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
-                elasticRule.getElasticConnectionFromString();
+    public ElasticTestRepositoryBuilder(ElasticConnectionRule elasticRule, String host, int mappedPort) {
+        this.esConnection = createElasticConnection(elasticRule, host, mappedPort);
         this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
         this.editorProvider = getIndexEditorProvider();
         this.indexProvider = new ElasticIndexProvider(indexTracker);
@@ -56,7 +66,12 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }
 
+    public ElasticTestRepositoryBuilder(ElasticConnectionRule elasticRule) {
+        this(elasticRule, null, -1);
+    }
+
     public TestRepository build() {
+        this.indexProvider = new ElasticIndexProvider(indexTracker);
         Oak oak = new Oak(nodeStore)
                 .with(securityProvider)
                 .with(editorProvider)

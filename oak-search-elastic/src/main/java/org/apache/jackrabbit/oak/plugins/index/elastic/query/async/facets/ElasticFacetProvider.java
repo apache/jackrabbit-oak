@@ -48,8 +48,8 @@ public interface ElasticFacetProvider extends FulltextIndex.FacetProvider {
             ElasticIndexDefinition indexDefinition,
             ElasticRequestHandler requestHandler,
             ElasticResponseHandler responseHandler,
-            Predicate<String> isAccessible
-    ) {
+            Predicate<String> isAccessible,
+            long facetsEvaluationTimeoutMs) {
         final ElasticFacetProvider facetProvider;
         switch (facetConfiguration.getMode()) {
             case INSECURE:
@@ -58,13 +58,13 @@ public interface ElasticFacetProvider extends FulltextIndex.FacetProvider {
             case STATISTICAL:
                 facetProvider = new ElasticStatisticalFacetAsyncProvider(connection, indexDefinition,
                         requestHandler, responseHandler, isAccessible,
-                        facetConfiguration.getStatisticalFacetSampleSize()
+                        facetConfiguration.getStatisticalFacetSampleSize(),
+                        facetsEvaluationTimeoutMs
                 );
                 break;
             case SECURE:
             default:
-                facetProvider = new ElasticSecureFacetAsyncProvider(requestHandler, responseHandler, isAccessible);
-
+                facetProvider = new ElasticSecureFacetAsyncProvider(requestHandler, responseHandler, isAccessible, facetsEvaluationTimeoutMs);
         }
         return facetProvider;
     }

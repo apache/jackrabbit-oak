@@ -44,8 +44,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -62,13 +63,10 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private final ElasticResponseHandler elasticResponseHandler;
     private final Predicate<String> isAccessible;
     private final Set<String> facetFields;
-    private final Map<String, List<FulltextIndex.Facet>> allFacets = new HashMap<>();
-    private final Map<String, Map<String, MutableInt>> accessibleFacetCounts = new HashMap<>();
-    private final CompletableFuture<SearchResponse<ObjectNode>> searchFuture;
+    private final long facetsEvaluationTimeoutMs;
 
-    private Map<String, List<FulltextIndex.Facet>> facets;
     private final SearchRequest searchRequest;
-    private final CountDownLatch latch = new CountDownLatch(1);
+    private final CompletableFuture<Map<String, List<FulltextIndex.Facet>>> searchFuture;
     private int sampled;
     private long totalHits;
 
@@ -85,13 +83,14 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
     ElasticStatisticalFacetAsyncProvider(ElasticConnection connection, ElasticIndexDefinition indexDefinition,
                                          ElasticRequestHandler elasticRequestHandler, ElasticResponseHandler elasticResponseHandler,
-                                         Predicate<String> isAccessible, int sampleSize) {
+                                         Predicate<String> isAccessible, int sampleSize, long facetsEvaluationTimeoutMs) {
 
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
         this.facetFields = elasticRequestHandler.facetFields().
                 map(ElasticIndexUtils::fieldName).
-                collect(Collectors.toSet());
+                collect(Collectors.toUnmodifiableSet());
+        this.facetsEvaluationTimeoutMs = facetsEvaluationTimeoutMs;
 
         this.searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
                 .trackTotalHits(thb -> thb.enabled(true))
@@ -109,69 +108,59 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
         this.queryStartTimeNanos = System.nanoTime();
         LOG.trace("Kicking search query with random sampling {}", searchRequest);
-        searchFuture = connection.getAsyncClient().search(searchRequest, ObjectNode.class);
-
-        searchFuture.whenCompleteAsync((searchResponse, throwable) -> {
-            try {
-                if (throwable != null) {
-                    LOG.error("Error while retrieving sample documents. Search request: {}", searchRequest, throwable);
-                } else {
-                    this.queryTimeNanos = System.nanoTime() - queryStartTimeNanos;
-                    List<Hit<ObjectNode>> searchHits = searchResponse.hits().hits();
-                    this.sampled = searchHits != null ? searchHits.size() : 0;
-                    if (sampled > 0) {
-                        this.totalHits = searchResponse.hits().total().value();
-                        processAggregations(searchResponse.aggregations());
-                        searchResponse.hits().hits()
-                                // Parallel
-                                .parallelStream().filter(this::isAccessible)
-                                // Sequential to avoid concurrency issues with accessibleFacetCounts
-                                .sequential().forEach(this::processFilteredHit);
-                        computeStatisticalFacets();
-                        if (LOG.isDebugEnabled()) {
-                            LOG.debug(timingsToString());
-                        }
-                    }
-                }
-            } finally {
-                latch.countDown();
-            }
-        });
+        this.searchFuture = connection.getAsyncClient()
+                .search(searchRequest, ObjectNode.class)
+                .thenApplyAsync(this::computeFacets);
     }
 
     @Override
     public List<FulltextIndex.Facet> getFacets(int numberOfFacets, String columnName) {
-        LOG.trace("Requested facets for {} - Latch count: {}", columnName, latch.getCount());
         try {
-            boolean completed = latch.await(15, TimeUnit.SECONDS);
-            if (!completed) {
-                searchFuture.cancel(true);
-                LOG.error("Timed out while waiting for facets. Search request: {}. {}", searchRequest, timingsToString());
-                throw new IllegalStateException("Timed out while waiting for facets");
-            }
+            LOG.trace("Requested facets for {}. Waiting up to: {}", columnName, facetsEvaluationTimeoutMs);
+            long start = System.nanoTime();
+            Map<String, List<FulltextIndex.Facet>> facets = searchFuture.get(facetsEvaluationTimeoutMs, TimeUnit.MILLISECONDS);
+            LOG.trace("Facets computed in {}.", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+            String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
+            return facets.get(field);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();  // restore interrupt status
             throw new IllegalStateException("Error while waiting for facets", e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (TimeoutException e) {
+            searchFuture.cancel(true);
+            LOG.error("Timed out while waiting for facets. Search request: {}. {}", searchRequest, timingsToString());
+            throw new IllegalStateException("Timed out while waiting for facets");
         }
-        LOG.trace("Reading facets for {} from {}", columnName, facets);
-        String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
-        return facets != null ? facets.get(field) : null;
+//        }
+//        LOG.trace("Reading facets for {} from {}", columnName, facets, new Throwable());
+//        String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
+//        return facets.get(field);
     }
 
-    private boolean isAccessible(Hit<ObjectNode> searchHit) {
-        long start = System.nanoTime();
-        String path = elasticResponseHandler.getPath(searchHit);
-        boolean result = path != null && isAccessible.test(path);
-        long durationNanos = System.nanoTime() - start;
-        long durationMillis = TimeUnit.NANOSECONDS.toMillis(durationNanos);
-        if (durationMillis > 10) {
-            LOG.debug("Slow path checking ACLs: {}, {} ms", path, durationMillis);
+    private Map<String, List<FulltextIndex.Facet>> computeFacets(SearchResponse<ObjectNode> searchResponse) {
+        LOG.info("SearchResponse: {}", searchResponse);
+        this.queryTimeNanos = System.nanoTime() - queryStartTimeNanos;
+        List<Hit<ObjectNode>> searchHits = searchResponse.hits().hits();
+        this.sampled = searchHits != null ? searchHits.size() : 0;
+        if (sampled > 0) {
+            this.totalHits = searchResponse.hits().total().value();
+            Map<String, List<FulltextIndex.Facet>> allFacets = processAggregations(searchResponse.aggregations());
+            Map<String, Map<String, MutableInt>> accessibleFacetCounts = new HashMap<>();
+            searchResponse.hits().hits().stream()
+                    .filter(this::isAccessible)
+                    .forEach(hit -> processFilteredHit(hit, accessibleFacetCounts));
+            Map<String, List<FulltextIndex.Facet>> facets = computeStatisticalFacets(allFacets, accessibleFacetCounts);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(timingsToString());
+            }
+            return facets;
+        } else {
+            return Map.of();
         }
-        aclTestTimeNanos.add(durationNanos);
-        return result;
     }
 
-    private void processFilteredHit(Hit<ObjectNode> searchHit) {
+    private void processFilteredHit(Hit<ObjectNode> searchHit, Map<String, Map<String, MutableInt>> accessibleFacetCounts) {
         long start = System.nanoTime();
         ObjectNode source = searchHit.source();
         for (String field : facetFields) {
@@ -199,19 +188,34 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         this.processHitsTimeNanos += System.nanoTime() - start;
     }
 
-    private void processAggregations(Map<String, Aggregate> aggregations) {
+    private boolean isAccessible(Hit<ObjectNode> searchHit) {
         long start = System.nanoTime();
+        String path = elasticResponseHandler.getPath(searchHit);
+        boolean result = path != null && isAccessible.test(path);
+        long durationNanos = System.nanoTime() - start;
+        long durationMillis = TimeUnit.NANOSECONDS.toMillis(durationNanos);
+        if (durationMillis > 10) {
+            LOG.debug("Slow path checking ACLs: {}, {} ms", path, durationMillis);
+        }
+        aclTestTimeNanos.add(durationNanos);
+        return result;
+    }
+
+    private Map<String, List<FulltextIndex.Facet>> processAggregations(Map<String, Aggregate> aggregations) {
+        long start = System.nanoTime();
+        Map<String, List<FulltextIndex.Facet>> allFacets = new HashMap<>();
         for (String field : facetFields) {
             List<StringTermsBucket> buckets = aggregations.get(field).sterms().buckets().array();
             allFacets.put(field, buckets.stream()
                     .map(b -> new FulltextIndex.Facet(b.key().stringValue(), (int) b.docCount()))
-                    .collect(Collectors.toList())
+                    .collect(Collectors.toUnmodifiableList())
             );
         }
         this.processAggregationsTimeNannos = System.nanoTime() - start;
+        return allFacets;
     }
 
-    private void computeStatisticalFacets() {
+    private Map<String, List<FulltextIndex.Facet>> computeStatisticalFacets(Map<String, List<FulltextIndex.Facet>> allFacets, Map<String, Map<String, MutableInt>> accessibleFacetCounts) {
         long start = System.nanoTime();
         for (String facetKey : allFacets.keySet()) {
             if (accessibleFacetCounts.containsKey(facetKey)) {
@@ -230,7 +234,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         Comparator<FulltextIndex.Facet> comparator = Comparator
                 .comparing(FulltextIndex.Facet::getCount).reversed()
                 .thenComparing(FulltextIndex.Facet::getLabel);
-        facets = accessibleFacetCounts.entrySet()
+        Map<String, List<FulltextIndex.Facet>> facets = accessibleFacetCounts.entrySet()
                 .stream()
                 .collect(Collectors.toMap
                         (Map.Entry::getKey, x -> x.getValue().entrySet()
@@ -242,6 +246,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 );
         this.computeStatisticalFacetsTimeNanos = System.nanoTime() - start;
         LOG.trace("Statistical facets {}", facets);
+        return facets;
     }
 
     private String timingsToString() {

@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -51,6 +50,7 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProvid
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_API_KEY_ID;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_API_KEY_SECRET;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_FACETS_EVALUATION_TIMEOUT_MS;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_HOST;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_MAX_RETRY_TIME;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_PORT;
@@ -205,12 +205,14 @@ public class ElasticIndexProviderServiceTest {
     public void withAsyncIteratorEnqueueTimeoutMs() {
         Map<String, Object> props = new HashMap<>(getElasticConfig());
         props.put(PROP_ELASTIC_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS, 123);
+        props.put(PROP_ELASTIC_FACETS_EVALUATION_TIMEOUT_MS, 321);
         MockOsgi.activate(service, context.bundleContext(), props);
 
         QueryIndexProvider queryIndexProvider = context.getService(QueryIndexProvider.class);
         assertNotNull(queryIndexProvider);
         ElasticIndexProvider elasticIndexProvider = (ElasticIndexProvider) queryIndexProvider;
         assertEquals(123, elasticIndexProvider.getAsyncIteratorEnqueueTimeoutMs());
+        assertEquals(321, elasticIndexProvider.getFacetsEvaluationTimeoutMs());
 
         MockOsgi.deactivate(service, context.bundleContext());
     }
