@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
@@ -27,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +47,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     private static final Logger LOG = LoggerFactory.getLogger(ElasticSecureFacetAsyncProvider.class);
 
     private final Set<String> facetFields;
-    private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, MutableInt>> accessibleFacetCounts = new ConcurrentHashMap<>();
     private final ElasticResponseHandler elasticResponseHandler;
     private final Predicate<String> isAccessible;
     private final CountDownLatch latch = new CountDownLatch(1);
@@ -82,11 +84,18 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
                 if (value != null) {
                     accessibleFacetCounts.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {
-                            Map<String, Integer> values = new HashMap<>();
-                            values.put(value.asText(), 1);
+                            Map<String, MutableInt> values = new HashMap<>();
+                            values.put(value.asText(), new MutableInt(1));
                             return values;
                         } else {
-                            facetValues.merge(value.asText(), 1, Integer::sum);
+                            facetValues.compute(value.asText(), (k, v) -> {
+                                if (v == null) {
+                                    return new MutableInt(1);
+                                } else {
+                                    v.increment();
+                                    return v;
+                                }
+                            });
                             return facetValues;
                         }
                     });
@@ -99,19 +108,17 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     @Override
     public void endData() {
         // create Facet objects, order by count (desc) and then by label (asc)
+        Comparator<FulltextIndex.Facet> comparator = Comparator
+                .comparing(FulltextIndex.Facet::getCount).reversed()
+                .thenComparing(FulltextIndex.Facet::getLabel);
+        // create Facet objects, order by count (desc) and then by label (asc)
         facets = accessibleFacetCounts.entrySet()
                 .stream()
                 .collect(Collectors.toMap
                         (Map.Entry::getKey, x -> x.getValue().entrySet()
                                 .stream()
-                                .map(e -> new FulltextIndex.Facet(e.getKey(), e.getValue()))
-                                .sorted((f1, f2) -> {
-                                    int f1Count = f1.getCount();
-                                    int f2Count = f2.getCount();
-                                    if (f1Count == f2Count) {
-                                        return f1.getLabel().compareTo(f2.getLabel());
-                                    } else return f2Count - f1Count;
-                                })
+                                .map(e -> new FulltextIndex.Facet(e.getKey(), e.getValue().intValue()))
+                                .sorted(comparator)
                                 .collect(Collectors.toList())
                         )
                 );
