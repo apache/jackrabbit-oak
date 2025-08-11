@@ -45,6 +45,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     private static final Logger LOG = LoggerFactory.getLogger(ElasticSecureFacetAsyncProvider.class);
 
     private final Set<String> facetFields;
+    private final long facetsEvaluationTimeoutMs;
     private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
     private final ElasticResponseHandler elasticResponseHandler;
     private final Predicate<String> isAccessible;
@@ -54,13 +55,14 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     ElasticSecureFacetAsyncProvider(
             ElasticRequestHandler elasticRequestHandler,
             ElasticResponseHandler elasticResponseHandler,
-            Predicate<String> isAccessible
-    ) {
+            Predicate<String> isAccessible,
+            long facetsEvaluationTimeoutMs) {
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
         this.facetFields = elasticRequestHandler.facetFields().
                 map(ElasticIndexUtils::fieldName).
-                collect(Collectors.toSet());
+                collect(Collectors.toUnmodifiableSet());
+        this.facetsEvaluationTimeoutMs = facetsEvaluationTimeoutMs;
     }
 
     @Override
@@ -123,7 +125,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     public List<FulltextIndex.Facet> getFacets(int numberOfFacets, String columnName) {
         LOG.trace("Requested facets for {} - Latch count: {}", columnName, latch.getCount());
         try {
-            boolean completed = latch.await(15, TimeUnit.SECONDS);
+            boolean completed = latch.await(facetsEvaluationTimeoutMs, TimeUnit.MILLISECONDS);
             if (!completed) {
                 throw new IllegalStateException("Timed out while waiting for facets");
             }

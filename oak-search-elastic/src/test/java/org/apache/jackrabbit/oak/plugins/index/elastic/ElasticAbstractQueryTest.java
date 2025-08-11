@@ -163,7 +163,10 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100),
                 getElasticRetryPolicy());
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker, getAsyncIteratorEnqueueTimeoutMs());
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(
+                indexTracker,
+                getAsyncIteratorEnqueueTimeoutMs(),
+                getFacetsEvaluationTimeoutMs());
 
 
         asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(
@@ -192,6 +195,10 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
     protected long getAsyncIteratorEnqueueTimeoutMs() {
         return ElasticIndexProvider.DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS;
+    }
+
+    protected long getFacetsEvaluationTimeoutMs() {
+        return ElasticIndexProvider.DEFAULT_FACETS_EVALUATION_TIMEOUT_MS;
     }
 
     protected long limitReads() {

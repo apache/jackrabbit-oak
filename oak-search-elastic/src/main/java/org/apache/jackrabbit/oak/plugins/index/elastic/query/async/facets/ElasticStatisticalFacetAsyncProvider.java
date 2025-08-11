@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
+import co.elastic.clients.elasticsearch._types.mapping.FieldType;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -28,15 +36,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
-import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
-import co.elastic.clients.elasticsearch._types.mapping.FieldType;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,6 +61,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private final ElasticResponseHandler elasticResponseHandler;
     private final Predicate<String> isAccessible;
     private final Set<String> facetFields;
+    private final long facetsEvaluationTimeoutMs;
     private final Map<String, List<FulltextIndex.Facet>> allFacets = new HashMap<>();
     private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
     private Map<String, List<FulltextIndex.Facet>> facets;
@@ -72,13 +72,14 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
     ElasticStatisticalFacetAsyncProvider(ElasticConnection connection, ElasticIndexDefinition indexDefinition,
                                          ElasticRequestHandler elasticRequestHandler, ElasticResponseHandler elasticResponseHandler,
-                                         Predicate<String> isAccessible, long randomSeed, int sampleSize) {
+                                         Predicate<String> isAccessible, int sampleSize, long facetsEvaluationTimeoutMs) {
 
         this.elasticResponseHandler = elasticResponseHandler;
         this.isAccessible = isAccessible;
         this.facetFields = elasticRequestHandler.facetFields().
                 map(ElasticIndexUtils::fieldName).
-                collect(Collectors.toSet());
+                collect(Collectors.toUnmodifiableSet());
+        this.facetsEvaluationTimeoutMs = facetsEvaluationTimeoutMs;
 
         this.searchRequest = SearchRequest.of(srb -> srb.index(indexDefinition.getIndexAlias())
                 .trackTotalHits(thb -> thb.enabled(true))
@@ -87,8 +88,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 .aggregations(elasticRequestHandler.aggregations())
                 .size(sampleSize)
                 .sort(s ->
-                        s.field(fs -> fs.field(
-                                ElasticIndexDefinition.PATH_RANDOM_VALUE)
+                        s.field(fs -> fs.field(ElasticIndexDefinition.PATH_RANDOM_VALUE)
                                 // this will handle the case when the field is not present in the index
                                 .unmappedType(FieldType.Integer)
                         )
@@ -123,7 +123,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     public List<FulltextIndex.Facet> getFacets(int numberOfFacets, String columnName) {
         LOG.trace("Requested facets for {} - Latch count: {}", columnName, latch.getCount());
         try {
-            boolean completed = latch.await(15, TimeUnit.SECONDS);
+            boolean completed = latch.await(facetsEvaluationTimeoutMs, TimeUnit.MILLISECONDS);
             if (!completed) {
                 LOG.error("Timed out while waiting for facets. Search request: {}", searchRequest);
                 throw new IllegalStateException("Timed out while waiting for facets");
