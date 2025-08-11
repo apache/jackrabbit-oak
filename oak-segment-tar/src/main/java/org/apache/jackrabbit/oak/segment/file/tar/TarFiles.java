@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Objects.requireNonNull;
 
@@ -26,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -881,29 +883,15 @@ public class TarFiles implements Closeable {
             lock.readLock().unlock();
         }
 
-        Set<UUID> index = null;
-        Map<UUID, List<UUID>> graph = null;
-
         for (TarReader reader : iterable(head)) {
             if (fileName.equals(reader.getFileName())) {
-                index = reader.getUUIDs();
-                graph = reader.getGraph();
-                break;
+                Map<UUID, Set<UUID>> result = new HashMap<>();
+                reader.getUUIDs().forEach((uuid -> result.put(uuid, emptySet())));
+                result.putAll(reader.getGraph().getEdges());
+                return result;
             }
         }
-
-        Map<UUID, Set<UUID>> result = new HashMap<>();
-        if (index != null) {
-            for (UUID uuid : index) {
-                result.put(uuid, emptySet());
-            }
-        }
-        if (graph != null) {
-            for (Entry<UUID, List<UUID>> entry : graph.entrySet()) {
-                result.put(entry.getKey(), new HashSet<>(entry.getValue()));
-            }
-        }
-        return result;
+        return emptyMap();
     }
 
     public Map<String, Set<UUID>> getIndices() {

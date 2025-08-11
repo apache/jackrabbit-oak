@@ -31,6 +31,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.connection.ClusterSettings;
 import com.mongodb.connection.ClusterDescription;
 import com.mongodb.connection.ClusterType;
 import com.mongodb.connection.ConnectionPoolSettings;
@@ -39,10 +40,11 @@ import com.mongodb.connection.SocketSettings;
 
 import static java.util.Objects.requireNonNull;
 
-import org.jetbrains.annotations.NotNull;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService;
 
-import org.slf4j.LoggerFactory;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@code MongoConnection} abstracts connection to the {@code MongoDB}.
@@ -53,8 +55,6 @@ public class MongoConnection {
 
     public static final String MONGODB_PREFIX = "mongodb://";
 
-    private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
-    private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final Set<ReadConcernLevel> REPLICA_RC = Set.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
     private final ConnectionString mongoURI;
     private final MongoClient mongo;
@@ -177,26 +177,50 @@ public class MongoConnection {
     public static MongoClientSettings.Builder getDefaultBuilder() {
         return MongoClientSettings.builder()
                 .applicationName("MongoConnection for Oak DocumentMK")
-                .applyToConnectionPoolSettings(builder -> builder
-                        .maxWaitTime(DEFAULT_MAX_WAIT_TIME, java.util.concurrent.TimeUnit.MILLISECONDS))
-                .applyToServerSettings(builder -> builder
-                        .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS, java.util.concurrent.TimeUnit.MILLISECONDS))
-                .applyToConnectionPoolSettings(builder -> builder
-                        .maxSize(100));
+                // Apply default connection pool settings
+                .applyToConnectionPoolSettings(poolBuilder -> poolBuilder
+                        .maxSize(DocumentNodeStoreService.DEFAULT_MONGO_MAX_POOL_SIZE)
+                        .minSize(DocumentNodeStoreService.DEFAULT_MONGO_MIN_POOL_SIZE)
+                        .maxConnecting(DocumentNodeStoreService.DEFAULT_MONGO_MAX_CONNECTING)
+                        .maxConnectionIdleTime(DocumentNodeStoreService.DEFAULT_MONGO_MAX_IDLE_TIME_MILLIS, TimeUnit.MILLISECONDS)
+                        .maxConnectionLifeTime(DocumentNodeStoreService.DEFAULT_MONGO_MAX_LIFE_TIME_MILLIS, TimeUnit.MILLISECONDS)
+                        .maxWaitTime(DocumentNodeStoreService.DEFAULT_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+                // Apply default socket settings
+                .applyToSocketSettings(socketBuilder -> socketBuilder
+                        .connectTimeout(DocumentNodeStoreService.DEFAULT_MONGO_CONNECT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                        .readTimeout(DocumentNodeStoreService.DEFAULT_MONGO_READ_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+                // Apply default server settings
+                .applyToServerSettings(serverBuilder -> serverBuilder
+                        .heartbeatFrequency(DocumentNodeStoreService.DEFAULT_MONGO_HEARTBEAT_FREQUENCY_MILLIS, TimeUnit.MILLISECONDS)
+                        .minHeartbeatFrequency(DocumentNodeStoreService.DEFAULT_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS, TimeUnit.MILLISECONDS))
+                // Apply default cluster settings
+                .applyToClusterSettings(clusterBuilder -> clusterBuilder
+                        .serverSelectionTimeout(DocumentNodeStoreService.DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS));
     }
 
     public static String toString(MongoClientSettings settings) {
         ConnectionPoolSettings poolSettings = settings.getConnectionPoolSettings();
         SocketSettings socketSettings = settings.getSocketSettings();
         ServerSettings serverSettings = settings.getServerSettings();
+        ClusterSettings clusterSettings = settings.getClusterSettings();
 
         return new StringJoiner(", ", MongoClientSettings.class.getSimpleName() + "[", "]")
-                .add("connectionsPerHost=" + poolSettings.getMaxSize())
-                .add("connectTimeout=" + socketSettings.getConnectTimeout(TimeUnit.MILLISECONDS))
-                .add("socketTimeout=" + socketSettings.getReadTimeout(TimeUnit.MILLISECONDS))
-                .add("maxWaitTime=" + poolSettings.getMaxWaitTime(TimeUnit.MILLISECONDS))
-                .add("heartbeatFrequency=" + serverSettings.getHeartbeatFrequency(TimeUnit.MILLISECONDS))
-                .add("threadsAllowedToBlockForConnectionMultiplier=" + poolSettings.getMaxSize())  // Handled via maxSize in connection pool
+                // Connection Pool Settings
+                .add("pool.maxSize=" + poolSettings.getMaxSize())
+                .add("pool.minSize=" + poolSettings.getMinSize())
+                .add("pool.maxConnecting=" + poolSettings.getMaxConnecting())
+                .add("pool.maxIdleTime=" + poolSettings.getMaxConnectionIdleTime(TimeUnit.MILLISECONDS))
+                .add("pool.maxLifeTime=" + poolSettings.getMaxConnectionLifeTime(TimeUnit.MILLISECONDS))
+                .add("pool.maxWaitTime=" + poolSettings.getMaxWaitTime(TimeUnit.MILLISECONDS))
+                // Socket Settings
+                .add("socket.connectTimeout=" + socketSettings.getConnectTimeout(TimeUnit.MILLISECONDS))
+                .add("socket.readTimeout=" + socketSettings.getReadTimeout(TimeUnit.MILLISECONDS))
+                // Server Settings
+                .add("server.heartbeatFreq=" + serverSettings.getHeartbeatFrequency(TimeUnit.MILLISECONDS))
+                .add("server.minHeartbeatFreq=" + serverSettings.getMinHeartbeatFrequency(TimeUnit.MILLISECONDS))
+                // Cluster Settings
+                .add("cluster.serverSelectionTimeout=" + clusterSettings.getServerSelectionTimeout(TimeUnit.MILLISECONDS))
+                // Connection Settings
                 .add("readPreference=" + settings.getReadPreference().getName())
                 .add("writeConcern=" + settings.getWriteConcern())
                 .toString();

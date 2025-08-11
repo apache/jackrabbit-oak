@@ -26,25 +26,6 @@ public class TarConstants {
     static final String FILE_NAME_FORMAT = "data%05d%s.tar";
 
     /**
-     * Magic byte sequence at the end of the graph block.
-     * <p>
-     * The file is read from the end (the tar file is read from the end: the
-     * last entry is the index, then the graph). File format:
-     * <ul>
-     * <li>0 padding to make the footer end at a 512 byte boundary</li>
-     * <li>The list of UUIDs (segments included the graph; this includes
-     * segments in this tar file, and referenced segments in tar files with a
-     * lower sequence number). 16 bytes each.</li>
-     * <li>The graph data. The index of the source segment UUID (in the above
-     * list, 4 bytes), then the list of referenced segments (the indexes of
-     * those; 4 bytes each). Then the list is terminated by -1.</li>
-     * <li>The last part is the footer, which contains metadata of the graph
-     * (size, checksum, the number of UUIDs).</li>
-     * </ul>
-     */
-    public static final int GRAPH_MAGIC = ('\n' << 24) + ('0' << 16) + ('G' << 8) + '\n';
-
-    /**
      * The tar file block size.
      */
     public static final int BLOCK_SIZE = 512;

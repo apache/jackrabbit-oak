@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.jetbrains.annotations.NotNull;
@@ -63,18 +64,12 @@ public class CachingSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     @Override
-    @Nullable
-    public Buffer getGraph() throws IOException {
+    public @NotNull SegmentGraph getGraph() throws IOException {
         return delegate.getGraph();
     }
 
     @Override
-    public boolean hasGraph() {
-        return delegate.hasGraph();
-    }
-
-    @Override
-    @NotNull
+    @Nullable
     public Buffer getBinaryReferences() throws IOException {
         return delegate.getBinaryReferences();
     }
