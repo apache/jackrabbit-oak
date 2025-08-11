@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,19 +110,17 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     @Override
     public void endData() {
         // create Facet objects, order by count (desc) and then by label (asc)
+        Comparator<FulltextIndex.Facet> comparator = Comparator
+                .comparing(FulltextIndex.Facet::getCount).reversed()
+                .thenComparing(FulltextIndex.Facet::getLabel);
+        // create Facet objects, order by count (desc) and then by label (asc)
         facets = accessibleFacetCounts.entrySet()
                 .stream()
                 .collect(Collectors.toMap
                         (Map.Entry::getKey, x -> x.getValue().entrySet()
                                 .stream()
                                 .map(e -> new FulltextIndex.Facet(e.getKey(), e.getValue().intValue()))
-                                .sorted((f1, f2) -> {
-                                    int f1Count = f1.getCount();
-                                    int f2Count = f2.getCount();
-                                    if (f1Count == f2Count) {
-                                        return f1.getLabel().compareTo(f2.getLabel());
-                                    } else return f2Count - f1Count;
-                                })
+                                .sorted(comparator)
                                 .collect(Collectors.toList())
                         )
                 );
