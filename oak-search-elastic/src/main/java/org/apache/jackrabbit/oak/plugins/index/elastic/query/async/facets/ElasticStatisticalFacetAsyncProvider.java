@@ -182,10 +182,11 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 Map<String, MutableInt> accessibleFacet = accessibleFacetCounts.get(facetKey);
                 List<FulltextIndex.Facet> uncheckedFacet = allFacets.get(facetKey);
                 for (FulltextIndex.Facet facet : uncheckedFacet) {
-                    if (accessibleFacet.containsKey(facet.getLabel())) {
-                        double sampleProportion = (double) accessibleFacet.get(facet.getLabel()).intValue() / sampled;
+                    MutableInt currCount = accessibleFacet.get(facet.getLabel());
+                    if (currCount != null) {
+                        double sampleProportion = accessibleFacet.get(facet.getLabel()).doubleValue() / sampled;
                         // returned count is the minimum between the accessible count and the count computed from the sample
-                        accessibleFacet.put(facet.getLabel(), new MutableInt(Math.min(facet.getCount(), (int) (sampleProportion * totalHits))));
+                        currCount.setValue(Math.min(facet.getCount(), (int) (sampleProportion * totalHits)));
                     }
                 }
             }
