@@ -130,11 +130,9 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 throw new IllegalStateException("Error while waiting for facets", e);
             } catch (ExecutionException e) {
                 LOG.error("Error evaluating facets", e);
-                return null;
             } catch (TimeoutException e) {
                 searchFuture.cancel(true);
                 LOG.error("Timed out while waiting for facets. Search request: {}. {}", searchRequest, timingsToString());
-                return null;
             }
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);
