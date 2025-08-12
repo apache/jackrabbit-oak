@@ -78,6 +78,7 @@ public class Traverser {
             // add first element during initialization
             stack.push(root);
         }
+
         @Override
         public boolean hasNext() {
             return !stack.isEmpty();
