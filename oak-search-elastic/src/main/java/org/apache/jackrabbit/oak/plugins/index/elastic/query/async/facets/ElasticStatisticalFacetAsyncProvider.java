@@ -125,14 +125,14 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 long start = System.nanoTime();
                 facets = searchFuture.get(facetsEvaluationTimeoutMs, TimeUnit.MILLISECONDS);
                 LOG.trace("Facets computed in {}.", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();  // restore interrupt status
-                throw new IllegalStateException("Error while waiting for facets", e);
             } catch (ExecutionException e) {
                 LOG.error("Error evaluating facets", e);
             } catch (TimeoutException e) {
                 searchFuture.cancel(true);
                 LOG.error("Timed out while waiting for facets. Search request: {}. {}", searchRequest, timingsToString());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();  // restore interrupt status
+                throw new IllegalStateException("Error while waiting for facets", e);
             }
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);
