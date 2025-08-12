@@ -64,7 +64,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private final Predicate<String> isAccessible;
     private final Set<String> facetFields;
     private final long facetsEvaluationTimeoutMs;
-
+    private Map<String, List<FulltextIndex.Facet>> facets;
     private final SearchRequest searchRequest;
     private final CompletableFuture<Map<String, List<FulltextIndex.Facet>>> searchFuture;
     private int sampled;
@@ -107,7 +107,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         );
 
         this.queryStartTimeNanos = System.nanoTime();
-        LOG.trace("Kicking search query with random sampling {}", searchRequest);
+        LOG.trace("Kicking search query with random sampling {}", searchRequest, new Throwable());
         this.searchFuture = connection.getAsyncClient()
                 .search(searchRequest, ObjectNode.class)
                 .thenApplyAsync(this::computeFacets);
@@ -115,27 +115,26 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
     @Override
     public List<FulltextIndex.Facet> getFacets(int numberOfFacets, String columnName) {
-        try {
-            LOG.trace("Requested facets for {}. Waiting up to: {}", columnName, facetsEvaluationTimeoutMs);
-            long start = System.nanoTime();
-            Map<String, List<FulltextIndex.Facet>> facets = searchFuture.get(facetsEvaluationTimeoutMs, TimeUnit.MILLISECONDS);
-            LOG.trace("Facets computed in {}.", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
-            String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
-            return facets.get(field);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();  // restore interrupt status
-            throw new IllegalStateException("Error while waiting for facets", e);
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        } catch (TimeoutException e) {
-            searchFuture.cancel(true);
-            LOG.error("Timed out while waiting for facets. Search request: {}. {}", searchRequest, timingsToString());
-            throw new IllegalStateException("Timed out while waiting for facets");
+        if (!searchFuture.isDone()) {
+            try {
+                LOG.trace("Requested facets for {}. Waiting up to: {}", columnName, facetsEvaluationTimeoutMs);
+                long start = System.nanoTime();
+                facets = searchFuture.get(facetsEvaluationTimeoutMs, TimeUnit.MILLISECONDS);
+                LOG.trace("Facets computed in {}.", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();  // restore interrupt status
+                throw new IllegalStateException("Error while waiting for facets", e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            } catch (TimeoutException e) {
+                searchFuture.cancel(true);
+                LOG.error("Timed out while waiting for facets. Search request: {}. {}", searchRequest, timingsToString());
+                throw new IllegalStateException("Timed out while waiting for facets");
+            }
         }
-//        }
-//        LOG.trace("Reading facets for {} from {}", columnName, facets, new Throwable());
-//        String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
-//        return facets.get(field);
+        LOG.trace("Reading facets for {} from {}", columnName, facets);
+        String field = ElasticIndexUtils.fieldName(FulltextIndex.parseFacetField(columnName));
+        return facets != null ? facets.get(field) : null;
     }
 
     private Map<String, List<FulltextIndex.Facet>> computeFacets(SearchResponse<ObjectNode> searchResponse) {
@@ -222,10 +221,11 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 Map<String, MutableInt> accessibleFacet = accessibleFacetCounts.get(facetKey);
                 List<FulltextIndex.Facet> uncheckedFacet = allFacets.get(facetKey);
                 for (FulltextIndex.Facet facet : uncheckedFacet) {
-                    if (accessibleFacet.containsKey(facet.getLabel())) {
-                        double sampleProportion = (double) accessibleFacet.get(facet.getLabel()).intValue() / sampled;
+                    MutableInt currCount = accessibleFacet.get(facet.getLabel());
+                    if (currCount != null) {
+                        double sampleProportion = accessibleFacet.get(facet.getLabel()).doubleValue() / sampled;
                         // returned count is the minimum between the accessible count and the count computed from the sample
-                        accessibleFacet.put(facet.getLabel(), new MutableInt(Math.min(facet.getCount(), (int) (sampleProportion * totalHits))));
+                        currCount.setValue(Math.min(facet.getCount(), (int) (sampleProportion * totalHits)));
                     }
                 }
             }

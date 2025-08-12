@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import eu.rekawek.toxiproxy.Proxy;
 import eu.rekawek.toxiproxy.ToxiproxyClient;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
-import eu.rekawek.toxiproxy.model.toxic.Bandwidth;
 import eu.rekawek.toxiproxy.model.toxic.Latency;
+import eu.rekawek.toxiproxy.model.toxic.LimitData;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.FacetBaseTest;
@@ -61,10 +61,10 @@ public class ElasticReliabilityFacetTest extends FacetBaseTest {
     protected ToxiproxyContainer toxiproxy;
     protected Proxy proxy;
 
-    // Timeout facet evaluation after 1 second.
-    @Rule
-    public final ProvideSystemProperty facetsSystemProperties
-            = new ProvideSystemProperty(FACETS_EVALUATION_TIMEOUT_MS_PROPERTY, "1000");
+    // Use a very low timeout for callers requesting facets
+//    @Rule
+//    public final ProvideSystemProperty facetsSystemProperties
+//            = new ProvideSystemProperty(FACETS_EVALUATION_TIMEOUT_MS_PROPERTY, "10");
 
     @Override
     public void before() throws Exception {
@@ -106,12 +106,11 @@ public class ElasticReliabilityFacetTest extends FacetBaseTest {
     public void callerTimeoutsWaitingForFacets() throws Exception {
         Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
-        facetConfig.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, 100);
-        indexNode.setProperty(ElasticIndexDefinition.QUERY_TIMEOUT_MS, 10L);
+        facetConfig.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, 3000);
         adminSession.save();
 
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        Latency latency = proxy.toxics().latency("latency", ToxicDirection.DOWNSTREAM, 1000);
+        LimitData latency = proxy.toxics().limitData("latency", ToxicDirection.DOWNSTREAM, 1000);
         try {
             Map<String, Integer> facets = getFacets();
             fail("Should have failed. Instead got: " + facets);
@@ -121,29 +120,8 @@ public class ElasticReliabilityFacetTest extends FacetBaseTest {
         } finally {
             latency.remove();
         }
-
     }
 
-    @Test
-    public void facetsEvaluationTimeouts() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
-        facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
-        facetConfig.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, 100);
-        adminSession.save();
-
-        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-
-        Bandwidth slowBandwidth = proxy.toxics().bandwidth("latency", ToxicDirection.DOWNSTREAM, 1000);
-        try {
-            Map<String, Integer> facets = getFacets();
-            fail("Should have failed. Instead got: " + facets);
-        } catch (RuntimeException e) {
-            assertTrue("Exception message should contain 'Timeout waiting for next result from'",
-                    e.getMessage().contains("Timeout waiting for next result from"));
-        } finally {
-            slowBandwidth.remove();
-        }
-    }
 
     @Test
     public void noDelays() throws Exception {
@@ -168,5 +146,18 @@ public class ElasticReliabilityFacetTest extends FacetBaseTest {
                         Math.abs(ratio - 1) < 0.1);
             }
         });
+
+//        LimitData latency = proxy.toxics().limitData("latency", ToxicDirection.DOWNSTREAM, 1000);
+        Latency latency = proxy.toxics().latency("latency", ToxicDirection.DOWNSTREAM, 1000);
+        try {
+            Map<String, Integer> facets = getFacets();
+            fail("Should have failed. Instead got: " + facets);
+        } catch (RuntimeException e) {
+            assertTrue("Exception message should contain 'Timeout waiting for next result from'",
+                    e.getMessage().contains("Timeout waiting for next result from"));
+        } finally {
+            latency.remove();
+        }
+
     }
 }
