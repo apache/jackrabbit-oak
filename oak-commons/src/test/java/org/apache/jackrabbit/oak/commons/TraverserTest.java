@@ -19,7 +19,9 @@
 
 package org.apache.jackrabbit.oak.commons;
 
+import com.google.common.collect.TreeTraverser;
 import org.apache.commons.collections4.FluentIterable;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -212,6 +214,20 @@ public class TraverserTest {
         Assert.assertEquals(Arrays.asList(4, 0, 2, 1, 3, 5, 6, 7, 8, 9), result);
     }
 
+    // TODO remove this test when we remove guava dependency
+    @Test
+    public void testPreOrderTraversalWithRandomTree() {
+
+        final Node root = getRoot(10000);
+
+        List<Integer> result = Traverser.preOrderTraversal(root, Node::getChildren)
+                .transform(Node::getValue)
+                .toList();
+
+        // In post-order: left subtree, right subtree, root
+        Assert.assertEquals(result, traverser.preOrderTraversal(root).transform(Node::getValue).toList());
+    }
+
     @Test
     public void testBreadthFirstTraversalWithNullRoot() {
         FluentIterable<Node> result = Traverser.breadthFirstTraversal(null, Node::getChildren);
@@ -318,11 +334,24 @@ public class TraverserTest {
         Assert.assertEquals(Arrays.asList(4, 0, 2, 6, 1, 3, 5, 7, 8, 9), result);
     }
 
+    // TODO remove this test when we remove guava dependency
+    @Test
+    public void testBreadthFirstOrderTraversalWithRandomTree() {
+
+        final Node root = getRoot(10000);
+
+        List<Integer> result = Traverser.breadthFirstTraversal(root, Node::getChildren)
+                .transform(Node::getValue)
+                .toList();
+
+        // In post-order: left subtree, right subtree, root
+        Assert.assertEquals(result, traverser.breadthFirstTraversal(root).transform(Node::getValue).toList());
+    }
+
     // Helper class for testing tree traversal
     private static class Node {
         private final int value;
         private final List<Node> children = new ArrayList<>();
-
         public Node(int value, Node... children) {
             this.value = value;
             this.children.addAll(Arrays.asList(children));
@@ -344,5 +373,51 @@ public class TraverserTest {
         public String toString() {
             return Integer.toString(value);
         }
+
     }
+    private @NotNull Node getRoot(final int count) {
+        final Node root = new Node(4);
+
+        List<Node> parents = new ArrayList<>();
+        parents.add(root);  // Start with root as the only parent
+
+        java.util.Random random = new java.util.Random();
+        int nodesCreated = 1;  // Start at 1 to account for the root
+
+        while (nodesCreated < count && !parents.isEmpty()) {
+            List<Node> nextParents = new ArrayList<>();
+
+            // For each current parent
+            for (Node parent : parents) {
+                // Randomly determine how many children to add (0-5)
+                int numChildren = random.nextInt(6);
+
+                // Make sure we don't exceed the total count
+                numChildren = Math.min(numChildren, count - nodesCreated);
+
+                // Add the random number of children
+                for (int i = 0; i < numChildren; i++) {
+                    Node child = new Node(nodesCreated + 4);  // Unique value
+                    parent.addChild(child);
+                    nodesCreated++;
+
+                    // Each child has a chance to become a parent in the next round
+                    if (random.nextBoolean()) {
+                        nextParents.add(child);
+                    }
+                }
+            }
+            // Update parents for the next round
+            parents = nextParents;
+        }
+        return root;
+    }
+
+    final TreeTraverser<Node> traverser = new TreeTraverser<>() {
+
+        @Override
+        public Iterable<Node> children(Node root) {
+            return root.getChildren();
+        }
+    };
 }

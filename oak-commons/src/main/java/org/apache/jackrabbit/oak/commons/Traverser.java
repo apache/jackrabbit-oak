@@ -24,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -68,18 +69,22 @@ public class Traverser {
 
     private static final class PreOrderIterator<T> implements Iterator<T> {
 
-        private final Deque<T> stack;
+        private final Deque<Iterator<? extends T>> stack;
         private final Function<T, Iterable<? extends T>> childExtractor;
 
         public PreOrderIterator(final T root, final Function<T, Iterable<? extends T>> childExtractor) {
             this.childExtractor = childExtractor;
             this.stack = new ArrayDeque<>();
             // add first element during initialization
-            stack.push(root);
+            stack.addLast(Collections.singletonList(root).iterator());
         }
 
         @Override
         public boolean hasNext() {
+            // Remove any empty iterators from the top of the stack
+            while (!stack.isEmpty() && !stack.peek().hasNext()) {
+                stack.pop();
+            }
             return !stack.isEmpty();
         }
 
@@ -89,16 +94,14 @@ public class Traverser {
                 throw new NoSuchElementException("No more nodes in the tree");
             }
 
-            final T current = stack.pop();
+            // Get next element from the current iterator
+            T current = stack.peek().next();
 
-            // Push children in reverse order so they're popped in correct order
-            List<T> children = new ArrayList<>();
-            // NPE if the current is null
-            childExtractor.apply(current).forEach(children::add);
-
-            for (int i = children.size() - 1; i >= 0; i--) {
-                // NPE if the child is null
-                stack.push(children.get(i));
+            // Push the iterator for children onto the stack
+            // Children added later will be processed first in pre-order traversal
+            Iterator<? extends T> childIter = childExtractor.apply(current).iterator();
+            if (childIter.hasNext()) {
+                stack.push(childIter);
             }
             return current;
         }
