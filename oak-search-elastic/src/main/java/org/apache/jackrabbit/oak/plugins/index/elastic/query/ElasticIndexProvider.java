@@ -30,7 +30,7 @@ public class ElasticIndexProvider implements QueryIndexProvider {
     public static final String ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS_PROPERTY = "oak.index.elastic.query.asyncIteratorEnqueueTimeoutMs";
     public static final long DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS = 60000L; // 60 seconds
     public static final String FACETS_EVALUATION_TIMEOUT_MS_PROPERTY = "oak.index.elastic.query.facetsEvaluationTimeoutMs";
-    public static final long DEFAULT_FACETS_EVALUATION_TIMEOUT_MS = 15000L; // 60 seconds
+    public static final long DEFAULT_FACETS_EVALUATION_TIMEOUT_MS = 15000L; // 15 seconds
 
     private final ElasticIndexTracker indexTracker;
     private final long asyncIteratorEnqueueTimeoutMs;
