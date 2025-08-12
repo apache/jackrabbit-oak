@@ -115,6 +115,10 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
 
     @Override
     public List<FulltextIndex.Facet> getFacets(int numberOfFacets, String columnName) {
+        // TODO: In case of failure, we log an exception and return null. This is likely not the ideal behavior, as the
+        //   caller has no way to distinguish between a failure and empty results. But in this PR I'm leaving this
+        //   behavior as is to not introduce further changes. We should revise this behavior once the queries for facets
+        //   are decoupled from the query for results, as this will make it easier to better handle errors
         if (!searchFuture.isDone()) {
             try {
                 LOG.trace("Requested facets for {}. Waiting up to: {}", columnName, facetsEvaluationTimeoutMs);
@@ -125,11 +129,12 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 Thread.currentThread().interrupt();  // restore interrupt status
                 throw new IllegalStateException("Error while waiting for facets", e);
             } catch (ExecutionException e) {
-                throw new RuntimeException(e);
+                LOG.error("Error evaluating facets", e);
+                return null;
             } catch (TimeoutException e) {
                 searchFuture.cancel(true);
                 LOG.error("Timed out while waiting for facets. Search request: {}. {}", searchRequest, timingsToString());
-                throw new IllegalStateException("Timed out while waiting for facets");
+                return null;
             }
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);
@@ -147,6 +152,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
             Map<String, List<FulltextIndex.Facet>> allFacets = processAggregations(searchResponse.aggregations());
             Map<String, Map<String, MutableInt>> accessibleFacetCounts = new HashMap<>();
             searchResponse.hits().hits().stream()
+                    // Possible candidate for parallelization using parallel streams
                     .filter(this::isAccessible)
                     .forEach(hit -> processFilteredHit(hit, accessibleFacetCounts));
             Map<String, List<FulltextIndex.Facet>> facets = computeStatisticalFacets(allFacets, accessibleFacetCounts);
