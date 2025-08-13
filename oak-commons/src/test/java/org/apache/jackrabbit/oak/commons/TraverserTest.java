@@ -61,8 +61,7 @@ public class TraverserTest {
 
     @Test
     public void testPreOrderTraversalWithNullRoot() {
-        FluentIterable<Node> result = Traverser.preOrderTraversal(null, Node::getChildren);
-        Assert.assertTrue(result.isEmpty());
+        Assert.assertThrows(NullPointerException.class, () -> Traverser.preOrderTraversal(null, Node::getChildren));
     }
 
     @Test
@@ -230,8 +229,7 @@ public class TraverserTest {
 
     @Test
     public void testBreadthFirstTraversalWithNullRoot() {
-        FluentIterable<Node> result = Traverser.breadthFirstTraversal(null, Node::getChildren);
-        Assert.assertTrue(result.isEmpty());
+        Assert.assertThrows(NullPointerException.class, () -> Traverser.breadthFirstTraversal(null, Node::getChildren));
     }
 
     @Test
@@ -374,8 +372,7 @@ public class TraverserTest {
 
     @Test
     public void testPostOrderTraversalWithNullRoot() {
-        FluentIterable<Node> result = Traverser.postOrderTraversal(null, Node::getChildren);
-        Assert.assertTrue(result.isEmpty());
+        Assert.assertThrows(NullPointerException.class, () -> Traverser.postOrderTraversal(null, Node::getChildren));
     }
 
     @Test

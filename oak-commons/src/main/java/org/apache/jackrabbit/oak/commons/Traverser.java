@@ -51,11 +51,8 @@ public class Traverser {
     @NotNull
     public static <T> FluentIterable<T> preOrderTraversal(final T root, final @NotNull Function<T, Iterable<? extends T>> childExtractor) {
 
+        Objects.requireNonNull(root, "root must not be null");
         Objects.requireNonNull(childExtractor, "Children extractor function must not be null");
-
-        if (root == null) {
-            return FluentIterable.empty();
-        }
 
         return FluentIterable.of(new Iterable<>() {
             @Override
@@ -121,11 +118,9 @@ public class Traverser {
      */
     @NotNull
     public static <T> FluentIterable<T> breadthFirstTraversal(final T root, final @NotNull Function<T, Iterable<? extends T>> childExtractor) {
-        Objects.requireNonNull(childExtractor, "Children extractor function must not be null");
 
-        if (root == null) {
-            return FluentIterable.empty();
-        }
+        Objects.requireNonNull(root, "root must not be null");
+        Objects.requireNonNull(childExtractor, "Children extractor function must not be null");
 
         return FluentIterable.of(new Iterable<>() {
             @Override
@@ -181,11 +176,10 @@ public class Traverser {
      * @return an iterator that traverses the tree in post-order
      * @throws NullPointerException if childExtractor or any child is null
      */
-    public static <T> FluentIterable<T> postOrderTraversal(final T root, final @NotNull Function<T, Iterable<? extends T>> childExtractor) {
+    public static <T> FluentIterable<T> postOrderTraversal(final T root, final Function<T, Iterable<? extends T>> childExtractor) {
+        Objects.requireNonNull(root, "root must not be null");
         Objects.requireNonNull(childExtractor, "Children extractor function must not be null");
-        if (root == null) {
-            return FluentIterable.empty();
-        }
+
         return FluentIterable.of(new Iterable<>() {
             @Override
             public @NotNull Iterator<T> iterator() {
