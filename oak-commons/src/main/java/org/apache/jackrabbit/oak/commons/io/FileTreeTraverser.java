@@ -18,37 +18,37 @@
  */
 package org.apache.jackrabbit.oak.commons.io;
 
-import org.apache.jackrabbit.guava.common.graph.SuccessorsFunction;
-import org.apache.jackrabbit.guava.common.graph.Traverser;
+import org.apache.jackrabbit.oak.commons.Traverser;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class FileTreeTraverser {
-    private static final FileSystemTree FILE_SYSTEM_TREE = new FileSystemTree();
+    private static final @NotNull Function<File, Iterable<? extends File>> FILE_SYSTEM_TREE = new FileSystemTree();
 
     public static Stream<File> depthFirstPostOrder(File startNode) {
-        Iterable<File> iterable = Traverser.forTree(FILE_SYSTEM_TREE).depthFirstPostOrder(startNode);
+        Iterable<File> iterable = Traverser.postOrderTraversal(startNode, FILE_SYSTEM_TREE);
         return StreamSupport.stream(iterable.spliterator(), false);
     }
 
     public static Stream<File> breadthFirst(File startNode) {
-        Iterable<File> iterable = Traverser.forTree(FILE_SYSTEM_TREE).breadthFirst(startNode);
+        Iterable<File> iterable = Traverser.breadthFirstTraversal(startNode, FILE_SYSTEM_TREE);
         return StreamSupport.stream(iterable.spliterator(), false);
     }
 
     public static Stream<File> depthFirstPreOrder(File startNode) {
-        Iterable<File> iterable = Traverser.forTree(FILE_SYSTEM_TREE).depthFirstPreOrder(startNode);
+        Iterable<File> iterable = Traverser.preOrderTraversal(startNode, FILE_SYSTEM_TREE);
         return StreamSupport.stream(iterable.spliterator(), false);
     }
 
-    private static class FileSystemTree implements SuccessorsFunction<File> {
+    private static class FileSystemTree implements Function<File, Iterable<? extends File>> {
         @Override
-        public @NotNull Iterable<? extends File> successors(File file) {
+        public @NotNull Iterable<? extends File> apply(File file) {
             if (!file.isDirectory()) {
                 return Set.of();
             }
