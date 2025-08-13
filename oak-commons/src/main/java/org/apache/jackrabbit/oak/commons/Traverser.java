@@ -111,7 +111,7 @@ public class Traverser {
      * Returns an iterator that traverses a tree structure in breadth-first order.
      * Null nodes are strictly forbidden.
      * <p>
-     * In breadth-first traversal, all nodes at a given level are visited before any nodes
+     * In breadth-first traversal, all sibling nodes at a given level are visited before any nodes
      * at the next level. This creates a level-by-level traversal pattern, starting from the root
      * and moving downward through the tree.
      *
