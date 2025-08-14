@@ -67,7 +67,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     protected final IOMonitor ioMonitor;
 
     protected final FileStoreMonitor monitor;
-    private WriteAccessController writeAccessController;
+    private final WriteAccessController writeAccessController;
 
     public AzureArchiveManager(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, String rootPrefix, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController) {
         this.readBlobContainerClient = readBlobContainerClient;
@@ -110,7 +110,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
      * @return true if the archive is empty (no 0000.* segment)
      */
     private boolean isArchiveEmpty(String archiveName) throws BlobStorageException {
-        String fullBlobPrefix = String.format("%s/%s", getDirectory(archiveName), "0000.");
+        String fullBlobPrefix = String.format("%s%s", getDirectory(archiveName), "0000.");
         ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
         listBlobsOptions.setPrefix(fullBlobPrefix);
         return !readBlobContainerClient.listBlobs(listBlobsOptions, null).iterator().hasNext();
@@ -119,7 +119,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public SegmentArchiveReader open(String archiveName) throws IOException {
         try {
-            String closedBlob = String.format("%s/%s", getDirectory(archiveName), "closed");
+            String closedBlob = String.format("%s%s", getDirectory(archiveName), "closed");
             if (!readBlobContainerClient.getBlobClient(closedBlob).exists()) {
                 return null;
             }
@@ -242,7 +242,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     }
 
     private void delete(String archiveName, Set<UUID> recoveredEntries) throws IOException {
-        getBlobs(archiveName + "/")
+        getBlobs(archiveName)
                 .forEach(blobItem -> {
                     if (!recoveredEntries.contains(RemoteUtilities.getSegmentUUID(getName(blobItem)))) {
                         try {
@@ -265,8 +265,12 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         delete(archiveName, recoveredEntries);
     }
 
+    /**
+     * it must end with "/" otherwise we could overflow to other archives like data00000a.tar.bak
+     */
     protected String getDirectory(String archiveName) {
-        return String.format("%s/%s", rootPrefix, archiveName);
+        //return String.format("%s/%s", rootPrefix, archiveName);
+        return String.format("%s/%s/", rootPrefix, archiveName);
     }
 
     private List<BlobItem> getBlobs(String archiveName) throws IOException {
@@ -291,7 +295,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
         BlockBlobClient sourceBlobClient = readBlobContainerClient.getBlobClient(blob.getName()).getBlockBlobClient();
 
-        String destinationBlob = String.format("%s/%s", newParent, AzureUtilities.getName(blob));
+        String destinationBlob = String.format("%s%s", newParent, AzureUtilities.getName(blob));
         BlockBlobClient destinationBlobClient = writeBlobContainerClient.getBlobClient(destinationBlob).getBlockBlobClient();
 
         PollResponse<BlobCopyInfo> response = destinationBlobClient.beginCopy(sourceBlobClient.getBlobUrl(), Duration.ofMillis(100)).waitForCompletion();
