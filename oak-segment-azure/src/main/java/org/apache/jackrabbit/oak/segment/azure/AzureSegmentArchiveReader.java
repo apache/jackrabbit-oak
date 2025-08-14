@@ -47,7 +47,7 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
         super(ioMonitor);
         this.blobContainerClient = blobContainerClient;
         this.archiveName = archiveName;
-        this.archivePath = String.format("%s/%s", rootPrefix, archiveName);
+        this.archivePath = String.format("%s/%s/", rootPrefix, archiveName);
         this.length = computeArchiveIndexAndLength();
     }
 
@@ -65,7 +65,7 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
     protected long computeArchiveIndexAndLength() throws IOException {
         long length = 0;
         ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-        listBlobsOptions.setPrefix(archivePath + "/");
+        listBlobsOptions.setPrefix(archivePath);
         for (BlobItem blob : AzureUtilities.getBlobs(blobContainerClient, listBlobsOptions)) {
             Map<String, String> metadata = blob.getMetadata();
             if (AzureBlobMetadata.isSegment(metadata)) {
@@ -95,7 +95,7 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
 
     private BlockBlobClient getBlobClient(String name) throws IOException {
         try {
-            String fullName = String.format("%s/%s", archivePath, name);
+            String fullName = String.format("%s%s", archivePath, name);
             return blobContainerClient.getBlobClient(fullName).getBlockBlobClient();
         } catch (BlobStorageException e) {
             throw new IOException(e);
