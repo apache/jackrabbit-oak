@@ -75,7 +75,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     // same thread or by the client thread that waits for the latch to complete. Since the latch causes a memory barrier,
     // the updated values will be visible to the client thread.
     private long queryTimeNanos;
-    private long processAggregationsTimeNannos;
+    private long processAggregationsTimeNanos;
     // It is written by multiple threads, so we use LongAdder for better performance than AtomicLong
     private final LongAdder aclTestTimeNanos = new LongAdder();
     private long processHitsTimeNanos;
@@ -107,7 +107,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         );
 
         this.queryStartTimeNanos = System.nanoTime();
-        LOG.trace("Kicking search query with random sampling {}", searchRequest, new Throwable());
+        LOG.trace("Kicking search query with random sampling {}", searchRequest);
         this.searchFuture = connection.getAsyncClient()
                 .search(searchRequest, ObjectNode.class)
                 .thenApplyAsync(this::computeFacets);
@@ -141,7 +141,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     }
 
     private Map<String, List<FulltextIndex.Facet>> computeFacets(SearchResponse<ObjectNode> searchResponse) {
-        LOG.info("SearchResponse: {}", searchResponse);
+        LOG.trace("SearchResponse: {}", searchResponse);
         this.queryTimeNanos = System.nanoTime() - queryStartTimeNanos;
         List<Hit<ObjectNode>> searchHits = searchResponse.hits().hits();
         this.sampled = searchHits != null ? searchHits.size() : 0;
@@ -214,7 +214,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                     .collect(Collectors.toUnmodifiableList())
             );
         }
-        this.processAggregationsTimeNannos = System.nanoTime() - start;
+        this.processAggregationsTimeNanos = System.nanoTime() - start;
         return allFacets;
     }
 
@@ -256,7 +256,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
     private String timingsToString() {
         return String.format("Facet computation times: {query: %d ms, processAggregations: %d ms, filterByAcl: %d ms, processHits: %d ms, computeStatisticalFacets: %d ms}. Total hits: %d, samples: %d",
                 queryTimeNanos > 0 ? TimeUnit.NANOSECONDS.toMillis(queryTimeNanos) : -1,
-                processAggregationsTimeNannos > 0 ? TimeUnit.NANOSECONDS.toMillis(processAggregationsTimeNannos) : -1,
+                processAggregationsTimeNanos > 0 ? TimeUnit.NANOSECONDS.toMillis(processAggregationsTimeNanos) : -1,
                 aclTestTimeNanos.sum() > 0 ? TimeUnit.NANOSECONDS.toMillis(aclTestTimeNanos.sum()) : -1,
                 processHitsTimeNanos > 0 ? TimeUnit.NANOSECONDS.toMillis(processHitsTimeNanos) : -1,
                 computeStatisticalFacetsTimeNanos > 0 ? TimeUnit.NANOSECONDS.toMillis(computeStatisticalFacetsTimeNanos) : -1,
