@@ -21,7 +21,6 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobListDetails;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
-import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
@@ -35,6 +34,7 @@ import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class AzureUtilities {
 
@@ -50,20 +50,24 @@ public final class AzureUtilities {
     }
 
     public static String getName(BlobItem blob) {
-        return Paths.get(blob.getName()).getFileName().toString();
+        return getFileName(blob.getName());
     }
 
-    public static String getName(AppendBlobClient blob) {
-        return Paths.get(blob.getBlobName()).getFileName().toString();
+    public static @NotNull String getFileName(String blobName) {
+        return Paths.get(blobName).getFileName().toString();
     }
-
-
 
     public static List<BlobItem> getBlobs(BlobContainerClient blobContainerClient, ListBlobsOptions listOptions) {
         if (listOptions != null) {
             listOptions.setDetails(new BlobListDetails().setRetrieveMetadata(true));
         }
         return blobContainerClient.listBlobs(listOptions, null).stream().collect(Collectors.toList());
+    }
+
+    public static Stream<BlobItem> getParallelBlobStream(BlobContainerClient blobContainerClient, ListBlobsOptions listOptions) {
+        // collecting into a list, as done by #getBlobs(), is necessary in order to allow creation
+        // of a parallel stream (without a more complex implementation)
+        return getBlobs(blobContainerClient, listOptions).stream().unordered().parallel();
     }
 
     public static void readBufferFully(BlockBlobClient blob, Buffer buffer) throws IOException {
@@ -80,7 +84,7 @@ public final class AzureUtilities {
     }
 
     public static void deleteAllEntries(BlobContainerClient blobContainerClient, ListBlobsOptions listBlobsOptions) {
-        getBlobs(blobContainerClient, listBlobsOptions).forEach(b -> {
+        getParallelBlobStream(blobContainerClient, listBlobsOptions).forEach(b -> {
             try {
                 blobContainerClient.getBlobClient(b.getName()).deleteIfExists();
             } catch (BlobStorageException e) {

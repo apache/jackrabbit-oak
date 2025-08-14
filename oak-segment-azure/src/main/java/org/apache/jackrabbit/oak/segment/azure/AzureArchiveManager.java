@@ -38,21 +38,21 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.Set;
 import java.time.Duration;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.azure.storage.blob.models.BlobType.BLOCK_BLOB;
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getName;
 
 public class AzureArchiveManager implements SegmentArchiveManager {
 
@@ -206,28 +206,21 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public void recoverEntries(String archiveName, LinkedHashMap<UUID, byte[]> entries) throws IOException {
         Pattern pattern = Pattern.compile(RemoteUtilities.SEGMENT_FILE_NAME_PATTERN);
-        List<RecoveredEntry> entryList = new ArrayList<>();
-
-        for (BlobItem b : getBlobs(archiveName)) {
-            String name = getName(b);
-            Matcher m = pattern.matcher(name);
-            if (!m.matches()) {
-                continue;
-            }
-            int position = Integer.parseInt(m.group(1), 16);
-            UUID uuid = UUID.fromString(m.group(2));
-            long length = b.getProperties().getContentLength();
-            if (length > 0) {
-                byte[] data;
-                try {
-                    data = readBlobContainerClient.getBlobClient(b.getName()).downloadContent().toBytes();
-                } catch (BlobStorageException e) {
-                    throw new IOException(e);
-                }
-                entryList.add(new RecoveredEntry(position, uuid, data, name));
-            }
-        }
-        Collections.sort(entryList);
+        List<RecoveredEntry> entryList = getBlobs(archiveName)
+                .filter(b -> b.getProperties().getContentLength() > 0)
+                .map(BlobItem::getName)
+                .map(blobPath -> {
+                    String blobName = AzureUtilities.getFileName(blobPath);
+                    Matcher m = pattern.matcher(blobName);
+                    return !m.matches() ? null : new RecoveredEntry(
+                            Integer.parseInt(m.group(1), 16),
+                            UUID.fromString(m.group(2)),
+                            readBlobContainerClient.getBlobClient(blobPath).downloadContent().toBytes(),
+                            blobName);
+                })
+                .filter(Objects::nonNull)
+                .sorted()
+                .collect(Collectors.toUnmodifiableList());
 
         int i = 0;
         for (RecoveredEntry e : entryList) {
@@ -243,12 +236,14 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     private void delete(String archiveName, Set<UUID> recoveredEntries) throws IOException {
         getBlobs(archiveName + "/")
-                .forEach(blobItem -> {
-                    if (!recoveredEntries.contains(RemoteUtilities.getSegmentUUID(getName(blobItem)))) {
+                .filter(Predicate.not(BlobItem::isPrefix))
+                .map(BlobItem::getName)
+                .forEach(blobName -> {
+                    if (!recoveredEntries.contains(RemoteUtilities.getSegmentUUID(AzureUtilities.getFileName(blobName)))) {
                         try {
-                            writeBlobContainerClient.getBlobClient(blobItem.getName()).delete();
+                            writeBlobContainerClient.getBlobClient(blobName).delete();
                         } catch (BlobStorageException e) {
-                            log.error("Can't delete segment {}", blobItem.getName(), e);
+                            log.error("Can't delete segment {}", blobName, e);
                         }
                     }
                 });
@@ -269,12 +264,12 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         return String.format("%s/%s", rootPrefix, archiveName);
     }
 
-    private List<BlobItem> getBlobs(String archiveName) throws IOException {
+    private Stream<BlobItem> getBlobs(String archiveName) throws IOException {
         String archivePath = getDirectory(archiveName);
         ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
         listBlobsOptions.setPrefix(archivePath);
 
-        return AzureUtilities.getBlobs(readBlobContainerClient, listBlobsOptions);
+        return AzureUtilities.getParallelBlobStream(readBlobContainerClient, listBlobsOptions);
     }
 
     private void renameBlob(BlobItem blob, String newParent) throws IOException {
@@ -291,7 +286,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
         BlockBlobClient sourceBlobClient = readBlobContainerClient.getBlobClient(blob.getName()).getBlockBlobClient();
 
-        String destinationBlob = String.format("%s/%s", newParent, AzureUtilities.getName(blob));
+        String destinationBlob = String.format("%s/%s", newParent, AzureUtilities.getFileName(blob.getName()));
         BlockBlobClient destinationBlobClient = writeBlobContainerClient.getBlobClient(destinationBlob).getBlockBlobClient();
 
         PollResponse<BlobCopyInfo> response = destinationBlobClient.beginCopy(sourceBlobClient.getBlobUrl(), Duration.ofMillis(100)).waitForCompletion();
