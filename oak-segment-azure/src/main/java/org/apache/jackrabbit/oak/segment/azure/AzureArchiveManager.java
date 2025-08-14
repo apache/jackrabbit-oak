@@ -269,7 +269,6 @@ public class AzureArchiveManager implements SegmentArchiveManager {
      * it must end with "/" otherwise we could overflow to other archives like data00000a.tar.bak
      */
     protected String getDirectory(String archiveName) {
-        //return String.format("%s/%s", rootPrefix, archiveName);
         return String.format("%s/%s/", rootPrefix, archiveName);
     }
 
