@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
@@ -48,7 +49,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
 
     private final Set<String> facetFields;
     private final long facetsEvaluationTimeoutMs;
-    private final Map<String, Map<String, MutableInt>> accessibleFacetCounts = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, MutableInt>> accessibleFacets = new ConcurrentHashMap<>();
     private final ElasticResponseHandler elasticResponseHandler;
     private final Predicate<String> isAccessible;
     private final CountDownLatch latch = new CountDownLatch(1);
@@ -81,30 +82,44 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     public boolean on(Hit<ObjectNode> searchHit) {
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null && isAccessible.test(path)) {
-            for (String field: facetFields) {
-                JsonNode value = searchHit.source().get(field);
-                if (value != null) {
-                    accessibleFacetCounts.compute(field, (column, facetValues) -> {
-                        if (facetValues == null) {
-                            Map<String, MutableInt> values = new HashMap<>();
-                            values.put(value.asText(), new MutableInt(1));
-                            return values;
+            ObjectNode source = searchHit.source();
+            for (String field : facetFields) {
+                JsonNode value;
+                if (source != null) {
+                    value = source.get(field);
+                    if (value != null) {
+                        if (value.getNodeType() == JsonNodeType.ARRAY) {
+                            for (JsonNode item : value) {
+                                updateAccessibleFacets(field, item.asText());
+                            }
                         } else {
-                            facetValues.compute(value.asText(), (k, v) -> {
-                                if (v == null) {
-                                    return new MutableInt(1);
-                                } else {
-                                    v.increment();
-                                    return v;
-                                }
-                            });
-                            return facetValues;
+                            updateAccessibleFacets(field, value.asText());
                         }
-                    });
+                    }
                 }
             }
         }
         return true;
+    }
+
+    private void updateAccessibleFacets(String field, String value) {
+        accessibleFacets.compute(field, (column, facetValues) -> {
+            if (facetValues == null) {
+                Map<String, MutableInt> values = new HashMap<>();
+                values.put(value, new MutableInt(1));
+                return values;
+            } else {
+                facetValues.compute(value, (k, v) -> {
+                    if (v == null) {
+                        return new MutableInt(1);
+                    } else {
+                        v.increment();
+                        return v;
+                    }
+                });
+                return facetValues;
+            }
+        });
     }
 
     @Override
@@ -114,7 +129,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
                 .comparing(FulltextIndex.Facet::getCount).reversed()
                 .thenComparing(FulltextIndex.Facet::getLabel);
         // create Facet objects, order by count (desc) and then by label (asc)
-        facets = accessibleFacetCounts.entrySet()
+        facets = accessibleFacets.entrySet()
                 .stream()
                 .collect(Collectors.toMap
                         (Map.Entry::getKey, x -> x.getValue().entrySet()
