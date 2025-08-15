@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.commons;
 
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
-import org.apache.commons.collections4.FluentIterable;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
@@ -163,6 +162,19 @@ public class TraverserTest {
         Assert.fail("Shouldn't reach here");
     }
 
+    // TODO remove this test when we remove guava dependency
+    @Test(expected = NullPointerException.class)
+    public void testPreOrderTraversalWithNullChildrenWithGuava() {
+        // A tree with some null children
+        Node root = new Node(1,
+                null,
+                new Node(3));
+
+        traverser.preOrderTraversal(root).transform(Node::getValue).forEach(System.out::println);
+
+        Assert.fail("Shouldn't reach here");
+    }
+
     @Test
     public void testBreadthFirstTraversalWithNormalTree() {
         // Create a simple tree structure:
@@ -278,6 +290,19 @@ public class TraverserTest {
         Assert.fail("Shouldn't reach here");
     }
 
+    // TODO remove this test when we remove guava dependency
+    @Test(expected = NullPointerException.class)
+    public void testBreadthFirstTraversalWithNullChildrenWithGuava() {
+        // A tree with some null children
+        Node root = new Node(1,
+                null,
+                new Node(3));
+
+        traverser.breadthFirstTraversal(root).transform(Node::getValue).forEach(System.out::println);
+
+        Assert.fail("Shouldn't reach here");
+    }
+
     @Test
     public void testBreadthFirstTraversalWithNullChildExtractor() {
         Node root = new Node(1);
@@ -373,6 +398,7 @@ public class TraverserTest {
     @Test
     public void testPostOrderTraversalWithNullRoot() {
         Assert.assertThrows(NullPointerException.class, () -> Traverser.postOrderTraversal(null, Node::getChildren));
+        Assert.assertThrows(NullPointerException.class, () -> traverser.postOrderTraversal(null));
     }
 
     @Test
@@ -424,6 +450,19 @@ public class TraverserTest {
                 new Node(3));
 
         Traverser.postOrderTraversal(root, Node::getChildren).transform(Node::getValue).forEach(System.out::println);
+
+        Assert.fail("Shouldn't reach here");
+    }
+
+    // TODO remove this test when we remove guava dependency
+    @Test(expected = NullPointerException.class)
+    public void testPostOrderTraversalWithNullChildrenWithGuava() {
+        // A tree with some null children
+        Node root = new Node(1,
+                null,
+                new Node(3));
+
+        traverser.postOrderTraversal(root).transform(Node::getValue).forEach(System.out::println);
 
         Assert.fail("Shouldn't reach here");
     }
