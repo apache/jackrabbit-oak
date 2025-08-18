@@ -29,8 +29,8 @@ public class Suppliers {
     }
 
     /**
-     * Transforms a {@code Supplier} based on a wrapper around a lazily and only-tine
-     * single time evaluation of the given {@code Supplier}.
+     * Transforms a {@link Supplier} based on a wrapper that evaluates
+     * the given {@code Supplier} at most one time.
      *
      * @param <T> return type
      * @return Supplier based on the given Supplier
