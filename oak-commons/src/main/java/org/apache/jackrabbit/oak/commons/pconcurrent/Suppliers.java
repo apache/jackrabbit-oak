@@ -37,13 +37,15 @@ public class Suppliers {
      */
     public static <T> Supplier<T> memoize(final Supplier<T> computeOnce) {
         return new Supplier<>() {
-            volatile T result = null;
+            volatile boolean initialized = false;
+            T result = null;
 
             @Override
             public T get() {
-                if (result == null) {
+                if (!initialized) {
                     synchronized (this) {
-                        if (result == null) {
+                        if (!initialized) {
+                            initialized = true;
                             result = computeOnce.get();
                         }
                     }
