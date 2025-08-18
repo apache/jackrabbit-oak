@@ -23,10 +23,11 @@ import java.util.Stack;
 import java.util.UUID;
 
 import javax.jcr.InvalidSerializedDataException;
-import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+
+import org.apache.jackrabbit.commons.NamespaceHelper;
 
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
+
 
 /**
  * {@code SysViewImportHandler}  ...
@@ -60,6 +62,8 @@ class SysViewImportHandler extends TargetImportHandler {
     // list of appendable value objects
     private BufferedStringValue currentPropValue;
 
+    private final NamespaceHelper namespaceHelper;
+    
     /**
      * Constructs a new {@code SysViewImportHandler}.
      *
@@ -68,6 +72,7 @@ class SysViewImportHandler extends TargetImportHandler {
      */
     SysViewImportHandler(Importer importer, SessionContext sessionContext) {
         super(importer, sessionContext);
+        namespaceHelper = new NamespaceHelper(sessionContext.getSession());
     }
 
     private void processNode(ImportState state, boolean start, boolean end)
@@ -95,11 +100,6 @@ class SysViewImportHandler extends TargetImportHandler {
         }
     }
 
-    //TODO replace with library method
-    private static @NotNull String suggestPrefix(String namespace) {
-        return "ns_" + UUID.randomUUID().toString().substring(0, 8);
-    }
-
     private NameInfo createNameInfo(String svName) throws RepositoryException {
         //name extraction algorithm taken from GlobalNameMapper#isExpandedName(String)
         String namespaceUri = null;
@@ -111,17 +111,7 @@ class SysViewImportHandler extends TargetImportHandler {
                 // compare with RFC 3986, Section 3 (https://datatracker.ietf.org/doc/html/rfc3986#section-3)
                 if (namespaceUri.isEmpty() || namespaceUri.equals(NamespaceConstants.NAMESPACE_REP)|| namespaceUri.indexOf(':') != -1) {
                     String localName = svName.substring(svName.indexOf("}") + 1);
-                    NamespaceRegistry namespaceRegistry = sessionContext.getWorkspace().getNamespaceRegistry();
-                    String prefix;
-                    try {
-                        prefix = namespaceRegistry.getPrefix(namespaceUri);
-                    } catch (NamespaceException expected) {
-                        // this is an expanded svName using an unregistered namespace
-                        // we need to make up a prefix for the namespace
-                        prefix = suggestPrefix(namespaceUri);
-                        namespaceRegistry.registerNamespace(prefix, namespaceUri);
-                    }
-                    return new NameInfo(prefix, localName);
+                    return new NameInfo(namespaceHelper.registerNamespace("", namespaceUri), localName);
                 }
             }
         }
