@@ -40,8 +40,8 @@ public class BinaryId {
         // the '-' is ignored
         int hashIndex = identifier.lastIndexOf('#');
         if (hashIndex >= 0) {
-            String length = identifier.substring(hashIndex + 1);
-            this.length = Long.parseLong(length);
+            String lengthString = identifier.substring(hashIndex + 1);
+            this.length = Long.parseLong(lengthString);
         } else {
             // we do not know the length
             this.length = 0;
