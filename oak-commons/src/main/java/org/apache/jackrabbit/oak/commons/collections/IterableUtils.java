@@ -23,12 +23,10 @@ import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -238,28 +236,7 @@ public class IterableUtils {
         return new Iterable<>() {
             @Override
             public @NotNull Iterator<List<T>> iterator() {
-                return new Iterator<>() {
-                    private final Iterator<T> iterator = itr.iterator();
-
-                    @Override
-                    public boolean hasNext() {
-                        return iterator.hasNext();
-                    }
-
-                    @Override
-                    public List<T> next() {
-                        // check if there are elements left, throw an exception if not
-                        if (!hasNext()) {
-                            throw new NoSuchElementException();
-                        }
-
-                        List<T> currentPartition = new ArrayList<>(size);
-                        for (int i = 0; i < size && iterator.hasNext(); i++) {
-                            currentPartition.add(iterator.next());
-                        }
-                        return currentPartition;
-                    }
-                };
+                return IteratorUtils.partition(itr.iterator(), size);
             }
         };
     }

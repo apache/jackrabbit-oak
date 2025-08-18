@@ -24,8 +24,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.HashMultimap;
-import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -50,7 +50,7 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 public class UniquenessConstraintValidator {
     private final NodeState rootState;
     private final String indexPath;
-    private final Multimap<String, String> uniqueKeys = HashMultimap.create();
+    private final MultiValuedMap<String, String> uniqueKeys = new HashSetValuedHashMap<>();
     private final PropertyQuery firstStore;
     private PropertyQuery secondStore = PropertyQuery.DEFAULT;
 

@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.AccessControlException;
+import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
@@ -287,7 +288,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public Object getAttribute(String name) {
         if (RepositoryImpl.BOUND_PRINCIPALS.equals(name)) {
-            return sd.getAuthInfo().getPrincipals();
+            return internalGetBoundPrincipals();
         }
         Object attribute = sd.getAuthInfo().getAttribute(name);
         if (attribute == null) {
@@ -846,6 +847,17 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     @Override
+    @NotNull
+    public Set<Principal> getBoundPrincipals() throws RepositoryException {
+        return internalGetBoundPrincipals();
+    }
+
+    @NotNull
+    private Set<Principal> internalGetBoundPrincipals() {
+        return sd.getAuthInfo().getPrincipals();
+    }
+
+    @Override
     public String toString() {
         if (isLive()) {
             return sd.getContentSession().toString();
@@ -860,7 +872,12 @@ public class SessionImpl implements JackrabbitSession {
             ItemImpl<?> itemImpl = checkItemImpl(item);
             return itemImpl.sessionContext.getExpandedJcrName(itemImpl.getOakName());
         } catch (IllegalStateException e) {
-            throw new RepositoryException("Namespace exception " + e.getMessage());
+            // unwrap RepositoryException when available
+            if (e.getCause() instanceof RepositoryException) {
+                throw (RepositoryException) e.getCause();
+            } else {
+                throw new RepositoryException("Namespace exception " + e.getMessage());
+            }
         }
     }
 

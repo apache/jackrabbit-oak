@@ -33,9 +33,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.LineIterator;
-import org.apache.jackrabbit.guava.common.base.Splitter;
 
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
@@ -172,7 +172,7 @@ public class FileLineDifferenceIteratorTest {
     }
 
     private static LineIterator lineItr(String seq) {
-        Iterable<String> seqItr = Splitter.on(',').trimResults().split(seq);
+        Iterable<String> seqItr = Arrays.stream(seq.split(",")).map(String::trim).collect(Collectors.toList());
         String lines = String.join(System.getProperty("line.separator"), seqItr);
         return new LineIterator(new StringReader(lines));
     }

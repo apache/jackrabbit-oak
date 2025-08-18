@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -55,6 +54,7 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -252,7 +252,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             return Collections.emptyIterator();
         }
         if (absPaths == null || absPaths.length == 0) {
-            return Iterators.forArray(getEffectivePolicies(principals));
+            return Arrays.asList(getEffectivePolicies(principals)).iterator();
         }
 
         boolean enabled = config.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);

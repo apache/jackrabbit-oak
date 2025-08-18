@@ -17,10 +17,11 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -30,6 +31,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
+import org.apache.jackrabbit.oak.plugins.document.FullGCMetricsExporter;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContextWrapper;
@@ -50,12 +53,16 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,7 +125,7 @@ public class RevisionsCommand implements Command {
         this.exitWhenDone = exitWhenDone;
     }
 
-    private static class RevisionsOptions extends Utils.NodeStoreOptions {
+    static class RevisionsOptions extends Utils.NodeStoreOptions {
 
         static final String CMD_INFO = "info";
         static final String CMD_COLLECT = "collect";
@@ -148,6 +155,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Boolean> embeddedVerification;
         final OptionSpec<Integer> fullGcMode;
         final OptionSpec<Boolean> fullGCAuditLoggingEnabled;
+        final OptionSpec<String> exportMetrics;
 
         RevisionsOptions(String usage) {
             super(usage);
@@ -210,7 +218,9 @@ public class RevisionsCommand implements Command {
                             "nodes for Full GC which are not accessed recently (currentTime - lastModifiedTime > fullGcMaxAge). Default: 86400 (one day)")
                     .withOptionalArg().ofType(Long.class).defaultsTo(TimeUnit.DAYS.toSeconds(1));
             fullGCAuditLoggingEnabled = parser.accepts("fullGCAuditLoggingEnabled", "Enable audit logging for Full GC")
-                    .withOptionalArg().ofType(Boolean.class).defaultsTo(FALSE);
+                    .withRequiredArg().ofType(Boolean.class).defaultsTo(FALSE);
+            exportMetrics = parser.accepts("exportMetrics",
+                    "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -311,7 +321,15 @@ public class RevisionsCommand implements Command {
         }
 
         Boolean isFullGCAuditLoggingEnabled() {
-            return options.has(fullGCAuditLoggingEnabled);
+            return options.valueOf(fullGCAuditLoggingEnabled);
+        }
+
+        boolean exportMetrics() {
+            return options.has(exportMetrics);
+        }
+
+        String exportMetricsArgs() {
+            return exportMetrics.value(options);
         }
     }
 
@@ -394,9 +412,7 @@ public class RevisionsCommand implements Command {
                     version);
             System.exit(1);
         }
-        if (options.isEmbeddedVerificationEnabled()) {
-            builder.setEmbeddedVerificationEnabled(true);
-        }
+        builder.setEmbeddedVerificationEnabled(options.isEmbeddedVerificationEnabled());
         // set it read-only before the DocumentNodeStore is created
         // this prevents the DocumentNodeStore from writing a new
         // clusterId to the clusterNodes and nodes collections
@@ -404,20 +420,20 @@ public class RevisionsCommand implements Command {
         useMemoryBlobStore(builder);
         // create a version GC that operates on a read-only DocumentNodeStore
         // and a GC support with a writable DocumentStore
-        System.out.println("DryRun is enabled : " + options.isDryRun());
-        System.out.println("EmbeddedVerification is enabled : " + options.isEmbeddedVerificationEnabled());
+        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
+        System.out.println("DryRun is enabled : " + gc.isFullGCDryRun());
+        System.out.println("EmbeddedVerification is enabled : " + gc.isEmbeddedVerificationEnabled());
         System.out.println("ResetFullGC is enabled : " + options.isResetFullGC());
         System.out.println("Compaction is enabled : " + options.doCompaction());
-        System.out.println("IncludePaths are : " + Arrays.toString(options.getIncludePaths()));
-        System.out.println("ExcludePaths are : " + Arrays.toString(options.getExcludePaths()));
-        System.out.println("FullGcMode is : " + options.getFullGcMode());
-        System.out.println("FullGcDelayFactory is : " + options.getFullGcDelayFactor());
-        System.out.println("FullGcBatchSize is : " + options.getFullGcBatchSize());
-        System.out.println("FullGcProgressSize is : " + options.getFullGcProgressSize());
+        System.out.println("FullGCAuditLoggingEnabled : " + builder.isFullGCAuditLoggingEnabled());
+        System.out.println("IncludePaths are : " + sortedSet(gc.getFullGCIncludePaths()));
+        System.out.println("ExcludePaths are : " + sortedSet(gc.getFullGCExcludePaths()));
+        System.out.println("FullGcMode is : " + VersionGarbageCollector.getFullGcMode());
+        System.out.println("FullGcDelayFactor is : " + gc.getFullGcDelayFactor());
+        System.out.println("FullGcBatchSize is : " + gc.getFullGcBatchSize());
+        System.out.println("FullGcProgressSize is : " + gc.getFullGcProgressSize());
         System.out.println("FullGcMaxAgeInSecs is : " + options.getFullGcMaxAge());
-        System.out.println("FullGcMaxAgeMillis is : " + builder.getFullGcMaxAgeMillis());
-        System.out.println("FullGCAuditLoggingEnabled is : " + options.isFullGCAuditLoggingEnabled());
-        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, options.isDryRun(), builder);
+        System.out.println("FullGcMaxAgeMillis is : " + gc.getFullGcMaxAgeInMillis());
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
@@ -460,11 +476,22 @@ public class RevisionsCommand implements Command {
 
     private void collect(final RevisionsOptions options, Closer closer, boolean fullGCEnabled) throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, fullGCEnabled);
-        // Set a default statistics provider
-        gc.setStatisticsProvider(new DefaultStatisticsProvider(Executors.newSingleThreadScheduledExecutor()));
+
+        // setup metrics exporter
+        Whiteboard whiteboard = new NodeStoreFixtureProvider.ClosingWhiteboard(new DefaultWhiteboard(), closer);
+        StatisticsProvider statsProvider = NodeStoreFixtureProvider.createStatsProvider(whiteboard, closer);
+        whiteboard.register(StatisticsProvider.class, statsProvider, Collections.emptyMap());
+        gc.setStatisticsProvider(statsProvider, true);
+
+        FullGCMetricsExporter metricsExporter = FullGCMetricsExporterFixtureProvider.create(options, whiteboard);
+        gc.setFullGCMetricsExporter(metricsExporter);
+
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
         try {
+            // register metrics exporter to closer
+            closer.register(metricsExporter);
+
             // collect until shutdown hook is called
             final AtomicBoolean running = new AtomicBoolean(true);
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -490,6 +517,7 @@ public class RevisionsCommand implements Command {
             }
             System.out.println("retrieving gc info");
             printInfo(gc, options);
+        } catch (Exception e) {
         } finally {
             finished.release();
             if (options.isDryRun()) {
@@ -626,6 +654,7 @@ public class RevisionsCommand implements Command {
         DocumentStore documentStore = builder.getDocumentStore();
         builder.setReadOnlyMode();
         useMemoryBlobStore(builder);
+        builder.setEmbeddedVerificationEnabled(options.isEmbeddedVerificationEnabled());
         DocumentNodeStore documentNodeStore = builder.build();
 
         VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
@@ -663,5 +692,11 @@ public class RevisionsCommand implements Command {
         // collection. Use an in-memory blob store instead, because the
         // revisions command does not read blobs anyway.
         builder.setBlobStore(new MemoryBlobStore());
+    }
+
+    private List<String> sortedSet(Set<String> set) {
+        return set.stream()
+                .sorted()
+                .collect(Collectors.toList());
     }
 }

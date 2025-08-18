@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticDocument;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
@@ -71,8 +73,8 @@ public class ElasticIndexerTest {
         when(elasticsearchAsyncClientMock._jsonpMapper()).thenReturn(jsonMapperMock);
         when(elasticConnectionMock.getAsyncClient()).thenReturn(elasticsearchAsyncClientMock);
 
-        FulltextIndexWriter indexWriter = new ElasticIndexWriterFactory(elasticConnectionMock,
-                mock(ElasticIndexTracker.class)).newInstance(idxDefn, defn.builder(), CommitInfo.EMPTY, false);
+        FulltextIndexWriter<ElasticDocument> indexWriter = new ElasticIndexWriterFactory(elasticConnectionMock,
+                mock(ElasticIndexTracker.class), mock(ElasticBulkProcessorHandler.class)).newInstance(idxDefn, defn.builder(), CommitInfo.EMPTY, false);
         ElasticIndexer indexer = new ElasticIndexer(idxDefn, mock(FulltextBinaryTextExtractor.class), builder,
                 mock(IndexingProgressReporter.class), indexWriter, mock(ElasticIndexEditorProvider.class), mock(IndexHelper.class));
 

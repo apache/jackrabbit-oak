@@ -38,10 +38,10 @@ import org.jetbrains.annotations.Nullable;
  * supports the following {@code Callback} implementations:
  * <p>
  * <ul>
- * <li>{@link CredentialsCallback}</li>
- * <li>{@link NameCallback}</li>
- * <li>{@link PasswordCallback}</li>
- * <li>{@link RepositoryCallback}</li>
+ * <li>{@link CredentialsCallback}
+ * <li>{@link NameCallback}
+ * <li>{@link PasswordCallback}
+ * <li>{@link RepositoryCallback}
  * </ul>
  */
 class CallbackHandlerImpl implements CallbackHandler {

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.cursor;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
 
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 
@@ -36,8 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
  * A cursor that reads all nodes in a given subtree.
@@ -107,14 +106,12 @@ class TraversingCursor extends AbstractCursor {
         case NO_RESTRICTION:
         case EXACT:
         case ALL_CHILDREN:
-            nodeIterators.add(Iterators.singletonIterator(
-                    new MemoryChildNodeEntry(currentPath, node)));
+            nodeIterators.add(Collections.singleton(new MemoryChildNodeEntry(currentPath, node)).iterator());
             parentPath = "";
             break;
         case PARENT:
             if (parent != null) {
-                nodeIterators.add(Iterators.singletonIterator(
-                        new MemoryChildNodeEntry(parentPath, parent)));
+                nodeIterators.add(Collections.singleton(new MemoryChildNodeEntry(parentPath, parent)).iterator());
                 parentPath = "";
             }
             break;

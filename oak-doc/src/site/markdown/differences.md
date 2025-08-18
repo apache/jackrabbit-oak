@@ -247,7 +247,8 @@ name siblings as mandated by JCR is dwarfed by the additional implementation com
 there are ideas to implement a feature for automatic [disambiguation of node names](https://issues.apache.org/jira/browse/OAK-129).
 
 In the meanwhile we have [basic support](https://issues.apache.org/jira/browse/OAK-203) for same
-name siblings but that might not cover all cases.
+name siblings but that might not cover all cases. On JCR API level this is read only. Creating
+SNS items is only possible with Oak API.
 
 ### XML Import
 

@@ -235,25 +235,6 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
     }
 
     @Test
-    public void fulltextSearchWithSnowball() throws Exception {
-        setup(List.of("foo"), idx -> {
-            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
-            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
-
-            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree snowball = addFilter(filters, "SnowballPorter");
-            snowball.setProperty("language", "Italian");
-        });
-
-        Tree content = root.getTree("/").addChild("content");
-        content.addChild("bar").setProperty("foo", "mangio la mela");
-        content.addChild("baz").setProperty("foo", "altro testo");
-        root.commit();
-
-        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'mangiare')", List.of("/content/bar")));
-    }
-
-    @Test
     @Ignore("not supported in elasticsearch since hunspell resources need to be available on the server")
     @Override
     public void fullTextWithHunspell() {}

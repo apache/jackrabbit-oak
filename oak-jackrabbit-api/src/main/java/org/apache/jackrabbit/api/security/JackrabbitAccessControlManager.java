@@ -222,8 +222,8 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * must be an existing node. This is equivalent to {@link #getPrivileges(String)} and 
      * {@link #hasPrivileges(String, Privilege[])} but allows for easy resolution of aggregated privileges 
      * (like e.g. jcr:all) and repeated evaluation if the editing session has privileges granted 
-     * at the given target node.</p>
-     * 
+     * at the given target node.
+     * <p>
      * Note: For backwards compatibility this method comes with a default implementation that computes the {@link PrivilegeCollection}
      * using regular JCR/Jackrabbit API, which might not be efficient. Implementations of {@link JackrabbitAccessControlManager} 
      * are therefore expected to overwrite the default.
@@ -245,8 +245,8 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * must be an existing node. This is equivalent to {@link #getPrivileges(String,Set)} and 
      * {@link #hasPrivileges(String, Set, Privilege[])} but allows for easy resolution of aggregated privileges 
      * (like e.g. jcr:all) and repeated evaluation if the editing session has privileges granted 
-     * at the given target node.</p>
-     *
+     * at the given target node.
+     * <p>
      * Note: For backwards compatibility this method comes with a default implementation that computes the {@link PrivilegeCollection}
      * using regular JCR/Jackrabbit API, which might not be efficient. Implementations of {@link JackrabbitAccessControlManager}
      * are therefore expected to overwrite the default.
@@ -268,8 +268,8 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
     /**
      * <p>Returns the {@link PrivilegeCollection} for the specified <code>privilegeNames</code>.
      * Since the privilege names are JCR names, they may be passed in either
-     * qualified or expanded form (see specification for details on JCR names).</p>
-     * 
+     * qualified or expanded form (see specification for details on JCR names).
+     * <p>
      * Note: For backwards compatibility this method comes with a default implementation that computes the {@link PrivilegeCollection}
      * using regular JCR/Jackrabbit API, which might not be efficient. Implementations of {@link JackrabbitAccessControlManager}
      * are therefore expected to overwrite the default.

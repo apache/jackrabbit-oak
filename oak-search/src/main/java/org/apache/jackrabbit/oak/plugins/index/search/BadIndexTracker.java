@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Throwables;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,7 +164,7 @@ public class BadIndexTracker {
 
         public BadIndexInfo(String path, Throwable e, boolean persistedIndex) {
             this.path = path;
-            this.exception = Throwables.getStackTraceAsString(e);
+            this.exception = ExceptionUtils.getStackTrace(e);
             this.persistedIndex = persistedIndex;
         }
 
@@ -213,7 +213,7 @@ public class BadIndexTracker {
 
         public void failedAccess(Throwable e) {
             failedAccessCount++;
-            exception = Throwables.getStackTraceAsString(e);
+            exception = ExceptionUtils.getStackTrace(e);
         }
     }
 

@@ -53,8 +53,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * consists of the following two filtering conditions:
  *
  * <ol>
- *     <li>All principals in the set must be of type {@link org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal}</li>
- *     <li>All principals in the set must be located in the repository below the configured path.</li>
+ *     <li>All principals in the set must be of type {@link org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal}
+ *     <li>All principals in the set must be located in the repository below the configured path.
  * </ol>
  */
 @Component(service = {FilterProvider.class}, configurationPolicy = ConfigurationPolicy.REQUIRE)

@@ -63,7 +63,7 @@ public class QueryManagerImpl implements QueryManager {
     private final SessionContext sessionContext;
     private final QueryObjectModelFactoryImpl qomFactory;
     private final QueryEngine queryEngine;
-    private final HashSet<String> supportedQueryLanguages = new HashSet<String>();
+    private final HashSet<String> supportedQueryLanguages = new HashSet<>();
     private final MeterStats queryCount;
     private final TimerStats queryDuration;
 
@@ -103,13 +103,13 @@ public class QueryManagerImpl implements QueryManager {
     }
 
     @Override
-    public String[] getSupportedQueryLanguages() throws RepositoryException {
-        ArrayList<String> list = new ArrayList<String>(queryEngine.getSupportedQueryLanguages());
+    public String[] getSupportedQueryLanguages() {
+        ArrayList<String> list = new ArrayList<>(queryEngine.getSupportedQueryLanguages());
         // JQOM is supported in this level only (converted to JCR_SQL2)
         list.add(Query.JCR_JQOM);
         // create a new instance each time because the array is mutable
         // (the caller could modify it)
-        return list.toArray(new String[list.size()]);
+        return list.toArray(new String[0]);
     }
 
     /**
@@ -152,7 +152,7 @@ public class QueryManagerImpl implements QueryManager {
 
     private static Map<String, PropertyValue> convertMap(
             HashMap<String, Value> bindVariableMap) throws RepositoryException {
-        HashMap<String, PropertyValue> map = new HashMap<String, PropertyValue>();
+        HashMap<String, PropertyValue> map = new HashMap<>();
         for (Entry<String, Value> e : bindVariableMap.entrySet()) {
             map.put(e.getKey(),
                     PropertyValues.create(PropertyStates.createProperty("",

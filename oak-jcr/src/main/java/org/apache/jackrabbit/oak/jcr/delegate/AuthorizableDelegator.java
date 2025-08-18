@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -116,7 +116,7 @@ abstract class AuthorizableDelegator implements Authorizable {
             @Override
             public Iterator<Group> perform() throws RepositoryException {
                 Iterator<Group> groups = delegate.declaredMemberOf();
-                return Iterators.transform(Iterators.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
+                return IteratorUtils.transform(IteratorUtils.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
             }
         });
     }
@@ -129,7 +129,7 @@ abstract class AuthorizableDelegator implements Authorizable {
             @Override
             public Iterator<Group> perform() throws RepositoryException {
                 Iterator<Group> groups = delegate.memberOf();
-                return Iterators.transform(Iterators.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
+                return IteratorUtils.transform(IteratorUtils.filter(groups, Objects::nonNull), group -> GroupDelegator.wrap(sessionDelegate, group));
             }
         });
     }

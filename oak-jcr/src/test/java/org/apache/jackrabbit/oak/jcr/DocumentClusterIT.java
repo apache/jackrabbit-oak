@@ -116,7 +116,6 @@ public abstract class DocumentClusterIT {
     /**
      * <p> 
      * ensures that the cluster is aligned by running all the background operations
-     * </p>
      *
      * @param mks the list of {@link DocumentMK} composing the cluster. Cannot be null.
      */
@@ -240,11 +239,9 @@ public abstract class DocumentClusterIT {
      * the default {@link #initRepository(Class, List, List, int, int)} uses this for registering
      * any additional {@link IndexEditorProvider}. Override and return all the provider you'd like
      * to have running other than the OOTB one.
-     * </p>
-     * 
+     *
      * <p>
      * the default implementation returns {@code null}
-     * </p>
      * @return
      */
     protected Set<IndexEditorProvider> additionalIndexEditorProviders() {

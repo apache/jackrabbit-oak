@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Objects;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.principal.EveryoneFilter;
 import org.apache.jackrabbit.oak.spi.security.user.cache.CachedMembershipReader;
@@ -185,8 +185,8 @@ class UserPrincipalProvider implements PrincipalProvider {
                     statement.toString(), javax.jcr.query.Query.XPATH,
                     limit, offset, NO_BINDINGS, namePathMapper.getSessionLocalMappings());
 
-            Iterator<Principal> principals = Iterators.filter(
-                    Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()::apply),
+            Iterator<Principal> principals = IteratorUtils.filter(
+                    IteratorUtils.transform(result.getRows().iterator(), new ResultRowToPrincipal()::apply),
                     Objects::nonNull);
 
             // everyone is injected only in complete set, not on pages

@@ -34,8 +34,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.Hash;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.HyperLogLog;
+import org.apache.jackrabbit.oak.commons.collections.HashUtils;
+import org.apache.jackrabbit.oak.commons.collections.HyperLogLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +65,7 @@ public class Prefetcher {
 
     private String blobSuffix;
 
-    private volatile long blobReadAheadSize = 4 * 1024 * 1024 * 1024L;
+    private volatile long blobReadAheadSize = 16 * 1024 * 1024L;
     private volatile long nodeReadAheadCount = 64 * 1024;
     private volatile long maxBlobSize;
 
@@ -127,7 +127,7 @@ public class Prefetcher {
     }
 
     public void sleep(String status) throws InterruptedException {
-        Thread.sleep(10);
+        Thread.sleep(1);
     }
 
     Runnable iterator(PrefetchType prefetchType) {
@@ -240,7 +240,7 @@ public class Prefetcher {
         // and then we use a secondary hash
         // otherwise the estimation is way off
         int h = blob.getContentIdentity().hashCode();
-        return Hash.hash64(h | (blob.length() << 32));
+        return HashUtils.hash64(h | (blob.length() << 32));
     }
 
     static enum PrefetchType {

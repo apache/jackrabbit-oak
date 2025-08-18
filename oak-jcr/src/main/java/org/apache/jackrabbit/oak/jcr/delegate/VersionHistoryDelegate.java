@@ -29,12 +29,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
 
@@ -161,7 +160,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
             }
         });
         final Tree thisTree = getTree();
-        return Iterators.transform(versions.iterator(),
+        return IteratorUtils.transform(versions.iterator(),
                 nd -> VersionDelegate.create(sessionDelegate, thisTree.getChild(nd.getName())));
     }
 

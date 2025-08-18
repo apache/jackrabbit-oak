@@ -28,8 +28,8 @@ import java.util.stream.Collectors;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.BloomFilter;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.HyperLogLog;
+import org.apache.jackrabbit.oak.commons.collections.BloomFilter;
+import org.apache.jackrabbit.oak.commons.collections.HyperLogLog;
 
 /**
  * Collects the number and size of distinct binaries.
@@ -174,6 +174,7 @@ public class DistinctBinarySize implements StatsCollector {
         double fpp = BloomFilter.calculateFpp(smallBinariesEstimatedCount, bloomFilter.getBitCount(), bloomFilter.getK());
         long bloomFilterEstimatedSize = bloomFilterMinSize;
         bloomFilterEstimatedSize += fpp * bloomFilterIgnoredSize;
+        storage.add("small Bloom filter ffp*1000", (long) (fpp * 1000));
         storage.add("small binaries count", smallBinariesEstimatedCount);
         storage.add("small binaries HLL count", smallBinariesEstimatedCountHLL);
         storage.add("small binaries size", bloomFilterEstimatedSize);

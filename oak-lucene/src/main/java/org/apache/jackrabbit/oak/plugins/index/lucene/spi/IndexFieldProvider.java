@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Field;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 /**
  * Implementations of this interface would get callbacks while indexing documents. It's the responsibility
@@ -36,13 +36,13 @@ public interface IndexFieldProvider {
      */
     IndexFieldProvider DEFAULT = new IndexFieldProvider() {
         @Override
-        public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
-            return Collections.EMPTY_LIST;
+        public @NotNull Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
+            return List.of();
         }
 
         @Override
-        public Set<String> getSupportedTypes() {
-            return Collections.EMPTY_SET;
+        public @NotNull Set<String> getSupportedTypes() {
+            return Set.of();
         }
     };
 

@@ -29,11 +29,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -58,7 +58,6 @@ import org.slf4j.LoggerFactory;
  * Manages a node as <em>Atomic Counter</em>: a node which will handle at low level a protected
  * property ({@link #PROP_COUNTER}) in an atomic way. This will represent an increment or decrement
  * of a counter in the case, for example, of <em>Likes</em> or <em>Voting</em>.
- * </p>
  * 
  * <p>
  * Whenever you add a {@link NodeTypeConstants#MIX_ATOMIC_COUNTER} mixin to a node it will turn it
@@ -66,11 +65,9 @@ import org.slf4j.LoggerFactory;
  * you'll need to set the {@code oak:increment} one ({@link #PROP_INCREMENT}). Please note that the
  * <strong>{@code oak:incremement} will never be saved</strong>, only the {@code oak:counter} will
  * be amended accordingly.
- * </p>
  * 
  * <p>
  * So in order to deal with the counter from a JCR point of view you'll do something as follows
- * </p>
  * 
  * <pre>
  *  Session session = ...
@@ -106,25 +103,21 @@ import org.slf4j.LoggerFactory;
  * The related jira ticket is <a href="https://issues.apache.org/jira/browse/OAK-2472">OAK-2472</a>.
  * In a nutshell when you save an {@code oak:increment} behind the scene it takes its value and
  * increment an internal counter. There will be an individual counter for each cluster node.
- * </p>
  * 
  * <p>
  * Then it will consolidate all the internal counters into a single one: {@code oak:counter}. The
  * consolidation process can happen either synchronously or asynchronously. Refer to
  * {@link #AtomicCounterEditor(NodeBuilder, String, ScheduledExecutorService, NodeStore, Whiteboard)}
  * for details on when it consolidate one way or the other.
- * </p>
  * 
  * <p>
  * <strong>synchronous</strong>. It means the consolidation, sum of all the internal counters, will
  * happen in the same thread. During the lifecycle of the same commit.
- * </p>
  * 
  * <p>
  * <strong>asynchronous</strong>. It means the internal counters will be set during the same commit;
  * but it will eventually schedule a separate thread in which will retry some times to consolidate
  * them.
- * </p>
  */
 public class AtomicCounterEditor extends DefaultEditor {
     /**
@@ -174,14 +167,12 @@ public class AtomicCounterEditor extends DefaultEditor {
      * <p>
      * Create an instance of the editor for atomic increments. It can works synchronously as well as
      * asynchronously. See class javadoc for details around it.
-     * </p>
      * <p>
      * If {@code instanceId} OR {@code executor} OR {@code store} OR {@code board} are null, the
      * editor will switch to synchronous behaviour for consolidation. If no {@link CommitHook} will
      * be found in the whiteboard, a {@link EmptyHook} will be provided to the {@link NodeStore} for
      * merging.
-     * </p>
-     * 
+     *
      * @param builder the build on which to work. Cannot be null.
      * @param instanceId the current Oak instance Id. If null editor will be synchronous.
      * @param executor the current Oak executor service. If null editor will be synchronous.
@@ -222,7 +213,7 @@ public class AtomicCounterEditor extends DefaultEditor {
         boolean process = false;
         PropertyState mixin = requireNonNull(builder).getProperty(JCR_MIXINTYPES);
         if (mixin != null && PROP_INCREMENT.equals(property.getName()) &&
-                Iterators.contains(mixin.getValue(NAMES).iterator(), MIX_ATOMIC_COUNTER)) {
+                IteratorUtils.contains(mixin.getValue(NAMES).iterator(), MIX_ATOMIC_COUNTER)) {
             if (LONG.equals(property.getType())) {
                 process = true;
             } else {
@@ -238,15 +229,13 @@ public class AtomicCounterEditor extends DefaultEditor {
      * <p>
      * consolidate the {@link #PREFIX_PROP_COUNTER} properties and sum them into the
      * {@link #PROP_COUNTER}
-     * </p>
-     * 
+     *
      * <p>
      * The passed in {@code NodeBuilder} must have
      * {@link org.apache.jackrabbit.JcrConstants#JCR_MIXINTYPES JCR_MIXINTYPES} with
      * {@link NodeTypeConstants#MIX_ATOMIC_COUNTER MIX_ATOMIC_COUNTER}.
      * If not it will be silently ignored.
-     * </p>
-     * 
+     *
      * @param builder the builder to work on. Cannot be null.
      */
     public static void consolidateCount(@NotNull final NodeBuilder builder) {

@@ -24,7 +24,9 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
+import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
@@ -53,6 +55,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class SegmentStoreMigrator implements Closeable  {
 
@@ -162,9 +165,12 @@ public class SegmentStoreMigrator implements Closeable  {
         List<String> targetArchives = targetManager.listArchives();
 
         if (appendMode && !targetArchives.isEmpty()) {
-            //last archive can be updated since last copy and needs to be recopied
-            String lastArchive = targetArchives.get(targetArchives.size() - 1);
-            targetArchives.remove(lastArchive);
+            // sort archives by index
+            // last archive could have been updated since last copy and may need to be recopied
+            targetArchives = targetArchives.stream()
+                    .sorted(RemoteUtilities.ARCHIVE_INDEX_COMPARATOR)
+                    .limit(targetArchives.size() - 1)
+                    .collect(Collectors.toList());
         }
 
         for (String archiveName : sourceManager.listArchives()) {
@@ -208,25 +214,14 @@ public class SegmentStoreMigrator implements Closeable  {
     private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
         Future<Buffer> future = executor.submit(() -> RETRIER.execute(reader::getBinaryReferences));
         Buffer binaryReferences = future.get();
-        if (binaryReferences != null) {
-            byte[] array = fetchByteArray(binaryReferences);
-            RETRIER.execute(() -> writer.writeBinaryReferences(array));
-        }
+        byte[] array = fetchByteArray(binaryReferences);
+        RETRIER.execute(() -> writer.writeBinaryReferences(array));
     }
 
     private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
-        Future<Buffer> future = executor.submit(() -> RETRIER.execute(() -> {
-            if (reader.hasGraph()) {
-                return reader.getGraph();
-            } else {
-                return null;
-            }
-        }));
-        Buffer graph = future.get();
-        if (graph != null) {
-            byte[] array = fetchByteArray(graph);
-            RETRIER.execute(() -> writer.writeGraph(array));
-        }
+        Future<SegmentGraph> future = executor.submit(() -> RETRIER.execute(reader::getGraph));
+        SegmentGraph graph = future.get();
+        RETRIER.execute(() -> writer.writeGraph(graph.write()));
     }
 
     @Override

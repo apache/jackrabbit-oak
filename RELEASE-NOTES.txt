@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.78.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.84.0
 
 Introduction
 ------------
@@ -7,170 +7,81 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.78.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.84.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.78.0 compiles and tests successfully on Java 17, Javadocs
-generation fails on Java 17 (but works as expected on Java 11).
-
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.78.0
+Changes in Oak 1.84.0
 ---------------------
 
 Technical task
 
-    [OAK-11451] - Remove usage of Guava Iterables.concat()
-    [OAK-11462] - Remove usage of Guava Files.write()
-    [OAK-11481] - Remove (once more) usage of Guava Files.createTempDir()
-    [OAK-11482] - Remove usage of Guava Files.newReader
-    [OAK-11484] - Remove usage of Guava io.CountingInputStream
-    [OAK-11494] - Add Iterables.contains replacement in IterableUtils
-    [OAK-11495] - Add Iterables.size replacement in IteratorUtils
-    [OAK-11496] - Add Iterables.all replacement in IterableUtils
-    [OAK-11500] - Remove usage of Guava io.Closeable
-    [OAK-11503] - Add Iterables.isEmpty replacement in IterableUtils
-    [OAK-11507] - Use oak-commons IterableUtils instead of commons-collections4
-    [OAK-11513] - Add Iterables.toArray replacement in IterableUtils
-    [OAK-11514] - Remove usage of Guava Iterables.toArray
-    [OAK-11518] - Add Iterables.partition replacement in IterableUtils
-    [OAK-11519] - Remove usage of Guava Iterables.partition()
-    [OAK-11522] - Remove usage of Guava Iterables.filter()
-    [OAK-11523] - Add Iterables.filter replacement in IterableUtils
-    [OAK-11527] - Remove usage of Guava Iterables.transform()
-    [OAK-11528] - Add Iterables.transform replacement in IterableUtils
-    [OAK-11531] - Add Iterables.mergeSorted replacement in IterableUtils
-    [OAK-11532] - Remove usage of Guava Iterables.mergeSorted()
-    [OAK-11542] - Remove usage of Guava Iterables.elementsEqual()
-    [OAK-11543] - Add Iterables.elementsEqual replacement in IterableUtils
-    [OAK-11546] - Remove usage of Guava io.Closer
-    [OAK-11548] - Add Iterables.limit replacement in IterableUtils
-    [OAK-11549] - Remove usage of Guava Iterables.limit()
-    [OAK-11550] - Add Iterables.toString replacement in IterableUtils
-    [OAK-11551] - Remove usage of Guava Iterables.toString()
-    [OAK-11556] - Remove usage of Guava Iterables.getFirst()
-    [OAK-11557] - Remove usage of Guava Iterables.getOnlyElement()
-    [OAK-11558] - Remove usage of Guava Iterables.tryFind()
-    [OAK-11562] - Remove usage of Guava Iterables.addAll()
-    [OAK-11563] - Add Iterables.getFirst replacement in IterableUtils
-    [OAK-11565] - Add Iterables.get() replacement in IterableUtils
-    [OAK-11566] - Add Iterables.find() replacement in IterableUtils
-    [OAK-11567] - Remove usage of Guava Iterables.size (2)
-    [OAK-11571] - commons: add Closer class (similar to Guava Closer)
-    [OAK-11573] - Add Iterators.size replacement in IteratorUtils
-    [OAK-11574] - Remove usage of Guava Iterators.size()
-    [OAK-11575] - Add Iterables.getLast() replacement in IterableUtils
-    [OAK-11576] - Remove usage of Guava Iterables.get()
-    [OAK-11577] - Remove usage of Guava Iterables.find()
-    [OAK-11578] - Remove usage of Guava Iterables.getLast()
-    [OAK-11580] - Remove usage of Guava Iterables.skip()
-    [OAK-11581] - Remove usage of Guava Iterables.cycle
-    [OAK-11582] - Remove usage of Guava Iterables.removeAll
-    [OAK-11583] - Add Iterators.get replacement in IteratorUtils
-    [OAK-11584] - Add Iterators.getLast replacement in IteratorUtils
-    [OAK-11589] - Remove usage of Iterators.get
-    [OAK-11596] - Remove usage of Guava Iterables (imports)
-    [OAK-11602] - Remove usage of Guava ImmutableSet.copyOf [part 1]
-    [OAK-11605] - Remove usage of Guava ImmutableSet.copyOf [part 2]
-    [OAK-11615] - update groovy dependency to 3.0.24
+    [OAK-11748] - Remove usage of Guava Escapers
+    [OAK-11753] - Remove usage of Guava base.CaseFormat
+    [OAK-11771] - Remove usage of Guava's AtomicDouble
+    [OAK-11774] - Remove usage of Guava's Splitter
+    [OAK-11785] - Remove usage of Guava preconditions.checkPositionIndex
+    [OAK-11786] - Remove usage of Guava base.Strings
+    [OAK-11789] - Remove usage of Guava collect.Lists.newArrayList in segment-azure
+    [OAK-11793] - Remove usage of Guava common.hash.HashCode
+    [OAK-11801] - Remove usage of Guava FluentIterable
+    [OAK-11843] - Improve diagnostics for NPE in SecureNodeBuilder
 
 Bug
 
-    [OAK-11461] - DocumentNodeStoreService - setClusterInvisible via config
-    [OAK-11464] - oak-it-osgi fails to load the bundle oak-search-elastic if the profile rdb-mysql is used for building and testing.
-    [OAK-11475] - oak-search-elastic: WordDelimiter filter does not convert type mappings
-    [OAK-11480] - AzureRepositoryLock: NPE in refresh thread
-    [OAK-11499] - Warning: Parameter 'aggregate' is unknown for plugin 'maven-javadoc-plugin:3.4.1:jar (default)'
-    [OAK-11508] - oak-search-elastic: is null / is not null queries should resolve the field name
-    [OAK-11529] - Infinite recursion in AstElement (for some platforms and configs)
-    [OAK-11536] - oak-search-elastic: synonym filter has to be lenient by default
-    [OAK-11539] - Flaky test: MembershipProviderTest#testGetMembershipInherited()
-    [OAK-11564] - oak-run FullGC leaves background threads running
-    [OAK-11570] - oak-run fullGC fullGcMaxAge default value is wrongly calculated
-    [OAK-11603] - Lucene 4.x fuzzy queries don't work in Elastic
-    [OAK-11619] - Fix flaky ConcurrentMultiplexingIndexWriterTest
-    [OAK-11624] - Elastic full-text queries are not lenient when the input value cannot be converted
-    [OAK-11630] - CommandTestUtils captureSystem* should normalize line feeds
-
-Epic
-
-    [OAK-11047] - Oak should compile & test on Java 23
-
-Story
-
-    [OAK-11444] - [full-gc] Save document id and empty properties names before deletion
-    [OAK-11491] - segment.azure.v12.enabled should be set to false after test execution is finished
+    [OAK-11299] - Missing Segments With Oak Run Segment Copy
+    [OAK-11783] - Import fails for content not using namespace prefixes
+    [OAK-11787] - org.apache.jackrabbit.oak.plugins.index.elastic.ElasticRegexPropertyIndexTest.regexPropertyWithoutFlattened failure
+    [OAK-11794] - remove the unused commons-fileupload dependency from IT tests
+    [OAK-11807] - Duplicate header after failed SegmentBufferWriter.flush()
+    [OAK-11812] - Failure in running S3DataStoreServiceTest unit case
+    [OAK-11818] - Update Mockito dependency to 5.18.0
+    [OAK-11824] - oak-lucene: custom analyzer cannot load indirect filters
+    [OAK-11838] - DocumentNodeStoreService.registerNodeStore() ignores Mongo settings
+    [OAK-11839] - Implement oak background thread that reads throttle flag from settings collection
+    [OAK-11847] - AzureJournalFile fails to rotate journal
 
 New Feature
 
-    [OAK-8748] - Run performance tests and compare with baseline
+    [OAK-11498] - Expose bound principals via JackrabbitSession
 
 Improvement
 
-    [OAK-11390] - Generate aggregate UT/IT reports
-    [OAK-11397] - Provide a way to get expanded names for items
-    [OAK-11435] - oak-search: the special baseline configuration may be removed from the pom.
-    [OAK-11436] - oak-segment-aws: the special baseline configuration may be removed from the pom.
-    [OAK-11454] - Explain query output: fix "synchronousPropertyCondition"
-    [OAK-11457] - Tree store sometimes contains bundled properties
-    [OAK-11460] - Allow configuring "index.mapping.total_fields.limit"
-    [OAK-11466] - Replace Fixed to Exponential retries in oak-segment-azure
-    [OAK-11468] - RDBDataSourceFactory unnecessarily loads the JDBC driver class explicitly.
-    [OAK-11469] - Speedup resolution of mount paths
-    [OAK-11472] - Improve error handling when index is missing Tika config
-    [OAK-11478] - Node store statistics: support the tree store
-    [OAK-11483] - Throttle log warn messages during indexing in Elastic
-    [OAK-11488] - Flaky test org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT. testDeletedPropsAndUnmergedBCWithCollisionWithDryRunMode
-    [OAK-11489] - Flaky test org.apache.jackrabbit.oak.plugins.document.BranchCommitGCTest.unmergedAddsThenMergedAddThenUnmergedRemovesChildren
-    [OAK-11490] - VersionGarbageCollectorIT takes 1 hour to run
-    [OAK-11501] - Disable spotbugs
-    [OAK-11504] - Elasticsearch: support "flattened" fields
-    [OAK-11505] - Reduce object allocation in FullTextIndexEditor
-    [OAK-11509] - Incremental flat file store: reduce logging
-    [OAK-11510] - Performance improvements to IndexDefinition class
-    [OAK-11511] - Performance improvements to FullTextDocumentMaker class
-    [OAK-11515] - Fix indentation on indexing related classes
-    [OAK-11520] - Performance improvements to Aggregate class in indexing logic
-    [OAK-11526] - Reduce logging verbosity in IndexWriterPool when closing writers
-    [OAK-11530] - Elasticsearch: "field name cannot be an empty string" if fields start with a dot
-    [OAK-11533] - Reduce calls to PathUtils.concat() in FulltextIndexEditor
-    [OAK-11534] - Auto-merge indexes if string matches single-value array
-    [OAK-11538] - Cleanups and small performance improvements to CompositeEditor and CompositeIndexEditorProvider
-    [OAK-11544] - Flaky test PipelinedTreeStoreIT.createFFSCustomExcludePathsRegexNoRetryOnConnectionErrorRegexFiltering
-    [OAK-11547] - oak-search-elastic: upgrade Elasticsearch Java Client to 8.17.x
-    [OAK-11553] - Elastic: index name is swallowed in case of IllegalArgumentException
-    [OAK-11555] - Elastic: support dot and other special characters in property and function names
-    [OAK-11568] - Elastic: improved compatibility for analyzer definitions
-    [OAK-11597] - increase toxiproxy startup attempts
-    [OAK-11598] - Bump testcontainers to v1.20.6
-    [OAK-11606] - indexing-job: throttle messages warning about enqueuing delays in IndexWriterPool
-    [OAK-11610] - Clarify javadoc of o.a.j.api.security.user.UserManager.createUser() with respect to null passwords
-    [OAK-11613] - Expose ELASTIC_ENABLED metric
-    [OAK-11614] - ES StatisticalFacets: log search request on timeout
-
-Test
-
-    [OAK-11252] - flaky BranchCommitGCTest.unmergedRemoveChild + unmergedAddsThenMergedAddsChildren
-    [OAK-11477] - Flaky test: DocumentDiscoveryLiteServiceIT.testLargeStartStopFiesta
+    [OAK-9447] - Upgrade Mongo java driver to 5.2
+    [OAK-11729] - If the indexing lane is behind, we should allow catch up of a non-failing lane
+    [OAK-11778] - Fix compilation warnings in classes related to Query handling
+    [OAK-11779] - Mongo downloader: in the progress messages, print the dates corresponding to the _modified values
+    [OAK-11780] - XML import: calculate prefixMap only when required
+    [OAK-11781] - Binary reference statistics are inaccurate for very large repositories
+    [OAK-11784] - new instance of NamespaceRegistry is created whenever an item is added via XML DocViewImporter
+    [OAK-11797] - indexing document store: start lucene writer pool only before indexing, not before download
+    [OAK-11800] - Simplify code of full text indexer
+    [OAK-11810] - UserImporter: Resolve the UserMonitor lazily
+    [OAK-11814] - NPE in ElasticResultRowAsyncIterator
+    [OAK-11823] - Code cleanups in Elastic search module
+    [OAK-11825] - Improve thread monitoring in the OutOfBandIndexer
+    [OAK-11837] - Update commons-csv version to 1.14.1
 
 Task
 
-    [OAK-11438] - indexing job: parallelize Lucene writer backend
-    [OAK-11456] - oak-solr-osgi embeds vulnerable Zookeeper 3.9.2
-    [OAK-11458] - Create IterableUtils in oak-commons
-    [OAK-11459] - Code cleanups on indexing related packages
-    [OAK-11506] - Update oak-segment-azure tools to use azure sdk v12 implementation
-    [OAK-11524] - Update oak-commons SetUtils to use commons-collections4 methods
-    [OAK-11541] - FullGC Mongo query has too broad scope
-    [OAK-11569] - Potential regression introduced with OAK-11287
-    [OAK-11586] - webapp: update Tomcat dependency to 9.0.102
-    [OAK-11594] - Converting existing indexes from a type to another leaves the async lane the same
-    [OAK-11595] - update Tomcat JDBC dependency to 9.0.102
-    [OAK-11611] - blob-cloud, segment: update netty version to 4.1.119
-    [OAK-11623] - Clean oak-segment-azure lib embedding and exporting
+    [OAK-10790] - FullTextBinaryTextExtractor fails to extract text from csv
+    [OAK-11617] - Provide oak-run commands to analyze and fix inconsistencies in the namespace registry
+    [OAK-11711] - oak-standalone: update dependencies
+    [OAK-11792] - mark commons.cache package as internal
+    [OAK-11795] - FullGC Audit Logging doesn't get enabled in oak-run revisions command
+    [OAK-11802] - update Tomcat dependency to 9.0.107
+    [OAK-11803] - Update commons-lang3 dependency to 3.18.0
+    [OAK-11804] - Update Oak trunk to Jackrabbit 2.22.1
+    [OAK-11819] - Update commons-codec dependency to 1.19.0
+    [OAK-11820] - Update commons-io dependency to 2.20.0
+    [OAK-11822] - Update commons-lang dependency to 1.14.0
+    [OAK-11831] - Update Oak trunk to Jackrabbit 2.22.2
+    [OAK-11834] - ClusterType can take longer during Mongo cluster initialization
+    [OAK-11835] - Expose Mongo connection pool parameters
 
 
 In addition to the above-mentioned changes, this release contains all

@@ -30,7 +30,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -509,14 +508,14 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         DataRecord rec = dataStore.addRecord(fin);
         assertEquals(id, rec.getIdentifier().toString());
 
-        assertTrue(Iterators.contains(dataStore.getAllIdentifiers(), new DataIdentifier(id)));
+        assertTrue(IteratorUtils.contains(dataStore.getAllIdentifiers(), new DataIdentifier(id)));
 
         //start & finish
         taskLatch.countDown();
         callbackLatch.countDown();
         waitFinish();
 
-        assertTrue(Iterators.contains(dataStore.getAllIdentifiers(), new DataIdentifier(id)));
+        assertTrue(IteratorUtils.contains(dataStore.getAllIdentifiers(), new DataIdentifier(id)));
 
         LOG.info("Finished getAllIdentifiers");
     }

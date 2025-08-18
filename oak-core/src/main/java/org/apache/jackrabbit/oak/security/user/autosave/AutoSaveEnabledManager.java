@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>In general any consumer of the Jackrabbit user management API should stick
  * to the API contract and verify that the autosave flag is enabled before
- * relying on the implementation to have it turned on:</p>
+ * relying on the implementation to have it turned on:
  *
  * <pre>
  *     JackrabbitSession session = ...;

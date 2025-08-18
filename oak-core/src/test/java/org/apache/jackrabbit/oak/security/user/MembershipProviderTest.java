@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -412,6 +411,6 @@ public class MembershipProviderTest extends MembershipBaseTest {
     }
     
     private static boolean contains(@NotNull Iterator<Tree> treeIterator, @NotNull Tree tree) {
-        return Iterators.contains(Iterators.transform(treeIterator, Tree::getPath), tree.getPath());
+        return IteratorUtils.contains(IteratorUtils.transform(treeIterator, Tree::getPath), tree.getPath());
     }
 }

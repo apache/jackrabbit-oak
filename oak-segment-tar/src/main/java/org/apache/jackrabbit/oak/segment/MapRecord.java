@@ -27,11 +27,11 @@ import static org.apache.jackrabbit.oak.segment.MapEntry.newMapEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -631,10 +631,9 @@ public class MapRecord extends Record {
         } else if (after == null) {
             return -1;  // see above
         } else {
-            return ComparisonChain.start()
-                    .compare(before.getHash() & HASH_MASK, after.getHash() & HASH_MASK)
-                    .compare(before.getName(), after.getName())
-                    .result();
+            return Comparator.comparingLong((MapEntry me) -> me.getHash() & HASH_MASK)
+                    .thenComparing(MapEntry::getName)
+                    .compare(before, after);
         }
     }
 

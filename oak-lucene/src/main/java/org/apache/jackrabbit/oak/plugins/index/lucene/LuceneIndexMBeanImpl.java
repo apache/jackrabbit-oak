@@ -48,6 +48,7 @@ import javax.management.openmbean.TabularType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.Name;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.Traverser;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -90,12 +91,9 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
 
@@ -558,18 +556,15 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         int maxPathLimitBreachedAtLevel = -1;
         topLevel:
         for (LuceneDoc doc : docs){
-            TreeTraverser<LuceneDoc> traverser = new TreeTraverser<LuceneDoc>() {
-                @Override
-                public Iterable<LuceneDoc> children(@NotNull LuceneDoc root) {
-                    //Break at maxLevel
-                    if (root.depth >= maxLevel) {
-                        return Collections.emptyList();
-                    }
-                    return root.getChildren();
+
+            final Function<LuceneDoc, Iterable<? extends LuceneDoc>> docGetter = root -> {
+                if (root.depth >= maxLevel) {
+                    return Collections.emptyList();
                 }
+                return root.getChildren();
             };
 
-            for (LuceneDoc node : traverser.breadthFirstTraversal(doc)) {
+            for (LuceneDoc node : Traverser.breadthFirstTraversal(doc, docGetter)) {
                 if (paths.size() < maxPathCount) {
                     paths.add(node.path);
                 } else {

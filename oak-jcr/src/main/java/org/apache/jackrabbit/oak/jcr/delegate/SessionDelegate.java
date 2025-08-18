@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
 import org.apache.jackrabbit.oak.jcr.session.SessionNamespaces;
+import org.apache.jackrabbit.oak.jcr.session.SessionSaveDelayer;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats.Counters;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
@@ -138,6 +139,8 @@ public class SessionDelegate {
 
     private final SessionNamespaces namespaces;
 
+    private final SessionSaveDelayer sessionSaveDelayer;
+
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
      * session is governed by the value of the {@code refreshInterval} argument: if the session
@@ -150,6 +153,7 @@ public class SessionDelegate {
      * @param securityProvider the security provider
      * @param refreshStrategy  the refresh strategy used for auto refreshing this session
      * @param statisticManager the statistics manager for tracking session operations
+     * @param sessionSaveDelayer the session save delay mechanism
      */
     public SessionDelegate(
             @NotNull ContentSession contentSession,
@@ -157,7 +161,8 @@ public class SessionDelegate {
             @NotNull RefreshStrategy refreshStrategy,
             @NotNull ThreadLocal<Long> threadSaveCount,
             @NotNull StatisticManager statisticManager,
-            @NotNull Clock clock) {
+            @NotNull Clock clock,
+            @NotNull SessionSaveDelayer sessionSaveDelayer) {
         this.contentSession = requireNonNull(contentSession);
         this.securityProvider = requireNonNull(securityProvider);
         this.root = contentSession.getLatestRoot();
@@ -176,6 +181,7 @@ public class SessionDelegate {
         readDuration = statisticManager.getTimer(SESSION_READ_DURATION);
         writeCounter = statisticManager.getMeter(SESSION_WRITE_COUNTER);
         writeDuration = statisticManager.getTimer(SESSION_WRITE_DURATION);
+        this.sessionSaveDelayer = sessionSaveDelayer;
     }
 
     @NotNull
@@ -392,6 +398,7 @@ public class SessionDelegate {
         if (userData != null) {
             info.put(EventFactory.USER_DATA, userData);
         }
+        sessionSaveDelayer.delayIfNeeded(userData);
         root.commit(Collections.unmodifiableMap(info));
         if (permissionProvider != null && refreshPermissionProvider) {
             permissionProvider.refresh();

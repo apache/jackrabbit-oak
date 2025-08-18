@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
+import org.apache.jackrabbit.oak.index.ThreadMonitor;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -177,16 +178,14 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         if (printHistogramAtInfo) {
             LOG.info("Top hidden paths rejected: {}", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
             LOG.info("Top paths filtered: {}", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
-            LOG.info("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
         } else {
             LOG.debug("Top hidden paths rejected: {}", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
             LOG.debug("Top paths filtered: {}", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
-            LOG.debug("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
         }
     }
 
     private final MongoDocumentStore docStore;
-    private final MongoClientURI mongoClientURI;
+    private final ConnectionString mongoClientURI;
     private final DocumentNodeStore documentNodeStore;
     private final RevisionVector rootRevision;
     private final BlobStore blobStore;
@@ -211,7 +210,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
      * @param statisticsProvider Used to collect statistics about the indexing process.
      * @param indexingReporter   Used to collect diagnostics, metrics and statistics and report them at the end of the indexing process.
      */
-    public PipelinedStrategy(MongoClientURI mongoClientURI,
+    public PipelinedStrategy(ConnectionString mongoClientURI,
                              MongoDocumentStore documentStore,
                              DocumentNodeStore documentNodeStore,
                              RevisionVector rootRevision,
@@ -354,7 +353,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     @Override
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
-        ThreadMonitor threadMonitor = new ThreadMonitor();
+        ThreadMonitor threadMonitor = ThreadMonitor.newInstance();
         var threadFactory = new ThreadMonitor.AutoRegisteringThreadFactory(threadMonitor, new ThreadFactoryBuilder().setDaemon(true).build());
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads, threadFactory);
         MongoDocumentFilter documentFilter = new MongoDocumentFilter(filteredPath, suffixesToSkip);
@@ -363,6 +362,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
         // to detect this failure.
+        @SuppressWarnings("rawtypes")
         ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
         try {
             // download -> transform thread.
@@ -388,6 +388,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             INDEXING_PHASE_LOGGER.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
 
+            @SuppressWarnings("unchecked")
             Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
                     mongoClientURI,
                     docStore,
@@ -403,20 +404,23 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             ArrayList<Future<PipelinedTransformTask.Result>> transformFutures = new ArrayList<>(numberOfTransformThreads);
             for (int i = 0; i < numberOfTransformThreads; i++) {
                 NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
-                transformFutures.add(ecs.submit(new PipelinedTransformTask(
-                        docStore,
-                        documentNodeStore,
-                        nodeDocumentCodec,
-                        rootRevision,
-                        this.getPathPredicate(),
-                        entryWriter,
-                        mongoDocQueue,
-                        emptyBatchesQueue,
-                        nonEmptyBatchesQueue,
-                        transformStageStatistics
-                )));
+                @SuppressWarnings("unchecked")
+                Future<PipelinedTransformTask.Result> future = ecs.submit(new PipelinedTransformTask(
+                                docStore,
+                                documentNodeStore,
+                                nodeDocumentCodec,
+                                rootRevision,
+                                this.getPathPredicate(),
+                                entryWriter,
+                                mongoDocQueue,
+                                emptyBatchesQueue,
+                                nonEmptyBatchesQueue,
+                                transformStageStatistics
+                        ));
+                transformFutures.add(future);
             }
 
+            @SuppressWarnings("unchecked")
             Future<PipelinedSortBatchTask.Result> sortBatchFuture = ecs.submit(new PipelinedSortBatchTask(
                     this.getStoreDir().toPath(),
                     pathComparator,
@@ -436,6 +440,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     statisticsProvider,
                     indexingReporter);
 
+            @SuppressWarnings("unchecked")
             Future<PipelinedMergeSortTask.Result> mergeSortFuture = ecs.submit(mergeSortTask);
 
             Path flatFileStore = null;
@@ -452,7 +457,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         // Timeout waiting for a task to complete
                         if (monitorQueues) {
                             try {
-                                threadMonitor.printStatistics();
+                                LOG.info(threadMonitor.printStatistics());
                                 printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, false);
                             } catch (Exception e) {
                                 LOG.warn("Error while logging queue sizes", e);
@@ -526,7 +531,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         .build());
                 indexingReporter.addTiming("Build FFS (Dump+Merge)", FormattingUtils.formatToSeconds(elapsedSeconds));
                 // Unique heading to make it easier to find in the logs
-                threadMonitor.printStatistics("Final Thread/Memory report");
+                LOG.info(threadMonitor.printStatistics("Final Thread/Memory report"));
 
                 LOG.info("Documents filtered: docsFiltered: {}, longPathsFiltered: {}, filteredRenditionsTotal (top 10): {}",
                         documentFilter.getSkippedFields(), documentFilter.getLongPathSkipped(), documentFilter.formatTopK(10));

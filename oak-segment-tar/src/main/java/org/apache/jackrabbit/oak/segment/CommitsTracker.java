@@ -38,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
  * A simple tracker for the source of commits (writes) in
  * {@link SegmentNodeStore}. It provides two basic functionalities:
  * <ul>
- * <li>exposes the number of commits executed per thread</li>
+ * <li>exposes the number of commits executed per thread
  * <li>exposes the threads (and possibly their details - i.e., stack traces)
  * currently waiting on the commit semaphore
  * </ul>

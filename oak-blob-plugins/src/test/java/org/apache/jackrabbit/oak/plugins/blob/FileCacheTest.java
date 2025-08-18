@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +37,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
@@ -48,6 +46,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * - Tests for {@link FileCache}
@@ -58,9 +57,6 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     private File root;
     private TestCacheLoader loader;
     private Closer closer;
-
-    @Rule
-    public ExpectedException expectedEx = ExpectedException.none();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -75,7 +71,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
 
         root = folder.newFolder();
         closer = Closer.create();
-        loader = new TestCacheLoader<String, InputStream>(folder.newFolder());
+        loader = new TestCacheLoader(folder.newFolder());
 
         CountDownLatch beforeLatch = new CountDownLatch(1);
         CountDownLatch afterLatch = new CountDownLatch(1);
@@ -132,17 +128,22 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     public void loadError() throws Exception {
         LOG.info("Started loadError");
 
-        loader = new TestErrorCacheLoader<String, InputStream>(folder.newFolder(), 8192);
+        loader = new TestErrorCacheLoader(folder.newFolder(), 8192);
         cache = FileCache.build(12 * 1024/* KB */, root, loader, null);
         closer.register(cache);
         createFile(0, loader, cache, folder, 12 * 1024);
         try {
             cache.get(ID_PREFIX + 0);
+            fail();
         } catch (IOException e) {
+            // expected
         }
-
-        expectedEx.expect(IOException.class);
-        cache.get(ID_PREFIX + 0);
+        try {
+            cache.get(ID_PREFIX + 0);
+            fail();
+        } catch (IOException e) {
+            // expected
+        }
 
         LOG.info("Finished loadError");
     }
@@ -394,7 +395,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
             retrieveThread(executorService, ID_PREFIX + 10, cache, thread1Start);
         thread1Start.countDown();
 
-        File f = createFile(4, loader, cache, folder);
+        createFile(4, loader, cache, folder);
         CountDownLatch thread2Start = new CountDownLatch(1);
         SettableFuture<File> future2 =
             retrieveThread(executorService, ID_PREFIX + 4, cache, thread2Start);
@@ -484,6 +485,36 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         LOG.info("Finished upgrade");
     }
 
+    @Test
+    public void limitEntryCount() throws Exception {
+        try (FileCache cache = FileCache.build(1024 * 1024 * 1024/* bytes */, root, loader, null)) {
+            cache.setMaxEntryCount(100);
+            for(int i=0; i<200; i++) {
+                int fileSize = 4 * 1024;
+                if (i > 100 && i < 150) {
+                    // files now get larger and larger
+                    fileSize = 4 * 1024 + i * 100;
+                } else if (i > 150) {
+                    // files get smaller again
+                    fileSize = 4 * 1024;
+                }
+                createFile(i, loader, cache, folder, fileSize);
+                cache.get(ID_PREFIX + i);
+                // ensure we don't go over the limit
+                assertTrue(cache.getEntryCount() <= 100);
+                if (i < 100) {
+                    // at the beginning (less than 100 files),
+                    // we expect the limit to stay
+                    assertEquals(i + 1, cache.getEntryCount());
+                } else {
+                    // from then on, we expect that we have at least 90%
+                    // of the limit
+                    assertTrue(cache.getEntryCount() >= 80);
+                }
+            }
+        }
+    }
+
     /**------------------------------ Helper methods --------------------------------------------**/
 
     private static SettableFuture<File> retrieveThread(ListeningExecutorService executor,
@@ -506,8 +537,6 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         return future;
     }
 
-
-
     private static SettableFuture<Boolean> putThread(ListeningExecutorService executor,
         final int seed, final File f, final FileCache cache, final CountDownLatch start) {
         final SettableFuture<Boolean> future = SettableFuture.create();
@@ -529,8 +558,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
     }
 
     private static int getWeight(String key, File value) {
-        return StringUtils.estimateMemoryUsage(key) +
-            StringUtils.estimateMemoryUsage(value.getAbsolutePath()) + 48;
+        return StringUtils.estimateMemoryUsage(key) + 128;
     }
 
     private static void assertCacheIfPresent(int seed, FileCache cache, File f) throws IOException {

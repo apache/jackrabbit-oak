@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -28,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 public class EntryIteratorTest {
 
-    private final EntryCache cache = when(mock(EntryCache.class).getEntries(anyString())).thenReturn(Iterators.singletonIterator(mock(PermissionEntry.class))).getMock();
+    private final EntryCache cache = when(mock(EntryCache.class).getEntries(anyString())).thenReturn(Collections.singleton(mock(PermissionEntry.class)).iterator()).getMock();
 
     @Test
     public void testIterationStopsAtRootPath() {

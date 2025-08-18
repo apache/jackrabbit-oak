@@ -19,8 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 import java.io.BufferedInputStream;
@@ -59,6 +57,7 @@ import org.apache.jackrabbit.oak.api.blob.BlobUploadOptions;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.ExtendedBlobStatsCollector;
@@ -77,8 +76,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
  * BlobStore wrapper for DataStore. Wraps Jackrabbit 2 DataStore and expose them as BlobStores
@@ -495,7 +492,7 @@ public class DataStoreBlobStore
 
     @Override
     public Iterator<String> getAllChunkIds(final long maxLastModifiedTime) throws Exception {
-        return transform(filter(getAllRecords(), input -> {
+        return IteratorUtils.transform(IteratorUtils.filter(getAllRecords(), input -> {
                 if (input != null && (maxLastModifiedTime <= 0
                         || input.getLastModified() < maxLastModifiedTime)) {
                     return true;
@@ -558,7 +555,7 @@ public class DataStoreBlobStore
     @Override
     public Iterator<String> resolveChunks(String blobId) throws IOException {
         if (!InMemoryDataRecord.isInstance(blobId)) {
-            return Iterators.singletonIterator(blobId);
+            return Collections.singleton(blobId).iterator();
         }
         return Collections.emptyIterator();
     }
@@ -747,7 +744,7 @@ public class DataStoreBlobStore
 
         Iterator<DataRecord> result = delegate instanceof SharedDataStore ?
                 ((SharedDataStore) delegate).getAllRecords() :
-                Iterators.transform(delegate.getAllIdentifiers(),
+                IteratorUtils.transform(delegate.getAllIdentifiers(),
                         input -> {
                                 try {
                                     return delegate.getRecord(input);

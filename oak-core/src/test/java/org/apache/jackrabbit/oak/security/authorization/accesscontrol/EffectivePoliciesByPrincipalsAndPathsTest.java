@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -109,7 +108,7 @@ public class EffectivePoliciesByPrincipalsAndPathsTest extends AbstractAccessCon
         Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal), new String[0]);
         AccessControlPolicy[] expected = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
         
-        assertArrayEquals(expected, Iterators.toArray(effective, AccessControlPolicy.class));
+        assertArrayEquals(expected, IteratorUtils.toArray(effective, AccessControlPolicy.class));
     }
     
     @Test

@@ -94,7 +94,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.jcr.InvalidItemStateException;
 
-import org.apache.jackrabbit.guava.common.base.Throwables;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -2130,7 +2130,7 @@ public class DocumentNodeStoreTest {
                 StringBuffer message = new StringBuffer(assertMessage);
                 if (cfe != null) {
                     message.append("\n");
-                    message.append(Throwables.getStackTraceAsString(cfe));
+                    message.append(ExceptionUtils.getStackTrace(cfe));
                 }
                 fail(message.toString());
             }
@@ -3025,7 +3025,7 @@ public class DocumentNodeStoreTest {
             merge(ns, b1);
             fail();
         } catch(Exception e){
-            assertSame(testException, Throwables.getRootCause(e));
+            assertSame(testException, ExceptionUtils.getRootCause(e));
         }
     }
 
@@ -4095,7 +4095,7 @@ public class DocumentNodeStoreTest {
             fail("must fail with DocumentStoreException");
         } catch (Exception e) {
             // must not hit last line of defence (ReadOnlyDocumentStoreWrapper)
-            assertFalse(Throwables.getRootCause(e) instanceof UnsupportedOperationException);
+            assertFalse(ExceptionUtils.getRootCause(e) instanceof UnsupportedOperationException);
         }
     }
 

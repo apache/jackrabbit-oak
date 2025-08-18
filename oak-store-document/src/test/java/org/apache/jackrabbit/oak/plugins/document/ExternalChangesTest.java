@@ -19,12 +19,11 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.jackrabbit.guava.common.base.Splitter;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
@@ -305,7 +304,7 @@ public class ExternalChangesTest {
         @Override
         public void addSerializedProperty(@Nullable String s) {
             if (s != null){
-                Splitter.on(',').split(s).forEach(allProps.values::add);
+                allProps.values.addAll(Arrays.asList(s.split(",")));
             }
         }
 

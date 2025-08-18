@@ -72,7 +72,7 @@ public class Aggregate {
         this.includes = List.copyOf(includes);
         this.reAggregationLimit = recursionLimit;
         this.relativeNodeIncludes = findRelativeNodeIncludes(includes);
-        this.nodeAggregates = includes.stream().anyMatch(input -> input instanceof NodeInclude);
+        this.nodeAggregates = this.includes.stream().anyMatch(input -> input instanceof NodeInclude);
     }
 
     public List<? extends Include> getIncludes() {
@@ -176,7 +176,7 @@ public class Aggregate {
                     result.nextSet(nextSet);
                 }
             }
-            if (nextSet !=null && !nextSet.isEmpty()) {
+            if (nextSet != null && !nextSet.isEmpty()) {
                 collectAggregates(cne.getNodeState(), nextSet.toArray(new Matcher[0]), collector);
                 // Clear the set so it can be reused. This reduces object allocation overhead.
                 nextSet.clear();

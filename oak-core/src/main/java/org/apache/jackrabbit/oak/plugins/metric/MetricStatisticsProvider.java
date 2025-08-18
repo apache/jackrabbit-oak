@@ -26,11 +26,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
@@ -43,6 +45,7 @@ import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.GaugeStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
@@ -117,12 +120,47 @@ public class MetricStatisticsProvider implements StatisticsProvider, Closeable {
         return getStats(name, StatsBuilder.HISTOGRAMS, options);
     }
 
+    @Override
+    public <T> GaugeStats<T> getGauge(String name, Supplier<T> supplier) {
+        return getOrAddGauge(name, supplier);
+    }
+
     public MetricRegistry getRegistry() {
         return registry;
     }
 
     RepositoryStatisticsImpl getRepoStats() {
         return repoStats;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> GaugeStats<T> getOrAddGauge(final String name, final Supplier<T> supplier) {
+        final Stats stats = statsRegistry.get(name);
+        if (stats instanceof GaugeStats<?>) {
+            return (GaugeStats<T>) stats;
+        } else {
+            try {
+                return registerGauge(name, supplier);
+            } catch (IllegalArgumentException e) {
+                final Stats added = statsRegistry.get(name);
+                if (added instanceof GaugeStats<?>) {
+                    return (GaugeStats<T>) added;
+                }
+            }
+        }
+        throw new IllegalArgumentException(name + " is already used for a different type of stats");
+    }
+
+    private <T> GaugeStats<T> registerGauge(final String name, final Supplier<T> supplier) {
+        final Gauge<T> codahaleGauge = supplier::get;
+        @SuppressWarnings("rawtypes")
+        MetricRegistry.MetricSupplier<Gauge> metricSupplier = () -> codahaleGauge;
+
+        @SuppressWarnings("unchecked")
+        Gauge<T> g = registry.gauge(name, metricSupplier);
+        GaugeImpl<T> gauge = new GaugeImpl<>(g);
+        statsRegistry.put(name, gauge);
+        return gauge;
     }
 
     private <T extends Stats> T getStats(String name, StatsBuilder<T> builder, StatsOptions options) {

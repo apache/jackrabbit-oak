@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.jcr.session.operation.UserManagerOperation;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
@@ -111,7 +111,7 @@ public class UserManagerDelegator implements UserManager {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(relPath, value);
-                return Iterators.transform(authorizables, authorizable -> AuthorizableDelegator.wrap(sessionDelegate, authorizable));
+                return IteratorUtils.transform(authorizables, authorizable -> AuthorizableDelegator.wrap(sessionDelegate, authorizable));
             }
         });
     }
@@ -124,7 +124,7 @@ public class UserManagerDelegator implements UserManager {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(relPath, value, searchType);
-                return Iterators.transform(authorizables, authorizable -> AuthorizableDelegator.wrap(sessionDelegate, authorizable));
+                return IteratorUtils.transform(authorizables, authorizable -> AuthorizableDelegator.wrap(sessionDelegate, authorizable));
             }
         });
     }
@@ -137,7 +137,7 @@ public class UserManagerDelegator implements UserManager {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = userManagerDelegate.findAuthorizables(query);
-                return Iterators.transform(authorizables, authorizable -> AuthorizableDelegator.wrap(sessionDelegate, authorizable));
+                return IteratorUtils.transform(authorizables, authorizable -> AuthorizableDelegator.wrap(sessionDelegate, authorizable));
             }
         });
     }

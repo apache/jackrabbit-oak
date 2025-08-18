@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.query;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
@@ -47,7 +46,7 @@ public class ResultImpl implements Result {
     
     @Override
     public String[] getColumnSelectorNames() {
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         for (ColumnImpl c : query.getColumns()) {
             SelectorImpl selector = c.getSelector();
             String name = selector == null ? null : selector.getSelectorName();
@@ -55,7 +54,7 @@ public class ResultImpl implements Result {
                 list.add(name);
             }
         }
-        return list.toArray(new String[list.size()]);
+        return list.toArray(new String[0]);
     }
 
     @Override
@@ -65,14 +64,7 @@ public class ResultImpl implements Result {
 
     @Override
     public Iterable<? extends ResultRow> getRows() {
-        return new Iterable<ResultRowImpl>() {
-
-            @Override
-            public Iterator<ResultRowImpl> iterator() {
-                return query.getRows();
-            }
-
-        };
+        return (Iterable<ResultRowImpl>) query::getRows;
     }
 
     @Override

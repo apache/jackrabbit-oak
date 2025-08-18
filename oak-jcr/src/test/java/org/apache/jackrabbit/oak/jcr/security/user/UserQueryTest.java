@@ -27,7 +27,6 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -35,6 +34,7 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.user.AuthorizableQueryManager;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -275,7 +275,7 @@ public class UserQueryTest extends AbstractUserTest {
             });
 
             Iterator<Authorizable> members = g.getMembers();
-            Iterator<Authorizable> users = Iterators.filter(members, 
+            Iterator<Authorizable> users = IteratorUtils.filter(members,
                     authorizable -> !authorizable.isGroup());
             assertSameElements(result, users);
         }
@@ -297,7 +297,7 @@ public class UserQueryTest extends AbstractUserTest {
             });
 
             Iterator<Authorizable> members = g.getDeclaredMembers();
-            Iterator<Authorizable> users = Iterators.filter(members,
+            Iterator<Authorizable> users = IteratorUtils.filter(members,
                 authorizable -> authorizable.isGroup());
             assertSameElements(result, users);
         }
@@ -338,7 +338,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<Authorizable> expected = Iterators.filter(authorizables.iterator(), authorizable -> {
+        Iterator<Authorizable> expected = IteratorUtils.filter(authorizables.iterator(), authorizable -> {
                 try {
                     String name = authorizable.getID();
                     Principal principal = authorizable.getPrincipal();
@@ -413,7 +413,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
+        Iterator<User> expected = IteratorUtils.filter(users.iterator(), user -> {
                 try {
                     Value[] canFly = user.getProperty("canFly");
                     return canFly != null && canFly.length == 1 && canFly[0].getBoolean();
@@ -436,7 +436,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
+        Iterator<User> expected = IteratorUtils.filter(users.iterator(), user -> {
                 try {
                     Value[] weight = user.getProperty("profile/weight");
                     return weight != null && weight.length == 1 && weight[0].getDouble() > 2000.0;
@@ -459,7 +459,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
+        Iterator<User> expected = IteratorUtils.filter(users.iterator(), user -> {
                 try {
                     Value[] numberOfLegs = user.getProperty("numberOfLegs");
                     return numberOfLegs != null && numberOfLegs.length == 1 && numberOfLegs[0].getLong() == 8;
@@ -482,7 +482,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
+        Iterator<User> expected = IteratorUtils.filter(users.iterator(), user -> {
                 try {
                     Value[] poisonous = user.getProperty("poisonous");
                     return poisonous != null && poisonous.length == 1;
@@ -505,7 +505,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
+        Iterator<User> expected = IteratorUtils.filter(users.iterator(), user -> {
                 try {
                     Value[] food = user.getProperty("profile/food");
                     if (food == null || food.length != 1) {
@@ -533,7 +533,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(goldenToad);
+        Iterator<User> expected = Collections.singleton(goldenToad).iterator();
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
     }
@@ -547,7 +547,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(goldenToad);
+        Iterator<User> expected = Collections.singleton(goldenToad).iterator();
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
     }
@@ -560,7 +560,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(kangaroo);
+        Iterator<User> expected = Collections.singleton(kangaroo).iterator();
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
     }
@@ -574,7 +574,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(kangaroo);
+        Iterator<User> expected = Collections.singleton(kangaroo).iterator();
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
     }
@@ -591,7 +591,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
+        Iterator<User> expected = IteratorUtils.filter(users.iterator(), user -> {
                 try {
                     Value[] cute = user.getProperty("profile/cute");
                     Value[] black = user.getProperty("color");
@@ -618,7 +618,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.filter(users.iterator(), user -> {
+        Iterator<User> expected = IteratorUtils.filter(users.iterator(), user -> {
                 try {
                     Value[] food = user.getProperty("profile/food");
                     return food != null && food.length == 1 &&
@@ -642,7 +642,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(elephant);
+        Iterator<User> expected = Collections.singleton(elephant).iterator();
         assertTrue(result.hasNext());
         assertSameElements(expected, result);
     }
@@ -656,7 +656,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
         });
 
-        Iterator<User> expected = Iterators.singletonIterator(elephant);
+        Iterator<User> expected = Collections.singleton(elephant).iterator();
         assertTrue(result.hasNext());
         assertSameElements(expected, result);
     }
@@ -852,7 +852,7 @@ public class UserQueryTest extends AbstractUserTest {
                 }
             });
 
-            Iterator<User> expected = Iterators.filter(sortedUsers.iterator(), user -> {
+            Iterator<User> expected = IteratorUtils.filter(sortedUsers.iterator(), user -> {
                     try {
                         Value[] cute = user.getProperty("profile/cute");
                         Value[] weight = user.getProperty("profile/weight");

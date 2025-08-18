@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -268,7 +267,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
                 SEARCH_TYPE_GROUP, 0, -1);
         Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
                 SEARCH_TYPE_GROUP, 0, -1);
-        assertTrue(Iterators.elementsEqual(i1, i2));
+        assertTrue(IteratorUtils.elementsEqual(i1, i2));
     }
 
     @Test
@@ -280,7 +279,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
             root.commit();
 
             Iterator<? extends Principal> principals = principalProvider.findPrincipals(null, SEARCH_TYPE_GROUP);
-            Iterator filtered = Iterators.filter(principals, principal -> EveryonePrincipal.NAME.equals(principal.getName()));
+            Iterator filtered = IteratorUtils.filter(principals, principal -> EveryonePrincipal.NAME.equals(principal.getName()));
             assertEquals(1, IteratorUtils.size(filtered));
         } finally {
             if (everyoneGroup != null) {
@@ -297,7 +296,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
                     SEARCH_TYPE_GROUP, 0, limit);
             Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
                     SEARCH_TYPE_GROUP, 0, limit);
-            assertTrue(Iterators.elementsEqual(i1, i2));
+            assertTrue(IteratorUtils.elementsEqual(i1, i2));
         }
     }
 

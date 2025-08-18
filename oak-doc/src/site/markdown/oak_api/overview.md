@@ -30,8 +30,6 @@ Oak API
     - [oak-blob-cloud](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-blob-cloud/)
     - [oak-http](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-http/)
     - [oak-lucene](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-lucene/)
-    - [oak-solr-core](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-solr-core/)
-    - [oak-solr-osgi](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-solr-osgi/)
     - [oak-auth-external](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-auth-external/)
     - [oak-auth-ldap](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-auth-ldap/)
     - [oak-segment-tar](http://www.javadoc.io/doc/org.apache.jackrabbit/oak-segment-tar/)

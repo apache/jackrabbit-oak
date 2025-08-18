@@ -25,13 +25,13 @@ import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -74,7 +74,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
     public void testGetImpersonators() throws Exception {
         PrincipalIterator it = impersonation.getImpersonators();
         assertTrue(it.hasNext());
-        assertTrue(Iterators.contains(it, impersonator.getPrincipal()));
+        assertTrue(IteratorUtils.contains(it, impersonator.getPrincipal()));
     }
 
     @Test
@@ -84,7 +84,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
 
         PrincipalIterator it = impersonation.getImpersonators();
         assertTrue(it.hasNext());
-        assertTrue(Iterators.contains(it, p));
+        assertTrue(IteratorUtils.contains(it, p));
     }
 
     @Test

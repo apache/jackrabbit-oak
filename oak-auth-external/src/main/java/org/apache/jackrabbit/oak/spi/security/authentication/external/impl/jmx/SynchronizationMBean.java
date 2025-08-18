@@ -33,11 +33,11 @@ import org.osgi.annotation.versioning.ProviderType;
  *
  * With the following operations:
  * <ul>
- * <li>nop: nothing changed</li>
- * <li>upd: entry updated</li>
- * <li>add: entry added</li>
- * <li>del: entry deleted</li>
- * <li>err: operation failed. in this case, the 'msg' property will contain a reason</li>
+ * <li>nop: nothing changed
+ * <li>upd: entry updated
+ * <li>add: entry added
+ * <li>del: entry deleted
+ * <li>err: operation failed. in this case, the 'msg' property will contain a reason
  * </ul>
  *
  * Note that this interface is not exported via OSGi as it is not intended to use outside of JMX (yet).
@@ -119,7 +119,7 @@ public interface SynchronizationMBean {
     /**
      * <p>Migrates all previously synchronized users to have dynamic membership if the {@code SyncHandler} has the dynamic 
      * membership option enabled. Otherwise this method will have no effect.
-     * </p>
+     * <p>
      * Note: calling this method will only migrate existing group membership information to the dynamic persistence format. 
      * It does not retrieve the latest membership information from the external identity provider. Membership information 
      * will therefore only be updated upon the next synchronization.

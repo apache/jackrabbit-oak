@@ -29,8 +29,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.commons.io.FileUtils;
@@ -140,9 +140,11 @@ public class ScalabilityRunner {
         Map<String, List<String>> argmap = new HashMap<>();
         // Split the args to get suites and benchmarks (i.e. suite:benchmark1,benchmark2)
         for(String arg : argset) {
-            List<String> tokens = Splitter.on(":").limit(2).splitToList(arg);
+            List<String> tokens = Arrays.stream(arg.split(":", 2)).collect(Collectors.toList());
             if (tokens.size() > 1) {
-                argmap.put(tokens.get(0), Splitter.on(",").trimResults().splitToList(tokens.get(1)));
+                argmap.put(tokens.get(0), Arrays.stream(tokens.get(1).split(","))
+                        .map(String::trim)
+                        .collect(Collectors.toList()));
             } else {
                 argmap.put(tokens.get(0), null);
             }

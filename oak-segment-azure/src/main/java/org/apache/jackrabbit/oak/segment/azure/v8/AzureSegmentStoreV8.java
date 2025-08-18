@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.v8;
 
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.StorageCredentials;
@@ -66,10 +64,6 @@ public class AzureSegmentStoreV8 {
         if (!StringUtils.isBlank(configuration.blobEndpoint())) {
             connectionString.append("BlobEndpoint=").append(configuration.blobEndpoint()).append(';');
         }
-
-        BlobContainerClient blobContainerClient = new BlobContainerClientBuilder()
-                .containerName(configuration.containerName())
-                .connectionString(connectionString.toString()).buildClient();
 
         return createAzurePersistence(connectionString.toString(), configuration, true);
     }

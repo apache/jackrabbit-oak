@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -24,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -310,9 +310,9 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         for (String hint : hints) {
             Iterator<? extends Principal> res = principalProvider.findPrincipals(hint, PrincipalManager.SEARCH_TYPE_GROUP);
 
-            assertFalse(Iterators.contains(res, userAutoMembershipGroup.getPrincipal()));
-            assertFalse(Iterators.contains(res, groupAutoMembershipGroup.getPrincipal()));
-            assertFalse(Iterators.contains(res, new PrincipalImpl(NON_EXISTING_GROUP_ID)));
+            assertFalse(IteratorUtils.contains(res, userAutoMembershipGroup.getPrincipal()));
+            assertFalse(IteratorUtils.contains(res, groupAutoMembershipGroup.getPrincipal()));
+            assertFalse(IteratorUtils.contains(res, new PrincipalImpl(NON_EXISTING_GROUP_ID)));
         }
     }
 

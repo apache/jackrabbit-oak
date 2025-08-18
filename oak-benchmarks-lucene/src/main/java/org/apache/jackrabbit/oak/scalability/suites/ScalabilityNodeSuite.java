@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.scalability.suites;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -34,8 +36,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Splitter;
-
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.Oak;
@@ -76,33 +76,24 @@ import org.slf4j.LoggerFactory;
  * <li>
  *     <code>loaders</code> - Controls the number of concurrent threads for loading blobs initially.
  *     Defaults to 1.
- * </li>
  * <li>
  *     <code>testers</code> - Controls the number of concurrent tester threads. Defaults to 1.
- * </li>
  * <li>
  *     <code>nodeLevels</code> - Comma separated string property that governs the depth and the number of
  *     nodes in the hierarchy. Defaults to 10, 5, 2.
- * </li>
  * <li>
  *     <code>densityLevel</code> - Controls the percentage of root nodes which will have sub nodes created.
  *     Defaults to 100.
- * </li>
  * <li>
  *     <code>index</code> - Controls if the index definitions are to be created. Defaults to false.
- * </li>
  * <li>
  *      <code>asyncIndex</code> - Controls whether the indexing is async. Defaults to false.
- * </li>
  * <li>
  *     <code>noFullIndex</code> - Controls whether fulltext indexing is enabled or disabled. Defaults to false.
- * </li>
  * <li>
  *     <code>randDate</code> - Controls whether to generate random dates in a range. Defaults to false.
- * </li>
  * <li>
  *     <code>customType</code> - Controls if nodes created in the load have a custom node type. Defaults to false.
- * </li>
  * </ul>
  *
  */
@@ -117,8 +108,10 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     /**
      * Controls the number of nodes at each level
      */
-    protected static final List<String> NODE_LEVELS = Splitter.on(",").trimResults()
-            .omitEmptyStrings().splitToList(System.getProperty("nodeLevels", "10,5,2"));
+    protected static final List<String> NODE_LEVELS = Arrays.stream(System.getProperty("nodeLevels", "10,5,2").split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toList());
 
     /**
      * Controls the number of concurrent tester threads

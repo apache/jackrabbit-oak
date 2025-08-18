@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -25,6 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
@@ -165,7 +165,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
             
             if (IterableUtils.contains(declaredGroupRefs, ref)) {
                 assertTrue(gr.isDeclaredMember(a));
-                assertTrue(Iterators.contains(a.declaredMemberOf(), gr));
+                assertTrue(IteratorUtils.contains(a.declaredMemberOf(), gr));
             }
         }
     }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
@@ -50,7 +49,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        userTreeIterator = Iterators.singletonIterator(root.getTree(getNamePathMapper().getOakPath(getTestUser().getPath())));
+        userTreeIterator = Collections.singleton(root.getTree(getNamePathMapper().getOakPath(getTestUser().getPath()))).iterator();
     }
 
     @Test
@@ -94,7 +93,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
 
     @Test
     public void testInvalidPath() {
-        AuthorizableIterator it = AuthorizableIterator.create(Iterators.singletonIterator(root.getTree(PathUtils.ROOT_PATH)), (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
+        AuthorizableIterator it = AuthorizableIterator.create(Collections.singleton(root.getTree(PathUtils.ROOT_PATH)).iterator(), (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE);
         assertFalse(it.hasNext());
     }
     
@@ -106,7 +105,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
         
         // duplications are determined base on authorizableID
         Authorizable a = when(mock(Authorizable.class).getID()).thenReturn(getTestUser().getID()).getMock();
-        assertEquals(1, IteratorUtils.size(AuthorizableIterator.create(true, l.iterator(), Iterators.singletonIterator(a))));
+        assertEquals(1, IteratorUtils.size(AuthorizableIterator.create(true, l.iterator(), Collections.singleton(a).iterator())));
     }
 
     @Test

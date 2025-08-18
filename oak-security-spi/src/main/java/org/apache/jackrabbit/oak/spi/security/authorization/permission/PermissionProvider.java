@@ -60,7 +60,6 @@ public interface PermissionProvider {
      * <p>
      * Testing a name identifying an aggregate privilege is equivalent to testing
      * each non aggregate privilege name.
-     * </p>
      *
      * @param tree The tree to test for privileges being granted.
      * @param privilegeNames The name of the privileges.
@@ -114,7 +113,6 @@ public interface PermissionProvider {
      * {@link javax.jcr.Session#hasPermission(String, String)}. When more than one
      * action is specified in the {@code jcrActions} parameter, this method will
      * only return {@code true} if all of them are granted on the specified path.
-     * </p>
      *
      * @param oakPath A valid oak path.
      * @param jcrActions The JCR actions that should be tested separated by ','

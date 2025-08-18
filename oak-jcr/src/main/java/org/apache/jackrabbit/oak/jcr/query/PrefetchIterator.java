@@ -110,7 +110,7 @@ public class PrefetchIterator<K> implements Iterator<K> {
             }
         }
         prefetchDone = true;
-        ArrayList<K> list = new ArrayList<K>();
+        ArrayList<K> list = new ArrayList<>();
         long end;
         if (timeout <= 0) {
             end = 0;
@@ -134,7 +134,7 @@ public class PrefetchIterator<K> implements Iterator<K> {
             position++;
             list.add(it.next());
         }
-        if (list.size() > 0) {
+        if (!list.isEmpty()) {
             prefetchIterator = list.iterator();
             position -= list.size();
         }
@@ -176,7 +176,7 @@ public class PrefetchIterator<K> implements Iterator<K> {
         long size;
         
         /**
-         * Whether or not the expected size should be read from the result.
+         * Whether the expected size should be read from the result.
          */
         boolean fastSize;
         

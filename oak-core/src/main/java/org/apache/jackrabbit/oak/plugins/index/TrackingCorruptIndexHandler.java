@@ -35,8 +35,8 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Throwables;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.slf4j.Logger;
@@ -95,7 +95,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         if (meter != null) {
             // indexes.size() gives us the number of remaining corrupt indices.
             // meter.mark(indexes.size()) increments the current meter count by indexes.size(). We don't want that here.
-            // We actually want to set the the meter count to indexes.size(), the api doesn't seem to support that.
+            // We actually want to set the meter count to indexes.size(), the api doesn't seem to support that.
             // So we instead add indexes.size() - meter.getCount() , which will always be <= 0. So this effectively will reduce the meter count
             // by number of indexes fixed in this call.
             meter.mark(indexes.size() - meter.getCount());
@@ -181,7 +181,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         }
 
         void addFailure(Exception e){
-            exception = Throwables.getStackTraceAsString(e);
+            exception = ExceptionUtils.getStackTrace(e);
             failureCount++;
         }
 

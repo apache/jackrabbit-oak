@@ -57,7 +57,6 @@ public class ContentMirrorStoreStrategyTest {
     /**
      * <p>
      * Tests the index pruning mechanism
-     * </p>
      * <ul>
      * <li>
      * adds a few levels of nodes, nodes with an even index will have the

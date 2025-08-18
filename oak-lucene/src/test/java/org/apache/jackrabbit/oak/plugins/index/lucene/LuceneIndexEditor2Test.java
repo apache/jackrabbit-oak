@@ -19,13 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
@@ -41,13 +39,10 @@ import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.index.IndexableField;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -62,15 +57,15 @@ import static org.mockito.Mockito.mock;
 
 public class LuceneIndexEditor2Test {
 
-    private NodeState root = INITIAL_CONTENT;
+    private final NodeState root = INITIAL_CONTENT;
     private NodeState before = root;
-    private IndexUpdateCallback updateCallback = mock(IndexUpdateCallback.class);
-    private ExtractedTextCache extractedTextCache = new ExtractedTextCache(0, 0);
-    private TestIndexingContext indexingContext = new TestIndexingContext();
-    private TestWriterFactory writerFactory = new TestWriterFactory();
-    private TestPropertyUpdateCallback propCallback = new TestPropertyUpdateCallback();
-    private TestWriter writer = new TestWriter();
-    private String indexPath = "/oak:index/fooIndex";
+    private final IndexUpdateCallback updateCallback = mock(IndexUpdateCallback.class);
+    private final ExtractedTextCache extractedTextCache = new ExtractedTextCache(0, 0);
+    private final TestIndexingContext indexingContext = new TestIndexingContext();
+    private final TestWriterFactory writerFactory = new TestWriterFactory();
+    private final TestPropertyUpdateCallback propCallback = new TestPropertyUpdateCallback();
+    private final TestWriter writer = new TestWriter();
+    private final String indexPath = "/oak:index/fooIndex";
 
     @Test
     public void basics() throws Exception{
@@ -194,16 +189,11 @@ public class LuceneIndexEditor2Test {
     }
 
     private EditorHook createHook(LuceneIndexEditorContext context) {
-        IndexEditorProvider provider = new IndexEditorProvider() {
-            @Nullable
-            @Override
-            public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                                         @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
-                if (TYPE_LUCENE.equals(type)) {
-                    return new LuceneIndexEditor(context);
-                }
-                return null;
+        IndexEditorProvider provider = (type, definition, root, callback) -> {
+            if (TYPE_LUCENE.equals(type)) {
+                return new LuceneIndexEditor(context);
             }
+            return null;
         };
 
         String async = context.isAsyncIndexing() ? "async" : null;
@@ -238,7 +228,7 @@ public class LuceneIndexEditor2Test {
         }
 
         @Override
-        public void done() throws CommitFailedException {
+        public void done() {
             doneInvocationCount++;
         }
 
@@ -295,17 +285,17 @@ public class LuceneIndexEditor2Test {
         boolean closed;
 
         @Override
-        public void updateDocument(String path, Iterable<? extends IndexableField> doc) throws IOException {
+        public void updateDocument(String path, Iterable<? extends IndexableField> doc) {
             docs.put(path, doc);
         }
 
         @Override
-        public void deleteDocuments(String path) throws IOException {
+        public void deleteDocuments(String path) {
             deletedPaths.add(path);
         }
 
         @Override
-        public boolean close(long timestamp) throws IOException {
+        public boolean close(long timestamp) {
             closed = true;
             return true;
         }

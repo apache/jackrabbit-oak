@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -30,6 +29,7 @@ import org.mockito.internal.stubbing.answers.ThrowsException;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -144,7 +144,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
     public void testMembersHandlesFailingPrincipalAccess() throws Exception {
         Authorizable a = when(mock(Authorizable.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
         AbstractGroupPrincipal agp = mock(AbstractGroupPrincipal.class);
-        when(agp.getMembers()).thenReturn(Iterators.singletonIterator(a));
+        when(agp.getMembers()).thenReturn(Collections.singleton(a).iterator());
         when(agp.members()).thenCallRealMethod();
 
         Enumeration<? extends Principal> members = agp.members();

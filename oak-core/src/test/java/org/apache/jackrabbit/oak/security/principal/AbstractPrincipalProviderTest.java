@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -460,7 +460,7 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
                     PrincipalManager.SEARCH_TYPE_ALL, -1, limit);
             Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup", true,
                     PrincipalManager.SEARCH_TYPE_ALL, 0, limit);
-            assertTrue(Iterators.elementsEqual(i1, i2));
+            assertTrue(IteratorUtils.elementsEqual(i1, i2));
         }
     }
 }

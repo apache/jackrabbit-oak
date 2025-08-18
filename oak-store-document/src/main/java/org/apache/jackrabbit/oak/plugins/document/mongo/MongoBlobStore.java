@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -68,7 +68,7 @@ public class MongoBlobStore extends CachingBlobStore {
 
     private static final CodecRegistry CODEC_REGISTRY = fromRegistries(
             fromCodecs(new MongoBlobCodec()),
-            MongoClient.getDefaultCodecRegistry()
+            MongoClientSettings.getDefaultCodecRegistry()
     );
 
     private final ReadPreference defaultReadPreference;

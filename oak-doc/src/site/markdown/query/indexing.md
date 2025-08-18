@@ -100,7 +100,7 @@ The index definitions nodes have the following properties:
     * `counter` - Configured with the out-of-the-box setup
     * `property`
     * `lucene`
-    * `solr`
+    * `solr` (*NOTE:* Solr support has been removed in Oak 1.82 (see [OAK-11346](https://issues.apache.org/jira/browse/OAK-11346))
 2. `async` - This determines if the index is to be updated synchronously or asynchronously. 
     It can have the following values:
     * `sync` - The default value. It indicates that index is meant to be updated as part of each commit.

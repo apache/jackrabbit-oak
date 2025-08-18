@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.Predicate;
 
@@ -47,8 +48,8 @@ public final class EveryoneFilter {
     public static Iterator<Principal> filter(@NotNull Iterator<Principal> resultPrincipals, @Nullable String nameHint, int searchType, long offset, long limit) {
         boolean noRange = offset == 0 && limit == Long.MAX_VALUE;
         if (noRange && matchesEveryone(nameHint, searchType)) {
-            Iterator<Principal> principals = Iterators.concat(resultPrincipals, Iterators.singletonIterator(EveryonePrincipal.getInstance()));
-            return Iterators.filter(principals, new EveryonePredicate()::test);
+            Iterator<Principal> principals = IteratorUtils.chainedIterator(resultPrincipals, Collections.singleton(EveryonePrincipal.getInstance()).iterator());
+            return IteratorUtils.filter(principals, new EveryonePredicate()::test);
         } else {
             return resultPrincipals;
         }

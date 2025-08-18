@@ -90,7 +90,7 @@ public class Sweep2Helper {
 
     /**
      * Acquires a cluster singleton lock for doing a sweep2 unless a sweep2 was already done.
-     * <p/>
+     * <p>
      * 'If necessary' refers to the sweep2 status in the settings collection - no further
      * check is done based on content in the nodes collection in this method.
      * @return <ul>

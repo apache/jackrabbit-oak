@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
@@ -92,7 +92,7 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements Grou
             throw new IllegalStateException(msg, e);
         }
 
-        Iterator<Principal> principals = Iterators.transform(members, authorizable -> {
+        Iterator<Principal> principals = IteratorUtils.transform(members, authorizable -> {
             if (authorizable == null) {
                 return null;
             }
@@ -104,6 +104,6 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements Grou
                 throw new IllegalStateException(msg, e);
             }
         });
-        return Iterators.asEnumeration(Iterators.filter(principals, x -> x != null));
+        return IteratorUtils.asEnumeration(IteratorUtils.filter(principals, x -> x != null));
     }
 }

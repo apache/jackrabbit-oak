@@ -43,8 +43,8 @@ public class LuceneIndexInfoProviderTest {
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
-    private NodeStore store = new MemoryNodeStore();
-    private AsyncIndexInfoService asyncService = mock(AsyncIndexInfoService.class);
+    private final NodeStore store = new MemoryNodeStore();
+    private final AsyncIndexInfoService asyncService = mock(AsyncIndexInfoService.class);
     private LuceneIndexInfoProvider provider;
 
     @Before

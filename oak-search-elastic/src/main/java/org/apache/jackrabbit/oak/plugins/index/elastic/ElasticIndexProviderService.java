@@ -16,15 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import org.apache.jackrabbit.oak.api.jmx.InferenceMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConstants;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceMBeanImpl;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -68,10 +74,16 @@ public class ElasticIndexProviderService {
     protected static final String PROP_ELASTIC_PORT = "elasticsearch.port";
     protected static final String PROP_ELASTIC_API_KEY_ID = "elasticsearch.apiKeyId";
     protected static final String PROP_ELASTIC_API_KEY_SECRET = "elasticsearch.apiKeySecret";
+    protected static final String PROP_ELASTIC_MAX_RETRY_TIME = "elasticsearch.maxRetryTime";
+    protected static final String PROP_ELASTIC_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS = "elasticsearch.asyncIteratorEnqueueTimeoutMs";
+    protected static final String PROP_ELASTIC_FACETS_EVALUATION_TIMEOUT_MS = "elasticsearch.facetsEvaluationTimeoutMs";
     protected static final String PROP_LOCAL_TEXT_EXTRACTION_DIR = "localTextExtractionDir";
+    private static final boolean DEFAULT_IS_INFERENCE_ENABLED = false;
+    private static final String ENV_VAR_OAK_INFERENCE_STATISTICS_DISABLED = "OAK_INFERENCE_STATISTICS_DISABLED";
 
     @ObjectClassDefinition(name = "ElasticIndexProviderService", description = "Apache Jackrabbit Oak ElasticIndexProvider")
     public @interface Config {
+
         @AttributeDefinition(name = "Disable the OAK Elastic service",
                 description = "If true, does not start the Elastic component")
         boolean disabled() default false;
@@ -79,7 +91,7 @@ public class ElasticIndexProviderService {
         @AttributeDefinition(name = "Extracted text cache size (MB)",
                 description = "Cache size in MB for caching extracted text for some time. When set to 0 then " +
                         "cache would be disabled")
-        int extractedTextCacheSizeInMB() default 20 ;
+        int extractedTextCacheSizeInMB() default 20;
 
         @AttributeDefinition(name = "Extracted text cache expiry (secs)",
                 description = "Time in seconds for which the extracted text would be cached in memory")
@@ -109,6 +121,24 @@ public class ElasticIndexProviderService {
         @AttributeDefinition(name = "Elasticsearch API key secret", description = "Elasticsearch API key secret")
         String elasticsearch_apiKeySecret() default ElasticConnection.DEFAULT_API_KEY_SECRET;
 
+        @AttributeDefinition(
+                name = "Elasticsearch Max Retry time",
+                description = "Time in seconds that Elasticsearch should retry failed operations. 0 means disabled, no retries. Default is 0 seconds (disabled).")
+        int elasticsearch_maxRetryTime() default ElasticConnection.DEFAULT_MAX_RETRY_TIME;
+
+        @AttributeDefinition(
+                name = "Elasticsearch Async Result Iterator Enqueue Timeout (ms)",
+                description = "Time in milliseconds that the async result iterator will wait for enqueueing results. " +
+                        "If the timeout is reached, the iterator will stop processing and return the results collected so far. " +
+                        "Default is 60000 ms (60 seconds).")
+        long elasticsearch_asyncIteratorEnqueueTimeoutMs() default ElasticIndexProvider.DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS;
+
+        @AttributeDefinition(
+                name = "Elasticsearch Facets Evaluation Timeout (ms)",
+                description = "Time in milliseconds to wait for facets to be evaluated before timing out the client query. " +
+                        "Default is 15000 ms (15 seconds).")
+        long elasticsearch_facetsEvaluationTimeoutMs() default ElasticIndexProvider.DEFAULT_FACETS_EVALUATION_TIMEOUT_MS;
+
         @AttributeDefinition(name = "Local text extraction cache path",
                 description = "Local file system path where text extraction cache stores/load entries to recover from timed out operation")
         String localTextExtractionDir();
@@ -119,7 +149,17 @@ public class ElasticIndexProviderService {
 
         @AttributeDefinition(name = "Remote index deletion threshold", description = "Time in seconds after which a remote index whose local index is not found gets deleted." +
                 "Default is 1 day.")
-        int remoteIndexDeletionThreshold() default 24*60*60;
+        int remoteIndexDeletionThreshold() default 24 * 60 * 60;
+
+        @AttributeDefinition(
+            name = "Enable inference",
+            description = "If enabled the inference index config will be used"
+        )
+        boolean isInferenceEnabled() default DEFAULT_IS_INFERENCE_ENABLED;
+
+
+        @AttributeDefinition(name = "Inference Config Path", description = "Path to the inference configuration")
+        String inferenceConfigPath() default InferenceConstants.DEFAULT_OAK_INDEX_INFERENCE_CONFIG_PATH;
     }
 
 
@@ -150,6 +190,8 @@ public class ElasticIndexProviderService {
     private ElasticConnection elasticConnection;
     private ElasticMetricHandler metricHandler;
     private ElasticIndexTracker indexTracker;
+    private ElasticIndexEditorProvider elasticIndexEditorProvider;
+    private boolean isInferenceEnabled;
 
     @Activate
     private void activate(BundleContext bundleContext, Config config) {
@@ -166,6 +208,17 @@ public class ElasticIndexProviderService {
         metricHandler.markEnabled(isElasticAvailable);
 
         whiteboard = new OsgiWhiteboard(bundleContext);
+        if (System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED) != null) {
+            this.isInferenceEnabled = Boolean.parseBoolean(System.getProperty(QueryEngineSettings.OAK_INFERENCE_ENABLED));
+        } else {
+            this.isInferenceEnabled = config.isInferenceEnabled();
+        }
+
+        if (isInferenceStatisticsDisabled()) {
+            InferenceConfig.reInitialize(nodeStore, config.inferenceConfigPath(), isInferenceEnabled);
+        } else {
+            InferenceConfig.reInitialize(nodeStore, statisticsProvider, config.inferenceConfigPath(), isInferenceEnabled);
+        }
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);
@@ -186,10 +239,20 @@ public class ElasticIndexProviderService {
                 ElasticIndexMBean.TYPE,
                 "Elastic Index statistics"));
 
+        InferenceMBeanImpl inferenceMBean = new InferenceMBeanImpl();
+        oakRegs.add(registerMBean(whiteboard,
+            InferenceMBean.class,
+            inferenceMBean,
+            InferenceMBean.TYPE,
+            "Inference"));
+
         LOG.info("Registering Index and Editor providers with connection {}", elasticConnection);
 
-        registerIndexProvider(bundleContext);
-        registerIndexEditor(bundleContext);
+        registerIndexProvider(bundleContext, config);
+        final int maxRetryTime = Integer.getInteger(PROP_ELASTIC_MAX_RETRY_TIME, config.elasticsearch_maxRetryTime());
+        ElasticRetryPolicy retryPolicy = new ElasticRetryPolicy(100, maxRetryTime * 1000L, 5, 100);
+        this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache, retryPolicy);
+        registerIndexEditor(bundleContext, elasticIndexEditorProvider);
         if (isElasticAvailable) {
             registerIndexCleaner(config);
         } else {
@@ -207,6 +270,11 @@ public class ElasticIndexProviderService {
             reg.unregister();
         }
 
+        try {
+            this.elasticIndexEditorProvider.close();
+        } catch (Exception e) {
+            LOG.warn("Error closing ElasticIndexEditorProvider. Ignoring error and proceeding.", e);
+        }
         IOUtils.closeQuietly(elasticConnection);
 
         if (extractedTextCache != null) {
@@ -223,20 +291,22 @@ public class ElasticIndexProviderService {
         oakRegs.add(scheduleWithFixedDelay(whiteboard, task, contextConfig.remoteIndexCleanupFrequency()));
     }
 
-    private void registerIndexProvider(BundleContext bundleContext) {
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
+    private void registerIndexProvider(BundleContext bundleContext, Config config) {
+        long asyncIteratorEnqueueTimeoutMs = Long.getLong(PROP_ELASTIC_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS,
+                config.elasticsearch_asyncIteratorEnqueueTimeoutMs());
+        long facetsEvaluationTimeoutMs = Long.getLong(PROP_ELASTIC_FACETS_EVALUATION_TIMEOUT_MS,
+                config.elasticsearch_facetsEvaluationTimeoutMs());
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker, asyncIteratorEnqueueTimeoutMs, facetsEvaluationTimeoutMs);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, props));
     }
 
-    private void registerIndexEditor(BundleContext bundleContext) {
-        ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache);
-
+    private void registerIndexEditor(BundleContext bundleContext, ElasticIndexEditorProvider indexEditorProvider) {
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);
-        regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
+        regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), indexEditorProvider, props));
     }
 
     private ElasticConnection getElasticConnection(Config contextConfig) {
@@ -256,5 +326,17 @@ public class ElasticIndexProviderService {
                 .withConnectionParameters(scheme, host, port)
                 .withApiKeys(apiKeyId, apiSecretId)
                 .build();
+    }
+
+    public InferenceConfig getInferenceConfig() {
+        return InferenceConfig.getInstance();
+    }
+
+    /**
+     * Checks if inference statistics are disabled via environment variable
+     * @return true if the environment variable is set to true
+     */
+    protected boolean isInferenceStatisticsDisabled() {
+        return Boolean.parseBoolean(System.getenv(ENV_VAR_OAK_INFERENCE_STATISTICS_DISABLED));
     }
 }

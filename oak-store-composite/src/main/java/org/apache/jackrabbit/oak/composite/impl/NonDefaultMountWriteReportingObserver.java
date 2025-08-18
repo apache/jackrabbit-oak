@@ -50,16 +50,15 @@ import org.slf4j.LoggerFactory;
  * 
  * <p>This is a <em>diagnostic observer</em> and is expected to be used in scenarios where the
  * <code>CompositeNodeStore</code> is configured in a 'seed' mode, where the non-default
- * mounts are write-enabled.</p>
+ * mounts are write-enabled.
  * 
  * <p>In such scenarios it is useful to report writes to non-default mounts from components
  * that are unexpected. For instance, it can report all writes that do not originate
- * from the FileVault package installer.</p>
+ * from the FileVault package installer.
  * 
  * <p>Performance note: the overhead of this observer has not been measured, but as it is
  * designed to be used only for initial setups the performance impact should not
- * matter.</p>
- *
+ * matter.
  */
 @Component(service =  Observer.class, configurationPolicy =  ConfigurationPolicy.REQUIRE)
 @Designate(ocd = Config.class)

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.aggregate;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -23,12 +24,12 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.index.cursor.AbstractCursor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
  * An aggregation aware cursor.
@@ -89,8 +90,8 @@ class AggregationCursor extends AbstractCursor {
             currentRow = cursor.next();
             if (!currentRow.isVirtualRow()) {
                 String path = currentRow.getPath();
-                aggregates = Iterators.filter(Iterators.concat(
-                        Iterators.singletonIterator(path),
+                aggregates = IteratorUtils.filter(IteratorUtils.chainedIterator(
+                        Collections.singleton(path).iterator(),
                         aggregator.getParents(rootState, path)),
                         x -> !seenPaths.contains(x));
             }

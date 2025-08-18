@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
@@ -159,7 +159,7 @@ public class GroupImplTest extends AbstractUserTest {
 
         AbstractGroupPrincipal groupPrincipal = (AbstractGroupPrincipal) group.getPrincipal();
         Iterator<Authorizable> members = groupPrincipal.getMembers();
-        assertTrue(Iterators.elementsEqual(group.getMembers(), members));
+        assertTrue(IteratorUtils.elementsEqual(group.getMembers(), members));
     }
 
     @Test

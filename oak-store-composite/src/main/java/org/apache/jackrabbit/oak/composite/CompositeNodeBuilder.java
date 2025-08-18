@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -175,24 +175,24 @@ class CompositeNodeBuilder implements NodeBuilder {
             return getWrappedNodeBuilder().getChildNodeCount(max);
         } else {
             // Count the children in each contributing store.
-            return accumulateChildSizes(FluentIterable.from(contributingStores)
-                    .transformAndConcat(mns -> {
+            return accumulateChildSizes(IterableUtils.chainedIterable(
+                    FluentIterable.of(contributingStores).transform(mns -> {
                         NodeBuilder node = nodeBuilders.get(mns);
                         if (node.getChildNodeCount(max) == MAX_VALUE) {
                             return singleton(STOP_COUNTING_CHILDREN);
                         } else {
-                            return FluentIterable.from(node.getChildNodeNames()).filter(e -> belongsToStore(mns, e));
+                            return FluentIterable.of(node.getChildNodeNames()).filter(e -> belongsToStore(mns, e));
                         }
-                    }), max);
+                    })), max);
         }
     }
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        return FluentIterable.from(ctx.getContributingStoresForBuilders(getPath(), nodeBuilders))
-                .transformAndConcat(mns -> FluentIterable
-                        .from(nodeBuilders.get(mns).getChildNodeNames())
-                        .filter(e -> belongsToStore(mns, e)));
+        return IterableUtils.chainedIterable(
+                FluentIterable.of(ctx.getContributingStoresForBuilders(getPath(), nodeBuilders)).
+                        transform(mns -> FluentIterable.of(nodeBuilders.get(mns).getChildNodeNames()).
+                                filter(e -> belongsToStore(mns, e))));
     }
 
     @Override

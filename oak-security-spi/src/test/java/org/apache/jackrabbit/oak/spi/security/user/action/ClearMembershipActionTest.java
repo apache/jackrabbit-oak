@@ -23,11 +23,11 @@ import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.UnmodifiableIterator;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -75,7 +75,7 @@ public class ClearMembershipActionTest {
 
     @Test
     public void testOnRemoveUserWithMembership() throws Exception {
-        when(user.declaredMemberOf()).thenReturn(Iterators.singletonIterator(gr));
+        when(user.declaredMemberOf()).thenReturn(Collections.singleton((Group) gr).iterator());
 
         action.onRemove(user, root, NamePathMapper.DEFAULT);
         assertTrue(gr.removed.contains(user));
@@ -84,7 +84,7 @@ public class ClearMembershipActionTest {
     @Test
     public void testOnRemoveGroupWithMembership() throws Exception {
         Group memberGroup = Mockito.mock(Group.class);
-        when(memberGroup.declaredMemberOf()).thenReturn(Iterators.singletonIterator(gr));
+        when(memberGroup.declaredMemberOf()).thenReturn(Collections.singleton(((Group) gr)).iterator());
 
         action.onRemove(memberGroup, root, NamePathMapper.DEFAULT);
         assertTrue(gr.removed.contains(memberGroup));

@@ -411,6 +411,7 @@ public class Oak {
         this.queryEngineSettings.setLimitInMemory(settings.getLimitInMemory());
         this.queryEngineSettings.setLimitReads(settings.getLimitReads());
         this.queryEngineSettings.setStrictPathRestriction(settings.getStrictPathRestriction());
+        this.queryEngineSettings.setInferenceEnabled(settings.isInferenceEnabled());
         return this;
     }
 
@@ -602,12 +603,10 @@ public class Oak {
     /**
      * <p>
      * Enable the asynchronous (background) indexing behavior.
-     * </p>
      * <p>
      * Please note that when enabling the background indexer, you need to take
      * care of calling
      * <code>#shutdown</code> on the <code>executor</code> provided for this Oak instance.
-     * </p>
      * @deprecated Use {@link Oak#withAsyncIndexing(String, long)} instead
      */
     @Deprecated
@@ -652,12 +651,10 @@ public class Oak {
      * <p>
      * Enable the asynchronous (background) indexing behavior for the provided
      * task name.
-     * </p>
      * <p>
      * Please note that when enabling the background indexer, you need to take
      * care of calling
      * <code>#shutdown</code> on the <code>executor</code> provided for this Oak instance.
-     * </p>
      */
     public Oak withAsyncIndexing(@NotNull String name, long delayInSeconds) {
         if (this.asyncTasks == null) {
@@ -699,7 +696,9 @@ public class Oak {
         initHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors)));
 
         CommitHook initHook = CompositeHook.compose(initHooks);
-        OakInitializer.initialize(store, new CompositeInitializer(initializers), initHook);
+        if (!initializers.isEmpty()) {
+            OakInitializer.initialize(store, new CompositeInitializer(initializers), initHook);
+        }
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
@@ -959,6 +958,16 @@ public class Oak {
         @Override
         public void setFailTraversal(boolean failQueriesWithoutIndex) {
             settings.setFailTraversal(failQueriesWithoutIndex);
+        }
+
+        @Override
+        public boolean isInferenceEnabled() {
+            return settings.isInferenceEnabled();
+        }
+
+        @Override
+        public void setInferenceEnabled(boolean isInferenceEnabled) {
+            settings.setInferenceEnabled(isInferenceEnabled);
         }
 
         @Override

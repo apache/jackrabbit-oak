@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -35,6 +34,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import java.security.Principal;
+import java.util.Collections;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.junit.Assert.assertEquals;
@@ -130,7 +130,7 @@ public class DynamicGroupUtilTest extends AbstractSecurityTest {
 
         Group group = mock(Group.class);
         when(group.isGroup()).thenReturn(true);
-        when(group.memberOf()).thenReturn(Iterators.singletonIterator(member));
+        when(group.memberOf()).thenReturn(Collections.singleton(member).iterator());
 
         UserManager um = mock(UserManager.class);
         when(um.getAuthorizable(any(Principal.class))).thenReturn(group);

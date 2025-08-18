@@ -40,14 +40,14 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
  * Limitations:
  * <ul>
  *     <li>Moving a moved node only reports one move from the original source to the final
- *     target.</li>
+ *     target.
  *     <li>Moving a transiently added node is not reported as a move operation but as an
- *     add operation on the move target.</li>
+ *     add operation on the move target.
  *     <li>Removing a moved node is not reported as a move operation but as a remove operation
- *     from the source of the move.</li>
+ *     from the source of the move.
  *     <li>Moving a child node of a transiently moved node is reported from the original
- *     source node, not from the intermediate one.</li>
- *     <li>Moving a node back and forth to its original location is not reported at all.</li>
+ *     source node, not from the intermediate one.
+ *     <li>Moving a node back and forth to its original location is not reported at all.
  * </ul>
  */
 public class MoveDetector implements Validator {

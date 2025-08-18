@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.index;
 
 import com.codahale.metrics.Counter;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexerBase
 import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexerProvider;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -319,7 +320,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         Whiteboard wb = new DefaultWhiteboard();
         MongoDocumentStore ds = (MongoDocumentStore) docBuilder.getDocumentStore();
         Registration r1 = wb.register(MongoDocumentStore.class, ds, emptyMap());
-        wb.register(MongoClientURI.class, c1.getMongoURI(), emptyMap());
+        wb.register(ConnectionString.class, c1.getMongoURI(), emptyMap());
         wb.register(StatisticsProvider.class, StatisticsProvider.NOOP, emptyMap());
         wb.register(IndexingReporter.class, IndexingReporter.NOOP, emptyMap());
         Registration c1Registration = wb.register(MongoDatabase.class, c1.getDatabase(), emptyMap());
@@ -367,7 +368,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         CollectingIndexer testIndexer = new CollectingIndexer(p -> p.startsWith("/test"));
         DocumentStoreIndexer index = new DocumentStoreIndexer(helper, support) {
             @Override
-            protected CompositeIndexer prepareIndexers(NodeStore nodeStore, NodeBuilder builder,
+            protected CompositeIndexer prepareIndexers(NodeStateIndexerProvider indexerProvider, NodeStore nodeStore, NodeBuilder builder,
                                                        IndexingProgressReporter progressReporter) {
                 return new CompositeIndexer(List.of(testIndexer));
             }
@@ -408,7 +409,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
             wb.register(StatisticsProvider.class, metricsStatisticsProvider, emptyMap());
             wb.register(IndexingReporter.class, new ConsoleIndexingReporter(), emptyMap());
             Registration c1Registration = wb.register(MongoDatabase.class, mongoConnection.getDatabase(), emptyMap());
-            wb.register(MongoClientURI.class, mongoConnection.getMongoURI(), emptyMap());
+            wb.register(ConnectionString.class, mongoConnection.getMongoURI(), emptyMap());
 
             configureIndex(store);
 
@@ -448,7 +449,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
             CollectingIndexer testIndexer = new CollectingIndexer(p -> p.startsWith("/test"));
             DocumentStoreIndexer index = new DocumentStoreIndexer(helper, support) {
                 @Override
-                protected CompositeIndexer prepareIndexers(NodeStore nodeStore, NodeBuilder builder,
+                protected CompositeIndexer prepareIndexers(NodeStateIndexerProvider indexerProvider, NodeStore nodeStore, NodeBuilder builder,
                                                            IndexingProgressReporter progressReporter) {
                     return new CompositeIndexer(List.of(testIndexer));
                 }

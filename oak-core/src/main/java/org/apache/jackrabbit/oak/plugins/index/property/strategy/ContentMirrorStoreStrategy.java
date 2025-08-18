@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
 
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -46,8 +47,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
  * An IndexStoreStrategy implementation that saves the nodes under a hierarchy
@@ -176,8 +175,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                         NodeState property = index.getChildNode(p);
                         if (property.exists()) {
                             // we have an entry for this value, so use it
-                            it.enqueue(Iterators.singletonIterator(
-                                    new MemoryChildNodeEntry("", property)));
+                            it.enqueue(Collections.singleton(new MemoryChildNodeEntry("", property)).iterator());
                         }
                     }
                 }

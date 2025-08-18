@@ -23,11 +23,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.Traverser;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -47,8 +49,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -364,7 +364,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
                     if (bundlingContext.hasOnlyBundledChildren()){
                         return getBundledChildren();
                     }
-                    return Iterators.concat(getBundledChildren(), new ChildNodeEntryIterator());
+                    return IteratorUtils.chainedIterator(getBundledChildren(), new ChildNodeEntryIterator());
                 }
 
                 return new ChildNodeEntryIterator();
@@ -497,13 +497,10 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     public Iterable<DocumentNodeState> getAllBundledNodesStates() {
-        return new TreeTraverser<DocumentNodeState>(){
-            @Override
-            public Iterable<DocumentNodeState> children(DocumentNodeState root) {
-                return IterableUtils.transform(() -> root.getBundledChildren(), ce -> (DocumentNodeState)ce.getNodeState());
-            }
-        }.preOrderTraversal(this)
-         .filter(dns -> !dns.getPath().equals(this.getPath()) ); //Exclude this
+        final Function<DocumentNodeState, Iterable<? extends DocumentNodeState>> children = root -> IterableUtils.transform(root::getBundledChildren, ce -> (DocumentNodeState) ce.getNodeState());
+
+        return Traverser.preOrderTraversal(this, children)
+                .filter(dns -> !dns.getPath().equals(this.getPath()) ); //Exclude this
     }
 
     /**
@@ -747,7 +744,7 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
     }
 
     private Iterator<ChildNodeEntry> getBundledChildren(){
-        return Iterators.transform(bundlingContext.getBundledChildNodeNames().iterator(), childNodeName -> {
+        return IteratorUtils.transform(bundlingContext.getBundledChildNodeNames().iterator(), childNodeName -> {
                 return new AbstractChildNodeEntry() {
                     @Override
                     public String getName() {

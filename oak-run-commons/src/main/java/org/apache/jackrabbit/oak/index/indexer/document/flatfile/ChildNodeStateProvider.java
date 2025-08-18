@@ -23,9 +23,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
+import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
@@ -35,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static java.util.Collections.emptyIterator;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
@@ -73,12 +71,12 @@ class ChildNodeStateProvider {
     }
 
     public Iterable<String> getChildNodeNames() {
-        return () -> transform(children(), ChildNodeStateProvider::name);
+        return () -> IteratorUtils.transform(children(), ChildNodeStateProvider::name);
     }
 
     @NotNull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return () -> transform(children(), p -> new MemoryChildNodeEntry(name(p), p.getNodeState()));
+        return () -> IteratorUtils.transform(children(), p -> new MemoryChildNodeEntry(name(p), p.getNodeState()));
     }
 
     Iterator<NodeStateEntry> children() {
@@ -86,7 +84,7 @@ class ChildNodeStateProvider {
     }
 
     Iterator<NodeStateEntry> children(boolean preferred) {
-        PeekingIterator<NodeStateEntry> pitr = Iterators.peekingIterator(entries.iterator());
+        PeekingIterator<NodeStateEntry> pitr = PeekingIterator.peekingIterator(entries.iterator());
         if (!pitr.hasNext()) {
             return emptyIterator();
         }

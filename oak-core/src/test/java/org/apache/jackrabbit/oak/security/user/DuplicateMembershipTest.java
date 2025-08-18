@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -27,6 +26,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -70,8 +71,8 @@ public class DuplicateMembershipTest extends AbstractSecurityTest {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
         when(dmp.coversAllMembers(any(Group.class))).thenReturn(true);
         // mock iterators with duplicate entries
-        when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(Iterators.forArray(member, member));
-        when(dmp.getMembership(any(Authorizable.class), anyBoolean())).thenReturn(Iterators.forArray(group, group));
+        when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(List.of(member, member).iterator());
+        when(dmp.getMembership(any(Authorizable.class), anyBoolean())).thenReturn(List.of(group, group).iterator());
         return dmp;
     }
     

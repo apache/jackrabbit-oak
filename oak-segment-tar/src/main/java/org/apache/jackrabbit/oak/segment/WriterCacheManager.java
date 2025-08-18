@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static java.lang.Integer.getInteger;
 import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 
@@ -32,6 +31,7 @@ import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.cache.CacheStats;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.segment.file.PriorityCache;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -280,7 +280,7 @@ public abstract class WriterCacheManager {
             @NotNull
             @Override
             public Iterator<T> iterator() {
-                return transform(generations.values().iterator(),
+                return IteratorUtils.transform(generations.values().iterator(),
                         cacheFactory -> cacheFactory.get());
             }
 

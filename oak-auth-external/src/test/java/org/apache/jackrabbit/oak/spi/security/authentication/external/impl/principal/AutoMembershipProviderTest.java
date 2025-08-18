@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -108,7 +107,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
     }
     
     private static void assertMatchingEntries(@NotNull Iterator<Authorizable> it, @NotNull String... expectedIds) {
-        Set<String> ids = SetUtils.toSet(Iterators.transform(it, authorizable -> {
+        Set<String> ids = SetUtils.toSet(IteratorUtils.transform(it, authorizable -> {
             try {
                 return authorizable.getID();
             } catch (RepositoryException repositoryException) {

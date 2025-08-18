@@ -62,6 +62,60 @@ public class IndexDefMergerTest {
     }
 
     @Test
+    public void tryMergeSets() {
+        assertEquals("[\"a\",\"b\",\"c\"]",
+                IndexDefMergerUtils.tryMergeSets(
+                "\"a\"", "[\"b\"]", "\"c\""));
+        assertEquals("[\"a\",\"b\",\"c\"]",
+                IndexDefMergerUtils.tryMergeSets(
+                "[\"a\"]", "[\"b\"]", "[\"c\"]"));
+        assertEquals("[\"a\",\"c\"]",
+                IndexDefMergerUtils.tryMergeSets(
+                "[\"a\"]", "[]", "[\"c\"]"));
+
+        // invalid value types or invalid syntax
+        assertEquals(null,
+                IndexDefMergerUtils.tryMergeSets(
+                "[\"a\"]", "1", "[\"b\"]"));
+        assertEquals(null,
+                IndexDefMergerUtils.tryMergeSets(
+                "[\"a\"]", "null", "[\"b\"]"));
+    }
+
+    @Test
+    public void getStringSet() {
+        assertEquals("[abc]",
+                IndexDefMergerUtils.getStringSet(
+                "\"abc\"").toString());
+        assertEquals("[abc]",
+                IndexDefMergerUtils.getStringSet(
+                "[\"abc\"]").toString());
+        assertEquals("[a, b]",
+                IndexDefMergerUtils.getStringSet(
+                "[\"b\", \"a\"]").toString());
+        assertEquals("[]",
+                IndexDefMergerUtils.getStringSet(
+                "[]").toString());
+
+        // invalid value types or invalid syntax
+        assertEquals(null,
+                IndexDefMergerUtils.getStringSet(
+                null));
+        assertEquals(null,
+                IndexDefMergerUtils.getStringSet(
+                "1"));
+        assertEquals(null,
+                IndexDefMergerUtils.getStringSet(
+                "[1]"));
+        assertEquals(null,
+                IndexDefMergerUtils.getStringSet(
+                "[null]"));
+        assertEquals(null,
+                IndexDefMergerUtils.getStringSet(
+                "[\"a\"],"));
+    }
+
+    @Test
     public void merge() throws IOException, CommitFailedException {
         String s = readFromResource("merge.txt");
         JsonObject json = JsonObject.fromJson(s, true);

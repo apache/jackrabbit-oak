@@ -199,7 +199,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         Property v = typeFieldMappings.get(similarityFieldName1).mapping().get(similarityFieldName1);
         DenseVectorProperty denseVector = v.denseVector();
         assertEquals("Dense vector size doesn't match", 2048, denseVector.dims().intValue());
-        assertEquals("Similarity metric doesn't match", "l2_norm", denseVector.similarity());
+        assertEquals("Similarity metric doesn't match", "l2_norm", denseVector.similarity().jsonValue());
     }
 
     @Test

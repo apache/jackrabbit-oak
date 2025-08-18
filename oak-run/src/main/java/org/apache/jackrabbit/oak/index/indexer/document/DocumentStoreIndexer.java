@@ -29,23 +29,19 @@ public class DocumentStoreIndexer extends DocumentStoreIndexerBase implements Cl
 
     private final ExtendedIndexHelper extendedIndexHelper;
 
-    public DocumentStoreIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
+    public DocumentStoreIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) {
         super(extendedIndexHelper, indexerSupport);
         this.extendedIndexHelper = extendedIndexHelper;
-        setProviders();
     }
 
     private NodeStateIndexerProvider createLuceneIndexProvider() throws IOException {
         return new LuceneIndexerProvider(extendedIndexHelper, indexerSupport);
     }
 
-    protected List<NodeStateIndexerProvider> createProviders() throws IOException {
-        List<NodeStateIndexerProvider> providers = List.of(
-                createLuceneIndexProvider()
-        );
-
-        providers.forEach(closer::register);
-        return providers;
+    protected NodeStateIndexerProvider createProvider() throws IOException {
+        NodeStateIndexerProvider provider = createLuceneIndexProvider();
+        closer.register(provider);
+        return provider;
     }
 
     @Override

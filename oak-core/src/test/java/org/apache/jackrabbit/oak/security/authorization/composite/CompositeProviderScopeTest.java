@@ -45,8 +45,8 @@ import static org.junit.Assert.assertTrue;
  *
  * - default permission provider
  * - custom provider that
- *   > supports namespace-management and nodetype-def-mgt permission on repository level
- *   > write permission below {@link #TEST_A_PATH}.
+ *   + supports namespace-management and nodetype-def-mgt permission on repository level
+ *   + write permission below {@link #TEST_A_PATH}.
  *
  * The tests are executed both for the set of principals associated with the test
  * user and with the admin session.

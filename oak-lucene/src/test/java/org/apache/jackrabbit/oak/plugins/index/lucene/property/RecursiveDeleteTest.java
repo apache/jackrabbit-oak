@@ -24,9 +24,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.Traverser;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
 import org.apache.jackrabbit.oak.fixture.MemoryFixture;
@@ -149,13 +150,10 @@ public class RecursiveDeleteTest {
     }
 
     private int getSubtreeCount(NodeState state){
-        TreeTraverser<NodeState> t = new TreeTraverser<NodeState>() {
-            @Override
-            public Iterable<NodeState> children(NodeState root) {
-                return IterableUtils.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
-            }
-        };
-        return t.preOrderTraversal(state).size();
+
+        final Function<NodeState, Iterable<? extends NodeState>> children = root -> IterableUtils.transform(root.getChildNodeEntries(), ChildNodeEntry::getNodeState);
+
+        return Traverser.preOrderTraversal(state, children).size();
     }
 
 }

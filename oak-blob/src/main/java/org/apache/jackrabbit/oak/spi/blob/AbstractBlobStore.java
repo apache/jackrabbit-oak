@@ -64,9 +64,9 @@ import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgumen
  * <p>
  * Each data store id is a list of zero or more entries. Each entry is either
  * <ul>
- * <li>data (a number of bytes), or</li>
- * <li>the hash code of the content of a number of bytes, or</li>
- * <li>the hash code of the content of a data store id (indirect hash)</li>
+ * <li>data (a number of bytes), or
+ * <li>the hash code of the content of a number of bytes, or
+ * <li>the hash code of the content of a data store id (indirect hash)
  * </ul>
  * Thanks to the indirection, blocks can be kept relatively small, so that
  * caching is simpler, and so that the storage backend doesn't need to support

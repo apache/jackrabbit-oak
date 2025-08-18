@@ -34,15 +34,15 @@ import org.jetbrains.annotations.Nullable;
  * interface contains the following key methods:
  * <ul>
  * <li>The {@code setProperty} and {@code removeProperty} methods for
- *     modifying properties</li>
+ *     modifying properties
  * <li>The {@code getChildNode} method for accessing or modifying an existing
- *     subtree</li>
+ *     subtree
  * <li>The {@code setChildNode} and {@code removeChildNode} methods for adding,
- *     replacing or removing a subtree</li>
+ *     replacing or removing a subtree
  * <li>The {@code exists} method for checking whether the node represented by
- *     a builder exists or is accessible</li>
+ *     a builder exists or is accessible
  * <li>The {@code getNodeState} method for getting a frozen snapshot of the
- *     modified content tree</li>
+ *     modified content tree
  * </ul>
  * All the builders acquired from the same root builder instance are linked so
  * that changes made through one instance automatically become visible in the other

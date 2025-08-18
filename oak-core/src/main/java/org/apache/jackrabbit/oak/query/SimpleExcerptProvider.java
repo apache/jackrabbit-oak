@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.apache.jackrabbit.guava.common.base.Splitter;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -297,9 +297,11 @@ class SimpleExcerptProvider {
     }
 
     static PropertyValue getExcerpt(PropertyValue value) {
-        Splitter listSplitter = Splitter.on(',').trimResults().omitEmptyStrings();
         StringBuilder excerpt = new StringBuilder(EXCERPT_BEGIN);
-        for (String v : listSplitter.splitToList(value.toString())) {
+        for (String v : Arrays.stream(value.toString().split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList())) {
             excerpt.append(v);
         }
         excerpt.append(EXCERPT_END);

@@ -34,11 +34,15 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_GENERATION;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_PERFLOGGER_INFO_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_TIME_MILLIS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS;
 
 @ObjectClassDefinition(
         pid = {PID},
@@ -67,7 +71,10 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "can be overridden via framework property 'oak.mongo.db'")
     String db() default DocumentNodeStoreService.DEFAULT_DB;
 
-
+    /**
+     * @deprecated Since Mongo Java Driver 3.5
+     */
+    @Deprecated
     @AttributeDefinition(
             name = "MongoDB socket keep-alive option",
             description = "Whether socket keep-alive should be enabled for " +
@@ -81,6 +88,74 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "milliseconds. Note that this value can be " +
                     "overridden via framework property 'oak.mongo.leaseSocketTimeout'")
     int mongoLeaseSocketTimeout() default DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS;
+
+    @AttributeDefinition(
+            name = "MongoDB Max Pool Size",
+            description = "The maximum number of connections in the MongoDB connection pool. " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.maxPoolSize'")
+    int mongoMaxPoolSize() default DocumentNodeStoreService.DEFAULT_MONGO_MAX_POOL_SIZE;
+
+    @AttributeDefinition(
+            name = "MongoDB Min Pool Size", 
+            description = "The minimum number of connections in the MongoDB connection pool. " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.minPoolSize'")
+    int mongoMinPoolSize() default DocumentNodeStoreService.DEFAULT_MONGO_MIN_POOL_SIZE;
+
+    @AttributeDefinition(
+            name = "MongoDB Max Connecting",
+            description = "Maximum number of connections the MongoDB pool may be establishing concurrently. " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.maxConnecting'")
+    int mongoMaxConnecting() default DocumentNodeStoreService.DEFAULT_MONGO_MAX_CONNECTING;
+
+    @AttributeDefinition(
+            name = "MongoDB Max Idle Time (ms)",
+            description = "The maximum idle time in milliseconds of a MongoDB pooled connection. " +
+                    "A value of 0 means no limit. " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.maxIdleTimeMillis'")
+    int mongoMaxIdleTimeMillis() default DocumentNodeStoreService.DEFAULT_MONGO_MAX_IDLE_TIME_MILLIS;
+
+    @AttributeDefinition(
+            name = "MongoDB Max Life Time (ms)",
+            description = "The maximum lifetime in milliseconds of a MongoDB pooled connection. " +
+                    "A value of 0 means no limit. " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.maxLifeTimeMillis'")
+    int mongoMaxLifeTimeMillis() default DocumentNodeStoreService.DEFAULT_MONGO_MAX_LIFE_TIME_MILLIS;
+
+    @AttributeDefinition(
+            name = "MongoDB Connect Timeout (ms)",
+            description = "The connection timeout in milliseconds for establishing connections to MongoDB. " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.connectTimeoutMillis'")
+    int mongoConnectTimeoutMillis() default DocumentNodeStoreService.DEFAULT_MONGO_CONNECT_TIMEOUT_MILLIS;
+
+    @AttributeDefinition(
+            name = "MongoDB Heartbeat Frequency (ms)", 
+            description = "The frequency in milliseconds of the driver checking the state of MongoDB servers. " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.heartbeatFrequencyMillis'")
+    int mongoHeartbeatFrequencyMillis() default DocumentNodeStoreService.DEFAULT_MONGO_HEARTBEAT_FREQUENCY_MILLIS;
+
+    @AttributeDefinition(
+            name = "MongoDB Server Selection Timeout (ms)",
+            description = "How long the driver will wait for server selection to succeed before throwing an exception, in milliseconds. " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.serverSelectionTimeoutMillis'")
+    int mongoServerSelectionTimeoutMillis() default DocumentNodeStoreService.DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS;
+
+    @AttributeDefinition(
+            name = "MongoDB Wait Queue Timeout (ms)",
+            description = "The maximum time in milliseconds that a thread can wait for a connection to become available (deprecated but still supported). " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.waitQueueTimeoutMillis'")
+    int mongoWaitQueueTimeoutMillis() default DocumentNodeStoreService.DEFAULT_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS;
+
+    @AttributeDefinition(
+            name = "MongoDB Socket Read Timeout (ms)",
+            description = "The socket read timeout in milliseconds. A value of 0 means no timeout. " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.readTimeoutMillis'")
+    int mongoReadTimeoutMillis() default DocumentNodeStoreService.DEFAULT_MONGO_READ_TIMEOUT_MILLIS;
+
+    @AttributeDefinition(
+            name = "MongoDB Min Heartbeat Frequency (ms)",
+            description = "The minimum heartbeat frequency in milliseconds for MongoDB server monitoring. " +
+                    "Note that this value can be overridden via framework property 'oak.mongo.minHeartbeatFrequencyMillis'")
+    int mongoMinHeartbeatFrequencyMillis() default DocumentNodeStoreService.DEFAULT_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS;
 
     @AttributeDefinition(
             name = "Cache Size (in MB)",
@@ -308,6 +383,23 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "property 'oak.documentstore.throttlingEnabled'")
     boolean throttlingEnabled() default DEFAULT_THROTTLING_ENABLED;
 
+
+    @AttributeDefinition(
+            name = "Document Node Store throttling time in millis",
+            description = "Time (in millis) for which we need to throttle the document store in case system is under heavy load. " +
+                    "The Default value is " + DEFAULT_THROTTLING_TIME_MILLIS + "ms" +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.throttlingTimeMillis'")
+    int throttlingTimeMillis() default DEFAULT_THROTTLING_TIME_MILLIS;
+
+    @AttributeDefinition(
+            name = "Document Node Store throttling job period in secs",
+            description = "Time (in secs) after which the throttling background job would run (in cycles) to keep updating the throttling values." +
+                    "The Default value is " + DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS + "secs" +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.throttlingJobSchedulePeriodSecs'")
+    int throttlingJobSchedulePeriodSecs() default DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS;
+
     @AttributeDefinition(
             name = "Document Node Store Compression",
             description = "Select compressor type for collections. 'Snappy' is the default supported compression.")
@@ -377,6 +469,17 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     int fullGCMode() default DEFAULT_FULL_GC_MODE;
 
     @AttributeDefinition(
+            name = "Document Node Store Full GC Generation",
+            description = "Long value indicating which Full GC generation is currently running on " +
+                    "document node store. The Default value is " + DEFAULT_FULL_GC_GENERATION +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.fullGCGeneration'. " +
+                    "FullGC can be reset to run from beginning after incrementing this value. " +
+                    "Any value change must be a increment from previous value to reset the FullGC, " +
+                    "in case we set to a value smaller or equal to exiting generation, it would simply be ignored.")
+    long fullGCGeneration() default DEFAULT_FULL_GC_GENERATION;
+
+    @AttributeDefinition(
             name = "Delay factor for a Full GC run",
             description = "A Full GC run has a gap of this delay factor to reduce continuous load on system." +
                     "It allows the FullGC thread to stop by (fullGC batch run time * delayFactor) period after each batch." +
@@ -405,4 +508,11 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
         name = "Enable Full GC Persistent Audit Logging",
         description = "This parameter will enable/disable the saving of deleted document IDs and properties during FullGC into a persistent storage, e.g Mongo collection")
     boolean fullGCAuditLoggingEnabled() default false;
+
+    @AttributeDefinition(
+            name = "Avoid Exclusive Merge lock",
+            description = "Boolean value indicating whether we need to avoid the exclusive merge lock while " +
+                    "merging the changes in case of a conflict. The Default value is " + DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK +
+                    " Note that this value can be overridden via framework property 'oak.documentstore.avoidExclusiveMergeLock'")
+    boolean avoidExclusiveMergeLock() default DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK;
 }

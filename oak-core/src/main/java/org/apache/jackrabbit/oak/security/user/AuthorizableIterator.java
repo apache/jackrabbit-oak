@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -50,7 +50,7 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
     static AuthorizableIterator create(@NotNull Iterator<Tree> authorizableTrees,
                                        @NotNull UserManagerImpl userManager,
                                        @NotNull AuthorizableType authorizableType) {
-        Iterator<Authorizable> it = Iterators.transform(authorizableTrees,
+        Iterator<Authorizable> it = IteratorUtils.transform(authorizableTrees,
                 new TreeToAuthorizable(userManager, authorizableType)::apply);
         long size = getSize(authorizableTrees);
         return new AuthorizableIterator(it, size, false);
@@ -74,13 +74,13 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
                 size = LongUtils.safeAdd(size, l);
             }
         }
-        return new AuthorizableIterator(Iterators.concat(it1, it2), size, filterDuplicates);
+        return new AuthorizableIterator(IteratorUtils.chainedIterator(it1, it2), size, filterDuplicates);
     }
 
     private AuthorizableIterator(Iterator<? extends Authorizable> authorizables, long size, boolean filterDuplicates) {
         if (filterDuplicates)  {
             this.servedIds = new HashSet<>();
-            this.authorizables = Iterators.filter(authorizables, authorizable -> {
+            this.authorizables = IteratorUtils.filter(authorizables, authorizable -> {
                 if (authorizable == null) {
                     return false;
                 }
@@ -89,7 +89,7 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
             });
         } else {
             this.servedIds = null;
-            this.authorizables = Iterators.filter(authorizables, Objects::nonNull);
+            this.authorizables = IteratorUtils.filter(authorizables, Objects::nonNull);
         }
         this.size = size;
     }

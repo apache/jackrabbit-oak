@@ -26,7 +26,6 @@ import java.util.function.Predicate;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -36,6 +35,7 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.user.DeclaredMembershipPredicate;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
@@ -99,7 +99,7 @@ public class UserQueryManager {
             if (groupId == null) {
                 return result;
             } else {
-                return Iterators.filter(result, authorizable -> !groupId.equals(getID(authorizable)));
+                return IteratorUtils.filter(result, authorizable -> !groupId.equals(getID(authorizable)));
             }
         } else {
             // filtering by group name included in query -> enforce offset and limit on the result set.
@@ -111,7 +111,7 @@ public class UserQueryManager {
                 filter = new GroupPredicate(userManager, groupId, false);
 
             }
-            return ResultIterator.create(builder.getOffset(), builder.getMaxCount(), Iterators.filter(result, filter::test));
+            return ResultIterator.create(builder.getOffset(), builder.getMaxCount(), IteratorUtils.filter(result, filter::test));
         }
     }
 
@@ -274,9 +274,9 @@ public class UserQueryManager {
                     statement, javax.jcr.query.Query.XPATH, limit, offset,
                     NO_BINDINGS, namePathMapper.getSessionLocalMappings());
             Iterable<? extends ResultRow> resultRows = query.getRows();
-            Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(),
+            Iterator<Authorizable> authorizables = IteratorUtils.transform(resultRows.iterator(),
                     new ResultRowToAuthorizable(userManager, root, type, query.getSelectorNames())::apply);
-            return Iterators.filter(authorizables, new UniqueResultPredicate()::test);
+            return IteratorUtils.filter(authorizables, new UniqueResultPredicate()::test);
         } catch (ParseException e) {
             throw new RepositoryException("Invalid user query "+statement, e);
         }

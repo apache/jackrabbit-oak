@@ -35,7 +35,6 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class DefaultStatisticsProviderTest {
@@ -59,6 +58,14 @@ public class DefaultStatisticsProviderTest {
         meterStats.mark();
         assertEquals(1, statsImpl(statsProvider).getCounter("test", true).get());
         assertTrue(getRegisteredTimeSeries(statsProvider).contains("test"));
+    }
+
+    @Test
+    public void gauge() {
+        GaugeStats<String> gaugeStats = statsProvider.getGauge("test", () -> "value");
+
+        assertNotNull(gaugeStats);
+        assertEquals("value", gaugeStats.getValue());
     }
 
     @Test

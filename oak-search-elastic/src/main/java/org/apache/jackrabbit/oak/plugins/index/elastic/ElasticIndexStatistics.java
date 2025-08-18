@@ -53,9 +53,9 @@ import co.elastic.clients.elasticsearch.core.CountRequest;
  * in background when accessed after 1 minute (60 seconds). These values can be overwritten with the following system properties:
  *
  * <ul>
- *     <li>{@code oak.elastic.statsMaxSize}</li>
- *     <li>{@code oak.elastic.statsExpireSeconds}</li>
- *     <li>{@code oak.elastic.statsRefreshSeconds}</li>
+ *     <li>{@code oak.elastic.statsMaxSize}
+ *     <li>{@code oak.elastic.statsExpireSeconds}
+ *     <li>{@code oak.elastic.statsRefreshSeconds}
  * </ul>
  */
 public class ElasticIndexStatistics implements IndexStatistics {
