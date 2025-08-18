@@ -46,7 +46,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 
-public class AzureArchiveManagerOverflowTest {
+public class AzureArchiveManagerIgnoreSamePrefixTest {
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
@@ -60,10 +60,6 @@ public class AzureArchiveManagerOverflowTest {
     private AzurePersistence azurePersistence;
 
     private static final String rootPrefix = "oak";
-    private static final String archiveName = "data00000a.tar";
-    private static final String bakArchiveName = archiveName + ".4.bak";
-    private static final String archiveToDeleteName = "data00004a.tar";
-    private static final String bakArchiveToDeleteName = archiveToDeleteName + ".4.bak";
     private static final String segmentName = "0004.44b4a246-50e0-470a-abe4-5a37a81c37c1";
 
     @Before
@@ -76,12 +72,6 @@ public class AzureArchiveManagerOverflowTest {
         writeAccessController.enableWriting();
         azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, rootPrefix);
         azurePersistence.setWriteAccessController(writeAccessController);
-
-        writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
-                .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
-
-        writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveToDeleteName + "/" + segmentName)
-                .getBlockBlobClient().getBlobOutputStream().close();
     }
 
     @Rule
@@ -90,7 +80,14 @@ public class AzureArchiveManagerOverflowTest {
             .and(AzureRepositoryLock.TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, "9");
 
     @Test
-    public void testRecoveryArchiveOverflow() throws BlobStorageException, IOException {
+    public void testRecoveryArchiveIgnoreArchiveSamePrefix() throws BlobStorageException, IOException {
+        final String archiveName = "data00000a.tar";
+        final String bakArchiveName = archiveName + ".4.bak";
+
+        //create blob with same prefix as archiveName
+        writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
+                .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
+
         SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create(archiveName);
 
@@ -108,19 +105,31 @@ public class AzureArchiveManagerOverflowTest {
 
         LinkedHashMap<UUID, byte[]> recovered = new LinkedHashMap<>();
         manager.recoverEntries(archiveName, recovered);
-        assertEquals(new ArrayList<>(uuids.subList(0, 5)), new ArrayList<>(recovered.keySet()));
+        assertEquals(uuids.subList(0, 5), new ArrayList<>(recovered.keySet()));
     }
 
     @Test
-    public void testExistsArchiveOverflow() {
+    public void testExistsArchiveIgnoreArchiveSamePrefix() {
+        final String archiveName = "data00001a.tar";
+        final String bakArchiveName = archiveName + ".4.bak";
+
+        writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
+                .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
+
         SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
 
         assertFalse(manager.exists(archiveName));
     }
 
     @Test
-    public void testRenameToOverflow() {
-        String targetArchiveName = "data00001a.tar";
+    public void testRenameToIgnoreBlobsSamePrefix() {
+        final String archiveName = "data00002a.tar";
+        final String bakArchiveName = archiveName + ".4.bak";
+        final String targetArchiveName = "data00003a.tar";
+
+        writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
+                .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
+
         SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         manager.renameTo(archiveName, targetArchiveName);
 
@@ -131,8 +140,14 @@ public class AzureArchiveManagerOverflowTest {
     }
 
     @Test
-    public void testCopyFileOverflow() throws IOException {
-        String targetArchiveName = "data00002a.tar";
+    public void testCopyFileIgnoreOtherArchivesSamePrefix() throws IOException {
+        final String archiveName = "data00003a.tar";
+        final String bakArchiveName = archiveName + ".4.bak";
+        final String targetArchiveName = "data00004a.tar";
+
+        writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
+                .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
+
         SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         manager.copyFile(archiveName, targetArchiveName);
 
@@ -143,16 +158,20 @@ public class AzureArchiveManagerOverflowTest {
     }
 
     @Test
-    public void testDeleteOverflow() {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
-        manager.delete(archiveToDeleteName);
+    public void testDeleteIgnoreOtherArchivesSamePrefix() {
+        final String archiveName = "data00004a.tar";
+        final String bakArchiveName = archiveName + ".4.bak";
 
-        boolean blobExists = readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix(rootPrefix + "/" + bakArchiveToDeleteName + "/"), null)
+        writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
+                .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        manager.delete(archiveName);
+
+        boolean blobExists = readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix(rootPrefix + "/" + bakArchiveName + "/"), null)
                 .iterator().hasNext();
 
         assertTrue("blob from backup tar archive should not be deleted", blobExists);
     }
-
 
 
     @Test
