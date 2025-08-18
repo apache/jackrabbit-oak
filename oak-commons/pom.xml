@@ -57,6 +57,7 @@
               org.apache.jackrabbit.oak.commons.sort,
               org.apache.jackrabbit.oak.commons.properties,
               org.apache.jackrabbit.oak.commons.jdkcompat,
+              org.apache.jackrabbit.oak.commons.pconcurrent,
               org.apache.jackrabbit.oak.commons.pio,
               org.apache.jackrabbit.oak.commons.time
             </Export-Package>
