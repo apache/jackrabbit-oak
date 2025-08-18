@@ -108,7 +108,7 @@ class SysViewImportHandler extends TargetImportHandler {
                 namespaceUri = svName.substring(1, brace);
                 // the empty namespace and "internal" are valid as well, otherwise it always contains a colon (as it is a URI)
                 // compare with RFC 3986, Section 3 (https://datatracker.ietf.org/doc/html/rfc3986#section-3)
-                if (namespaceUri.isEmpty() || namespaceUri.equals(NamespaceConstants.NAMESPACE_REP)|| namespaceUri.indexOf(':') != -1) {
+                if (namespaceUri.isEmpty() || namespaceUri.equals(NamespaceConstants.NAMESPACE_REP) || namespaceUri.indexOf(':') != -1) {
                     String localName = svName.substring(svName.indexOf("}") + 1);
                     return new NameInfo(namespaceHelper.registerNamespace("", namespaceUri), localName);
                 }
