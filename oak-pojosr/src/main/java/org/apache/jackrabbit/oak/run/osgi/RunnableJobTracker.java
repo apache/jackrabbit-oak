@@ -43,7 +43,7 @@ public class RunnableJobTracker extends ServiceTracker<Runnable, Future>
      * Lazily loaded executor
      */
     private final Supplier<ScheduledExecutorService> executor =
-            Suppliers.memoize(() -> Oak.defaultScheduledExecutor());
+            Suppliers.memoize(Oak::defaultScheduledExecutor);
 
     public RunnableJobTracker(BundleContext context) {
         super(context, createFilter(), null);
