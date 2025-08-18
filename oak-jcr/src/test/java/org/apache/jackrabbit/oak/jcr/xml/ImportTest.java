@@ -313,20 +313,20 @@ public class ImportTest extends AbstractJCRTest {
         assertNotEquals(p1.getName(), p2.getName());
     }
 
-    private static final String expandedNamesImportTestRoot = "expandedNamesImportTestRoot";
-    private static final String nidRegistered = "nsRegistered";
-    private static final String nidUnregistered = "nsUnregistered";
-    private static final String prefixRegistered = "prefixRegistered";
-    private static final String prefixXmlDefined = "prefixXmlDefined";
-    private static final String localNodeNameXmlDefined = "nodeXmlDefined";
-    private static final String localPropNameXmlDefined = "propXmlDefined";
+    private static final String EXPANDED_NAMES_IMPORT_TEST_ROOT = "expandedNamesImportTestRoot";
+    private static final String NID_REGISTERED = "nsRegistered";
+    private static final String NID_UNREGISTERED = "nsUnregistered";
+    private static final String PREFIX_REGISTERED = "prefixRegistered";
+    private static final String PREFIX_XML_DEFINED = "prefixXmlDefined";
+    private static final String LOCAL_NODE_NAME_XML_DEFINED = "nodeXmlDefined";
+    private static final String LOCAL_PROP_NAME_XML_DEFINED = "propXmlDefined";
 
     private static String createXmlWithExpandedName(String nid, boolean definePrefix) {
         return "<sv:node xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" " +
-                (definePrefix ? "xmlns:" + prefixXmlDefined + "=\"" + "urn:" + nid  + "\"" : "")  +
-                " sv:name=\"" + expandedNamesImportTestRoot + "\">" +
-                "<sv:node sv:name=\"{urn:" + nid  + "}" + localNodeNameXmlDefined + "\">" +
-                "<sv:property sv:type=\"Boolean\" sv:name=\"{" + "urn:" + nid  + "}" + localPropNameXmlDefined + "\">" +
+                (definePrefix ? "xmlns:" + PREFIX_XML_DEFINED + "=\"" + "urn:" + nid  + "\"" : "")  +
+                " sv:name=\"" + EXPANDED_NAMES_IMPORT_TEST_ROOT + "\">" +
+                "<sv:node sv:name=\"{urn:" + nid  + "}" + LOCAL_NODE_NAME_XML_DEFINED + "\">" +
+                "<sv:property sv:type=\"Boolean\" sv:name=\"{" + "urn:" + nid  + "}" + LOCAL_PROP_NAME_XML_DEFINED + "\">" +
                 "<sv:value>true</sv:value>" +
                 "</sv:property>" +
                 "</sv:node>" +
@@ -338,22 +338,21 @@ public class ImportTest extends AbstractJCRTest {
     // OAK-9586
     public void testExpandedNameImportWithPrefixDefinition() throws Exception {
         String prefix = null;
-        try {
-            String xml = createXmlWithExpandedName(nidUnregistered, true);
-            InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+        String xml = createXmlWithExpandedName(NID_UNREGISTERED, true);
+        try (InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))) {
             superuser.importXML(
                     "/", input, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
-            NodeIterator nodes = superuser.getRootNode().getNode(expandedNamesImportTestRoot).getNodes();
+            NodeIterator nodes = superuser.getRootNode().getNode(EXPANDED_NAMES_IMPORT_TEST_ROOT).getNodes();
             assertTrue(nodes.hasNext());
             Node node = nodes.nextNode();
 
-            prefix = superuser.getNamespacePrefix("urn:" + nidUnregistered);
-            assertEquals(prefixXmlDefined, prefix);
+            prefix = superuser.getNamespacePrefix("urn:" + NID_UNREGISTERED);
+            assertEquals(PREFIX_XML_DEFINED, prefix);
             String name = node.getName();
-            assertEquals(prefixXmlDefined + ":" + localNodeNameXmlDefined, name);
-            Property p = node.getProperty("{urn:" + nidUnregistered + "}" + localPropNameXmlDefined);
+            assertEquals(PREFIX_XML_DEFINED + ":" + LOCAL_NODE_NAME_XML_DEFINED, name);
+            Property p = node.getProperty("{urn:" + NID_UNREGISTERED + "}" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(p);
-            Property q = node.getProperty(prefixXmlDefined + ":" + localPropNameXmlDefined);
+            Property q = node.getProperty(PREFIX_XML_DEFINED + ":" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(q);
             assertEquals(p.getName(), q.getName());
             assertEquals(p.getBoolean(), q.getBoolean());
@@ -369,28 +368,27 @@ public class ImportTest extends AbstractJCRTest {
     // OAK-9586
     public void testExpandedNameImportWithPrefixDefinitionKnownNS() throws Exception {
         String prefix = null;
-        try {
-            String xml = createXmlWithExpandedName(nidRegistered, true);
-            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(prefixRegistered, "urn:" + nidRegistered);
-            InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+        String xml = createXmlWithExpandedName(NID_REGISTERED, true);
+        try (InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))) {
+            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(PREFIX_REGISTERED, "urn:" + NID_REGISTERED);
             superuser.importXML(
                     "/", input, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
-            NodeIterator nodes = superuser.getRootNode().getNode(expandedNamesImportTestRoot).getNodes();
+            NodeIterator nodes = superuser.getRootNode().getNode(EXPANDED_NAMES_IMPORT_TEST_ROOT).getNodes();
             assertTrue(nodes.hasNext());
             Node node = nodes.nextNode();
 
-            prefix = superuser.getNamespacePrefix("urn:" + nidRegistered);
-            assertEquals(prefixRegistered, prefix);
+            prefix = superuser.getNamespacePrefix("urn:" + NID_REGISTERED);
+            assertEquals(PREFIX_REGISTERED, prefix);
             String name = node.getName();
-            assertEquals(prefixRegistered + ":" + localNodeNameXmlDefined, name);
-            Property p = node.getProperty("{urn:" + nidRegistered + "}" + localPropNameXmlDefined);
+            assertEquals(PREFIX_REGISTERED + ":" + LOCAL_NODE_NAME_XML_DEFINED, name);
+            Property p = node.getProperty("{urn:" + NID_REGISTERED + "}" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(p);
-            Property q = node.getProperty(prefixRegistered + ":" + localPropNameXmlDefined);
+            Property q = node.getProperty(PREFIX_REGISTERED + ":" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(q);
             assertEquals(p.getName(), q.getName());
             assertEquals(p.getBoolean(), q.getBoolean());
         } finally {
-            superuser.getWorkspace().getNamespaceRegistry().unregisterNamespace(prefixRegistered);
+            superuser.getWorkspace().getNamespaceRegistry().unregisterNamespace(PREFIX_REGISTERED);
         }
     }
 
@@ -399,24 +397,23 @@ public class ImportTest extends AbstractJCRTest {
     // OAK-9586
     public void testExpandedNameImportWithPrefixDefinitionKnownNSAndPrefix() throws Exception {
         String prefix = null;
-        try {
-            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(prefixRegistered, "urn:" + nidRegistered);
-            superuser.setNamespacePrefix(prefixRegistered, "urn:" + nidRegistered);
-            String xml = createXmlWithExpandedName(nidRegistered, true);
-            InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+        String xml = createXmlWithExpandedName(NID_REGISTERED, true);
+        try (InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))) {
+            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(PREFIX_REGISTERED, "urn:" + NID_REGISTERED);
+            superuser.setNamespacePrefix(PREFIX_REGISTERED, "urn:" + NID_REGISTERED);
             superuser.importXML(
                     "/", input, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
-            NodeIterator nodes = superuser.getRootNode().getNode(expandedNamesImportTestRoot).getNodes();
+            NodeIterator nodes = superuser.getRootNode().getNode(EXPANDED_NAMES_IMPORT_TEST_ROOT).getNodes();
             assertTrue(nodes.hasNext());
             Node node = nodes.nextNode();
 
-            prefix = superuser.getNamespacePrefix("urn:" + nidRegistered);
-            assertEquals(prefixRegistered, prefix);
+            prefix = superuser.getNamespacePrefix("urn:" + NID_REGISTERED);
+            assertEquals(PREFIX_REGISTERED, prefix);
             String name = node.getName();
-            assertEquals(prefixRegistered + ":" + localNodeNameXmlDefined, name);
-            Property p = node.getProperty("{urn:" + nidRegistered + "}" + localPropNameXmlDefined);
+            assertEquals(PREFIX_REGISTERED + ":" + LOCAL_NODE_NAME_XML_DEFINED, name);
+            Property p = node.getProperty("{urn:" + NID_REGISTERED + "}" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(p);
-            Property q = node.getProperty(prefixRegistered + ":" + localPropNameXmlDefined);
+            Property q = node.getProperty(PREFIX_REGISTERED + ":" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(q);
             assertEquals(p.getName(), q.getName());
             assertEquals(p.getBoolean(), q.getBoolean());
@@ -427,37 +424,35 @@ public class ImportTest extends AbstractJCRTest {
         }
     }
 
-    // TODO
     // Expanded names in content, prefix defined in XML and already registered for a different namespace, namespace not yet registered
     // Expectation: new prefix will be created for the given namespace URI
     // OAK-9586
     public void testExpandedNameImportWithCollidingPrefixDefinitionNsUnreg() throws Exception {
         String otherNid = "otherRegisteredNS";
         String prefix = null;
-        try {
-            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(prefixXmlDefined, "urn:" + otherNid);
-            String xml = createXmlWithExpandedName(nidUnregistered, true);
-            InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+        String xml = createXmlWithExpandedName(NID_UNREGISTERED, true);
+        try (InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))) {
+            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(PREFIX_XML_DEFINED, "urn:" + otherNid);
             superuser.importXML(
                     "/", input, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
-            NodeIterator nodes = superuser.getRootNode().getNode(expandedNamesImportTestRoot).getNodes();
+            NodeIterator nodes = superuser.getRootNode().getNode(EXPANDED_NAMES_IMPORT_TEST_ROOT).getNodes();
             assertTrue(nodes.hasNext());
             Node node = nodes.nextNode();
 
-            prefix = superuser.getNamespacePrefix("urn:" + nidUnregistered);
+            prefix = superuser.getNamespacePrefix("urn:" + NID_UNREGISTERED);
             assertNotNull(prefix);
             String name = node.getName();
-            assertEquals(prefix + ":" + localNodeNameXmlDefined, name);
-            Property p = node.getProperty("{urn:" + nidUnregistered + "}" + localPropNameXmlDefined);
+            assertEquals(prefix + ":" + LOCAL_NODE_NAME_XML_DEFINED, name);
+            Property p = node.getProperty("{urn:" + NID_UNREGISTERED + "}" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(p);
-            Property q = node.getProperty(prefix + ":" + localPropNameXmlDefined);
+            Property q = node.getProperty(prefix + ":" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(q);
             assertEquals(p.getName(), q.getName());
             assertEquals(p.getBoolean(), q.getBoolean());
         } finally {
             if (prefix != null) {
                 superuser.getWorkspace().getNamespaceRegistry().unregisterNamespace(prefix);
-                superuser.getWorkspace().getNamespaceRegistry().unregisterNamespace(prefixXmlDefined);
+                superuser.getWorkspace().getNamespaceRegistry().unregisterNamespace(PREFIX_XML_DEFINED);
             }
         }
     }
@@ -468,31 +463,30 @@ public class ImportTest extends AbstractJCRTest {
     public void testExpandedNameImportWithCollidingPrefixDefinitionNsReg() throws Exception {
         String otherNid = "otherRegisteredNS";
         String prefix = null;
-        try {
-            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(prefixRegistered, "urn:" + nidRegistered);
-            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(prefixXmlDefined, "urn:" + otherNid);
-            String xml = createXmlWithExpandedName(nidRegistered, true);
-            InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+        String xml = createXmlWithExpandedName(NID_REGISTERED, true);
+        try (InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))) {
+            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(PREFIX_REGISTERED, "urn:" + NID_REGISTERED);
+            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(PREFIX_XML_DEFINED, "urn:" + otherNid);
             superuser.importXML(
                     "/", input, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
-            NodeIterator nodes = superuser.getRootNode().getNode(expandedNamesImportTestRoot).getNodes();
+            NodeIterator nodes = superuser.getRootNode().getNode(EXPANDED_NAMES_IMPORT_TEST_ROOT).getNodes();
             assertTrue(nodes.hasNext());
             Node node = nodes.nextNode();
 
-            prefix = superuser.getNamespacePrefix("urn:" + nidRegistered);
-            assertEquals(prefixRegistered, prefix);
+            prefix = superuser.getNamespacePrefix("urn:" + NID_REGISTERED);
+            assertEquals(PREFIX_REGISTERED, prefix);
             String name = node.getName();
-            assertEquals(prefixRegistered + ":" + localNodeNameXmlDefined, name);
-            Property p = node.getProperty("{urn:" + nidRegistered + "}" + localPropNameXmlDefined);
+            assertEquals(PREFIX_REGISTERED + ":" + LOCAL_NODE_NAME_XML_DEFINED, name);
+            Property p = node.getProperty("{urn:" + NID_REGISTERED + "}" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(p);
-            Property q = node.getProperty(prefixRegistered + ":" + localPropNameXmlDefined);
+            Property q = node.getProperty(PREFIX_REGISTERED + ":" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(q);
             assertEquals(p.getName(), q.getName());
             assertEquals(p.getBoolean(), q.getBoolean());
         } finally {
             if (prefix != null) {
-                superuser.getWorkspace().getNamespaceRegistry().unregisterNamespace(prefixRegistered);
-                superuser.getWorkspace().getNamespaceRegistry().unregisterNamespace(prefixXmlDefined);
+                superuser.getWorkspace().getNamespaceRegistry().unregisterNamespace(PREFIX_REGISTERED);
+                superuser.getWorkspace().getNamespaceRegistry().unregisterNamespace(PREFIX_XML_DEFINED);
             }
         }
     }
@@ -502,22 +496,21 @@ public class ImportTest extends AbstractJCRTest {
     // OAK-9586
     public void testExpandedNameImportWithoutPrefixDefinitionAndUnregisteredNS() throws Exception {
         String prefix = null;
-        try {
-            String xml = createXmlWithExpandedName(nidUnregistered, false);
-            InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+        String xml = createXmlWithExpandedName(NID_UNREGISTERED, false);
+        try (InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))) {
             superuser.importXML(
                     "/", input, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
-            NodeIterator nodes = superuser.getRootNode().getNode(expandedNamesImportTestRoot).getNodes();
+            NodeIterator nodes = superuser.getRootNode().getNode(EXPANDED_NAMES_IMPORT_TEST_ROOT).getNodes();
             assertTrue(nodes.hasNext());
             Node node = nodes.nextNode();
 
-            prefix = superuser.getNamespacePrefix("urn:" + nidUnregistered);
+            prefix = superuser.getNamespacePrefix("urn:" + NID_UNREGISTERED);
             assertNotNull(prefix);
             String name = node.getName();
-            assertEquals(prefix + ":" + localNodeNameXmlDefined, name);
-            Property p = node.getProperty("{urn:" + nidUnregistered + "}" + localPropNameXmlDefined);
+            assertEquals(prefix + ":" + LOCAL_NODE_NAME_XML_DEFINED, name);
+            Property p = node.getProperty("{urn:" + NID_UNREGISTERED + "}" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(p);
-            Property q = node.getProperty(prefix + ":" + localPropNameXmlDefined);
+            Property q = node.getProperty(prefix + ":" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(q);
             assertEquals(p.getName(), q.getName());
             assertEquals(p.getBoolean(), q.getBoolean());
@@ -533,23 +526,22 @@ public class ImportTest extends AbstractJCRTest {
     // OAK-9586
     public void testExpandedNameImportWithoutPrefixDefinitionAndRegisteredNS() throws Exception {
         String prefix = null;
-        try {
-            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(prefixRegistered, "urn:" + nidRegistered);
-            String xml = createXmlWithExpandedName(nidRegistered, false);
-            InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+        String xml = createXmlWithExpandedName(NID_REGISTERED, false);
+        try (InputStream input = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))) {
+            superuser.getWorkspace().getNamespaceRegistry().registerNamespace(PREFIX_REGISTERED, "urn:" + NID_REGISTERED);
             superuser.importXML(
                     "/", input, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
-            NodeIterator nodes = superuser.getRootNode().getNode(expandedNamesImportTestRoot).getNodes();
+            NodeIterator nodes = superuser.getRootNode().getNode(EXPANDED_NAMES_IMPORT_TEST_ROOT).getNodes();
             assertTrue(nodes.hasNext());
             Node node = nodes.nextNode();
 
-            prefix = superuser.getNamespacePrefix("urn:" + nidRegistered);
-            assertEquals(prefixRegistered, prefix);
+            prefix = superuser.getNamespacePrefix("urn:" + NID_REGISTERED);
+            assertEquals(PREFIX_REGISTERED, prefix);
             String name = node.getName();
-            assertEquals(prefix + ":" + localNodeNameXmlDefined, name);
-            Property p = node.getProperty("{urn:" + nidRegistered + "}" + localPropNameXmlDefined);
+            assertEquals(prefix + ":" + LOCAL_NODE_NAME_XML_DEFINED, name);
+            Property p = node.getProperty("{urn:" + NID_REGISTERED + "}" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(p);
-            Property q = node.getProperty(prefix + ":" + localPropNameXmlDefined);
+            Property q = node.getProperty(prefix + ":" + LOCAL_PROP_NAME_XML_DEFINED);
             assertNotNull(q);
             assertEquals(p.getName(), q.getName());
             assertEquals(p.getBoolean(), q.getBoolean());
