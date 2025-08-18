@@ -18,38 +18,25 @@
  */
 package org.apache.jackrabbit.oak.commons.pconcurrent;
 
+import org.junit.Test;
+
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-/**
- * Utility methods for {@link java.util.function.Supplier} handling.
- */
-public class Suppliers {
+import static org.junit.Assert.assertEquals;
 
-    private Suppliers() {
-    }
+public class SuppliersTest {
 
-    /**
-     * Transforms a {@code Supplier} based on a wrapper around a lazily and only-tine
-     * single time evaluation of the given {@code Supplier}.
-     *
-     * @param <T> return type
-     * @return Supplier based on the given Supplier
-     */
-    public static <T> Supplier<T> memoize(final Supplier<T> computeOnce) {
-        return new Supplier<>() {
-            volatile T result = null;
+    @Test
+    public void computeOnce() {
+        AtomicInteger count = new AtomicInteger(0);
 
-            @Override
-            public T get() {
-                if (result == null) {
-                    synchronized (this) {
-                        if (result == null) {
-                            result = computeOnce.get();
-                        }
-                    }
-                }
-                return result;
-            }
-        };
+        Supplier<Integer> mem = Suppliers.memoize(() -> count.incrementAndGet());
+
+        assertEquals(0, count.get());
+        int c = mem.get();
+        assertEquals(1, c);
+        c = mem.get();
+        assertEquals(1, c);
     }
 }

@@ -14,6 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Oak-internal Utilities for concurrency related topics.
+ */
 @Version("1.0.0")
 @Internal
 package org.apache.jackrabbit.oak.commons.pconcurrent;
