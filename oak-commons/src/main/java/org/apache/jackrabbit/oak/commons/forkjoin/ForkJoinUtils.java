@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons.concurrent;
+package org.apache.jackrabbit.oak.commons.forkjoin;
 
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -46,7 +46,7 @@ public final class ForkJoinUtils {
      * </pre>
      *
      * @param task the task to run
-     * @return
+     * @return the result of the task execution
      * @see #executeInCustomPool(String, int, Callable)
      */
     public static ForkJoinTask<?> executeInCustomPool(String poolName, int parallelism, Runnable task) {
@@ -70,8 +70,8 @@ public final class ForkJoinUtils {
      * </pre>
      *
      * @param task the task to run
-     * @see #executeInCustomPool(String, int, Runnable)
      * @return the result of the task execution
+     * @see #executeInCustomPool(String, int, Runnable)
      */
     public static <T> ForkJoinTask<T> executeInCustomPool(String poolName, int parallelism, Callable<T> task) {
         return executeInCustomPool(poolName, parallelism, ForkJoinTask.adapt(task));
@@ -83,7 +83,7 @@ public final class ForkJoinUtils {
         }
         ForkJoinPool workerPool = getWorkerPool(Thread.currentThread());
         ForkJoinPool poolToShutdown = null;
-        if (workerPool == null || workerPool != ForkJoinPool.commonPool()) {
+        if (workerPool == null || workerPool == ForkJoinPool.commonPool()) {
             poolToShutdown = workerPool = new ForkJoinPool(parallelism, p -> new ForkJoinWorkerThread(p) {
                 @Override
                 protected void onStart() {
@@ -101,14 +101,9 @@ public final class ForkJoinUtils {
         }
     }
 
-    public static boolean isInCustomPool() {
-        return getWorkerPool(Thread.currentThread()) != ForkJoinPool.commonPool();
-    }
-
-    private static ForkJoinPool getWorkerPool(Thread thread) {
-        Thread currentThread = Thread.currentThread();
-        if (currentThread instanceof ForkJoinWorkerThread) {
-            ForkJoinWorkerThread workerThread = (ForkJoinWorkerThread) currentThread;
+    static ForkJoinPool getWorkerPool(Thread thread) {
+        if (thread instanceof ForkJoinWorkerThread) {
+            ForkJoinWorkerThread workerThread = (ForkJoinWorkerThread) thread;
             return workerThread.getPool();
         }
         return null;
