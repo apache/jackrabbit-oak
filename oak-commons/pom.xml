@@ -51,13 +51,13 @@
               org.apache.jackrabbit.oak.commons.collections,
               org.apache.jackrabbit.oak.commons.conditions,
               org.apache.jackrabbit.oak.commons.concurrent,
+              org.apache.jackrabbit.oak.commons.function,
               org.apache.jackrabbit.oak.commons.io,
               org.apache.jackrabbit.oak.commons.json,
               org.apache.jackrabbit.oak.commons.log,
               org.apache.jackrabbit.oak.commons.sort,
               org.apache.jackrabbit.oak.commons.properties,
               org.apache.jackrabbit.oak.commons.jdkcompat,
-              org.apache.jackrabbit.oak.commons.pconcurrent,
               org.apache.jackrabbit.oak.commons.pio,
               org.apache.jackrabbit.oak.commons.time
             </Export-Package>

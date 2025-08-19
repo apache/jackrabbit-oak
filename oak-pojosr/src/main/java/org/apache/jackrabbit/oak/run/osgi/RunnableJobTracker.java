@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.commons.pconcurrent.Suppliers;
+import org.apache.jackrabbit.oak.commons.function.SuppliersUtils;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
 import org.osgi.framework.Filter;
@@ -42,7 +42,7 @@ public class RunnableJobTracker extends ServiceTracker<Runnable, Future>
      * Lazily loaded executor
      */
     private final Supplier<ScheduledExecutorService> executor =
-            Suppliers.memoize(Oak::defaultScheduledExecutor);
+            SuppliersUtils.memoize(Oak::defaultScheduledExecutor);
 
     public RunnableJobTracker(BundleContext context) {
         super(context, createFilter(), null);

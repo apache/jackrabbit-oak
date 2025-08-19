@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons.pconcurrent;
+package org.apache.jackrabbit.oak.commons.function;
 
 import org.junit.Test;
 
@@ -31,7 +31,7 @@ public class SuppliersTest {
     public void computeOnce() {
         AtomicInteger count = new AtomicInteger(0);
 
-        Supplier<Integer> mem = Suppliers.memoize(() -> count.incrementAndGet());
+        Supplier<Integer> mem = SuppliersUtils.memoize(() -> count.incrementAndGet());
 
         assertEquals(0, count.get());
         int c = mem.get();

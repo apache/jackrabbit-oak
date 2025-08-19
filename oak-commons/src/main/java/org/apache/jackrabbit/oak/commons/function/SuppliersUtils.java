@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons.pconcurrent;
+package org.apache.jackrabbit.oak.commons.function;
 
 import java.util.function.Supplier;
 
 /**
  * Utility methods for {@link java.util.function.Supplier} handling.
  */
-public class Suppliers {
+public class SuppliersUtils {
 
-    private Suppliers() {
+    private SuppliersUtils() {
     }
 
     /**

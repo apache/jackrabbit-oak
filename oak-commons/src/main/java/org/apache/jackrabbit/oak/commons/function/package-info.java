@@ -20,7 +20,7 @@
  */
 @Version("1.0.0")
 @Internal
-package org.apache.jackrabbit.oak.commons.pconcurrent;
+package org.apache.jackrabbit.oak.commons.function;
 
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.osgi.annotation.versioning.Version;
