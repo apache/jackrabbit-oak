@@ -37,14 +37,20 @@ public class SuppliersUtils {
      */
     public static <T> Supplier<T> memoize(final Supplier<T> computeOnce) {
         return new Supplier<>() {
+            volatile boolean initialized = false;
             T result = null;
 
             @Override
             public T get() {
-                if (result == null) {
+                if (!initialized) {
                     synchronized (this) {
-                        if (result == null) {
+                        if (!initialized) {
                             result = computeOnce.get();
+                            // only set initialized once value is computed and assigned
+                            initialized = true;
+                            // return from inside the synchronized block in order to
+                            // avoid concurrency problems
+                            return result;
                         }
                     }
                 }
