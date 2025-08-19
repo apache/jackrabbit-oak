@@ -490,6 +490,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 gapOrphProp(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
+                allOrphOnly(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 allOrphProp(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 keepOneFull(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 keepOneUser(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
@@ -567,6 +568,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, delta, MILLISECONDS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -674,6 +676,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
                 gapOrphProp(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
                 allOrphProp(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
@@ -763,6 +766,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -789,6 +793,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 2, 0, 0, 1),
                 keepOneUser(0, 0, 0, 2, 0, 0, 1),
@@ -833,6 +838,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 50_000, 0, 0, 0, 0, 5_000),
                 gapOrphProp(0, 50_000, 0, 0, 0, 0, 5_000),
                 allOrphProp(0, 50_000, 0, 0, 0, 0, 5_000),
@@ -884,6 +890,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 50_000, 0, 0, 0, 0, 5_000),
                 gapOrphProp(0, 50_000, 0, 0, 0, 0, 5_000),
                 allOrphProp(0, 50_000, 0, 0, 0, 0, 5_000),
@@ -970,6 +977,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 10),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 10),
                 allOrphProp(0, 10, 0, 0, 0, 0, 10),
@@ -1003,6 +1011,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 10),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 10),
                 allOrphProp(0, 10, 0, 0, 0, 0, 10),
@@ -1099,6 +1108,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 10),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 10),
                 allOrphProp(0, 10, 0, 0, 0, 0, 10),
@@ -1151,6 +1161,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 1),
                 allOrphProp(0, 10, 0, 0, 0, 0, 1),
@@ -1171,6 +1182,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
                 allOrphProp(),
@@ -1224,6 +1236,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 1),
                 allOrphProp(0, 10, 0, 0, 0, 0, 1),
@@ -1244,6 +1257,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
                 allOrphProp(),
@@ -1306,6 +1320,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 1),
                 allOrphProp(0, 10, 0, 0, 0, 0, 1),
@@ -1396,6 +1411,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 1),
                 allOrphProp(0, 10, 0, 0, 0, 0, 1),
@@ -1473,6 +1489,7 @@ public class VersionGarbageCollectorIT {
                 empPropOnly(),
                 gapOrphOnly(2, 0, 0, 0, 0, 0, 2),
                 gapOrphProp(2, 0, 0, 0, 0, 0, 2),
+                allOrphOnly(2, 0, 0, 0, 0, 0, 2),
                 allOrphProp(2, 0, 0, 0, 0, 0, 2),
                 keepOneFull(2, 0, 0, 0, 0, 0, 2),
                 keepOneUser(2, 0, 0, 0, 0, 0, 2),
@@ -1540,6 +1557,7 @@ public class VersionGarbageCollectorIT {
                 new GCCounts(FullGCMode.NONE, 2, 0,0,0,0,0,0),
                 empPropOnly(2, 13, 0, 0, 0, 0, 1),
                 gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
+                allOrphOnly(2, 0, 0, 0, 0, 0, 0),
                 gapOrphProp(2, 13, 0, 0, 0, 0, 1),
                 allOrphProp(2, 13, 0, 0, 0, 0, 1),
                 keepOneFull(2, 13, 0, 0, 0, 0, 1),
@@ -1875,6 +1893,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 3, 0, 0, 2),
                 keepOneUser(0, 0, 0, 3, 0, 0, 2),
@@ -1915,6 +1934,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
@@ -2031,6 +2051,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 1, 0, 1, 0, 1),
                 keepOneUser(),
@@ -2078,6 +2099,7 @@ public class VersionGarbageCollectorIT {
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 3, 0, 0, 0, 0, 2),
                 gapOrphProp(0, 3, 0, 0, 0, 0, 2),
                 allOrphProp(0, 3, 0, 0, 0, 0, 2),
@@ -2128,6 +2150,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, 1, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 3, 0, 0,  0, 0, 2),
                 gapOrphProp(0, 3, 0, 0,  0, 0, 2),
                 allOrphProp(0, 3, 0, 0,  0, 0, 2),
@@ -2164,6 +2187,7 @@ public class VersionGarbageCollectorIT {
             gapOrphOnly(),
             empPropOnly(),
             gapOrphProp(),
+            allOrphOnly(1, 0, 0, 0, 0, 0, 1),
             allOrphProp(1, 0, 0, 0, 0, 0, 1),
             keepOneFull(1, 0, 0, 0, 0, 0, 1),
             keepOneUser(1, 0, 0, 0, 0, 0, 1),
@@ -2182,6 +2206,7 @@ public class VersionGarbageCollectorIT {
             gapOrphOnly(),
             empPropOnly(),
             gapOrphProp(),
+            allOrphOnly(3, 0, 0, 0, 0, 0, 3),
             allOrphProp(3, 0, 0, 0, 0, 0, 3),
             keepOneFull(3, 0, 0, 0, 0, 0, 3),
             keepOneUser(3, 0, 0, 0, 0, 0, 3),
@@ -2202,6 +2227,7 @@ public class VersionGarbageCollectorIT {
               gapOrphOnly(),
               empPropOnly(),
               gapOrphProp(),
+              allOrphOnly(2, 0, 0, 0, 0, 0, 2),
               allOrphProp(2, 0, 0, 0, 0, 0, 2),
               keepOneFull(2, 0, 0, 0, 0, 0, 2),
               keepOneUser(2, 0, 0, 0, 0, 0, 2),
@@ -2233,6 +2259,7 @@ public class VersionGarbageCollectorIT {
               gapOrphOnly(),
               empPropOnly(),
               gapOrphProp(),
+              allOrphOnly(expectedNumOrphanedDocs, 0, 0, 0, 0, 0, expectedNumOrphanedDocs),
               allOrphProp(expectedNumOrphanedDocs, 0, 0, 0, 0, 0, expectedNumOrphanedDocs),
               keepOneFull(expectedNumOrphanedDocs, 0, 0, 0, 0, 0, expectedNumOrphanedDocs),
               keepOneUser(expectedNumOrphanedDocs, 0, 0, 0, 0, 0, expectedNumOrphanedDocs),
@@ -2264,6 +2291,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 3, 3, 0, 3),
                 keepOneUser(0, 0, 0, 3, 0, 0, 3),
@@ -2336,6 +2364,7 @@ public class VersionGarbageCollectorIT {
                 empPropOnly(),
                 gapOrphOnly(2, 0, 0, 0, 0, 0, 2),
                 gapOrphProp(2, 0, 0, 0, 0, 0, 2),
+                allOrphOnly(2, 0, 0, 0, 0, 0, 2),
                 allOrphProp(2, 0, 0, 0, 0, 0, 2),
                 keepOneFull(2, 0, 0, 0, 0, 0, 2),
                 keepOneUser(2, 0, 0, 0, 0, 0, 2),
@@ -2406,6 +2435,7 @@ public class VersionGarbageCollectorIT {
         // this might help us narrow down differences in the modes
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 2, 0, 0,  0, 0, 1),
                 gapOrphProp(0, 2, 0, 0,  0, 0, 1),
                 allOrphProp(0, 2, 0, 0,  0, 0, 1),
@@ -2465,6 +2495,24 @@ public class VersionGarbageCollectorIT {
         assertEquals(0, deletedInternalPropRevsCount);
         assertEquals(0, deletedUnmergedBCCount);
         return new GCCounts(FullGCMode.GAP_ORPHANS_EMPTYPROPS, deletedDocGCCount,
+                deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
+                deletedInternalPropRevsCount, deletedUnmergedBCCount,
+                updatedFullGCDocsCount);
+    }
+
+    static GCCounts allOrphOnly() {
+        return new GCCounts(FullGCMode.ALL_ORPHANS);
+    }
+
+    static GCCounts allOrphOnly(int deletedDocGCCount, int deletedPropsCount,
+                                int deletedInternalPropsCount, int deletedPropRevsCount,
+                                int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
+                                int updatedFullGCDocsCount) {
+        assertEquals(0, deletedInternalPropsCount);
+        assertEquals(0, deletedPropRevsCount);
+        assertEquals(0, deletedInternalPropRevsCount);
+        assertEquals(0, deletedUnmergedBCCount);
+        return new GCCounts(FullGCMode.ALL_ORPHANS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
                 updatedFullGCDocsCount);
@@ -2607,6 +2655,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 11, 0, 0, 1),
                 keepOneUser(0, 0, 0, 11, 0, 0, 1),
@@ -2673,6 +2722,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -2708,6 +2758,7 @@ public class VersionGarbageCollectorIT {
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -2765,6 +2816,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, 1, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 3, 0, 0, 0, 0, 2),
                 gapOrphProp(0, 3, 0, 0, 0, 0, 2),
                 allOrphProp(0, 3, 0, 0, 0, 0, 2),
@@ -2816,6 +2868,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(stats);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -2862,6 +2915,7 @@ public class VersionGarbageCollectorIT {
         // thus it will be collected.
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -2912,6 +2966,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 2, 0, 0, 1),
                 keepOneUser(0, 0, 0, 2, 0, 0, 1),
@@ -2949,6 +3004,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
@@ -2988,6 +3044,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
@@ -3049,6 +3106,7 @@ public class VersionGarbageCollectorIT {
         // of common ancestor and this would make late write visible
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
