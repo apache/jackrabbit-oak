@@ -72,11 +72,16 @@ public class SuppliersTest {
         }
         waitForAll.start();
         assertFalse(concurrencyTestFailed);
+        assertEquals(1, sourceSupplierInvocationCount);
     }
 
-    private final Supplier<AtomicInteger> testSupplier = () -> new AtomicInteger(42);
-    private final Supplier<AtomicInteger> memoizeTestSupplier = memoize(testSupplier);
-
-    volatile boolean concurrencyTestFailed = false;
+    private volatile int sourceSupplierInvocationCount = 0;
+    private volatile boolean concurrencyTestFailed = false;
     private final Object concurrencyTestMonitor = new Object();
+
+    private final Supplier<AtomicInteger> sourceSupplier = () -> {
+        sourceSupplierInvocationCount++;
+        return new AtomicInteger(42);
+    };
+    private final Supplier<AtomicInteger> memoizeTestSupplier = memoize(sourceSupplier);
 }
