@@ -20,10 +20,14 @@ package org.apache.jackrabbit.oak.commons.function;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.apache.jackrabbit.oak.commons.function.Suppliers.memoize;
 
 public class SuppliersTest {
 
@@ -39,4 +43,40 @@ public class SuppliersTest {
         c = mem.get();
         assertEquals(1, c);
     }
+
+    @Test
+    public void concurrentSupplierAccess() {
+        List<Thread> threads = new ArrayList<>();
+        int threadCount = 1000;
+        for (int k = 0; k < threadCount; k++) {
+            threads.add(new Thread(() -> {
+                synchronized (concurrencyTestMonitor) {
+                    // the empty synchronized block is deliberate.
+                }
+                if (memoizeTestSupplier.get() == null) {
+                    concurrencyTestFailed = true;
+                }
+            }));
+        }
+        Thread waitForAll = new Thread(() -> {
+            for (int k = 0; k < threadCount; k++) {
+                try {
+                    threads.get(k).join();
+                } catch (InterruptedException ignored) {}
+            }
+        });
+        synchronized (concurrencyTestMonitor) {
+            for (int k = 0; k < threadCount; k++) {
+                threads.get(k).start();
+            }
+        }
+        waitForAll.start();
+        assertFalse(concurrencyTestFailed);
+    }
+
+    private final Supplier<AtomicInteger> testSupplier = () -> new AtomicInteger(42);
+    private final Supplier<AtomicInteger> memoizeTestSupplier = memoize(testSupplier);
+
+    volatile boolean concurrencyTestFailed = false;
+    private final Object concurrencyTestMonitor = new Object();
 }
