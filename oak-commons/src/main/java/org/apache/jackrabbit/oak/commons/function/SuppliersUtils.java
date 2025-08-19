@@ -37,7 +37,7 @@ public class SuppliersUtils {
      */
     public static <T> Supplier<T> memoize(final Supplier<T> computeOnce) {
         return new Supplier<>() {
-            volatile T result = null;
+            T result = null;
 
             @Override
             public T get() {
