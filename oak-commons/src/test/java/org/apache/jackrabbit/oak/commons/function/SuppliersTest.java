@@ -53,7 +53,8 @@ public class SuppliersTest {
                 synchronized (concurrencyTestMonitor) {
                     // the empty synchronized block is deliberate.
                 }
-                if (memoizeTestSupplier.get() == null) {
+                AtomicInteger result = memoizeTestSupplier.get();
+                if (result == null || result.get() != 42) {
                     concurrencyTestFailed = true;
                 }
             }));
