@@ -45,7 +45,7 @@ public class SuppliersTest {
     }
 
     @Test
-    public void concurrentSupplierAccess() {
+    public void concurrentSupplierAccess() throws InterruptedException {
         List<Thread> threads = new ArrayList<>();
         int threadCount = 1000;
         for (int k = 0; k < threadCount; k++) {
@@ -71,6 +71,7 @@ public class SuppliersTest {
             }
         }
         waitForAll.start();
+        waitForAll.join();
         assertFalse(concurrencyTestFailed);
         assertEquals(1, sourceSupplierInvocationCount);
     }
