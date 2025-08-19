@@ -23,9 +23,9 @@ import java.util.function.Supplier;
 /**
  * Utility methods for {@link java.util.function.Supplier} handling.
  */
-public class SuppliersUtils {
+public class Suppliers {
 
-    private SuppliersUtils() {
+    private Suppliers() {
     }
 
     /**

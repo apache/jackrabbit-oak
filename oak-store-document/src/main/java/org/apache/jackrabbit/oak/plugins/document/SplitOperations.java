@@ -34,7 +34,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
-import org.apache.jackrabbit.oak.commons.function.SuppliersUtils;
+import org.apache.jackrabbit.oak.commons.function.Suppliers;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -107,7 +107,7 @@ class SplitOperations {
         this.id = doc.getId();
         this.headRevision = requireNonNull(headRev).getRevision(context.getClusterId());
         this.numRevsThreshold = numRevsThreshold;
-        this.nodeExistsAtHeadRevision = SuppliersUtils.memoize(() -> doc.getLiveRevision(context, headRev,
+        this.nodeExistsAtHeadRevision = Suppliers.memoize(() -> doc.getLiveRevision(context, headRev,
                         new HashMap<>(),
                         new LastRevs(headRev)) != null);
     }
