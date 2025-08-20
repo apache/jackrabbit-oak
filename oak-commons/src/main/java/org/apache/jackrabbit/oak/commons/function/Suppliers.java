@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons.function;
 
-import org.jetbrains.annotations.Nullable;
-
 import java.util.function.Supplier;
 
 /**
@@ -33,16 +31,20 @@ public class Suppliers {
     /**
      * Transforms a {@link Supplier} based on a wrapper that evaluates
      * the given {@code Supplier} at most one time.
+     * <p>
+     * Suppliers returning {@code null} values are allowed; the memoized
+     * Supplier will be return {@code null} when the wrapped one does on
+     * first invocation.
      * @param <T> return type
      * @return Supplier based on the given Supplier
      */
-    public static <T> Supplier<@Nullable T> memoize(final Supplier<@Nullable T> computeOnce) {
+    public static <T> Supplier<T> memoize(final Supplier<T> computeOnce) {
         return new Supplier<>() {
             volatile boolean initialized = false;
-            @Nullable T result = null;
+            T result = null;
 
             @Override
-            public @Nullable T get() {
+            public T get() {
                 if (!initialized) {
                     synchronized (this) {
                         if (!initialized) {
