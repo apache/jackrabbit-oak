@@ -51,9 +51,6 @@ public class Suppliers {
                             result = computeOnce.get();
                             // only set initialized once value is computed and assigned
                             initialized = true;
-                            // return from inside the synchronized block in order to
-                            // avoid concurrency problems
-                            return result;
                         }
                     }
                 }
