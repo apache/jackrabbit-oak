@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -67,7 +68,17 @@ public class SuppliersTest {
     }
 
     @Test
-    public void concurrentSupplierAccess() throws InterruptedException {
+    public void concurrentSupplierAccess() {
+        AtomicInteger sourceSupplierInvocationCount = new AtomicInteger(0);
+        AtomicBoolean concurrencyTestFailed = new AtomicBoolean(false);
+        Object concurrencyTestMonitor = new Object();
+
+        Supplier<AtomicInteger> sourceSupplier = () -> {
+            sourceSupplierInvocationCount.incrementAndGet();
+            return new AtomicInteger(42);
+        };
+        Supplier<AtomicInteger> memoizeTestSupplier = memoize(sourceSupplier);
+
         List<Thread> threads = new ArrayList<>();
         int threadCount = 1000;
         for (int k = 0; k < threadCount; k++) {
@@ -77,35 +88,21 @@ public class SuppliersTest {
                 }
                 AtomicInteger result = memoizeTestSupplier.get();
                 if (result == null || result.get() != 42) {
-                    concurrencyTestFailed = true;
+                    concurrencyTestFailed.set(true);
                 }
             }));
         }
-        Thread waitForAll = new Thread(() -> {
-            for (int k = 0; k < threadCount; k++) {
-                try {
-                    threads.get(k).join();
-                } catch (InterruptedException ignored) {}
-            }
-        });
         synchronized (concurrencyTestMonitor) {
             for (int k = 0; k < threadCount; k++) {
                 threads.get(k).start();
             }
         }
-        waitForAll.start();
-        waitForAll.join();
-        assertFalse(concurrencyTestFailed);
-        assertEquals(1, sourceSupplierInvocationCount);
+        for (int k = 0; k < threadCount; k++) {
+            try {
+                threads.get(k).join();
+            } catch (InterruptedException ignored) {}
+        }
+        assertFalse(concurrencyTestFailed.get());
+        assertEquals(1, sourceSupplierInvocationCount.get());
     }
-
-    private volatile int sourceSupplierInvocationCount = 0;
-    private volatile boolean concurrencyTestFailed = false;
-    private final Object concurrencyTestMonitor = new Object();
-
-    private final Supplier<AtomicInteger> sourceSupplier = () -> {
-        sourceSupplierInvocationCount++;
-        return new AtomicInteger(42);
-    };
-    private final Supplier<AtomicInteger> memoizeTestSupplier = memoize(sourceSupplier);
 }
