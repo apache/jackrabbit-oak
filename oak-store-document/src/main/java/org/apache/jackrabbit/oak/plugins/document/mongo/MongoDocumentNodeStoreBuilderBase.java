@@ -18,14 +18,18 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.concurrent.TimeUnit;
 
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
@@ -44,11 +48,24 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private MongoStatus mongoStatus;
     private long maxReplicationLagMillis = TimeUnit.HOURS.toMillis(6);
     private boolean clientSessionDisabled = false;
-    private int leaseSocketTimeout = 0;
+    private Integer leaseSocketTimeout;
     private String uri;
     private String name;
     private String collectionCompressionType;
     private MongoClient mongoClient;
+
+    // MongoDB connection pool settings
+    private Integer maxPoolSize;
+    private Integer minPoolSize;
+    private Integer maxConnecting;
+    private Integer maxIdleTimeMillis;
+    private Integer maxLifeTimeMillis;
+    private Integer connectTimeoutMillis;
+    private Integer heartbeatFrequencyMillis;
+    private Integer serverSelectionTimeoutMillis;
+    private Integer waitQueueTimeoutMillis;
+    private Integer readTimeoutMillis;
+    private Integer minHeartbeatFrequencyMillis;
 
     /**
      * Uses the given information to connect to to MongoDB as backend
@@ -69,7 +86,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
                         int blobCacheSizeMB) {
         this.uri = uri;
         this.name = name;
-        setMongoDB(createMongoDBClient(0), blobCacheSizeMB);
+        setMongoDB(createMongoDBClient(false), blobCacheSizeMB);
         return thisBuilder();
     }
 
@@ -148,8 +165,62 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      * @return this builder.
      */
     public T setLeaseSocketTimeout(int timeoutMillis) {
-
         this.leaseSocketTimeout = timeoutMillis;
+        return thisBuilder();
+    }
+
+    public T setMongoMaxPoolSize(int maxPoolSize) {
+        this.maxPoolSize = maxPoolSize;
+        return thisBuilder();
+    }
+
+    public T setMongoMinPoolSize(int minPoolSize) {
+        this.minPoolSize = minPoolSize;
+        return thisBuilder();
+    }
+
+    public T setMongoMaxConnecting(int maxConnecting) {
+        this.maxConnecting = maxConnecting;
+        return thisBuilder();
+    }
+
+    public T setMongoMaxIdleTimeMillis(int maxIdleTimeMillis) {
+        this.maxIdleTimeMillis = maxIdleTimeMillis;
+        return thisBuilder();
+    }
+
+    public T setMongoMaxLifeTimeMillis(int maxLifeTimeMillis) {
+        this.maxLifeTimeMillis = maxLifeTimeMillis;
+        return thisBuilder();
+    }
+
+    public T setMongoConnectTimeoutMillis(int connectTimeoutMillis) {
+        this.connectTimeoutMillis = connectTimeoutMillis;
+        return thisBuilder();
+    }
+
+    public T setMongoHeartbeatFrequencyMillis(int heartbeatFrequencyMillis) {
+        this.heartbeatFrequencyMillis = heartbeatFrequencyMillis;
+        return thisBuilder();
+    }
+
+    public T setMongoServerSelectionTimeoutMillis(int serverSelectionTimeoutMillis) {
+        this.serverSelectionTimeoutMillis = serverSelectionTimeoutMillis;
+        return thisBuilder();
+    }
+
+    public T setMongoWaitQueueTimeoutMillis(int waitQueueTimeoutMillis) {
+        this.waitQueueTimeoutMillis = waitQueueTimeoutMillis;
+        return thisBuilder();
+    }
+
+    public T setMongoReadTimeoutMillis(int readTimeoutMillis) {
+        this.readTimeoutMillis = readTimeoutMillis;
+        return thisBuilder();
+    }
+
+    public T setMongoMinHeartbeatFrequencyMillis(int minHeartbeatFrequencyMillis) {
+        this.minHeartbeatFrequencyMillis = minHeartbeatFrequencyMillis;
         return thisBuilder();
     }
 
@@ -158,7 +229,80 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      *      zero is returned.
      */
     int getLeaseSocketTimeout() {
-        return leaseSocketTimeout;
+        return leaseSocketTimeout != null ? leaseSocketTimeout : 0;
+    }
+
+    /**
+     * @return true if lease socket timeout was explicitly set via setLeaseSocketTimeout()
+     */
+    boolean hasLeaseSocketTimeout() {
+        return leaseSocketTimeout != null;
+    }
+
+    /**
+     * Builds a configured MongoClientSettings with all settings applied.
+     *
+     * @param isLease true for cluster nodes connection, false for default connection pool
+     * @return fully configured MongoClientSettings
+     */
+    MongoClientSettings buildMongoClientSettings(boolean isLease) {
+        MongoClientSettings.Builder options = MongoConnection.getDefaultBuilder();
+        options.applyConnectionString(new ConnectionString(uri));
+        
+        // Apply socket timeout based on connection type
+        int socketTimeout;
+        if (isLease) {
+            // Cluster nodes connection: use lease socket timeout, or default if not explicitly set
+            socketTimeout = leaseSocketTimeout != null ? leaseSocketTimeout : DocumentNodeStoreService.DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS;
+        } else {
+            // Default connection: use OSGi read timeout if configured, otherwise 0
+            socketTimeout = readTimeoutMillis != null && readTimeoutMillis > 0 ? readTimeoutMillis : 0;
+        }
+        
+        // Apply connection pool settings
+        options.applyToConnectionPoolSettings(poolBuilder -> {
+            if (maxPoolSize != null) poolBuilder.maxSize(maxPoolSize);
+            if (minPoolSize != null) poolBuilder.minSize(minPoolSize);
+            if (maxConnecting != null) poolBuilder.maxConnecting(maxConnecting);
+            if (maxIdleTimeMillis != null) {
+                poolBuilder.maxConnectionIdleTime(maxIdleTimeMillis, TimeUnit.MILLISECONDS);
+            }
+            if (maxLifeTimeMillis != null) {
+                poolBuilder.maxConnectionLifeTime(maxLifeTimeMillis, TimeUnit.MILLISECONDS);
+            }
+            if (waitQueueTimeoutMillis != null) {
+                poolBuilder.maxWaitTime(waitQueueTimeoutMillis, TimeUnit.MILLISECONDS);
+            }
+        });
+        
+        // Apply socket settings
+        options.applyToSocketSettings(socketBuilder -> {
+            if (socketTimeout > 0) {
+                socketBuilder.readTimeout(socketTimeout, TimeUnit.MILLISECONDS);
+            }
+            if (connectTimeoutMillis != null) {
+                socketBuilder.connectTimeout(connectTimeoutMillis, TimeUnit.MILLISECONDS);
+            }
+        });
+        
+        // Apply server settings
+        options.applyToServerSettings(serverBuilder -> {
+            if (heartbeatFrequencyMillis != null && heartbeatFrequencyMillis > 0) {
+                serverBuilder.heartbeatFrequency(heartbeatFrequencyMillis, TimeUnit.MILLISECONDS);
+            }
+            if (minHeartbeatFrequencyMillis != null && minHeartbeatFrequencyMillis > 0) {
+                serverBuilder.minHeartbeatFrequency(minHeartbeatFrequencyMillis, TimeUnit.MILLISECONDS);
+            }
+        });
+        
+        // Apply cluster settings
+        options.applyToClusterSettings(clusterBuilder -> {
+            if (serverSelectionTimeoutMillis != null) {
+                clusterBuilder.serverSelectionTimeout(serverSelectionTimeoutMillis, TimeUnit.MILLISECONDS);
+            }
+        });
+        
+        return options.build();
     }
 
     public T setMaxReplicationLag(long duration, TimeUnit unit){
@@ -233,11 +377,13 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return mongoClock;
     }
 
-    MongoDBConnection createMongoDBClient(int socketTimeout) {
+    MongoDBConnection createMongoDBClient(boolean isLease) {
         if (uri == null || name == null) {
             throw new IllegalStateException("Cannot create MongoDB client without 'uri' or 'name'");
         }
-        return newMongoDBConnection(uri, name, mongoClock, socketTimeout);
+        
+        MongoClientSettings settings = buildMongoClientSettings(isLease);
+        return newMongoDBConnection(uri, name, mongoClock, settings);
     }
 
     private T setMongoDB(@NotNull MongoDBConnection mongoDBConnection,

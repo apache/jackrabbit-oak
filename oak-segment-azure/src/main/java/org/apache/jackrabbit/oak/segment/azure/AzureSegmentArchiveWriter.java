@@ -42,9 +42,9 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
 
     private final BlobContainerClient blobContainerClient;
 
-    private final String rootPrefix;
-
     private final String archiveName;
+
+    private final String archivePathPrefix;
 
     private final Retrier retrier = Retrier.withParams(
             Integer.getInteger("azure.segment.archive.writer.retries.max", 16),
@@ -54,8 +54,8 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
     public AzureSegmentArchiveWriter(BlobContainerClient blobContainerClient, String rootPrefix, String archiveName, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) {
         super(ioMonitor, monitor);
         this.blobContainerClient = blobContainerClient;
-        this.rootPrefix = rootPrefix;
-        this.archiveName = archiveName;
+        this.archiveName = AzureUtilities.ensureNoTrailingSlash(archiveName);
+        this.archivePathPrefix = AzureUtilities.asAzurePrefix(rootPrefix, archiveName);
         this.writeAccessController = writeAccessController;
     }
 
@@ -128,7 +128,7 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
     }
 
     private BlockBlobClient getBlockBlobClient(String name) throws IOException {
-        String blobFullName = String.format("%s/%s/%s", rootPrefix, archiveName, name);
+        String blobFullName = archivePathPrefix + name;
         try {
             return blobContainerClient.getBlobClient(blobFullName).getBlockBlobClient();
         } catch (BlobStorageException e) {

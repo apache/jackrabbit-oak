@@ -45,6 +45,10 @@ public enum FullGCMode {
      */
     GAP_ORPHANS_EMPTYPROPS,
     /**
+     * GC any kind of orphaned nodes
+     */
+    ALL_ORPHANS,
+    /**
      * GC any kind of orphaned nodes, plus empty properties
      */
     ALL_ORPHANS_EMPTYPROPS,
@@ -98,6 +102,8 @@ public enum FullGCMode {
                 return ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC;
             case 9:
                 return ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC;
+            case 10:
+                return ALL_ORPHANS;
             default:
                 log.warn("Unsupported full GC mode configuration value: {}. Resetting to NONE", mode);
                 return NONE;

@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.apache.jackrabbit.oak.commons.collections.HashUtils;
 import org.junit.Test;
 
 public class CountMinSketchTest {
@@ -83,11 +84,11 @@ public class CountMinSketchTest {
                     }
                     CountMinSketch est = new CountMinSketch(5, 16);
                     for (int i = 0; i < size; i++) {
-                        est.add(Hash.hash64(x + data[i]));
+                        est.add(HashUtils.hash64(x + data[i]));
                     }
                     int[] counts = getCounts(data);
                     for (int i = 0; i < 10; i++) {
-                        long e = est.estimate(Hash.hash64(x + i));
+                        long e = est.estimate(HashUtils.hash64(x + i));
                         long expectedPercent = (int) (100. * counts[i] / size);
                         long estPercent = (int) (100. * e / size);
                         if (debug) {

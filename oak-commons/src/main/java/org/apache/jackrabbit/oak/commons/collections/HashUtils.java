@@ -16,15 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
+package org.apache.jackrabbit.oak.commons.collections;
+
+import java.nio.charset.StandardCharsets;
+import org.apache.commons.codec.digest.MurmurHash3;
 
 /**
  * A hash function utility class.
  */
-public class Hash {
+public class HashUtils {
 
-    private Hash() {
+    private HashUtils() {
         // utility class
+    }
+
+    /**
+     * Calculate a 64-bit hash value from a string.
+     *
+     * @param s the string
+     * @return the hash value
+     */
+    public static long hash64(String s) {
+        return MurmurHash3.hash128(s.getBytes(StandardCharsets.UTF_8))[0];
     }
 
     /**
@@ -70,4 +83,4 @@ public class Hash {
         return (int) (((hash & 0xffffffffL) * (n & 0xffffffffL)) >>> 32);
     }
 
-}
+} 

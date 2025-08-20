@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.management.openmbean.ArrayType;
 import javax.management.openmbean.CompositeData;
@@ -36,11 +37,11 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.Traverser;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -50,7 +51,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
-import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -168,17 +168,16 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
         topLevel:
         for (ChildNodeEntry cne : values) {
             Tree t = TreeFactory.createReadOnlyTree(cne.getNodeState());
-            TreeTraverser<Tree> traverser = new TreeTraverser<Tree>() {
-                @Override
-                public Iterable<Tree> children(@NotNull  Tree root) {
-                    //Break at maxLevel
-                    if (PathUtils.getDepth(root.getPath()) >= maxDepth) {
-                        return Collections.emptyList();
-                    }
-                    return root.getChildren();
+
+            final Function<Tree, Iterable<? extends Tree>> treeGetter = root -> {
+                //Break at maxLevel
+                if (PathUtils.getDepth(root.getPath()) >= maxDepth) {
+                    return Collections.emptyList();
                 }
+                return root.getChildren();
             };
-            for (Tree node : traverser.breadthFirstTraversal(t)) {
+
+            for (Tree node : Traverser.breadthFirstTraversal(t, treeGetter)) {
                 PropertyState matchState = node.getProperty("match");
                 boolean match = matchState == null ? false : matchState.getValue(Type.BOOLEAN);
                 int depth = PathUtils.getDepth(node.getPath());

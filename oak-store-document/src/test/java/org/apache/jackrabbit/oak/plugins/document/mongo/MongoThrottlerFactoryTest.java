@@ -24,6 +24,7 @@ import org.junit.Test;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoThrottlerFactory.exponentialThrottler;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoThrottlerFactory.extFactorThrottler;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoThrottlerFactory.noThrottler;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -109,6 +110,39 @@ public class MongoThrottlerFactoryTest {
     public void testThrottlingOctagonalPace_2() {
         Throttler throttler = exponentialThrottler(160, new AtomicReference<>(5.0001), 10);
         assertEquals(80L, throttler.throttlingTime());
+    }
+
+    @Test
+    public void testThrottlingTimeWithFactorZero() {
+        Throttler throttler = extFactorThrottler(new AtomicReference<>(0), 100L);
+        assertEquals(0L, throttler.throttlingTime());
+    }
+
+    @Test
+    public void testThrottlingTimeWithFactorOne() {
+        Throttler throttler = extFactorThrottler(new AtomicReference<>(1), 100L);
+        assertEquals(100L, throttler.throttlingTime());
+    }
+
+    @Test
+    public void testThrottlingTimeWithFactorFive() {
+        Throttler throttler = extFactorThrottler(new AtomicReference<>(5), 200L);
+        assertEquals(1000L, throttler.throttlingTime());
+    }
+
+    @Test
+    public void testThrottlingTimeWithNegativeFactor() {
+        Throttler throttler = extFactorThrottler(new AtomicReference<>(-2), 100L);
+        assertEquals(0, throttler.throttlingTime());
+    }
+
+    @Test
+    public void testThrottlingTimeWithFactorChange() {
+        AtomicReference<Integer> factor = new AtomicReference<>(2);
+        Throttler throttler = extFactorThrottler(factor, 50L);
+        assertEquals(100L, throttler.throttlingTime());
+        factor.set(4);
+        assertEquals(200L, throttler.throttlingTime());
     }
 
 }

@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import org.apache.commons.collections4.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.Traverser;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
@@ -49,11 +49,10 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
 
     public FluentIterable<BinaryResource> getBinaries(String path) {
         // had to convert Guava's FluentIterable to Apache Commons Collections FluentIterable
-        // TODO once we remove preOrderTraversal() of Guava, we can use Apache FluentIterable directly
-        return FluentIterable.of(new OakTreeTraverser()
-                .preOrderTraversal(createReadOnlyTree(getNode(nodeStore.getRoot(), path)))
+        return Traverser
+                .preOrderTraversal(createReadOnlyTree(getNode(nodeStore.getRoot(), path)), treeTraverser)
                 .transform(new TreeToBinarySource()::apply)
-                .filter(Objects::nonNull));
+                .filter(Objects::nonNull);
     }
 
     private class TreeToBinarySource implements Function<Tree, BinaryResource> {
@@ -87,12 +86,7 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
         }
     }
 
-    private static class OakTreeTraverser extends TreeTraverser<Tree> {
-        @Override
-        public Iterable<Tree> children(Tree root) {
-            return root.getChildren();
-        }
-    }
+    final Function<Tree, Iterable<? extends Tree>> treeTraverser = Tree::getChildren;
 
     @Nullable
     private static String getString(Tree tree, String name) {

@@ -28,6 +28,16 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
 import org.junit.Test;
 
 public class BinarySizeTest {
+    
+    @Test
+    public void blobIdTest() {
+        BinaryId id = new BinaryId("0102030405060708090a0b0c0d0e0f1011121314");
+        assertEquals(0, id.getLength());
+        assertEquals(-7150699912153859141L, id.getLongHash());
+        id = new BinaryId("0102030405060708090a0b0c0d0e0f1011121314#10000");
+        assertEquals(10000, id.getLength());
+        assertEquals(-7150699912153867093L, id.getLongHash());
+    }
 
     @Test
     public void nodeNameFilter() {

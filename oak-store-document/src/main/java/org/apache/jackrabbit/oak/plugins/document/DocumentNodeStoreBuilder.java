@@ -177,6 +177,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Predicate<Path> nodeCachePredicate = x -> true;
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
+    private int throttlingTimeMillis = DocumentNodeStoreService.DEFAULT_THROTTLING_TIME_MILLIS;
+    private int throttlingJobSchedulePeriodSecs = DocumentNodeStoreService.DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS;
     private boolean avoidMergeLock;
     private boolean fullGCEnabled;
     private Set<String> fullGCIncludePaths = Set.of();
@@ -310,6 +312,24 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean isThrottlingEnabled() {
         return this.throttlingEnabled;
+    }
+
+    public T setThrottlingTimeMillis(int v) {
+        this.throttlingTimeMillis = v;
+        return thisBuilder();
+    }
+
+    public int getThrottlingTimeMillis() {
+        return this.throttlingTimeMillis;
+    }
+
+    public T setThrottlingJobSchedulePeriodSecs(int v) {
+        this.throttlingJobSchedulePeriodSecs = v;
+        return thisBuilder();
+    }
+
+    public int getThrottlingJobSchedulePeriodSecs() {
+        return this.throttlingJobSchedulePeriodSecs;
     }
 
     public T setAvoidMergeLock(boolean b) {

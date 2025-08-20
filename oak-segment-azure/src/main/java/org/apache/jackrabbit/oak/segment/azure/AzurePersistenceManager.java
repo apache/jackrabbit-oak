@@ -196,7 +196,7 @@ public class AzurePersistenceManager {
 
         final String rootPrefixNormalized = normalizePath(rootPrefix);
 
-        return new AzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, rootPrefixNormalized, azureHttpRequestLoggingPolicy);
+        return new AzurePersistence(blobContainerClient, writeContainerClient, noRetryBlobContainerClient, rootPrefixNormalized, azureHttpRequestLoggingPolicy, null);
     }
 
     private static BlobContainerClient getBlobContainerClientWithSas(String accountName, String containerName, RequestRetryOptions requestRetryOptions, AzureHttpRequestLoggingPolicy azureHttpRequestLoggingPolicy, String sasToken) {

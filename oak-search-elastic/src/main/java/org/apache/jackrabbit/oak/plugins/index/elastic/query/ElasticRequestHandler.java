@@ -141,6 +141,7 @@ public class ElasticRequestHandler {
     private final Filter filter;
     private final PlanResult planResult;
     private final ElasticIndexDefinition elasticIndexDefinition;
+    private final long facetsEvaluationTimeoutMs;
     private final String propertyRestrictionQuery;
     private final NodeState rootState;
 
@@ -149,11 +150,12 @@ public class ElasticRequestHandler {
     private static final ElasticSemVer MAXIMUM_NULL_CHECK_VERSION = new ElasticSemVer(1, 5, 0);
 
     ElasticRequestHandler(@NotNull IndexPlan indexPlan, @NotNull FulltextIndexPlanner.PlanResult planResult,
-                          NodeState rootState) {
+                          NodeState rootState, long facetsEvaluationTimeoutMs) {
         this.indexPlan = indexPlan;
         this.filter = indexPlan.getFilter();
         this.planResult = planResult;
         this.elasticIndexDefinition = (ElasticIndexDefinition) planResult.indexDefinition;
+        this.facetsEvaluationTimeoutMs = facetsEvaluationTimeoutMs;
 
         // Check if native function is supported
         Filter.PropertyRestriction pr = null;
@@ -405,7 +407,7 @@ public class ElasticRequestHandler {
     public ElasticFacetProvider getAsyncFacetProvider(ElasticConnection connection, ElasticResponseHandler responseHandler) {
         return requiresFacets()
                 ? ElasticFacetProvider.getProvider(planResult.indexDefinition.getSecureFacetConfiguration(), connection,
-                elasticIndexDefinition, this, responseHandler, filter::isAccessible)
+                elasticIndexDefinition, this, responseHandler, filter::isAccessible, facetsEvaluationTimeoutMs)
                 : null;
     }
 

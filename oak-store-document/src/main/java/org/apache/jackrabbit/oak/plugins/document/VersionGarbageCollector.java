@@ -1280,7 +1280,8 @@ public class VersionGarbageCollector {
                         // shouldn't be reached
                         return;
                     }
-                    case GAP_ORPHANS : {
+                    case GAP_ORPHANS :
+                    case ALL_ORPHANS: {
                         // this mode does neither unusedproprev, nor unmergedBC
                         break;
                     }

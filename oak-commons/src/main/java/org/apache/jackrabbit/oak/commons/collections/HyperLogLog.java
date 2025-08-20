@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
+package org.apache.jackrabbit.oak.commons.collections;
 
 import java.util.HashSet;
 
@@ -92,4 +92,4 @@ public class HyperLogLog {
         return est;
     }
 
-}
+} 

@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.jetbrains.annotations.NotNull;

@@ -265,8 +265,6 @@ collisions never occur.*
 very difficult to ensure new UUIDs only in case of a conflict. Based on the snapshot view of a
 session, an existing node with a conflicting UUID may not be visible until commit.
 
-In contrast to Jackrabbit 2 [expanded names][5] are not supported in System View documents for neither nodes nor properties ([OAK-9586](https://issues.apache.org/jira/browse/OAK-9586)).
-
 ### Identifiers
 
 In contrast to Jackrabbit 2.x, only referenceable nodes in Oak have a UUID assigned. With Jackrabbit

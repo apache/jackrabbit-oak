@@ -46,6 +46,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_INSECURE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_SECURE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_STATISTICAL;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
@@ -92,15 +93,15 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     }
 
     private void createDataset(int numberOfLeafNodes) throws RepositoryException {
-        Random rGen = new Random(42);
-        Random rGen1 = new Random(42);
-        int[] foolabelCount = new int[NUM_LABELS];
-        int[] fooaclLabelCount = new int[NUM_LABELS];
-        int[] fooaclPar1LabelCount = new int[NUM_LABELS];
+        Random fooGen = new Random(42);
+        Random barGen = new Random(42);
+        int[] fooLabelCount = new int[NUM_LABELS];
+        int[] fooAclLabelCount = new int[NUM_LABELS];
+        int[] fooAclPar1LabelCount = new int[NUM_LABELS];
 
-        int[] barlabelCount = new int[NUM_LABELS];
-        int[] baraclLabelCount = new int[NUM_LABELS];
-        int[] baraclPar1LabelCount = new int[NUM_LABELS];
+        int[] barLabelCount = new int[NUM_LABELS];
+        int[] barAclLabelCount = new int[NUM_LABELS];
+        int[] barAclPar1LabelCount = new int[NUM_LABELS];
 
         Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
 
@@ -110,20 +111,20 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
                 Node child = subPar.addNode("c" + j);
                 child.setProperty("cons", "val");
                 // Add a random label out of "l0", "l1", "l2", "l3"
-                int foolabelNum = rGen.nextInt(NUM_LABELS);
-                int barlabelNum = rGen1.nextInt(NUM_LABELS);
-                child.setProperty("foo", "l" + foolabelNum);
-                child.setProperty("bar", "m" + barlabelNum);
+                int fooLabelNum = fooGen.nextInt(NUM_LABELS);
+                int barLabelNum = barGen.nextInt(NUM_LABELS);
+                child.setProperty("foo", "l" + fooLabelNum);
+                child.setProperty("bar", "m" + barLabelNum);
 
-                foolabelCount[foolabelNum]++;
-                barlabelCount[barlabelNum]++;
+                fooLabelCount[fooLabelNum]++;
+                barLabelCount[barLabelNum]++;
                 if (i != 0) {
-                    fooaclLabelCount[foolabelNum]++;
-                    baraclLabelCount[barlabelNum]++;
+                    fooAclLabelCount[fooLabelNum]++;
+                    barAclLabelCount[barLabelNum]++;
                 }
                 if (i == 1) {
-                    fooaclPar1LabelCount[foolabelNum]++;
-                    baraclPar1LabelCount[barlabelNum]++;
+                    fooAclPar1LabelCount[fooLabelNum]++;
+                    barAclPar1LabelCount[barLabelNum]++;
                 }
             }
 
@@ -133,13 +134,13 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
             }
         }
         adminSession.save();
-        for (int i = 0; i < foolabelCount.length; i++) {
-            actualLabelCount.put("l" + i, foolabelCount[i]);
-            actualLabelCount.put("m" + i, barlabelCount[i]);
-            actualAclLabelCount.put("l" + i, fooaclLabelCount[i]);
-            actualAclLabelCount.put("m" + i, baraclLabelCount[i]);
-            actualAclPar1LabelCount.put("l" + i, fooaclPar1LabelCount[i]);
-            actualAclPar1LabelCount.put("m" + i, baraclPar1LabelCount[i]);
+        for (int i = 0; i < fooLabelCount.length; i++) {
+            actualLabelCount.put("l" + i, fooLabelCount[i]);
+            actualLabelCount.put("m" + i, barLabelCount[i]);
+            actualAclLabelCount.put("l" + i, fooAclLabelCount[i]);
+            actualAclLabelCount.put("m" + i, barAclLabelCount[i]);
+            actualAclPar1LabelCount.put("l" + i, fooAclPar1LabelCount[i]);
+            actualAclPar1LabelCount.put("m" + i, barAclPar1LabelCount[i]);
         }
         assertNotEquals("Acl-ed and actual counts mustn't be same", actualLabelCount, actualAclLabelCount);
     }
@@ -310,6 +311,46 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
                                 "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
                         Math.abs(ratio - 1) < 0.05);
             }
+        });
+    }
+
+    @Test
+    public void secureFacetsWithMultiValueProperty() throws Exception {
+        facetsWithMultiValueProperty(PROP_SECURE_FACETS_VALUE_SECURE);
+    }
+
+    @Test
+    public void insecureFacetsWithMultiValueProperty() throws Exception {
+        facetsWithMultiValueProperty(PROP_SECURE_FACETS_VALUE_INSECURE);
+    }
+
+    @Test
+    public void statisticalFacetsWithMultiValueProperty() throws Exception {
+        facetsWithMultiValueProperty(PROP_SECURE_FACETS_VALUE_STATISTICAL);
+    }
+
+    public void facetsWithMultiValueProperty(String facetType) throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_SECURE_FACETS, facetType);
+        indexNode.setProperty(PROP_REFRESH_DEFN, true);
+        adminSession.save();
+
+        Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
+        Node subPar = par.addNode("par");
+        Node child = subPar.addNode("c");
+        child.setProperty("cons", "val");
+        child.setProperty("foo", new String[] { "l0", "l1", "l2", "l3" });
+        child.setProperty("bar", "m0");
+        adminSession.save();
+
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals("Unexpected number of facets", 5, facets.size()); // l0, l1, l2, l3, m0
+            assertEquals(1, (int) facets.get("l0"));
+            assertEquals(1, (int) facets.get("l1"));
+            assertEquals(1, (int) facets.get("l2"));
+            assertEquals(1, (int) facets.get("l3"));
+            assertEquals(1, (int) facets.get("m0"));
         });
     }
 

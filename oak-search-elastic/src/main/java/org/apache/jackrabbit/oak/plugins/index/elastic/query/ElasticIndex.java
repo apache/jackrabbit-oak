@@ -45,10 +45,12 @@ class ElasticIndex extends FulltextIndex {
 
     private final ElasticIndexTracker elasticIndexTracker;
     private final long asyncIteratorEnqueueTimeoutMs;
+    private final long facetsEvaluationTimeoutMs;
 
-    ElasticIndex(ElasticIndexTracker elasticIndexTracker, long asyncIteratorEnqueueTimeoutMs) {
+    ElasticIndex(ElasticIndexTracker elasticIndexTracker, long asyncIteratorEnqueueTimeoutMs, long facetsEvaluationTimeoutMs) {
         this.elasticIndexTracker = elasticIndexTracker;
         this.asyncIteratorEnqueueTimeoutMs = asyncIteratorEnqueueTimeoutMs;
+        this.facetsEvaluationTimeoutMs = facetsEvaluationTimeoutMs;
     }
 
     @Override
@@ -66,7 +68,9 @@ class ElasticIndex extends FulltextIndex {
         return () -> {
             ElasticIndexNode indexNode = acquireIndexNode(plan);
             try {
-                return indexNode.getIndexStatistics().getDocCountFor(new ElasticRequestHandler(plan, getPlanResult(plan), null).baseQuery());
+                return indexNode.getIndexStatistics().getDocCountFor(
+                        new ElasticRequestHandler(plan, getPlanResult(plan), null, facetsEvaluationTimeoutMs).baseQuery()
+                );
             } finally {
                 indexNode.release();
             }
@@ -110,7 +114,7 @@ class ElasticIndex extends FulltextIndex {
         Filter filter = plan.getFilter();
         FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
 
-        ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState);
+        ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState, facetsEvaluationTimeoutMs);
         ElasticResponseHandler responseHandler = new ElasticResponseHandler(planResult, filter);
 
         ElasticQueryIterator itr;

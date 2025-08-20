@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 
 /**
  * Iterator over the revisions in the journal in reverse order
