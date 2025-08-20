@@ -21,13 +21,13 @@ import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.rou
 
 import java.io.InputStream;
 import java.io.PushbackInputStream;
+import java.nio.ByteBuffer;
 
-import org.apache.jackrabbit.guava.common.hash.Hasher;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.stream.ChunkedInput;
+import org.apache.commons.codec.digest.MurmurHash3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,8 +143,7 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
         buffer.release();
 
         byte mask = createMask(data.length);
-        Hasher hasher = Hashing.murmur3_32().newHasher();
-        long hash = hasher.putByte(mask).putLong(length).putBytes(data).hash().padToLong();
+        long hash = Integer.toUnsignedLong(MurmurHash3.hash32x86(ByteBuffer.allocate(32).put(mask).putLong(length).put(data).array()));
 
         byte[] blobIdBytes = blobId.getBytes();
 

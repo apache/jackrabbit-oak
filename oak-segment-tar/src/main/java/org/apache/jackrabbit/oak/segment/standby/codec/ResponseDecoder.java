@@ -27,15 +27,16 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import org.apache.commons.codec.digest.MurmurHash3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -203,11 +204,11 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     }
 
     private static long hash(byte[] data) {
-        return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
+        return Integer.toUnsignedLong(MurmurHash3.hash32x86(data));
     }
 
     private static long hash(byte mask, long blobLength, byte[] data) {
-        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data).hash().padToLong();
+        return Integer.toUnsignedLong(MurmurHash3.hash32x86(ByteBuffer.allocate(32).put(mask).putLong(blobLength).put(data).array()));
     }
 
 }
