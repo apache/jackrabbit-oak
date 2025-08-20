@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -68,10 +69,9 @@ public class SuppliersTest {
     }
 
     @Test
-    public void concurrentSupplierAccess() {
+    public void concurrentSupplierAccess() throws Exception {
         AtomicInteger sourceSupplierInvocationCount = new AtomicInteger(0);
         AtomicBoolean concurrencyTestFailed = new AtomicBoolean(false);
-        Object concurrencyTestMonitor = new Object();
 
         Supplier<AtomicInteger> sourceSupplier = () -> {
             sourceSupplierInvocationCount.incrementAndGet();
@@ -79,29 +79,27 @@ public class SuppliersTest {
         };
         Supplier<AtomicInteger> memoizeTestSupplier = memoize(sourceSupplier);
 
+        CountDownLatch startSignal = new CountDownLatch(1);
+        CountDownLatch doneSignal = new CountDownLatch(1);
         List<Thread> threads = new ArrayList<>();
         int threadCount = 1000;
         for (int k = 0; k < threadCount; k++) {
             threads.add(new Thread(() -> {
-                synchronized (concurrencyTestMonitor) {
-                    // the empty synchronized block is deliberate.
-                }
-                AtomicInteger result = memoizeTestSupplier.get();
-                if (result == null || result.get() != 42) {
-                    concurrencyTestFailed.set(true);
-                }
+                try {
+                    startSignal.await();
+                    AtomicInteger result = memoizeTestSupplier.get();
+                    if (result == null || result.get() != 42) {
+                        concurrencyTestFailed.set(true);
+                    }
+                    doneSignal.countDown();
+                } catch (InterruptedException ignored) {}
             }));
         }
-        synchronized (concurrencyTestMonitor) {
-            for (int k = 0; k < threadCount; k++) {
-                threads.get(k).start();
-            }
-        }
         for (int k = 0; k < threadCount; k++) {
-            try {
-                threads.get(k).join();
-            } catch (InterruptedException ignored) {}
+            threads.get(k).start();
         }
+        startSignal.countDown();
+        doneSignal.await();
         assertFalse(concurrencyTestFailed.get());
         assertEquals(1, sourceSupplierInvocationCount.get());
     }
