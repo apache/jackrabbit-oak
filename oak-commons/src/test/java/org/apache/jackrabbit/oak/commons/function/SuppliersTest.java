@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.apache.jackrabbit.oak.commons.function.Suppliers.memoize;
+import static org.junit.Assert.assertNull;
 
 public class SuppliersTest {
 
@@ -42,6 +43,27 @@ public class SuppliersTest {
         assertEquals(1, c);
         c = mem.get();
         assertEquals(1, c);
+    }
+
+    @Test
+    public void nullSupplier() {
+        AtomicInteger count = new AtomicInteger(0);
+
+        Supplier<Object> mem = Suppliers.memoize(new Supplier<Object>() {
+            @Override
+            public Integer get() {
+                count.incrementAndGet();
+                return null;
+            }
+        });
+
+        assertEquals(0, count.get());
+        Object o = mem.get();
+        assertNull(o);
+        assertEquals(1, count.get());
+        o = mem.get();
+        assertEquals(1, count.get());
+
     }
 
     @Test
