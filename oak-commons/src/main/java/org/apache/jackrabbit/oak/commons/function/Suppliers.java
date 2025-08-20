@@ -36,7 +36,7 @@ public class Suppliers {
      * @param <T> return type
      * @return Supplier based on the given Supplier
      */
-    public static <@Nullable T> Supplier<T> memoize(final Supplier<@Nullable T> computeOnce) {
+    public static <T> Supplier<@Nullable T> memoize(final Supplier<@Nullable T> computeOnce) {
         return new Supplier<>() {
             volatile boolean initialized = false;
             @Nullable T result = null;
