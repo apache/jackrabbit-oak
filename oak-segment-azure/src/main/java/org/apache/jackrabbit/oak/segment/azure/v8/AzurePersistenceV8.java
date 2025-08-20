@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.segment.azure.v8;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
@@ -71,7 +70,7 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
             for (ListBlobItem i : segmentstoreDirectory.listBlobs(null, false, EnumSet.noneOf(BlobListingDetails.class), null, null)) {
                 if (i instanceof CloudBlobDirectory) {
                     CloudBlobDirectory dir = (CloudBlobDirectory) i;
-                    String name = Paths.get(dir.getPrefix()).getFileName().toString();
+                    String name = AzureUtilitiesV8.getName(dir);
                     if (name.endsWith(".tar")) {
                         return true;
                     }

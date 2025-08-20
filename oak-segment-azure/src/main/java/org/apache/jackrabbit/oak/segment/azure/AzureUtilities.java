@@ -24,6 +24,7 @@ import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -32,9 +33,9 @@ import org.slf4j.LoggerFactory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class AzureUtilities {
 
@@ -49,15 +50,17 @@ public final class AzureUtilities {
     private AzureUtilities() {
     }
 
+    public static String getName(String path) {
+        return PathUtils.getName(ensureNoTrailingSlash(path));
+    }
+
     public static String getName(BlobItem blob) {
-        return Paths.get(blob.getName()).getFileName().toString();
+        return getName(blob.getName());
     }
 
     public static String getName(AppendBlobClient blob) {
-        return Paths.get(blob.getBlobName()).getFileName().toString();
+        return getName(blob.getBlobName());
     }
-
-
 
     public static List<BlobItem> getBlobs(BlobContainerClient blobContainerClient, ListBlobsOptions listOptions) {
         if (listOptions != null) {
@@ -87,6 +90,27 @@ public final class AzureUtilities {
                 log.error("Can't delete blob {}", b.getName(), e);
             }
         });
+    }
+
+    static @NotNull String asAzurePrefix(@NotNull String... pathSegments) {
+        return Stream.of(pathSegments)
+                .map(AzureUtilities::ensureTrailingSlash)
+                .map(AzureUtilities::ensureNoLeadingSlash)
+                .collect(Collectors.joining(""));
+    }
+
+    private static @NotNull String ensureTrailingSlash(@NotNull String path) {
+        int len = path.length();
+        return len == 0 || path.charAt(len - 1) == '/' ? path : path + '/';
+    }
+
+    private static @NotNull String ensureNoLeadingSlash(@NotNull String path) {
+        return !path.isEmpty() && path.charAt(0) == '/' ? ensureNoLeadingSlash(path.substring(1)) : path;
+    }
+
+    static @NotNull String ensureNoTrailingSlash(@NotNull String path) {
+        int lastPos = path.length() - 1;
+        return lastPos > 0 && path.charAt(lastPos) == '/' ? ensureNoTrailingSlash(path.substring(0, lastPos)) : path;
     }
 
     private static class ByteBufferOutputStream extends OutputStream {

@@ -33,7 +33,7 @@ import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 
 /**
  * FileLineDifferenceIterator class which iterates over the difference of 2 files line by line.

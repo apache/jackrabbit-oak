@@ -26,6 +26,8 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.commons.NamespaceHelper;
+
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.xml.Importer;
@@ -34,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.jetbrains.annotations.NotNull;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
+
 
 /**
  * {@code SysViewImportHandler}  ...
@@ -58,6 +61,8 @@ class SysViewImportHandler extends TargetImportHandler {
     // list of appendable value objects
     private BufferedStringValue currentPropValue;
 
+    private final NamespaceHelper namespaceHelper;
+    
     /**
      * Constructs a new {@code SysViewImportHandler}.
      *
@@ -66,6 +71,7 @@ class SysViewImportHandler extends TargetImportHandler {
      */
     SysViewImportHandler(Importer importer, SessionContext sessionContext) {
         super(importer, sessionContext);
+        namespaceHelper = new NamespaceHelper(sessionContext.getSession());
     }
 
     private void processNode(ImportState state, boolean start, boolean end)
@@ -91,6 +97,24 @@ class SysViewImportHandler extends TargetImportHandler {
         } catch (RepositoryException re) {
             throw new SAXException(re);
         }
+    }
+
+    private NameInfo createNameInfo(String svName) throws RepositoryException {
+        //name extraction algorithm taken from GlobalNameMapper#isExpandedName(String)
+        String namespaceUri = null;
+        if (svName.startsWith("{")) {
+            int brace = svName.indexOf('}', 1);
+            if (brace != -1) {
+                namespaceUri = svName.substring(1, brace);
+                // the empty namespace and "internal" are valid as well, otherwise it always contains a colon (as it is a URI)
+                // compare with RFC 3986, Section 3 (https://datatracker.ietf.org/doc/html/rfc3986#section-3)
+                if (namespaceUri.isEmpty() || namespaceUri.equals(NamespaceConstants.NAMESPACE_REP) || namespaceUri.indexOf(':') != -1) {
+                    String localName = svName.substring(svName.indexOf("}") + 1);
+                    return new NameInfo(namespaceHelper.registerNamespace("", namespaceUri), localName);
+                }
+            }
+        }
+        return new NameInfo(sessionContext.getJcrName(sessionContext.getOakName(svName)));
     }
 
     //-------------------------------------------------------< ContentHandler >
@@ -123,7 +147,7 @@ class SysViewImportHandler extends TargetImportHandler {
             // push new ImportState instance onto the stack
             ImportState state = new ImportState();
             try {
-                state.nodeName = new NameInfo(svName).getRepoQualifiedName();
+                state.nodeName = createNameInfo(svName).getRepoQualifiedName();
             } catch (RepositoryException e) {
                 throw new SAXException(new InvalidSerializedDataException("illegal node name: " + svName, e));
             }
@@ -141,7 +165,7 @@ class SysViewImportHandler extends TargetImportHandler {
                         "missing mandatory sv:name attribute of element sv:property"));
             }
             try {
-                currentPropName = new NameInfo(svName);
+                currentPropName = createNameInfo(svName);
             } catch (RepositoryException e) {
                 throw new SAXException(new InvalidSerializedDataException("illegal property name: " + svName, e));
             }

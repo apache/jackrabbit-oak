@@ -39,8 +39,14 @@ public class BinaryId {
         // <hex digits or '-'>#<length>
         // the '-' is ignored
         int hashIndex = identifier.lastIndexOf('#');
-        String length = identifier.substring(hashIndex + 1);
-        this.length = Long.parseLong(length);
+        if (hashIndex >= 0) {
+            String lengthString = identifier.substring(hashIndex + 1);
+            this.length = Long.parseLong(lengthString);
+        } else {
+            // we do not know the length
+            this.length = 0;
+            hashIndex = identifier.length();
+        }
         StringBuilder buff = new StringBuilder(48);
         for (int i = 0; i < hashIndex; i++) {
             char c = identifier.charAt(i);

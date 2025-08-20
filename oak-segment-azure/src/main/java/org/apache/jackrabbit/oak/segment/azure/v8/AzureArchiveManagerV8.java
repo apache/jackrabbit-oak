@@ -35,8 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -79,11 +77,8 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
                     .spliterator(), false)
                     .filter(i -> i instanceof CloudBlobDirectory)
                     .map(i -> (CloudBlobDirectory) i)
-                    .filter(i -> getName(i).endsWith(".tar"))
-                    .map(CloudBlobDirectory::getPrefix)
-                    .map(Paths::get)
-                    .map(Path::getFileName)
-                    .map(Path::toString)
+                    .map(AzureUtilitiesV8::getName)
+                    .filter(name -> name.endsWith(".tar"))
                     .collect(Collectors.toList());
 
             Iterator<String> it = archiveNames.iterator();

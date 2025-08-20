@@ -25,6 +25,7 @@ import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
@@ -146,14 +147,14 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         List<Hit<ObjectNode>> searchHits = searchResponse.hits().hits();
         this.sampled = searchHits != null ? searchHits.size() : 0;
         if (sampled > 0) {
-            this.totalHits = searchResponse.hits().total().value();
+            this.totalHits = searchResponse.hits().total() != null ? searchResponse.hits().total().value() : 0;
             Map<String, List<FulltextIndex.Facet>> allFacets = processAggregations(searchResponse.aggregations());
-            Map<String, Map<String, MutableInt>> accessibleFacetCounts = new HashMap<>();
+            Map<String, Map<String, MutableInt>> accessibleFacets = new HashMap<>();
             searchResponse.hits().hits().stream()
                     // Possible candidate for parallelization using parallel streams
                     .filter(this::isAccessible)
-                    .forEach(hit -> processFilteredHit(hit, accessibleFacetCounts));
-            Map<String, List<FulltextIndex.Facet>> facets = computeStatisticalFacets(allFacets, accessibleFacetCounts);
+                    .forEach(hit -> processFilteredHit(hit, accessibleFacets));
+            Map<String, List<FulltextIndex.Facet>> facets = computeStatisticalFacets(allFacets, accessibleFacets);
             if (LOG.isDebugEnabled()) {
                 LOG.debug(timingsToString());
             }
@@ -163,32 +164,45 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         }
     }
 
-    private void processFilteredHit(Hit<ObjectNode> searchHit, Map<String, Map<String, MutableInt>> accessibleFacetCounts) {
+    private void processFilteredHit(Hit<ObjectNode> searchHit, Map<String, Map<String, MutableInt>> accessibleFacets) {
         long start = System.nanoTime();
         ObjectNode source = searchHit.source();
         for (String field : facetFields) {
-            JsonNode value = source.get(field);
-            if (value != null) {
-                accessibleFacetCounts.compute(field, (column, facetValues) -> {
-                    if (facetValues == null) {
-                        Map<String, MutableInt> values = new HashMap<>();
-                        values.put(value.asText(), new MutableInt(1));
-                        return values;
+            JsonNode value;
+            if (source != null) {
+                value = source.get(field);
+                if (value != null) {
+                    if (value.getNodeType() == JsonNodeType.ARRAY) {
+                        for (JsonNode item : value) {
+                            updateAccessibleFacets(accessibleFacets, field, item.asText());
+                        }
                     } else {
-                        facetValues.compute(value.asText(), (k, v) -> {
-                            if (v == null) {
-                                return new MutableInt(1);
-                            } else {
-                                v.increment();
-                                return v;
-                            }
-                        });
-                        return facetValues;
+                        updateAccessibleFacets(accessibleFacets, field, value.asText());
                     }
-                });
+                }
             }
         }
         this.processHitsTimeNanos += System.nanoTime() - start;
+    }
+
+    private void updateAccessibleFacets(Map<String, Map<String, MutableInt>> accessibleFacets, String field, String value) {
+        accessibleFacets.compute(field, (column, facetValues) -> {
+            if (facetValues == null) {
+                Map<String, MutableInt> values = new HashMap<>();
+                values.put(value, new MutableInt(1));
+                return values;
+            } else {
+                facetValues.compute(value, (k, v) -> {
+                    if (v == null) {
+                        return new MutableInt(1);
+                    } else {
+                        v.increment();
+                        return v;
+                    }
+                });
+                return facetValues;
+            }
+        });
     }
 
     private boolean isAccessible(Hit<ObjectNode> searchHit) {

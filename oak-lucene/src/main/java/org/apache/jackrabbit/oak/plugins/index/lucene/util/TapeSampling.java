@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 
 import java.util.Iterator;

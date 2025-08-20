@@ -23,11 +23,9 @@ import org.apache.commons.collections4.iterators.UnmodifiableIterator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Function;
@@ -53,11 +51,8 @@ public class Traverser {
     @NotNull
     public static <T> FluentIterable<T> preOrderTraversal(final T root, final @NotNull Function<T, Iterable<? extends T>> childExtractor) {
 
+        Objects.requireNonNull(root, "root must not be null");
         Objects.requireNonNull(childExtractor, "Children extractor function must not be null");
-
-        if (root == null) {
-            return FluentIterable.empty();
-        }
 
         return FluentIterable.of(new Iterable<>() {
             @Override
@@ -123,11 +118,9 @@ public class Traverser {
      */
     @NotNull
     public static <T> FluentIterable<T> breadthFirstTraversal(final T root, final @NotNull Function<T, Iterable<? extends T>> childExtractor) {
-        Objects.requireNonNull(childExtractor, "Children extractor function must not be null");
 
-        if (root == null) {
-            return FluentIterable.empty();
-        }
+        Objects.requireNonNull(root, "root must not be null");
+        Objects.requireNonNull(childExtractor, "Children extractor function must not be null");
 
         return FluentIterable.of(new Iterable<>() {
             @Override
@@ -167,6 +160,107 @@ public class Traverser {
                 queue.addLast(child);
             }
             return current;
+        }
+    }
+
+    /**
+     * Returns an iterator that traverses a tree structure in post-order. Null nodes are strictly forbidden.
+     * <p>
+     * In post-order traversal, all children of a node are visited from left to right, followed by
+     * the node itself. This creates a bottom-up traversal pattern where leaf nodes are visited first,
+     * then their parents, and finally the root.
+     *
+     * @param <T> the type of value in the tree nodes
+     * @param root the root node of the tree, may be null
+     * @param childExtractor function to extract children from a node, must not be null
+     * @return an iterator that traverses the tree in post-order
+     * @throws NullPointerException if childExtractor or any child is null
+     */
+    public static <T> FluentIterable<T> postOrderTraversal(final T root, final Function<T, Iterable<? extends T>> childExtractor) {
+        Objects.requireNonNull(root, "root must not be null");
+        Objects.requireNonNull(childExtractor, "Children extractor function must not be null");
+
+        return FluentIterable.of(new Iterable<>() {
+            @Override
+            public @NotNull Iterator<T> iterator() {
+                return UnmodifiableIterator.unmodifiableIterator(new PostOrderIterator<>(root, childExtractor));
+            }
+        });
+    }
+
+    private static final class PostOrderIterator<T> implements Iterator<T> {
+
+        private final Deque<PostOrderNode<T>> stack;
+        private final Function<T, Iterable<? extends T>> childExtractor;
+
+        PostOrderIterator(final T root, final Function<T, Iterable<? extends T>> childExtractor) {
+            this.childExtractor = childExtractor;
+            this.stack = new ArrayDeque<>();
+            // Start by pushing the leftmost path to initialize
+            pushChildren(root, childExtractor);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return !stack.isEmpty();
+        }
+
+        @Override
+        public T next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more nodes in the tree");
+            }
+
+            while (!stack.isEmpty()) {
+                final PostOrderNode<T> frame = stack.getLast();
+
+                // If there are more children, process the next one first
+                if (frame.childIterator.hasNext()) {
+                    // throw NPE if any child is null
+                    T nextChild = frame.childIterator.next();
+                    Objects.requireNonNull(nextChild, "Child nodes must not be null");
+
+                    pushChildren(nextChild, childExtractor);
+                    continue; // Continue the loop to get the next leaf
+                }
+
+                // No more children, remove this node (post-order behavior)
+                stack.removeLast();
+                return frame.node;
+            }
+
+            throw new AssertionError("Should not reach here");
+        }
+
+        private void pushChildren(final T node, final Function<T, Iterable<? extends T>> childExtractor) {
+
+            // Iteratively go down the leftmost path
+            T current = node;
+            Objects.requireNonNull(node, "node must not be null");
+            while (current != null) {
+                Iterator<? extends T> childItr = childExtractor.apply(current).iterator();
+                stack.addLast(new PostOrderNode<>(current, childItr));
+
+                // Move to the leftmost child if available
+                // Check for null child IMMEDIATELY when retrieving it
+                if (childItr.hasNext()) {
+                    T child = childItr.next();
+                    // This validation needs to happen here, before any other processing
+                    current = Objects.requireNonNull(child, "Child nodes must not be null");
+                } else {
+                    current = null;
+                }
+            }
+        }
+    }
+
+    private static class PostOrderNode<T> {
+        final T node;
+        final Iterator<? extends T> childIterator;
+
+        PostOrderNode(final T node, final Iterator<? extends T> childItr) {
+            this.node = node;
+            this.childIterator = childItr;
         }
     }
 }

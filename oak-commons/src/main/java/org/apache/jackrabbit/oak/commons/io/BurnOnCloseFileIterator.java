@@ -30,7 +30,7 @@ import java.util.Iterator;
 import java.util.function.Function;
 
 import org.apache.commons.io.LineIterator;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

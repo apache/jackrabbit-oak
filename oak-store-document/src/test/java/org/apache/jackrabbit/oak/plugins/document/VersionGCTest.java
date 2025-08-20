@@ -726,6 +726,16 @@ public class VersionGCTest {
 
     // OAK-10896 END
 
+    @Test
+    public void testVersionGCLoadGCModeConfigurationAllOrphans() {
+        int fullGcModeAllOrphansEmptyProperties = 10;
+        VersionGarbageCollector gc = new VersionGarbageCollector(
+                ns, new VersionGCSupport(store), true, false, false,
+                fullGcModeAllOrphansEmptyProperties, 0, DEFAULT_FGC_BATCH_SIZE, DEFAULT_FGC_PROGRESS_SIZE, TimeUnit.SECONDS.toMillis(DEFAULT_FULL_GC_MAX_AGE), 0);
+
+        assertEquals(FullGCMode.ALL_ORPHANS, VersionGarbageCollector.getFullGcMode());
+    }
+
     // OAK-11439
 
     @Test
