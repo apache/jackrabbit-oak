@@ -79,10 +79,10 @@ public class SuppliersTest {
         };
         Supplier<AtomicInteger> memoizeTestSupplier = memoize(sourceSupplier);
 
-        CountDownLatch startSignal = new CountDownLatch(1);
-        CountDownLatch doneSignal = new CountDownLatch(1);
-        List<Thread> threads = new ArrayList<>();
         int threadCount = 1000;
+        CountDownLatch startSignal = new CountDownLatch(1);
+        CountDownLatch doneSignal = new CountDownLatch(threadCount);
+        List<Thread> threads = new ArrayList<>();
         for (int k = 0; k < threadCount; k++) {
             threads.add(new Thread(() -> {
                 try {
