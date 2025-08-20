@@ -60,12 +60,10 @@ public class SuppliersTest {
         });
 
         assertEquals(0, count.get());
-        Object o = mem.get();
-        assertNull(o);
+        assertNull(mem.get());
         assertEquals(1, count.get());
-        o = mem.get();
+        mem.get();
         assertEquals(1, count.get());
-
     }
 
     @Test
@@ -91,8 +89,11 @@ public class SuppliersTest {
                     if (result == null || result.get() != 42) {
                         concurrencyTestFailed.set(true);
                     }
+                } catch (InterruptedException e) {
+                    // this can be safely ignored.
+                } finally {
                     doneSignal.countDown();
-                } catch (InterruptedException ignored) {}
+                }
             }));
         }
         for (int k = 0; k < threadCount; k++) {
