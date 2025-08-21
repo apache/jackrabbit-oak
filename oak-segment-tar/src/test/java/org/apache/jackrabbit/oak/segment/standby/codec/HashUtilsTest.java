@@ -28,14 +28,14 @@ import java.nio.ByteOrder;
 public class HashUtilsTest {
 
     @Test
-    public void testHashConsistency() {
+    public void testHashMurmur32Consistency() {
         byte mask = 0x01;
         long length = 10L;
         byte[] data = "test data".getBytes();
 
         // Ensure same inputs produce same hash
-        long hash1 = HashUtils.hash(mask, length, data);
-        long hash2 = HashUtils.hash(mask, length, data);
+        long hash1 = HashUtils.hashMurmur32(mask, length, data);
+        long hash2 = HashUtils.hashMurmur32(mask, length, data);
 
         Assert.assertEquals(hash1, hash2);
     }
@@ -47,10 +47,10 @@ public class HashUtilsTest {
         byte[] data1 = "test data".getBytes();
         byte[] data2 = "test data!".getBytes();
 
-        long hash1 = HashUtils.hash(mask, length, data1);
-        long hash2 = HashUtils.hash((byte) 0x02, length, data1); // Different mask
-        long hash3 = HashUtils.hash(mask, 11L, data1); // Different length
-        long hash4 = HashUtils.hash(mask, length, data2); // Different data
+        long hash1 = HashUtils.hashMurmur32(mask, length, data1);
+        long hash2 = HashUtils.hashMurmur32((byte) 0x02, length, data1); // Different mask
+        long hash3 = HashUtils.hashMurmur32(mask, 11L, data1); // Different length
+        long hash4 = HashUtils.hashMurmur32(mask, length, data2); // Different data
 
         Assert.assertNotEquals(hash1, hash2);
         Assert.assertNotEquals(hash1, hash3);
@@ -63,7 +63,7 @@ public class HashUtilsTest {
         long length = 0L;
         byte[] emptyData = new byte[0];
 
-        long hash = HashUtils.hash(mask, length, emptyData);
+        long hash = HashUtils.hashMurmur32(mask, length, emptyData);
         // We're just ensuring no exceptions are thrown, and a hash value is returned
         Assert.assertTrue(hash >= 0);
     }
@@ -85,7 +85,7 @@ public class HashUtilsTest {
         buffer.get(bytes);
 
         long manualHash = Integer.toUnsignedLong(org.apache.commons.codec.digest.MurmurHash3.hash32x86(bytes));
-        long methodHash = HashUtils.hash(mask, length, data);
+        long methodHash = HashUtils.hashMurmur32(mask, length, data);
 
         Assert.assertEquals(manualHash, methodHash);
     }
@@ -98,14 +98,14 @@ public class HashUtilsTest {
         byte[] data = new byte[0];
 
         // These values would need to be pre-computed
-        Assert.assertEquals(4183281807L, HashUtils.hash(mask, length, data));
+        Assert.assertEquals(4183281807L, HashUtils.hashMurmur32(mask, length, data));
 
         // Test with another known value
         mask = 0x01;
         length = 100L;
         data = "Apache Jackrabbit Oak".getBytes();
 
-        long hash = HashUtils.hash(mask, length, data);
+        long hash = HashUtils.hashMurmur32(mask, length, data);
         Assert.assertEquals(2290483938L, hash); // Just ensuring we get a non-negative value
     }
 
@@ -115,12 +115,12 @@ public class HashUtilsTest {
         long length = Long.MIN_VALUE;
         byte[] data = new byte[1024]; // Larger array
 
-        long hash1 = HashUtils.hash(mask, length, data);
+        long hash1 = HashUtils.hashMurmur32(mask, length, data);
 
         mask = Byte.MAX_VALUE;
         length = Long.MAX_VALUE;
 
-        long hash2 = HashUtils.hash(mask, length, data);
+        long hash2 = HashUtils.hashMurmur32(mask, length, data);
 
         // Different inputs should produce different hashes
         Assert.assertNotEquals(hash1, hash2);

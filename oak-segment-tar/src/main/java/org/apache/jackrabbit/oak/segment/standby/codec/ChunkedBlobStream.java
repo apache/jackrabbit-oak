@@ -142,7 +142,7 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
 
         byte mask = createMask(data.length);
 
-        long hash = HashUtils.hash(mask, length, data);
+        long hash = HashUtils.hashMurmur32(mask, length, data);
 
         byte[] blobIdBytes = blobId.getBytes();
 

@@ -152,7 +152,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         byte[] chunkData = new byte[in.readableBytes()];
         in.readBytes(chunkData);
 
-        if (HashUtils.hash(mask, blobLength, chunkData) != hash) {
+        if (HashUtils.hashMurmur32(mask, blobLength, chunkData) != hash) {
             log.debug("Invalid checksum, discarding current chunk from {}", blobId);
             return;
         } else {

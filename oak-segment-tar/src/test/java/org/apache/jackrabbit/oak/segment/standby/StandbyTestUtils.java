@@ -81,7 +81,7 @@ public class StandbyTestUtils {
         buf.writeLong(blobLength);
         buf.writeInt(blobIdBytes.length);
         buf.writeBytes(blobIdBytes);
-        buf.writeLong(HashUtils.hash(mask, blobLength, data));
+        buf.writeLong(HashUtils.hashMurmur32(mask, blobLength, data));
         buf.writeBytes(data);
         
         return buf;

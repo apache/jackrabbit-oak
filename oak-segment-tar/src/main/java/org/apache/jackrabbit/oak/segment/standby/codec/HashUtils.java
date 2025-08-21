@@ -38,7 +38,7 @@ public class HashUtils {
      * @param data    The byte array data to include in the hash computation
      * @return        The computed MurmurHash3 value as an unsigned 32-bit integer converted to long
      */
-    public static long hash(byte mask, long length, byte[] data) {
+    public static long hashMurmur32(byte mask, long length, byte[] data) {
         final ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + data.length)
                 .order(ByteOrder.LITTLE_ENDIAN)  // To align with Guava that uses Little Endianess
                 .put(mask)
