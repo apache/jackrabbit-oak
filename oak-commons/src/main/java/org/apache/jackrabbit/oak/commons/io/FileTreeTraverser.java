@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.commons.io;
 
-import org.apache.jackrabbit.oak.commons.Traverser;
+import org.apache.jackrabbit.oak.commons.internal.graph.Traverser;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons;
+package org.apache.jackrabbit.oak.commons.internal.graph;
 
 import org.apache.commons.collections4.FluentIterable;
 import org.apache.commons.collections4.iterators.UnmodifiableIterator;

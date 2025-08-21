@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.commons;
+package org.apache.jackrabbit.oak.commons.internal.graph;
 
 import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.jetbrains.annotations.NotNull;
