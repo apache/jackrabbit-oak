@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.standby;
 import static org.mockito.Mockito.mock;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -59,7 +60,17 @@ public class StandbyTestUtils {
     }
     
     public static long hash(byte mask, long blobLength, byte[] data) {
-        return Integer.toUnsignedLong(MurmurHash3.hash32x86(ByteBuffer.allocate(32).put(mask).putLong(blobLength).put(data).array()));
+
+        ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + data.length)
+                .order(ByteOrder.LITTLE_ENDIAN)  // Important for long values
+                .put(mask)
+                .putLong(blobLength)
+                .put(data);
+        byteBuffer.flip();  // Reset position to start
+        byte[] bytes = new byte[byteBuffer.limit()];
+        byteBuffer.get(bytes);
+
+        return Integer.toUnsignedLong(MurmurHash3.hash32x86(bytes));
     }
     
     public static byte createMask(int currentChunk, int totalChunks) {

@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.rou
 import java.io.InputStream;
 import java.io.PushbackInputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -143,7 +144,17 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
         buffer.release();
 
         byte mask = createMask(data.length);
-        long hash = Integer.toUnsignedLong(MurmurHash3.hash32x86(ByteBuffer.allocate(32).put(mask).putLong(length).put(data).array()));
+
+        final ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + data.length)
+                .order(ByteOrder.LITTLE_ENDIAN)  // To align with Guava that uses Little Endianess
+                .put(mask)
+                .putLong(length)
+                .put(data);
+        byteBuffer.flip();  // Reset position to start to read data from beginning
+        final byte[] bytes = new byte[byteBuffer.limit()];
+        byteBuffer.get(bytes);
+
+        long hash = Integer.toUnsignedLong(MurmurHash3.hash32x86(bytes));
 
         byte[] blobIdBytes = blobId.getBytes();
 
