@@ -109,6 +109,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -4243,6 +4244,138 @@ public class VersionGarbageCollectorIT {
         if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.EMPTYPROPS)) {
             assertDocumentsDontExist(orphans);
         }
+    }
+
+    /**
+     * Test for the bug where FullGC EmptyProps mode incorrectly allows 
+     * checkpoint reads to return old values from split documents after 
+     * properties are deleted by FullGC.
+     * 
+     * Reproduction scenario:
+     * 1. Create document with split documents containing test property
+     * 2. Delete the property (set to null)  
+     * 3. Wait 24h, then FullGC removes the property
+     * 4. Create checkpoint
+     * 5. 1ms later, write same property again (newer than checkpoint)
+     * 6. Read checkpoint -> should return null but incorrectly returns old value from split doc
+     */
+    @Test
+    @Ignore // OAK-11875
+    public void testFullGCEmptyPropsSplitDocumentInconsistency() throws Exception {
+        assumeTrue(fixture.hasSinglePersistence());
+        assumeTrue("Test only applicable for MongoDocumentStore", 
+                   fixture instanceof DocumentStoreFixture.MongoFixture);
+        assumeTrue("Test only applicable for EMPTY_PROPERTIES mode",
+                   isModeOneOf(FullGCMode.EMPTYPROPS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.ALL_ORPHANS_EMPTYPROPS));
+        
+        // Enable FullGC
+        VersionGarbageCollector gc = store1.getVersionGarbageCollector();
+        enableFullGC(gc);
+        
+        final String testPath = "/test";
+        final String testProperty = "testProp";
+        final String newValue = "newValue";
+        String testValue = "splitValue0";
+        
+        // Step 1: Create document with many revisions to trigger split
+        NodeBuilder builder = store1.getRoot().builder();
+        builder.child("test").setProperty(testProperty, testValue);
+        // Create child nodes so split documents don't get deleted
+        builder.child("test").child("child1").setProperty("prop", "value");
+        builder.child("test").child("child2").setProperty("prop", "value");
+        merge(store1, builder);
+        
+        // Force many commits to force the creation of a split document
+        for (int i = 1; i <= NodeDocument.NUM_REVS_THRESHOLD + 10; i++) {
+            builder = store1.getRoot().builder();
+            testValue = "splitValue" + i;
+            builder.child("test").setProperty(testProperty, testValue);
+            merge(store1, builder);
+        }
+        
+        // Trigger RevisionGC with split documents
+        store1.runBackgroundOperations();
+        
+        // Verify split document was created
+        NodeDocument doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        assertNotNull("Main document should exist", doc);
+        
+        assertTrue("Document should have split documents. " +
+                  "LocalRevs=" + doc.getLocalRevisions().size() + 
+                  ", CommitRoot=" + doc.getLocalCommitRoot().size() + 
+                  ", Total=" + (doc.getLocalRevisions().size() + doc.getLocalCommitRoot().size()) + 
+                  ", Threshold=" + NUM_REVS_THRESHOLD,
+                !doc.getPreviousRanges().isEmpty()); // Should have split documents due to many revisions
+        
+        // Verify testProperty exists in split documents
+        DocumentNodeState nodeState = doc.getNodeAtRevision(store1, store1.getHeadRevision(), null);
+        assertNotNull("Node should exist", nodeState);
+        PropertyState prop = nodeState.getProperty(testProperty);
+        assertNotNull("Test property should exist", prop);
+        assertEquals("Test property should have correct value", testValue, prop.getValue(Type.STRING));
+        
+        // Phase 2: Delete the property (set to null)
+        builder = store1.getRoot().builder();
+        builder.child("test").removeProperty(testProperty);
+        merge(store1, builder);
+        
+        // Verify property is now null on head state
+        NodeState currentState = store1.getRoot().getChildNode("test");
+        assertFalse("Property should be deleted", currentState.hasProperty(testProperty));
+        
+        // Phase 3: Wait 24h and run FullGC to remove the property
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(25));
+        VersionGCStats stats = gc(gc, 24, TimeUnit.HOURS);
+        assertTrue("FullGC should have deleted something", stats.deletedPropsCount > 0);
+        
+        // Verify property was removed by FullGC
+        doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        assertNotNull("Document should still exist", doc);
+        // Property should no longer exist in main document
+        assertFalse("Property should be removed from main document", 
+                doc.getPropertyNames().contains(testProperty));
+        
+        // Phase 4: Create checkpoint AFTER FullGC
+        String checkpoint = store1.checkpoint(TimeUnit.HOURS.toMillis(1));
+        assertNotNull("Checkpoint should be created", checkpoint);
+        
+        // Phase 5: 1ms later, write the same property again (newer than checkpoint)
+        clock.waitUntil(clock.getTime() + 1);
+        builder = store1.getRoot().builder();
+        builder.child("test").setProperty(testProperty, newValue);
+        merge(store1, builder);
+        
+        // Verify new property exists in current head
+        currentState = store1.getRoot().getChildNode("test");
+        assertTrue("New property should exist in head", currentState.hasProperty(testProperty));
+        assertEquals("New property should have new value", newValue, 
+                currentState.getProperty(testProperty).getValue(Type.STRING));
+        
+        // Phase 6a: Read using checkpoint
+        store1.invalidateNodeChildrenCache();
+        store1.getNodeCache().invalidateAll();
+        NodeState checkpointState = store1.retrieve(checkpoint);
+        assertNotNull("Checkpoint state should exist", checkpointState);
+        
+        NodeState checkpointTestNode = checkpointState.getChildNode("test");
+        assertTrue("Test node should exist in checkpoint", checkpointTestNode.exists());
+        PropertyState checkpointProp = checkpointTestNode.getProperty(testProperty);
+
+        // Expected behavior: property should be null since it was deleted before checkpoint
+        assertNull("Property should be null in checkpoint (was deleted by FullGC before checkpoint)",
+                checkpointProp);
+        
+        // Phase 6b: Use getNodeAtRevision directly on the document
+        RevisionVector checkpointRevisionVector = RevisionVector.fromString(checkpoint);
+        NodeDocument testDoc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        DocumentNodeState nodeAtCheckpoint = testDoc.getNodeAtRevision(store1, checkpointRevisionVector, null);
+        PropertyState nodeAtRevisionProperty = null;
+        if (nodeAtCheckpoint != null) {
+            nodeAtRevisionProperty = nodeAtCheckpoint.getProperty(testProperty);
+        }
+        
+        // Verify that the direct read also returns null
+        assertNull("Property should be null when read at checkpoint revision", nodeAtRevisionProperty);
     }
 
     private void assertNodesDontExist(Collection<String> existingNodes,
