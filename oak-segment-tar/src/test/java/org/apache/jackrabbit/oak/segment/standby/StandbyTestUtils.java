@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.segment.standby;
 
 import static org.mockito.Mockito.mock;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.standby.codec.HashUtils;
 
 public class StandbyTestUtils {
 
@@ -59,20 +58,6 @@ public class StandbyTestUtils {
         return Integer.toUnsignedLong(MurmurHash3.hash32x86(data));
     }
     
-    public static long hash(byte mask, long blobLength, byte[] data) {
-
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + data.length)
-                .order(ByteOrder.LITTLE_ENDIAN)  // Important for long values
-                .put(mask)
-                .putLong(blobLength)
-                .put(data);
-        byteBuffer.flip();  // Reset position to start
-        byte[] bytes = new byte[byteBuffer.limit()];
-        byteBuffer.get(bytes);
-
-        return Integer.toUnsignedLong(MurmurHash3.hash32x86(bytes));
-    }
-    
     public static byte createMask(int currentChunk, int totalChunks) {
         byte mask = 0;
         if (currentChunk == 1) {
@@ -96,7 +81,7 @@ public class StandbyTestUtils {
         buf.writeLong(blobLength);
         buf.writeInt(blobIdBytes.length);
         buf.writeBytes(blobIdBytes);
-        buf.writeLong(hash(mask, blobLength, data));
+        buf.writeLong(HashUtils.hash(mask, blobLength, data));
         buf.writeBytes(data);
         
         return buf;

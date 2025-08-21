@@ -27,8 +27,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
@@ -154,7 +152,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         byte[] chunkData = new byte[in.readableBytes()];
         in.readBytes(chunkData);
 
-        if (hash(mask, blobLength, chunkData) != hash) {
+        if (HashUtils.hash(mask, blobLength, chunkData) != hash) {
             log.debug("Invalid checksum, discarding current chunk from {}", blobId);
             return;
         } else {
@@ -206,20 +204,6 @@ public class ResponseDecoder extends ByteToMessageDecoder {
 
     private static long hash(byte[] data) {
         return Integer.toUnsignedLong(MurmurHash3.hash32x86(data));
-    }
-
-    private static long hash(byte mask, long blobLength, byte[] data) {
-
-        final ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + data.length)
-                .order(ByteOrder.LITTLE_ENDIAN)  // To align with Guava that uses Little Endianess
-                .put(mask)
-                .putLong(blobLength)
-                .put(data);
-        byteBuffer.flip();  // Reset position to start to read data from beginning
-        final byte[] bytes = new byte[byteBuffer.limit()];
-        byteBuffer.get(bytes);
-
-        return Integer.toUnsignedLong(MurmurHash3.hash32x86(bytes));
     }
 
 }
