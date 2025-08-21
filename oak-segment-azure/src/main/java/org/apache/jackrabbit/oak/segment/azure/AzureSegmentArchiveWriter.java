@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,6 +59,7 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
         this.archiveName = AzureUtilities.ensureNoTrailingSlash(archiveName);
         this.archivePathPrefix = AzureUtilities.asAzurePrefix(rootPrefix, archiveName);
         this.writeAccessController = writeAccessController;
+        this.created = AzureUtilities.archiveExists(blobContainerClient, archivePathPrefix);
     }
 
     @Override

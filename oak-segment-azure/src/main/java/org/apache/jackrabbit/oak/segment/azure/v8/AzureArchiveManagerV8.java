@@ -72,7 +72,7 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
     @Override
     public List<String> listArchives() throws IOException {
         try {
-            List<String> archiveNames = StreamSupport.stream(cloudBlobDirectory
+            return StreamSupport.stream(cloudBlobDirectory
                     .listBlobs(null, false, EnumSet.noneOf(BlobListingDetails.class), null, null)
                     .spliterator(), false)
                     .filter(i -> i instanceof CloudBlobDirectory)
@@ -80,28 +80,9 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
                     .map(AzureUtilitiesV8::getName)
                     .filter(name -> name.endsWith(".tar"))
                     .collect(Collectors.toList());
-
-            Iterator<String> it = archiveNames.iterator();
-            while (it.hasNext()) {
-                String archiveName = it.next();
-                if (isArchiveEmpty(archiveName)) {
-                    delete(archiveName);
-                    it.remove();
-                }
-            }
-            return archiveNames;
         } catch (URISyntaxException | StorageException e) {
             throw new IOException(e);
         }
-    }
-
-    /**
-     * Check if there's a valid 0000. segment in the archive
-     * @param archiveName
-     * @return true if the archive is empty (no 0000.* segment)
-     */
-    private boolean isArchiveEmpty(String archiveName) throws IOException, URISyntaxException, StorageException {
-        return !getDirectory(archiveName).listBlobs("0000.").iterator().hasNext();
     }
 
     @Override
@@ -231,7 +212,8 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
     private void delete(String archiveName, Set<UUID> recoveredEntries) throws IOException {
         getBlobs(archiveName)
                 .forEach(cloudBlob -> {
-                    if (!recoveredEntries.contains(RemoteUtilities.getSegmentUUID(getName(cloudBlob)))) {
+                    String name = getName(cloudBlob);
+                    if (RemoteUtilities.isSegmentName(name) && !recoveredEntries.contains(RemoteUtilities.getSegmentUUID(name))) {
                         try {
                             cloudBlob.delete();
                         } catch (StorageException e) {

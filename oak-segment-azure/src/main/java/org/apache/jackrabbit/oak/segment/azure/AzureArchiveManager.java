@@ -80,36 +80,14 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public List<String> listArchives() throws IOException {
         try {
-            List<String> archiveNames = readBlobContainerClient.listBlobsByHierarchy(rootPrefix).stream()
+            return readBlobContainerClient.listBlobsByHierarchy(rootPrefix).stream()
                     .filter(BlobItem::isPrefix)
                     .map(AzureUtilities::getName)
                     .filter(blobName -> blobName.endsWith(".tar"))
                     .collect(Collectors.toList());
-
-            Iterator<String> it = archiveNames.iterator();
-            while (it.hasNext()) {
-                String archiveName = it.next();
-                if (isArchiveEmpty(archiveName)) {
-                    delete(archiveName);
-                    it.remove();
-                }
-            }
-            return archiveNames;
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }
-    }
-
-    /**
-     * Check if there's a valid 0000. segment in the archive
-     * @param archiveName
-     * @return true if the archive is empty (no 0000.* segment)
-     */
-    private boolean isArchiveEmpty(String archiveName) throws BlobStorageException {
-        String fullBlobPrefix = getDirectory(archiveName) + "0000.";
-        ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-        listBlobsOptions.setPrefix(fullBlobPrefix);
-        return !readBlobContainerClient.listBlobs(listBlobsOptions, null).iterator().hasNext();
     }
 
     @Override
@@ -240,7 +218,8 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     private void delete(String archiveName, Set<UUID> recoveredEntries) throws IOException {
         getBlobs(archiveName)
                 .forEach(blobItem -> {
-                    if (!recoveredEntries.contains(RemoteUtilities.getSegmentUUID(getName(blobItem)))) {
+                    String name = getName(blobItem);
+                    if (RemoteUtilities.isSegmentName(name) && !recoveredEntries.contains(RemoteUtilities.getSegmentUUID(name))) {
                         try {
                             writeBlobContainerClient.getBlobClient(blobItem.getName()).delete();
                         } catch (BlobStorageException e) {
