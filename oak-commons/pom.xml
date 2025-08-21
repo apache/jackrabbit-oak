@@ -54,6 +54,7 @@
               org.apache.jackrabbit.oak.commons.function,
               org.apache.jackrabbit.oak.commons.forkjoin,
               org.apache.jackrabbit.oak.commons.io,
+              org.apache.jackrabbit.oak.commons.internal.graph,
               org.apache.jackrabbit.oak.commons.json,
               org.apache.jackrabbit.oak.commons.log,
               org.apache.jackrabbit.oak.commons.sort,
