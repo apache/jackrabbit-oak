@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons.function;
+package org.apache.jackrabbit.oak.commons.internal.function;
 
 import java.util.function.Supplier;
 

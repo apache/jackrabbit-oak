@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons.function;
+package org.apache.jackrabbit.oak.commons.internal.function;
 
 import org.junit.Test;
 
@@ -29,7 +29,7 @@ import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.apache.jackrabbit.oak.commons.function.Suppliers.memoize;
+import static org.apache.jackrabbit.oak.commons.internal.function.Suppliers.memoize;
 import static org.junit.Assert.assertNull;
 
 public class SuppliersTest {

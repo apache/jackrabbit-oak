@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.commons.function.Suppliers;
+import org.apache.jackrabbit.oak.commons.internal.function.Suppliers;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
 import org.osgi.framework.Filter;

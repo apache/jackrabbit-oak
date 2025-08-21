@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
-import static org.apache.jackrabbit.oak.commons.function.Suppliers.memoize;
+import static org.apache.jackrabbit.oak.commons.internal.function.Suppliers.memoize;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.hamcrest.Matchers.containsInAnyOrder;

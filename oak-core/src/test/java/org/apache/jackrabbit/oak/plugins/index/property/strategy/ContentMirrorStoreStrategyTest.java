@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import static java.util.Arrays.asList;
 
-import static org.apache.jackrabbit.oak.commons.function.Suppliers.memoize;
+import static org.apache.jackrabbit.oak.commons.internal.function.Suppliers.memoize;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
