@@ -66,7 +66,6 @@
                           <exclude>com/google/common/html/**</exclude>
                           <exclude>com/google/common/io/**</exclude>
                           <exclude>com/google/common/net/**</exclude>
-                          <exclude>com/google/common/primitives/**</exclude>
                           <exclude>com/google/common/reflect/**</exclude>
                           <exclude>com/google/common/xml/**</exclude>
                       </excludes>
@@ -104,6 +103,7 @@
               ${pref}.common.graph;version="33.4.1";uses:="${pref}.common.collect",
               ${pref}.common.hash;version="33.5.0";uses:="${pref}.common.base",
               ${pref}.common.math;version="33.4.1",
+              ${pref}.common.primitives;version="33.4.1";uses:="${pref}.common.base",
               ${pref}.common.util.concurrent;version="33.4.1";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent.internal",
             </Export-Package>
             <Import-Package>
