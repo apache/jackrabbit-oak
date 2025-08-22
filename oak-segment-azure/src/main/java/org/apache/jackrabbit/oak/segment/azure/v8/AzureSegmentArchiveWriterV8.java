@@ -57,7 +57,7 @@ public class AzureSegmentArchiveWriterV8 extends AbstractRemoteSegmentArchiveWri
 
     private static final Logger LOG = LoggerFactory.getLogger(AzureSegmentArchiveWriterV8.class);
 
-    public AzureSegmentArchiveWriterV8(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) {
+    public AzureSegmentArchiveWriterV8(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) throws IOException {
         super(ioMonitor, monitor);
         this.archiveDirectory = archiveDirectory;
         this.writeAccessController = writeAccessController;
@@ -65,12 +65,12 @@ public class AzureSegmentArchiveWriterV8 extends AbstractRemoteSegmentArchiveWri
         this.created = hasBlobs();
     }
 
-    private boolean hasBlobs() {
+    private boolean hasBlobs() throws IOException {
         try {
             return this.archiveDirectory.listBlobs().iterator().hasNext();
         } catch (StorageException | URISyntaxException | NoSuchElementException e) {
             LOG.error("Error listing blobs", e);
-            return false;
+            throw new IOException(e);
         }
     }
 
