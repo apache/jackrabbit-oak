@@ -437,7 +437,7 @@ public class RevisionsCommand implements Command {
         System.out.println("IncludePaths are : " + sortedSet(gc.getFullGCIncludePaths()));
         System.out.println("ExcludePaths are : " + sortedSet(gc.getFullGCExcludePaths()));
         System.out.println("FullGcMode is : " + VersionGarbageCollector.getFullGcMode());
-        System.out.println("FullGCGeneration is : " + options.getFullGcGeneration());
+        System.out.println("FullGCGeneration is : " + gc.getFullGcGeneration());
         System.out.println("FullGcDelayFactor is : " + gc.getFullGcDelayFactor());
         System.out.println("FullGcBatchSize is : " + gc.getFullGcBatchSize());
         System.out.println("FullGcProgressSize is : " + gc.getFullGcProgressSize());
