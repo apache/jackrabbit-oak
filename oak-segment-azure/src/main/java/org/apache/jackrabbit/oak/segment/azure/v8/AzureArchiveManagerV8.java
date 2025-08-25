@@ -54,6 +54,8 @@ import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.getNam
 public class AzureArchiveManagerV8 implements SegmentArchiveManager {
 
     private static final Logger log = LoggerFactory.getLogger(AzureSegmentArchiveReaderV8.class);
+    public static final String DELETED_ARCHIVE_MARKER = "deleted";
+    public static final String CLOSED_ARCHIVE_MARKER = "closed";
 
     protected final CloudBlobDirectory cloudBlobDirectory;
 
@@ -61,6 +63,8 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
 
     protected final FileStoreMonitor monitor;
     private WriteAccessController writeAccessController;
+
+    private final boolean isReadOnly = false;
 
     public AzureArchiveManagerV8(CloudBlobDirectory segmentstoreDirectory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController) {
         this.cloudBlobDirectory = segmentstoreDirectory;
@@ -72,7 +76,7 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
     @Override
     public List<String> listArchives() throws IOException {
         try {
-            return StreamSupport.stream(cloudBlobDirectory
+            List<String> archiveNames = StreamSupport.stream(cloudBlobDirectory
                     .listBlobs(null, false, EnumSet.noneOf(BlobListingDetails.class), null, null)
                     .spliterator(), false)
                     .filter(i -> i instanceof CloudBlobDirectory)
@@ -80,16 +84,38 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
                     .map(AzureUtilitiesV8::getName)
                     .filter(name -> name.endsWith(".tar"))
                     .collect(Collectors.toList());
+
+            Iterator<String> it = archiveNames.iterator();
+            while (it.hasNext()) {
+                String archiveName = it.next();
+                if (isArchiveDeleted(archiveName)) {
+                    if (!isReadOnly) {
+                        delete(archiveName);
+                    }
+                    it.remove();
+                }
+            }
+            return archiveNames;
         } catch (URISyntaxException | StorageException e) {
             throw new IOException(e);
         }
+    }
+
+    /**
+     * Check if the archive is being deleted.
+     *
+     * @param archiveName
+     * @return true if the "deleted" marker exists
+     */
+    private boolean isArchiveDeleted(String archiveName) throws IOException, URISyntaxException, StorageException {
+        return getDirectory(archiveName).getBlockBlobReference(DELETED_ARCHIVE_MARKER).exists();
     }
 
     @Override
     public SegmentArchiveReader open(String archiveName) throws IOException {
         try {
             CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
-            if (!archiveDirectory.getBlockBlobReference("closed").exists()) {
+            if (!archiveDirectory.getBlockBlobReference(CLOSED_ARCHIVE_MARKER).exists()) {
                 return null;
             }
             return new AzureSegmentArchiveReaderV8(archiveDirectory, ioMonitor);
@@ -112,20 +138,41 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
     @Override
     public boolean delete(String archiveName) {
         try {
+            uploadDeletedMarker(archiveName);
             getBlobs(archiveName)
                     .forEach(cloudBlob -> {
                         try {
-                            writeAccessController.checkWritingAllowed();
-                            cloudBlob.delete();
+                            String blobName = getName(cloudBlob);
+                            if (!blobName.equals(DELETED_ARCHIVE_MARKER) && !blobName.equals(CLOSED_ARCHIVE_MARKER)) {
+                                writeAccessController.checkWritingAllowed();
+                                cloudBlob.delete();
+                            }
                         } catch (StorageException e) {
                             log.error("Can't delete segment {}", cloudBlob.getUri().getPath(), e);
                         }
                     });
+            deleteClosedMarker(archiveName);
+            deleteDeletedMarker(archiveName);
             return true;
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException | StorageException e) {
             log.error("Can't delete archive {}", archiveName, e);
             return false;
         }
+    }
+
+    private void deleteDeletedMarker(String archiveName) throws IOException, URISyntaxException, StorageException {
+        writeAccessController.checkWritingAllowed();
+        getDirectory(archiveName).getBlockBlobReference(DELETED_ARCHIVE_MARKER).deleteIfExists();
+    }
+
+    private void deleteClosedMarker(String archiveName) throws IOException, URISyntaxException, StorageException {
+        writeAccessController.checkWritingAllowed();
+        getDirectory(archiveName).getBlockBlobReference(CLOSED_ARCHIVE_MARKER).deleteIfExists();
+    }
+
+    private void uploadDeletedMarker(String archiveName) throws IOException, URISyntaxException, StorageException {
+        writeAccessController.checkWritingAllowed();
+        getDirectory(archiveName).getBlockBlobReference(DELETED_ARCHIVE_MARKER).openOutputStream().close();
     }
 
     @Override

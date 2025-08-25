@@ -547,7 +547,32 @@ public class AzureArchiveManagerV8Test {
 
         rwFileStore2.close();
     }
+    
+    @Test
+    public void testListArchivesDoesNotReturnDeletedArchive() throws IOException, URISyntaxException, StorageException {
+        // The archive manager should not return the archive which has "deleted" marker
+        SegmentArchiveManager manager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
 
+        // Create an archive
+        SegmentArchiveWriter writer = manager.create("data00000a.tar");
+        UUID u = UUID.randomUUID();
+        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.flush();
+        writer.close();
+
+        // Verify the archive is listed
+        List<String> archives = manager.listArchives();
+        assertTrue("Archive should be listed before deletion", archives.contains("data00000a.tar"));
+
+        // Upload deleted marker for the archive
+        CloudBlobDirectory archiveDirectory = container.getDirectoryReference("oak/data00000a.tar");
+        archiveDirectory.getBlockBlobReference("deleted").openOutputStream().close();
+
+        // Verify the archive is no longer listed after adding deleted marker
+        archives = manager.listArchives();
+        assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
+    }
+    
     private PersistentCache createPersistenceCache() {
         return new AbstractPersistentCache() {
             @Override
