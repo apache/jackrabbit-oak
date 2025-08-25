@@ -188,7 +188,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     private void uploadDeletedMarker(String archiveName) throws BlobStorageException {
         writeAccessController.checkWritingAllowed();
-        writeBlobContainerClient.getBlobClient(getDirectory(archiveName) + DELETED_ARCHIVE_MARKER).getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
+        writeBlobContainerClient.getBlobClient(getDirectory(archiveName) + DELETED_ARCHIVE_MARKER).getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]), true);
     }
 
 

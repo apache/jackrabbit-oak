@@ -612,10 +612,43 @@ public class AzureArchiveManagerV8Test {
     }
 
     @Test
-    public void testListingArchivesInReadOnlyModePartiallyDeletedArchiveIsNotRemoved() {
+    public void testListArchivesInReadWriteModeWithPartiallyDeletedArchive() throws IOException, URISyntaxException, StorageException {
+        // Create a read-write manager to create an archive
+        SegmentArchiveManager rwManager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
 
+        // Create an archive with some segments
+        SegmentArchiveWriter writer = rwManager.create("data00000c.tar");
+        UUID u1 = UUID.randomUUID();
+        UUID u2 = UUID.randomUUID();
+        writer.writeSegment(u1.getMostSignificantBits(), u1.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.writeSegment(u2.getMostSignificantBits(), u2.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.flush();
+        writer.close();
+
+        // Verify the archive is initially listed
+        List<String> archives = rwManager.listArchives();
+        assertTrue("Archive should be listed initially", archives.contains("data00000c.tar"));
+
+        // Add deleted marker - simulates partially deleted archive
+        CloudBlobDirectory archiveDirectory = container.getDirectoryReference("oak/data00000c.tar");
+        archiveDirectory.getBlockBlobReference("deleted").openOutputStream().close();
+
+        assertTrue("Archive directory should still contain blobs before cleanup",
+                   archiveDirectory.listBlobs().iterator().hasNext());
+
+        assertTrue("Deleted marker should exist before cleanup",
+                   archiveDirectory.getBlockBlobReference("deleted").exists());
+
+        archives = rwManager.listArchives();
+        assertFalse("Partially deleted archive should not be listed in read-write mode", archives.contains("data00000c.tar"));
+
+        assertFalse("Archive directory should be empty after read-write listArchives cleanup",
+                    archiveDirectory.listBlobs().iterator().hasNext());
+
+        assertFalse("Deleted marker should be removed after cleanup",
+                    archiveDirectory.getBlockBlobReference("deleted").exists());
     }
-    
+
     private PersistentCache createPersistenceCache() {
         return new AbstractPersistentCache() {
             @Override
