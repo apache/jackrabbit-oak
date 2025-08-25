@@ -633,6 +633,45 @@ public class AzureArchiveManagerTest {
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
     }
 
+    @Test
+    public void testListArchivesInReadOnlyModeWithPartiallyDeletedArchive() throws IOException, BlobStorageException {
+        // Create a read-write manager first to create an archive
+        SegmentArchiveManager rwManager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
+
+        // Create an archive with some segments
+        SegmentArchiveWriter writer = rwManager.create("data00000b.tar");
+        UUID u1 = UUID.randomUUID();
+        UUID u2 = UUID.randomUUID();
+        writer.writeSegment(u1.getMostSignificantBits(), u1.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.writeSegment(u2.getMostSignificantBits(), u2.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.flush();
+        writer.close();
+
+        // Verify the archive is initially listed
+        List<String> archives = rwManager.listArchives();
+        assertTrue("Archive should be listed initially", archives.contains("data00000b.tar"));
+
+        // Add deleted marker - simulates partially deleted archive
+        writeBlobContainerClient.getBlobClient("oak/data00000b.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
+
+        ListBlobsOptions listOptions = new ListBlobsOptions();
+        listOptions.setPrefix("oak/data00000b.tar/");
+        assertTrue("Archive directory should still contain blobs",
+                   readBlobContainerClient.listBlobs(listOptions, null).iterator().hasNext());
+
+        // Create a read-only manager
+        SegmentArchiveManager roManager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), true);
+
+        archives = roManager.listArchives();
+        assertFalse("Partially deleted archive should not be listed in read-only mode", archives.contains("data00000b.tar"));
+
+        assertTrue("Archive directory should still contain blobs after read-only listArchives",
+                   readBlobContainerClient.listBlobs(listOptions, null).iterator().hasNext());
+
+        assertTrue("Deleted marker should still exist",
+                   readBlobContainerClient.getBlobClient("oak/data00000b.tar/deleted").exists());
+    }
+
     private static void assertDoesNotThrow(Executable executable) {
         try {
             executable.execute();

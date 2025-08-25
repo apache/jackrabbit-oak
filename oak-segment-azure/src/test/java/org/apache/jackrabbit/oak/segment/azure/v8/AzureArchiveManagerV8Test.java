@@ -573,6 +573,48 @@ public class AzureArchiveManagerV8Test {
         archives = manager.listArchives();
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
     }
+
+    @Test
+    public void testListArchivesInReadOnlyModeWithPartiallyDeletedArchive() throws IOException, URISyntaxException, StorageException {
+        // Create a read-write manager first to create an archive
+        SegmentArchiveManager rwManager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
+
+        SegmentArchiveWriter writer = rwManager.create("data00000b.tar");
+        UUID u1 = UUID.randomUUID();
+        UUID u2 = UUID.randomUUID();
+        writer.writeSegment(u1.getMostSignificantBits(), u1.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.writeSegment(u2.getMostSignificantBits(), u2.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.flush();
+        writer.close();
+
+        // Verify the archive is initially listed
+        List<String> archives = rwManager.listArchives();
+        assertTrue("Archive should be listed initially", archives.contains("data00000b.tar"));
+
+        // Add deleted marker - simulates partially deleted archive
+        CloudBlobDirectory archiveDirectory = container.getDirectoryReference("oak/data00000b.tar");
+        archiveDirectory.getBlockBlobReference("deleted").openOutputStream().close();
+
+        assertTrue("Archive directory should still contain blobs",
+                   archiveDirectory.listBlobs().iterator().hasNext());
+
+        // Create a read-only manager
+        SegmentArchiveManager roManager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), true);
+
+        archives = roManager.listArchives();
+        assertFalse("Partially deleted archive should not be listed in read-only mode", archives.contains("data00000b.tar"));
+
+        assertTrue("Archive directory should still contain blobs after read-only listArchives",
+                   archiveDirectory.listBlobs().iterator().hasNext());
+
+        assertTrue("Deleted marker should still exist",
+                   archiveDirectory.getBlockBlobReference("deleted").exists());
+    }
+
+    @Test
+    public void testListingArchivesInReadOnlyModePartiallyDeletedArchiveIsNotRemoved() {
+
+    }
     
     private PersistentCache createPersistenceCache() {
         return new AbstractPersistentCache() {
