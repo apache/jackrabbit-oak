@@ -93,8 +93,8 @@ public class AzureReadSegmentV8Test {
 
         @Override
         public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor,
-                FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
-            return new AzureArchiveManagerV8(segmentstoreDirectory, ioMonitor, fileStoreMonitor, writeAccessController) {
+                                                          FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) {
+            return new AzureArchiveManagerV8(segmentstoreDirectory, ioMonitor, fileStoreMonitor, writeAccessController, readOnly) {
                 @Override
                 public SegmentArchiveReader open(String archiveName) throws IOException {
                     CloudBlobDirectory archiveDirectory = getDirectory(archiveName);

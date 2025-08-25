@@ -61,6 +61,7 @@ public class AzureArchiveManagerIgnoreSamePrefixTest {
 
     private static final String rootPrefix = "oak";
     private static final String segmentName = "0004.44b4a246-50e0-470a-abe4-5a37a81c37c1";
+    private boolean readOnly = false;
 
     @Before
     public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException, IOException {
@@ -88,7 +89,7 @@ public class AzureArchiveManagerIgnoreSamePrefixTest {
         writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
                 .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
 
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         SegmentArchiveWriter writer = manager.create(archiveName);
 
         List<UUID> uuids = new ArrayList<>();
@@ -116,7 +117,7 @@ public class AzureArchiveManagerIgnoreSamePrefixTest {
         writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
                 .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
 
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
 
         assertFalse(manager.exists(archiveName));
     }
@@ -130,7 +131,7 @@ public class AzureArchiveManagerIgnoreSamePrefixTest {
         writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
                 .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
 
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         manager.renameTo(archiveName, targetArchiveName);
 
         boolean blobExists = readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix(rootPrefix + "/" + targetArchiveName), null)
@@ -148,7 +149,7 @@ public class AzureArchiveManagerIgnoreSamePrefixTest {
         writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
                 .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
 
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         manager.copyFile(archiveName, targetArchiveName);
 
         boolean blobExistsInTargetArchive = readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix(rootPrefix + "/" + targetArchiveName), null)
@@ -164,7 +165,7 @@ public class AzureArchiveManagerIgnoreSamePrefixTest {
 
         writeBlobContainerClient.getBlobClient(rootPrefix + "/" + bakArchiveName + "/" + segmentName)
                 .getBlockBlobClient().upload(BinaryData.fromString("test-data-segment-content"));
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         manager.delete(archiveName);
 
         boolean blobExists = readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix(rootPrefix + "/" + bakArchiveName + "/"), null)
@@ -183,7 +184,7 @@ public class AzureArchiveManagerIgnoreSamePrefixTest {
         writeBlobContainerClient.getBlobClient(rootPrefix + "/" + extraBackupArchiveTestName + "/" + segmentName)
                 .getBlockBlobClient().getBlobOutputStream().close();
 
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         SegmentArchiveWriter writer = manager.create(archiveTestName);
 
         List<UUID> uuids = new ArrayList<>();

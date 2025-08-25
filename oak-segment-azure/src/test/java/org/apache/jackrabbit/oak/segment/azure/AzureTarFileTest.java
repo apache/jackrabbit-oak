@@ -53,7 +53,7 @@ public class AzureTarFileTest extends TarFileTest {
             WriteAccessController writeAccessController = new WriteAccessController();
             writeAccessController.enableWriting();
             azurePersistence.setWriteAccessController(writeAccessController);
-            archiveManager = azurePersistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+            archiveManager = azurePersistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }

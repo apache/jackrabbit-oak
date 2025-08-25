@@ -138,7 +138,7 @@ public class SplitPersistenceTest {
         splitFileStore.close();
         splitFileStore = null;
 
-        SegmentArchiveManager manager = splitPersistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = splitPersistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
         for (String archive : manager.listArchives()) {
             SegmentArchiveReader reader = manager.open(archive);
             BinaryReferencesIndexLoader.parseBinaryReferencesIndex(reader.getBinaryReferences());

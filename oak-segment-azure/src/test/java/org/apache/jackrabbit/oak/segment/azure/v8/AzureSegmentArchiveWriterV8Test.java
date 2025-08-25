@@ -189,7 +189,7 @@ public class AzureSegmentArchiveWriterV8Test {
         writeAccessController.enableWriting();
         AzurePersistenceV8 azurePersistenceV8 = new AzurePersistenceV8(container.getDirectoryReference("oak"));/**/
         azurePersistenceV8.setWriteAccessController(writeAccessController);
-        SegmentArchiveManager manager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
         return writer;
     }

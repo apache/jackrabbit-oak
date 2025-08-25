@@ -288,7 +288,7 @@ public class SegmentCopy {
                 }
 
                 SegmentArchiveManager sourceManager = srcPersistence.createArchiveManager(false, false,
-                        new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+                        new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), true);
 
                 int maxArchives = maxSizeGb * 4;
                 int count = 0;

@@ -94,7 +94,7 @@ public class AwsReadSegmentTest {
 
         @Override
         public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor,
-                FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
+                                                          FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) {
             return new AwsArchiveManager(awsContext.directory, ioMonitor, fileStoreMonitor) {
                 @Override
                 public SegmentArchiveReader open(String archiveName) throws IOException {

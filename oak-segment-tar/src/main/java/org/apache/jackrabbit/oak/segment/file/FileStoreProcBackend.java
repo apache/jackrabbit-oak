@@ -56,7 +56,7 @@ class FileStoreProcBackend implements Backend {
     FileStoreProcBackend(AbstractFileStore fileStore, SegmentNodeStorePersistence persistence) throws IOException {
         this.fileStore = fileStore;
         this.persistence = persistence;
-        this.archiveManager = persistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        this.archiveManager = persistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), true);
     }
 
     @Override

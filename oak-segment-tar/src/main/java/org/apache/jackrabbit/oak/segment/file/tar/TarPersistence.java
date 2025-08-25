@@ -63,7 +63,7 @@ public class TarPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor,
-                                                      FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
+                                                      FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) {
         return new SegmentTarManager(directory, fileStoreMonitor, ioMonitor, memoryMapping, offHeapAccess);
     }
 

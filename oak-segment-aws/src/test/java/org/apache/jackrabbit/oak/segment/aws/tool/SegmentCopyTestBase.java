@@ -93,9 +93,9 @@ public abstract class SegmentCopyTestBase {
         RemoteStoreMonitor remoteStoreMonitor = new RemoteStoreMonitorAdapter();
         FileStoreMonitor fileStoreMonitor = new FileStoreMonitorAdapter();
         SegmentArchiveManager srcArchiveManager = srcPersistence.createArchiveManager(false, false, ioMonitor,
-                fileStoreMonitor, remoteStoreMonitor);
+                fileStoreMonitor, remoteStoreMonitor, true);
         SegmentArchiveManager destArchiveManager = destPersistence.createArchiveManager(false, false, ioMonitor,
-                fileStoreMonitor, remoteStoreMonitor);
+                fileStoreMonitor, remoteStoreMonitor, false);
 
         checkArchives(srcArchiveManager, destArchiveManager);
         checkJournal(srcPersistence, destPersistence);

@@ -205,7 +205,7 @@ public class AwsCompact {
         Stopwatch watch = Stopwatch.createStarted();
         SegmentNodeStorePersistence persistence = newSegmentNodeStorePersistence(SegmentStoreType.AWS, path);
         SegmentArchiveManager archiveManager = persistence.createArchiveManager(false, false, new IOMonitorAdapter(),
-                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
 
         System.out.printf("Compacting %s\n", path);
         System.out.printf("    before\n");

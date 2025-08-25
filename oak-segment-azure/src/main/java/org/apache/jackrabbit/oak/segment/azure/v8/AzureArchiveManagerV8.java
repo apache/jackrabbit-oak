@@ -65,13 +65,14 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
     protected final FileStoreMonitor monitor;
     private WriteAccessController writeAccessController;
 
-    private final boolean isReadOnly = false;
+    private final boolean readOnly;
 
-    public AzureArchiveManagerV8(CloudBlobDirectory segmentstoreDirectory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController) {
+    public AzureArchiveManagerV8(CloudBlobDirectory segmentstoreDirectory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController, boolean readOnly) {
         this.cloudBlobDirectory = segmentstoreDirectory;
         this.ioMonitor = ioMonitor;
         this.monitor = fileStoreMonitor;
         this.writeAccessController = writeAccessController;
+        this.readOnly = readOnly;
     }
 
     @Override
@@ -90,7 +91,7 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
             while (it.hasNext()) {
                 String archiveName = it.next();
                 if (deleteInProgress(archiveName)) {
-                    if (!isReadOnly) {
+                    if (!readOnly) {
                         delete(archiveName);
                     }
                     it.remove();

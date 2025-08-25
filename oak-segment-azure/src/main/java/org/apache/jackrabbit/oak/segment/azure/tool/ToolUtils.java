@@ -135,11 +135,11 @@ public class ToolUtils {
         return persistence;
     }
 
-    public static SegmentArchiveManager createArchiveManager(SegmentNodeStorePersistence persistence) {
+    public static SegmentArchiveManager createArchiveManager(SegmentNodeStorePersistence persistence, boolean readOnly) {
         SegmentArchiveManager archiveManager = null;
         try {
             archiveManager = persistence.createArchiveManager(false, false, new IOMonitorAdapter(),
-                    new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+                    new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         } catch (IOException e) {
             throw new IllegalArgumentException(
                     "Could not access the Azure Storage. Please verify the path provided!");

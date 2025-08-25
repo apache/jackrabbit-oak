@@ -159,9 +159,9 @@ public class SegmentStoreMigrator implements Closeable  {
             return;
         }
         SegmentArchiveManager sourceManager = source.createArchiveManager(false, false, new IOMonitorAdapter(),
-                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), true);
         SegmentArchiveManager targetManager = target.createArchiveManager(false, false, new IOMonitorAdapter(),
-                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
         List<String> targetArchives = targetManager.listArchives();
 
         if (appendMode && !targetArchives.isEmpty()) {

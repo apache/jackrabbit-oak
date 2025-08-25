@@ -93,6 +93,7 @@ public class AzureArchiveManagerTest {
     private BlobContainerClient noRetryBlobContainerClient;
 
     private AzurePersistence azurePersistence;
+    private boolean readOnly = false;
 
     @Before
     public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
@@ -113,7 +114,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testRecovery() throws BlobStorageException, IOException {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -135,7 +136,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testBackupWithRecoveredEntries() throws BlobStorageException, IOException {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -286,7 +287,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testExists() throws IOException {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -305,7 +306,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testArchiveExistsAfterFlush() throws IOException {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         Assert.assertFalse(manager.exists("data00000a.tar"));
@@ -317,7 +318,7 @@ public class AzureArchiveManagerTest {
 
     @Test(expected = FileNotFoundException.class)
     public void testSegmentDeletedAfterCreatingReader() throws IOException, BlobStorageException {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         Assert.assertFalse(manager.exists("data00000a.tar"));
@@ -350,7 +351,7 @@ public class AzureArchiveManagerTest {
         AzurePersistence azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, "oak");
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(azurePersistence).build();
 
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         //Assert.assertFalse(manager.exists("data00000a.tar"));
@@ -527,7 +528,7 @@ public class AzureArchiveManagerTest {
         WriteAccessController writeAccessController = new WriteAccessController();
         AzureRepositoryLock azureRepositoryLock = new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {
         }, writeAccessController);
-        AzureArchiveManager azureArchiveManager = new AzureArchiveManager(oakDirectory, writeOakDirectory, "", new IOMonitorAdapter(), new FileStoreMonitorAdapter(), writeAccessController);
+        AzureArchiveManager azureArchiveManager = new AzureArchiveManager(oakDirectory, writeOakDirectory, "", new IOMonitorAdapter(), new FileStoreMonitorAdapter(), writeAccessController, false);
 
 
         Mockito
@@ -536,7 +537,7 @@ public class AzureArchiveManagerTest {
 
         Mockito
                 .doReturn(azureArchiveManager)
-                .when(mockedRwPersistence).createArchiveManager(Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any());
+                .when(mockedRwPersistence).createArchiveManager(Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.eq(false));
         Mockito
                 .doReturn(new AzureJournalFile(oakDirectory, writeOakDirectory, "journal.log", writeAccessController))
                 .when(mockedRwPersistence).getJournalFile();
@@ -611,7 +612,7 @@ public class AzureArchiveManagerTest {
     @Test
     public void testListArchivesDoesNotReturnDeletedArchive() throws IOException, BlobStorageException {
         // The archive manager should not return the archive which has "deleted" marker
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
 
         // Create an archive
         SegmentArchiveWriter writer = manager.create("data00000a.tar");

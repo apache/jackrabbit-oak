@@ -256,7 +256,7 @@ public class TarFiles implements Closeable {
         }
 
         private SegmentArchiveManager buildArchiveManager() throws IOException {
-            return persistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter() : fileStoreMonitor, remoteStoreMonitor);
+            return persistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter() : fileStoreMonitor, remoteStoreMonitor, readOnly);
         }
     }
 

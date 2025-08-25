@@ -198,7 +198,7 @@ public class AzureSegmentArchiveWriterTest {
         writeAccessController.enableWriting();
         AzurePersistence azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, "oak");/**/
         azurePersistence.setWriteAccessController(writeAccessController);
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
         return writer;
     }
