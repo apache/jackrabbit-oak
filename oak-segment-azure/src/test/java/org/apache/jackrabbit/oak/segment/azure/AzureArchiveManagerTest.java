@@ -528,7 +528,7 @@ public class AzureArchiveManagerTest {
         WriteAccessController writeAccessController = new WriteAccessController();
         AzureRepositoryLock azureRepositoryLock = new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {
         }, writeAccessController);
-        AzureArchiveManager azureArchiveManager = new AzureArchiveManager(oakDirectory, writeOakDirectory, "", new IOMonitorAdapter(), new FileStoreMonitorAdapter(), writeAccessController, false);
+        AzureArchiveManager azureArchiveManager = new AzureArchiveManager(oakDirectory, writeOakDirectory, "", new IOMonitorAdapter(), new FileStoreMonitorAdapter(), writeAccessController, readOnly);
 
 
         Mockito
@@ -537,7 +537,7 @@ public class AzureArchiveManagerTest {
 
         Mockito
                 .doReturn(azureArchiveManager)
-                .when(mockedRwPersistence).createArchiveManager(Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.eq(false));
+                .when(mockedRwPersistence).createArchiveManager(Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.eq(readOnly));
         Mockito
                 .doReturn(new AzureJournalFile(oakDirectory, writeOakDirectory, "journal.log", writeAccessController))
                 .when(mockedRwPersistence).getJournalFile();

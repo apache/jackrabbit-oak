@@ -41,7 +41,8 @@ public interface SegmentNodeStorePersistence {
      *                         implementation should call the appropriate methods when
      *                         accessing segments.
      * @param fileStoreMonitor object used to monitor the general IO usage.
-     * @param readOnly
+     * @param readOnly         whether segment archive manager should be opened in read-only mode
+     *
      * @return segment archive manager
      * @throws IOException
      */

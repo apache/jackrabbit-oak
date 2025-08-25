@@ -88,7 +88,7 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
     public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) throws IOException {
         if (lastRoArchive.isPresent()) {
             return new SplitSegmentArchiveManager(
-                    roPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor, readOnly),
+                    roPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor, true),
                     rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, new RemoteStoreMonitorAdapter(), readOnly),
                     lastRoArchive.get());
         } else {
