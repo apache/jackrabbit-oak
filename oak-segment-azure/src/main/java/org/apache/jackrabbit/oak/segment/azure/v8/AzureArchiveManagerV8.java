@@ -88,7 +88,7 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
             Iterator<String> it = archiveNames.iterator();
             while (it.hasNext()) {
                 String archiveName = it.next();
-                if (isArchiveDeleted(archiveName)) {
+                if (deleteInProgress(archiveName)) {
                     if (!isReadOnly) {
                         delete(archiveName);
                     }
@@ -107,7 +107,7 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
      * @param archiveName
      * @return true if the "deleted" marker exists
      */
-    private boolean isArchiveDeleted(String archiveName) throws IOException, URISyntaxException, StorageException {
+    private boolean deleteInProgress(String archiveName) throws IOException, URISyntaxException, StorageException {
         return getDirectory(archiveName).getBlockBlobReference(DELETED_ARCHIVE_MARKER).exists();
     }
 
