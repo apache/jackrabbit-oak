@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -91,13 +90,6 @@ import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_PATTERN;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PATH_LONG;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
@@ -128,6 +120,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -167,22 +160,22 @@ public class VersionGarbageCollectorIT {
                         int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
                         int updatedFullGCDocsCount) {
             this.mode = mode;
-            assertTrue(deletedDocGCCount != -1);
-            assertTrue(deletedPropsCount != -1);
-            assertTrue(deletedInternalPropsCount != -1);
-            assertTrue(deletedPropRevsCount != -1);
-            assertTrue(deletedInternalPropRevsCount != -1);
-            assertTrue(deletedUnmergedBCCount != -1);
-            assertTrue(updatedFullGCDocsCount != -1);
+            Assert.assertTrue(deletedDocGCCount != -1);
+            Assert.assertTrue(deletedPropsCount != -1);
+            Assert.assertTrue(deletedInternalPropsCount != -1);
+            Assert.assertTrue(deletedPropRevsCount != -1);
+            Assert.assertTrue(deletedInternalPropRevsCount != -1);
+            Assert.assertTrue(deletedUnmergedBCCount != -1);
+            Assert.assertTrue(updatedFullGCDocsCount != -1);
             if (mode == FullGCMode.GAP_ORPHANS
                     || mode == FullGCMode.GAP_ORPHANS_EMPTYPROPS
                     || mode == FullGCMode.ALL_ORPHANS_EMPTYPROPS) {
-                assertEquals(0, deletedPropRevsCount);
-                assertEquals(0, deletedInternalPropRevsCount);
-                assertEquals(0, deletedUnmergedBCCount);
+                Assert.assertEquals(0, deletedPropRevsCount);
+                Assert.assertEquals(0, deletedInternalPropRevsCount);
+                Assert.assertEquals(0, deletedUnmergedBCCount);
             } else if (mode == FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS) {
-                assertEquals(0, deletedInternalPropsCount);
-                assertEquals(0, deletedInternalPropRevsCount);
+                Assert.assertEquals(0, deletedInternalPropsCount);
+                Assert.assertEquals(0, deletedInternalPropRevsCount);
             }
             this.deletedDocGCCount = deletedDocGCCount;
             this.deletedPropsCount = deletedPropsCount;
@@ -219,7 +212,7 @@ public class VersionGarbageCollectorIT {
     private long startTime = System.currentTimeMillis();
 
     @Parameterized.Parameters(name="{index}: {0} with {1}")
-    public static java.util.Collection<Object[]> params() throws IOException {
+    public static java.util.Collection<Object[]> params() {
         java.util.Collection<Object[]> params = new LinkedList<>();
         for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
             DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
@@ -229,14 +222,19 @@ public class VersionGarbageCollectorIT {
                     // temporarily skip due to flakyness
                     continue;
                 }
-                if (f.getName().equals("Memory") || f.getName().startsWith("RDB")) {
-                    // then only run NONE and EMPTY_PROPS, cause we are rolling EMPTY_PROPS first
-                    if (gcType != FullGCMode.NONE && gcType != FullGCMode.EMPTYPROPS
-                            && gcType != FullGCMode.GAP_ORPHANS_EMPTYPROPS) {
+
+                if (gcType == FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC || gcType == FullGCMode.EMPTYPROPS 
+                        || gcType == FullGCMode.GAP_ORPHANS || gcType == FullGCMode.ALL_ORPHANS) {
+                    // temporarily skip due to slowness
+                    continue;
+                }
+
+                if ((f.getName().equals("Memory") || f.getName().startsWith("RDB"))
+                        && gcType != FullGCMode.NONE) {
                         // temporarily skip due to slowness
                         continue;
                     }
-                }
+
                 params.add(new Object[] {f, gcType});
             }
         }
@@ -254,7 +252,7 @@ public class VersionGarbageCollectorIT {
 
         createPrimaryStore();
 
-        // Enforce primary read preference, otherwise tests may fail on a
+        // Enforce primary read preference, otherwise tests may Assert.fail on a
         // replica set with a read preference configured to secondary.
         // Revision GC usually runs with a modified range way in the past,
         // which means changes made it to the secondary, but not in this
@@ -320,7 +318,7 @@ public class VersionGarbageCollectorIT {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
-            fail("got interrupted");
+            Assert.fail("got interrupted");
         }
     }
 
@@ -357,7 +355,7 @@ public class VersionGarbageCollectorIT {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
-            fail("got interrupted");
+            Assert.fail("got interrupted");
         }
     }
 
@@ -386,17 +384,17 @@ public class VersionGarbageCollectorIT {
         //Fast forward time to future but before expiry of checkpoint
         clock.waitUntil(cp.getTimestamp() + expiryTime - maxAge);
         VersionGCStats stats = gc(gc, maxAge, TimeUnit.MILLISECONDS);
-        assertTrue(stats.ignoredGCDueToCheckPoint);
-        assertFalse(stats.ignoredFullGCDueToCheckPoint);
-        assertFalse(stats.fullGCDryRunMode);
-        assertTrue(stats.canceled);
+        Assert.assertTrue(stats.ignoredGCDueToCheckPoint);
+        Assert.assertFalse(stats.ignoredFullGCDueToCheckPoint);
+        Assert.assertFalse(stats.fullGCDryRunMode);
+        Assert.assertTrue(stats.canceled);
 
         //Fast forward time to future such that checkpoint get expired
         clock.waitUntil(clock.getTime() + expiryTime + 1);
         stats = gc(gc, maxAge, TimeUnit.MILLISECONDS);
-        assertFalse("GC should be performed", stats.ignoredGCDueToCheckPoint);
-        assertFalse("Full GC shouldn't be performed", stats.ignoredFullGCDueToCheckPoint);
-        assertFalse(stats.canceled);
+        Assert.assertFalse("GC should be performed", stats.ignoredGCDueToCheckPoint);
+        Assert.assertFalse("Full GC shouldn't be performed", stats.ignoredFullGCDueToCheckPoint);
+        Assert.assertFalse(stats.canceled);
     }
 
     @Test
@@ -412,7 +410,7 @@ public class VersionGarbageCollectorIT {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertEquals(0, stats.deletedDocGCCount);
+        Assert.assertEquals(0, stats.deletedDocGCCount);
 
         //Remove x/y
         NodeBuilder b2 = store1.getRoot().builder();
@@ -426,15 +424,15 @@ public class VersionGarbageCollectorIT {
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(0, stats.deletedDocGCCount);
+        Assert.assertEquals(0, stats.deletedLeafDocGCCount);
 
         //3. Check that deleted doc does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc(gc, maxAge*2, HOURS);
-        assertEquals(1, stats.deletedDocGCCount);
-        assertEquals(1, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(1, stats.deletedDocGCCount);
+        Assert.assertEquals(1, stats.deletedLeafDocGCCount);
 
         //4. Check that a revived doc (deleted and created again) does not get gc
         NodeBuilder b3 = store1.getRoot().builder();
@@ -447,9 +445,9 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedLeafDocGCCount);
-        assertEquals(1, stats.updateResurrectedGCCount);
+        Assert.assertEquals(0, stats.deletedDocGCCount);
+        Assert.assertEquals(0, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(1, stats.updateResurrectedGCCount);
     }
 
     @Test
@@ -484,20 +482,20 @@ public class VersionGarbageCollectorIT {
         //Fast forward time to future such that checkpoint get expired
         clock.waitUntil(clock.getTime() + expiryTime);
         VersionGCStats stats = gc(gc, maxAge, TimeUnit.MILLISECONDS);
-        assertFalse("Full GC should be performed", stats.ignoredFullGCDueToCheckPoint);
-        assertFalse(stats.canceled);
+        Assert.assertFalse("Full GC should be performed", stats.ignoredFullGCDueToCheckPoint);
+        Assert.assertFalse(stats.canceled);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 gapOrphProp(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
-                allOrphOnly(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 allOrphProp(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 keepOneFull(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 keepOneUser(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 unmergedBcs(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 betweenChkp(0, (int)batchSize, 0, 0, 2, 0, (int)batchSize + 1),
                 btwnChkpUBC(0, (int)batchSize, 0, 0, 2, 0, (int)batchSize + 1));
-        assertFalse(stats.needRepeat);
+        Assert.assertFalse(stats.needRepeat);
     }
 
     // OAK-10199
@@ -512,14 +510,14 @@ public class VersionGarbageCollectorIT {
         //Fast forward time to future but before expiry of checkpoint
         clock.waitUntil(cp.getTimestamp() + expiryTime - maxAge);
         VersionGCStats stats = gc(gc, maxAge, TimeUnit.MILLISECONDS);
-        assertTrue(stats.ignoredFullGCDueToCheckPoint);
-        assertTrue(stats.canceled);
+        Assert.assertTrue(stats.ignoredFullGCDueToCheckPoint);
+        Assert.assertTrue(stats.canceled);
 
         //Fast forward time to future such that checkpoint get expired
         clock.waitUntil(clock.getTime() + expiryTime + 1);
         stats = gc(gc, maxAge, TimeUnit.MILLISECONDS);
-        assertFalse("Full GC should be performed", stats.ignoredFullGCDueToCheckPoint);
-        assertFalse(stats.canceled);
+        Assert.assertFalse("Full GC should be performed", stats.ignoredFullGCDueToCheckPoint);
+        Assert.assertFalse(stats.canceled);
     }
 
     @Test
@@ -577,9 +575,9 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 1, 0, 0, 0, 0, 1),
                 betweenChkp(0, 1, 0, 0, 0, 0, 1),
                 btwnChkpUBC(0, 1, 0, 0, 0, 0, 1));
-        assertTrue(stats.ignoredGCDueToCheckPoint);
-        assertTrue(stats.ignoredFullGCDueToCheckPoint);
-        assertTrue(stats.canceled);
+        Assert.assertTrue(stats.ignoredGCDueToCheckPoint);
+        Assert.assertTrue(stats.ignoredFullGCDueToCheckPoint);
+        Assert.assertTrue(stats.canceled);
     }
 
     // OAK-11433
@@ -610,11 +608,11 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc.gc(maxRevisionGCAge, TimeUnit.MILLISECONDS);
 
         // FullGC should not be ignored
-        assertFalse("Full GC should be performed", stats.ignoredFullGCDueToCheckPoint);
+        Assert.assertFalse("Full GC should be performed", stats.ignoredFullGCDueToCheckPoint);
         // RevisionGC should be ignored
-        assertTrue("Revision GC should be ignored due to checkpoint", stats.ignoredGCDueToCheckPoint);
-        assertFalse(stats.canceled);
-        assertFalse(stats.needRepeat);
+        Assert.assertTrue("Revision GC should be ignored due to checkpoint", stats.ignoredGCDueToCheckPoint);
+        Assert.assertFalse(stats.canceled);
+        Assert.assertFalse(stats.needRepeat);
     }
 
     // OAK-11433 - END
@@ -775,7 +773,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 1, 0, 0, 0, 0, 1),
                 betweenChkp(0, 1, 0, 0, 3, 0, 2),
                 btwnChkpUBC(0, 1, 0, 0, 3, 0, 2));
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
         //4. Check that a revived property (deleted and created again) does not get gc
         NodeBuilder b3 = store1.getRoot().builder();
@@ -800,7 +798,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(),
                 betweenChkp(0, 0, 0, 1, 0, 0, 1),
                 btwnChkpUBC(0, 0, 0, 1, 0, 0, 1));
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
@@ -847,7 +845,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 50_000, 0, 0, 0, 0, 5_000),
                 betweenChkp(0, 50_000, 0, 0, 2, 0, 5_000 + 1),
                 btwnChkpUBC(0, 50_000, 0, 0, 2, 0, 5_000 + 1));
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
@@ -899,7 +897,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 50_000, 0, 0, 0, 0, 5_000),
                 betweenChkp(0, 50_000, 0, 0, 51, 0, 5_000 + 1),
                 btwnChkpUBC(0, 50_000, 0, 0, 51, 0, 5_000 + 1));
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
@@ -939,8 +937,8 @@ public class VersionGarbageCollectorIT {
 
             Document document = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
             assert document != null;
-            assertEquals(document.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
-            assertEquals(document.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
+            Assert.assertEquals(document.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
+            Assert.assertEquals(document.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
         }
     }
 
@@ -986,7 +984,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 10, 0, 0, 0, 0, 10),
                 betweenChkp(0, 10, 0, 0, 2, 0, 11),
                 btwnChkpUBC(0, 10, 0, 0, 2, 0, 11));
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
         //3. now reCreate those properties again
         NodeBuilder b3 = store1.getRoot().builder();
@@ -1020,7 +1018,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 10, 0, 0, 0, 0, 10),
                 betweenChkp(0, 10, 0, 0, 2, 0, 11),
                 btwnChkpUBC(0, 10, 0, 0, 2, 0, 11));
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
@@ -1042,10 +1040,10 @@ public class VersionGarbageCollectorIT {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
-            fail("got interrupted");
+            Assert.fail("got interrupted");
         }
 
-        assertTrue(store1.getDocumentStore() instanceof FailingDocumentStore);
+        Assert.assertTrue(store1.getDocumentStore() instanceof FailingDocumentStore);
 
         MongoTestUtils.setReadPreference(store1, ReadPreference.primary());
         gc = store1.getVersionGarbageCollector();
@@ -1078,7 +1076,7 @@ public class VersionGarbageCollectorIT {
         fds.fail().after(0).eternally();
         try {
             store1.dispose();
-            fail("dispose() must fail with an exception");
+            Assert.fail("dispose() must Assert.fail with an exception");
         } catch (DocumentStoreException e) {
             // expected
         }
@@ -1093,9 +1091,9 @@ public class VersionGarbageCollectorIT {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
-            fail("got interrupted");
+            Assert.fail("got interrupted");
         }
-        assertTrue(store1.getDocumentStore() instanceof FailingDocumentStore);
+        Assert.assertTrue(store1.getDocumentStore() instanceof FailingDocumentStore);
         MongoTestUtils.setReadPreference(store1, ReadPreference.primary());
         gc = store1.getVersionGarbageCollector();
         store1.runBackgroundOperations();
@@ -1117,7 +1115,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 10, 0, 0, 0, 0, 10),
                 betweenChkp(0, 10, 0, 0, 2, 0, 11),
                 btwnChkpUBC(0, 10, 0, 0, 2, 0, 11));
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
@@ -1355,13 +1353,13 @@ public class VersionGarbageCollectorIT {
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         NodeState x = store1.getRoot().getChildNode("x");
-        assertTrue(x.exists());
-        assertTrue(x.hasProperty("prop0"));
-        assertTrue(x.hasProperty("prop10"));
+        Assert.assertTrue(x.exists());
+        Assert.assertTrue(x.hasProperty("prop0"));
+        Assert.assertTrue(x.hasProperty("prop10"));
         NodeState jcrContent = x.getChildNode("jcr:content");
-        assertTrue(jcrContent.exists());
-        assertTrue(jcrContent.hasProperty("prop10"));
-        assertTrue(jcrContent.hasProperty("prop0"));
+        Assert.assertTrue(jcrContent.exists());
+        Assert.assertTrue(jcrContent.hasProperty("prop10"));
+        Assert.assertTrue(jcrContent.hasProperty("prop0"));
 
         // enable the full gc flag
         writeField(gc, "fullGCEnabled", true, true);
@@ -1373,13 +1371,13 @@ public class VersionGarbageCollectorIT {
         assertStatsCountsZero(stats);
 
         x = store1.getRoot().getChildNode("x");
-        assertTrue(x.exists());
-        assertTrue(x.hasProperty("prop0"));
-        assertTrue(x.hasProperty("prop10"));
+        Assert.assertTrue(x.exists());
+        Assert.assertTrue(x.hasProperty("prop0"));
+        Assert.assertTrue(x.hasProperty("prop10"));
         jcrContent = x.getChildNode("jcr:content");
-        assertTrue(jcrContent.exists());
-        assertTrue(jcrContent.hasProperty("prop10"));
-        assertTrue(jcrContent.hasProperty("prop0"));
+        Assert.assertTrue(jcrContent.exists());
+        Assert.assertTrue(jcrContent.hasProperty("prop10"));
+        Assert.assertTrue(jcrContent.hasProperty("prop0"));
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -1397,13 +1395,13 @@ public class VersionGarbageCollectorIT {
         assertStatsCountsZero(stats);
 
         x = store1.getRoot().getChildNode("x");
-        assertTrue(x.exists());
-        assertTrue(x.hasProperty("prop0"));
-        assertTrue(x.hasProperty("prop10"));
+        Assert.assertTrue(x.exists());
+        Assert.assertTrue(x.hasProperty("prop0"));
+        Assert.assertTrue(x.hasProperty("prop10"));
         jcrContent = x.getChildNode("jcr:content");
-        assertTrue(jcrContent.exists());
-        assertTrue(jcrContent.hasProperty("prop10"));
-        assertFalse(jcrContent.hasProperty("prop0"));
+        Assert.assertTrue(jcrContent.exists());
+        Assert.assertTrue(jcrContent.hasProperty("prop10"));
+        Assert.assertFalse(jcrContent.hasProperty("prop0"));
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -1422,13 +1420,13 @@ public class VersionGarbageCollectorIT {
                 btwnChkpUBC(0, 10, 0, 0, 1, 0, 2));
 
         x = store1.getRoot().getChildNode("x");
-        assertTrue(x.exists());
-        assertTrue(x.hasProperty("prop0"));
-        assertTrue(x.hasProperty("prop10"));
+        Assert.assertTrue(x.exists());
+        Assert.assertTrue(x.hasProperty("prop0"));
+        Assert.assertTrue(x.hasProperty("prop10"));
         jcrContent = x.getChildNode("jcr:content");
-        assertTrue(jcrContent.exists());
-        assertTrue(jcrContent.hasProperty("prop10"));
-        assertFalse(jcrContent.hasProperty("prop0"));
+        Assert.assertTrue(jcrContent.exists());
+        Assert.assertTrue(jcrContent.hasProperty("prop10"));
+        Assert.assertFalse(jcrContent.hasProperty("prop0"));
     }
 
     /**
@@ -1583,8 +1581,8 @@ public class VersionGarbageCollectorIT {
         if (c == null && VersionGarbageCollector.getFullGcMode() == FullGCMode.NONE) {
             c = new GCCounts(FullGCMode.NONE);
         }
-        assertNotNull(stats);
-        assertNotNull(c);
+        Assert.assertNotNull(stats);
+        Assert.assertNotNull(c);
         doAssertEquals(c.mode + "/docGC", c.deletedDocGCCount, stats.deletedDocGCCount);
         doAssertEquals(c.mode + "/props", c.deletedPropsCount, stats.deletedPropsCount);
         doAssertEquals(c.mode + "/internalProps", c.deletedInternalPropsCount, stats.deletedInternalPropsCount);
@@ -1602,7 +1600,7 @@ public class VersionGarbageCollectorIT {
                 msg = msg + " - staticStore : " + staticStore.getDocumentStore();
             }
         }
-        assertEquals(msg, expected, actual);
+        Assert.assertEquals(msg, expected, actual);
     }
 
     @Test
@@ -1623,8 +1621,8 @@ public class VersionGarbageCollectorIT {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertEquals(0, stats.deletedPropsCount);
-        assertEquals(0, stats.updatedFullGCDocsCount);
+        Assert.assertEquals(0, stats.deletedPropsCount);
+        Assert.assertEquals(0, stats.updatedFullGCDocsCount);
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -1638,9 +1636,9 @@ public class VersionGarbageCollectorIT {
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertEquals(0, stats.deletedPropsCount);
-        assertEquals(0, stats.updatedFullGCDocsCount);
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId); // as GC hadn't run
+        Assert.assertEquals(0, stats.deletedPropsCount);
+        Assert.assertEquals(0, stats.updatedFullGCDocsCount);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId); // as GC hadn't run
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -1669,9 +1667,9 @@ public class VersionGarbageCollectorIT {
 
         VersionGarbageCollector gc = new VersionGarbageCollector(store1, gcSupport, true, false, false);
         stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.updatedFullGCDocsCount);
-        assertEquals(0, stats.deletedPropsCount);
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertEquals(0, stats.updatedFullGCDocsCount);
+        Assert.assertEquals(0, stats.deletedPropsCount);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
@@ -1739,10 +1737,10 @@ public class VersionGarbageCollectorIT {
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc(gcRef.get(), maxAge*2, HOURS);
-        assertTrue(stats.canceled);
-        assertEquals(0, stats.updatedFullGCDocsCount);
-        assertEquals(0, stats.deletedPropsCount);
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertTrue(stats.canceled);
+        Assert.assertEquals(0, stats.updatedFullGCDocsCount);
+        Assert.assertEquals(0, stats.deletedPropsCount);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     // OAK-10199 END
@@ -1813,20 +1811,20 @@ public class VersionGarbageCollectorIT {
 
         Document document = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
         assert document != null;
-        assertNotNull(document.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
-        assertNotNull(document.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        Assert.assertNotNull(document.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        Assert.assertNotNull(document.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
 
         stats = gc(gcRef.get(), maxAge*2, HOURS);
 
         document = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
-        assertEquals(5, stats.updatedFullGCDocsCount);
-        assertEquals(5, stats.deletedPropsCount);
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertEquals(5, stats.updatedFullGCDocsCount);
+        Assert.assertEquals(5, stats.deletedPropsCount);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
         // 4. verify that fullGC variables are not updated after resetting them
         assert document != null;
-        assertNull(document.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
-        assertNull(document.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
+        Assert.assertNull(document.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        Assert.assertNull(document.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
     }
 
     // OAK-10921 END
@@ -1857,7 +1855,7 @@ public class VersionGarbageCollectorIT {
         store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         // not doing a bgops == sweep here to cause "cv2" revision
         // not being considered as commited by sweep
-        // (the test goal is to cause that resolution to fail in case
+        // (the test goal is to cause that resolution to Assert.fail in case
         // we would delete the parent's _revisions entry)
 
         // enable the full gc flag
@@ -1874,7 +1872,7 @@ public class VersionGarbageCollectorIT {
         Cache<Revision, String> commitValueCache = (Cache<Revision, String>) readField( cvr, "commitValueCache", true);
         commitValueCache.invalidateAll();
         PropertyState ckBefore = store1.getRoot().getChildNode("parent").getChildNode("child").getProperty("ck");
-        assertNotNull(ckBefore);
+        Assert.assertNotNull(ckBefore);
 
         // now the GC
         VersionGCStats stats = gc(gc, 1, HOURS);
@@ -1887,8 +1885,8 @@ public class VersionGarbageCollectorIT {
         commitValueCache = (Cache<Revision, String>) readField( cvr, "commitValueCache", true);
         commitValueCache.invalidateAll();
         PropertyState ckAfter = store1.getRoot().getChildNode("parent").getChildNode("child").getProperty("ck");
-        assertNotNull(ckAfter);
-        assertEquals(ckBefore.getValue(Type.STRING), ckAfter.getValue(Type.STRING));
+        Assert.assertNotNull(ckAfter);
+        Assert.assertEquals(ckBefore.getValue(Type.STRING), ckAfter.getValue(Type.STRING));
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
                 empPropOnly(),
@@ -1965,9 +1963,9 @@ public class VersionGarbageCollectorIT {
         nb.setProperty("rootProp1", "rootValue1");
         try {
             store2.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            fail("expected 'OakOak0001: write operation failed'");
+            Assert.fail("expected 'OakOak0001: write operation failed'");
         } catch(CommitFailedException cfe) {
-            assertEquals("OakOak0001: write operation failed", cfe.getMessage());
+            Assert.assertEquals("OakOak0001: write operation failed", cfe.getMessage());
         }
 
         // enable the full gc flag
@@ -1982,17 +1980,17 @@ public class VersionGarbageCollectorIT {
         nb.child("node1").setProperty("b", "4");
         try {
             store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            fail("should fail");
+            Assert.fail("should Assert.fail");
         } catch(Exception e) {
-            // expected to fail
+            // expected to Assert.fail
         }
         VersionGCStats stats = gc(gc, 1, HOURS);
         store1.runBackgroundOperations();
         store1.runBackgroundOperations();
         createSecondaryStore(LeaseCheckMode.LENIENT);
         NodeState node1 = store2.getRoot().getChildNode("node1");
-        assertEquals("1", node1.getProperty("a").getValue(Type.STRING));
-        assertFalse(node1.hasProperty("b"));
+        Assert.assertEquals("1", node1.getProperty("a").getValue(Type.STRING));
+        Assert.assertFalse(node1.hasProperty("b"));
         assertStatsCountsZero(stats);
     }
 
@@ -2008,7 +2006,7 @@ public class VersionGarbageCollectorIT {
         RevisionVector br1 = unmergedBranchCommit(store1, b -> b.child("node1").setProperty("a", "2"));
         store1.runBackgroundOperations();
         invalidateCaches(store1);
-        assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
+        Assert.assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
 
         // enable the full gc flag
         writeField(gc, "fullGCEnabled", true, true);
@@ -2017,7 +2015,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
 
         invalidateCaches(store1);
-        assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
+        Assert.assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
 
         // clean everything older than one hour
 
@@ -2027,23 +2025,23 @@ public class VersionGarbageCollectorIT {
         store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         VersionGCStats stats = gc(gc, 1, HOURS);
         invalidateCaches(store1);
-        assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
+        Assert.assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
         store1.runBackgroundOperations();
         invalidateCaches(store1);
-        assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
+        Assert.assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
         store1.runBackgroundOperations();
         invalidateCaches(store1);
-        assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
+        Assert.assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
         createSecondaryStore(LeaseCheckMode.LENIENT);
 
         // while "2" was written to node1/a via an unmerged branch commit,
         // it should not have been made visible through FGC/sweep combo
         invalidateCaches(store2);
-        assertEquals("1", store2.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
-        assertEquals("4", store2.getRoot().getChildNode("node1").getProperty("b").getValue(Type.STRING));
+        Assert.assertEquals("1", store2.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
+        Assert.assertEquals("4", store2.getRoot().getChildNode("node1").getProperty("b").getValue(Type.STRING));
         invalidateCaches(store2);
-        assertEquals("1", store2.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
-        assertEquals("4", store2.getRoot().getChildNode("node1").getProperty("b").getValue(Type.STRING));
+        Assert.assertEquals("1", store2.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
+        Assert.assertEquals("4", store2.getRoot().getChildNode("node1").getProperty("b").getValue(Type.STRING));
 
         // deletedPropsCount=0 : _bc on /node1 and / CANNOT be removed
         // deletedPropRevsCount=1 : (nothing on /node1[a, _commitRoot), /[_revisions]
@@ -2275,17 +2273,17 @@ public class VersionGarbageCollectorIT {
         createNodes("/a/b/c/d");
         lateWriteRemoveNodes(of("/a/b"), null);
 
-        assertTrue(getChildeNodeState(store1, "/a/b/c/d", true).exists());
+        Assert.assertTrue(getChildeNodeState(store1, "/a/b/c/d", true).exists());
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertNotNull(stats);
+        Assert.assertNotNull(stats);
 
-        assertNotNull(store1.getDocumentStore().find(NODES, "2:/a/b"));
-        assertNotNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
-        assertTrue(getChildeNodeState(store1, "/a/b/c/d", true).exists());
+        Assert.assertNotNull(store1.getDocumentStore().find(NODES, "2:/a/b"));
+        Assert.assertNotNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
+        Assert.assertTrue(getChildeNodeState(store1, "/a/b/c/d", true).exists());
         // should be 3 as it should clean up the _deleted from /a/b, /a/b/c and /a/b/c/d
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
@@ -2309,7 +2307,7 @@ public class VersionGarbageCollectorIT {
      * branch: null, commit revision: re-0-1]
      */
     @Test
-    @Ignore(value = "OAK-10658 : fails currently as invalidation is missing (in classic GC) after late-write-then-sweep-then-GC")
+    @Ignore(value = "OAK-10658 : Assert.fails currently as invalidation is missing (in classic GC) after late-write-then-sweep-then-GC")
     public void lateWriteRemoveChildGC_withSweep() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
         enableFullGC(store1.getVersionGarbageCollector());
@@ -2322,16 +2320,16 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         getChildeNodeState(store1, "/a/b/c/d", true);
-        assertNotNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
-        assertNotNull(store1.getDocumentStore().find(NODES, "3:/a/b/c"));
-        assertNotNull(store1.getDocumentStore().find(NODES, "2:/a/b"));
+        Assert.assertNotNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
+        Assert.assertNotNull(store1.getDocumentStore().find(NODES, "3:/a/b/c"));
+        Assert.assertNotNull(store1.getDocumentStore().find(NODES, "2:/a/b"));
 
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertNotNull(stats);
+        Assert.assertNotNull(stats);
 
-        assertNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
-        assertNull(store1.getDocumentStore().find(NODES, "3:/a/b/c"));
-        assertNull(store1.getDocumentStore().find(NODES, "2:/a/b"));
+        Assert.assertNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
+        Assert.assertNull(store1.getDocumentStore().find(NODES, "3:/a/b/c"));
+        Assert.assertNull(store1.getDocumentStore().find(NODES, "2:/a/b"));
 
         // invalidating store1's nodeCache would fix it
         // but we need that to happen in prod code, not test
@@ -2358,7 +2356,7 @@ public class VersionGarbageCollectorIT {
         // clean everything older than one hour
         enableFullGC(store1.getVersionGarbageCollector());
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertNotNull(stats);
+        Assert.assertNotNull(stats);
         // expected 2 updated (deletions): /a/b/c/d and /a/b/c/d/e
         assertStatsCountsEqual(stats,
                 empPropOnly(),
@@ -2385,7 +2383,7 @@ public class VersionGarbageCollectorIT {
     @Ignore(value="this is a reminder to add bundling-fullGC tests in general, plus some of those cases combined with OAK-10542")
     @Test
     public void testBundlingAndLatestSplit() throws Exception {
-        fail("yet to be implemented");
+        Assert.fail("yet to be implemented");
     }
 
     @Test
@@ -2454,10 +2452,10 @@ public class VersionGarbageCollectorIT {
                                 int deletedInternalPropsCount, int deletedPropRevsCount,
                                 int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
                                 int updatedFullGCDocsCount) {
-        assertEquals(0, deletedInternalPropsCount);
-        assertEquals(0, deletedPropRevsCount);
-        assertEquals(0, deletedInternalPropRevsCount);
-        assertEquals(0, deletedUnmergedBCCount);
+        Assert.assertEquals(0, deletedInternalPropsCount);
+        Assert.assertEquals(0, deletedPropRevsCount);
+        Assert.assertEquals(0, deletedInternalPropRevsCount);
+        Assert.assertEquals(0, deletedUnmergedBCCount);
         return new GCCounts(FullGCMode.EMPTYPROPS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
@@ -2472,10 +2470,10 @@ public class VersionGarbageCollectorIT {
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
             int updatedFullGCDocsCount) {
-        assertEquals(0, deletedInternalPropsCount);
-        assertEquals(0, deletedPropRevsCount);
-        assertEquals(0, deletedInternalPropRevsCount);
-        assertEquals(0, deletedUnmergedBCCount);
+        Assert.assertEquals(0, deletedInternalPropsCount);
+        Assert.assertEquals(0, deletedPropRevsCount);
+        Assert.assertEquals(0, deletedInternalPropRevsCount);
+        Assert.assertEquals(0, deletedUnmergedBCCount);
         return new GCCounts(FullGCMode.GAP_ORPHANS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
@@ -2490,10 +2488,10 @@ public class VersionGarbageCollectorIT {
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
             int updatedFullGCDocsCount) {
-        assertEquals(0, deletedInternalPropsCount);
-        assertEquals(0, deletedPropRevsCount);
-        assertEquals(0, deletedInternalPropRevsCount);
-        assertEquals(0, deletedUnmergedBCCount);
+        Assert.assertEquals(0, deletedInternalPropsCount);
+        Assert.assertEquals(0, deletedPropRevsCount);
+        Assert.assertEquals(0, deletedInternalPropRevsCount);
+        Assert.assertEquals(0, deletedUnmergedBCCount);
         return new GCCounts(FullGCMode.GAP_ORPHANS_EMPTYPROPS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
@@ -2508,10 +2506,10 @@ public class VersionGarbageCollectorIT {
                                 int deletedInternalPropsCount, int deletedPropRevsCount,
                                 int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
                                 int updatedFullGCDocsCount) {
-        assertEquals(0, deletedInternalPropsCount);
-        assertEquals(0, deletedPropRevsCount);
-        assertEquals(0, deletedInternalPropRevsCount);
-        assertEquals(0, deletedUnmergedBCCount);
+        Assert.assertEquals(0, deletedInternalPropsCount);
+        Assert.assertEquals(0, deletedPropRevsCount);
+        Assert.assertEquals(0, deletedInternalPropRevsCount);
+        Assert.assertEquals(0, deletedUnmergedBCCount);
         return new GCCounts(FullGCMode.ALL_ORPHANS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
@@ -2526,10 +2524,10 @@ public class VersionGarbageCollectorIT {
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
             int updatedFullGCDocsCount) {
-        assertEquals(0, deletedInternalPropsCount);
-        assertEquals(0, deletedPropRevsCount);
-        assertEquals(0, deletedInternalPropRevsCount);
-        assertEquals(0, deletedUnmergedBCCount);
+        Assert.assertEquals(0, deletedInternalPropsCount);
+        Assert.assertEquals(0, deletedPropRevsCount);
+        Assert.assertEquals(0, deletedInternalPropRevsCount);
+        Assert.assertEquals(0, deletedUnmergedBCCount);
         return new GCCounts(FullGCMode.ALL_ORPHANS_EMPTYPROPS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
@@ -2664,25 +2662,27 @@ public class VersionGarbageCollectorIT {
                 btwnChkpUBC(0, 0, 0, 0, 1, 0, 1));
 
         NodeState x = store1.getRoot().getChildNode("x");
-        assertTrue(x.exists());
-        assertEquals(x.getProperty("prop0").getValue(Type.STRING), "bar2");
-        assertEquals(x.getProperty("prop9").getValue(Type.STRING), "bar");
+        Assert.assertTrue(x.exists());
+        Assert.assertEquals(x.getProperty("prop0").getValue(Type.STRING), "bar2");
+        Assert.assertEquals(x.getProperty("prop9").getValue(Type.STRING), "bar");
         NodeState jcrContent = x.getChildNode("jcr:content");
-        assertTrue(jcrContent.exists());
-        assertEquals(jcrContent.getProperty("bprop0").getValue(Type.STRING), "t2");
-        assertEquals(jcrContent.getProperty("bprop9").getValue(Type.STRING), "t");
+        Assert.assertTrue(jcrContent.exists());
+        Assert.assertEquals(jcrContent.getProperty("bprop0").getValue(Type.STRING), "t2");
+        Assert.assertEquals(jcrContent.getProperty("bprop9").getValue(Type.STRING), "t");
 
         NodeDocument doc = store1.getDocumentStore().find(NODES, "1:/x", -1);
-        assertNotNull(doc);
+        Assert.assertNotNull(doc);
         if (VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC
-                || VersionGarbageCollector.getFullGcMode() == FullGCMode.NONE || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.NONE
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.ALL_ORPHANS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS_EMPTYPROPS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.ALL_ORPHANS_EMPTYPROPS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.EMPTYPROPS) {
             // this mode doesn't currently delete all revisions,
-            // thus would fail below assert.
+            // thus would Assert.fail below assert.
             return;
         }
         for (Entry<String, Object> e : doc.entrySet()) {
@@ -2690,7 +2690,7 @@ public class VersionGarbageCollectorIT {
             if (v instanceof Map) {
                 @SuppressWarnings("rawtypes")
                 Map m = (Map)v;
-                assertEquals("more than 1 entry for " + e.getKey(), 1, m.size());
+                Assert.assertEquals("more than 1 entry for " + e.getKey(), 1, m.size());
             }
         }
     }
@@ -2731,7 +2731,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 1, 0, 0, 0, 0, 1),
                 betweenChkp(0, 1, 0, 0, 1, 0, 2),
                 btwnChkpUBC(0, 1, 0, 0, 1, 0, 2));
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
         // 4. Save values of fullGC settings collection fields
         final String oldestModifiedDocId = stats.oldestModifiedDocId;
@@ -2739,8 +2739,8 @@ public class VersionGarbageCollectorIT {
 
         final Document documentBefore = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
         assert documentBefore != null;
-        assertEquals(documentBefore.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
-        assertEquals(documentBefore.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
+        Assert.assertEquals(documentBefore.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
+        Assert.assertEquals(documentBefore.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
 
         //5. Verify that in dryRun mode property does not get gc and fullGC fields remain the same
         NodeBuilder b3 = store1.getRoot().builder();
@@ -2767,16 +2767,16 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 1, 0, 0, 0, 0, 1),
                 betweenChkp(0, 1, 0, 0, 1, 0, 2),
                 btwnChkpUBC(0, 1, 0, 0, 1, 0, 2));
-        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
-        assertTrue(stats.fullGCDryRunMode);
+        Assert.assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        Assert.assertTrue(stats.fullGCDryRunMode);
 
         final Document documentAfter = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
         assert documentAfter != null;
-        assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
-        assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
+        Assert.assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
+        Assert.assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
 
-        assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP), oldestModifiedDocDryRunTimeStamp);
-        assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP), oldestModifiedDryRunDocId);
+        Assert.assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP), oldestModifiedDocDryRunTimeStamp);
+        Assert.assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP), oldestModifiedDryRunDocId);
     }
 
     @Test
@@ -2825,7 +2825,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 3, 2, 1,15, 4, 3),
                 betweenChkp(0, 3, 0, 0, 1, 0, 3),
                 btwnChkpUBC(0, 3, 2, 1,16, 4, 3));
-        assertTrue(stats.fullGCDryRunMode);
+        Assert.assertTrue(stats.fullGCDryRunMode);
 
         assertBranchRevisionNotRemovedFromAllDocuments(store1, br1);
         assertBranchRevisionNotRemovedFromAllDocuments(store1, br2);
@@ -2864,8 +2864,8 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertFalse(store1.getRoot().getChildNode("bar").hasProperty("prop"));
-        assertNotNull(stats);
+        Assert.assertFalse(store1.getRoot().getChildNode("bar").hasProperty("prop"));
+        Assert.assertNotNull(stats);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
                 allOrphOnly(),
@@ -2908,8 +2908,8 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertFalse(store1.getRoot().getChildNode("bar").hasProperty("prop"));
-        assertNotNull(stats);
+        Assert.assertFalse(store1.getRoot().getChildNode("bar").hasProperty("prop"));
+        Assert.assertNotNull(stats);
         // since we have updated a totally unrelated path i.e. "/a",
         // we should still be seeing the garbage from late write and
         // thus it will be collected.
@@ -2956,7 +2956,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertEquals("value2", store1.getRoot().getChildNode("bar").getProperty("prop").getValue(Type.STRING));
+        Assert.assertEquals("value2", store1.getRoot().getChildNode("bar").getProperty("prop").getValue(Type.STRING));
         // deletedPropsCount : we shouldn't be able to remove the property since we have
         // updated an related path that has lead to an update of common ancestor and
         // this would make late write visible
@@ -2998,7 +2998,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertNotNull(stats);
+        Assert.assertNotNull(stats);
         // 1 prop-rev removal : the late-write null
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
@@ -3036,7 +3036,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertNotNull(stats);
+        Assert.assertNotNull(stats);
         // since we have updated an totally unrelated path i.e. "/a", we should still be seeing the garbage from late write and
         // thus it will be collected.
         // removes 1 prop-rev : the late-write null
@@ -3053,7 +3053,7 @@ public class VersionGarbageCollectorIT {
                 btwnChkpUBC(0, 0, 0, 0, 2, 0, 1));
         assertDocumentsExist(of("/foo/bar/baz"));
         invalidateCaches(store1);
-        assertEquals("value", store1.getRoot().getChildNode("foo").getChildNode("bar")
+        Assert.assertEquals("value", store1.getRoot().getChildNode("foo").getChildNode("bar")
                 .getChildNode("baz").getProperty("prop").getValue(Type.STRING));
     }
 
@@ -3098,10 +3098,10 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertTrue(store1.getRoot().getChildNode("d").exists());
+        Assert.assertTrue(store1.getRoot().getChildNode("d").exists());
         invalidateCaches(store1);
-        assertTrue(store1.getRoot().getChildNode("d").exists());
-        assertNotNull(stats);
+        Assert.assertTrue(store1.getRoot().getChildNode("d").exists());
+        Assert.assertNotNull(stats);
         // we should be able to remove the property since we have updated an related path that has lead to an update
         // of common ancestor and this would make late write visible
         assertStatsCountsEqual(stats,
@@ -3161,27 +3161,27 @@ public class VersionGarbageCollectorIT {
         List<NodeDocument> previousDocRoot =
                 ListUtils.toList(getDoc("/").getAllPreviousDocs());
 
-        assertEquals(1, previousDocTestFoo.size());
-        assertEquals(1, previousDocTestFoo2.size());
-        assertEquals(1, previousDocRoot.size());
+        Assert.assertEquals(1, previousDocTestFoo.size());
+        Assert.assertEquals(1, previousDocTestFoo2.size());
+        Assert.assertEquals(1, previousDocRoot.size());
 
-        assertEquals(SplitDocType.COMMIT_ROOT_ONLY, previousDocTestFoo.get(0).getSplitDocType());
-        assertEquals(SplitDocType.DEFAULT_LEAF, previousDocTestFoo2.get(0).getSplitDocType());
-        assertEquals(SplitDocType.DEFAULT_NO_BRANCH, previousDocRoot.get(0).getSplitDocType());
+        Assert.assertEquals(SplitDocType.COMMIT_ROOT_ONLY, previousDocTestFoo.get(0).getSplitDocType());
+        Assert.assertEquals(SplitDocType.DEFAULT_LEAF, previousDocTestFoo2.get(0).getSplitDocType());
+        Assert.assertEquals(SplitDocType.DEFAULT_NO_BRANCH, previousDocRoot.get(0).getSplitDocType());
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertEquals(3, stats.splitDocGCCount);
-        assertEquals(0, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(3, stats.splitDocGCCount);
+        Assert.assertEquals(0, stats.deletedLeafDocGCCount);
 
         //Previous doc should be removed
-        assertNull(getDoc(previousDocTestFoo.get(0).getPath()));
-        assertNull(getDoc(previousDocTestFoo2.get(0).getPath()));
-        assertNull(getDoc(previousDocRoot.get(0).getPath()));
+        Assert.assertNull(getDoc(previousDocTestFoo.get(0).getPath()));
+        Assert.assertNull(getDoc(previousDocTestFoo2.get(0).getPath()));
+        Assert.assertNull(getDoc(previousDocRoot.get(0).getPath()));
 
         //Following would not work for Mongo as the delete happened on the server side
         //And entries from cache are not evicted
-        //assertTrue(List.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
+        //Assert.assertTrue(List.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
     }
 
     /**
@@ -3198,7 +3198,7 @@ public class VersionGarbageCollectorIT {
         // step 1 : create a _delete entry with clusterId 2, plus do a GC
         createLeaf(store2, "t", "target");
         store2.runBackgroundOperations();
-        assertEquals(0, store2.getVersionGarbageCollector().gc(24, HOURS).splitDocGCCount);
+        Assert.assertEquals(0, store2.getVersionGarbageCollector().gc(24, HOURS).splitDocGCCount);
 
         // step 2 : nearly cause target docu split - via clusterId 1
         store1.runBackgroundOperations();
@@ -3232,20 +3232,20 @@ public class VersionGarbageCollectorIT {
 
         // step 8 : do the gc
         // expect a split doc at depth 4 for /t/target to exist
-        assertEquals(1, store1.getDocumentStore()
+        Assert.assertEquals(1, store1.getDocumentStore()
                 .query(NODES, "4:p/t/target/", "4:p/t/target/z", 5).size());
         gc(gc, 24, HOURS);
         // before a fix the split doc is GCed (but can't make that an assert)
-        //assertEquals(0, store.getDocumentStore()
+        //Assert.assertEquals(0, store.getDocumentStore()
         //        .query(NODES, "4:p/t/target/", "4:p/t/target/z", 5).size());
 
         // step 9 : make assertions about /t/target at root and checkpoint
         // invalidate node cache to ensure readNode/getNodeAtRevision is called below
         store1.getNodeCache().invalidateAll();
-        assertTrue(store1.getRoot().getChildNode("t").getChildNode("target").exists());
+        Assert.assertTrue(store1.getRoot().getChildNode("t").getChildNode("target").exists());
         // invalidate node cache to ensure readNode/getNodeAtRevision is called below
         store1.getNodeCache().invalidateAll();
-        assertFalse(requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getChildNode("target").exists());
+        Assert.assertFalse(requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getChildNode("target").exists());
     }
 
     /**
@@ -3283,10 +3283,10 @@ public class VersionGarbageCollectorIT {
         // step 4 : make assertions about /t/target at root and checkpoint
         // invalidate node cache to ensure readNode is called below
         store1.getNodeCache().invalidateAll();
-        assertFalse(store1.getRoot().getChildNode("t").getChildNode("target").exists());
+        Assert.assertFalse(store1.getRoot().getChildNode("t").getChildNode("target").exists());
         // invalidate node cache to ensure readNode is called below
         store1.getNodeCache().invalidateAll();
-        assertTrue(requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getChildNode("target").exists());
+        Assert.assertTrue(requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getChildNode("target").exists());
 
     }
 
@@ -3324,10 +3324,10 @@ public class VersionGarbageCollectorIT {
         // step 4 : make assertions about /t/target at root and checkpoint
         // invalidate node cache to ensure readNode/getNodeAtRevision is called below
         store1.getNodeCache().invalidateAll();
-        assertFalse(store1.getRoot().getChildNode("t").getChildNode("target").exists());
+        Assert.assertFalse(store1.getRoot().getChildNode("t").getChildNode("target").exists());
         // invalidate node cache to ensure readNode/getNodeAtRevision is called below
         store1.getNodeCache().invalidateAll();
-        assertFalse(requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getChildNode("target").exists());
+        Assert.assertFalse(requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getChildNode("target").exists());
 
     }
 
@@ -3352,7 +3352,7 @@ public class VersionGarbageCollectorIT {
 
         // step 2 : make sure GC was running once and sets oldest timestamp
         // (the value of oldest doesn't matter, but it should be <= t(0))
-        assertEquals(0, gc(gc, 24, HOURS).splitDocGCCount);
+        Assert.assertEquals(0, gc(gc, 24, HOURS).splitDocGCCount);
 
         // step 3 : wait for 1 week
         clock.waitUntil(clock.getTime() + TimeUnit.DAYS.toMillis(7));
@@ -3376,8 +3376,8 @@ public class VersionGarbageCollectorIT {
 
         // step 5 : create a checkpoint (valid for 42 days) at t(+1w+6sec)
         String checkpoint = store1.checkpoint(TimeUnit.DAYS.toMillis(42));
-        assertEquals(exp, store1.getRoot().getChildNode("t").getString("foo"));
-        assertEquals(exp, requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getString("foo"));
+        Assert.assertEquals(exp, store1.getRoot().getChildNode("t").getString("foo"));
+        Assert.assertEquals(exp, requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getString("foo"));
 
         // step 6 : wait for 1 week
         clock.waitUntil(clock.getTime() + TimeUnit.DAYS.toMillis(7));
@@ -3387,8 +3387,8 @@ public class VersionGarbageCollectorIT {
         b1.child("t").setProperty("foo", "barZ");
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
-        assertEquals("barZ", store1.getRoot().getChildNode("t").getString("foo"));
-        assertEquals(exp, requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getString("foo"));
+        Assert.assertEquals("barZ", store1.getRoot().getChildNode("t").getString("foo"));
+        Assert.assertEquals(exp, requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getString("foo"));
 
         // step 8 : move the clock a couple seconds to ensure GC maxRev condition hits
         // (without this it might not yet GC the split doc we want it to,
@@ -3396,11 +3396,11 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(30));
 
         // step 9 : trigger another GC - previously split away the referenced revision
-        assertEquals(0, gc(gc, 24, HOURS).splitDocGCCount);
+        Assert.assertEquals(0, gc(gc, 24, HOURS).splitDocGCCount);
         // flush the caches as otherwise it might deliver stale data
         store1.getNodeCache().invalidateAll();
-        assertEquals("barZ", store1.getRoot().getChildNode("t").getString("foo"));
-        assertEquals(exp, requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getString("foo"));
+        Assert.assertEquals("barZ", store1.getRoot().getChildNode("t").getString("foo"));
+        Assert.assertEquals(exp, requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getString("foo"));
     }
 
     // OAK-1729
@@ -3415,13 +3415,13 @@ public class VersionGarbageCollectorIT {
         // root document
         b1.child("test");
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        assertTrue(getDoc("/test").getLocalRevisions().isEmpty());
+        Assert.assertTrue(getDoc("/test").getLocalRevisions().isEmpty());
         // setting the test property afterwards will use the new test document
         // as the commit root. this what we want for the test.
         b1 = store1.getRoot().builder();
         b1.child("test").setProperty("test", "value");
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        assertTrue(!getDoc("/test").getLocalRevisions().isEmpty());
+        Assert.assertTrue(!getDoc("/test").getLocalRevisions().isEmpty());
 
         for (int i = 0; i < PREV_SPLIT_FACTOR; i++) {
             for (int j = 0; j < NUM_REVS_THRESHOLD; j++) {
@@ -3444,17 +3444,17 @@ public class VersionGarbageCollectorIT {
                 break;
             }
         }
-        assertTrue("Test data does not have intermediate previous docs",
+        Assert.assertTrue("Test data does not have intermediate previous docs",
                 hasIntermediateDoc);
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertEquals(10, stats.splitDocGCCount);
-        assertEquals(0, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(10, stats.splitDocGCCount);
+        Assert.assertEquals(0, stats.deletedLeafDocGCCount);
 
         DocumentNodeState test = getDoc("/test").getNodeAtRevision(store1, store1.getHeadRevision(), null);
-        assertNotNull(test);
-        assertTrue(test.hasProperty("test"));
+        Assert.assertNotNull(test);
+        Assert.assertTrue(test.hasProperty("test"));
     }
 
     // OAK-1779
@@ -3485,14 +3485,14 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertEquals(1, stats.deletedDocGCCount);
-        assertEquals(1, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(1, stats.deletedDocGCCount);
+        Assert.assertEquals(1, stats.deletedLeafDocGCCount);
 
         Set<String> children = new HashSet<>();
         for (ChildNodeEntry entry : store1.getRoot().getChildNodeEntries()) {
             children.add(entry.getName());
         }
-        assertEquals(names, children);
+        Assert.assertEquals(names, children);
     }
 
     // OAK-1793
@@ -3522,13 +3522,13 @@ public class VersionGarbageCollectorIT {
 
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         // one split doc each on: /foo, /bar and root document
-        assertEquals(3, stats.splitDocGCCount);
-        assertEquals(0, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(3, stats.splitDocGCCount);
+        Assert.assertEquals(0, stats.deletedLeafDocGCCount);
 
         NodeDocument doc = getDoc("/foo");
-        assertNotNull(doc);
+        Assert.assertNotNull(doc);
         DocumentNodeState state = doc.getNodeAtRevision(store1, store1.getHeadRevision(), null);
-        assertNotNull(state);
+        Assert.assertNotNull(state);
     }
 
     // OAK-1791
@@ -3562,16 +3562,16 @@ public class VersionGarbageCollectorIT {
             if (i % 1800 == 0) {
                 gc(gc, 1, HOURS);
                 NodeDocument doc = store1.getDocumentStore().find(NODES, id);
-                assertNotNull(doc);
+                Assert.assertNotNull(doc);
                 int numPrevDocs = IteratorUtils.size(doc.getAllPreviousDocs());
-                assertTrue("too many previous docs: " + numPrevDocs,
+                Assert.assertTrue("too many previous docs: " + numPrevDocs,
                         numPrevDocs < 70);
             }
         }
         NodeDocument doc = store1.getDocumentStore().find(NODES, id);
-        assertNotNull(doc);
+        Assert.assertNotNull(doc);
         int numRevs = IterableUtils.size(doc.getValueMap("prop").entrySet());
-        assertTrue("too many revisions: " + numRevs, numRevs < 6000);
+        Assert.assertTrue("too many revisions: " + numRevs, numRevs < 6000);
     }
 
     // OAK-2778
@@ -3643,16 +3643,16 @@ public class VersionGarbageCollectorIT {
         for (ChildNodeEntry cne : store1.getRoot().getChildNodeEntries()) {
             names.add(cne.getName());
         }
-        assertEquals(1, names.size());
+        Assert.assertEquals(1, names.size());
 
         doc = ds.find(NODES, Utils.getIdFromPath("/" + names.get(0)));
-        assertNotNull(doc);
-        assertEquals(0, IteratorUtils.size(doc.getAllPreviousDocs()));
+        Assert.assertNotNull(doc);
+        Assert.assertEquals(0, IteratorUtils.size(doc.getAllPreviousDocs()));
 
         VersionGCStats stats = f.get();
-        assertEquals(1, stats.deletedDocGCCount);
-        assertEquals(2, stats.splitDocGCCount);
-        assertEquals(0, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(1, stats.deletedDocGCCount);
+        Assert.assertEquals(2, stats.splitDocGCCount);
+        Assert.assertEquals(0, stats.deletedLeafDocGCCount);
     }
 
     // OAK-4819
@@ -3680,10 +3680,10 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
-        // gc must not fail
+        // gc must not Assert.fail
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertEquals(1, stats.deletedDocGCCount);
-        assertEquals(1, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(1, stats.deletedDocGCCount);
+        Assert.assertEquals(1, stats.deletedLeafDocGCCount);
     }
 
     @Test
@@ -3708,9 +3708,9 @@ public class VersionGarbageCollectorIT {
         }
         store1.runBackgroundOperations();
         NodeDocument foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
-        assertNotNull(foo);
+        Assert.assertNotNull(foo);
         Long modCount = foo.getModCount();
-        assertNotNull(modCount);
+        Assert.assertNotNull(modCount);
         List<String> prevIds = ListUtils.toList(IteratorUtils.transform(
                 foo.getPreviousDocLeaves(), input -> input.getId()));
 
@@ -3728,12 +3728,12 @@ public class VersionGarbageCollectorIT {
         }
 
         foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
-        assertNotNull(foo);
+        Assert.assertNotNull(foo);
         IteratorUtils.size(foo.getAllPreviousDocs());
 
         // foo must now reflect state after GC
         foo = ds.find(NODES, Utils.getIdFromPath("/foo"));
-        assertNotEquals(modCount, foo.getModCount());
+        Assert.assertNotEquals(modCount, foo.getModCount());
     }
 
     @Test
@@ -3762,11 +3762,11 @@ public class VersionGarbageCollectorIT {
         };
         gcRef.set(new VersionGarbageCollector(store1, gcSupport, false, false, false));
         VersionGCStats stats = gcRef.get().gc(30, TimeUnit.MINUTES);
-        assertTrue(stats.canceled);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedLeafDocGCCount);
-        assertEquals(0, stats.intermediateSplitDocGCCount);
-        assertEquals(0, stats.splitDocGCCount);
+        Assert.assertTrue(stats.canceled);
+        Assert.assertEquals(0, stats.deletedDocGCCount);
+        Assert.assertEquals(0, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(0, stats.intermediateSplitDocGCCount);
+        Assert.assertEquals(0, stats.splitDocGCCount);
     }
 
     @Test
@@ -3814,11 +3814,11 @@ public class VersionGarbageCollectorIT {
         };
         gcRef.set(new VersionGarbageCollector(store1, gcSupport, false, false, false));
         VersionGCStats stats = gcRef.get().gc(30, TimeUnit.MINUTES);
-        assertTrue(stats.canceled);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedLeafDocGCCount);
-        assertEquals(0, stats.intermediateSplitDocGCCount);
-        assertEquals(0, stats.splitDocGCCount);
+        Assert.assertTrue(stats.canceled);
+        Assert.assertEquals(0, stats.deletedDocGCCount);
+        Assert.assertEquals(0, stats.deletedLeafDocGCCount);
+        Assert.assertEquals(0, stats.intermediateSplitDocGCCount);
+        Assert.assertEquals(0, stats.splitDocGCCount);
     }
 
     // OAK-3070
@@ -3853,7 +3853,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + clockDelta);
         gc(gc, maxAgeHours, HOURS);
-        assertEquals("Not all deletable docs got reported on first run", 1, docCounter.get());
+        Assert.assertEquals("Not all deletable docs got reported on first run", 1, docCounter.get());
 
         docCounter.set(0);
         // create and delete another node
@@ -3868,7 +3868,7 @@ public class VersionGarbageCollectorIT {
         // wait another hour and GC in last 1 hour
         clock.waitUntil(clock.getTime() + clockDelta);
         gc.gc(maxAgeHours, HOURS);
-        assertEquals(1, docCounter.get());
+        Assert.assertEquals(1, docCounter.get());
     }
 
     @Test
@@ -3897,22 +3897,22 @@ public class VersionGarbageCollectorIT {
         store1.runBackgroundOperations();
 
         NodeDocument doc = getDoc("/foo");
-        assertNotNull(doc);
+        Assert.assertNotNull(doc);
         List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
-        assertEquals(1, prevDocs.size());
-        assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
+        Assert.assertEquals(1, prevDocs.size());
+        Assert.assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertEquals(1, stats.splitDocGCCount);
+        Assert.assertEquals(1, stats.splitDocGCCount);
 
         doc = getDoc("/foo");
-        assertNotNull(doc);
+        Assert.assertNotNull(doc);
         prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
-        assertEquals(0, prevDocs.size());
+        Assert.assertEquals(0, prevDocs.size());
 
-        assertEquals(value, store1.getRoot().getChildNode("foo").getString("prop"));
+        Assert.assertEquals(value, store1.getRoot().getChildNode("foo").getString("prop"));
     }
 
     @Test
@@ -3937,14 +3937,14 @@ public class VersionGarbageCollectorIT {
         // now /foo must have previous docs
         NodeDocument doc = getDoc("/foo");
         List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
-        assertEquals(1, prevDocs.size());
-        assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
+        Assert.assertEquals(1, prevDocs.size());
+        Assert.assertEquals(SplitDocType.DEFAULT_NO_BRANCH, prevDocs.get(0).getSplitDocType());
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge) + delta);
 
         // revision gc must not collect previous doc because sweep did not run
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertEquals(0, stats.splitDocGCCount);
+        Assert.assertEquals(0, stats.splitDocGCCount);
 
         // write something to make sure sweep rev is after the split revs
         // otherwise GC won't collect the split doc
@@ -3958,14 +3958,14 @@ public class VersionGarbageCollectorIT {
 
         // now sweep rev must be updated and revision GC can collect prev doc
         stats = gc(gc, maxAge, HOURS);
-        assertEquals(1, stats.splitDocGCCount);
+        Assert.assertEquals(1, stats.splitDocGCCount);
 
         doc = getDoc("/foo");
-        assertNotNull(doc);
+        Assert.assertNotNull(doc);
         prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
-        assertEquals(0, prevDocs.size());
+        Assert.assertEquals(0, prevDocs.size());
         // check value
-        assertEquals(value, store1.getRoot().getChildNode("foo").getString("prop"));
+        Assert.assertEquals(value, store1.getRoot().getChildNode("foo").getString("prop"));
     }
 
     @Test
@@ -4018,15 +4018,15 @@ public class VersionGarbageCollectorIT {
         // read the node /foo from the store that will perform the
         // revision garbage collection
         NodeState state = store2.getRoot().getChildNode(nodeName);
-        assertTrue(state.exists());
+        Assert.assertTrue(state.exists());
         PropertyState prop = state.getProperty("p");
-        assertNotNull(prop);
-        assertEquals(0L, prop.getValue(Type.LONG).longValue());
+        Assert.assertNotNull(prop);
+        Assert.assertEquals(0L, prop.getValue(Type.LONG).longValue());
         // must have the corresponding document in the cache now
         NodeDocument doc = ds2.getIfCached(NODES, docId);
-        assertNotNull(doc);
+        Assert.assertNotNull(doc);
         // must not yet have previous documents
-        assertTrue(doc.getPreviousRanges().isEmpty());
+        Assert.assertTrue(doc.getPreviousRanges().isEmpty());
 
         // write something else. this will ensure a journal entry is
         // pushed on the next background update operation
@@ -4043,12 +4043,12 @@ public class VersionGarbageCollectorIT {
 
         gc = store2.getVersionGarbageCollector();
         VersionGCStats stats = gc.gc(30, MINUTES);
-        assertEquals(1, stats.splitDocGCCount);
+        Assert.assertEquals(1, stats.splitDocGCCount);
 
         // check how the document looks like, bypassing cache
         doc = store1.getDocumentStore().find(NODES, docId, 0);
-        assertNotNull(doc);
-        assertTrue(doc.getPreviousRanges().isEmpty());
+        Assert.assertNotNull(doc);
+        Assert.assertTrue(doc.getPreviousRanges().isEmpty());
     }
 
     private void createTestNode(String name) throws CommitFailedException {
@@ -4071,14 +4071,14 @@ public class VersionGarbageCollectorIT {
     private void assertPropertyExist(String path, String propertyName) {
         Path p = Path.fromString(path);
         String id = Utils.getIdFromPath(p);
-        assertNotNull(requireNonNull(store1.getDocumentStore().find(NODES, id, -1)).get(propertyName));
+        Assert.assertNotNull(requireNonNull(store1.getDocumentStore().find(NODES, id, -1)).get(propertyName));
     }
 
     private void assertPropertyNotExist(String path, String propertyName) {
         Path p = Path.fromString(path);
         String id = Utils.getIdFromPath(p);
         SortedMap<Revision, String> valueMap = requireNonNull(store1.getDocumentStore().find(NODES, id, -1)).getLocalMap(propertyName);
-        assertNull(valueMap.get(valueMap.firstKey()));
+        Assert.assertNull(valueMap.get(valueMap.firstKey()));
     }
 
     private static final Predicate<UpdateOp> ADD_NODE_OPS = updateOp -> {
@@ -4124,7 +4124,7 @@ public class VersionGarbageCollectorIT {
         for (String name : p.elements()) {
             state = state.getChildNode(name);
             if (assertIntermediatesExist) {
-                assertTrue(state.exists());
+                Assert.assertTrue(state.exists());
             }
         }
         return state;
@@ -4133,9 +4133,9 @@ public class VersionGarbageCollectorIT {
     private void assertDocumentsDontExist(Collection<String> nonExistingPaths) {
         for (String nonExistingPath : nonExistingPaths) {
             Path p = Path.fromString(nonExistingPath);
-            assertFalse(getChildeNodeState(store1, nonExistingPath, false).exists());
+            Assert.assertFalse(getChildeNodeState(store1, nonExistingPath, false).exists());
             String id = Utils.getIdFromPath(p);
-            assertNull(store1.getDocumentStore().find(NODES, id));
+            Assert.assertNull(store1.getDocumentStore().find(NODES, id));
         }
     }
 
@@ -4143,7 +4143,7 @@ public class VersionGarbageCollectorIT {
         for (String aPath : paths) {
             Path p = Path.fromString(aPath);
             String id = Utils.getIdFromPath(p);
-            assertNotNull(store1.getDocumentStore().find(NODES, id, -1));
+            Assert.assertNotNull(store1.getDocumentStore().find(NODES, id, -1));
         }
     }
 
@@ -4207,12 +4207,12 @@ public class VersionGarbageCollectorIT {
      * @param unrelatedPath this path needs to be totally unrelated to above paths i.e. they shouldn't have common parent
      * @param filterPredicate to filter operations on FallingDocumentStore
      * @param dataStoreConsumer persist late write changes to DocumentStore
-     * @throws Exception in case of merge failure we throw exception
+     * @throws Exception in case of merge Assert.failure we throw exception
      */
     private void lateWrite(Collection<String> paths, LateWriteChangesBuilder lateWriteChangesBuilder, String unrelatedPath, boolean bc4Unrealted,
                            Predicate<UpdateOp> filterPredicate, BiConsumer<DocumentStore, List<UpdateOp>> dataStoreConsumer) throws Exception {
         // this method requires store2 to be null as a prerequisite
-        assertNull(store2);
+        Assert.assertNull(store2);
         // as it creates store2 itself - then disposes it later too
         createSecondaryStore(LeaseCheckMode.LENIENT, true);
         // create the orphaned paths
@@ -4225,10 +4225,10 @@ public class VersionGarbageCollectorIT {
                 NodeBuilder rb = store2.getRoot().builder();
                 lateWriteChangesBuilder.apply(rb, path);
                 merge(store2, rb);
-                fail("merge must fail");
+                Assert.fail("merge must fail");
             } catch (CommitFailedException e) {
                 // expected
-                assertEquals("OakOak0001: write operation failed", e.getMessage());
+                Assert.assertEquals("OakOak0001: write operation failed", e.getMessage());
             }
         }
         disposeQuietly(store2);
@@ -4239,8 +4239,8 @@ public class VersionGarbageCollectorIT {
 
         {
             store1.renewClusterIdLease();
-            assertTrue(store1.getLastRevRecoveryAgent().isRecoveryNeeded());
-            assertEquals(0, store1.getLastRevRecoveryAgent().recover(2));
+            Assert.assertTrue(store1.getLastRevRecoveryAgent().isRecoveryNeeded());
+            Assert.assertEquals(0, store1.getLastRevRecoveryAgent().recover(2));
         }
 
         // 'late write'
@@ -4293,7 +4293,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertNotNull(stats);
+        Assert.assertNotNull(stats);
         assertStatsCountsEqual(stats, counts);
         assertDocumentsExist(parents);
         // and the main assert being: have those lateCreated (orphans) docs been deleted
@@ -4301,6 +4301,277 @@ public class VersionGarbageCollectorIT {
         if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.EMPTYPROPS)) {
             assertDocumentsDontExist(orphans);
         }
+    }
+
+    /**
+     * Test for the bug where FullGC EmptyProps mode incorrectly allows
+     * checkpoint reads to return old values from split documents after
+     * properties are deleted by FullGC.
+     * <p>
+     * Reproduction scenario:
+     * 1. Create document with split documents containing test property
+     * 2. Delete the property (set to null)
+     * 3. Wait 24h, then FullGC removes the property
+     * 4. Create checkpoint
+     * 5. 1ms later, write same property again (newer than checkpoint)
+     * 6. Read checkpoint -> should return null but incorrectly returns old value from split doc
+     */
+    @Test
+    public void testFullGCEmptyPropsSplitDocumentInconsistency() throws Exception {
+
+        assumeTrue(fixture.hasSinglePersistence());
+        assumeTrue("Test only applicable for MongoDocumentStore", fixture instanceof DocumentStoreFixture.MongoFixture);
+        assumeTrue("Test only applicable for EMPTY_PROPERTIES mode", isModeOneOf(FullGCMode.EMPTYPROPS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.ALL_ORPHANS_EMPTYPROPS));
+        // Enable FullGC
+        VersionGarbageCollector gc = store1.getVersionGarbageCollector();
+        enableFullGC(gc);
+        final String testPath = "/test";
+        final String testProperty = "testProp";
+        final String newValue = "newValue";
+        String testValue = "splitValue0";
+        // Step 1: Create document with many revisions to trigger split
+        NodeBuilder builder = store1.getRoot().builder();
+        builder.child("test").setProperty(testProperty, testValue);
+        // Create child nodes so split documents don't get deleted
+        builder.child("test").child("child1").setProperty("prop", "value");
+        builder.child("test").child("child2").setProperty("prop", "value");
+        merge(store1, builder);
+        // Force many commits to force the creation of a split document
+        for (int i = 1; i <= NodeDocument.NUM_REVS_THRESHOLD + 10; i++) {
+            builder = store1.getRoot().builder();
+            testValue = "splitValue" + i;
+            builder.child("test").setProperty(testProperty, testValue);
+            merge(store1, builder);
+        }
+        // Trigger RevisionGC with split documents
+        store1.runBackgroundOperations();
+        // Verify split document was created
+        NodeDocument doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        Assert.assertNotNull("Main document should exist", doc);
+        Assert.assertFalse("Document should have split documents. " + "LocalRevs=" + doc.getLocalRevisions().size() +
+                ", CommitRoot=" + doc.getLocalCommitRoot().size() +
+                ", Total=" + (doc.getLocalRevisions().size() + doc.getLocalCommitRoot().size()) +
+                ", Threshold=" + NUM_REVS_THRESHOLD, doc.getPreviousRanges().isEmpty()); // Should have split documents due to many revisions
+
+        // Verify testProperty exists in split documents
+        DocumentNodeState nodeState = doc.getNodeAtRevision(store1, store1.getHeadRevision(), null);
+        Assert.assertNotNull("Node should exist", nodeState);
+        PropertyState prop = nodeState.getProperty(testProperty);
+        Assert.assertNotNull("Test property should exist", prop);
+        Assert.assertEquals("Test property should have correct value", testValue, prop.getValue(Type.STRING));
+
+        // Phase 2: Delete the property (set to null)
+        builder = store1.getRoot().builder();
+        builder.child("test").removeProperty(testProperty);
+        merge(store1, builder);
+
+        // Verify property is now null on head state
+        NodeState currentState = store1.getRoot().getChildNode("test");
+        Assert.assertFalse("Property should be deleted", currentState.hasProperty(testProperty));
+
+        // Phase 3: Wait 24h and run FullGC to remove the property
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(25));
+        VersionGCStats stats = gc(gc, 24, TimeUnit.HOURS);
+        Assert.assertEquals("FullGC shouldn't have deleted anything", 0, stats.deletedPropsCount);
+
+        // Verify property wasn't removed by FullGC
+        doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        Assert.assertNotNull("Document should still exist", doc);
+        // Property should exist in main document
+        Assert.assertTrue("Property should be removed from main document", doc.getPropertyNames().contains(testProperty));
+
+        // Phase 4: Create checkpoint AFTER FullGC
+        String checkpoint = store1.checkpoint(TimeUnit.HOURS.toMillis(1));
+        Assert.assertNotNull("Checkpoint should be created", checkpoint);
+
+        // Phase 5: 1ms later, write the same property again (newer than checkpoint)
+        clock.waitUntil(clock.getTime() + 1);
+        builder = store1.getRoot().builder();
+        System.out.println(newValue);
+        builder.child("test").setProperty(testProperty, newValue);
+        merge(store1, builder);
+
+        // Verify new property exists in current head
+        currentState = store1.getRoot().getChildNode("test");
+        Assert.assertTrue("New property should exist in head", currentState.hasProperty(testProperty));
+        Assert.assertEquals("New property should have new value", newValue, currentState.getProperty(testProperty).getValue(Type.STRING));
+
+        // Phase 6a: Read using checkpoint
+        store1.invalidateNodeChildrenCache();
+        store1.getNodeCache().invalidateAll();
+        NodeState checkpointState = store1.retrieve(checkpoint);
+        Assert.assertNotNull("Checkpoint state should exist", checkpointState);
+        NodeState checkpointTestNode = checkpointState.getChildNode("test");
+        Assert.assertTrue("Test node should exist in checkpoint", checkpointTestNode.exists());
+        PropertyState checkpointProp = checkpointTestNode.getProperty(testProperty);
+
+        // Expected behavior: property should be null since it was deleted before checkpoint
+        Assert.assertNull("Property should be null in checkpoint (was deleted by FullGC before checkpoint)", checkpointProp);
+
+        // Phase 6b: Use getNodeAtRevision directly on the document
+        RevisionVector checkpointRevisionVector = RevisionVector.fromString(checkpoint);
+        NodeDocument testDoc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        final DocumentNodeState nodeAtCheckpoint = testDoc.getNodeAtRevision(store1, checkpointRevisionVector, null);
+        PropertyState nodeAtRevisionProperty = null;
+        if (nodeAtCheckpoint != null) {
+            nodeAtRevisionProperty = nodeAtCheckpoint.getProperty(testProperty);
+        }
+
+        // Verify that the direct read also returns null
+        Assert.assertNull("Property should be null when read at checkpoint revision", nodeAtRevisionProperty);
+
+        final DocumentNodeState nodeAtHeadRevision = testDoc.getNodeAtRevision(store1, store1.getHeadRevision(), null);
+        PropertyState nodeAtHeadProperty = null;
+        if (nodeAtHeadRevision != null) {
+            nodeAtHeadProperty = nodeAtHeadRevision.getProperty(testProperty);
+        }
+
+        // Verify that the direct read also returns null
+        Assert.assertNotNull("Property should be present read at head revision", nodeAtHeadProperty);
+        Assert.assertEquals(newValue, nodeAtHeadProperty.getValue(Type.STRING));
+    }
+
+
+    @Test
+    public void testFullGCEmptyPropsSplitDocumentInconsistencyWhenCheckpointIsInSplitDocument() throws Exception {
+
+        assumeTrue(fixture.hasSinglePersistence());
+        assumeTrue("Test only applicable for MongoDocumentStore", fixture instanceof DocumentStoreFixture.MongoFixture);
+        assumeTrue("Test only applicable for EMPTY_PROPERTIES mode", isModeOneOf(FullGCMode.EMPTYPROPS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.ALL_ORPHANS_EMPTYPROPS));
+        // Enable FullGC
+        VersionGarbageCollector gc = store1.getVersionGarbageCollector();
+        enableFullGC(gc);
+        final String testPath = "/test";
+        final String testProperty = "testProp";
+        final String newValue = "newValue";
+        String testValue = "splitValue0";
+        // Step 1: Create document with many revisions to trigger split
+        NodeBuilder builder = store1.getRoot().builder();
+        builder.child("test").setProperty(testProperty, testValue);
+        // Create child nodes so split documents don't get deleted
+        builder.child("test").child("child1").setProperty("prop", "value");
+        builder.child("test").child("child2").setProperty("prop", "value");
+        merge(store1, builder);
+        // Force many commits to force the creation of a split document
+        for (int i = 1; i <= NodeDocument.NUM_REVS_THRESHOLD + 10; i++) {
+            builder = store1.getRoot().builder();
+            testValue = "splitValue" + i;
+            builder.child("test").setProperty(testProperty, testValue);
+            merge(store1, builder);
+        }
+        // Trigger RevisionGC with split documents
+        store1.runBackgroundOperations();
+        // Verify split document was created
+        NodeDocument doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        Assert.assertNotNull("Main document should exist", doc);
+        Assert.assertFalse("Document should have split documents. " + "LocalRevs=" + doc.getLocalRevisions().size() +
+                ", CommitRoot=" + doc.getLocalCommitRoot().size() +
+                ", Total=" + (doc.getLocalRevisions().size() + doc.getLocalCommitRoot().size()) +
+                ", Threshold=" + NUM_REVS_THRESHOLD, doc.getPreviousRanges().isEmpty()); // Should have split documents due to many revisions
+
+        // Verify testProperty exists in split documents
+        DocumentNodeState nodeState = doc.getNodeAtRevision(store1, store1.getHeadRevision(), null);
+        Assert.assertNotNull("Node should exist", nodeState);
+        PropertyState prop = nodeState.getProperty(testProperty);
+        Assert.assertNotNull("Test property should exist", prop);
+        Assert.assertEquals("Test property should have correct value", testValue, prop.getValue(Type.STRING));
+
+        // Phase 2: Delete the property (set to null)
+        builder = store1.getRoot().builder();
+        builder.child("test").removeProperty(testProperty);
+        merge(store1, builder);
+
+        // Verify property is now null on head state
+        NodeState currentState = store1.getRoot().getChildNode("test");
+        Assert.assertFalse("Property should be deleted", currentState.hasProperty(testProperty));
+
+        // Phase 3: Wait 24h and run FullGC to remove the property
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(25));
+        VersionGCStats stats = gc(gc, 24, TimeUnit.HOURS);
+        Assert.assertEquals("FullGC shouldn't have deleted anything", 0, stats.deletedPropsCount);
+
+        // Verify property was removed by FullGC
+        doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        Assert.assertNotNull("Document should still exist", doc);
+        // Property should exist in main document
+        Assert.assertTrue("Property shouldn't be removed from main document", doc.getPropertyNames().contains(testProperty));
+
+        // Phase 4: Create checkpoint AFTER FullGC
+        String checkpoint = store1.checkpoint(TimeUnit.HOURS.toMillis(1));
+        Assert.assertNotNull("Checkpoint should be created", checkpoint);
+
+        // Phase 5: 1ms later, write the same property again (newer than checkpoint)
+        clock.waitUntil(clock.getTime() + 1);
+        builder = store1.getRoot().builder();
+        System.out.println(newValue);
+        builder.child("test").setProperty(testProperty, newValue);
+        merge(store1, builder);
+
+        // Verify new property exists in current head
+        currentState = store1.getRoot().getChildNode("test");
+        Assert.assertTrue("New property should exist in head", currentState.hasProperty(testProperty));
+        Assert.assertEquals("New property should have new value", newValue, currentState.getProperty(testProperty).getValue(Type.STRING));
+
+        // Phase 6a: Read using checkpoint
+        store1.invalidateNodeChildrenCache();
+        store1.getNodeCache().invalidateAll();
+        NodeState checkpointState = store1.retrieve(checkpoint);
+        Assert.assertNotNull("Checkpoint state should exist", checkpointState);
+        NodeState checkpointTestNode = checkpointState.getChildNode("test");
+        Assert.assertTrue("Test node should exist in checkpoint", checkpointTestNode.exists());
+        PropertyState checkpointProp = checkpointTestNode.getProperty(testProperty);
+
+        // Expected behavior: property should be null since it was deleted before checkpoint
+        Assert.assertNull("Property should be null in checkpoint (was deleted by FullGC before checkpoint)", checkpointProp);
+
+        // Phase 6b: Use getNodeAtRevision directly on the document
+        RevisionVector checkpointRevisionVector = RevisionVector.fromString(checkpoint);
+        NodeDocument testDoc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        final DocumentNodeState nodeAtCheckpoint = testDoc.getNodeAtRevision(store1, checkpointRevisionVector, null);
+        PropertyState nodeAtRevisionProperty = null;
+        if (nodeAtCheckpoint != null) {
+            nodeAtRevisionProperty = nodeAtCheckpoint.getProperty(testProperty);
+        }
+
+        // Verify that the direct read also returns null
+        Assert.assertNull("Property should be null when read at checkpoint revision", nodeAtRevisionProperty);
+
+        final DocumentNodeState nodeAtHeadRevision = testDoc.getNodeAtRevision(store1, store1.getHeadRevision(), null);
+        PropertyState nodeAtHeadProperty = null;
+        if (nodeAtHeadRevision != null) {
+            nodeAtHeadProperty = nodeAtHeadRevision.getProperty(testProperty);
+        }
+
+        // Verify that the direct read also returns null
+        Assert.assertNotNull("Property should be present read at head revision", nodeAtHeadProperty);
+        Assert.assertEquals(newValue, nodeAtHeadProperty.getValue(Type.STRING));
+
+        // Create many more revisions to force more splits, pushing checkpoint into split documents
+        for (int i = 0; i < NUM_REVS_THRESHOLD * 2; i++) {
+            builder = store1.getRoot().builder();
+            builder.child("test").setProperty("otherProp", "split" + i);
+            merge(store1, builder);
+            // increase the clock to create new revision for next batch
+            clock.waitUntil(getCurrentTimestamp() + (i * 5));
+        }
+
+        // Force additional document splits
+        store1.runBackgroundOperations();
+
+        // invalidate all caches
+        store1.invalidateNodeChildrenCache();
+        store1.getNodeCache().invalidateAll();
+
+        // Verify split documents exist
+        doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
+        Assert.assertFalse("Document should be split", prevDocs.isEmpty());
+
+        // Read property from checkpoint - should be null (property was deleted)
+        final NodeState nodeAtCheckpoint2 = store1.retrieve(checkpoint).getChildNode("test");
+        Assert.assertTrue("Node should exist at checkpoint", nodeAtCheckpoint2.exists());
+        Assert.assertNull("Property should be null at checkpoint",
+                nodeAtCheckpoint2.getProperty(testProperty));
     }
 
     private void assertNodesDontExist(Collection<String> existingNodes,
@@ -4325,14 +4596,14 @@ public class VersionGarbageCollectorIT {
                 nearestParentPath = anExistingPath;
             }
         }
-        assertNotNull(nearestParent);
+        Assert.assertNotNull(nearestParent);
         Path nearestChildPath = aMissingPath;
         Path childParentPath = nearestChildPath.getParent();
         while(nearestParentPath.isAncestorOf(childParentPath)) {
             nearestChildPath = childParentPath;
             childParentPath = childParentPath.getParent();
         }
-        assertFalse(getChildeNodeState(store1, nearestParent, true).hasChildNode(nearestChildPath.getName()));
+        Assert.assertFalse(getChildeNodeState(store1, nearestParent, true).hasChildNode(nearestChildPath.getName()));
     }
 
     private void createLeaf(DocumentNodeStore s, String... pathElems) throws Exception {
