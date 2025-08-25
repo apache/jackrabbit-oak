@@ -54,8 +54,9 @@ import static org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8.getNam
 public class AzureArchiveManagerV8 implements SegmentArchiveManager {
 
     private static final Logger log = LoggerFactory.getLogger(AzureSegmentArchiveReaderV8.class);
-    public static final String DELETED_ARCHIVE_MARKER = "deleted";
-    public static final String CLOSED_ARCHIVE_MARKER = "closed";
+
+    private static final String DELETED_ARCHIVE_MARKER = "deleted";
+    private static final String CLOSED_ARCHIVE_MARKER = "closed";
 
     protected final CloudBlobDirectory cloudBlobDirectory;
 
