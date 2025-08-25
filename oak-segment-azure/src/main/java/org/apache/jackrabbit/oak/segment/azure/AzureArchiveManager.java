@@ -120,6 +120,12 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         return readBlobContainerClient.getBlobClient(getDirectory(archiveName) + DELETED_ARCHIVE_MARKER).exists();
     }
 
+    private void checkWriteOperation(String operation) {
+        if (readOnly) {
+            throw new UnsupportedOperationException("Operation " + operation + " is not allowed in read-only mode");
+        }
+    }
+
     @Override
     public SegmentArchiveReader open(String archiveName) throws IOException {
         try {
@@ -140,11 +146,13 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     @Override
     public SegmentArchiveWriter create(String archiveName) throws IOException {
+        checkWriteOperation("create");
         return new AzureSegmentArchiveWriter(writeBlobContainerClient, rootPrefix, archiveName, ioMonitor, monitor, writeAccessController);
     }
 
     @Override
     public boolean delete(String archiveName) {
+        checkWriteOperation("delete");
         try {
             uploadDeletedMarker(archiveName);
             getBlobs(archiveName)
@@ -186,6 +194,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     @Override
     public boolean renameTo(String from, String to) {
+        checkWriteOperation("renameTo");
         try {
             String targetDirectory = getDirectory(to);
             getBlobs(from)
@@ -206,6 +215,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     @Override
     public void copyFile(String from, String to) throws IOException {
+        checkWriteOperation("copyFile");
         String targetDirectory = getDirectory(to);
         getBlobs(from)
                 .forEach(blobItem -> {
@@ -231,6 +241,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     @Override
     public void recoverEntries(String archiveName, LinkedHashMap<UUID, byte[]> entries) throws IOException {
+        checkWriteOperation("recoverEntries");
         Pattern pattern = Pattern.compile(RemoteUtilities.SEGMENT_FILE_NAME_PATTERN);
         List<RecoveredEntry> entryList = new ArrayList<>();
 
@@ -288,6 +299,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
      */
     @Override
     public void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException {
+        checkWriteOperation("backup");
         copyFile(archiveName, backupArchiveName);
         delete(archiveName, recoveredEntries);
     }
