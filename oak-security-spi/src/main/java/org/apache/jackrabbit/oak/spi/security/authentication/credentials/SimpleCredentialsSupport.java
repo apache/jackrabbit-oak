@@ -67,7 +67,7 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
             Map<String, Object> result = new LinkedHashMap<>();
             Arrays.asList(sc.getAttributeNames()).forEach(
                     attributeName -> result.put(attributeName, sc.getAttribute(attributeName)));
-            return result;
+            return Collections.unmodifiableMap(result);
         } else {
             return Collections.emptyMap();
         }
