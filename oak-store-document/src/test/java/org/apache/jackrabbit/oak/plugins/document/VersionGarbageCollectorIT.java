@@ -489,9 +489,9 @@ public class VersionGarbageCollectorIT {
         assertFalse(stats.canceled);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 gapOrphProp(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
-                allOrphOnly(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 allOrphProp(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 keepOneFull(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 keepOneUser(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
@@ -2676,7 +2676,9 @@ public class VersionGarbageCollectorIT {
         NodeDocument doc = store1.getDocumentStore().find(NODES, "1:/x", -1);
         assertNotNull(doc);
         if (VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC
-                || VersionGarbageCollector.getFullGcMode() == FullGCMode.NONE || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.NONE
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.ALL_ORPHANS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS_EMPTYPROPS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.ALL_ORPHANS_EMPTYPROPS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC
