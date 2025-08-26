@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import static java.util.Arrays.asList;
@@ -92,9 +93,11 @@ public class SplitPersistenceTest {
 
     @Test
     public void archiveManager_listArchives() throws IOException {
+        List<String> archiveNames = splitArchiveManager.listArchives();
+        Collections.sort(archiveNames);
         assertEquals(
-                splitArchiveManager.listArchives(),
-                asList("data00000a.tar", "data00001a.tar", "data00002a.tar", "data00003a.tar"));
+                asList("data00000a.tar", "data00001a.tar", "data00002a.tar", "data00003a.tar"),
+                archiveNames);
     }
 
     @Test
