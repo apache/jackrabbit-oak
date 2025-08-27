@@ -579,11 +579,9 @@ public class AzureArchiveManagerV8Test {
         CloudBlobDirectory archiveDirectory = container.getDirectoryReference("oak/data00000a.tar");
         archiveDirectory.getBlockBlobReference("deleted").openOutputStream().close();
 
-        // Verify the archive is no longer listed after adding deleted marker
         List<String> archives = manager.listArchives();
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
 
-        // Verify the archive is deleted
         assertFalse("Archive should be deleted", container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
     }
 
@@ -603,8 +601,6 @@ public class AzureArchiveManagerV8Test {
         List<String> archives = manager.listArchives();
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
 
-
-        // Verify the archive is not deleted
         assertTrue("Archive should not be deleted", container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
     }
 
