@@ -34,20 +34,18 @@ public interface SegmentNodeStorePersistence {
      * Opens a new archive manager. It'll be used to access the archives containing
      * segments.
      *
-     * @param memoryMapping    whether the memory mapping should be used (if the given
-     *                         persistence supports it)
-     * @param offHeapAccess    whether off heap access for segments should be used
-     * @param ioMonitor        object used to monitor segment-related IO access. The
-     *                         implementation should call the appropriate methods when
-     *                         accessing segments.
+     * @param memoryMapping whether the memory mapping should be used (if the given
+     *                      persistence supports it)
+     * @param offHeapAccess whether off heap access for segments should be used
+     * @param ioMonitor object used to monitor segment-related IO access. The
+     *                  implementation should call the appropriate methods when
+     *                  accessing segments.
      * @param fileStoreMonitor object used to monitor the general IO usage.
-     * @param readOnly         whether segment archive manager should be opened in read-only mode
-     *
      * @return segment archive manager
      * @throws IOException
      */
     SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor,
-                                               FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) throws IOException;
+                                               FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) throws IOException;
 
     /**
      * Check if the segment store already contains any segments

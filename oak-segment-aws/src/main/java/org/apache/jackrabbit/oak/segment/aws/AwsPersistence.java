@@ -42,7 +42,7 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor,
-                                                      FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) {
+            FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
         awsContext.setRemoteStoreMonitor(remoteStoreMonitor);
         return new AwsArchiveManager(awsContext.directory, ioMonitor, fileStoreMonitor);
     }

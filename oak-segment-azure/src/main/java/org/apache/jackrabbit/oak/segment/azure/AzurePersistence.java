@@ -73,9 +73,9 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) {
+    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
         attachRemoteStoreMonitor(remoteStoreMonitor);
-        return new AzureArchiveManager(readBlobContainerClient, writeBlobContainerClient, rootPrefix, ioMonitor, fileStoreMonitor, writeAccessController, readOnly);
+        return new AzureArchiveManager(readBlobContainerClient, writeBlobContainerClient, rootPrefix, ioMonitor, fileStoreMonitor, writeAccessController);
     }
 
     @Override

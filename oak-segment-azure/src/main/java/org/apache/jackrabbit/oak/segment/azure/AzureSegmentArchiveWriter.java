@@ -57,7 +57,6 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
         this.archiveName = AzureUtilities.ensureNoTrailingSlash(archiveName);
         this.archivePathPrefix = AzureUtilities.asAzurePrefix(rootPrefix, archiveName);
         this.writeAccessController = writeAccessController;
-        this.created = AzureUtilities.archiveExists(blobContainerClient, archivePathPrefix);
     }
 
     @Override

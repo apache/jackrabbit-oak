@@ -85,7 +85,7 @@ public class AwsGCJournalFileTest extends GcJournalTest {
 
         @Override
         public SegmentArchiveManager createArchiveManager(boolean arg0, boolean arg1, IOMonitor arg2,
-                                                          FileStoreMonitor arg3, RemoteStoreMonitor arg4, boolean readOnly) throws IOException {
+                FileStoreMonitor arg3, RemoteStoreMonitor arg4) throws IOException {
             throw new IOException();
         }
 

@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
+import org.apache.jackrabbit.oak.segment.azure.tool.SegmentCopy;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -112,9 +113,9 @@ public abstract class SegmentCopyTestBase {
         RemoteStoreMonitor remoteStoreMonitor = new RemoteStoreMonitorAdapter();
         FileStoreMonitor fileStoreMonitor = new FileStoreMonitorAdapter();
         SegmentArchiveManager srcArchiveManager = srcPersistence.createArchiveManager(false, false, ioMonitor,
-                fileStoreMonitor, remoteStoreMonitor, true);
+                fileStoreMonitor, remoteStoreMonitor);
         SegmentArchiveManager destArchiveManager = destPersistence.createArchiveManager(false, false, ioMonitor,
-                fileStoreMonitor, remoteStoreMonitor, false);
+                fileStoreMonitor, remoteStoreMonitor);
 
         checkArchives(srcArchiveManager, destArchiveManager);
         checkJournal(srcPersistence, destPersistence);

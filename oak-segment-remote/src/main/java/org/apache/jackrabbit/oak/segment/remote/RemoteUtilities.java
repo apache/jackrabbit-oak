@@ -53,10 +53,6 @@ public final class RemoteUtilities {
         return UUID.fromString(m.group(2));
     }
 
-    public static boolean isSegmentName(String name) {
-        return null != name && PATTERN.matcher(name).matches();
-    }
-
     private static class ArchiveIndexComparator implements Comparator<String> {
         final static Pattern indexPattern = Pattern.compile("[0-9]+");
 

@@ -26,8 +26,6 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 public class RemoteUtilitiesTest {
     @Test
@@ -67,34 +65,5 @@ public class RemoteUtilitiesTest {
     @Test
     public void testSortArchivesLargeIndices() {
         expectArchiveSortOrder(Arrays.asList("data00003a.tar", "data20000a.tar", "data100000a.tar"));
-    }
-
-    @Test
-    public void testIsSegmentName_ValidName() {
-        UUID uuid = UUID.randomUUID();
-        String validName = RemoteUtilities.getSegmentFileName(0, uuid.getMostSignificantBits(), uuid.getLeastSignificantBits());
-        assertTrue(RemoteUtilities.isSegmentName(validName));
-
-        String validMaxName = RemoteUtilities.getSegmentFileName(
-            RemoteUtilities.MAX_ENTRY_COUNT - 1,
-            uuid.getMostSignificantBits(),
-            uuid.getLeastSignificantBits()
-        );
-        assertTrue(RemoteUtilities.isSegmentName(validMaxName));
-    }
-
-    @Test
-    public void testIsSegmentName_InvalidNames() {
-        // closed marker
-        assertFalse(RemoteUtilities.isSegmentName("closed"));
-
-        // metadata files
-        assertFalse(RemoteUtilities.isSegmentName("data00000a.tar.brf"));
-        assertFalse(RemoteUtilities.isSegmentName("data00000a.tar.gph"));
-        assertFalse(RemoteUtilities.isSegmentName("data00000a.tar.idx"));
-
-        // empty value
-        assertFalse(RemoteUtilities.isSegmentName(""));
-        assertFalse(RemoteUtilities.isSegmentName(null));
     }
 }

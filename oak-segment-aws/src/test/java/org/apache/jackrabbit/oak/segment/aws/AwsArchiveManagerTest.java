@@ -74,7 +74,7 @@ public class AwsArchiveManagerTest {
     @Test
     public void testRecovery() throws IOException {
         SegmentArchiveManager manager = new AwsPersistence(awsContext).createArchiveManager(false, false,
-                new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
+                new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -149,7 +149,7 @@ public class AwsArchiveManagerTest {
     @Test
     public void testExists() throws IOException {
         SegmentArchiveManager manager = new AwsPersistence(awsContext).createArchiveManager(false, false,
-                new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
+                new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -170,7 +170,7 @@ public class AwsArchiveManagerTest {
     @Test
     public void testArchiveExistsAfterFlush() throws IOException {
         SegmentArchiveManager manager = new AwsPersistence(awsContext).createArchiveManager(false, false,
-                new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
+                new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         Assert.assertFalse(manager.exists("data00000a.tar"));

@@ -69,14 +69,6 @@ public final class AzureUtilities {
         return blobContainerClient.listBlobs(listOptions, null).stream().collect(Collectors.toList());
     }
 
-    public static boolean archiveExists(BlobContainerClient blobContainerClient, String archivePathPrefix) {
-        ListBlobsOptions listOptions = new ListBlobsOptions();
-        listOptions.setPrefix(archivePathPrefix);
-        listOptions.setMaxResultsPerPage(1);
-        return blobContainerClient.listBlobs(listOptions, null).iterator().hasNext();
-    }
-
-
     public static void readBufferFully(BlockBlobClient blob, Buffer buffer) throws IOException {
         try {
             blob.downloadStream(new ByteBufferOutputStream(buffer));

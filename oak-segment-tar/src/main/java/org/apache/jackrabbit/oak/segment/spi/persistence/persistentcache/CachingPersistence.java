@@ -41,8 +41,8 @@ public class CachingPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor,
-                                                      FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) throws IOException {
-        return  new CachingArchiveManager(persistentCache, delegate.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor, readOnly));
+            FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) throws IOException {
+        return  new CachingArchiveManager(persistentCache, delegate.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor));
     }
 
     @Override

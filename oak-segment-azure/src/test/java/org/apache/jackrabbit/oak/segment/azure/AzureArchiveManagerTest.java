@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -93,7 +92,6 @@ public class AzureArchiveManagerTest {
     private BlobContainerClient noRetryBlobContainerClient;
 
     private AzurePersistence azurePersistence;
-    private boolean readOnly = false;
 
     @Before
     public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
@@ -114,7 +112,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testRecovery() throws BlobStorageException, IOException {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -136,7 +134,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testBackupWithRecoveredEntries() throws BlobStorageException, IOException {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -287,7 +285,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testExists() throws IOException {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -306,7 +304,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testArchiveExistsAfterFlush() throws IOException {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         Assert.assertFalse(manager.exists("data00000a.tar"));
@@ -318,7 +316,7 @@ public class AzureArchiveManagerTest {
 
     @Test(expected = FileNotFoundException.class)
     public void testSegmentDeletedAfterCreatingReader() throws IOException, BlobStorageException {
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         Assert.assertFalse(manager.exists("data00000a.tar"));
@@ -351,7 +349,7 @@ public class AzureArchiveManagerTest {
         AzurePersistence azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, "oak");
         FileStore fileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(azurePersistence).build();
 
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         //Assert.assertFalse(manager.exists("data00000a.tar"));
@@ -528,7 +526,7 @@ public class AzureArchiveManagerTest {
         WriteAccessController writeAccessController = new WriteAccessController();
         AzureRepositoryLock azureRepositoryLock = new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {
         }, writeAccessController);
-        AzureArchiveManager azureArchiveManager = new AzureArchiveManager(oakDirectory, writeOakDirectory, "", new IOMonitorAdapter(), new FileStoreMonitorAdapter(), writeAccessController, readOnly);
+        AzureArchiveManager azureArchiveManager = new AzureArchiveManager(oakDirectory, writeOakDirectory, "", new IOMonitorAdapter(), new FileStoreMonitorAdapter(), writeAccessController);
 
 
         Mockito
@@ -537,7 +535,7 @@ public class AzureArchiveManagerTest {
 
         Mockito
                 .doReturn(azureArchiveManager)
-                .when(mockedRwPersistence).createArchiveManager(Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.eq(readOnly));
+                .when(mockedRwPersistence).createArchiveManager(Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any());
         Mockito
                 .doReturn(new AzureJournalFile(oakDirectory, writeOakDirectory, "journal.log", writeAccessController))
                 .when(mockedRwPersistence).getJournalFile();
@@ -607,108 +605,6 @@ public class AzureArchiveManagerTest {
 
             }
         };
-    }
-
-    @Test
-    public void testListArchivesDoesNotReturnDeletedArchive() throws IOException, BlobStorageException {
-        // The archive manager should not return the archive which has "deleted" marker
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), readOnly);
-
-        // Create an archive
-        SegmentArchiveWriter writer = manager.create("data00000a.tar");
-        UUID u = UUID.randomUUID();
-        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
-        writer.flush();
-        writer.close();
-
-        // Verify the archive is listed
-        List<String> archives = manager.listArchives();
-        assertTrue("Archive should be listed before deletion", archives.contains("data00000a.tar"));
-
-        // Upload deleted marker for the archive
-        writeBlobContainerClient.getBlobClient("oak/data00000a.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
-
-        // Verify the archive is no longer listed after adding deleted marker
-        archives = manager.listArchives();
-        assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
-    }
-
-    @Test
-    public void testListArchivesInReadOnlyModeWithPartiallyDeletedArchive() throws IOException, BlobStorageException {
-        // Create a read-write manager first to create an archive
-        SegmentArchiveManager rwManager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
-
-        // Create an archive with some segments
-        SegmentArchiveWriter writer = rwManager.create("data00000b.tar");
-        UUID u1 = UUID.randomUUID();
-        UUID u2 = UUID.randomUUID();
-        writer.writeSegment(u1.getMostSignificantBits(), u1.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
-        writer.writeSegment(u2.getMostSignificantBits(), u2.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
-        writer.flush();
-        writer.close();
-
-        // Verify the archive is initially listed
-        List<String> archives = rwManager.listArchives();
-        assertTrue("Archive should be listed initially", archives.contains("data00000b.tar"));
-
-        // Add deleted marker - simulates partially deleted archive
-        writeBlobContainerClient.getBlobClient("oak/data00000b.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
-
-        ListBlobsOptions listOptions = new ListBlobsOptions();
-        listOptions.setPrefix("oak/data00000b.tar/");
-        assertTrue("Archive directory should still contain blobs",
-                   readBlobContainerClient.listBlobs(listOptions, null).iterator().hasNext());
-
-        // Create a read-only manager
-        SegmentArchiveManager roManager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), true);
-
-        archives = roManager.listArchives();
-        assertFalse("Partially deleted archive should not be listed in read-only mode", archives.contains("data00000b.tar"));
-
-        assertTrue("Archive directory should still contain blobs after read-only listArchives",
-                   readBlobContainerClient.listBlobs(listOptions, null).iterator().hasNext());
-
-        assertTrue("Deleted marker should still exist",
-                   readBlobContainerClient.getBlobClient("oak/data00000b.tar/deleted").exists());
-    }
-
-    @Test
-    public void testListArchivesInReadWriteModeWithPartiallyDeletedArchive() throws IOException, BlobStorageException {
-        // Create a read-write manager to create an archive
-        SegmentArchiveManager rwManager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
-
-        // Create an archive with some segments
-        SegmentArchiveWriter writer = rwManager.create("data00000c.tar");
-        UUID u1 = UUID.randomUUID();
-        UUID u2 = UUID.randomUUID();
-        writer.writeSegment(u1.getMostSignificantBits(), u1.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
-        writer.writeSegment(u2.getMostSignificantBits(), u2.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
-        writer.flush();
-        writer.close();
-
-        // Verify the archive is initially listed
-        List<String> archives = rwManager.listArchives();
-        assertTrue("Archive should be listed initially", archives.contains("data00000c.tar"));
-
-        // Add deleted marker - simulates partially deleted archive
-        writeBlobContainerClient.getBlobClient("oak/data00000c.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
-
-        ListBlobsOptions listOptions = new ListBlobsOptions();
-        listOptions.setPrefix("oak/data00000c.tar/");
-        assertTrue("Archive directory should still contain blobs before cleanup",
-                   readBlobContainerClient.listBlobs(listOptions, null).iterator().hasNext());
-
-        assertTrue("Deleted marker should exist before cleanup",
-                   readBlobContainerClient.getBlobClient("oak/data00000c.tar/deleted").exists());
-
-        archives = rwManager.listArchives();
-        assertFalse("Partially deleted archive should not be listed in read-write mode", archives.contains("data00000c.tar"));
-
-        assertFalse("Archive directory should be empty after read-write listArchives cleanup",
-                    readBlobContainerClient.listBlobs(listOptions, null).iterator().hasNext());
-
-        assertFalse("Deleted marker should be removed after cleanup",
-                    readBlobContainerClient.getBlobClient("oak/data00000c.tar/deleted").exists());
     }
 
     private static void assertDoesNotThrow(Executable executable) {

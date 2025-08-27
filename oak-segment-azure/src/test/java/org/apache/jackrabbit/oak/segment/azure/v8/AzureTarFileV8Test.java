@@ -50,7 +50,7 @@ public class AzureTarFileV8Test extends TarFileTest {
             WriteAccessController writeAccessController = new WriteAccessController();
             writeAccessController.enableWriting();
             azurePersistenceV8.setWriteAccessController(writeAccessController);
-            archiveManager = azurePersistenceV8.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
+            archiveManager = azurePersistenceV8.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         } catch (StorageException | InvalidKeyException | URISyntaxException e) {
             throw new IOException(e);
         }

@@ -376,8 +376,8 @@ public class AzureCompact {
 
         SegmentNodeStorePersistence splitPersistence = new SplitPersistence(roPersistence, rwPersistence);
 
-        SegmentArchiveManager roArchiveManager = createArchiveManager(roPersistence, true);
-        SegmentArchiveManager rwArchiveManager = createArchiveManager(rwPersistence, false);
+        SegmentArchiveManager roArchiveManager = createArchiveManager(roPersistence);
+        SegmentArchiveManager rwArchiveManager = createArchiveManager(rwPersistence);
 
         System.out.printf("Compacting %s\n", path != null ? path : sourceBlobContainerClient.getBlobContainerUrl());
         System.out.printf(" to %s\n", targetPath != null ? targetPath : destinationBlobContainerClient.getBlobContainerUrl());

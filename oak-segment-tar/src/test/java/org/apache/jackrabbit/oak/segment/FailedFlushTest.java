@@ -125,7 +125,7 @@ public class FailedFlushTest {
             @Override
             public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess,
                                                               IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor,
-                                                              RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) {
+                                                              RemoteStoreMonitor remoteStoreMonitor) {
                 return new TestArchiveManager(dir, fileStoreMonitor, ioMonitor, memoryMapping, offHeapAccess);
             }
         }).build();

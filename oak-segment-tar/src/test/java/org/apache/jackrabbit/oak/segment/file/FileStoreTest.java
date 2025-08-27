@@ -230,7 +230,7 @@ public class FileStoreTest {
     private static TarPersistence getPersistenceThrowingUnrecoverableExceptionOnClosingArchive(File directory) {
         return new TarPersistence(directory) {
             @Override
-            public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) {
+            public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
                 return new SegmentTarManager(directory, fileStoreMonitor, ioMonitor, memoryMapping, offHeapAccess) {
                     @Override
                     public SegmentArchiveWriter create(String archiveName) {

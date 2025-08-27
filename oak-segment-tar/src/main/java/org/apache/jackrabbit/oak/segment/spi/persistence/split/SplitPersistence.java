@@ -74,7 +74,7 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
     }
 
     private Optional<String> getLastArchive() throws IOException {
-        SegmentArchiveManager manager = roPersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), true);
+        SegmentArchiveManager manager = roPersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         List<String> archives = manager.listArchives();
         if (archives.isEmpty()) {
             return Optional.empty();
@@ -85,14 +85,14 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) throws IOException {
+    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) throws IOException {
         if (lastRoArchive.isPresent()) {
             return new SplitSegmentArchiveManager(
-                    roPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor, true),
-                    rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, new RemoteStoreMonitorAdapter(), readOnly),
+                    roPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor),
+                    rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, new RemoteStoreMonitorAdapter()),
                     lastRoArchive.get());
         } else {
-            return rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, new RemoteStoreMonitorAdapter(), readOnly);
+            return rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, new RemoteStoreMonitorAdapter());
         }
     }
 

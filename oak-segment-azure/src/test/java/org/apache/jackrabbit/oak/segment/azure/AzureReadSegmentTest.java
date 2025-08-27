@@ -94,8 +94,8 @@ public class AzureReadSegmentTest {
 
         @Override
         public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor,
-                                                          FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor, boolean readOnly) {
-            return new AzureArchiveManager(readBlobContainerClient, writeBlobContainerClient, rootPrefix, ioMonitor, fileStoreMonitor, writeAccessController, readOnly) {
+                                                          FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
+            return new AzureArchiveManager(readBlobContainerClient, writeBlobContainerClient, rootPrefix, ioMonitor, fileStoreMonitor, writeAccessController) {
                 @Override
                 public SegmentArchiveReader open(String archiveName) throws IOException {
                     return new AzureSegmentArchiveReader(readBlobContainerClient, rootPrefix, archiveName, ioMonitor) {

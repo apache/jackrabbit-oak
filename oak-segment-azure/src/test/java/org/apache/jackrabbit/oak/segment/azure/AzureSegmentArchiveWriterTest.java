@@ -198,7 +198,7 @@ public class AzureSegmentArchiveWriterTest {
         writeAccessController.enableWriting();
         AzurePersistence azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, "oak");/**/
         azurePersistence.setWriteAccessController(writeAccessController);
-        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter(), false);
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
         return writer;
     }
@@ -236,40 +236,11 @@ public class AzureSegmentArchiveWriterTest {
     }
 
     private void createContainerMock() {
-        // Mock container creation (PUT)
         mockServerClient
                 .when(request()
                         .withMethod("PUT")
-                        .withPath(BASE_PATH)
-                        .withQueryStringParameter("restype", "container"))
+                        .withPath(BASE_PATH))
                 .respond(response().withStatusCode(201).withBody("Container created successfully"));
-
-        // Mock container existence check (HEAD)
-        mockServerClient
-                .when(request()
-                        .withMethod("HEAD")
-                        .withPath(BASE_PATH)
-                        .withQueryStringParameter("restype", "container"))
-                .respond(response().withStatusCode(200));
-
-        // Mock listBlobs operation for archiveExists() call - return empty list
-        mockServerClient
-                .when(request()
-                        .withMethod("GET")
-                        .withPath(BASE_PATH)
-                        .withQueryStringParameter("restype", "container")
-                        .withQueryStringParameter("comp", "list")
-                        .withQueryStringParameter("prefix", "oak/data00000a.tar/")
-                        .withQueryStringParameter("maxresults", "1"), Times.once())
-                .respond(response()
-                        .withStatusCode(200)
-                        .withHeader("Content-Type", "application/xml")
-                        .withBody("<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
-                                "<EnumerationResults ServiceEndpoint=\"http://127.0.0.1:10000/devstoreaccount1\" ContainerName=\"oak-test\">" +
-                                "<Prefix>oak/data00000a.tar/</Prefix>" +
-                                "<MaxResults>1</MaxResults>" +
-                                "<Blobs></Blobs>" +
-                                "</EnumerationResults>"));
     }
 
     public BlobContainerClient getCloudStorageAccount(String containerName, RequestRetryOptions retryOptions) {
