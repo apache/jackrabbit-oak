@@ -73,8 +73,6 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     private final WriteAccessController writeAccessController;
 
-    private final boolean isReadOnly = false;
-
     public AzureArchiveManager(BlobContainerClient readBlobContainerClient, BlobContainerClient writeBlobContainerClient, String rootPrefix, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController) {
         this.readBlobContainerClient = readBlobContainerClient;
         this.writeBlobContainerClient = writeBlobContainerClient;
@@ -97,7 +95,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             while (it.hasNext()) {
                 String archiveName = it.next();
                 if (deleteInProgress(archiveName)) {
-                    if (!isReadOnly) {
+                    if (!writeAccessController.isWritingAllowed()) {
                         delete(archiveName);
                     }
                     it.remove();
