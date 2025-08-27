@@ -122,7 +122,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public SegmentArchiveReader open(String archiveName) throws IOException {
         try {
-            String closedBlob = getDirectory(archiveName) + "closed";
+            String closedBlob = getDirectory(archiveName) + CLOSED_ARCHIVE_MARKER;
             if (!readBlobContainerClient.getBlobClient(closedBlob).exists()) {
                 return null;
             }
