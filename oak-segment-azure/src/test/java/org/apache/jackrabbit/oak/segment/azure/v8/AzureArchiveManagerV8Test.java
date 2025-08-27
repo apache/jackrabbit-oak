@@ -554,11 +554,7 @@ public class AzureArchiveManagerV8Test {
         SegmentArchiveManager manager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
 
         // Create an archive
-        SegmentArchiveWriter writer = manager.create("data00000a.tar");
-        UUID u = UUID.randomUUID();
-        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
-        writer.flush();
-        writer.close();
+        createArchive(manager, "data00000a.tar");
 
         // Verify the archive is listed
         List<String> archives = manager.listArchives();
@@ -572,7 +568,54 @@ public class AzureArchiveManagerV8Test {
         archives = manager.listArchives();
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
     }
-    
+
+    @Test
+    public void testListArchiveWithDeleteMarkerPresent() throws Exception{
+        SegmentArchiveManager manager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+
+        createArchive(manager, "data00000a.tar");
+
+        // Upload deleted marker for the archive
+        CloudBlobDirectory archiveDirectory = container.getDirectoryReference("oak/data00000a.tar");
+        archiveDirectory.getBlockBlobReference("deleted").openOutputStream().close();
+
+        // Verify the archive is no longer listed after adding deleted marker
+        List<String> archives = manager.listArchives();
+        assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
+
+        // Verify the archive is deleted
+        assertFalse("Archive should be deleted", container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
+    }
+
+
+    @Test
+    public void testListArchiveWithDeleteMarkerPresentAndNoWriteAccess() throws Exception{
+        SegmentArchiveManager manager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+
+        createArchive(manager, "data00000a.tar");
+
+        // Upload deleted marker for the archive
+        CloudBlobDirectory archiveDirectory = container.getDirectoryReference("oak/data00000a.tar");
+        archiveDirectory.getBlockBlobReference("deleted").openOutputStream().close();
+
+        azurePersistenceV8.disableWriting();
+
+        List<String> archives = manager.listArchives();
+        assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
+
+
+        // Verify the archive is not deleted
+        assertTrue("Archive should be deleted", container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
+    }
+
+    private static void createArchive(SegmentArchiveManager manager, String archiveName) throws IOException {
+        SegmentArchiveWriter writer = manager.create(archiveName);
+        UUID u = UUID.randomUUID();
+        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.flush();
+        writer.close();
+    }
+
     private PersistentCache createPersistenceCache() {
         return new AbstractPersistentCache() {
             @Override

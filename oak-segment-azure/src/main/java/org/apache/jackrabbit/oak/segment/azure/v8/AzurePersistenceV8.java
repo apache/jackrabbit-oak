@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,5 +154,10 @@ public class AzurePersistenceV8 implements SegmentNodeStorePersistence {
 
     public void setWriteAccessController(WriteAccessController writeAccessController) {
         this.writeAccessController = writeAccessController;
+    }
+
+    @TestOnly
+    void disableWriting() {
+        writeAccessController.disableWriting();
     }
 }

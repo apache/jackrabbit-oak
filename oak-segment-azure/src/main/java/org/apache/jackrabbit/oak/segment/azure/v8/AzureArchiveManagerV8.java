@@ -90,7 +90,7 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
             while (it.hasNext()) {
                 String archiveName = it.next();
                 if (deleteInProgress(archiveName)) {
-                    if (!isReadOnly) {
+                    if (writeAccessController.isWritingAllowed()) {
                         delete(archiveName);
                     }
                     it.remove();
