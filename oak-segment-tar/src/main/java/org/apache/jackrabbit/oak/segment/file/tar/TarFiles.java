@@ -415,7 +415,8 @@ public class TarFiles implements Closeable {
         // results in a properly ordered linked list.
         if (indices.length > 0) {
             try {
-                ForkJoinUtils.submitInCustomPool("segmentstore-init", Math.min(indices.length, 32), () -> Stream.of(indices)
+                ForkJoinUtils
+                        .invokeInCustomPool("segmentstore-init", Math.min(indices.length, 32), () -> Stream.of(indices)
                                 .parallel()
                                 .map(index -> {
                                     try {
@@ -430,7 +431,8 @@ public class TarFiles implements Closeable {
                                     }
                                 })
                                 .collect(Collectors.toUnmodifiableList()))
-                        .join()
+                        // keep the forEach outside the parallel execution, as the
+                        // datastructures are not necessarily thread-safe
                         .forEach(reader -> {
                             segmentCount.inc(getSegmentCount(reader));
                             readers = new Node(reader, readers);
