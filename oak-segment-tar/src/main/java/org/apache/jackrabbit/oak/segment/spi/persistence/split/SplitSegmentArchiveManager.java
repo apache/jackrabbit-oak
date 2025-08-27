@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -74,7 +75,9 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
             if (reader == null) {
                 reader = roArchiveManager.forceOpen(archiveName);
             }
-            return new UnclosedSegmentArchiveReader(reader);
+            return Optional.ofNullable(reader)
+                    .map(UnclosedSegmentArchiveReader::new)
+                    .orElse(null);
         } else {
             return rwArchiveManager.open(archiveName);
         }

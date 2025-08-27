@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.testutils.NodeStoreTestHarness;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
@@ -34,13 +35,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.UUID;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class SplitPersistenceTest {
 
@@ -98,6 +108,80 @@ public class SplitPersistenceTest {
         assertEquals(
                 asList("data00000a.tar", "data00001a.tar", "data00002a.tar", "data00003a.tar"),
                 archiveNames);
+    }
+
+    @Test
+    public void archiveManager_open() throws IOException {
+        // open on RO
+        try (SegmentArchiveReader reader = splitArchiveManager.open("data00000a.tar")) {
+            assertNotNull(reader);
+        }
+        // open on RW
+        try (SegmentArchiveReader reader = splitArchiveManager.open("data00003a.tar")) {
+            assertNotNull(reader);
+        }
+    }
+
+    @Test
+    public void archiveManager_failToOpenROArchive() throws IOException {
+        SegmentArchiveManager ro = mock(SegmentArchiveManager.class);
+        when(ro.listArchives()).thenReturn(new ArrayList<>(List.of("data00000a.tar")));
+        when(ro.open(eq("data00000a.tar"))).thenThrow(new IOException());
+        when(ro.forceOpen(eq("data00000a.tar"))).thenReturn(null);
+        SegmentArchiveManager rw = mock(SegmentArchiveManager.class);
+        SplitSegmentArchiveManager split = new SplitSegmentArchiveManager(ro, rw, "data00000a.tar");
+        // open fails on RO, returns null
+        try (SegmentArchiveReader reader = split.open("data00000a.tar")) {
+            assertNull(reader);
+        }
+    }
+
+    @Test
+    public void archiveManager_forceOpen() throws IOException {
+        // forceOpen on RO
+        try (SegmentArchiveReader reader = splitArchiveManager.forceOpen("data00000a.tar")) {
+            assertNotNull(reader);
+        }
+        // forceOpen on RW
+        try (SegmentArchiveReader reader = splitArchiveManager.forceOpen("data00003a.tar")) {
+            assertNotNull(reader);
+        }
+    }
+
+    @Test
+    public void archiveManager_delete() throws IOException {
+        assertFalse(splitArchiveManager.delete("data00000a.tar"));
+        assertTrue(splitArchiveManager.delete("data00003a.tar"));
+    }
+
+    @Test
+    public void archiveManager_renameTo() throws IOException {
+        assertFalse(splitArchiveManager.renameTo("data00000a.tar", "data00000a.tar.bak"));
+        assertTrue(splitArchiveManager.renameTo("data00003a.tar", "data00003a.tar.bak"));
+    }
+
+    @Test
+    public void archiveManager_copyFile() throws IOException {
+        assertThrows(IOException.class, () -> splitArchiveManager.copyFile("data00000a.tar", "data00004a.tar"));
+        assertThrows(IOException.class, () -> splitArchiveManager.copyFile("data00003a.tar", "data00000a.tar"));
+        assertFalse(splitArchiveManager.listArchives().contains("data00004a.tar"));
+        splitArchiveManager.copyFile("data00003a.tar", "data00004a.tar");
+        assertTrue(splitArchiveManager.listArchives().contains("data00004a.tar"));
+    }
+
+    @Test
+    public void archiveManager_recover_and_backup() throws IOException {
+        LinkedHashMap<UUID, byte[]> entries = new LinkedHashMap<>();
+        splitArchiveManager.recoverEntries("data00000a.tar", entries);
+        assertEquals(2, entries.size());
+        splitArchiveManager.backup("data00000a.tar", "data00000a.tar.bak", entries.keySet());
+        assertFalse(splitArchiveManager.exists("data00000a.tar.bak"));
+
+        entries.clear();
+        splitArchiveManager.recoverEntries("data00002a.tar", entries);
+        assertEquals(1, entries.size());
+        splitArchiveManager.backup("data00002a.tar", "data00002a.tar.bak", entries.keySet());
+        assertTrue(splitArchiveManager.exists("data00002a.tar.bak"));
     }
 
     @Test
