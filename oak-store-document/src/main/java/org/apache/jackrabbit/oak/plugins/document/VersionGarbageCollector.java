@@ -212,6 +212,10 @@ public class VersionGarbageCollector {
         return fullGCExcludePaths;
     }
 
+    public long getFullGcGeneration() {
+        return fullGcGen;
+    }
+
     /**
      * Set the full GC mode to be used according to the provided configuration value.
      * The configuration value will be ignored and fullGCMode will be reset to NONE

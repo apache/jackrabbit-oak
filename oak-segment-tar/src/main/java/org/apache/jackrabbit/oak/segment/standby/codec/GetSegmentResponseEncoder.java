@@ -19,8 +19,7 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.hash.Hasher;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
+import org.apache.commons.codec.digest.MurmurHash3;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
@@ -47,8 +46,7 @@ public class GetSegmentResponseEncoder extends MessageToByteEncoder<GetSegmentRe
     private static void encode(String segmentId, byte[] data, ByteBuf out) {
         UUID id = UUID.fromString(segmentId);
 
-        Hasher hasher = Hashing.murmur3_32().newHasher();
-        long hash = hasher.putBytes(data).hash().padToLong();
+        long hash = Integer.toUnsignedLong(MurmurHash3.hash32x86(data));
 
         int len = data.length + EXTRA_HEADERS_WO_SIZE;
         out.writeInt(len);

@@ -145,6 +145,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<?> continuous;
         final OptionSpec<?> fullGCOnly;
         final OptionSpec<Boolean> resetFullGC;
+        final OptionSpec<Long> fullGcGeneration;
         final OptionSpec<?> verbose;
         final OptionSpec<String> path;
         final OptionSpec<String> includePaths;
@@ -207,6 +208,10 @@ public class RevisionsCommand implements Command {
             resetFullGC = parser
                     .accepts("resetFullGC", "reset fullGC after running FullGC")
                     .withRequiredArg().ofType(Boolean.class).defaultsTo(FALSE);
+            fullGcGeneration = parser.accepts("fullGcGeneration", "The value indicates the current Full GC generation running on a document node store. " +
+                            "To reset the Full GC to run from the beginning, you must increment this value. " +
+                            "If you set the value to one that is smaller than or equal to the existing generation, the change will be ignored.")
+                    .withRequiredArg().ofType(Long.class).defaultsTo(0L);
             fullGcBatchSize = parser.accepts("fullGcBatchSize", "The number of documents to fetch from database " +
                             "in a single query to check for Full GC.")
                     .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
@@ -308,6 +313,8 @@ public class RevisionsCommand implements Command {
             return resetFullGC.value(options);
         }
 
+        long getFullGcGeneration() { return fullGcGeneration.value(options); }
+
         boolean isVerbose() {
             return options.has(verbose);
         }
@@ -396,6 +403,7 @@ public class RevisionsCommand implements Command {
         builder.setFullGCIncludePaths(options.getIncludePaths());
         builder.setFullGCExcludePaths(options.getExcludePaths());
         builder.setFullGCMode(options.getFullGcMode());
+        builder.setFullGCGeneration(options.getFullGcGeneration());
         builder.setFullGCDelayFactor(options.getFullGcDelayFactor());
         builder.setFullGCBatchSize(options.getFullGcBatchSize());
         builder.setFullGCProgressSize(options.getFullGcProgressSize());
@@ -429,6 +437,7 @@ public class RevisionsCommand implements Command {
         System.out.println("IncludePaths are : " + sortedSet(gc.getFullGCIncludePaths()));
         System.out.println("ExcludePaths are : " + sortedSet(gc.getFullGCExcludePaths()));
         System.out.println("FullGcMode is : " + VersionGarbageCollector.getFullGcMode());
+        System.out.println("FullGCGeneration is : " + gc.getFullGcGeneration());
         System.out.println("FullGcDelayFactor is : " + gc.getFullGcDelayFactor());
         System.out.println("FullGcBatchSize is : " + gc.getFullGcBatchSize());
         System.out.println("FullGcProgressSize is : " + gc.getFullGcProgressSize());

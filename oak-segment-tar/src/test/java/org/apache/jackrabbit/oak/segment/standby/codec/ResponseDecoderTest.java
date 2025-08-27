@@ -118,7 +118,7 @@ public class ResponseDecoderTest {
         buf.writeLong(3L);
         buf.writeInt(blobIdBytes.length);
         buf.writeBytes(blobIdBytes);
-        buf.writeLong(hash(mask, 3L, blobData) + 1);
+        buf.writeLong(HashUtils.hashMurmur32(mask, 3L, blobData) + 1);
         buf.writeBytes(blobData);
 
         EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));

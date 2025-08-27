@@ -22,8 +22,6 @@ import static org.apache.jackrabbit.oak.segment.standby.server.FileStoreUtil.rou
 import java.io.InputStream;
 import java.io.PushbackInputStream;
 
-import org.apache.jackrabbit.guava.common.hash.Hasher;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
@@ -143,8 +141,8 @@ public class ChunkedBlobStream implements ChunkedInput<ByteBuf> {
         buffer.release();
 
         byte mask = createMask(data.length);
-        Hasher hasher = Hashing.murmur3_32().newHasher();
-        long hash = hasher.putByte(mask).putLong(length).putBytes(data).hash().padToLong();
+
+        long hash = HashUtils.hashMurmur32(mask, length, data);
 
         byte[] blobIdBytes = blobId.getBytes();
 
