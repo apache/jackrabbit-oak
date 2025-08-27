@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
-import org.apache.jackrabbit.oak.commons.forkjoin.ForkJoinUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ForkJoinUtils;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -415,7 +415,7 @@ public class TarFiles implements Closeable {
         // results in a properly ordered linked list.
         if (indices.length > 0) {
             try {
-                ForkJoinUtils.executeInCustomPool("segmentstore-init", Math.min(indices.length, 32), () -> Stream.of(indices)
+                ForkJoinUtils.submitInCustomPool("segmentstore-init", Math.min(indices.length, 32), () -> Stream.of(indices)
                                 .parallel()
                                 .map(index -> {
                                     try {
