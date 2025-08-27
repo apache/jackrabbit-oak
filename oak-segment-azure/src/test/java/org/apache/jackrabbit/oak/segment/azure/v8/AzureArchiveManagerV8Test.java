@@ -605,7 +605,7 @@ public class AzureArchiveManagerV8Test {
 
 
         // Verify the archive is not deleted
-        assertTrue("Archive should be deleted", container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
+        assertTrue("Archive should not be deleted", container.getDirectoryReference("oak/data00000a.tar").listBlobs().iterator().hasNext());
     }
 
     private static void createArchive(SegmentArchiveManager manager, String archiveName) throws IOException {

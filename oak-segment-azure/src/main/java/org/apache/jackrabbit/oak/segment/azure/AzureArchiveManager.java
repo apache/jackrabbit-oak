@@ -95,7 +95,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             while (it.hasNext()) {
                 String archiveName = it.next();
                 if (deleteInProgress(archiveName)) {
-                    if (!writeAccessController.isWritingAllowed()) {
+                    if (writeAccessController.isWritingAllowed()) {
                         delete(archiveName);
                     }
                     it.remove();
@@ -177,7 +177,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     private void uploadDeletedMarker(String archiveName) throws BlobStorageException {
         writeAccessController.checkWritingAllowed();
-        writeBlobContainerClient.getBlobClient(getDirectory(archiveName) + DELETED_ARCHIVE_MARKER).getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
+        writeBlobContainerClient.getBlobClient(getDirectory(archiveName) + DELETED_ARCHIVE_MARKER).getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]), true);
     }
 
 

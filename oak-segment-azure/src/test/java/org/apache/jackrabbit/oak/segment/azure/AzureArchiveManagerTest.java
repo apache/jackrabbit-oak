@@ -608,6 +608,49 @@ public class AzureArchiveManagerTest {
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
     }
 
+    @Test
+    public void testListArchiveWithDeleteMarkerPresentWithWriteAccess() throws Exception{
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+
+        createArchive(manager, "data00000a.tar");
+
+        writeBlobContainerClient.getBlobClient("oak/data00000a.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
+
+        // Verify the archive is no longer listed after adding deleted marker
+        List<String> archives = manager.listArchives();
+        assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
+
+        // Verify the archive is deleted
+        assertFalse("Archive should be deleted", readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix("oak/data00000a.tar"), null).iterator().hasNext());
+    }
+
+    @Test
+    public void testListArchiveWithDeleteMarkerPresentAndNoWriteAccess() throws Exception{
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+
+        createArchive(manager, "data00000a.tar");
+
+        writeBlobContainerClient.getBlobClient("oak/data00000a.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
+
+        // disable writing
+        azurePersistence.disableWriting();
+
+        // Verify the archive is no longer listed after adding deleted marker
+        List<String> archives = manager.listArchives();
+        assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
+
+        // Verify the archive is deleted
+        assertTrue("Archive should not be deleted", readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix("oak/data00000a.tar"), null).iterator().hasNext());
+    }
+
+    private void createArchive(SegmentArchiveManager manager, String archiveName) throws IOException {
+        SegmentArchiveWriter writer = manager.create(archiveName);
+        UUID u = UUID.randomUUID();
+        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.flush();
+        writer.close();
+    }
+
     private PersistentCache createPersistenceCache() {
         return new AbstractPersistentCache() {
             @Override
