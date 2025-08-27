@@ -616,11 +616,9 @@ public class AzureArchiveManagerTest {
 
         writeBlobContainerClient.getBlobClient("oak/data00000a.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
 
-        // Verify the archive is no longer listed after adding deleted marker
         List<String> archives = manager.listArchives();
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
 
-        // Verify the archive is deleted
         assertFalse("Archive should be deleted", readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix("oak/data00000a.tar"), null).iterator().hasNext());
     }
 
@@ -635,11 +633,9 @@ public class AzureArchiveManagerTest {
         // disable writing
         azurePersistence.disableWriting();
 
-        // Verify the archive is no longer listed after adding deleted marker
         List<String> archives = manager.listArchives();
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
 
-        // Verify the archive is deleted
         assertTrue("Archive should not be deleted", readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix("oak/data00000a.tar"), null).iterator().hasNext());
     }
 
