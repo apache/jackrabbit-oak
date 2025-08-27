@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons.forkjoin;
+package org.apache.jackrabbit.oak.commons.internal.concurrent;
 
 import java.util.Optional;
 import java.util.concurrent.Callable;

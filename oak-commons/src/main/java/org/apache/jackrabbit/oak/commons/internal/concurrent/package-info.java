@@ -16,7 +16,7 @@
  */
 @Version("1.0.0")
 @Internal(since = "1.0.0")
-package org.apache.jackrabbit.oak.commons.forkjoin;
+package org.apache.jackrabbit.oak.commons.internal.concurrent;
 
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.osgi.annotation.versioning.Version;
