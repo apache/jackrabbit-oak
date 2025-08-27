@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.lang3.LongRange;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -416,8 +415,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     public void testRangeRemove() {
         String idPrefix = this.getClass().getName() + ".testRangeRemove";
 
-        Iterable<Long> modTimes = () -> LongRange.of(1L, 30L).toLongStream().iterator();
-        for (Long modTime : modTimes) {
+        for (long modTime = 1; modTime <= 30; modTime += 1) {
             String id = idPrefix + modTime;
             // remove if present
             Document d = super.ds.find(Collection.JOURNAL, id);
