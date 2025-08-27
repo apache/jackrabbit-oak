@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.remote;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class WriteAccessControllerTest {
 
@@ -49,6 +50,14 @@ public class WriteAccessControllerTest {
 
         assertFalse(t1.isAlive());
         assertFalse(t2.isAlive());
+    }
+
+    @Test
+    public void testWritingAllowed() {
+        WriteAccessController controller = new WriteAccessController();
+        assertFalse(controller.isWritingAllowed());
+        controller.enableWriting();
+        assertTrue(controller.isWritingAllowed());
     }
 
     private void assertThreadWaiting(Thread.State state) {
