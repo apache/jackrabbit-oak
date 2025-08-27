@@ -65,8 +65,6 @@ public class AzureArchiveManagerV8 implements SegmentArchiveManager {
     protected final FileStoreMonitor monitor;
     private WriteAccessController writeAccessController;
 
-    private final boolean isReadOnly = false;
-
     public AzureArchiveManagerV8(CloudBlobDirectory segmentstoreDirectory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController) {
         this.cloudBlobDirectory = segmentstoreDirectory;
         this.ioMonitor = ioMonitor;
