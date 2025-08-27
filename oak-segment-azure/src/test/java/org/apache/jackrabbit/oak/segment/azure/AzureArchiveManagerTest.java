@@ -584,30 +584,6 @@ public class AzureArchiveManagerTest {
         rwFileStore2.close();
     }
 
-    private PersistentCache createPersistenceCache() {
-        return new AbstractPersistentCache() {
-            @Override
-            protected Buffer readSegmentInternal(long msb, long lsb) {
-                return null;
-            }
-
-            @Override
-            public boolean containsSegment(long msb, long lsb) {
-                return false;
-            }
-
-            @Override
-            public void writeSegment(long msb, long lsb, Buffer buffer) {
-
-            }
-
-            @Override
-            public void cleanUp() {
-
-            }
-        };
-    }
-
     @Test
     public void testListArchivesDoesNotReturnDeletedArchive() throws IOException, BlobStorageException {
         // The archive manager should not return the archive which has "deleted" marker
@@ -630,6 +606,30 @@ public class AzureArchiveManagerTest {
         // Verify the archive is no longer listed after adding deleted marker
         archives = manager.listArchives();
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
+    }
+
+    private PersistentCache createPersistenceCache() {
+        return new AbstractPersistentCache() {
+            @Override
+            protected Buffer readSegmentInternal(long msb, long lsb) {
+                return null;
+            }
+
+            @Override
+            public boolean containsSegment(long msb, long lsb) {
+                return false;
+            }
+
+            @Override
+            public void writeSegment(long msb, long lsb, Buffer buffer) {
+
+            }
+
+            @Override
+            public void cleanUp() {
+
+            }
+        };
     }
 
     private static void assertDoesNotThrow(Executable executable) {
