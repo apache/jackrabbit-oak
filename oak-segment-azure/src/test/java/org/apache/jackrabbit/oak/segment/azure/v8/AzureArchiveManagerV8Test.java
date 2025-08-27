@@ -570,7 +570,7 @@ public class AzureArchiveManagerV8Test {
     }
 
     @Test
-    public void testListArchiveWithDeleteMarkerPresent() throws Exception{
+    public void testListArchiveWithDeleteMarkerPresentWithWriteAccess() throws Exception{
         SegmentArchiveManager manager = azurePersistenceV8.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
 
         createArchive(manager, "data00000a.tar");
