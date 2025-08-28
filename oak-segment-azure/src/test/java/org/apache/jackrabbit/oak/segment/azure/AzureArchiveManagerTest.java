@@ -591,11 +591,7 @@ public class AzureArchiveManagerTest {
         SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
 
         // Create an archive
-        SegmentArchiveWriter writer = manager.create("data00000a.tar");
-        UUID u = UUID.randomUUID();
-        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
-        writer.flush();
-        writer.close();
+        createArchive(manager, "data00000a.tar");
 
         // Verify the archive is listed
         List<String> archives = manager.listArchives();
