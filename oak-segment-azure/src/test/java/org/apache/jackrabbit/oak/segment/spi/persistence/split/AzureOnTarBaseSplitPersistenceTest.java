@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
-import com.microsoft.azure.storage.StorageException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
@@ -56,7 +55,7 @@ public class AzureOnTarBaseSplitPersistenceTest {
     private NodeStoreTestHarness split;
 
     @Before
-    public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException, URISyntaxException, InvalidKeyException, StorageException {
+    public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException, URISyntaxException, InvalidKeyException {
         base = harnesses.createHarnessWithFolder(TarPersistence::new);
         initializeBaseSetup(base, "1");
         base.getNodeStore().checkpoint(Long.MAX_VALUE);
@@ -89,7 +88,7 @@ public class AzureOnTarBaseSplitPersistenceTest {
 
 
     @Test
-    public void rebaseChangesToNewBase() throws CommitFailedException, IOException, InvalidFileStoreVersionException, URISyntaxException, InvalidKeyException, StorageException {
+    public void rebaseChangesToNewBase() throws CommitFailedException, IOException, InvalidFileStoreVersionException {
 
         modifyNodeStore(split, "2");
 
