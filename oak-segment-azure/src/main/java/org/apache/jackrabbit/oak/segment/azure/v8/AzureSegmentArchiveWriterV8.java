@@ -69,7 +69,6 @@ public class AzureSegmentArchiveWriterV8 extends AbstractRemoteSegmentArchiveWri
         try {
             return this.archiveDirectory.listBlobs().iterator().hasNext();
         } catch (StorageException | URISyntaxException | NoSuchElementException e) {
-            LOG.error("Error listing blobs", e);
             throw new IOException(e);
         }
     }

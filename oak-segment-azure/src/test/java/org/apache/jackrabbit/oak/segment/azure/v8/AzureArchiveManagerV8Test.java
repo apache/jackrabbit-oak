@@ -491,7 +491,6 @@ public class AzureArchiveManagerV8Test {
                 .when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
 
         AzurePersistenceV8 mockedRwPersistence = Mockito.spy(rwPersistence);
-        WriteAccessController writeAccessController = new WriteAccessController();
         AzureRepositoryLockV8 azureRepositoryLockV8 = new AzureRepositoryLockV8(blobMocked, () -> {}, writeAccessController);
         AzureArchiveManagerV8 azureArchiveManagerV8 = new AzureArchiveManagerV8(oakDirectory, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), writeAccessController);
 
