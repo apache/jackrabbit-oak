@@ -93,6 +93,7 @@ public class AzureArchiveManagerTest {
     private BlobContainerClient noRetryBlobContainerClient;
 
     private AzurePersistence azurePersistence;
+    private WriteAccessController writeAccessController;
 
     @Before
     public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
@@ -100,7 +101,7 @@ public class AzureArchiveManagerTest {
         writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
         noRetryBlobContainerClient = azurite.getNoRetryBlobContainerClient("oak-test");
 
-        WriteAccessController writeAccessController = new WriteAccessController();
+        writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
         azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, "oak");
         azurePersistence.setWriteAccessController(writeAccessController);
@@ -631,7 +632,7 @@ public class AzureArchiveManagerTest {
         writeBlobContainerClient.getBlobClient("oak/data00000a.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
 
         // disable writing
-        azurePersistence.disableWriting();
+        writeAccessController.disableWriting();
 
         List<String> archives = manager.listArchives();
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));

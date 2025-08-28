@@ -92,12 +92,13 @@ public class AzureArchiveManagerV8Test {
     private CloudBlobContainer container;
 
     private AzurePersistenceV8 azurePersistenceV8;
+    private WriteAccessController writeAccessController;
 
     @Before
     public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
 
-        WriteAccessController writeAccessController = new WriteAccessController();
+        writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
         azurePersistenceV8 = new AzurePersistenceV8(container.getDirectoryReference("oak"));
         azurePersistenceV8.setWriteAccessController(writeAccessController);
@@ -596,7 +597,7 @@ public class AzureArchiveManagerV8Test {
         CloudBlobDirectory archiveDirectory = container.getDirectoryReference("oak/data00000a.tar");
         archiveDirectory.getBlockBlobReference("deleted").openOutputStream().close();
 
-        azurePersistenceV8.disableWriting();
+        writeAccessController.disableWriting();
 
         List<String> archives = manager.listArchives();
         assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
