@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.Closeable;
@@ -25,8 +24,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.commons.collections4.multimap.ArrayListValuedLinkedHashMap;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -54,7 +52,7 @@ public class NRTIndexFactory implements Closeable{
     private static final int MAX_INDEX_COUNT = 3;
     private static final int REFRESH_DELTA_IN_SECS = Integer.getInteger("oak.lucene.refreshDeltaSecs", 1);
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final ListMultimap<String, NRTIndex> indexes = LinkedListMultimap.create();
+    private final ArrayListValuedLinkedHashMap<String, NRTIndex> indexes = new ArrayListValuedLinkedHashMap<>();
     private final IndexCopier indexCopier;
     private final Clock clock;
     private final long refreshDeltaInSecs;

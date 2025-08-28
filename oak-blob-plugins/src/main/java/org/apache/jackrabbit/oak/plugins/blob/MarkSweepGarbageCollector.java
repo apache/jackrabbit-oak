@@ -265,10 +265,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 references.put(SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()), input);
             }
 
-//            ImmutableListMultimap<String, DataRecord> references =
-//                FluentIterable.from(refFiles).index(
-//                        input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()));
-
             // Get all the markers available
             List<DataRecord> markerFiles =
                 ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType());
