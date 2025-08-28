@@ -55,8 +55,6 @@ public class AzureSegmentArchiveWriterV8 extends AbstractRemoteSegmentArchiveWri
 
     private final BlobRequestOptions writeOptimisedBlobRequestOptions;
 
-    private static final Logger LOG = LoggerFactory.getLogger(AzureSegmentArchiveWriterV8.class);
-
     public AzureSegmentArchiveWriterV8(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) throws IOException {
         super(ioMonitor, monitor);
         this.archiveDirectory = archiveDirectory;
