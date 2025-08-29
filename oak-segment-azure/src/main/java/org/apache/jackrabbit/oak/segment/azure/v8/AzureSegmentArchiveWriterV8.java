@@ -41,8 +41,6 @@ import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveWrit
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class AzureSegmentArchiveWriterV8 extends AbstractRemoteSegmentArchiveWriter {
 
