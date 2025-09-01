@@ -69,12 +69,12 @@ public class PipelinedMongoServerSelectorTest {
 
     private ExecutorService threadAscending;
     private ExecutorService threadDescending;
-    private ExecutorService threadOther;.
+    private ExecutorService threadOther;
 
     @Before
     public void setUp() {
         threadAscending = Executors.newSingleThreadExecutor(BasicThreadFactory.builder().namingPattern(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-ascending").daemon().build());
-        threadDescending = Executors.newSingleThreadExecutor(BasicThreadFactory.builder().namingPattern(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-descending").daamon().build());
+        threadDescending = Executors.newSingleThreadExecutor(BasicThreadFactory.builder().namingPattern(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-descending").daemon().build());
         threadOther = Executors.newSingleThreadExecutor(BasicThreadFactory.builder().namingPattern("mongo-server-selector-test-thread").daemon().build());
     }
 
