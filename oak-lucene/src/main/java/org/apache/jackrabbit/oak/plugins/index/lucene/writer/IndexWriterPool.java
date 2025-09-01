@@ -263,7 +263,7 @@ public class IndexWriterPool {
      */
     public IndexWriterPool() {
         this.writersPool = Executors.newFixedThreadPool(numberOfThreads, BasicThreadFactory.builder().daemon().build());
-        this.monitorTaskExecutor = Executors.newSingleThreadScheduledExecutor(BasicThreadFactory.builder().namingPattern("index-writer-monitor").build();
+        this.monitorTaskExecutor = Executors.newSingleThreadScheduledExecutor(BasicThreadFactory.builder().daemon().namingPattern("index-writer-monitor").build();
         this.workers = IntStream.range(0, numberOfThreads)
                 .mapToObj(Worker::new)
                 .collect(Collectors.toList());
