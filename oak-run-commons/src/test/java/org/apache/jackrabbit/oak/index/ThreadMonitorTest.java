@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.junit.After;
 import org.junit.Before;
@@ -115,7 +115,7 @@ public class ThreadMonitorTest {
         monitor.start();
         ThreadMonitor.AutoRegisteringThreadFactory factory = new ThreadMonitor.AutoRegisteringThreadFactory(
                 monitor,
-                new ThreadFactoryBuilder().setNameFormat("test-thread").build()
+                BasicThreadFactory.builder().namingPattern("test-thread").build()
         );
         ExecutorService executor = Executors.newSingleThreadExecutor(factory);
         try {

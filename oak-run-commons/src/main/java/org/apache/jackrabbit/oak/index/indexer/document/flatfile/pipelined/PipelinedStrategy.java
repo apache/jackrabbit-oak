@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.ConnectionString;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -354,7 +354,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
         ThreadMonitor threadMonitor = ThreadMonitor.newInstance();
-        var threadFactory = new ThreadMonitor.AutoRegisteringThreadFactory(threadMonitor, new ThreadFactoryBuilder().setDaemon(true).build());
+        var threadFactory = new ThreadMonitor.AutoRegisteringThreadFactory(threadMonitor, BasicThreadFactory.builder().daemon().build());
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads, threadFactory);
         MongoDocumentFilter documentFilter = new MongoDocumentFilter(filteredPath, suffixesToSkip);
         NodeDocumentCodec nodeDocumentCodec = new NodeDocumentCodec(docStore, Collection.NODES, documentFilter, MongoClientSettings.getDefaultCodecRegistry());
