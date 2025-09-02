@@ -1,0 +1,123 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.jackrabbit.oak.commons.internal.concurrent;
+
+import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
+import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Unit cases for {@link FutureConverter}
+ */
+public class FutureConverterTest {
+
+    @Test
+    public void testSuccessfulCompletion() throws Exception {
+        SettableFuture<String> listenable = SettableFuture.create();
+        CompletableFuture<String> completable = FutureConverter.toCompletableFuture(listenable);
+
+        listenable.set("success");
+
+        // Should complete with the same value
+        Assert.assertEquals("success", completable.get(1, TimeUnit.SECONDS));
+        Assert.assertTrue(completable.isDone());
+        Assert.assertFalse(completable.isCompletedExceptionally());
+    }
+
+    @Test
+    public void testExceptionalCompletion() {
+        SettableFuture<String> listenable = SettableFuture.create();
+        CompletableFuture<String> completable = FutureConverter.toCompletableFuture(listenable);
+
+        listenable.setException(new RuntimeException("fail!"));
+
+        // Should complete exceptionally
+        ExecutionException ex = Assert.assertThrows(ExecutionException.class, () -> completable.get(1, TimeUnit.SECONDS));
+        Assert.assertTrue(ex.getCause() instanceof RuntimeException);
+        Assert.assertEquals("fail!", ex.getCause().getMessage());
+        Assert.assertTrue(completable.isCompletedExceptionally());
+    }
+
+    @Test
+    public void testCancellation() {
+        SettableFuture<String> listenable = SettableFuture.create();
+        CompletableFuture<String> completable = FutureConverter.toCompletableFuture(listenable);
+
+        listenable.cancel(true);
+
+        // Should complete exceptionally with CancellationException
+        Assert.assertThrows(CancellationException.class, () -> completable.get(1, TimeUnit.SECONDS));
+        Assert.assertTrue(completable.isCompletedExceptionally());
+    }
+
+    @Test
+    public void testConvertListSuccessful() throws Exception {
+        SettableFuture<String> f1 = SettableFuture.create();
+        SettableFuture<String> f2 = SettableFuture.create();
+
+        List<ListenableFuture<String>> listenableList = Arrays.asList(f1, f2);
+        List<CompletableFuture<String>> completableList = FutureConverter.toCompletableFuture(listenableList);
+
+        // Complete Guava futures
+        f1.set("first");
+        f2.set("second");
+
+        // Assert CompletableFuture results
+        Assert.assertEquals("first", completableList.get(0).get());
+        Assert.assertEquals("second", completableList.get(1).get());
+    }
+
+    @Test
+    public void testConvertListPartialFailure() {
+        SettableFuture<String> f1 = SettableFuture.create();
+        SettableFuture<String> f2 = SettableFuture.create();
+
+        List<ListenableFuture<String>> listenableList = Arrays.asList(f1, f2);
+        List<CompletableFuture<String>> completableList = FutureConverter.toCompletableFuture(listenableList);
+
+        f1.set("ok");
+        f2.setException(new RuntimeException("fail"));
+
+        // Verify first future succeeds
+        try {
+            Assert.assertEquals("ok", completableList.get(0).get());
+        } catch (Exception e) {
+            Assert.fail("First future should succeed");
+        }
+
+        // Verify second future completes exceptionally
+        Assert.assertThrows(ExecutionException.class, () -> completableList.get(1).get());
+    }
+
+    @Test
+    public void testConvertListEmpty() {
+        List<ListenableFuture<String>> emptyList = List.of();
+        List<CompletableFuture<String>> completableList = FutureConverter.toCompletableFuture(emptyList);
+        Assert.assertTrue(completableList.isEmpty());
+    }
+
+}

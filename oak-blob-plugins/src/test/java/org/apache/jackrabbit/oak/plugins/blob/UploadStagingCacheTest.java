@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,7 +42,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.qos.logback.classic.Level;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
@@ -52,6 +52,8 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.concurrent.FutureUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -570,9 +572,9 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
             futures.add(future1.get().get());
         }
 
-        ListenableFuture<List<Integer>> listListenableFuture = Futures.successfulAsList(futures);
+        CompletableFuture<List<Integer>> listCompletableFuture = FutureUtils.successfulAsList(FutureConverter.toCompletableFuture(futures));
         try {
-            listListenableFuture.get();
+            listCompletableFuture.get();
             scheduledFuture.get();
         } catch (Exception e) {
             e.printStackTrace();
@@ -775,9 +777,9 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     }
 
     private void waitFinish(List<ListenableFuture<Integer>> futures) {
-        ListenableFuture<List<Integer>> listListenableFuture = Futures.successfulAsList(futures);
+        CompletableFuture<List<Integer>> listCompletableFuture = FutureUtils.successfulAsList(FutureConverter.toCompletableFuture(futures));
         try {
-            listListenableFuture.get();
+            listCompletableFuture.get();
             ScheduledFuture<?> scheduledFuture =
                 removeExecutor.schedule(stagingCache.new RemoveJob(), 0, TimeUnit.MILLISECONDS);
             scheduledFuture.get();

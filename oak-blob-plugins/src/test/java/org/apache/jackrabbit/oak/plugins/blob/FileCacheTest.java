@@ -25,13 +25,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.concurrent.FutureUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.junit.After;
 import org.junit.Before;
@@ -81,7 +81,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         beforeLatch.countDown();
         afterLatch.countDown();
         cache = FileCache.build(4 * 1024/* KB */, root, loader, executor);
-        Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
+        FutureUtils.successfulAsList(FutureConverter.toCompletableFuture(executor.futures)).get();
 
         closer.register(cache);
 
@@ -438,7 +438,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         cache = FileCache.build(4 * 1024/* bytes */, root, loader, executor);
         closer.register(cache);
         afterExecuteLatch.await();
-        Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
+        FutureUtils.successfulAsList(FutureConverter.toCompletableFuture(executor.futures)).get();
         LOG.info("Cache rebuilt");
 
         assertCacheIfPresent(0, cache, f);
@@ -473,7 +473,7 @@ public class FileCacheTest extends AbstractDataStoreCacheTest {
         cache = FileCache.build(4 * 1024/* bytes */, root, loader, executor);
         closer.register(cache);
         afterExecuteLatch.await();
-        Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
+        FutureUtils.successfulAsList(FutureConverter.toCompletableFuture(executor.futures)).get();
         LOG.info("Cache rebuilt");
 
         assertCacheIfPresent(0, cache, f);

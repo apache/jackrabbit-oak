@@ -26,10 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
@@ -43,6 +43,8 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.concurrent.FutureUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -237,9 +239,9 @@ public class FSBackendIT {
     }
 
     private void waitFinish(List<ListenableFuture<Integer>> futures) {
-        ListenableFuture<List<Integer>> listenableFutures = Futures.successfulAsList(futures);
+        CompletableFuture<List<Integer>> completableFutures = FutureUtils.successfulAsList(FutureConverter.toCompletableFuture(futures));
         try {
-            listenableFutures.get();
+            completableFutures.get();
         } catch (Exception e) {
             LOG.error("Error in finishing threads", e);
         }
