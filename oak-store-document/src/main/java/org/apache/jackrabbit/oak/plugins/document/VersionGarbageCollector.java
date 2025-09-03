@@ -1488,7 +1488,8 @@ public class VersionGarbageCollector {
                     // Check for intersection between sets directly
                     if (!Collections.disjoint(splitProps, propsToBeDeleted)) {
                         if (AUDIT_LOG.isInfoEnabled()) {
-                            AUDIT_LOG.info("<Skipping> empty props deletion in [{}] due to presence of deleted Split Properties.", doc.getId());
+                            AUDIT_LOG.info("<Skipping> empty props deletion in [{}] due to presence of deleted Split Properties [{}].",
+                                    doc.getId(), SetUtils.intersection(splitProps, propsToBeDeleted));
                         }
                         phases.stop(GCPhase.FULL_GC_COLLECT_PROPS);
                         return;
