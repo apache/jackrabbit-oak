@@ -1309,6 +1309,75 @@ public class NodeDocumentTest {
         ns.dispose();
     }
 
+    @Test
+    public void testGetSplitPropertyNames() {
+        // Setup a document store
+        DocumentStore store = new MemoryDocumentStore();
+
+        // Create a root document with some properties
+        String rootId = Utils.getIdFromPath(Path.ROOT);
+        UpdateOp rootOp = new UpdateOp(rootId, true);
+
+        // Add properties to root document
+        Revision r1 = new Revision(1, 0, 1);
+        rootOp.setMapEntry("onlyInRoot", r1, "value");
+        rootOp.setMapEntry("inBothDocs", r1, "rootValue");
+        NodeDocument.setRevision(rootOp, r1, "c");
+
+        // Create a previous document with some properties
+        Revision r2 = new Revision(2, 0, 1);
+        String prevId = Utils.getPreviousIdFor(Path.ROOT, r2, 0);
+        UpdateOp prevOp = new UpdateOp(prevId, true);
+
+        // Add properties to previous document
+        prevOp.setMapEntry("onlyInPrev", r2, "value");
+        prevOp.setMapEntry("inBothDocs", r2, "prevValue");
+        NodeDocument.setRevision(prevOp, r2, "c");
+
+        // Set up the previous range in the root document
+        NodeDocument.setPrevious(rootOp, new Range(r2, r2, 0));
+
+        // Create the documents
+        store.create(NODES, Arrays.asList(rootOp, prevOp));
+
+        // Get the root document and check its exclusive properties
+        NodeDocument rootDoc = store.find(NODES, rootId);
+        Set<String> splitPropertyNames = rootDoc.getSplitPropertyNames();
+
+        // Verify only properties exclusive to the root document are returned
+        assertFalse(splitPropertyNames.contains("onlyInRoot"));
+        assertFalse(splitPropertyNames.contains("onlyInPrev"));
+        assertTrue(splitPropertyNames.contains("inBothDocs"));
+    }
+
+    @Test
+    public void testGetSplitPropertyNamesNoPreviousDocs() {
+        // Setup a document store
+        DocumentStore store = new MemoryDocumentStore();
+
+        // Create a root document with some properties
+        String rootId = Utils.getIdFromPath(Path.ROOT);
+        UpdateOp rootOp = new UpdateOp(rootId, true);
+
+        // Add properties to root document
+        Revision r1 = new Revision(1, 0, 1);
+        rootOp.setMapEntry("prop1", r1, "value1");
+        rootOp.setMapEntry("prop2", r1, "value2");
+        NodeDocument.setRevision(rootOp, r1, "c");
+
+        // Create the document
+        store.create(NODES, Collections.singletonList(rootOp));
+
+        // Get the root document and check its exclusive properties
+        NodeDocument rootDoc = store.find(NODES, rootId);
+        Set<String> splitPropertyNames = rootDoc.getSplitPropertyNames();
+        Set<String> allProps = rootDoc.getPropertyNames();
+
+        // When no previous documents, all properties should be exclusive
+        assertTrue(Collections.disjoint(splitPropertyNames, allProps));
+        assertTrue(splitPropertyNames.isEmpty());
+    }
+
     private DocumentNodeStore createTestStore(int numChanges) throws Exception {
         return createTestStore(new MemoryDocumentStore(), 0, numChanges);
     }
