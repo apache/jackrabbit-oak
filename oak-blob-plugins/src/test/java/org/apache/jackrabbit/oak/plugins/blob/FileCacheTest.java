@@ -30,7 +30,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.commons.concurrent.FutureUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.junit.After;

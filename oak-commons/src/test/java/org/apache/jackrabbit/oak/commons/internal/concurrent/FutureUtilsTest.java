@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons.concurrent;
+package org.apache.jackrabbit.oak.commons.internal.concurrent;
 
 import org.junit.Assert;
 import org.junit.Test;

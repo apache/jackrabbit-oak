@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.commons.concurrent;
+package org.apache.jackrabbit.oak.commons.internal.concurrent;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -43,8 +43,8 @@ public class FutureUtils {
      */
     public static <T> CompletableFuture<List<T>> successfulAsList(final List<CompletableFuture<T>> futures) {
 
-        // need to handle each future case indivudually since if failed inside CompletableFuture.allOf(),
-        // it would throws an exception rather than returning null
+        // need to handle each future case individually since if failed inside CompletableFuture.allOf(),
+        // it would throw an exception rather than returning null
         final List<CompletableFuture<T>> handled = futures.stream()
                 .map(f -> f.handle((value, ex) -> ex == null ? value : null))
                 .collect(Collectors.toList());
