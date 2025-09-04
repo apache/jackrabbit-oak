@@ -84,7 +84,7 @@ public class NodeStoreTestHarness implements Closeable {
                         @Override
                         protected void after() {
                             Collections.reverse(closeables);
-                            closeables.forEach(closeable -> {
+                            List.copyOf(closeables).forEach(closeable -> {
                                 try {
                                     closeable.close();
                                 } catch (IOException e) {
@@ -102,7 +102,7 @@ public class NodeStoreTestHarness implements Closeable {
 
         public NodeStoreTestHarness createHarness(SegmentNodeStorePersistence persistence)
                 throws IOException, InvalidFileStoreVersionException {
-            final NodeStoreTestHarness nodeStoreTestHarness = new NodeStoreTestHarness(persistence, tempFolderRule.newFolder(), false);
+            final NodeStoreTestHarness nodeStoreTestHarness = new NodeStoreTestHarness(persistence, tempFolderRule.newFolder(), false, closeables::remove);
             registerCloseable(nodeStoreTestHarness);
             return nodeStoreTestHarness;
         }
@@ -113,7 +113,8 @@ public class NodeStoreTestHarness implements Closeable {
             final NodeStoreTestHarness nodeStoreTestHarness = new NodeStoreTestHarness(
                     persistenceFactory.apply(dummyDirectory),
                     dummyDirectory,
-                    false
+                    false,
+                    closeables::remove
             );
             registerCloseable(nodeStoreTestHarness);
             return nodeStoreTestHarness;
@@ -121,6 +122,8 @@ public class NodeStoreTestHarness implements Closeable {
     }
 
     private final File dummyDirectory;
+
+    private final Consumer<NodeStoreTestHarness> onClose;
 
     private boolean readOnly;
 
@@ -135,10 +138,11 @@ public class NodeStoreTestHarness implements Closeable {
     // latch used to wait for tar files to be cleaned up after GC
     private volatile CountDownLatch gcLatch = new CountDownLatch(0);
 
-    private NodeStoreTestHarness(SegmentNodeStorePersistence persistence, File dummyDirectory, boolean readOnly) throws InvalidFileStoreVersionException, IOException {
+    private NodeStoreTestHarness(SegmentNodeStorePersistence persistence, File dummyDirectory, boolean readOnly, Consumer<NodeStoreTestHarness> onClose) throws InvalidFileStoreVersionException, IOException {
         this.persistence = new PersistenceDecorator(persistence, this::fileDeleted);
         this.dummyDirectory = dummyDirectory;
         this.readOnly = readOnly;
+        this.onClose = onClose;
         initializeFileStore();
     }
 
@@ -227,6 +231,7 @@ public class NodeStoreTestHarness implements Closeable {
 
     @Override
     public void close() throws IOException {
+        onClose.accept(this);
         fileStore.close();
     }
 

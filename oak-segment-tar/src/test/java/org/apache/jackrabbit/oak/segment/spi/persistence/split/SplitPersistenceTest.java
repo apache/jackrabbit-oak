@@ -150,12 +150,14 @@ public class SplitPersistenceTest {
 
     @Test
     public void archiveManager_delete() throws IOException {
+        splitHarness.close();
         assertFalse(splitArchiveManager.delete("data00000a.tar"));
         assertTrue(splitArchiveManager.delete("data00003a.tar"));
     }
 
     @Test
     public void archiveManager_renameTo() throws IOException {
+        splitHarness.close();
         assertFalse(splitArchiveManager.renameTo("data00000a.tar", "data00000a.tar.bak"));
         assertTrue(splitArchiveManager.renameTo("data00003a.tar", "data00003a.tar.bak"));
     }
@@ -171,6 +173,7 @@ public class SplitPersistenceTest {
 
     @Test
     public void archiveManager_recover_and_backup() throws IOException {
+        splitHarness.close();
         LinkedHashMap<UUID, byte[]> entries = new LinkedHashMap<>();
         splitArchiveManager.recoverEntries("data00000a.tar", entries);
         assertEquals(2, entries.size());
