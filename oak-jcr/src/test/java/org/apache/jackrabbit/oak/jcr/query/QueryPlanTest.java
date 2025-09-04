@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -79,12 +81,11 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         String plan = row.getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should use the node type index
-        assertEquals("[oak:Unstructured] as [a] " + 
-                "/* nodeType Filter(query=explain select [jcr:path], [jcr:score], * " + 
-                "from [oak:Unstructured] as a " + 
-                "where isdescendantnode(a, '/') " + 
-                "/* xpath: /jcr:root//element(*, oak:Unstructured) */" + 
-                ", path=//*) where isdescendantnode([a], [/]) */", 
+        assertEquals("[oak:Unstructured] as [a] /* nodeType\n"
+                + "    path: /\n"
+                + "    primaryTypes: [oak:QueryIndexDefinition, oak:Unstructured]\n"
+                + "    mixinTypes: []\n"
+                + " */",
                 plan);
 
         String sql2 = row.getValue("statement").getString();
@@ -100,11 +101,10 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         assertTrue(it.hasNext());
         plan = it.nextRow().getValue("plan").getString();
         // should use the index on "jcr:uuid"
-        assertEquals("[oak:Unstructured] as [a] " +
-                "/* property uuid IS NOT NULL where ([a].[jcr:uuid] is not null) " +
-                "and (isdescendantnode([a], [/])) */",
-                plan);
-    }     
+        assertThat(plan, containsString("[oak:Unstructured] as [a] /* property uuid\n"
+                + "    indexDefinition: /oak:index/uuid\n"
+                + "    values: all values in the index (warning: may be slow)\n"));
+    }
     
     @Test
     // OAK-1903
@@ -136,12 +136,10 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         String plan = it.nextRow().getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
-        assertEquals("[nt:base] as [a] /* property notNull IS NOT NULL " +
-                "where ([a].[notNull] is not null) " +
-                "and ([a].[equals] = 1) " +
-                "and (isdescendantnode([a], [/])) */",
-                plan);
-    }           
+        assertThat(plan, containsString("[nt:base] as [a] /* property notNull\n"
+                + "    indexDefinition: /oak:index/notNull\n"
+                + "    values: all values in the index (warning: may be slow)\n"));
+    }
 
     @Test
     // OAK-1898
@@ -177,12 +175,9 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         String plan = it.nextRow().getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
-        assertEquals("[nt:base] as [a] /* property tenPercent IS NOT NULL " +
-                "where ([a].[tenPercent] is not null) " +
-                "and ([a].[fiftyPercent] is not null) " +
-                "and ([a].[hundredPercent] is not null) " +
-                "and (isdescendantnode([a], [/])) */",
-                plan);
+        assertThat(plan, containsString("[nt:base] as [a] /* property tenPercent\n"
+                + "    indexDefinition: /oak:index/tenPercent\n"
+                + "    values: all values in the index (warning: may be slow)\n"));
     }           
 
     @Test
@@ -212,11 +207,10 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         String plan = it.nextRow().getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
-        assertEquals("[nt:base] as [a] /* property uuid IS NOT NULL " +
-                "where ([a].[jcr:uuid] is not null) and " + 
-                "(isdescendantnode([a], [/testroot/n/n/n/n/n/n/n])) */", 
-                plan);
-    }        
+        assertThat(plan, containsString("[nt:base] as [a] /* property uuid\n"
+                + "    indexDefinition: /oak:index/uuid\n"
+                + "    values: all values in the index (warning: may be slow)\n"));
+    }
     
     @Test
     public void nodeType() throws Exception {
@@ -244,11 +238,8 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         assertTrue(it.hasNext());
         String plan = it.nextRow().getValue("plan").getString();
         // should not use the index on "jcr:primaryType"
-        assertEquals("[nt:base] as [nt:base] /* traverse \"/testroot//*\" " + 
-                "where ([nt:base].[node2/node3/jcr:primaryType] is not null) " + 
-                "and (isdescendantnode([nt:base], [/testroot])) " +
-                "*/", 
-                plan);
+        assertThat(plan, containsString("[nt:base] as [nt:base] /* traverse\n"
+                + "    allDescendents: /testroot\n"));
         
         // verify the result
         q = qm.createQuery(sql2, Query.JCR_SQL2);
@@ -282,9 +273,8 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         it = result.getRows();
         assertTrue(it.hasNext());
         String plan = it.nextRow().getValue("plan").getString();
-        assertEquals("[nt:base] as [a] /* traverse \"/testroot/node\" where " + 
-                "([a].[jcr:uuid] is not null) " + 
-                "and (issamenode([a], [/testroot/node])) */", plan);
+        assertThat(plan, containsString("[nt:base] as [a] /* traverse\n"
+                + "    oneNode: /testroot/node\n"));
 
         // verify the result
         q = qm.createQuery(xpath, "xpath");
@@ -304,9 +294,9 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         it = result.getRows();
         assertTrue(it.hasNext());
         plan = it.nextRow().getValue("plan").getString();
-        assertEquals("[nt:base] as [a] /* property uuid IS NOT NULL " +
-                "where ([a].[jcr:uuid] is not null) " + 
-                "and (ischildnode([a], [/testroot])) */", plan);
+        assertThat(plan, containsString("[nt:base] as [a] /* property uuid\n"
+                + "    indexDefinition: /oak:index/uuid\n"
+                + "    values: all values in the index (warning: may be slow)\n"));
         
     }
     

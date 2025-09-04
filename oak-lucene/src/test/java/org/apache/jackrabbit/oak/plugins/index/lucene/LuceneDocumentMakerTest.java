@@ -25,15 +25,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static java.util.Arrays.asList;
+import java.util.List;
+
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class LuceneDocumentMakerTest {
-    private NodeState root = INITIAL_CONTENT;
-    private LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
+    private final NodeState root = INITIAL_CONTENT;
+    private final LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
 
     @Test
     public void excludeSingleProperty() throws Exception{
@@ -43,7 +44,7 @@ public class LuceneDocumentMakerTest {
                 .analyzed()
                 .valueExcludedPrefixes("/jobs");
 
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, builder.build(), "/foo").build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(root, builder.build(), "/foo").build();
         LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn,
                 defn.getApplicableIndexingRule("nt:base"), "/x");
 
@@ -55,10 +56,10 @@ public class LuceneDocumentMakerTest {
         test.setProperty("foo", "/jobs/a");
         assertNull(docMaker.makeDocument(test.getNodeState()));
 
-        test.setProperty("foo", asList("/a", "/jobs/a"), Type.STRINGS);
+        test.setProperty("foo", List.of("/a", "/jobs/a"), Type.STRINGS);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
 
-        test.setProperty("foo", asList("/jobs/a"), Type.STRINGS);
+        test.setProperty("foo", List.of("/jobs/a"), Type.STRINGS);
         assertNull(docMaker.makeDocument(test.getNodeState()));
     }
 

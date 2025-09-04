@@ -22,10 +22,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -36,6 +34,9 @@ import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -56,9 +57,8 @@ import org.mockito.Mockito;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_TRAVERSE_WITH_SORT;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -78,34 +78,18 @@ public class FlatFileNodeStoreBuilderTest {
 
     @Test
     public void defaultSortStrategy() throws Exception {
+        MongoDocumentStore mongoDocumentStore = mock(MongoDocumentStore.class);
+        when(mongoDocumentStore.isReadOnly()).thenReturn(true);
         FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
-                .withLastModifiedBreakPoints(Collections.emptyList())
-                .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
+                .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory)
+                .withIndexDefinitions(List.of())
+                .withMongoDocumentStore(mongoDocumentStore);
         SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
-        assertTrue(sortStrategy instanceof TraverseWithSortStrategy);
+        assertTrue(sortStrategy instanceof PipelinedStrategy);
     }
 
     @Test
     public void sortStrategyBasedOnSystemProperty() throws Exception {
-        System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
-                .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
-        SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
-        assertTrue(sortStrategy instanceof TraverseWithSortStrategy);
-    }
-
-    @Test
-    public void disableTraverseAndSortStrategyUsingSystemProperty() throws Exception {
-        System.setProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false");
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
-                .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
-        SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
-        assertTrue(sortStrategy instanceof StoreAndSortStrategy);
-    }
-
-    @Test
-    public void sortStrategySystemPropertyPrecedence() throws Exception {
-        System.setProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false");
         System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
         FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
                 .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
@@ -125,9 +109,10 @@ public class FlatFileNodeStoreBuilderTest {
     @Test
     public void testBuildGZIP() throws CompositeException, IOException {
         System.setProperty(OAK_INDEXER_USE_ZIP, "true");
+        System.setProperty(OAK_INDEXER_USE_LZ4, "false");
         File newFlatFile = getFile("simple-split.json", Compression.GZIP);
         System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, newFlatFile.getParentFile().getAbsolutePath());
-        
+
         assertBuild(newFlatFile.getParentFile().getAbsolutePath());
     }
 
@@ -139,7 +124,7 @@ public class FlatFileNodeStoreBuilderTest {
 
         File newFlatFile = getFile("simple-split.json", compression);
         System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, newFlatFile.getParentFile().getAbsolutePath());
-        
+
         assertBuild(newFlatFile.getParentFile().getAbsolutePath());
     }
 
@@ -149,10 +134,10 @@ public class FlatFileNodeStoreBuilderTest {
 
         File newFlatFile = getFile("complex-split.json", Compression.NONE);
         System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, newFlatFile.getParentFile().getAbsolutePath());
-        
+
         assertBuildList(newFlatFile.getParentFile().getAbsolutePath(), false);
     }
-    
+
     @Test
     public void testBuildListSplit() throws CompositeException, IOException {
         System.setProperty(OAK_INDEXER_USE_ZIP, "false");
@@ -160,18 +145,19 @@ public class FlatFileNodeStoreBuilderTest {
 
         File newFlatFile = getFile("complex-split.json", Compression.NONE);
         System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, newFlatFile.getParentFile().getAbsolutePath());
-        
+
         assertBuildList(newFlatFile.getParentFile().getAbsolutePath(), true);
     }
 
     @Test
     public void testBuildListSplitGZIP() throws CompositeException, IOException {
         System.setProperty(OAK_INDEXER_USE_ZIP, "true");
+        System.setProperty(OAK_INDEXER_USE_LZ4, "false");
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_MIN_SPLIT_THRESHOLD, "0");
-        
+
         File newFlatFile = getFile("complex-split.json", Compression.GZIP);
         System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, newFlatFile.getParentFile().getAbsolutePath());
-                
+
         assertBuildList(newFlatFile.getParentFile().getAbsolutePath(), true);
     }
 
@@ -184,22 +170,23 @@ public class FlatFileNodeStoreBuilderTest {
 
         File newFlatFile = getFile("complex-split.json", compression);
         System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, newFlatFile.getParentFile().getAbsolutePath());
-        
+
         assertBuildList(newFlatFile.getParentFile().getAbsolutePath(), true);
     }
 
     public void assertBuild(String dir) throws CompositeException, IOException {
         FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot()).withNodeStateEntryTraverserFactory(
-            nodeStateEntryTraverserFactory);
-        FlatFileStore store = builder.build();
-        assertEquals(dir, store.getFlatFileStorePath());
+                nodeStateEntryTraverserFactory);
+        try (IndexStore store = builder.build()) {
+            assertEquals(dir, store.getStorePath());
+        }
     }
-    
+
     private File getFile(String dataFile, Compression compression) throws IOException {
         File flatFile = new File(getClass().getClassLoader().getResource(dataFile).getFile());
         File newFlatFile = new File(folder.getRoot(), FlatFileStoreUtils.getSortedStoreFileName(compression));
         try (BufferedReader reader = FlatFileStoreUtils.createReader(flatFile, false);
-            BufferedWriter writer = FlatFileStoreUtils.createWriter(newFlatFile, compression)) {
+             BufferedWriter writer = FlatFileStoreUtils.createWriter(newFlatFile, compression)) {
             IOUtils.copy(reader, writer);
         }
         return newFlatFile;
@@ -207,31 +194,31 @@ public class FlatFileNodeStoreBuilderTest {
 
     public void assertBuildList(String dir, boolean split) throws CompositeException, IOException {
         FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot()).withNodeStateEntryTraverserFactory(
-            nodeStateEntryTraverserFactory);
+                nodeStateEntryTraverserFactory);
         IndexHelper indexHelper = mock(IndexHelper.class);
         when(indexHelper.getWorkDir()).thenReturn(new File(dir));
         IndexerSupport indexerSupport = mock(IndexerSupport.class);
         NodeState rootState = mock(NodeState.class);
         when(indexerSupport.retrieveNodeStateForCheckpoint()).thenReturn(rootState);
-        
-        List<FlatFileStore> storeList = builder.buildList(indexHelper, indexerSupport, mockIndexDefns());
-        
+
+        List<IndexStore> storeList = builder.buildList(indexHelper, indexerSupport, mockIndexDefns());
+
         if (split) {
-            assertEquals(new File(dir, "split").getAbsolutePath(), storeList.get(0).getFlatFileStorePath());
+            assertEquals(new File(dir, "split").getAbsolutePath(), storeList.get(0).getStorePath());
             assertTrue(storeList.size() > 1);
         } else {
-            assertEquals(dir, storeList.get(0).getFlatFileStorePath());
+            assertEquals(dir, storeList.get(0).getStorePath());
             assertEquals(1, storeList.size());
         }
     }
 
-    private static Set<IndexDefinition> mockIndexDefns() {
+    private static List<IndexDefinition> mockIndexDefns() {
         NodeStore store = new MemoryNodeStore();
         EditorHook hook = new EditorHook(
-            new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
+                new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider()));
         OakInitializer.initialize(store, new InitialContent(), hook);
 
-        Set<IndexDefinition> defns = new HashSet<>();
+        List<IndexDefinition> defns = new ArrayList<>();
         IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
         defnBuilder.indexRule("dam:Asset");
         defnBuilder.aggregateRule("dam:Asset");
@@ -241,8 +228,8 @@ public class FlatFileNodeStoreBuilderTest {
         NodeTypeInfoProvider mockNodeTypeInfoProvider = Mockito.mock(NodeTypeInfoProvider.class);
         NodeTypeInfo mockNodeTypeInfo = Mockito.mock(NodeTypeInfo.class, "dam:Asset");
         Mockito.when(mockNodeTypeInfo.getNodeTypeName()).thenReturn("dam:Asset");
-        Mockito.when(mockNodeTypeInfoProvider.getNodeTypeInfo("dam:Asset")).thenReturn(mockNodeTypeInfo);         
-        
+        Mockito.when(mockNodeTypeInfoProvider.getNodeTypeInfo("dam:Asset")).thenReturn(mockNodeTypeInfo);
+
         return defns;
     }
 }

@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import java.util.List;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
@@ -37,9 +38,9 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
  * <ul>
  *     <li>creates a property index definitions for
  *     {@link #REP_PRINCIPAL_NAME rep:principalName} properties defined with ACE
- *     nodes</li>
+ *     nodes
  *     <li>asserts that the permission store is setup and has dedicated entry for
- *     this workspace.</li>
+ *     this workspace.
  * </ul>.
  */
 class AuthorizationInitializer implements WorkspaceInitializer, AccessControlConstants, PermissionConstants {
@@ -56,8 +57,8 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
         if (!index.hasChildNode("acPrincipalName")) {
             NodeBuilder acPrincipalName = IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
-                    ImmutableList.<String>of(REP_PRINCIPAL_NAME),
-                    ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
+                    List.of(REP_PRINCIPAL_NAME),
+                    List.of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
             acPrincipalName.setProperty("info", "Oak index used by authorization to quickly search a principal by name.");
         }
 

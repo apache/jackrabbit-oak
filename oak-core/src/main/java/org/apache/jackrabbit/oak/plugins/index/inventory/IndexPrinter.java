@@ -28,12 +28,11 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.felix.inventory.Format;
 import org.apache.felix.inventory.InventoryPrinter;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
@@ -42,7 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexInfoService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 @Component(
         service = InventoryPrinter.class,
@@ -64,8 +63,8 @@ public class IndexPrinter implements InventoryPrinter {
     }
 
     public IndexPrinter(IndexInfoService indexInfoService, AsyncIndexInfoService asyncIndexInfoService) {
-        this.indexInfoService = checkNotNull(indexInfoService);
-        this.asyncIndexInfoService = checkNotNull(asyncIndexInfoService);
+        this.indexInfoService = requireNonNull(indexInfoService);
+        this.asyncIndexInfoService = requireNonNull(asyncIndexInfoService);
     }
 
     @Override
@@ -77,7 +76,7 @@ public class IndexPrinter implements InventoryPrinter {
     }
 
     private void asyncLanesInfo(PrinterOutput po) {
-        List<String> asyncLanes = ImmutableList.copyOf(asyncIndexInfoService.getAsyncLanes());
+        List<String> asyncLanes = ListUtils.toList(asyncIndexInfoService.getAsyncLanes());
         po.startSection("Async Indexers State", true);
         po.text("Number of async indexer lanes", asyncLanes.size());
 
@@ -163,6 +162,7 @@ public class IndexPrinter implements InventoryPrinter {
             po.text("Has hidden oak mount", info.hasHiddenOakLibsMount());
             po.text("Has property index", info.hasPropertyIndexNode());
         }
+        po.text("Is active", info.isActive());
 
         if (info.hasIndexDefinitionChangedWithoutReindexing()) {
             String diff = info.getIndexDefinitionDiff();
@@ -256,7 +256,7 @@ public class IndexPrinter implements InventoryPrinter {
             newLine();
             appendLine(section);
             if (topLevel) {
-                appendLine(Strings.repeat("=", section.length()));
+                appendLine("=".repeat(section.length()));
                 newLine();
             } else {
                 leftPadding += 4;

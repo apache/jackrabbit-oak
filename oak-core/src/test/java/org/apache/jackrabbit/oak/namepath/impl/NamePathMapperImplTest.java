@@ -28,7 +28,6 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
@@ -37,14 +36,14 @@ import org.junit.Test;
 
 public class NamePathMapperImplTest {
 
-    private static final Map<String, String> GLOBAL = ImmutableMap.of(
+    private static final Map<String, String> GLOBAL = Map.of(
             "oak-jcr", "http://www.jcp.org/jcr/1.0",
             "oak-nt", "http://www.jcp.org/jcr/nt/1.0",
             "oak-foo", "http://www.example.com/foo",
             "oak-quu", "http://www.example.com/quu",
             "oak",     "http://jackrabbit.apache.org/oak/ns/1.0");
 
-    private static final Map<String, String> LOCAL = ImmutableMap.of(
+    private static final Map<String, String> LOCAL = Map.of(
             "jcr-jcr", "http://www.jcp.org/jcr/1.0",
             "jcr-nt", "http://www.jcp.org/jcr/nt/1.0",
             "foo", "http://www.example.com/foo",
@@ -137,6 +136,27 @@ public class NamePathMapperImplTest {
     }
 
     @Test
+    public void testOakToExpandedJcr() {
+        assertEquals("/{http://www.example.com/foo}bar", npMapper.getExpandedJcrPath("/oak-foo:bar"));
+        assertEquals("/{http://www.example.com/foo}bar/{http://www.example.com/quu}qux", npMapper.getExpandedJcrPath("/oak-foo:bar/oak-quu:qux"));
+        assertEquals("{http://www.example.com/foo}bar", npMapper.getExpandedJcrPath("oak-foo:bar"));
+        // this is the self-segment from https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.4.2%20Path%20Resolution
+        assertEquals(".", npMapper.getExpandedJcrPath(""));
+
+        try {
+            npMapper.getExpandedJcrPath("{http://www.jcp.org/jcr/nt/1.0}unstructured");
+            fail("expanded name should not be accepted");
+        } catch (IllegalArgumentException expected) {
+        }
+
+        try {
+            npMapper.getExpandedJcrPath("foobar/{http://www.jcp.org/jcr/1.0}content");
+            fail("expanded name should not be accepted");
+        } catch (IllegalArgumentException expected) {
+        }
+    }
+
+    @Test
     public void testInvalidJcrPaths() {
         String[] paths = {
                 "//",
@@ -210,6 +230,11 @@ public class NamePathMapperImplTest {
                 "/parent/sub/childB4",
                 "/parent/sub/}childB5",
                 "/parent/sub/{childB6}",
+                "/parent/sub/{childB7",
+                "/parent/sub/{childB7",
+                "/parent/{",
+                "/parent/{childA1",
+                "/parent/{{childA2"
         };
 
         for (String path : paths) {
@@ -217,20 +242,6 @@ public class NamePathMapperImplTest {
         }
     }
     
-    @Test
-    public void testIllegalBracketsInPaths() throws Exception {
-        String[] paths = {
-                "/parent/sub/{childB7", 
-                "/parent/sub/{childB7",
-                "/parent/{", 
-                "/parent/{childA1", 
-                "/parent/{{childA2"        };
-
-        for (String path : paths) {
-            assertNull(npMapper.getOakPath(path));
-        }
-    }    
-
     @Test
     public void testWhitespace() {
         String[] paths = new String[] {

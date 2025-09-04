@@ -20,33 +20,34 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.jcr.PropertyType;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Queues;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.commons.collections4.FluentIterable;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
@@ -82,6 +83,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
+import org.apache.jackrabbit.oak.spi.query.fulltext.VectorQuery;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
@@ -134,10 +136,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static java.util.Objects.requireNonNull;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -155,7 +155,9 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPath
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newName;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_EXCERPT;
-import static org.apache.lucene.search.BooleanClause.Occur.*;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
 
 /**
  *
@@ -169,16 +171,16 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
  *
  * Under it follows the index definition node that:
  * <ul>
- * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
- * <li>must have the <code>type</code> property set to <b><code>lucene</code></b></li>
- * <li>must have the <code>async</code> property set to <b><code>async</code></b></li>
+ * <li>must be of type <code>oak:QueryIndexDefinition</code>
+ * <li>must have the <code>type</code> property set to <b><code>lucene</code></b>
+ * <li>must have the <code>async</code> property set to <b><code>async</code></b>
  * </ul>
  * <p>
  * Optionally you can add
  * <ul>
- * <li>what subset of property types to be included in the index via the <code>includePropertyTypes</code> property</li>
- * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property</li>
- * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.</li>
+ * <li>what subset of property types to be included in the index via the <code>includePropertyTypes</code> property
+ * <li>a blacklist of property names: what property to be excluded from the index via the <code>excludePropertyNames</code> property
+ * <li>the <code>reindex</code> flag which when set to <code>true</code>, triggers a full content re-index.
  * </ul>
  * <pre>{@code
  * {
@@ -209,6 +211,9 @@ public class LucenePropertyIndex extends FulltextIndex {
     public final static String CACHE_FACET_RESULTS_NAME = "oak.lucene.cacheFacetResults";
     private final boolean CACHE_FACET_RESULTS =
             Boolean.parseBoolean(System.getProperty(CACHE_FACET_RESULTS_NAME, "true"));
+    public final static String EAGER_FACET_CACHE_FILL_NAME = "oak.lucene.cacheFacetEagerFill";
+    private final static boolean EAGER_FACET_CACHE_FILL =
+            Boolean.parseBoolean(System.getProperty(EAGER_FACET_CACHE_FILL_NAME, "true"));
 
     private static boolean FLAG_CACHE_FACET_RESULTS_CHANGE = true;
 
@@ -266,8 +271,8 @@ public class LucenePropertyIndex extends FulltextIndex {
         final PlanResult pr = getPlanResult(plan);
         QueryLimits settings = filter.getQueryLimits();
         LuceneResultRowIterator rItr = new LuceneResultRowIterator() {
-            private final Deque<FulltextResultRow> queue = Queues.newArrayDeque();
-            private final Set<String> seenPaths = Sets.newHashSet();
+            private final Deque<FulltextResultRow> queue = new ArrayDeque<>();
+            private final Set<String> seenPaths = new HashSet<>();
             private ScoreDoc lastDoc;
             private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
             private boolean noDocs = false;
@@ -342,7 +347,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 ScoreDoc lastDocToRecord = null;
 
                 final LuceneIndexNode indexNode = acquireIndexNode(plan);
-                checkState(indexNode != null);
+                Validate.checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = getCurrentSearcher(indexNode);
                     LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, augmentorFactory, searcher.getIndexReader());
@@ -396,7 +401,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                                 PERF_LOGGER.end(f, -1, "facets retrieved");
                             }
 
-                            Set<String> excerptFields = Sets.newHashSet();
+                            Set<String> excerptFields = new HashSet<>();
                             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
                                 if (QueryConstants.REP_EXCERPT.equals(pr.propertyName)) {
                                     String value = pr.first.getValue(Type.STRING);
@@ -620,10 +625,10 @@ public class LucenePropertyIndex extends FulltextIndex {
     private Map<String, String> getExcerpt(Query query, Set<String> excerptFields,
                               Analyzer analyzer, IndexSearcher searcher, ScoreDoc doc, FieldInfos fieldInfos)
             throws IOException {
-        Set<String> excerptFieldNames = Sets.newHashSet();
-        Map<String, String> fieldNameToColumnNameMap = Maps.newHashMap();
-        Map<String, String> columnNameToExcerpts = Maps.newHashMap();
-        Set<String> nodeExcerptColumns = Sets.newHashSet();
+        Set<String> excerptFieldNames = new HashSet<>();
+        Map<String, String> fieldNameToColumnNameMap = new HashMap<>();
+        Map<String, String> columnNameToExcerpts = new HashMap<>();
+        Set<String> nodeExcerptColumns = new HashSet<>();
 
         excerptFields.forEach(columnName -> {
             String fieldName;
@@ -715,7 +720,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         if (requireNodeLevelExcerpt) {
-            String nodeExcerpt = Joiner.on("...").join(columnNameToExcerpts.values());
+            String nodeExcerpt = String.join("...", columnNameToExcerpts.values());
 
             nodeExcerptColumns.forEach(nodeExcerptColumnName -> columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt));
         }
@@ -757,7 +762,7 @@ public class LucenePropertyIndex extends FulltextIndex {
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
         return () -> {
             LuceneIndexNode indexNode = acquireIndexNode(plan);
-            checkState(indexNode != null);
+            Validate.checkState(indexNode != null);
             try {
                 IndexSearcher searcher = indexNode.getSearcher();
                 LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, augmentorFactory, searcher.getIndexReader());
@@ -796,7 +801,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         sortOrder = removeNativeSort(sortOrder);
-        List<SortField> fieldsList = newArrayListWithCapacity(sortOrder.size());
+        List<SortField> fieldsList = new ArrayList<>(sortOrder.size());
         PlanResult planResult = getPlanResult(plan);
         for (int i = 0; i < sortOrder.size(); i++) {
             OrderEntry oe = sortOrder.get(i);
@@ -845,8 +850,8 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     private static SortField.Type toLuceneSortType(OrderEntry oe, PropertyDefinition defn) {
         Type<?> t = oe.getPropertyType();
-        checkState(t != null, "Type cannot be null");
-        checkState(!t.isArray(), "Array types are not supported");
+        Validate.checkState(t != null, "Type cannot be null");
+        Validate.checkState(!t.isArray(), "Array types are not supported");
 
         int type = getPropertyType(defn, oe.getPropertyName(), t.tag());
         switch (type) {
@@ -1021,8 +1026,8 @@ public class LucenePropertyIndex extends FulltextIndex {
      * @return true if there where at least one unwrapped NOT. false otherwise.
      */
     private static boolean unwrapMustNot(@NotNull BooleanQuery input, @NotNull BooleanQuery output) {
-        checkNotNull(input);
-        checkNotNull(output);
+        requireNonNull(input);
+        requireNonNull(output);
         boolean unwrapped = false;
         for (BooleanClause bc : input.getClauses()) {
             if (bc.getOccur() == BooleanClause.Occur.MUST_NOT) {
@@ -1085,7 +1090,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 // deduced
                 if (planResult.isPathTransformed()) {
                     String parentPathSegment = planResult.getParentPathSegment();
-                    if (!Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
+                    if (!StreamUtils.toStream(PathUtils.elements(parentPathSegment)).anyMatch("*"::equals)) {
                         qs.add(new TermQuery(newPathTerm(path + parentPathSegment)));
                     }
                 } else {
@@ -1103,7 +1108,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // deduced
                     if (planResult.isPathTransformed()) {
                         String parentPathSegment = planResult.getParentPathSegment();
-                        if (!Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
+                        if (!StreamUtils.toStream(PathUtils.elements(parentPathSegment)).anyMatch("*"::equals)) {
                             qs.add(new TermQuery(newPathTerm(getParentPath(path) + parentPathSegment)));
                         }
                     } else {
@@ -1473,6 +1478,14 @@ public class LucenePropertyIndex extends FulltextIndex {
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 String p = getLuceneFieldName(propertyName, pr);
+                // Lucene don't support vectorQuery so we remove queryVectorConfig from complete query text.
+                if (propertyName == null) {
+                    // Lucene indexes don't support inference, so we should remove queryInferenceConfig
+                    // from query before evaluating it.
+                    VectorQuery vectorQuery = new VectorQuery(text);
+                    text = vectorQuery.getQueryText();
+                }
+
                 Query q = tokenToQuery(text, p, pr, analyzer, augmentor);
                 if (q == null) {
                     return false;
@@ -1598,13 +1611,13 @@ public class LucenePropertyIndex extends FulltextIndex {
         FluentIterable<String> paths;
         if (pir != null) {
             Iterable<String> queryResult = lookup.query(plan.getFilter(), pir.propertyName, pir.pr);
-            paths = FluentIterable.from(queryResult)
+            paths = FluentIterable.of(queryResult)
                     .transform(path -> pr.isPathTransformed() ? pr.transformPath(path) : path)
-                    .filter(notNull());
+                    .filter(Objects::nonNull);
         } else {
-            checkState(pr.evaluateSyncNodeTypeRestriction()); //Either of property or nodetype should not be null
+            Validate.checkState(pr.evaluateSyncNodeTypeRestriction()); //Either of property or nodetype should not be null
             Filter filter = plan.getFilter();
-            paths = FluentIterable.from(Iterables.concat(
+            paths = FluentIterable.of(IterableUtils.chainedIterable(
                     lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
                     lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes()))));
         }
@@ -1615,7 +1628,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 .transform(path -> new FulltextResultRow(path, 0, null, null, null));
 
         //Property index itr should come first
-        return Iterators.concat(propIndex.iterator(), itr);
+        return IteratorUtils.chainedIterator(propIndex.iterator(), itr);
     }
 
     class DelayedLuceneFacetProvider implements FacetProvider {
@@ -1644,8 +1657,36 @@ public class LucenePropertyIndex extends FulltextIndex {
                 return cachedResults.get(cacheKey);
             }
             LOG.trace("columnName = {} facet Data not present in cache...", columnName);
+            if (EAGER_FACET_CACHE_FILL) {
+                fillFacetCache(numberOfFacets);
+                if (cachedResults.containsKey(cacheKey)) {
+                    LOG.trace("columnName = {} now found", cacheKey);
+                    return cachedResults.get(cacheKey);
+                }
+                LOG.warn("Facet data for {} not found: read using query", cacheKey);
+            }
             List<Facet> result = getFacetsUncached(numberOfFacets, columnName);
             cachedResults.put(cacheKey, result);
+            return result;
+        }
+
+        private List<Facet> fillFacetCache(int numberOfFacets) throws IOException {
+            List<Facet> result = null;
+            LuceneIndexNode indexNode = index.acquireIndexNode(plan);
+            try {
+                IndexSearcher searcher = indexNode.getSearcher();
+                Facets facets = FacetHelper.getFacets(searcher, query, plan, config);
+                if (facets != null) {
+                    List<String> allColumnNames = FacetHelper.getFacetColumnNamesFromPlan(plan);
+                    for (String column : allColumnNames) {
+                        result = getFacetsUncached(facets, numberOfFacets, column);
+                        String cc = column + "/" + numberOfFacets;
+                        cachedResults.put(cc, result);
+                    }
+                }
+            } finally {
+                indexNode.release();
+            }
             return result;
         }
 
@@ -1657,7 +1698,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 Facets facets = FacetHelper.getFacets(searcher, query, plan, config);
                 if (facets != null) {
                     try {
-                        ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
+                        List<Facet> res = new ArrayList<>();
                         FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
                         if (topChildren != null) {
                             for (LabelAndValue lav : topChildren.labelValues) {
@@ -1665,7 +1706,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                                         lav.label, lav.value.intValue()
                                 ));
                             }
-                            return res.build();
+                            return Collections.unmodifiableList(res);
                         }
                     } catch (IllegalArgumentException iae) {
                         LOG.debug(iae.getMessage(), iae);
@@ -1677,6 +1718,28 @@ public class LucenePropertyIndex extends FulltextIndex {
                 indexNode.release();
             }
         }
+
+        private List<Facet> getFacetsUncached(Facets facets, int numberOfFacets, String columnName) throws IOException {
+            String facetFieldName = FulltextIndex.parseFacetField(columnName);
+            try {
+                List<Facet> res = new ArrayList<>();
+                FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
+                if (topChildren == null) {
+                    return null;
+                }
+                for (LabelAndValue lav : topChildren.labelValues) {
+                    res.add(new Facet(
+                            lav.label, lav.value.intValue()
+                    ));
+                }
+                return Collections.unmodifiableList(res);
+            } catch (IllegalArgumentException iae) {
+                LOG.debug(iae.getMessage(), iae);
+                LOG.warn("facets for {} not yet indexed: {}", facetFieldName, iae);
+                return null;
+            }
+        }
+
     }
 
     static class LuceneFacetProvider implements FacetProvider {
@@ -1693,7 +1756,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
             if (facets != null) {
                 try {
-                    ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
+                    List<Facet> res = new ArrayList<>();
                     FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
                     if (topChildren != null) {
                         for (LabelAndValue lav : topChildren.labelValues) {
@@ -1701,7 +1764,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                                 lav.label, lav.value.intValue()
                             ));
                         }
-                        return res.build();
+                        return Collections.unmodifiableList(res);
                     }
                 } catch (IllegalArgumentException iae) {
                     LOG.debug(iae.getMessage(), iae);

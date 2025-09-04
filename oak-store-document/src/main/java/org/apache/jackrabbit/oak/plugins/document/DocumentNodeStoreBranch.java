@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
@@ -31,11 +31,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -77,6 +75,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     /** The maximum number of updates to keep in memory */
     private final int updateLimit;
+    private final boolean avoidMergeLock;
 
     /**
      * State of the this branch. Either {@link Unmodified}, {@link InMemory}, {@link Persisted},
@@ -87,13 +86,15 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     DocumentNodeStoreBranch(DocumentNodeStore store,
                             DocumentNodeState base,
-                            ReadWriteLock mergeLock) {
-        this.store = checkNotNull(store);
-        this.branchState = new Unmodified(checkNotNull(base));
+                            ReadWriteLock mergeLock,
+                            boolean avoidMergeLock) {
+        this.store = requireNonNull(store);
+        this.branchState = new Unmodified(requireNonNull(base));
         this.maximumBackoff = Math.max((long) store.getMaxBackOffMillis(), MIN_BACKOFF);
         this.maxLockTryTimeMS = (long) (store.getMaxBackOffMillis() * MAX_LOCK_TRY_TIME_MULTIPLIER);
         this.mergeLock = mergeLock;
         this.updateLimit = store.getUpdateLimit();
+        this.avoidMergeLock = avoidMergeLock;
     }
 
     @NotNull
@@ -110,7 +111,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public void setRoot(NodeState newRoot) {
-        branchState.setRoot(checkNotNull(newRoot));
+        branchState.setRoot(requireNonNull(newRoot));
     }
 
     @NotNull
@@ -121,6 +122,11 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             return merge0(hook, info, false);
         } catch (CommitFailedException e) {
             if (!e.isOfType(MERGE)) {
+                throw e;
+            }
+            // OAK-11720: Do not retry again if avoidMergeLock is enabled and the merge already failed.
+            // This avoids blocking other concurrent writes.
+            if (avoidMergeLock) {
                 throw e;
             }
         }
@@ -194,8 +200,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 }
             }
             try {
-                NodeState result = branchState.merge(checkNotNull(hook),
-                        checkNotNull(info), exclusive);
+                NodeState result = branchState.merge(requireNonNull(hook),
+                        requireNonNull(info), exclusive);
                 store.getStatsCollector().doneMerge(branchState.getMergedChanges(),
                         numRetries, System.currentTimeMillis() - time, suspendMillis, exclusive);
                 return result;
@@ -529,8 +535,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                         @NotNull CommitInfo info,
                         boolean exclusive)
                 throws CommitFailedException {
-            checkNotNull(hook);
-            checkNotNull(info);
+            requireNonNull(hook);
+            requireNonNull(info);
             Lock lock = acquireMergeLock(exclusive);
             try {
                 rebase();
@@ -689,7 +695,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 previousHead = head;
                 checkForConflicts();
                 DocumentNodeStoreStatsCollector stats = store.getStatsCollector();
-                NodeState toCommit = TimingHook.wrap(checkNotNull(hook), (time, unit) -> stats.doneCommitHookProcessed(unit.toMicros(time)))
+                NodeState toCommit = TimingHook.wrap(requireNonNull(hook), (time, unit) -> stats.doneCommitHookProcessed(unit.toMicros(time)))
                         .processCommit(base, head, info);
                 persistTransientHead(toCommit);
                 DocumentNodeState newRoot = store.getRoot(store.merge(head.getRootRevision(), info));
@@ -750,15 +756,10 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 return;
             }
             NodeDocument doc = Utils.getRootDocument(store.getDocumentStore());
-            Set<Revision> collisions = Sets.newHashSet(doc.getLocalMap(COLLISIONS).keySet());
-            Set<Revision> commits = Sets.newHashSet(Iterables.transform(b.getCommits(),
-                    new Function<Revision, Revision>() {
-                        @Override
-                        public Revision apply(Revision input) {
-                            return input.asTrunkRevision();
-                        }
-                    }));
-            Set<Revision> conflicts = Sets.intersection(collisions, commits);
+            Set<Revision> collisions = new HashSet<>(doc.getLocalMap(COLLISIONS).keySet());
+            Set<Revision> commits = new HashSet<>();
+            IterableUtils.transform(b.getCommits(), Revision::asTrunkRevision).forEach(commits::add);
+            Set<Revision> conflicts = SetUtils.intersection(collisions, commits);
             if (!conflicts.isEmpty()) {
                 throw new CommitFailedException(STATE, 2,
                         "Conflicting concurrent change on branch commits " + conflicts);
@@ -865,5 +866,14 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 throws CommitFailedException {
             throw ex;
         }
+    }
+
+    /**
+     * Configures the performance logger with the specified info log interval.
+     *
+     * @param infoLogMillis the interval in milliseconds for logging performance information.
+     */
+    static void configurePerfLogger(long infoLogMillis) {
+        perfLogger.setInfoLogMillis(infoLogMillis);
     }
 }

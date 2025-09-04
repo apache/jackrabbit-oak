@@ -22,6 +22,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.Credentials;
@@ -35,13 +36,13 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -77,21 +78,20 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * Initialization of this abstract module sets the following protected instance
  * fields:
  * <ul>
- * <li>subject: The subject to be authenticated,</li>
- * <li>callbackHandler: The callback handler passed to the login module,</li>
- * <li>shareState: The map used to share state information with other login modules,</li>
+ * <li>subject: The subject to be authenticated,
+ * <li>callbackHandler: The callback handler passed to the login module,
+ * <li>shareState: The map used to share state information with other login modules,
  * <li>options: The configuration options of this login module as specified
- * in the {@link javax.security.auth.login.Configuration}.</li>
+ * in the {@link javax.security.auth.login.Configuration}.
  * </ul>
- * </li>
  * <li>{@link LoginModule#logout() Logout}:
  * If the authenticated subject is not empty this logout implementation
  * attempts to clear both principals and public credentials and returns
- * {@code true}.</li>
+ * {@code true}.
  * <li>{@link LoginModule#abort() Abort}: Clears the state of this login
  * module by setting all private instance variables created in phase 1 or 2
  * to {@code null}. Subclasses are in charge of releasing their own state
- * information by either overriding {@link #clearState()}.</li>
+ * information by either overriding {@link #clearState()}.
  * </ul>
  * <p>
  * <h2>Utility Methods</h2>
@@ -100,42 +100,42 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * <ul>
  * <li>{@link #clearState()}: Clears all private state information that has
  * be created during login. This method in called in {@link #abort()} and
- * subclasses are expected to override this method.</li>
+ * subclasses are expected to override this method.
  * <li>{@link #getSupportedCredentials()}: Abstract method used by
  * {@link #getCredentials()} that reveals which credential implementations
- * are supported by the {@code LoginModule}.</li>
+ * are supported by the {@code LoginModule}.
  * <li>{@link #getCredentials()}: Tries to retrieve valid (supported)
  * Credentials in the following order:
  * <ol>
- * <li>using a {@link CredentialsCallback},</li>
+ * <li>using a {@link CredentialsCallback},
  * <li>looking for a {@link #SHARED_KEY_CREDENTIALS} entry in the shared
- * state (see also {@link #getSharedCredentials()} and finally by</li>
- * <li>searching for valid credentials in the subject.</li>
- * </ol></li>
+ * state (see also {@link #getSharedCredentials()} and finally by
+ * <li>searching for valid credentials in the subject.
+ * </ol>
  * <li>{@link #getSharedCredentials()}: This method returns credentials
  * passed to the login module with the share state. The key to share credentials
  * with a another module extending from this base class is
  * {@link #SHARED_KEY_CREDENTIALS}. Note, that this method does not verify
  * if the credentials provided by the shared state are
- * {@link #getSupportedCredentials() supported}.</li>
+ * {@link #getSupportedCredentials() supported}.
  * <li>{@link #getSharedLoginName()}: If the shared state contains an entry
- * for {@link #SHARED_KEY_LOGIN_NAME} this method returns the value as login name.</li>
+ * for {@link #SHARED_KEY_LOGIN_NAME} this method returns the value as login name.
  * <li>{@link #getSecurityProvider()}: Returns the configured security
- * provider or {@code null}.</li>
+ * provider or {@code null}.
  * <li>{@link #getRoot()}: Provides access to the latest state of the
  * repository in order to retrieve user or principal information required to
  * authenticate the subject as well as to write back information during
- * {@link #commit()}.</li>
+ * {@link #commit()}.
  * <li>{@link #getUserManager()}: Returns an instance of the configured
- * {@link UserManager} or {@code null}.</li>
+ * {@link UserManager} or {@code null}.
  * <li>{@link #getPrincipalProvider()}: Returns an instance of the configured
- * principal provider or {@code null}.</li>
+ * principal provider or {@code null}.
  * <li>{@link #getPrincipals(String)}: Utility that returns all principals
  * associated with a given user id. This method might be be called after
  * successful authentication in order to be able to populate the subject
  * during {@link #commit()}. The implementation is a shortcut for calling
  * {@link PrincipalProvider#getPrincipals(String) getPrincipals(String userId}
- * on the provider exposed by {@link #getPrincipalProvider()}</li>
+ * on the provider exposed by {@link #getPrincipalProvider()}
  * </ul>
  */
 @ProviderType
@@ -211,9 +211,10 @@ public abstract class AbstractLoginModule implements LoginModule {
     @Override
     public boolean logout() throws LoginException {
         boolean success = false;
-        Set<Object> creds = ImmutableSet.builder()
-                .addAll(subject.getPublicCredentials(Credentials.class))
-                .addAll(subject.getPublicCredentials(AuthInfo.class)).build();
+        Set<Object> builder = new LinkedHashSet<>(subject.getPublicCredentials(Credentials.class));
+        builder.addAll(subject.getPublicCredentials(AuthInfo.class));
+        Set<Object> creds = Collections.unmodifiableSet(builder);
+
         if (!subject.getPrincipals().isEmpty() && !creds.isEmpty()) {
             // clear subject if not readonly
             if (!subject.isReadOnly()) {
@@ -475,7 +476,7 @@ public abstract class AbstractLoginModule implements LoginModule {
 
                 final ContentRepository repository = rcb.getContentRepository();
                 if (repository != null) {
-                    systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+                    systemSession = Java23Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
                         @Override
                         public ContentSession run() throws LoginException, NoSuchWorkspaceException {
                             return repository.login(null, rcb.getWorkspaceName());

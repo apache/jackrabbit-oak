@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.cluster;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.UUID;
 
@@ -61,7 +61,7 @@ public class ClusterRepositoryInfo {
      */
     @Nullable
     public static String getOrCreateId(@NotNull NodeStore store) {
-        checkNotNull(store, "store is null");
+        requireNonNull(store, "store is null");
 
         // first try to read an existing clusterId
         NodeState root = store.getRoot();
@@ -106,7 +106,7 @@ public class ClusterRepositoryInfo {
 
     @Nullable
     public static String getId(@NotNull NodeStore store) {
-        checkNotNull(store, "store is null");
+        requireNonNull(store, "store is null");
 
         // first try to read an existing clusterId
         NodeState root = store.getRoot();

@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.CUSTOM_BLOB_STORE;
 import static org.apache.jackrabbit.oak.segment.SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
@@ -27,6 +26,7 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.jmx.ConsolidatedDataStoreCacheStatsMBean;
@@ -104,7 +104,7 @@ public class SegmentCachingDataStoreStatsTest {
     private SegmentNodeStoreService segmentNodeStoreService;
 
     private void registerSegmentNodeStoreService(boolean customBlobStore) {
-        Map<String, Object> properties = newHashMap();
+        Map<String, Object> properties = new HashMap<>();
 
         properties.put(CUSTOM_BLOB_STORE, customBlobStore);
         properties.put(REPOSITORY_HOME_DIRECTORY, folder.getRoot().getAbsolutePath());

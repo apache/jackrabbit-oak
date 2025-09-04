@@ -16,19 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
@@ -54,7 +52,7 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(
@@ -72,16 +70,16 @@ public class AsyncIndexerService {
         @AttributeDefinition(
                 cardinality = 1024,
                 name = "Async Indexer Configs",
-                description = "Async indexer configs in the form of <name>:<interval in secs> e.g. \"async:5\""
+                description = "Async indexer configs in the form of <name>:<interval in secs>:<lease time out in minutes> e.g. \"async:5:15\""
         )
-        String[] asyncConfigs() default {"async:5"};
+        String[] asyncConfigs() default {"async:5:15"};
 
         @AttributeDefinition(
                 name = "Lease time out",
                 description = "Lease timeout in minutes. AsyncIndexer would wait for this timeout period before breaking " +
                         "async indexer lease"
         )
-        int leaseTimeOutMinutes() default 15;
+        long leaseTimeOutMinutes() default 15L;
 
         @AttributeDefinition(
                 name = "Failing Index Timeout (s)",
@@ -127,13 +125,6 @@ public class AsyncIndexerService {
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
 
-        long leaseTimeOutMin = config.leaseTimeOutMinutes();
-
-        if (!(nodeStore instanceof Clusterable)){
-            leaseTimeOutMin = 0;
-            log.info("Detected non clusterable setup. Lease checking would be disabled for async indexing");
-        }
-
         TrackingCorruptIndexHandler corruptIndexHandler = createCorruptIndexHandler(config);
 
         for (AsyncConfig c : asyncIndexerConfig) {
@@ -141,14 +132,27 @@ public class AsyncIndexerService {
                     statisticsProvider, false);
             task.setCorruptIndexHandler(corruptIndexHandler);
             task.setValidatorProviders(Collections.singletonList(validatorProvider));
-            task.setLeaseTimeOut(TimeUnit.MINUTES.toMillis(leaseTimeOutMin));
 
+            long leaseTimeOutMin = config.leaseTimeOutMinutes();
+
+            // Set lease time out = 0 for a non clusterable setup.
+            if (!(nodeStore instanceof Clusterable)){
+                leaseTimeOutMin = 0;
+                log.info("Detected non clusterable setup. Lease checking would be disabled for async indexing");
+            } else if (c.leaseTimeOutInMin != null) {
+                // If lease time out is configured for a specific lane, use that.
+                leaseTimeOutMin = c.leaseTimeOutInMin;
+                log.info("Lease time out for {} configured as {} mins.", c.name, leaseTimeOutMin);
+            } else {
+                log.info("Lease time out for {} not configured explicitly. Using value {} mins configured via Lease Time out property.", c.name, leaseTimeOutMin);
+            }
+
+            task.setLeaseTimeOut(TimeUnit.MINUTES.toMillis(leaseTimeOutMin));
             indexRegistration.registerAsyncIndexer(task, c.timeIntervalInSecs);
             closer.register(task);
         }
         registerAsyncReindexSupport(whiteboard);
         log.info("Configured async indexers {} ", asyncIndexerConfig);
-        log.info("Lease time: {} mins and AsyncIndexUpdate configured with {}", leaseTimeOutMin, validatorProvider.getClass().getName());
     }
 
     private void registerAsyncReindexSupport(Whiteboard whiteboard) {
@@ -161,12 +165,7 @@ public class AsyncIndexerService {
                 registerMBean(whiteboard, PropertyIndexAsyncReindexMBean.class, asyncPI,
                         PropertyIndexAsyncReindexMBean.TYPE, "async"),
                 registerMBean(whiteboard, IndexStatsMBean.class, task.getIndexStats(), IndexStatsMBean.TYPE, name));
-        closer.register(new Closeable() {
-            @Override
-            public void close() throws IOException {
-                reg.unregister();
-            }
-        });
+        closer.register(reg::unregister);
     }
 
     @Deactivate
@@ -206,25 +205,30 @@ public class AsyncIndexerService {
     }
 
     static List<AsyncConfig> getAsyncConfig(String[] configs) {
-        List<AsyncConfig> result = Lists.newArrayList();
+        List<AsyncConfig> result = new ArrayList<>();
         for (String config : configs) {
             int idOfEq = config.indexOf(CONFIG_SEP);
             checkArgument(idOfEq > 0, "Invalid config provided [%s]", Arrays.toString(configs));
 
-            String name = config.substring(0, idOfEq).trim();
-            long interval = Long.parseLong(config.substring(idOfEq + 1));
-            result.add(new AsyncConfig(name, interval));
+            String[] configElements = config.split(String.valueOf(CONFIG_SEP));
+            String name = configElements[0].trim();
+            Long interval = configElements.length > 1 ? Long.parseLong(configElements[1].trim()) : null;
+            Long leaseTimeOut = configElements.length > 2 ? Long.parseLong(configElements[2].trim()) : null;
+
+            result.add(new AsyncConfig(name, interval, leaseTimeOut));
         }
         return result;
     }
 
     static class AsyncConfig {
         final String name;
-        final long timeIntervalInSecs;
+        final Long timeIntervalInSecs;
+        final Long leaseTimeOutInMin;
 
-        private AsyncConfig(String name, long timeIntervalInSecs) {
+        private AsyncConfig(String name, Long timeIntervalInSecs, Long leaseTimeOutInMin) {
             this.name = AsyncIndexUpdate.checkValidName(name);
             this.timeIntervalInSecs = timeIntervalInSecs;
+            this.leaseTimeOutInMin = leaseTimeOutInMin;
         }
 
         @Override
@@ -232,6 +236,7 @@ public class AsyncIndexerService {
             return "AsyncConfig{" +
                     "name='" + name + '\'' +
                     ", timeIntervalInSecs=" + timeIntervalInSecs +
+                    ", leaseTimeOutInMin=" + leaseTimeOutInMin +
                     '}';
         }
     }

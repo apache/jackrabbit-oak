@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -35,14 +36,21 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.facet.FacetsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexer.class);
+
     private final IndexDefinition definition;
     private final FulltextBinaryTextExtractor binaryTextExtractor;
     private final NodeBuilder definitionBuilder;
     private final LuceneIndexWriter indexWriter;
     private final IndexingProgressReporter progressReporter;
     private FacetsConfig facetsConfig;
+
+    private final IndexerStatisticsTracker indexerStatisticsTracker = new IndexerStatisticsTracker(LOG);
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public LuceneIndexer(IndexDefinition definition, LuceneIndexWriter indexWriter,
                          NodeBuilder builder, FulltextBinaryTextExtractor binaryTextExtractor,
@@ -55,8 +63,15 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     }
 
     @Override
+    public void onIndexingStarting() {
+        indexerStatisticsTracker.onIndexingStarting();
+        binaryTextExtractor.resetStartTime();
+    }
+
+    @Override
     public boolean shouldInclude(String path) {
-        return getFilterResult(path) != PathFilter.Result.EXCLUDE;
+        return definition.shouldInclude(path);
+
     }
 
     @Override
@@ -67,7 +82,7 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
 
     @Override
     public boolean index(NodeStateEntry entry) throws IOException, CommitFailedException {
-        if (getFilterResult(entry.getPath()) != PathFilter.Result.INCLUDE) {
+        if (definition.getFilterResult(entry.getPath()) != PathFilter.Result.INCLUDE) {
             return false;
         }
 
@@ -77,10 +92,14 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
             return false;
         }
 
+        long startEntryNanos = System.nanoTime();
         LuceneDocumentMaker maker = newDocumentMaker(indexingRule, entry.getPath());
         Document doc = maker.makeDocument(entry.getNodeState());
+        long endEntryMakeDocumentNanos = System.nanoTime();
+
         if (doc != null) {
             writeToIndex(doc, entry.getPath());
+            indexerStatisticsTracker.onEntryEnd(entry.getPath(), startEntryNanos, endEntryMakeDocumentNanos);
             progressReporter.indexUpdate(definition.getIndexPath());
             return true;
         }
@@ -99,12 +118,19 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
     }
 
     @Override
-    public void close() throws IOException {
-        indexWriter.close(System.currentTimeMillis());
+    public String getIndexName() {
+        return definition.getIndexName();
     }
 
-    private PathFilter.Result getFilterResult(String path) {
-        return definition.getPathFilter().filter(path);
+    @Override
+    public void close() throws IOException {
+        if (closed.compareAndSet(false, true)) {
+            indexWriter.close(System.currentTimeMillis());
+            LOG.info("[{}] Statistics: {}", definition.getIndexName(), indexerStatisticsTracker.formatStats());
+            binaryTextExtractor.logStats();
+        } else {
+            LOG.debug("Indexer already closed: {}", definition.getIndexName());
+        }
     }
 
     private void writeToIndex(Document doc, String path) throws IOException {
@@ -132,4 +158,9 @@ public class LuceneIndexer implements NodeStateIndexer, FacetsConfigProvider {
         return facetsConfig;
     }
 
+
+    @Override
+    public String toString() {
+        return definition.toString();
+    }
 }

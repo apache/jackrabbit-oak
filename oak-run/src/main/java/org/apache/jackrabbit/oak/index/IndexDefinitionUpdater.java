@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.commons.io.FileUtils;
@@ -26,6 +24,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
@@ -43,9 +42,9 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static java.util.Comparator.comparing;
-import static java.util.stream.StreamSupport.stream;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.api.Type.*;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -72,14 +71,14 @@ public class IndexDefinitionUpdater {
 
         OptionSet optionSet = parser.parse(args);
 
-        Preconditions.checkArgument(optionSet.has("in"), "input index definition must be provided");
+        Validate.checkArgument(optionSet.has("in"), "input index definition must be provided");
         String inFilePath = optionSet.valueOf("in").toString();
 
-        Preconditions.checkArgument(optionSet.has("initializer"), "initializer class must be provided");
+        Validate.checkArgument(optionSet.has("initializer"), "initializer class must be provided");
         String initializerClassName = optionSet.valueOf("initializer").toString();
         Class<?> repoInitClazz = Class.forName(initializerClassName);
         Object obj = repoInitClazz.newInstance();
-        Preconditions.checkArgument(obj instanceof RepositoryInitializer, repoInitClazz + " is not a RepositoryInitializer");
+        Validate.checkArgument(obj instanceof RepositoryInitializer, repoInitClazz + " is not a RepositoryInitializer");
 
         String outFilePath = optionSet.has("out") ? optionSet.valueOf("out").toString() : null;
 
@@ -130,7 +129,7 @@ public class IndexDefinitionUpdater {
     }
 
     private List<String> getReindexIndexPaths() {
-        return stream(store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNodeEntries().spliterator(), false)
+        return StreamSupport.stream(store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNodeEntries().spliterator(), false)
                 .filter(cne -> !cne.getNodeState().hasProperty(REINDEX_PROPERTY_NAME) || cne.getNodeState().getBoolean(REINDEX_PROPERTY_NAME))
                 .filter(cne -> cne.getNodeState().hasProperty(TYPE_PROPERTY_NAME))
                 .sorted(comparing(cne -> cne.getNodeState().getString(TYPE_PROPERTY_NAME)))
@@ -280,7 +279,7 @@ public class IndexDefinitionUpdater {
                 String v = BLOB_LENGTH.apply(ps.getValue(BINARY));
                 val.append(" = {").append(v).append("}");
             } else if (ps.getType() == BINARIES) {
-                String v = stream(ps.getValue(BINARIES).spliterator(), false)
+                String v = StreamSupport.stream(ps.getValue(BINARIES).spliterator(), false)
                         .map(BLOB_LENGTH)
                         .collect(Collectors.toList()).toString();
                 val.append("[").append(ps.count()).append("] = ").append(v);

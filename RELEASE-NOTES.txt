@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.56.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.84.0
 
 Introduction
 ------------
@@ -7,82 +7,81 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.56.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.84.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.54.0 compiles and tests successfully on Java 17, Javadocs
-generation fails on Java 17 (but works as expected on Java 11).
-
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.56.0
+Changes in Oak 1.84.0
 ---------------------
-
-Sub-task
-
-    [OAK-10362] - Create benchmark test
-    [OAK-10363] - Benchmark results
-    [OAK-10364] - Consolidate inheritance related automembership tests
 
 Technical task
 
-    [OAK-7542] - oak-blob-*'s use of Guava File.fileTreeTraverser
-    [OAK-7549] - commons: avoid use of Guava beta APIs in FileIOUtils
-    [OAK-8684] - oak-core-spi: remove uses of Guava from exported API
-    [OAK-8717] - Remove deprecated Guava-based APIs
-    [OAK-10274] - oak-core-spi: remove Guava from public API
-    [OAK-10322] - oak-core: remove Guava from public API
-    [OAK-10323] - remove all remaining references of native Guava
-    [OAK-10368] - convert groovy sources to shaded guava
-    [OAK-10412] - AbstractTwoNodeTest: check preconditions in setup
-    [OAK-10415] - AbstractTwoNodeTest: make teardown more robust
-    [OAK-10416] - AbstractTwoNodeTest: ensure RDB fixture uses empty DB
+    [OAK-11748] - Remove usage of Guava Escapers
+    [OAK-11753] - Remove usage of Guava base.CaseFormat
+    [OAK-11771] - Remove usage of Guava's AtomicDouble
+    [OAK-11774] - Remove usage of Guava's Splitter
+    [OAK-11785] - Remove usage of Guava preconditions.checkPositionIndex
+    [OAK-11786] - Remove usage of Guava base.Strings
+    [OAK-11789] - Remove usage of Guava collect.Lists.newArrayList in segment-azure
+    [OAK-11793] - Remove usage of Guava common.hash.HashCode
+    [OAK-11801] - Remove usage of Guava FluentIterable
+    [OAK-11843] - Improve diagnostics for NPE in SecureNodeBuilder
 
 Bug
 
-    [OAK-10181] - Flaky test: DataStoreBlobStoreStatsTest
-    [OAK-10353] - Elastic custom analyzer should ignore unsupported properties (eg: hidden, arrays)
-    [OAK-10372] - oak-search-elastic: similarity queries produce no relevant results
-    [OAK-10379] - DynamicGroupsTest#testCrossIDPMembership() fails occasionally
-    [OAK-10405] - document-store: potential NPE in AbstractTwoNodeTest teardown
+    [OAK-11299] - Missing Segments With Oak Run Segment Copy
+    [OAK-11783] - Import fails for content not using namespace prefixes
+    [OAK-11787] - org.apache.jackrabbit.oak.plugins.index.elastic.ElasticRegexPropertyIndexTest.regexPropertyWithoutFlattened failure
+    [OAK-11794] - remove the unused commons-fileupload dependency from IT tests
+    [OAK-11807] - Duplicate header after failed SegmentBufferWriter.flush()
+    [OAK-11812] - Failure in running S3DataStoreServiceTest unit case
+    [OAK-11818] - Update Mockito dependency to 5.18.0
+    [OAK-11824] - oak-lucene: custom analyzer cannot load indirect filters
+    [OAK-11838] - DocumentNodeStoreService.registerNodeStore() ignores Mongo settings
+    [OAK-11839] - Implement oak background thread that reads throttle flag from settings collection
+    [OAK-11847] - AzureJournalFile fails to rotate journal
+
+New Feature
+
+    [OAK-11498] - Expose bound principals via JackrabbitSession
 
 Improvement
 
-    [OAK-9837] - Reference individual OSGi dependencies in version shipped with R7
-    [OAK-10003] - Upgrade tika to 1.28.5
-    [OAK-10318] - Improve AutoMembershipPrincipals#isInheritedMember
-    [OAK-10333] - Improved logging for queries that that traverse more than 10'000 nodes
-    [OAK-10357] - Path option for documentstore-check
-    [OAK-10365] - introduce mapping version in oak-search-elastic
-    [OAK-10367] - update org.apache.sling.testing.osgi-mock dependency
+    [OAK-9447] - Upgrade Mongo java driver to 5.2
+    [OAK-11729] - If the indexing lane is behind, we should allow catch up of a non-failing lane
+    [OAK-11778] - Fix compilation warnings in classes related to Query handling
+    [OAK-11779] - Mongo downloader: in the progress messages, print the dates corresponding to the _modified values
+    [OAK-11780] - XML import: calculate prefixMap only when required
+    [OAK-11781] - Binary reference statistics are inaccurate for very large repositories
+    [OAK-11784] - new instance of NamespaceRegistry is created whenever an item is added via XML DocViewImporter
+    [OAK-11797] - indexing document store: start lucene writer pool only before indexing, not before download
+    [OAK-11800] - Simplify code of full text indexer
+    [OAK-11810] - UserImporter: Resolve the UserMonitor lazily
+    [OAK-11814] - NPE in ElasticResultRowAsyncIterator
+    [OAK-11823] - Code cleanups in Elastic search module
+    [OAK-11825] - Improve thread monitoring in the OutOfBandIndexer
+    [OAK-11837] - Update commons-csv version to 1.14.1
 
 Task
 
-    [OAK-10272] - Reverse #OAK-10022
-    [OAK-10347] - Small util class for exporting a tree as flat file
-    [OAK-10366] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.11
-    [OAK-10369] - oak-segment-azure/oak-blob-cloud-azure leak Guava dependency
-    [OAK-10381] - DocumentStoreIndexerIT failures
-    [OAK-10385] - segment-azure: add javax.activation-api to test class path
-    [OAK-10386] - Bump netty dependency from 4.1.52.Final to 4.1.96.Final
-    [OAK-10389] - remove commons-lang dependency
-    [OAK-10390] - Update commons-io dependency to 2.13.0
-    [OAK-10391] - improve TarFilesTest.testCollectBlobReferencesWithGenerationFilter diagnostics
-    [OAK-10392] - Update (shaded) Guava to 32.1.2
-    [OAK-10394] - Update commons-lang3 dependency to 3.13.0
-    [OAK-10395] - Update commons-codec dependency to 1.16.0
-    [OAK-10396] - segment-aws: remove unused commons-lang3 dependency
-    [OAK-10397] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.23.0
-    [OAK-10400] - auth-ldap/benchmarks: use default dependency for commons-lang3
-    [OAK-10401] - search-mt/solr-osgi: use default versions of commons-math3
-    [OAK-10402] - benchmarks: remove commons-math dependency (use math3 instead)
-    [OAK-10403] - update Tomcat JDBC dependency to 8.5.92
-    [OAK-10404] - improve TarFilesTest.testCollectBlobReferences diagnostics
-    [OAK-10407] - run/lucene: update gson dependencies to 2.10.1
-    [OAK-10414] - RDB*Store: update Derby dependency to 10.15.2.0
+    [OAK-10790] - FullTextBinaryTextExtractor fails to extract text from csv
+    [OAK-11617] - Provide oak-run commands to analyze and fix inconsistencies in the namespace registry
+    [OAK-11711] - oak-standalone: update dependencies
+    [OAK-11792] - mark commons.cache package as internal
+    [OAK-11795] - FullGC Audit Logging doesn't get enabled in oak-run revisions command
+    [OAK-11802] - update Tomcat dependency to 9.0.107
+    [OAK-11803] - Update commons-lang3 dependency to 3.18.0
+    [OAK-11804] - Update Oak trunk to Jackrabbit 2.22.1
+    [OAK-11819] - Update commons-codec dependency to 1.19.0
+    [OAK-11820] - Update commons-io dependency to 2.20.0
+    [OAK-11822] - Update commons-lang dependency to 1.14.0
+    [OAK-11831] - Update Oak trunk to Jackrabbit 2.22.2
+    [OAK-11834] - ClusterType can take longer during Mongo cluster initialization
+    [OAK-11835] - Expose Mongo connection pool parameters
 
 
 In addition to the above-mentioned changes, this release contains all

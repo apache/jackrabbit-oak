@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -52,7 +52,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Extension of the {@code DefaultSyncContext} that doesn't synchronize group
@@ -91,7 +91,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
         }
         
         Collection<String> principalNames = clearGroupMembership(authorizable);
-        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, createValues(principalNames));
+        setExternalPrincipalNames(authorizable, createValues(principalNames));
         return true;
     }
 
@@ -156,6 +156,10 @@ public class DynamicSyncContext extends DefaultSyncContext {
             super.syncMembership(external, auth, depth);
         } else {
             try {
+                // determine if clean up of groups (i.e. getting rid of previously synchronized membership information)
+                // is required or not. due to OAK-10517 just checking 'groupsSyncedBefore' is not sufficient.
+                boolean cleanupGroups = groupsSyncedBefore || requiresCleanup(auth);
+                
                 Iterable<ExternalIdentityRef> declaredGroupRefs = external.getDeclaredGroups();
                 // resolve group-refs respecting depth to avoid iterating twice
                 Map<ExternalIdentityRef, SyncEntry> map = collectSyncEntries(declaredGroupRefs, depth);
@@ -170,7 +174,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 }
                 
                 // clean up any other membership
-                if (groupsSyncedBefore) {
+                if (cleanupGroups) {
                     clearGroupMembership(auth);
                 }
             } catch (ExternalIdentityException e) {
@@ -200,7 +204,12 @@ public class DynamicSyncContext extends DefaultSyncContext {
             Set<String> principalsNames = syncEntries.stream().map(syncEntry -> syncEntry.principalName).collect(Collectors.toSet());
             vs = createValues(principalsNames);
         }
-        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, vs);
+        setExternalPrincipalNames(authorizable, vs);
+    }
+    
+    private void setExternalPrincipalNames(@NotNull Authorizable authorizable, @NotNull Value[] principalNames) throws RepositoryException {
+        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, principalNames);
+        authorizable.setProperty(ExternalIdentityConstants.REP_LAST_DYNAMIC_SYNC, nowValue);
     }
     
     @NotNull
@@ -225,7 +234,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
      */
     private void collectSyncEntries(@NotNull Iterable<ExternalIdentityRef> declaredGroupRefs, long depth, @NotNull Map<ExternalIdentityRef, SyncEntry> map) throws ExternalIdentityException, RepositoryException {
         boolean shortcut = shortcut(depth);
-        for (ExternalIdentityRef ref : Iterables.filter(declaredGroupRefs, this::isSameIDP)) {
+        for (ExternalIdentityRef ref : IterableUtils.filter(declaredGroupRefs, this::isSameIDP)) {
             String principalName = null;
             Authorizable a = null;
             ExternalGroup externalGroup = null;
@@ -306,7 +315,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
             // since 'shortcut' is omitted if dynamic groups are enabled, there is no need to test if 'external-group' is 
             // null, nor trying to retrieve external group again. if it could not be resolved during 'collectSyncEntries'
             // before it didn't got added to the map
-            checkNotNull(syncEntry.externalGroup, "Cannot create dynamic group from null ExternalIdentity.");
+            requireNonNull(syncEntry.externalGroup, "Cannot create dynamic group from null ExternalIdentity.");
             
             // lookup of existing group by ID has been performed already including check for conflicting authorizable 
             // type or principal name
@@ -377,6 +386,10 @@ public class DynamicSyncContext extends DefaultSyncContext {
     
     private static boolean groupsSyncedBefore(@NotNull Authorizable authorizable) throws RepositoryException {
         return authorizable.hasProperty(REP_LAST_SYNCED) && !authorizable.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+    }
+    
+    private static boolean requiresCleanup(@NotNull Authorizable authorizable) throws RepositoryException {
+        return authorizable.hasProperty(REP_LAST_SYNCED) && !authorizable.hasProperty(ExternalIdentityConstants.REP_LAST_DYNAMIC_SYNC);
     }
 
     private static boolean isEveryone(@NotNull Group group) {

@@ -33,8 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Component;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.composite.MountedNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
@@ -49,21 +48,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
 /**
  * Checker that ensures the consistency of unique entries in the various mounts
  * 
  * <p>For all unique indexes, it checks that the uniqueness constraint holds when
- * taking into account the combined index from all the mounts, including the global one.</p>
+ * taking into account the combined index from all the mounts, including the global one.
  * 
  * <p>Being a one-off check, it does not strictly implement the {@link #check(MountedNodeStore, Tree, ErrorHolder, Context)}
  * contract in terms of navigating the specified tree, but instead accesses the index definitions node directly
- * on first access and skips all subsequent executions.</p>
- *
+ * on first access and skips all subsequent executions.
  */
-@Component
-@Service(MountedNodeStoreChecker.class)
+@Component(service = {MountedNodeStoreChecker.class})
 public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<UniqueIndexNodeStoreChecker.Context> {
     
     private static final Logger LOG = LoggerFactory.getLogger(UniqueIndexNodeStoreChecker.class);
@@ -116,7 +111,7 @@ public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<Uniq
     static class Context {
         private final MountInfoProvider mip;
         private final Map<String, IndexCombination> combinations = new HashMap<>();
-        private final Map<String, MountedNodeStore> mountedNodeStoresByName = Maps.newHashMap();
+        private final Map<String, MountedNodeStore> mountedNodeStoresByName = new HashMap<>();
         
         Context(MountInfoProvider mip) {
             this.mip = mip;
@@ -152,7 +147,7 @@ public class UniqueIndexNodeStoreChecker implements MountedNodeStoreChecker<Uniq
     static class IndexCombination {
         private final ChildNodeEntry rootIndexDef;
         private final UniqueIndexNodeStoreChecker checker;
-        private final Map<Mount, NodeState> indexEntries = Maps.newHashMap();
+        private final Map<Mount, NodeState> indexEntries = new HashMap<>();
         private final List<Mount[]> checked = new ArrayList<>();
         // bounded as the ErrorHolder has a reasonable limit of entries before it fails immediately
         private final Set<String> reportedConflictingValues = new HashSet<>();

@@ -18,7 +18,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool.iotrace;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.io.BufferedWriter;
 import java.io.PrintWriter;
@@ -41,7 +41,7 @@ public class DefaultIOTraceWriter implements IOTraceWriter {
      * @param writer
      */
     public DefaultIOTraceWriter(@NotNull Writer writer) {
-        out = new PrintWriter(new BufferedWriter(checkNotNull(writer)));
+        out = new PrintWriter(new BufferedWriter(requireNonNull(writer)));
     }
 
     @Override

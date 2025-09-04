@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -111,7 +110,7 @@ class SimpleExcerptProvider {
         if (q instanceof QueryImpl) {
             return extractFulltext(((QueryImpl) q).getConstraint());
         }
-        return ImmutableSet.of();
+        return Set.of();
     }
 
     private static Set<String> extractFulltext(ConstraintImpl c) {
@@ -272,14 +271,14 @@ class SimpleExcerptProvider {
             }
         }
     }
-    
+
     private static int indexOfSearchText(String text, String searchStr, int fromIndex) {
         if (CASE_SENSITIVE_HIGHLIGHT) {
             return text.indexOf(searchStr, fromIndex);
         }
         return indexOfIgnoreCase(text, searchStr, fromIndex);
     }
-    
+
     public static int indexOfIgnoreCase(String str, String searchStr, int startPos) {
         // This is not very efficient, specially as we create the pattern each time.
         // An alternative is to use apache commons lang StringUtils.indexOfIgnoreCase,
@@ -298,9 +297,11 @@ class SimpleExcerptProvider {
     }
 
     static PropertyValue getExcerpt(PropertyValue value) {
-        Splitter listSplitter = Splitter.on(',').trimResults().omitEmptyStrings();
         StringBuilder excerpt = new StringBuilder(EXCERPT_BEGIN);
-        for (String v : listSplitter.splitToList(value.toString())) {
+        for (String v : Arrays.stream(value.toString().split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList())) {
             excerpt.append(v);
         }
         excerpt.append(EXCERPT_END);

@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
+import java.io.ByteArrayInputStream;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -27,12 +35,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
-
-import java.io.ByteArrayInputStream;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
 
 public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
 
@@ -46,7 +48,8 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         createAssetsIndexAndProperties(false, false);
         prepareTestAssets();
 
-        assertEquals(getTestQueryDynamicBoostBasicExplained(), explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH));
+        assertThat(explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH),
+                containsString(getTestQueryDynamicBoostBasicExplained()));
 
         assertEventually(() -> {
             assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,
@@ -158,6 +161,30 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         });
     }
 
+    @Test
+    public void dynamicBoostShouldNotMatchOnSingleFields() throws Exception {
+        boolean lite = areAnalyzeFeaturesSupportedInLiteModeOnly();
+        createAssetsIndexAndProperties(lite, lite);
+        prepareTestAssets();
+
+        assertEventually(() -> {
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'long')",
+                    List.of("/test/asset1", "/test/asset2", "/test/asset3"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'long')",
+                    List.of("/test/asset1", "/test/asset2"));
+        });
+    }
+
+    @Test
+    public void dynamicBoostedTagsShouldShouldBeUsedInSimilarityQueries() throws Exception {
+        boolean lite = areAnalyzeFeaturesSupportedInLiteModeOnly();
+        createAssetsIndexAndProperties(lite, lite);
+        prepareTestAssets();
+
+        assertEventually(() -> assertOrderedQuery("select [jcr:path] from [dam:Asset] where similar(., '/test/asset1')",
+                List.of("/test/asset1", "/test/asset2", "/test/asset3")));
+    }
+
     protected abstract String getTestQueryDynamicBoostBasicExplained();
 
     protected boolean areAnalyzeFeaturesSupportedInLiteModeOnly() {
@@ -185,6 +212,7 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         predicted3.setProperty("jcr:uuid", UUID.randomUUID().toString());
         createPredictedTag(predicted3, "plant", 0.5);
         createPredictedTag(predicted3, "blue", 0.5);
+        createPredictedTag(predicted3, "long", 0.1);
         root.commit();
     }
 
@@ -202,6 +230,10 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
     }
 
     protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags) throws Exception {
+        createAssetsIndexAndProperties(lite, similarityTags, true);
+    }
+
+    protected void createAssetsIndexAndProperties(boolean lite, boolean similarityTags, boolean useInFullTextQuery) throws Exception {
         NodeTypeRegistry.register(root, new ByteArrayInputStream(ASSET_NODE_TYPE.getBytes()), "test nodeType");
         Tree indexRuleProps = createIndex("dam:Asset", lite);
 
@@ -209,6 +241,7 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         predictedTagsDynamicBoost.setProperty("name", "jcr:content/metadata/predictedTags/.*");
         predictedTagsDynamicBoost.setProperty("isRegexp", true);
         predictedTagsDynamicBoost.setProperty("dynamicBoost", true);
+        predictedTagsDynamicBoost.setProperty("useInFullTextQuery", useInFullTextQuery);
 
         if (similarityTags) {
             Tree predictedTags = createNodeWithType(indexRuleProps, "predictedTags", JcrConstants.NT_UNSTRUCTURED, "");

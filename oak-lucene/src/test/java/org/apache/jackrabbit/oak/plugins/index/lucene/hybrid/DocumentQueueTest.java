@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -220,7 +220,7 @@ public class DocumentQueueTest {
 
     @Test
     public void addAllSync() throws Exception{
-        ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
+        ListValuedMap<String, LuceneDoc> docs = new ArrayListValuedHashMap<>();
         tracker = createTracker();
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.SYNC);
         tracker.update(indexed);
@@ -285,7 +285,7 @@ public class DocumentQueueTest {
 
         w = Stopwatch.createStarted();
         for (int i = 0; i < numDocs; i++) {
-            ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
+            ListValuedMap<String, LuceneDoc> docs = new ArrayListValuedHashMap<>();
             docs.get("/oak:index/fooIndex").add(doc);
             queue.addAllSynchronously(docs.asMap());
         }
@@ -342,13 +342,13 @@ public class DocumentQueueTest {
 
     private CommitInfo newCommitInfo(){
         info = new CommitInfo("admin", "s1",
-                ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
+                Map.of(CommitContext.NAME, new SimpleCommitContext()));
         return info;
     }
 
     private void createIndexDefinition(String idxName, FulltextIndexConstants.IndexingMode indexingMode) {
         NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
-                idxName, ImmutableSet.of("foo"), "async");
+                idxName, Set.of("foo"), "async");
         //Disable compression
         //idx.setProperty("codec", "oakCodec");
         TestUtil.enableIndexingMode(idx, indexingMode);

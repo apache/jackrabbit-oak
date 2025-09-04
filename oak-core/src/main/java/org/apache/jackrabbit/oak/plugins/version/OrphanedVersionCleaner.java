@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 

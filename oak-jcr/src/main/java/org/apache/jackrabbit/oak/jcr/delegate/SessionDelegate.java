@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -27,7 +27,10 @@ import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -38,8 +41,6 @@ import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -53,6 +54,7 @@ import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
 import org.apache.jackrabbit.oak.jcr.session.SessionNamespaces;
+import org.apache.jackrabbit.oak.jcr.session.SessionSaveDelayer;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats.Counters;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
@@ -137,6 +139,8 @@ public class SessionDelegate {
 
     private final SessionNamespaces namespaces;
 
+    private final SessionSaveDelayer sessionSaveDelayer;
+
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
      * session is governed by the value of the {@code refreshInterval} argument: if the session
@@ -149,6 +153,7 @@ public class SessionDelegate {
      * @param securityProvider the security provider
      * @param refreshStrategy  the refresh strategy used for auto refreshing this session
      * @param statisticManager the statistics manager for tracking session operations
+     * @param sessionSaveDelayer the session save delay mechanism
      */
     public SessionDelegate(
             @NotNull ContentSession contentSession,
@@ -156,18 +161,19 @@ public class SessionDelegate {
             @NotNull RefreshStrategy refreshStrategy,
             @NotNull ThreadLocal<Long> threadSaveCount,
             @NotNull StatisticManager statisticManager,
-            @NotNull Clock clock) {
-        this.contentSession = checkNotNull(contentSession);
-        this.securityProvider = checkNotNull(securityProvider);
+            @NotNull Clock clock,
+            @NotNull SessionSaveDelayer sessionSaveDelayer) {
+        this.contentSession = requireNonNull(contentSession);
+        this.securityProvider = requireNonNull(securityProvider);
         this.root = contentSession.getLatestRoot();
         this.namespaces = new SessionNamespaces(this.root);
-        this.saveCountRefresh = new SaveCountRefresh(checkNotNull(threadSaveCount));
-        this.refreshStrategy = Composite.create(checkNotNull(refreshStrategy),
+        this.saveCountRefresh = new SaveCountRefresh(requireNonNull(threadSaveCount));
+        this.refreshStrategy = Composite.create(requireNonNull(refreshStrategy),
                 refreshAtNextAccess, saveCountRefresh, new RefreshNamespaces(
                         namespaces));
         this.idManager = new IdentifierManager(root);
-        this.clock = checkNotNull(clock);
-        checkNotNull(statisticManager);
+        this.clock = requireNonNull(clock);
+        requireNonNull(statisticManager);
         this.sessionStats = new SessionStats(contentSession.toString(),
                 contentSession.getAuthInfo(), clock, refreshStrategy, this, statisticManager);
         this.sessionCounters = sessionStats.getCounters();
@@ -175,6 +181,7 @@ public class SessionDelegate {
         readDuration = statisticManager.getTimer(SESSION_READ_DURATION);
         writeCounter = statisticManager.getMeter(SESSION_WRITE_COUNTER);
         writeDuration = statisticManager.getTimer(SESSION_WRITE_DURATION);
+        this.sessionSaveDelayer = sessionSaveDelayer;
     }
 
     @NotNull
@@ -384,14 +391,15 @@ public class SessionDelegate {
     }
 
     private void commit(Root root, String path) throws CommitFailedException {
-        ImmutableMap.Builder<String, Object> info = ImmutableMap.builder();
+        Map<String, Object> info = new HashMap<>();
         if (path != null && !denotesRoot(path)) {
             info.put(Root.COMMIT_PATH, path);
         }
         if (userData != null) {
             info.put(EventFactory.USER_DATA, userData);
         }
-        root.commit(info.build());
+        sessionSaveDelayer.delayIfNeeded(userData);
+        root.commit(Collections.unmodifiableMap(info));
         if (permissionProvider != null && refreshPermissionProvider) {
             permissionProvider.refresh();
         }
@@ -632,7 +640,7 @@ public class SessionDelegate {
             if (root instanceof PermissionAware) {
                 permissionProvider = ((PermissionAware) root).getPermissionProvider();
             } else {
-                permissionProvider = checkNotNull(securityProvider)
+                permissionProvider = requireNonNull(securityProvider)
                                 .getConfiguration(AuthorizationConfiguration.class)
                                 .getPermissionProvider(root, getWorkspaceName(), getAuthInfo().getPrincipals());
                 refreshPermissionProvider = true;

@@ -31,15 +31,15 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexPrinter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -55,13 +55,14 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class IndexHelper implements Closeable {
     private final Logger log = LoggerFactory.getLogger(getClass());
     protected final NodeStore store;
     protected final File outputDir;
     protected final File workDir;
+    private final IndexingReporter indexReporter;
     private IndexPathService indexPathService;
     private AsyncIndexInfoService asyncIndexInfoService;
     protected final List<String> indexPaths;
@@ -73,15 +74,16 @@ public class IndexHelper implements Closeable {
     private IndexInfoServiceImpl indexInfoService;
 
 
-    IndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
+    protected IndexHelper(NodeStore store, BlobStore blobStore, Whiteboard whiteboard,
                 File outputDir, File workDir, List<String> indexPaths) {
         this.store = store;
         this.blobStore = blobStore;
         this.whiteboard = whiteboard;
-        this.statisticsProvider = checkNotNull(WhiteboardUtils.getService(whiteboard, StatisticsProvider.class));
+        this.statisticsProvider = requireNonNull(WhiteboardUtils.getService(whiteboard, StatisticsProvider.class));
+        this.indexReporter = requireNonNull(WhiteboardUtils.getService(whiteboard, IndexingReporter.class));
         this.outputDir = outputDir;
         this.workDir = workDir;
-        this.indexPaths = ImmutableList.copyOf(indexPaths);
+        this.indexPaths = List.copyOf(indexPaths);
     }
 
     public NodeStore getNodeStore() {
@@ -128,11 +130,11 @@ public class IndexHelper implements Closeable {
         return executor;
     }
 
-    public MountInfoProvider getMountInfoProvider(){
+    public MountInfoProvider getMountInfoProvider() {
         return Mounts.defaultMountInfoProvider();
     }
 
-    public StatisticsProvider getStatisticsProvider(){
+    public StatisticsProvider getStatisticsProvider() {
         return statisticsProvider;
     }
 
@@ -177,6 +179,7 @@ public class IndexHelper implements Closeable {
             private final AtomicInteger counter = new AtomicInteger();
             private final Thread.UncaughtExceptionHandler handler =
                     (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
+
             @Override
             public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
@@ -193,5 +196,9 @@ public class IndexHelper implements Closeable {
         executor.setKeepAliveTime(1, TimeUnit.MINUTES);
         executor.allowCoreThreadTimeOut(true);
         return executor;
+    }
+
+    public IndexingReporter getIndexReporter() {
+        return indexReporter;
     }
 }

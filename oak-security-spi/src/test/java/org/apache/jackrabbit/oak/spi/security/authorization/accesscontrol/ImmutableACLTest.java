@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -228,7 +227,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
     public void testCreateFromBaseList() throws Exception {
         AbstractAccessControlList aacl = Mockito.mock(AbstractAccessControlList.class);
         when(aacl.getPath()).thenReturn("/path");
-        List entries = Lists.newArrayList(createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
+        List entries = List.of(createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
         when(aacl.getEntries()).thenReturn(entries);
         when(aacl.getRestrictionProvider()).thenReturn(getRestrictionProvider());
         when(aacl.getNamePathMapper()).thenReturn(NamePathMapper.DEFAULT);
@@ -236,7 +235,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         ImmutableACL iacl = new ImmutableACL(aacl);
         assertImmutable(iacl);
 
-        assertTrue(Iterables.elementsEqual(entries, iacl.getEntries()));
+        assertTrue(IterableUtils.elementsEqual(entries, iacl.getEntries()));
         assertSame(aacl.getRestrictionProvider(), iacl.getRestrictionProvider());
         assertSame(aacl.getNamePathMapper(), iacl.getNamePathMapper());
 

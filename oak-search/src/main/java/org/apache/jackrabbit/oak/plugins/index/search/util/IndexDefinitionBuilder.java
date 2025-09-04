@@ -18,13 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
@@ -38,13 +37,14 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -62,8 +62,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 public class IndexDefinitionBuilder {
     private final NodeBuilder builder;
     private final Tree tree;
-    private final Map<String, IndexRule> rules = Maps.newHashMap();
-    private final Map<String, AggregateRule> aggRules = Maps.newHashMap();
+    private final Map<String, IndexRule> rules = new HashMap<>();
+    private final Map<String, AggregateRule> aggRules = new HashMap<>();
     private final Tree indexRule;
     private final boolean autoManageReindexFlag;
     private Tree aggregatesTree;
@@ -149,30 +149,30 @@ public class IndexDefinitionBuilder {
     }
 
     public IndexDefinitionBuilder selectionPolicy(String policy) {
-        tree.setProperty(INDEX_SELECTION_POLICY,  checkNotNull(policy));
+        tree.setProperty(INDEX_SELECTION_POLICY,  requireNonNull(policy));
         return this;
     }
 
     public IndexDefinitionBuilder codec(String codecName){
-        tree.setProperty(FulltextIndexConstants.CODEC_NAME, checkNotNull(codecName));
+        tree.setProperty(FulltextIndexConstants.CODEC_NAME, requireNonNull(codecName));
         return this;
     }
 
     public IndexDefinitionBuilder mergePolicy(String mergePolicy) {
-        tree.setProperty(FulltextIndexConstants.MERGE_POLICY_NAME, checkNotNull(mergePolicy));
+        tree.setProperty(FulltextIndexConstants.MERGE_POLICY_NAME, requireNonNull(mergePolicy));
         return this;
     }
 
     public IndexDefinitionBuilder addTags(String... additionalTagVals) {
         Set<String> currTags = Collections.emptySet();
         if (tree.hasProperty(INDEX_TAGS)) {
-            currTags = Sets.newHashSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
+            currTags = SetUtils.toSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
         }
-        Set<String> tagVals = Sets.newHashSet(Iterables.concat(currTags, asList(additionalTagVals)));
+        Set<String> tagVals = SetUtils.toSet(IterableUtils.chainedIterable(currTags, asList(additionalTagVals)));
         boolean noAdditionalTags = currTags.containsAll(tagVals);
         if (!noAdditionalTags) {
             tree.removeProperty(INDEX_TAGS);
-            tree.setProperty(INDEX_TAGS, asList(Iterables.toArray(tagVals, String.class)), STRINGS);
+            tree.setProperty(INDEX_TAGS, asList(IterableUtils.toArray(tagVals, String.class)), STRINGS);
         }
         return this;
     }
@@ -257,8 +257,8 @@ public class IndexDefinitionBuilder {
     public static class IndexRule {
         private final Tree indexRule;
         private final String ruleName;
-        private final Map<String, PropertyRule> props = Maps.newHashMap();
-        private final Set<String> propNodeNames = Sets.newHashSet();
+        private final Map<String, PropertyRule> props = new HashMap<>();
+        private final Set<String> propNodeNames = new HashSet<>();
 
         private IndexRule(Tree indexRule, String type) {
             this.indexRule = indexRule;
@@ -562,7 +562,7 @@ public class IndexDefinitionBuilder {
 
     public static class AggregateRule {
         private final Tree aggregate;
-        private final Map<String, Include> includes = Maps.newHashMap();
+        private final Map<String, Include> includes = new HashMap<>();
 
         private AggregateRule(Tree aggregate) {
             this.aggregate = aggregate;
@@ -642,7 +642,7 @@ public class IndexDefinitionBuilder {
 
     static class SelectiveEqualsDiff extends EqualsDiff {
         // Properties for which changes shouldn't auto set the reindex flag
-        static final List<String> ignorablePropertiesList = of(
+        static final List<String> ignorablePropertiesList = List.of(
                 FulltextIndexConstants.PROP_WEIGHT,
                 FIELD_BOOST,
                 IndexConstants.USE_IF_EXISTS,
@@ -652,7 +652,7 @@ public class IndexDefinitionBuilder {
                 FulltextIndexConstants.BLOB_SIZE,
                 FulltextIndexConstants.COST_PER_ENTRY,
                 FulltextIndexConstants.COST_PER_EXECUTION);
-        static final List<String> ignorableFacetConfigProps = of(
+        static final List<String> ignorableFacetConfigProps = List.of(
                 FulltextIndexConstants.PROP_SECURE_FACETS,
                 FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE,
                 FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN);
@@ -721,7 +721,7 @@ public class IndexDefinitionBuilder {
         }
 
         private Set<String> getAsyncValuesWithoutNRT(PropertyState state) {
-            Set<String> async = Sets.newHashSet(state.getValue(Type.STRINGS));
+            Set<String> async = SetUtils.toSet(state.getValue(Type.STRINGS));
             async.remove(IndexConstants.INDEXING_MODE_NRT);
             async.remove(IndexConstants.INDEXING_MODE_SYNC);
             return async;

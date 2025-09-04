@@ -24,13 +24,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Writes nodes in CND format
@@ -47,7 +45,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
  * </pre>
  */
 class CNDStreamWriter implements JsopWriter, Closeable {
-    private static final Set<String> COMMON_TYPE_CODES = ImmutableSet.of("nam:", "dat:");
+    private static final Set<String> COMMON_TYPE_CODES = Set.of("nam:", "dat:");
     private enum State {NONE, STARTED, BEGIN, END}
     private final PrintWriter w;
     private State arrayState = State.NONE;
@@ -82,7 +80,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
 
     @Override
     public JsopWriter array() {
-        checkState(arrayState == State.NONE);
+        Validate.checkState(arrayState == State.NONE);
         optionalKey();
         arrayState = State.BEGIN;
         w.append('[');
@@ -91,7 +89,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
 
     @Override
     public JsopWriter endArray() {
-        checkState(arrayState == State.BEGIN || arrayState == State.STARTED);
+        Validate.checkState(arrayState == State.BEGIN || arrayState == State.STARTED);
         arrayState = State.END;
         w.append(']');
         return this;
@@ -131,7 +129,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
 
     @Override
     public void close() throws IOException {
-        checkState(depth == 0);
+        Validate.checkState(depth == 0);
     }
 
     private void optionalComma() {
@@ -150,7 +148,7 @@ class CNDStreamWriter implements JsopWriter, Closeable {
         if (arrayState == State.BEGIN || arrayState == State.STARTED) {
             return;
         }
-        checkNotNull(deferredName);
+        requireNonNull(deferredName);
         w.println();
         space();
         w.print('-');
@@ -161,12 +159,12 @@ class CNDStreamWriter implements JsopWriter, Closeable {
     }
 
     private void space() {
-        w.print(Strings.repeat(indent, depth));
+        w.print(indent.repeat(depth));
     }
 
     private void optionalResetArrayState() {
         //Check that not within array
-        checkState(arrayState == State.END || arrayState == State.NONE);
+        Validate.checkState(arrayState == State.END || arrayState == State.NONE);
         if (arrayState == State.END) {
             arrayState = State.NONE;
         }

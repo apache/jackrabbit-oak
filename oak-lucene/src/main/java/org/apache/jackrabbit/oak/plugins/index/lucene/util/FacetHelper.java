@@ -19,14 +19,17 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
-import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
@@ -58,6 +61,23 @@ public class FacetHelper {
 
     public static FacetsConfig getFacetsConfig(NodeBuilder definition) {
         return new NodeStateFacetsConfig(definition);
+    }
+
+    /**
+     * Get the column names of all the facets from the index plan, if any.
+     *
+     * @param plan the plan
+     * @return a list (possibly empty)
+     */
+    public static List<String> getFacetColumnNamesFromPlan(IndexPlan plan) {
+        @SuppressWarnings("unchecked")
+        List<String> facetFields = (List<String>) plan.getAttribute(ATTR_FACET_FIELDS);
+        if (facetFields == null) {
+            return Collections.emptyList();
+        }
+        return facetFields.stream().map(
+                FulltextIndex::convertFacetFieldNameToColumnName).
+                collect(Collectors.toList());
     }
 
     public static Facets getFacets(IndexSearcher searcher, Query query, QueryIndex.IndexPlan plan,
@@ -102,10 +122,6 @@ public class FacetHelper {
 
         }
         return facets;
-    }
-
-    public static String parseFacetField(String columnName) {
-        return columnName.substring(QueryConstants.REP_FACET.length() + 1, columnName.length() - 1);
     }
 
     private static final Facets NULL_FACETS = new Facets() {

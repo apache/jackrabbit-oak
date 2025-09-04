@@ -19,10 +19,23 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Reference;
 
-@Component(policy = ConfigurationPolicy.REQUIRE, name = S3DataStoreService.NAME)
+@Component(configurationPolicy = ConfigurationPolicy.REQUIRE, name = S3DataStoreService.NAME)
 public class S3DataStoreService extends AbstractS3DataStoreService {
+    @Reference
+    private StatisticsProvider statisticsProvider;
+
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore";
+
+    protected StatisticsProvider getStatisticsProvider(){
+        return statisticsProvider;
+    }
+
+    protected void setStatisticsProvider(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
+    }
 }

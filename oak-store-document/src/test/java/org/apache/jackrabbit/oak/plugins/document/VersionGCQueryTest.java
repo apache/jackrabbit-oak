@@ -19,16 +19,15 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -51,7 +50,7 @@ public class VersionGCQueryTest {
     public final DocumentMKBuilderProvider provider = new DocumentMKBuilderProvider();
 
     private Clock clock;
-    private Set<String> prevDocIds = Sets.newHashSet();
+    private Set<String> prevDocIds = new HashSet<>();
     private DocumentStore store;
     private DocumentNodeStore ns;
 
@@ -107,13 +106,13 @@ public class VersionGCQueryTest {
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
         VersionGarbageCollector gc = new VersionGarbageCollector(
-                ns, new VersionGCSupport(store));
+                ns, new VersionGCSupport(store), false, false, false);
         prevDocIds.clear();
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertEquals(11, stats.deletedDocGCCount);
         assertEquals(10, stats.splitDocGCCount);
         assertEquals(0, prevDocIds.size());
-        assertEquals(1, Iterables.size(Utils.getAllDocuments(store)));
+        assertEquals(1, IterableUtils.size(Utils.getAllDocuments(store)));
     }
 
     @Test
@@ -123,7 +122,7 @@ public class VersionGCQueryTest {
         builder.child("test");
         merge(builder);
         String id = Utils.getIdFromPath("/test");
-        while (!Iterables.any(store.find(Collection.NODES, id).getPreviousRanges().values(), INTERMEDIATE)) {
+        while (!store.find(Collection.NODES, id).getPreviousRanges().values().stream().anyMatch(INTERMEDIATE::test)) {
             InputStream s = new RandomStream(10 * 1024, 42);
             PropertyState p = new BinaryPropertyState("p", ns.createBlob(s));
             builder = ns.getRoot().builder();
@@ -134,13 +133,13 @@ public class VersionGCQueryTest {
             merge(builder);
             ns.runBackgroundOperations();
         }
-        int numPrevDocs = Iterators.size(store.find(Collection.NODES, id).getAllPreviousDocs());
-        assertEquals(1, Iterators.size(Utils.getRootDocument(store).getAllPreviousDocs()));
+        int numPrevDocs = IteratorUtils.size(store.find(Collection.NODES, id).getAllPreviousDocs());
+        assertEquals(1, IteratorUtils.size(Utils.getRootDocument(store).getAllPreviousDocs()));
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
 
         VersionGarbageCollector gc = new VersionGarbageCollector(
-                ns, new VersionGCSupport(store));
+                ns, new VersionGCSupport(store), false, false, false);
         prevDocIds.clear();
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertEquals(1, stats.deletedDocGCCount);
@@ -149,7 +148,7 @@ public class VersionGCQueryTest {
         // but only does find calls for previous docs of /test
         assertEquals(numPrevDocs, prevDocIds.size());
         // at the end only the root document remains
-        assertEquals(1, Iterables.size(Utils.getAllDocuments(store)));
+        assertEquals(1, IterableUtils.size(Utils.getAllDocuments(store)));
     }
 
     private NodeState merge(NodeBuilder builder) throws CommitFailedException {
@@ -159,7 +158,7 @@ public class VersionGCQueryTest {
     private static final Predicate<Range> INTERMEDIATE =
             new Predicate<Range>() {
         @Override
-        public boolean apply(Range input) {
+        public boolean test(Range input) {
             return input.height > 0;
         }
     };

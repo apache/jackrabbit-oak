@@ -18,9 +18,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.isPropertyField;
+import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.isNullPropsField;
 
 /**
  * This class would populate some statistics from a reader. We want to be careful here such that
@@ -54,7 +55,7 @@ public class LuceneIndexStatistics implements IndexStatistics {
     LuceneIndexStatistics(IndexReader reader) {
         numDocs = reader.numDocs();
 
-        Map<String, Integer> numDocsForField = Maps.newHashMap();
+        Map<String, Integer> numDocsForField = new HashMap<>();
 
         Fields fields = null;
         try {
@@ -70,7 +71,7 @@ public class LuceneIndexStatistics implements IndexStatistics {
 
         if (fields != null) {
             for(String f : fields) {
-                if (isPropertyField(f)) {
+                if (isPropertyField(f) || isNullPropsField(f)) {
                     int docCntForField = -1;
                     try {
                         if (failReadingSyntheticallyFalliableField && SYNTHETICALLY_FALLIABLE_FIELD.equals(f)) {

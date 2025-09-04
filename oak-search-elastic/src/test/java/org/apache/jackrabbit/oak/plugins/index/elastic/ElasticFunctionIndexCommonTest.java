@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.junit.ClassRule;
 
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
@@ -38,8 +37,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 
 public class ElasticFunctionIndexCommonTest extends FunctionIndexCommonTest {
     @ClassRule
-    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
-            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticFunctionIndexCommonTest() {
         indexOptions = new ElasticIndexOptions();
@@ -48,15 +46,6 @@ public class ElasticFunctionIndexCommonTest extends FunctionIndexCommonTest {
     @Override
     protected String getIndexProvider() {
         return "elasticsearch:";
-    }
-
-    @Override
-    protected void postCommitHook() {
-        try {
-            TimeUnit.SECONDS.sleep(2);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     @Override
@@ -80,9 +69,7 @@ public class ElasticFunctionIndexCommonTest extends FunctionIndexCommonTest {
         def.setProperty(TYPE_PROPERTY_NAME, indexOptions.getIndexType());
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
-        def.setProperty(
-                PropertyStates.createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
-        // def.setProperty(LuceneIndexConstants.SAVE_DIR_LISTING, true);
+        def.setProperty(PropertyStates.createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 

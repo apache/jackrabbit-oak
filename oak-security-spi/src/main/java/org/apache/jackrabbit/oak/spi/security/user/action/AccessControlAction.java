@@ -29,6 +29,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -41,22 +42,20 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 /**
  * The {@code AccessControlAction} allows to setup permissions upon creation
  * of a new authorizable; namely the privileges the new authorizable should be
  * granted on it's own 'home directory' being represented by the new node
  * associated with that new authorizable.
  *
- * <p>The following to configuration parameters are available with this implementation:</p>
+ * <p>The following to configuration parameters are available with this implementation:
  * <ul>
  *    <li><strong>groupPrivilegeNames</strong>: the value is expected to be a
  *    comma separated list of privileges that will be granted to the new group on
- *    the group node</li>
+ *    the group node
  *    <li><strong>userPrivilegeNames</strong>: the value is expected to be a
  *    comma separated list of privileges that will be granted to the new user on
- *    the user node.</li>
+ *    the user node.
  * </ul>
  * <p>Example configuration:
  * <pre>
@@ -65,7 +64,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
  * </pre>
  * <p>This configuration could for example lead to the following content
  * structure upon user or group creation. Note however that the resulting
- * structure depends on the actual access control management being in place:</p>
+ * structure depends on the actual access control management being in place:
  *
  * <pre>
  *     UserManager umgr = ((JackrabbitSession) session).getUserManager();
@@ -148,7 +147,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
 
     private void setAC(@NotNull Authorizable authorizable, @NotNull Root root,
                        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
-        checkState(securityProvider != null, "Not initialized");
+        Validate.checkState(securityProvider != null, "Not initialized");
         if (omitSetup(authorizable)) {
             return;
         }

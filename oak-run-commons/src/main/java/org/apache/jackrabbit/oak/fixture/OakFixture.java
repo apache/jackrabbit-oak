@@ -19,19 +19,20 @@ package org.apache.jackrabbit.oak.fixture;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.fixture.SegmentTarFixture.SegmentTarFixtureBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -542,8 +543,8 @@ public abstract class OakFixture {
 
             Set<String> paths = new HashSet<>();
             if (persistentCacheIncludes != null) {
-                for (String p : Splitter.on(',').split(persistentCacheIncludes)) {
-                    p = p != null ? Strings.emptyToNull(p.trim()) : null;
+                for (String p : Arrays.stream(persistentCacheIncludes.split(",")).collect(Collectors.toList())) {
+                    p = p != null ? StringUtils.emptyToNull(p.trim()) : null;
                     if (p != null) {
                         paths.add(p);
                     }

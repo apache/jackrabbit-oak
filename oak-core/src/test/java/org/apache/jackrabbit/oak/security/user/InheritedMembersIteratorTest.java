@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.user.DynamicMembershipProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -31,6 +30,7 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -75,7 +75,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
         root.commit();
 
         // remember all IDs for cleanup
-        ids.addAll(ImmutableSet.of("base", "testGroup", "dynamicTestGroup", "dynamicTestUser"));
+        ids.addAll(Set.of("base", "testGroup", "dynamicTestGroup", "dynamicTestUser"));
     }
 
     @Override
@@ -100,7 +100,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
         when(dmp.getMembers(any(Group.class), anyBoolean())).thenReturn(Collections.emptyIterator());
 
         // no dynamic members in result
-        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
+        Set<String> expectedMemberIds = Set.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
         assertEquals(expectedMemberIds, getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
         
         verify(dmp, times(2)).getMembers(any(Group.class), eq(false));
@@ -110,11 +110,11 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
     @Test
     public void testDynamicMembers() throws Exception {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
-        when(dmp.getMembers(dynamicGroup, false)).thenReturn(Iterators.forArray(dynamicUser, getTestUser()));
+        when(dmp.getMembers(dynamicGroup, false)).thenReturn(Arrays.asList(new Authorizable[]{dynamicUser, getTestUser()}).iterator());
         when(dmp.getMembers(nonDynamicGroup, false)).thenReturn(Collections.emptyIterator());
 
         // dynamic members get resolved this time
-        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup", "dynamicTestUser");
+        Set<String> expectedMemberIds = Set.of(getTestUser().getID(), "testGroup", "dynamicTestGroup", "dynamicTestUser");
         assertEquals(expectedMemberIds, getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
 
         verify(dmp, times(2)).getMembers(any(Group.class), eq(false));
@@ -126,7 +126,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
         DynamicMembershipProvider dmp = mock(DynamicMembershipProvider.class);
         when(dmp.getMembers(any(Group.class), anyBoolean())).thenThrow(new RepositoryException());
 
-        Set<String> expectedMemberIds = ImmutableSet.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
+        Set<String> expectedMemberIds = Set.of(getTestUser().getID(), "testGroup", "dynamicTestGroup");
         assertEquals(expectedMemberIds, getMembersIds(new InheritedMembersIterator(base.getMembers(), dmp)));
 
         verify(dmp, times(2)).getMembers(any(Group.class), eq(false));
@@ -134,7 +134,7 @@ public class InheritedMembersIteratorTest extends AbstractSecurityTest {
     }
     
     private static @NotNull Set<String> getMembersIds(@NotNull InheritedMembersIterator it) {
-        return ImmutableSet.copyOf(Iterators.transform(it, authorizable -> {
+        return SetUtils.toSet(IteratorUtils.transform(it, authorizable -> {
             try {
                 return authorizable.getID();
             } catch (RepositoryException repositoryException) {

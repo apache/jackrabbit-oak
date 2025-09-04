@@ -19,20 +19,15 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.segment.LongIdMappingBlobStore;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentTarManager;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentTarWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
@@ -41,11 +36,25 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+import static org.junit.Assert.*;
 
 public class FileStoreTest {
     private  static final String FAILED_TO_WRITE_ON_CLOSE = "Failed to write to the archive on closing";
@@ -53,8 +62,8 @@ public class FileStoreTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private File getFileStoreFolder() {
-        return folder.getRoot();
+    private File getFileStoreFolder() throws IOException {
+        return folder.newFolder("segmentstore");
     }
 
     @Test
@@ -138,6 +147,73 @@ public class FileStoreTest {
         IllegalStateException closeEx = assertThrows("FileStore#tryFlush should have already shut down FileStore",
                 IllegalStateException.class, fileStore::close);
         assertEquals("already shut down", closeEx.getMessage());
+    }
+
+    @Test
+    public void testRecovery_FileStore_withExternalBlobStore() throws InvalidFileStoreVersionException, IOException, CommitFailedException {
+
+        File segmentStore = getFileStoreFolder();
+        BlobStore blobStore = new LongIdMappingBlobStore();
+        FileStore fileStore = createFileStore(segmentStore, blobStore);
+
+        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+
+        NodeBuilder builder = segmentNodeStore.getRoot().builder();
+        builder.setProperty("foo", "bar");
+
+        Blob blob = builder.createBlob(new ZeroStream(100));
+
+
+        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        fileStore.flush();
+
+        // create another segment
+
+        builder.setProperty("binaryProperty", blob);
+
+        builder.setProperty("foo1", "bar1");
+        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        fileStore.flush();
+
+        // copy all files form segmentStore to segmentStoreClone
+        // with this, tha last tar archive will not have index, graph and binary references
+        File segmentStoreClone = folder.newFolder("segmentstore-clone");
+        Files.walk(segmentStore.toPath())
+                .forEach(source -> {
+                    try {
+                            Path target = segmentStoreClone.toPath().resolve(segmentStore.toPath().relativize(source));
+                            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e.getMessage(), e);
+                    }
+                });
+
+
+        fileStore.close();
+
+        // Start new FileStore, which should be able to recover successfully despite now having the index, graph and binary references
+        try {
+        fileStore = createFileStore(segmentStoreClone, blobStore);
+        } catch (Exception e){
+            fail("Should not throw exception" + e);
+        }
+
+        segmentNodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+
+
+        builder = segmentNodeStore.getRoot().builder();
+
+        assertNotNull(builder.getProperty("foo"));
+        assertNotNull(builder.getProperty("foo1"));
+        blob = builder.getProperty("binaryProperty").getValue(Type.BINARY);
+        assertNotNull(blob);
+    }
+
+    public FileStore createFileStore(File segmentStore, BlobStore blobStore) throws IOException, InvalidFileStoreVersionException {
+        return fileStoreBuilder(segmentStore)
+                .withBinariesInlineThreshold(0)
+                .withBlobStore(blobStore)
+                .build();
     }
 
     private static int counter = 0;

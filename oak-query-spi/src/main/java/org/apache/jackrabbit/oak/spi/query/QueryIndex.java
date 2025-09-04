@@ -29,11 +29,12 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.event.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import static java.util.stream.Collectors.toMap;
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 
 /**
@@ -221,6 +222,8 @@ public interface QueryIndex {
     @ProviderType
     interface IndexPlan extends Cloneable{
 
+        Logger LOG = LoggerFactory.getLogger(QueryIndex.IndexPlan.class);
+        
         /**
          * The cost to execute the query once. The returned value should
          * approximately match the number of disk read operations plus the
@@ -361,16 +364,17 @@ public interface QueryIndex {
          * This method can be used for communicating any messages which should be logged if this plan is selected for execution.
          * The messages are returned as a map whose key indicates log level and value is a list of messages against that
          * log level.
+
          * @return map containing log messages.
          */
-        default Map<Level, List<String>> getAdditionalMessages() {
-            return Collections.emptyMap();
-        }
+        default Map<String, List<String>> getAdditionalLogMessages() { return Collections.emptyMap(); }
 
         /**
          * A builder for index plans.
          */
         class Builder {
+
+            private static Logger LOG = LoggerFactory.getLogger(QueryIndex.IndexPlan.Builder.class);
 
             protected double costPerExecution = 1.0;
             protected double costPerEntry = 1.0;
@@ -384,11 +388,11 @@ public interface QueryIndex {
             protected PropertyRestriction propRestriction;
             protected String pathPrefix = "/";
             protected boolean supportsPathRestriction = false;
-            protected Map<String, Object> attributes = Maps.newHashMap();
+            protected Map<String, Object> attributes = new HashMap<>();
             protected String planName;
             protected boolean deprecated;
             protected boolean logWarningForPathFilterMismatch;
-            protected final Map<Level, List<String>> additionalMessages = new HashMap<>();
+            protected final Map<String, List<String>> additionalMessages = new HashMap<>();
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -415,7 +419,17 @@ public interface QueryIndex {
                 return this;
             }
 
-            public Builder addAdditionalMessage(Level level, String s) {
+            public Builder addAdditionalMessage(String level, String s) {
+                switch (level) {
+                    case "TRACE":
+                    case "DEBUG":
+                    case "INFO":
+                    case "WARN":
+                    case "ERROR":
+                        break;
+                    default:
+                        throw new IllegalArgumentException("unsupported log level: " + level);
+                }
                 this.additionalMessages.compute(level, (k,v) -> {
                     if (v == null) {
                         v = new ArrayList<>();
@@ -517,7 +531,7 @@ public interface QueryIndex {
                     private final boolean deprecated =
                             Builder.this.deprecated;
                     private final boolean logWarningForPathFilterMismatch = Builder.this.logWarningForPathFilterMismatch;
-                    private final Map<Level, List<String>> additionalMessages = Builder.this.additionalMessages;
+                    private final Map<String, List<String>> additionalMessages = Builder.this.additionalMessages;
 
                     private String getAdditionalMessageString() {
                         return additionalMessages.entrySet().stream()
@@ -661,10 +675,9 @@ public interface QueryIndex {
                     }
 
                     @Override
-                    public Map<Level, List<String>> getAdditionalMessages() {
+                    public Map<String, List<String>> getAdditionalLogMessages() {
                         return additionalMessages;
                     }
-
                 };
             }
 

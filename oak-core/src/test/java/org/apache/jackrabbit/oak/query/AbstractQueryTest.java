@@ -29,14 +29,11 @@ import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
 import javax.jcr.PropertyType;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -63,7 +60,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -143,7 +140,7 @@ public abstract class AbstractQueryTest {
         ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
         PrintWriter w = new PrintWriter(new OutputStreamWriter(
                 new FileOutputStream(output)));
-        HashSet<String> knownQueries = new HashSet<String>();
+        HashSet<String> knownQueries = new HashSet<>();
         boolean errors = false;
         try {
             while (true) {
@@ -152,7 +149,7 @@ public abstract class AbstractQueryTest {
                     break;
                 }
                 line = line.trim();
-                if (line.startsWith("#") || line.length() == 0) {
+                if (line.startsWith("#") || line.isEmpty()) {
                     w.println(line);
                 } else if (line.startsWith("xpath2sql")) {
                     line = line.substring("xpath2sql".length()).trim();
@@ -199,7 +196,7 @@ public abstract class AbstractQueryTest {
                                 readEnd = false;
                             } else {
                                 line = line.trim();
-                                if (line.length() == 0) {
+                                if (line.isEmpty()) {
                                     errors = true;
                                     readEnd = false;
                                 } else {
@@ -218,7 +215,7 @@ public abstract class AbstractQueryTest {
                                 break;
                             }
                             line = line.trim();
-                            if (line.length() == 0) {
+                            if (line.isEmpty()) {
                                 break;
                             }
                             errors = true;
@@ -257,10 +254,7 @@ public abstract class AbstractQueryTest {
     }
 
     protected List<String> executeQuery(String query, String language) {
-        boolean pathsOnly = false;
-        if (language.equals(QueryEngineImpl.XPATH)) {
-            pathsOnly = true;
-        }
+        boolean pathsOnly = language.equals(QueryEngineImpl.XPATH);
         return executeQuery(query, language, pathsOnly);
     }
 
@@ -270,7 +264,7 @@ public abstract class AbstractQueryTest {
 
     protected List<String> executeQuery(String query, String language, boolean pathsOnly, boolean skipSort) {
         long time = System.currentTimeMillis();
-        List<String> lines = new ArrayList<String>();
+        List<String> lines = new ArrayList<>();
         try {
             Result result = executeQuery(query, language, NO_BINDINGS);
             if (query.startsWith("explain ")) {
@@ -345,8 +339,8 @@ public abstract class AbstractQueryTest {
     }
 
     protected static void assertResult(@NotNull List<String> expected, @NotNull List<String> actual) {
-        for (String p : checkNotNull(expected)) {
-            assertTrue("Expected path " + p + " not found, got " + actual, checkNotNull(actual)
+        for (String p : requireNonNull(expected)) {
+            assertTrue("Expected path " + p + " not found, got " + actual, requireNonNull(actual)
                     .contains(p));
         }
         assertEquals("Result set size is different: " + actual, expected.size(),
@@ -358,7 +352,7 @@ public abstract class AbstractQueryTest {
     }
 
     protected void setQuerySelectionMode(@NotNull QuerySelectionMode querySelectionMode) {
-        ((QueryEngineImpl) qe).setQuerySelectionMode(checkNotNull(querySelectionMode));
+        ((QueryEngineImpl) qe).setQuerySelectionMode(requireNonNull(querySelectionMode));
     }
 
     protected static String readRow(ResultRow row, boolean pathOnly) {
@@ -415,7 +409,6 @@ public abstract class AbstractQueryTest {
      * or
      * <p>
      * "/ - "test"
-     * </p>
      *
      * @param root
      * @param commit the commit string
@@ -513,7 +506,7 @@ public abstract class AbstractQueryTest {
      */
     private static PropertyState readArrayProperty(String name, JsopReader reader) {
         int type = PropertyType.STRING;
-        List<Object> values = Lists.newArrayList();
+        List<Object> values = new ArrayList<>();
         while (!reader.matches(']')) {
             if (reader.matches(JsopReader.NUMBER)) {
                 String number = reader.getToken();
@@ -592,7 +585,7 @@ public abstract class AbstractQueryTest {
      * A line reader that supports multi-line statements, where lines that start
      * with a space belong to the previous line.
      */
-    class ContinueLineReader {
+    static class ContinueLineReader {
 
         private final LineNumberReader reader;
 
@@ -606,7 +599,7 @@ public abstract class AbstractQueryTest {
 
         public String readLine() throws IOException {
             String line = reader.readLine();
-            if (line == null || line.trim().length() == 0) {
+            if (line == null || line.trim().isEmpty()) {
                 return line;
             }
             while (true) {

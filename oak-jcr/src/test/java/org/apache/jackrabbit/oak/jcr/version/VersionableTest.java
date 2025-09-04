@@ -28,21 +28,16 @@ import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
-import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.Set;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.util.Arrays.asList;
+import java.util.stream.Collectors;
 
 /**
  * {@code VersionableTest} contains tests for method relevant to
@@ -315,11 +310,11 @@ public class VersionableTest extends AbstractJCRTest {
         vm.restore(v11, true);
         vm.checkpoint(node.getPath()); // 1.1
         vm.checkpoint(node.getPath()); // 1.1.0
-        assertSuccessors(history, of("1.1.0", "1.2"), "1.1");
+        assertSuccessors(history, Set.of("1.1.0", "1.2"), "1.1");
         vm.checkpoint(node.getPath()); // 1.1.1
 
         history.removeVersion("1.2");
-        assertSuccessors(history, of("1.1.0", "1.3"), "1.1");
+        assertSuccessors(history, Set.of("1.1.0", "1.3"), "1.1");
     }
 
     /**
@@ -362,22 +357,91 @@ public class VersionableTest extends AbstractJCRTest {
         assertFalse(guest.getNode(nodePath).isCheckedOut());
     }
 
+    public void testNonVersionableCheckedOut() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, "nt:unstructured");
+        superuser.save();
+
+        assertTrue(node.isCheckedOut());
+
+        node.setProperty("jcr:isCheckedOut", false);
+        superuser.save();
+
+        assertTrue(node.isCheckedOut());
+    }
+
+    public void testModifyNonVersionableNodeWithCheckedOutProperty() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, "nt:unstructured");
+        superuser.save();
+
+        assertTrue(node.isCheckedOut());
+
+        node.setProperty("jcr:isCheckedOut", false);
+        superuser.save();
+
+        node.setProperty("test", true);
+        superuser.save();
+
+        assertTrue(node.getProperty("test").getBoolean());
+
+        node.setProperty("test", false);
+        superuser.save();
+
+        assertFalse(node.getProperty("test").getBoolean());
+
+        node.getProperty("test").remove();
+        superuser.save();
+        assertFalse(node.hasProperty("test"));
+
+        node.addNode(nodeName2, "nt:unstructured");
+        superuser.save();
+
+        assertTrue(node.hasNode(nodeName2));
+
+        node.getNode(nodeName2).remove();
+        superuser.save();
+
+        assertFalse(node.hasNode(nodeName2));
+    }
+
+   public void testAddRemoveMixinVersionable() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, "nt:unstructured");
+        node.addMixin(mixVersionable);
+        superuser.save();
+        assertTrue(node.hasProperty(jcrIsCheckedOut));
+        assertTrue(node.isCheckedOut());
+        node.checkin();
+        superuser.save();
+        assertFalse(node.isCheckedOut());
+        node.checkout();
+        superuser.save();
+        assertTrue(node.isCheckedOut());
+        node.removeMixin(mixVersionable);
+        superuser.save();
+        assertTrue(node.isCheckedOut());
+        assertFalse(node.hasProperty(jcrIsCheckedOut));
+        node.addMixin(mixVersionable);
+        superuser.save();
+        assertTrue(node.hasProperty(jcrIsCheckedOut));
+        assertTrue(node.isCheckedOut());
+        node.checkin();
+        superuser.save();
+        assertFalse(node.isCheckedOut());
+        node.checkout();
+        superuser.save();
+        assertTrue(node.isCheckedOut());
+    }
+
     private static void assertSuccessors(VersionHistory history, Set<String> expectedSuccessors, String versionName) throws RepositoryException {
         assertEquals(expectedSuccessors, getNames(history.getVersion(versionName).getSuccessors()));
     }
 
     private static Set<String> getNames(Version[] versions) {
-        return newHashSet(transform(asList(versions), new Function<Version, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable Version input) {
-                try {
-                    return input.getName();
-                } catch (RepositoryException e) {
-                    return null;
-                }
-            }
-        }));
+        return Arrays.stream(versions).map(input -> {
+                    try {
+                        return input.getName();
+                    } catch (RepositoryException e) {
+                        return null;
+                    }
+                }).collect(Collectors.toSet());
     }
-
 }

@@ -27,21 +27,43 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.plugins.index.IndexName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import jline.internal.Log;
 
 /**
  * Utility that allows to merge index definitions.
  */
 public class IndexDefMergerUtils {
 
+    private final static Logger LOG = LoggerFactory.getLogger(IndexDefMergerUtils.class);
+
     private static HashSet<String> IGNORE_LEVEL_0 = new HashSet<>(Arrays.asList(
-            "reindex", "refresh", "seed", "reindexCount"));
+            "reindex",
+            "refresh",
+            "seed",
+            "reindexCount"));
     private static HashSet<String> USE_PRODUCT_PROPERTY = new HashSet<>(Arrays.asList(
-            "jcr:created", "jcr:lastModified", "jcr:uuid", "jcr:createdBy", "jcr:lastModifiedBy", "jcr:createdBy"));
+            "async",
+            "includedPaths",
+            "jcr:created",
+            "jcr:createdBy",
+            "jcr:lastModified",
+            "jcr:lastModifiedBy",
+            "jcr:uuid",
+            "type"
+            ));
     private static HashSet<String> USE_PRODUCT_CHILD_LEVEL_0 = new HashSet<>(Arrays.asList(
             "tika"));
 
@@ -148,15 +170,117 @@ public class IndexDefMergerUtils {
             return cp;
         } else if (Objects.equals(ap, cp)) {
             return pp;
+        } else if (equalStringValues(ap, cp)) {
+            return pp;
         } else {
+            String mergedSets = tryMergeSets(ap, cp, pp);
+            if (mergedSets != null) {
+                return mergedSets;
+            }
             conflicts.add("Could not merge value; path=" + path + " property=" + property + "; ancestor=" + ap + "; custom=" + cp
                     + "; product=" + pp);
             return ap;
         }
     }
 
+    public static String tryMergeSets(String ancestor, String custom, String product) {
+        if (ancestor == null || custom == null || product == null) {
+            return null;
+        }
+        if (!ancestor.startsWith("[") && !custom.startsWith("[") && !product.startsWith("[")) {
+            // none of the values is an array
+            return null;
+        }
+        TreeSet<String> ancestorSet = getStringSet(ancestor);
+        TreeSet<String> customSet = getStringSet(custom);
+        TreeSet<String> productSet = getStringSet(product);
+        if (ancestorSet == null || customSet == null || productSet == null) {
+            return null;
+        }
+        // combine them all
+        TreeSet<String> resultSet = new TreeSet<>();
+        resultSet.addAll(ancestorSet);
+        resultSet.addAll(customSet);
+        resultSet.addAll(productSet);
+        // build JSON
+        JsopBuilder buff = new JsopBuilder();
+        buff.array();
+        for (String s : resultSet) {
+            buff.value(s);
+        }
+        buff.endArray();
+        return buff.toString();
+    }
+
+    public static boolean equalStringValues(String a, String b) {
+        String aa = getStringOrStringFromSingleValueArray(a);
+        String bb = getStringOrStringFromSingleValueArray(b);
+        if (aa == null || bb == null) {
+            // a or b are not strings or single-valued array of strings
+            return false;
+        }
+        return Objects.equals(aa, bb);
+    }
+
+    public static TreeSet<String> getStringSet(String value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            JsopTokenizer tokenizer = new JsopTokenizer(value);
+            TreeSet<String> result = new TreeSet<>();
+            if (tokenizer.matches(JsopReader.STRING)) {
+                result.add(tokenizer.getEscapedToken());
+                return result;
+            }
+            if (!tokenizer.matches('[')) {
+                return null;
+            }
+            if (!tokenizer.matches(']')) {
+                do {
+                    if (!tokenizer.matches(JsopReader.STRING)) {
+                        // not a string
+                        return null;
+                    }
+                    result.add(tokenizer.getEscapedToken());
+                } while (tokenizer.matches(','));
+                tokenizer.read(']');
+            }
+            tokenizer.read(JsopReader.END);
+            return result;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    public static String getStringOrStringFromSingleValueArray(String value) {
+        if (value == null) {
+            return null;
+        }
+        JsopTokenizer tokenizer = new JsopTokenizer(value);
+        if (tokenizer.matches(JsopReader.STRING)) {
+            return tokenizer.getEscapedToken();
+        }
+        if (!tokenizer.matches('[')) {
+            return null;
+        }
+        if (!tokenizer.matches(JsopReader.STRING)) {
+            // not a string
+            return null;
+        }
+        String jsonString = tokenizer.getEscapedToken();
+        if (!tokenizer.matches(']')) {
+            // not a single-element array
+            return null;
+        }
+        return jsonString;
+    }
+
     private static JsonObject mergeChild(String path, String child, int level, JsonObject ancestor, JsonObject custom, JsonObject product,
             ArrayList<String> conflicts) {
+        if (level == 1 && path.indexOf("/aggregates/") >= 0) {
+            return mergeAggregates(path, child, level, ancestor, custom, product, conflicts);
+        }
         JsonObject a = ancestor.getChildren().get(child);
         JsonObject c = custom.getChildren().get(child);
         JsonObject p = product.getChildren().get(child);
@@ -172,6 +296,82 @@ public class IndexDefMergerUtils {
         } else {
             return merge(path, level + 1, a, c, p, conflicts);
         }
+    }
+
+    private static JsonObject mergeAggregates(String path, String child, int level, JsonObject ancestor, JsonObject custom, JsonObject product,
+            ArrayList<String> conflicts) {
+
+        // merge, with level + 1 so that we don't recurse into this function again
+        // conflicts are redirected to a new, temporary list
+        ArrayList<String> aggregateConflicts = new ArrayList<>();
+        JsonObject merged = mergeChild(path, child, level + 1, ancestor, custom, product, aggregateConflicts);
+
+        // if there were conflicts, resolve them
+        if (!aggregateConflicts.isEmpty()) {
+
+            // list of "include" elements to move to the end
+            ArrayList<JsonObject> elementToMove = new ArrayList<>();
+
+            // which is the next id for "include" (eg. 12)
+            long nextIncludeId = getNextIncludeId(ancestor.getChildren().get(child));
+            nextIncludeId = Math.max(nextIncludeId, getNextIncludeId(custom.getChildren().get(child)));
+            nextIncludeId = Math.max(nextIncludeId, getNextIncludeId(product.getChildren().get(child)));
+
+            // loop over conflicts, and find + remove these
+            // the aggregateConflicts will contain entries that look like this:
+            // "Could not merge value; path=/oak:index/assets-11/aggregates/asset/include11
+            // property=path; ancestor=null; custom=...; product=..."
+            // and we need to extract the path
+            for (String n : aggregateConflicts) {
+                String regex = "path=([^\\s]+)\\sproperty=";
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(n);
+                if (matcher.find()) {
+                    // the path of the conflicting aggregation node
+                    String extractedPath = matcher.group(1);
+                    String[] elements = extractedPath.split("/");
+                    String conflictElement = elements[elements.length - 1];
+
+                    // remove from the custom list
+                    JsonObject conflict = custom.getChildren().get(child).getChildren().remove(conflictElement);
+
+                    // remember the element, to put it back later
+                    elementToMove.add(conflict);
+                }
+            }
+
+            // merge again, with conflicts resolved now
+            // (if there are other conflicts unrelated to aggregation,
+            // those will not be resolved)
+            merged = mergeChild(path, child, level + 1, ancestor, custom, product, conflicts);
+
+            // add the aggregation conflict at the end, with new ids
+            // first we need to clone the merged object,
+            // because it might be the same object as the product currently
+            merged = JsonObject.fromJson(merged.toString(), true);
+            for (JsonObject json : elementToMove) {
+                merged.getChildren().put("include" + nextIncludeId, json);
+                nextIncludeId++;
+            }
+        }
+        return merged;
+    }
+
+    private static long getNextIncludeId(JsonObject json) {
+        long max = 0;
+        for(String n : json.getChildren().keySet()) {
+            if (n.startsWith("include")) {
+                n = n.substring("include".length());
+                try {
+                    long id = Long.parseLong(n);
+                    max = Math.max(max, id);
+                } catch (NumberFormatException e) {
+                    LOG.warn("Expected 'include' + number, got " + n);
+                    // ignore: it will probably not result in a conflict
+                }
+            }
+        }
+        return max + 1;
     }
 
     private static boolean isSameJson(JsonObject a, JsonObject b) {

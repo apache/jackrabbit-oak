@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
@@ -27,14 +23,21 @@ import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
 
 /**
  * {@code ExternalIDPManagerImpl} is used to manage registered external identity provider. This class automatically
  * tracks the IDPs that are registered via OSGi but can also be used in non-OSGi environments by manually adding and
  * removing the providers.
  */
-@Component(immediate = true)
-@Service
+@Component(
+        immediate = true,
+        service = {
+                ExternalIdentityProviderManager.class
+        }
+)
 public class ExternalIDPManagerImpl extends AbstractServiceTracker<ExternalIdentityProvider> implements ExternalIdentityProviderManager {
 
     /**

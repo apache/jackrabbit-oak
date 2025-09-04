@@ -20,7 +20,6 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
@@ -36,6 +35,7 @@ import org.junit.runners.Parameterized;
 
 import javax.jcr.ValueFactory;
 import java.util.Collection;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -47,7 +47,7 @@ class AutoMembershipTest extends AbstractExternalAuthTest {
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[]{true, "DynamicSync=true"},
                 new Object[]{false, "DynamicSync=false"});
     }

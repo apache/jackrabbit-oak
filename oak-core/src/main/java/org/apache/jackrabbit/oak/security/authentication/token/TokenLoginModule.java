@@ -31,10 +31,10 @@ import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
@@ -62,12 +62,12 @@ import org.slf4j.LoggerFactory;
  *
  * <ol>
  *     <li>Try to retrieve {@link TokenCredentials} credentials (see also
- *     {@link AbstractLoginModule#getCredentials()})</li>
+ *     {@link AbstractLoginModule#getCredentials()})
  *     <li>Validates the credentials based on the functionality provided by
- *     {@link TokenAuthentication#authenticate(javax.jcr.Credentials)}</li>
+ *     {@link TokenAuthentication#authenticate(javax.jcr.Credentials)}
  *     <li>Upon success it retrieves {@code userId} from the {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo}
- *     and calculates the principals associated with that user,</li>
- *     <li>and finally puts the credentials on the shared state.</li>
+ *     and calculates the principals associated with that user,
+ *     <li>and finally puts the credentials on the shared state.
  * </ol>
  *
  * If no {@code TokenProvider} has been configured {@link #login()} or if
@@ -157,7 +157,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     public boolean commit() throws LoginException {
         if (tokenCredentials != null && tokenInfo != null) {
             principals = (principal != null) ? getPrincipals(principal) : getPrincipals(tokenInfo.getUserId());
-            authInfo = getAuthInfo(tokenInfo, Iterables.concat(principals, subject.getPrincipals()));
+            authInfo = getAuthInfo(tokenInfo, IterableUtils.chainedIterable(principals, subject.getPrincipals()));
             updateSubject(subject, tokenCredentials, authInfo);
             closeSystemSession();
             return true;

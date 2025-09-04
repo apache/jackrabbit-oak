@@ -20,9 +20,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -47,7 +48,7 @@ public class MoveTracker {
     public void addMove(@NotNull String sourcePath, @NotNull String destPath) {
         // calculate original source path
         String originalSource = sourcePath;
-        for (MoveEntry me : Lists.reverse(entries)) {
+        for (MoveEntry me : ListUtils.reverse(entries)) {
             if (Text.isDescendantOrEqual(me.destPath, sourcePath)) {
                 String relPath = PathUtils.relativize(me.destPath, sourcePath);
                 if (!relPath.isEmpty()) {
@@ -68,7 +69,7 @@ public class MoveTracker {
 
     @Nullable
     public String getSourcePath(String destPath) {
-        for (MoveEntry me : Lists.reverse(entries)) {
+        for (MoveEntry me : ListUtils.reverse(entries)) {
             if (me.destPath.equals(destPath)) {
                 return me.sourcePath;
             }
@@ -78,7 +79,7 @@ public class MoveTracker {
 
     @Nullable
     public String getDestPath(String sourcePath) {
-        for (MoveEntry me : Lists.reverse(entries)) {
+        for (MoveEntry me : ListUtils.reverse(entries)) {
             if (me.sourcePath.equals(sourcePath)) {
                 return me.destPath;
             }
@@ -88,7 +89,7 @@ public class MoveTracker {
 
     public boolean containsMove(@Nullable String path) {
         if (path != null) {
-            for (String p : Iterables.concat(parentSourcePaths, parentDestPaths)) {
+            for (String p : IterableUtils.chainedIterable(parentSourcePaths, parentDestPaths)) {
                 if (Text.isDescendantOrEqual(path, p)) {
                     return true;
                 }

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,10 +103,7 @@ public class Downloader implements Closeable {
         this.executorService = new ThreadPoolExecutor(
                 (int) Math.ceil(concurrency * .1), concurrency, 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(),
-                new ThreadFactoryBuilder()
-                        .setNameFormat("downloader-%d")
-                        .setDaemon(true)
-                        .build()
+                BasicThreadFactory.builder().namingPattern("downloader-%d").daemon().build()
         );
         this.responses = new ArrayList<>();
     }

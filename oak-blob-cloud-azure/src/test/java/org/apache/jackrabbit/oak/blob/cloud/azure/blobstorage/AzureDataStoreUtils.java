@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.USER_HOME;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -34,13 +33,12 @@ import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.commons.lang3.StringUtils;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
 import org.jetbrains.annotations.NotNull;
@@ -66,12 +64,15 @@ public class AzureDataStoreUtils extends DataStoreUtils {
      */
     public static boolean isAzureConfigured() {
         Properties props = getAzureConfig();
-        //need either access keys or sas
+        //need either access keys or sas or service principal
         if (!props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY) || !props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME)
                 || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
             if (!props.containsKey(AzureConstants.AZURE_SAS) || !props.containsKey(AzureConstants.AZURE_BLOB_ENDPOINT)
                     || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
-                return false;
+                // service principal
+                return props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME) && props.containsKey(AzureConstants.AZURE_TENANT_ID) &&
+                        props.containsKey(AzureConstants.AZURE_CLIENT_ID) && props.containsKey(AzureConstants.AZURE_CLIENT_SECRET) &&
+                        props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
             }
         }
         return true;
@@ -86,13 +87,13 @@ public class AzureDataStoreUtils extends DataStoreUtils {
      */
     public static Properties getAzureConfig() {
         String config = System.getProperty(SYS_PROP_NAME);
-        if (Strings.isNullOrEmpty(config)) {
-            File cfgFile = new File(USER_HOME.value(), DEFAULT_PROPERTY_FILE);
+        if (StringUtils.isEmpty(config)) {
+            File cfgFile = new File(System.getProperty("user.home"), DEFAULT_PROPERTY_FILE);
             if (cfgFile.exists()) {
                 config = cfgFile.getAbsolutePath();
             }
         }
-        if (Strings.isNullOrEmpty(config)) {
+        if (StringUtils.isEmpty(config)) {
             config = DEFAULT_CONFIG_PATH;
         }
 
@@ -108,11 +109,8 @@ public class AzureDataStoreUtils extends DataStoreUtils {
                 IOUtils.closeQuietly(is);
             }
             props.putAll(getConfig());
-            Map filtered = Maps.filterEntries(Maps.fromProperties(props), new Predicate<Map.Entry<? extends Object, ? extends Object>>() {
-                @Override public boolean apply(Map.Entry<? extends Object, ? extends Object> input) {
-                    return !Strings.isNullOrEmpty((String) input.getValue());
-                }
-            });
+            Map<String, String> filtered = MapUtils.filterEntries(MapUtils.fromProperties(props),
+                    input -> !StringUtils.isEmpty(input.getValue()));
             props = new Properties();
             props.putAll(filtered);
         }
@@ -121,7 +119,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
 
     public static DataStore getAzureDataStore(Properties props, String homeDir) throws Exception {
         AzureDataStore ds = new AzureDataStore();
-        PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+        PropertiesUtil.populate(ds, MapUtils.fromProperties(props), false);
         ds.setProperties(props);
         ds.init(homeDir);
 
@@ -171,15 +169,20 @@ public class AzureDataStoreUtils extends DataStoreUtils {
     }
 
     public static void deleteContainer(String containerName) throws Exception {
-        if (Strings.isNullOrEmpty(containerName)) {
+        if (StringUtils.isEmpty(containerName)) {
             log.warn("Cannot delete container with null or empty name. containerName={}", containerName);
             return;
         }
         log.info("Starting to delete container. containerName={}", containerName);
         Properties props = getAzureConfig();
-        CloudBlobContainer container = Utils.getBlobContainer(Utils.getConnectionStringFromProperties(props), containerName);
-        boolean result = container.deleteIfExists();
-        log.info("Container deleted. containerName={} existed={}", containerName, result);
+        props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
+
+        try (AzureBlobContainerProvider azureBlobContainerProvider = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
+                .build()) {
+            CloudBlobContainer container = azureBlobContainerProvider.getBlobContainer();
+            boolean result = container.deleteIfExists();
+            log.info("Container deleted. containerName={} existed={}", containerName, result);
+        }
     }
 
     protected static HttpsURLConnection getHttpsConnection(long length, URI uri) throws IOException {

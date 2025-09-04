@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -36,13 +37,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
@@ -57,6 +59,9 @@ import static org.junit.Assert.fail;
 public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest {
     private static final String NT_TEST_ASSET = "test:Asset";
 
+    @Rule
+    public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
+
     @Override
     protected InitialContent getInitialContent() {
         return new InitialContent() {
@@ -67,8 +72,7 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
                 // registering additional node types for wider testing
                 InputStream stream = null;
                 try {
-                    stream = ElasticIndexAggregationNtFileTest.class
-                            .getResourceAsStream("test_nodetypes.cnd");
+                    stream = Thread.currentThread().getContextClassLoader().getResource("test_nodetypes.cnd").openStream();
                     NodeState base = builder.getNodeState();
                     NodeStore store = new MemoryNodeStore(base);
 
@@ -102,11 +106,9 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
     private static void printNodeTypes(NodeBuilder builder) {
         if (LOG.isDebugEnabled()) {
             NodeBuilder namespace = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
-            List<String> nodes = Lists.newArrayList(namespace.getChildNodeNames());
-            Collections.sort(nodes);
-            for (String node : nodes) {
-                LOG.debug(node);
-            }
+            StreamSupport.stream(namespace.getChildNodeNames().spliterator(), false)
+                    .sorted()
+                    .forEach(LOG::debug);
         }
     }
 
@@ -114,7 +116,6 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
         Tree indexDefn = createTestIndexNode(index, ElasticIndexDefinition.TYPE_ELASTICSEARCH);
-        indexDefn.setProperty(ElasticIndexDefinition.FAIL_ON_ERROR, false);
         indexDefn.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         Tree includeNtFileContent = indexDefn.addChild(FulltextIndexConstants.AGGREGATES)
                 .addChild(NT_TEST_ASSET).addChild("include10");
@@ -125,6 +126,7 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
 
     @Test
     public void indexNtFileText() throws CommitFailedException {
+        System.setProperty(ElasticBulkProcessorHandler.FAIL_ON_ERROR_PROP, "false");
         setTraversalEnabled(false);
         final String statement = "//element(*, test:Asset)[ " +
                 "jcr:contains(jcr:content/renditions/dam.text.txt/jcr:content, 'quick') ]";
@@ -142,8 +144,6 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
                 "the quick brown fox jumps over the lazy dog."));
         root.commit();
 
-        assertEventually(()-> {
-            assertQuery(statement, "xpath", List.of("/content/asset"));
-        });
+        assertEventually(()-> assertQuery(statement, "xpath", List.of("/content/asset")));
     }
 }

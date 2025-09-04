@@ -18,20 +18,20 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -52,7 +52,7 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
@@ -128,7 +128,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
+        Tree treeAfter = requireNonNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter, after);
         return newValidator(this, treeAfter);
@@ -136,7 +136,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
+        Tree treeAfter = requireNonNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter, after);
         return newValidator(this, treeAfter);
@@ -204,7 +204,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
             throw accessViolation(4, "Invalid policy node at " + policyTree.getPath() + ": Order of children is not stable.");
         }
 
-        Set<ValidationEntry> aceSet = Sets.newHashSet();
+        Set<ValidationEntry> aceSet = new HashSet<>();
         for (Tree child : policyTree.getChildren()) {
             if (isAccessControlEntry(child)) {
                 ValidationEntry entry = createAceEntry(parent.getPath(), child);
@@ -243,7 +243,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     @NotNull
     private static String checkValidPrincipal(@NotNull Tree aceNode) throws CommitFailedException {
         String principalName = TreeUtil.getString(aceNode, REP_PRINCIPAL_NAME);
-        if (Strings.isNullOrEmpty(principalName)) {
+        if (StringUtils.isEmpty(principalName)) {
             throw accessViolation(8, "Missing principal name at " + aceNode.getPath());
         }
         // validity of principal is only a JCR specific contract and will not be
@@ -270,7 +270,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     @NotNull
     private static Iterable<String> getPrivilegeNames(@NotNull Tree aceNode) throws CommitFailedException {
         Iterable<String> privilegeNames = TreeUtil.getNames(aceNode, REP_PRIVILEGES);
-        if (Iterables.isEmpty(privilegeNames)) {
+        if (IterableUtils.isEmpty(privilegeNames)) {
             throw accessViolation(9, "Missing privileges at " + aceNode.getPath());
         }
         return privilegeNames;
@@ -278,7 +278,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private void checkValidRestrictions(@NotNull Tree aceTree) throws CommitFailedException {
         String path;
-        Tree aclTree = checkNotNull(aceTree.getParent());
+        Tree aclTree = requireNonNull(aceTree.getParent());
         String aclPath = aclTree.getPath();
         if (REP_REPO_POLICY.equals(Text.getName(aclPath))) {
             path = null;
@@ -297,7 +297,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private static void checkMixinTypes(Tree parentTree) throws CommitFailedException {
         Iterable<String> mixinNames = TreeUtil.getNames(parentTree, JcrConstants.JCR_MIXINTYPES);
-        if (Iterables.contains(mixinNames, MIX_REP_REPO_ACCESS_CONTROLLABLE)) {
+        if (IterableUtils.contains(mixinNames, MIX_REP_REPO_ACCESS_CONTROLLABLE)) {
             checkValidRepoAccessControlled(parentTree);
         }
     }

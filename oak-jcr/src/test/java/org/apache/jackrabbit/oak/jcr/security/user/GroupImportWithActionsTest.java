@@ -16,13 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -37,7 +35,10 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -98,7 +99,7 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
         assertFalse(groupAction.onMembersAddedContentIdCalled);
 
         assertTrue(groupAction.onMembersAddedCalled);
-        assertEquals(ImmutableSet.of(user1.getID(), user2.getID()), groupAction.memberIds);
+        assertEquals(Set.of(user1.getID(), user2.getID()), groupAction.memberIds);
     }
 
     @Override
@@ -126,12 +127,12 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
         private boolean onMembersAddedContentIdCalled = false;
 
         Group group;
-        Set<String> memberIds = Sets.newHashSet();
+        Set<String> memberIds = new HashSet<>();
 
         @Override
         public void onMembersAdded(@NotNull Group group, @NotNull Iterable<String> memberIds, @NotNull Iterable<String> failedIds, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             this.group = group;
-            this.memberIds.addAll(ImmutableSet.copyOf(memberIds));
+            this.memberIds.addAll(SetUtils.toSet(memberIds));
             onMembersAddedCalled = true;
         }
 
@@ -149,7 +150,7 @@ public class GroupImportWithActionsTest extends AbstractImportTest {
 
     private final class TestActionProvider implements AuthorizableActionProvider {
 
-        private final List<AuthorizableAction> actions = Lists.newArrayList();
+        private final List<AuthorizableAction> actions = new ArrayList<>();
 
         private void addAction(AuthorizableAction action) {
             actions.add(action);

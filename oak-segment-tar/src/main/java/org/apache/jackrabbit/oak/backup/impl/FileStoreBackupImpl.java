@@ -24,8 +24,8 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.backup.FileStoreBackup;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.ClassicCompactor;
 import org.apache.jackrabbit.oak.segment.DefaultSegmentWriter;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
+import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -73,7 +74,6 @@ public class FileStoreBackupImpl implements FileStoreBackup {
             GCGeneration gen = current.getRecordId().getSegmentId().getGcGeneration();
             SegmentBufferWriter bufferWriter = new SegmentBufferWriter(
                     backup.getSegmentIdProvider(),
-                    backup.getReader(),
                     "b",
                     gen
             );
@@ -86,15 +86,11 @@ public class FileStoreBackupImpl implements FileStoreBackup {
                     bufferWriter,
                     backup.getBinariesInlineThreshold()
             );
-            ClassicCompactor compactor = new ClassicCompactor(
-                    backup.getReader(),
-                    writer,
-                    backup.getBlobStore(),
-                    GCNodeWriteMonitor.EMPTY
-            );
+            CompactionWriter compactionWriter = new CompactionWriter(backup.getReader(), backup.getBlobStore(), gen, writer);
+            ClassicCompactor compactor = new ClassicCompactor(compactionWriter, GCNodeWriteMonitor.EMPTY);
             SegmentNodeState head = backup.getHead();
-            SegmentNodeState after = compactor.compact(head, current, head, Canceller.newCanceller());
-            writer.flush();
+            SegmentNodeState after = compactor.compactUp(head, current, Canceller.newCanceller());
+            compactionWriter.flush();
 
             if (after != null) {
                 backup.getRevisions().setHead(head.getRecordId(), after.getRecordId());

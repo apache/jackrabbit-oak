@@ -29,8 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoDatabase;
 
 /**
@@ -62,28 +61,30 @@ public class MongoUtils {
         if (mongoUrl == null || mongoUrl.isEmpty()) {
             mongoUrl = "mongodb://" + HOST + ":" + PORT + "/" + DB + "?" + OPTIONS;
         }
-        // check if we can connect
-        MongoConnection c = getConnectionByURL(mongoUrl);
-        if (c != null) {
-            c.close();
-            return mongoUrl;
-        }
-        // fallback to docker based MongoDB if available
-        MongoDockerRule dockerRule = new MongoDockerRule();
-        if (MongoDockerRule.isDockerAvailable()) {
-            AtomicReference<String> host = new AtomicReference<>();
-            AtomicInteger port = new AtomicInteger();
-            try {
-                dockerRule.apply(new Statement() {
-                    @Override
-                    public void evaluate() {
-                        host.set(dockerRule.getHost());
-                        port.set(dockerRule.getPort());
-                    }
-                }, Description.EMPTY).evaluate();
-                mongoUrl = "mongodb://" + host + ":" + port.get() + "/" + DB + "?" + OPTIONS;
-            } catch (Throwable t) {
-                LOG.warn("Unable to get MongoDB port from Docker", t);
+        if (!DocumentStoreFixture.MongoFixture.SKIP_MONGO) {
+            // check if we can connect
+            MongoConnection c = getConnectionByURL(mongoUrl);
+            if (c != null) {
+                c.close();
+                return mongoUrl;
+            }
+            // fallback to docker based MongoDB if available
+            MongoDockerRule dockerRule = new MongoDockerRule();
+            if (MongoDockerRule.isDockerAvailable()) {
+                AtomicReference<String> host = new AtomicReference<>();
+                AtomicInteger port = new AtomicInteger();
+                try {
+                    dockerRule.apply(new Statement() {
+                        @Override
+                        public void evaluate() {
+                            host.set(dockerRule.getHost());
+                            port.set(dockerRule.getPort());
+                        }
+                    }, Description.EMPTY).evaluate();
+                    mongoUrl = "mongodb://" + host + ":" + port.get() + "/" + DB + "?" + OPTIONS;
+                } catch (Throwable t) {
+                    LOG.warn("Unable to get MongoDB port from Docker", t);
+                }
             }
         }
         return mongoUrl;
@@ -105,16 +106,15 @@ public class MongoUtils {
      * @return the connection or null
      */
     public static MongoConnection getConnection(String dbName) {
-        MongoClientURI clientURI;
+        ConnectionString connectionString;
         try {
-            clientURI = new MongoClientURI(URL);
+            connectionString = new ConnectionString(URL);
         } catch (IllegalArgumentException e) {
-            // configured URL is invalid
             return null;
         }
         StringBuilder uri = new StringBuilder("mongodb://");
         String separator = "";
-        for (String host : clientURI.getHosts()) {
+        for (String host : connectionString.getHosts()) {
             uri.append(separator);
             separator = ",";
             uri.append(host);
@@ -139,20 +139,6 @@ public class MongoUtils {
             dropCollections(c.getDatabase());
         } finally {
             c.close();
-        }
-    }
-
-    /**
-     * Drop all user defined collections. System collections are not dropped.
-     *
-     * @param db the connection
-     * @deprecated use {@link #dropCollections(MongoDatabase)} instead.
-     */
-    public static void dropCollections(DB db) {
-        for (String name : db.getCollectionNames()) {
-            if (!name.startsWith("system.")) {
-                db.getCollection(name).drop();
-            }
         }
     }
 
@@ -210,7 +196,7 @@ public class MongoUtils {
      * @return the connection or null
      */
     private static MongoConnection getConnectionByURL(String url) {
-        if (exceptions.get(url) != null) {
+        if (DocumentStoreFixture.MongoFixture.SKIP_MONGO || exceptions.get(url) != null) {
             return null;
         }
         MongoConnection mongoConnection;

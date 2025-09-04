@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
@@ -62,12 +59,12 @@ public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
     private SystemPrincipalConfig systemPrincipalConfig;
 
     public SystemPrincipalConfigTest(String[] systemUserNames, String name) {
-        this.systemUserNames = (systemUserNames == null) ? null : ImmutableSet.copyOf(systemUserNames);
+        this.systemUserNames = (systemUserNames == null) ? null : Set.of(systemUserNames);
     }
 
     @Parameterized.Parameters(name = "name={1}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { null, "Null" },
                 new Object[] { new String[0], "Empty names" },
                 new Object[] { new String[] {SYSTEM_USER_NAME_1}, "Single name" },
@@ -77,7 +74,7 @@ public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
     @Override
     public void before() throws Exception {
         super.before();
-        context.registerService(SyncHandler.class, new DefaultSyncHandler(), ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        context.registerService(SyncHandler.class, new DefaultSyncHandler(), Map.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
         workspaceName = root.getContentSession().getWorkspaceName();
 
         systemPrincipalConfig = (systemUserNames == null) ? new SystemPrincipalConfig(Collections.emptySet()) : new SystemPrincipalConfig(systemUserNames);
@@ -127,10 +124,10 @@ public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
         Set<Principal> principals = Collections.singleton(() -> SYSTEM_USER_NAME_1);
         assertIsSystem(principals, false);
 
-        principals = ImmutableSet.of(new PrincipalImpl(SYSTEM_USER_NAME_2), new PrincipalImpl(SYSTEM_USER_NAME_1));
+        principals = Set.of(new PrincipalImpl(SYSTEM_USER_NAME_2), new PrincipalImpl(SYSTEM_USER_NAME_1));
         assertIsSystem(principals, false);
 
-        principals = ImmutableSet.of(EveryonePrincipal.getInstance(), new GroupPrincipal() {
+        principals = Set.of(EveryonePrincipal.getInstance(), new GroupPrincipal() {
             @Override
             public boolean isMember(@NotNull Principal member) {
                 return false;
@@ -138,7 +135,7 @@ public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
 
             @Override
             public @NotNull Enumeration<? extends Principal> members() {
-                return Iterators.asEnumeration(Collections.emptyIterator());
+                return IteratorUtils.asEnumeration(Collections.emptyIterator());
             }
 
             @Override
@@ -160,10 +157,10 @@ public class SystemPrincipalConfigTest extends AbstractExternalAuthTest {
         Set<Principal> principals = Collections.singleton((SystemUserPrincipal) () -> SYSTEM_USER_NAME_1);
         assertIsSystem(principals, configContainsSystemUser(SYSTEM_USER_NAME_1));
 
-        principals = ImmutableSet.of(EveryonePrincipal.getInstance(), (SystemUserPrincipal) () -> SYSTEM_USER_NAME_2);
+        principals = Set.of(EveryonePrincipal.getInstance(), (SystemUserPrincipal) () -> SYSTEM_USER_NAME_2);
         assertIsSystem(principals, configContainsSystemUser(SYSTEM_USER_NAME_2));
 
-        principals = ImmutableSet.of((SystemUserPrincipal) () -> SYSTEM_USER_NAME_2, (SystemUserPrincipal) () -> SYSTEM_USER_NAME_1);
+        principals = Set.of((SystemUserPrincipal) () -> SYSTEM_USER_NAME_2, (SystemUserPrincipal) () -> SYSTEM_USER_NAME_1);
         assertIsSystem(principals, configContainsSystemUser(SYSTEM_USER_NAME_2, SYSTEM_USER_NAME_1));
     }
     

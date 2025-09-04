@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -56,9 +55,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -73,12 +71,12 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public abstract class IndexPlannerCommonTest {
@@ -101,27 +99,27 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void planForSortField() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
-        defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
+        defn.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, createFilter("nt:base"),
-                ImmutableList.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
+                List.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
         assertNotNull(planner.getPlan());
         assertTrue(pr(planner.getPlan()).isUniquePathsRequired());
     }
 
     @Test
     public void noPlanForSortOnlyByScore() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, createFilter("nt:file"),
-                ImmutableList.of(new QueryIndex.OrderEntry("jcr:score", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
+                List.of(new QueryIndex.OrderEntry("jcr:score", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
         assertNull(planner.getPlan());
     }
 
     @Test
     public void fullTextQueryNonFulltextIndex() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FilterImpl filter = createFilter("nt:base");
         filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
@@ -131,8 +129,8 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void noApplicableRule() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:folder"), STRINGS));
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:folder"), STRINGS));
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -149,8 +147,8 @@ public abstract class IndexPlannerCommonTest {
     public void nodeTypeInheritance() throws Exception {
         //Index if for nt:hierarchyNode and query is for nt:folder
         //as nt:folder extends nt:hierarchyNode we should get a plan
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:hierarchyNode"), STRINGS));
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:hierarchyNode"), STRINGS));
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FilterImpl filter = createFilter("nt:folder");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -160,7 +158,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void noMatchingProperty() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -170,7 +168,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void matchingProperty() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
@@ -183,7 +181,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void purePropertyIndexAndPathRestriction() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FilterImpl filter = createFilter("nt:base");
@@ -194,7 +192,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void fulltextIndexAndPathRestriction() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         builder = builder.getNodeState().builder();
         NodeBuilder defn = IndexDefinition.updateDefinition(builder.getChildNode("oak:index").getChildNode(indexName));
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
@@ -213,8 +211,8 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void fulltextIndexAndNodeTypeRestriction() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
-        builder.getChildNode("oak:index").getChildNode(indexName).setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES)
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
+        builder.getChildNode("oak:index").getChildNode(indexName).setProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES)
                 .setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
         builder = builder.getNodeState().builder();
@@ -236,7 +234,7 @@ public abstract class IndexPlannerCommonTest {
     public void pureNodeTypeWithEvaluatePathRestrictionEnabled() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder defn = getIndexDefinitionNodeBuilder(index, indexName,
-                of(TYPENAME_STRING));
+                Set.of(TYPENAME_STRING));
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         TestUtil.useV2(defn);
 
@@ -253,9 +251,9 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void purePropertyIndexAndNodeTypeRestriction() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
-        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
+        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES);
 
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FilterImpl filter = createFilter("nt:file");
@@ -266,7 +264,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void purePropertyIndexAndNodeTypeRestriction2() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
 
         builder = builder.getNodeState().builder();
         NodeBuilder defn = IndexDefinition.updateDefinition(builder.getChildNode("oak:index").getChildNode(indexName));
@@ -284,8 +282,8 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void purePropertyIndexAndNodeTypeRestriction3() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
-        builder.getChildNode("oak:index").getChildNode(indexName).setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES)
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
+        builder.getChildNode("oak:index").getChildNode(indexName).setProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES)
                 .setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         builder = builder.getNodeState().builder();
         NodeBuilder defn = IndexDefinition.updateDefinition(builder.getChildNode("oak:index").getChildNode(indexName));
@@ -306,7 +304,7 @@ public abstract class IndexPlannerCommonTest {
     public void worksWithIndexFormatV2Onwards() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder nb = getIndexDefinitionNodeBuilder(index, indexName,
-                of(TYPENAME_STRING));
+                Set.of(TYPENAME_STRING));
         //Dummy data node to ensure that LuceneIndexDefinition does not consider it
         //as a fresh indexing case
         nb.child(INDEX_DATA_CHILD_NAME);
@@ -320,7 +318,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void propertyIndexCost() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
 
         FulltextIndexPlanner.setUseActualEntryCount(false);
@@ -343,7 +341,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void propertyIndexCost2() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         defn.setProperty(FulltextIndexConstants.COST_PER_ENTRY, 2.0);
         defn.setProperty(FulltextIndexConstants.COST_PER_EXECUTION, 3.0);
 
@@ -364,7 +362,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void propertyIndexCostActualOverriddenByEntryCount() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         long entryCount = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
         defn.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, entryCount);
 
@@ -384,7 +382,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void propertyIndexCostActualByDefault() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
 
@@ -404,7 +402,7 @@ public abstract class IndexPlannerCommonTest {
     public void fulltextIndexCost() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder defn = getIndexDefinitionNodeBuilder(index, indexName,
-                of(TYPENAME_STRING));
+                Set.of(TYPENAME_STRING));
         TestUtil.useV2(defn);
 
         long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
@@ -424,7 +422,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void nullPropertyCheck() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
 
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FilterImpl filter = createFilter("nt:base");
@@ -437,7 +435,7 @@ public abstract class IndexPlannerCommonTest {
     @Test
     public void nullPropertyCheck2() throws Exception {
         root = registerTestNodeType(builder).getNodeState();
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         NodeBuilder rules = defn.child(INDEX_RULES);
         child(rules, "oak:TestNode/properties/prop2")
                 .setProperty(FulltextIndexConstants.PROP_NAME, "foo")
@@ -460,8 +458,8 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void noPathRestHasQueryPath() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, of("/test/a"), Type.STRINGS));
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, Set.of("/test/a"), Type.STRINGS));
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
 
         FilterImpl filter = createFilter("nt:base");
@@ -473,8 +471,8 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void hasPathRestHasMatchingQueryPaths() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
-        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, of("/test/a", "/test/b"), Type.STRINGS));
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.QUERY_PATHS, Set.of("/test/a", "/test/b"), Type.STRINGS));
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
 
         FilterImpl filter = createFilter("nt:base");
@@ -486,7 +484,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void hasPathRestHasNoExplicitQueryPaths() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
 
         FilterImpl filter = createFilter("nt:base");
@@ -498,7 +496,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void noPlanForFulltextQueryAndOnlyAnalyzedProperties() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
 
         builder = builder.getNodeState().builder();
         NodeBuilder defn = IndexDefinition.updateDefinition(builder.getChildNode("oak:index").getChildNode(indexName));
@@ -517,8 +515,8 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void noPlanForNodeTypeQueryAndOnlyAnalyzedProperties() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
-        builder.getChildNode("oak:index").getChildNode(indexName).setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES)
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
+        builder.getChildNode("oak:index").getChildNode(indexName).setProperty(IndexConstants.DECLARING_NODE_TYPES, Set.of("nt:file"), NAMES)
                 .setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
 
         builder = builder.getNodeState().builder();
@@ -545,25 +543,24 @@ public abstract class IndexPlannerCommonTest {
         IndexDefinition defn = getIndexDefinition(root, defnb.build(), "/oak:index/" + indexName);
         IndexNode node = createIndexNode(defn);
 
-        FilterImpl filter = createFilter("nt:base");
-        filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
-        FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
-        //Even though foo is indexed it would not be considered for a query involving just foo
-        assertNull(planner.getPlan());
-
-        filter = createFilter("nt:base");
-        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
-        planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
-        QueryIndex.IndexPlan plan1 = planner.getPlan();
-        assertNotNull(plan1);
-
-        final FilterImpl filter2 = createFilter("nt:base");
-        filter2.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
-        filter2.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
-
-
         TestUtil.assertEventually(() -> {
-            FulltextIndexPlanner planner2 = getIndexPlanner(node, "/oak:index/" + indexName, filter2, Collections.<QueryIndex.OrderEntry>emptyList());
+            FilterImpl filter = createFilter("nt:base");
+            filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
+            FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.emptyList());
+            //Even though foo is indexed it would not be considered for a query involving just foo
+            assertNull(planner.getPlan());
+
+            filter = createFilter("nt:base");
+            filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
+            planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.emptyList());
+            QueryIndex.IndexPlan plan1 = planner.getPlan();
+            assertNotNull(plan1);
+
+            final FilterImpl filter2 = createFilter("nt:base");
+            filter2.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
+            filter2.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
+
+            FulltextIndexPlanner planner2 = getIndexPlanner(node, "/oak:index/" + indexName, filter2, Collections.emptyList());
             QueryIndex.IndexPlan plan2 = planner2.getPlan();
             assertNotNull(plan2);
             // Since, the index has no entries for "bar", estimated entry count for plan2 would be 0
@@ -670,7 +667,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void fullTextQuery_RelativePath1() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
 
         builder = builder.getNodeState().builder();
         NodeBuilder defn = IndexDefinition.updateDefinition(builder.getChildNode("oak:index").getChildNode(indexName));
@@ -685,7 +682,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void fullTextQuery_IndexAllProps() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("allProps"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("allProps"), "async");
 
         //Index all props and then perform fulltext
         builder = builder.getNodeState().builder();
@@ -705,7 +702,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void fullTextQuery_IndexAllProps_NodePathQuery() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("allProps"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("allProps"), "async");
 
         //Index all props and then perform fulltext
         builder = builder.getNodeState().builder();
@@ -727,7 +724,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void fullTextQuery_IndexAllProps_AggregatedNodePathQuery() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("allProps"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("allProps"), "async");
 
         //Index all props and then perform fulltext
         builder = builder.getNodeState().builder();
@@ -747,7 +744,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void fullTextQuery_IndexAllProps_NodePathQuery_NoPlan() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
 
         //Index all props and then perform fulltext
         builder = builder.getNodeState().builder();
@@ -767,7 +764,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void fullTextQuery_NonAnalyzedProp_NoPlan() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo", "bar"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo", "bar"), "async");
 
         //Index all props and then perform fulltext
         builder = builder.getNodeState().builder();
@@ -790,7 +787,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void fullTextQuery_RelativePropertyPaths() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo", "bar"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo", "bar"), "async");
 
         //Index all props and then perform fulltext
         builder = builder.getNodeState().builder();
@@ -819,7 +816,7 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void fullTextQuery_DisjointPropertyPaths() throws Exception {
-        getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo", "bar"), "async");
+        getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo", "bar"), "async");
 
         //Index all props and then perform fulltext
         builder = builder.getNodeState().builder();
@@ -1021,7 +1018,7 @@ public abstract class IndexPlannerCommonTest {
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
 
         // Evaluates path restriction
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async")
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async")
                 .setProperty(EVALUATE_PATH_RESTRICTION, true);
         IndexNode node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
@@ -1029,7 +1026,7 @@ public abstract class IndexPlannerCommonTest {
         assertTrue(plan.getSupportsPathRestriction());
 
         // Doesn't evaluate path restriction
-        defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async")
+        defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async")
                 .setProperty(EVALUATE_PATH_RESTRICTION, false);
         node = createIndexNode(getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName));
         planner = getIndexPlanner(node, "/oak:index/" + indexName, filter, Collections.<QueryIndex.OrderEntry>emptyList());
@@ -1160,7 +1157,7 @@ public abstract class IndexPlannerCommonTest {
 
         TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter,
-                    ImmutableList.of(new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
+                    List.of(new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
 
@@ -1186,7 +1183,7 @@ public abstract class IndexPlannerCommonTest {
 
         TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, filter,
-                    ImmutableList.of(new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
+                    List.of(new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
             QueryIndex.IndexPlan plan = planner.getPlan();
             assertNotNull(plan);
 
@@ -1301,7 +1298,7 @@ public abstract class IndexPlannerCommonTest {
     private IndexNode createSuggestionOrSpellcheckIndex(String nodeType,
                                                         boolean enableSuggestion,
                                                         boolean enableSpellcheck) throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
         defn.setProperty(DECLARING_NODE_TYPES, nodeType);
 
         builder = builder.getNodeState().builder();
@@ -1333,14 +1330,14 @@ public abstract class IndexPlannerCommonTest {
     //------ Cost via doc count per field plan tests
     @Test
     public void noRestrictionWithSingleSortableField() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo"), "async");
-        defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo"), "async");
+        defn.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo"), STRINGS));
         IndexDefinition definition = getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName);
         IndexNode node = createIndexNode(definition);
 
         TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, createFilter("nt:base"),
-                    ImmutableList.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING),
+                    List.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING),
                             new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
             assertNotNull(planner.getPlan());
             assertEquals(1, planner.getPlan().getEstimatedEntryCount());
@@ -1351,14 +1348,14 @@ public abstract class IndexPlannerCommonTest {
 
     @Test
     public void noRestrictionWithTwoSortableFields() throws Exception {
-        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, of("foo", "bar"), "async");
-        defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo", "bar"), STRINGS));
+        NodeBuilder defn = getPropertyIndexDefinitionNodeBuilder(builder, indexName, Set.of("foo", "bar"), "async");
+        defn.setProperty(createProperty(ORDERED_PROP_NAMES, Set.of("foo", "bar"), STRINGS));
         IndexDefinition definition = getIndexDefinition(root, defn.getNodeState(), "/oak:index/" + indexName);
         IndexNode node = createIndexNode(definition);
 
         TestUtil.assertEventually(() -> {
             FulltextIndexPlanner planner = getIndexPlanner(node, "/oak:index/" + indexName, createFilter("nt:base"),
-                    ImmutableList.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING),
+                    List.of(new QueryIndex.OrderEntry("foo", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING),
                             new QueryIndex.OrderEntry("bar", Type.LONG, QueryIndex.OrderEntry.Order.ASCENDING)));
 
             assertNotNull(planner.getPlan());
@@ -1504,14 +1501,14 @@ public abstract class IndexPlannerCommonTest {
 
     @NotNull
     private static NodeBuilder getNode(@NotNull NodeBuilder node, @NotNull String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
-            node = node.getChildNode(checkNotNull(name));
+        for (String name : PathUtils.elements(requireNonNull(path))) {
+            node = node.getChildNode(requireNonNull(name));
         }
         return node;
     }
 
     private static String generateRandomIndexName(String prefix) {
-        return prefix + RandomStringUtils.random(5, true, false);
+        return prefix + RandomStringUtils.insecure().next(5, true, false);
     }
 
     /**

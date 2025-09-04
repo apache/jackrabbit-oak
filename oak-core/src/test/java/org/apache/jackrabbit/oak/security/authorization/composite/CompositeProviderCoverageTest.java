@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Set;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -80,7 +78,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
 
     @Override
     List<AggregatedPermissionProvider> getAggregatedProviders(@NotNull String workspaceName, @NotNull AuthorizationConfiguration config, @NotNull Set<Principal> principals) {
-        return ImmutableList.of(getTestPermissionProvider());
+        return List.of(getTestPermissionProvider());
     }
 
     @Override
@@ -112,7 +110,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
     @Override
     @Test
     public void testTreePermissionGetChild() throws Exception {
-        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+        List<String> childNames = List.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(rootTree);
@@ -128,7 +126,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
     @Override
     @Test
     public void testTreePermissionGetChildOR() throws Exception {
-        List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+        List<String> childNames = List.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
         NodeState ns = getTreeProvider().asNodeState(rootTree);
@@ -144,15 +142,15 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
     @Test
     public void testGetPrivileges() throws Exception {
         for (String p : NODE_PATHS) {
-            assertEquals(ImmutableSet.of(REP_READ_NODES), cpp.getPrivileges(readOnlyRoot.getTree(p)));
-            assertEquals(ImmutableSet.of(REP_READ_NODES), cppO.getPrivileges(readOnlyRoot.getTree(p)));
+            assertEquals(Set.of(REP_READ_NODES), cpp.getPrivileges(readOnlyRoot.getTree(p)));
+            assertEquals(Set.of(REP_READ_NODES), cppO.getPrivileges(readOnlyRoot.getTree(p)));
         }
     }
 
     @Test
     public void testGetPrivilegesOnRepo() throws Exception {
-        assertEquals(ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT), cpp.getPrivileges(null));
-        assertEquals(ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT), cppO.getPrivileges(null));
+        assertEquals(Set.of(JCR_NAMESPACE_MANAGEMENT), cpp.getPrivileges(null));
+        assertEquals(Set.of(JCR_NAMESPACE_MANAGEMENT), cppO.getPrivileges(null));
     }
 
     @Test
@@ -423,7 +421,7 @@ public class CompositeProviderCoverageTest extends AbstractCompositeProviderTest
         @NotNull
         @Override
         public Set<String> getPrivileges(@Nullable Tree tree) {
-            return (tree == null) ? ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT) : ImmutableSet.of(REP_READ_NODES);
+            return (tree == null) ? Set.of(JCR_NAMESPACE_MANAGEMENT) : Set.of(REP_READ_NODES);
         }
 
         @Override

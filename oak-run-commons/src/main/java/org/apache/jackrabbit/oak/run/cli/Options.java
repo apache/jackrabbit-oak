@@ -19,26 +19,26 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import org.apache.jackrabbit.guava.common.collect.ClassToInstanceMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.MutableClassToInstanceMap;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 
 public class Options {
-    private final Set<OptionsBeanFactory> beanFactories = Sets.newHashSet();
+    private final Set<OptionsBeanFactory> beanFactories = new HashSet<>();
     private final EnumSet<OptionBeans> oakRunOptions;
-    private final ClassToInstanceMap<OptionsBean> optionBeans = MutableClassToInstanceMap.create();
+    private final Map<Class<? extends OptionsBean>, OptionsBean> optionBeans = new HashMap<>();
     private OptionSet optionSet;
     private boolean disableSystemExit;
     private String commandName;
@@ -52,7 +52,8 @@ public class Options {
     }
 
     public Options(OptionBeans... options) {
-        this.oakRunOptions = Sets.newEnumSet(asList(options), OptionBeans.class);
+        this.oakRunOptions = EnumSet.noneOf(OptionBeans.class);
+        this.oakRunOptions.addAll(asList(options));
     }
 
     public OptionSet parseAndConfigure(OptionParser parser, String[] args) throws IOException {
@@ -69,7 +70,7 @@ public class Options {
      * @return optionSet returned from OptionParser
      */
     public OptionSet parseAndConfigure(OptionParser parser, String[] args, boolean checkNonOptions) throws IOException {
-        for (OptionsBeanFactory o : Iterables.concat(oakRunOptions, beanFactories)){
+        for (OptionsBeanFactory o : IterableUtils.chainedIterable(oakRunOptions, beanFactories)){
             OptionsBean bean = o.newInstance(parser);
             optionBeans.put(bean.getClass(), bean);
         }
@@ -90,8 +91,7 @@ public class Options {
     @SuppressWarnings("unchecked")
     public <T extends OptionsBean> T getOptionBean(Class<T> clazz){
         Object o = optionBeans.get(clazz);
-        checkNotNull(o, "No [%s] found in [%s]",
-                clazz.getSimpleName(), optionBeans);
+        requireNonNull(o, String.format("No [%s] found in [%s]", clazz.getSimpleName(), optionBeans));
         return (T) o;
     }
 

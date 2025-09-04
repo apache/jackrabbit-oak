@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.lock;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
 /**
@@ -26,7 +25,7 @@ import org.apache.jackrabbit.JcrConstants;
  */
 public interface LockConstants extends JcrConstants {
 
-    Set<String> LOCK_PROPERTY_NAMES = ImmutableSet.of(
+    Set<String> LOCK_PROPERTY_NAMES = Set.of(
             JCR_LOCKISDEEP,
             JCR_LOCKOWNER);
 }

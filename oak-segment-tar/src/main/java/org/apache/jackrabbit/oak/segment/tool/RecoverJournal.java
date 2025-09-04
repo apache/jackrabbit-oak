@@ -19,8 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.parseSegmentInfoTimestamp;
 
@@ -37,6 +36,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -67,22 +67,22 @@ public class RecoverJournal {
         }
 
         public Builder withPath(File path) {
-            this.path = checkNotNull(path, "path");
+            this.path = requireNonNull(path, "path");
             return this;
         }
 
         public Builder withOut(PrintStream out) {
-            this.out = checkNotNull(out, "out");
+            this.out = requireNonNull(out, "out");
             return this;
         }
 
         public Builder withErr(PrintStream err) {
-            this.err = checkNotNull(err, "err");
+            this.err = requireNonNull(err, "err");
             return this;
         }
 
         public RecoverJournal build() {
-            checkState(path != null, "path not specified");
+            Validate.checkState(path != null, "path not specified");
             return new RecoverJournal(this);
         }
 

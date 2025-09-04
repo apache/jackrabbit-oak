@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -40,7 +39,7 @@ import static org.junit.Assert.assertTrue;
 
 public class NoCugTest extends AbstractCugTest {
 
-    private static final List<String> PATHS = ImmutableList.of(PathUtils.ROOT_PATH, SUPPORTED_PATH, SUPPORTED_PATH + "/subtree", SUPPORTED_PATH3, UNSUPPORTED_PATH, INVALID_PATH);
+    private static final List<String> PATHS = List.of(PathUtils.ROOT_PATH, SUPPORTED_PATH, SUPPORTED_PATH + "/subtree", SUPPORTED_PATH3, UNSUPPORTED_PATH, INVALID_PATH);
 
     private CugPermissionProvider cugPermProvider;
 
@@ -49,7 +48,7 @@ public class NoCugTest extends AbstractCugTest {
     public void before() throws Exception {
         super.before();
 
-        cugPermProvider = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH), getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        cugPermProvider = createCugPermissionProvider(Set.of(SUPPORTED_PATH), getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
     }
 
     @Test

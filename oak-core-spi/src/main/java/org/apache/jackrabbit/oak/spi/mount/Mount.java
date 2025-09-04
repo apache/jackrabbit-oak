@@ -25,7 +25,7 @@ import org.osgi.annotation.versioning.ProviderType;
  * Refers to a set of paths from a {@code ContentRepository}x that are possibly 
  * stored in a separate physical persistent store.
  * 
- * <p>In a default setup all paths belong to a default Mount.</p>
+ * <p>In a default setup all paths belong to a default Mount.
  */
 @ProviderType
 public interface Mount {
@@ -46,7 +46,7 @@ public interface Mount {
      * Checks whether current mount is the default mount.
      * 
      * <p>The Default mount includes the root path and all other
-     * paths which are not part of any other mount.</p>
+     * paths which are not part of any other mount.
      *
      * @return true if this mount represents the
      * default mount
@@ -97,14 +97,14 @@ public interface Mount {
     /**
      * Checks if given path belongs to this <code>Mount</code>
      *
-     * <p>A path belongs to a Mount in two scenarios:</p>
+     * <p>A path belongs to a Mount in two scenarios:
      * <ol>
      *   <li>The path is below a fragment-supported path and the path contains a fragment name.</li>
      *   <li>The path of this mount is the most specific ancestor for the specified path.</li>
      * </ol>
      * 
      * <p>The fragment check has a higher priority, and the presence of a fragment name in the path
-     * always decides the mount this path belongs to.</p>
+     * always decides the mount this path belongs to.
      *
      * @param path path to check
      * @return true if path belong to this mount

@@ -104,6 +104,17 @@ public interface IndexInfo {
     boolean hasPropertyIndexNode();
 
     /**
+     * Sets whether an index is active (can be used for queries)
+     */
+    void setActive(boolean value);
+
+    /**
+     * Determines if the index is active (can be used for queries)
+     * @return true if yes
+     */
+    boolean isActive();
+
+    /**
      * Index suggest data storage size
      * @return storage size or -1 if unknown
      */

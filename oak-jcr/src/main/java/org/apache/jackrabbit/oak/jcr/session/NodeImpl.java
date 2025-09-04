@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -31,11 +29,14 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getNames;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -65,11 +66,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
@@ -81,6 +77,9 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -614,15 +613,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public NodeIterator perform() throws RepositoryException {
-                Iterator<NodeDelegate> children = Iterators.filter(
+                Iterator<NodeDelegate> children = IteratorUtils.filter(
                         node.getChildren(),
-                        new Predicate<NodeDelegate>() {
-                            @Override
-                            public boolean apply(NodeDelegate state) {
-                                // TODO: use Oak names
-                                return ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern);
-                            }
-                        });
+                        // TODO: use Oak names
+                        state -> ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern));
                 return new NodeIteratorAdapter(nodeIterator(children));
             }
             @Override
@@ -639,15 +633,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public NodeIterator perform() throws RepositoryException {
-                Iterator<NodeDelegate> children = Iterators.filter(
+                Iterator<NodeDelegate> children = IteratorUtils.filter(
                         node.getChildren(),
-                        new Predicate<NodeDelegate>() {
-                            @Override
-                            public boolean apply(NodeDelegate state) {
-                                // TODO: use Oak names
-                                return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
-                            }
-                        });
+                        // TODO: use Oak names
+                        state -> ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs));
                 return new NodeIteratorAdapter(nodeIterator(children));
             }
             @Override
@@ -706,13 +695,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, new Predicate<PropertyDelegate>() {
-                    @Override
-                    public boolean apply(PropertyDelegate entry) {
-                        // TODO: use Oak names
-                        return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
-                    }
-                });
+                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node,
+                    // TODO: use Oak names
+                    entry -> ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern));
                 return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())){
                     @Override
                     public long getSize() {
@@ -730,13 +715,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @NotNull
             @Override
             public PropertyIterator perform() throws RepositoryException {
-                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node, new Predicate<PropertyDelegate>() {
-                    @Override
-                    public boolean apply(PropertyDelegate entry) {
-                        // TODO: use Oak names
-                        return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
-                    }
-                });
+                final PropertyIteratorDelegate delegate = new PropertyIteratorDelegate(node,
+                    // TODO: use Oak names
+                    entry -> ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs));
                 return new PropertyIteratorAdapter(propertyIterator(delegate.iterator())){
                     @Override
                     public long getSize() {
@@ -822,16 +803,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 IdentifierManager idManager = sessionDelegate.getIdManager();
 
                 Iterable<String> propertyOakPaths = idManager.getReferences(weak, node.getTree(), name); // TODO: oak name?
-                Iterable<Property> properties = Iterables.transform(
+                Iterable<Property> properties = IterableUtils.transform(
                         propertyOakPaths,
-                        new Function<String, Property>() {
-                            @Override
-                            public Property apply(String oakPath) {
+                        oakPath -> {
                                 PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
                                 return pd == null ? null : new PropertyImpl(pd, sessionContext);
                             }
-                        }
-                );
+                        );
 
                 return new PropertyIteratorAdapter(sessionDelegate.sync(properties.iterator()));
             }
@@ -956,7 +934,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 Iterator<String> mixinNames = getMixinTypeNames(tree).iterator();
                 if (mixinNames.hasNext()) {
                     NodeTypeManager ntMgr = getNodeTypeManager();
-                    List<NodeType> mixinTypes = Lists.newArrayList();
+                    List<NodeType> mixinTypes = new ArrayList<>();
                     while (mixinNames.hasNext()) {
                         mixinTypes.add(ntMgr.getNodeType(sessionContext.getJcrName(mixinNames.next())));
                     }
@@ -976,14 +954,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public Boolean perform() throws RepositoryException {
                 Tree tree = node.getTree();
-                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), getMixinTypeNames(tree), oakName);
+                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), () -> getMixinTypeNames(tree), oakName);
             }
         });
     }
 
     @Override
     public void setPrimaryType(final String nodeTypeName) throws RepositoryException {
-        final String oakTypeName = getOakName(checkNotNull(nodeTypeName));
+        final String oakTypeName = getOakName(requireNonNull(nodeTypeName));
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("setPrimaryType") {
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -1002,7 +980,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     @Override
     public void addMixin(String mixinName) throws RepositoryException {
-        final String oakTypeName = getOakName(checkNotNull(mixinName));
+        final String oakTypeName = getOakName(requireNonNull(mixinName));
         if (JcrConstants.MIX_LOCKABLE.equals(oakTypeName)) {
             LockDeprecation.handleCall("addMixin " + JcrConstants.MIX_LOCKABLE);
         }
@@ -1024,7 +1002,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     @Override
     public void removeMixin(final String mixinName) throws RepositoryException {
-        final String oakTypeName = getOakName(checkNotNull(mixinName));
+        final String oakTypeName = getOakName(requireNonNull(mixinName));
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("removeMixin") {
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -1038,7 +1016,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                 // distinguish between a combination of removeMixin and addMixin
                 // and Node#remove plus subsequent addNode when it comes to
                 // autocreated properties like jcr:create, jcr:uuid and so forth.
-                Set<String> mixins = newLinkedHashSet(getNames(dlg.getTree(), JCR_MIXINTYPES));
+                Set<String> mixins = SetUtils.toLinkedSet(getNames(dlg.getTree(), JCR_MIXINTYPES));
                 if (!mixins.isEmpty() && mixins.remove(getOakName(mixinName))) {
                     PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, mixins, NAMES);
                     sessionContext.getAccessManager().checkPermissions(dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT);
@@ -1373,25 +1351,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
-        return sessionDelegate.sync(transform(
+        return sessionDelegate.sync(IteratorUtils.transform(
                 childNodes,
-                new Function<NodeDelegate, Node>() {
-                    @Override
-                    public Node apply(NodeDelegate nodeDelegate) {
-                        return new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext);
-                    }
-                }));
+                nodeDelegate -> new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext)));
     }
 
     private Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
-        return sessionDelegate.sync(transform(
+        return sessionDelegate.sync(IteratorUtils.transform(
                 properties,
-                new Function<PropertyDelegate, Property>() {
-                    @Override
-                    public Property apply(PropertyDelegate propertyDelegate) {
-                        return new PropertyImpl(propertyDelegate, sessionContext);
-                    }
-                }));
+                propertyDelegate -> new PropertyImpl(propertyDelegate, sessionContext)));
     }
 
     private void checkValidWorkspace(String workspaceName)
@@ -1426,7 +1394,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     private Property internalSetProperty(
             final String jcrName, final Value value, final boolean exactTypeMatch)
             throws RepositoryException {
-        final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
+        final String oakName = getOakPathOrThrow(requireNonNull(jcrName));
         final PropertyState state = createSingleState(
                 oakName, value, Type.fromTag(value.getType(), false));
         if (value.getType() == PropertyType.STRING) {
@@ -1466,7 +1434,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             final String jcrName, final Value[] values,
             final int type, final boolean exactTypeMatch)
             throws RepositoryException {
-        final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
+        final String oakName = getOakPathOrThrow(requireNonNull(jcrName));
         final PropertyState state = createMultiState(
                 oakName, compact(values), Type.fromTag(type, true));
 
@@ -1509,7 +1477,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
      * @return value list without {@code null} entries
      */
     private static List<Value> compact(Value[] values) {
-        List<Value> list = Lists.newArrayListWithCapacity(values.length);
+        List<Value> list = new ArrayList<>(values.length);
         for (Value value : values) {
             if (value != null) {
                 list.add(value);
@@ -1521,7 +1489,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
 
     private Property internalRemoveProperty(final String jcrName)
             throws RepositoryException {
-        final String oakName = getOakName(checkNotNull(jcrName));
+        final String oakName = getOakName(requireNonNull(jcrName));
         return perform(new ItemWriteOperation<Property>("internalRemoveProperty") {
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -1647,9 +1615,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
      */
     @Override
     public void setMixins(String[] mixinNames) throws RepositoryException {
-        final Set<String> oakTypeNames = newLinkedHashSet();
+        final Set<String> oakTypeNames = new LinkedHashSet<>();
         for (String mixinName : mixinNames) {
-            oakTypeNames.add(getOakName(checkNotNull(mixinName)));
+            oakTypeNames.add(getOakName(requireNonNull(mixinName)));
         }
         sessionDelegate.performVoid(new ItemWriteOperation<Void>("setMixins") {
             @Override
@@ -1709,6 +1677,25 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         });
     }
 
+    @Override
+    public @Nullable Node getParentOrNull() throws RepositoryException {
+        return sessionDelegate.performNullable(new NodeOperation<Node>(dlg, "getParentOrNull") {
+            @Nullable
+            @Override
+            public Node performNullable() throws RepositoryException {
+                if (node.isRoot()) {
+                    return null;
+                } else {
+                    NodeDelegate parent = node.getParent();
+                    if (parent == null) {
+                        return null;
+                    }
+                    return createNode(parent, sessionContext);
+                }
+            }
+        });
+    }
+
     /**
      * Provide current node path. Should be invoked from within
      * the SessionDelegate#perform and preferred instead of getPath
@@ -1735,12 +1722,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
         }
 
         public Iterator<PropertyDelegate> iterator() throws InvalidItemStateException {
-            return Iterators.filter(node.getProperties(), predicate);
+            return IteratorUtils.filter(node.getProperties(), predicate::test);
         }
 
         public long getSize() {
             try {
-                return Iterators.size(iterator());
+                return IteratorUtils.size(iterator());
             } catch (InvalidItemStateException e) {
                 throw new IllegalStateException(
                         "This iterator is no longer valid", e);

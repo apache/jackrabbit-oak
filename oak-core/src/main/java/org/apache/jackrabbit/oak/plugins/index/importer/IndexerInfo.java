@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Represents the index data created by oak-run tooling on the file system.
@@ -66,7 +66,7 @@ public class IndexerInfo {
 
     public IndexerInfo(File rootDir, String checkpoint) {
         this.rootDir = rootDir;
-        this.checkpoint = checkNotNull(checkpoint);
+        this.checkpoint = requireNonNull(checkpoint);
     }
 
     public void save() throws IOException {
@@ -77,7 +77,8 @@ public class IndexerInfo {
     }
 
     public Map<String, File> getIndexes() throws IOException {
-        ImmutableMap.Builder<String, File> indexes = ImmutableMap.builder();
+        // order might matter
+        Map<String, File> indexes = new LinkedHashMap<>();
         for (File dir : rootDir.listFiles(((FileFilter) DirectoryFileFilter.DIRECTORY))) {
             File metaFile = new File(dir, INDEX_METADATA_FILE_NAME);
             if (metaFile.exists()) {
@@ -88,7 +89,7 @@ public class IndexerInfo {
                 }
             }
         }
-        return indexes.build();
+        return Collections.unmodifiableMap(indexes);
     }
 
     public static IndexerInfo fromDirectory(File rootDir) throws IOException {

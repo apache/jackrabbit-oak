@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -26,10 +27,6 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
@@ -73,7 +70,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
 
     @Test
     public void testLoginWithUnsupportedCredentials() throws Exception {
-        List<Credentials> creds = ImmutableList.of(
+        List<Credentials> creds = List.of(
                 new SimpleCredentials("testUser", new char[0]),
                 new GuestCredentials());
 
@@ -112,7 +109,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
 
     static final class IDP implements ExternalIdentityProvider, CredentialsSupport {
 
-        private final Map<String, Object> attributes = Maps.newHashMap(ImmutableMap.of("a", "a"));
+        private final Map<String, Object> attributes = new HashMap<>(Map.of("a", "a"));
 
         @NotNull
         @Override
@@ -200,7 +197,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
         @NotNull
         @Override
         public Set<Class> getCredentialClasses() {
-            return ImmutableSet.of(TestCredentials.class);
+            return Set.of(TestCredentials.class);
         }
 
         @Nullable
@@ -219,7 +216,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
             if (credentials instanceof TestCredentials) {
                 return attributes;
             } else {
-                return ImmutableMap.of();
+                return Map.of();
             }
         }
 

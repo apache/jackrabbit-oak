@@ -28,12 +28,16 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.junit.AssumptionViolatedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
 
 public class DocumentMongoFixture extends NodeStoreFixture {
 
@@ -69,6 +73,9 @@ public class DocumentMongoFixture extends NodeStoreFixture {
             }
             builder.setPersistentCache("target/persistentCache,time");
             builder.setMongoDB(createClient(), getDBName(suffix));
+            //do not reuse the whiteboard
+            setWhiteboard(new DefaultWhiteboard());
+            builder.setNoChildOrderCleanupFeature(Feature.newFeature("FT_NOCOCLEANUP_OAK-10660", getWhiteboard()));
             DocumentNodeStore ns = builder.getNodeStore();
             suffixes.put(ns, suffix);
             return ns;
@@ -78,11 +85,11 @@ public class DocumentMongoFixture extends NodeStoreFixture {
     }
 
     protected MongoClient createClient() {
-        return new MongoClient(new MongoClientURI(uri));
+        return MongoClients.create(uri);
     }
 
     protected String getDBName(String suffix) {
-        String dbName = new MongoClientURI(uri).getDatabase();
+        String dbName = new ConnectionString(uri).getDatabase();
         return dbName + "-" + suffix;
     }
 
@@ -105,7 +112,8 @@ public class DocumentMongoFixture extends NodeStoreFixture {
         String suffix = suffixes.remove(nodeStore);
         if (suffix != null) {
             try (MongoClient client = createClient()) {
-                client.dropDatabase(getDBName(suffix));
+                MongoDatabase database = client.getDatabase(getDBName(suffix));
+                database.drop();
             } catch (Exception e) {
                 log.error("Can't close Mongo", e);
             }

@@ -16,18 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.osgi;
 
 import java.io.Closeable;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
-import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.internal.function.Suppliers;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
 import org.osgi.framework.Filter;
@@ -43,12 +42,7 @@ public class RunnableJobTracker extends ServiceTracker<Runnable, Future>
      * Lazily loaded executor
      */
     private final Supplier<ScheduledExecutorService> executor =
-            Suppliers.memoize(new Supplier<ScheduledExecutorService>() {
-        @Override
-        public ScheduledExecutorService get() {
-            return Oak.defaultScheduledExecutor();
-        }
-    });
+            Suppliers.memoize(Oak::defaultScheduledExecutor);
 
     public RunnableJobTracker(BundleContext context) {
         super(context, createFilter(), null);

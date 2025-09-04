@@ -23,11 +23,13 @@ import java.io.InputStream;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class AbstractBlobTest {
@@ -54,6 +56,31 @@ public class AbstractBlobTest {
         assertFalse("Blob comparison should not fallback on content if lengths not same", AbstractBlob.equal(a, b));
     }
 
+    @Test
+    public void blobArrayBasedToString() {
+        byte[] bytes = bytes(100);
+        Blob a = new ArrayBasedBlob(bytes);
+        Blob b = new ArrayBasedBlob(bytes);
+        Blob c = new ArrayBasedBlob(bytes(50));
+        assertEquals(a.toString(), b.toString());
+        assertNotEquals(b.toString(), c.toString());
+    }
+
+    @Test
+    public void blobArrayBasedEquality() {
+        byte[] bytes = bytes(100);
+        Blob a = new ArrayBasedBlob(bytes);
+        Blob b = new ArrayBasedBlob(bytes);
+        Blob c = new ArrayBasedBlob(bytes(50));
+
+        assertEquals(a, b);
+        assertNotEquals(a, c);
+
+        // same length bypass comparison shortcut
+        Blob d = new ArrayBasedBlob(bytes(100));
+        assertNotEquals(a, d);
+    }
+
     private byte[] bytes(int size) {
         byte[] data = new byte[size];
         rnd.nextBytes(data);
@@ -78,7 +105,7 @@ public class AbstractBlobTest {
         @NotNull
         @Override
         public InputStream getNewStream() {
-            checkState(allowAccessToContent, "Cannot access the stream");
+            Validate.checkState(allowAccessToContent, "Cannot access the stream");
             return super.getNewStream();
         }
     }

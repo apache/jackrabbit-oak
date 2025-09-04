@@ -24,7 +24,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -101,7 +101,7 @@ abstract class MemberBaseTest extends AbstractTest {
                 groupPaths.add(g.getPath());
 
                 if (nested) {
-                    g.addMembers(ObjectArrays.concat(idArray, GROUP + j));
+                    g.addMembers(ArrayUtils.add(idArray, GROUP + j));
                 } else {
                     g.addMembers(idArray);
                 }

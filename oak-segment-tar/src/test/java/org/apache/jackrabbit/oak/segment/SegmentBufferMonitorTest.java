@@ -15,10 +15,8 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.segment.SegmentBufferMonitor.DIRECT_BUFFER_CAPACITY;
 import static org.apache.jackrabbit.oak.segment.SegmentBufferMonitor.DIRECT_BUFFER_COUNT;
 import static org.apache.jackrabbit.oak.segment.SegmentBufferMonitor.HEAP_BUFFER_CAPACITY;
@@ -27,12 +25,15 @@ import static org.apache.jackrabbit.oak.stats.SimpleStats.Type.COUNTER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.GaugeStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.SimpleStats;
@@ -43,7 +44,7 @@ import org.junit.Test;
 
 public class SegmentBufferMonitorTest {
 
-    private final Map<String, CounterStats> stats = newHashMap();
+    private final Map<String, CounterStats> stats = new HashMap<>();
 
     private final SegmentBufferMonitor segmentBufferMonitor = new SegmentBufferMonitor(new StatisticsProvider() {
         @Override
@@ -70,6 +71,11 @@ public class SegmentBufferMonitorTest {
 
         @Override
         public HistogramStats getHistogram(String name, StatsOptions options) {
+            throw new IllegalStateException();
+        }
+
+        @Override
+        public <T> GaugeStats<T> getGauge(String name, Supplier<T> supplier) {
             throw new IllegalStateException();
         }
     });

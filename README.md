@@ -1,3 +1,10 @@
+[![ASF Jira](https://img.shields.io/badge/ASF%20JIRA-OAK-orange)](https://issues.apache.org/jira/projects/OAK/summary)
+[![Maven Central](https://img.shields.io/maven-central/v/org.apache.jackrabbit/oak-core.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/org.apache.jackrabbit/oak-core)
+[![Build](https://github.com/apache/jackrabbit-oak/actions/workflows/build.yml/badge.svg)](https://github.com/apache/jackrabbit-oak/actions/workflows/build.yml)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=org.apache.jackrabbit%3Ajackrabbit-oak&metric=bugs)](https://sonarcloud.io/summary/new_code?id=org.apache.jackrabbit%3Ajackrabbit-oak)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=org.apache.jackrabbit%3Ajackrabbit-oak&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=org.apache.jackrabbit%3Ajackrabbit-oak)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=org.apache.jackrabbit%3Ajackrabbit-oak&metric=coverage)](https://sonarcloud.io/summary/new_code?id=org.apache.jackrabbit%3Ajackrabbit-oak)
+
 Jackrabbit Oak - the next generation content repository
 =======================================================
 
@@ -12,7 +19,7 @@ Getting Started
 ---------------
 
 To get started with Oak, build the latest sources with
-Maven 3 and Java 8 (or higher) like this:
+Maven 3 and Java 11 (or higher) like this:
 
     mvn clean install
 
@@ -52,9 +59,6 @@ The build consists of the following main components:
   - [oak-core][1]     - Oak repository API and implementation
   - oak-jcr           - JCR binding for the Oak repository
   - oak-sling         - integration with Apache Sling
-  - oak-solr-core     - Apache Solr indexing and search
-  - oak-solr-embedded - Apache Solr on an embedded Solr instance
-  - oak-solr-remote   - Apache Solr on an remote (HTTP) Solr instance
   - oak-http          - HTTP binding for Oak
   - oak-lucene        - Lucene-based query index
   - oak-run           - runnable jar packaging

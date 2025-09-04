@@ -18,9 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static java.util.Objects.requireNonNull;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -30,17 +28,19 @@ import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
@@ -60,11 +60,11 @@ public final class FilterBuilder {
     private boolean includeSessionLocal;
     private boolean includeClusterExternal;
     private boolean includeClusterLocal = true;
-    private final List<String> subTrees = newArrayList();
-    private final Set<String> pathsForMBean = newHashSet();
+    private final List<String> subTrees = new ArrayList<>();
+    private final Set<String> pathsForMBean = new HashSet<>();
     private Condition condition = includeAll();
     private ChangeSetFilter changeSetFilter = new ChangeSetFilter() {
-        
+
         @Override
         public boolean excludes(ChangeSet changeSet) {
             return false;
@@ -77,7 +77,7 @@ public final class FilterBuilder {
         @NotNull
         EventFilter createFilter(@NotNull NodeState before, @NotNull NodeState after);
     }
-    
+
     @NotNull
     public FilterBuilder setChangeSetFilter(@NotNull ChangeSetFilter changeSetFilter) {
         this.changeSetFilter = changeSetFilter;
@@ -105,10 +105,10 @@ public final class FilterBuilder {
                 return this;
             }
         }
-        subTrees.add(checkNotNull(absPath));
+        subTrees.add(requireNonNull(absPath));
         return this;
     }
-    
+
     /**
      * Adds paths to the FilterConfigMBean's getPaths set
      * @param paths
@@ -126,9 +126,9 @@ public final class FilterBuilder {
      */
     @NotNull
     private Iterable<String> getSubTrees() {
-        return subTrees.isEmpty() ? ImmutableList.of("/") : subTrees;
+        return subTrees.isEmpty() ? List.of("/") : subTrees;
     }
-    
+
     public FilterBuilder aggregator(EventAggregator aggregator) {
         this.aggregator = aggregator;
         return this;
@@ -180,7 +180,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public FilterBuilder condition(@NotNull Condition condition) {
-        this.condition = checkNotNull(condition);
+        this.condition = requireNonNull(condition);
         return this;
     }
 
@@ -214,7 +214,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition accessControl(@NotNull PermissionProviderFactory permissionProviderFactory) {
-        return new ACCondition(checkNotNull(permissionProviderFactory));
+        return new ACCondition(requireNonNull(permissionProviderFactory));
     }
 
     /**
@@ -225,7 +225,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition path(@NotNull String pathPattern) {
-        return new PathCondition(checkNotNull(pathPattern));
+        return new PathCondition(requireNonNull(pathPattern));
     }
 
     /**
@@ -259,7 +259,7 @@ public final class FilterBuilder {
         } else if (ntNames.length == 0) {
             return excludeAll();
         } else {
-            return new NodeTypeCondition(checkNotNull(selector), ntNames);
+            return new NodeTypeCondition(requireNonNull(selector), ntNames);
         }
     }
 
@@ -277,7 +277,7 @@ public final class FilterBuilder {
         } else if (uuids.length == 0) {
             return excludeAll();
         } else {
-            return new UniversalCondition(checkNotNull(selector), new UuidPredicate(uuids));
+            return new UniversalCondition(requireNonNull(selector), new UuidPredicate(uuids));
         }
     }
 
@@ -293,8 +293,8 @@ public final class FilterBuilder {
             @NotNull Predicate<PropertyState> predicate) {
 
         return new UniversalCondition(
-                checkNotNull(selector),
-                new PropertyPredicate(checkNotNull(name), checkNotNull(predicate)));
+                requireNonNull(selector),
+                new PropertyPredicate(requireNonNull(name), requireNonNull(predicate)));
     }
 
     /**
@@ -305,7 +305,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition universal(@NotNull Selector selector, @NotNull Predicate<NodeState> predicate) {
-        return new UniversalCondition(checkNotNull(selector), checkNotNull(predicate));
+        return new UniversalCondition(requireNonNull(selector), requireNonNull(predicate));
     }
 
     /**
@@ -341,17 +341,17 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition any(@NotNull Condition... conditions) {
-        return new AnyCondition(newArrayList(checkNotNull(conditions)));
+        return new AnyCondition(new ArrayList<>(Arrays.asList(requireNonNull(conditions))));
     }
-
     /**
      * A compound condition that holds when all of its constituents hold.
+
      * @param conditions conditions of which all must hold in order for this condition to hold
      * @return  any condition
      */
     @NotNull
     public Condition all(@NotNull Condition... conditions) {
-        return new AllCondition(newArrayList(checkNotNull(conditions)));
+        return new AllCondition(new ArrayList<>(Arrays.asList(requireNonNull(conditions))));
     }
 
     /**
@@ -361,7 +361,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition all(@NotNull List<Condition> conditions) {
-        return new AllCondition(checkNotNull(conditions));
+        return new AllCondition(requireNonNull(conditions));
     }
 
     /**
@@ -371,7 +371,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition not(@NotNull Condition condition) {
-        return new NotCondition(checkNotNull(condition));
+        return new NotCondition(requireNonNull(condition));
     }
 
     /**
@@ -381,7 +381,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition any(@NotNull Iterable<Condition> conditions) {
-        return new AnyCondition(checkNotNull(conditions));
+        return new AnyCondition(requireNonNull(conditions));
     }
 
     /**
@@ -391,7 +391,7 @@ public final class FilterBuilder {
      */
     @NotNull
     public Condition all(@NotNull Iterable<Condition> conditions) {
-        return new AllCondition(checkNotNull(conditions));
+        return new AllCondition(requireNonNull(conditions));
     }
 
     /**
@@ -416,7 +416,7 @@ public final class FilterBuilder {
             
             @Override
             public boolean includeCommit(@NotNull String sessionId, @Nullable CommitInfo info) {
-                return (includeSessionLocal || !isLocal(checkNotNull(sessionId), info))
+                return (includeSessionLocal || !isLocal(requireNonNull(sessionId), info))
                     && (includeClusterExternal || !isExternal(info))
                     && (includeClusterLocal || isExternal(info));
             }
@@ -424,7 +424,7 @@ public final class FilterBuilder {
             @NotNull
             @Override
             public EventFilter getFilter(@NotNull NodeState before, @NotNull NodeState after) {
-                return condition.createFilter(checkNotNull(before), checkNotNull(after));
+                return condition.createFilter(requireNonNull(before), requireNonNull(after));
             }
 
             @NotNull
@@ -439,18 +439,18 @@ public final class FilterBuilder {
             }
 
             private boolean isLocal(String sessionId, CommitInfo info) {
-                return info != null && Objects.equal(info.getSessionId(), sessionId);
+                return info != null && Objects.equals(info.getSessionId(), sessionId);
             }
 
             private boolean isExternal(CommitInfo info) {
                 return info.isExternal();
             }
-            
+
             @Override
             public EventAggregator getEventAggregator() {
                 return aggregator;
             }
-            
+
             @Override
             public boolean excludes(ChangeSet changeSet) {
                 return changeSetFilter.excludes(changeSet);
@@ -463,7 +463,7 @@ public final class FilterBuilder {
         return new FilterConfigMBean() {
             @Override
             public String[] getPaths() {
-                return Iterables.toArray(pathsForMBean, String.class);
+                return IterableUtils.toArray(pathsForMBean, String.class);
             }
 
             @Override
@@ -602,12 +602,12 @@ public final class FilterBuilder {
         }
 
         public AnyCondition(Condition... conditions) {
-            this(newArrayList(conditions));
+            this(new ArrayList<>(Arrays.asList(conditions)));
         }
 
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            List<EventFilter> filters = newArrayList();
+            List<EventFilter> filters = new ArrayList<>();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.INCLUDE_ALL) {
                     return ConstantFilter.INCLUDE_ALL;
@@ -629,12 +629,12 @@ public final class FilterBuilder {
         }
 
         public AllCondition(Condition... conditions) {
-            this(newArrayList(conditions));
+            this(new ArrayList<>(Arrays.asList(conditions)));
         }
 
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            List<EventFilter> filters = newArrayList();
+            List<EventFilter> filters = new ArrayList<>();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.EXCLUDE_ALL) {
                     return ConstantFilter.EXCLUDE_ALL;

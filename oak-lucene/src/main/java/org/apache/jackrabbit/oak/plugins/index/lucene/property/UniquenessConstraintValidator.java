@@ -19,23 +19,24 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.HashMultimap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
 /**
@@ -49,7 +50,7 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 public class UniquenessConstraintValidator {
     private final NodeState rootState;
     private final String indexPath;
-    private final Multimap<String, String> uniqueKeys = HashMultimap.create();
+    private final MultiValuedMap<String, String> uniqueKeys = new HashSetValuedHashMap<>();
     private final PropertyQuery firstStore;
     private PropertyQuery secondStore = PropertyQuery.DEFAULT;
 
@@ -68,7 +69,7 @@ public class UniquenessConstraintValidator {
             String propertyRelativePath = e.getKey();
             String value = e.getValue();
             Iterable<String> indexedPaths = getIndexedPaths(propertyRelativePath, value);
-            Set<String> allPaths = ImmutableSet.copyOf(indexedPaths);
+            Set<String> allPaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(indexedPaths));
 
             //If more than one match found then filter out stale paths
             if (allPaths.size() > 1) {
@@ -84,11 +85,11 @@ public class UniquenessConstraintValidator {
     }
 
     public void setSecondStore(PropertyQuery secondStore) {
-        this.secondStore = checkNotNull(secondStore);
+        this.secondStore = requireNonNull(secondStore);
     }
 
     private Iterable<String> getIndexedPaths(String propertyRelativePath, String value) {
-        return Iterables.concat(
+        return IterableUtils.chainedIterable(
                 firstStore.getIndexedPaths(propertyRelativePath, value),
                 secondStore.getIndexedPaths(propertyRelativePath, value)
         );

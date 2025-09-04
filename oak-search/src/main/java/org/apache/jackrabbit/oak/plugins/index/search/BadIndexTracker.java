@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import java.time.Clock;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Throwables;
-import org.apache.jackrabbit.guava.common.base.Ticker;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,10 +47,10 @@ public class BadIndexTracker {
     private static final long DEFAULT_RECHECK_INTERVAL = TimeUnit.MINUTES.toMillis(15);
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final Map<String, BadIndexInfo> badIndexesForRead = Maps.newConcurrentMap();
-    private final Map<String, BadIndexInfo> badPersistedIndexes = Maps.newConcurrentMap();
+    private final Map<String, BadIndexInfo> badIndexesForRead = new ConcurrentHashMap<>();
+    private final Map<String, BadIndexInfo> badPersistedIndexes = new ConcurrentHashMap<>();
     private final long recheckIntervalMillis;
-    private Ticker ticker = Ticker.systemTicker();
+    private Clock clock = Clock.systemUTC();
     private int indexerCycleCount;
 
     public BadIndexTracker() {
@@ -143,8 +142,8 @@ public class BadIndexTracker {
         return recheckIntervalMillis;
     }
 
-    public void setTicker(Ticker ticker) {
-        this.ticker = ticker;
+    public void setClock(Clock clock) {
+        this.clock = clock;
     }
 
     public boolean hasBadIndexes(){
@@ -154,10 +153,10 @@ public class BadIndexTracker {
     public class BadIndexInfo {
         public final String path;
         final int lastIndexerCycleCount = indexerCycleCount;
-        private final long createdTime = TimeUnit.NANOSECONDS.toMillis(ticker.read());
+        private final long createdTime = clock.millis();
         private final boolean persistedIndex;
-        private final Stopwatch created = Stopwatch.createStarted(ticker);
-        private final Stopwatch watch = Stopwatch.createStarted(ticker);
+        private final Stopwatch created = Stopwatch.createStarted(clock);
+        private final Stopwatch watch = Stopwatch.createStarted(clock);
         private String exception;
         private int accessCount;
         private int failedAccessCount;
@@ -165,7 +164,7 @@ public class BadIndexTracker {
 
         public BadIndexInfo(String path, Throwable e, boolean persistedIndex) {
             this.path = path;
-            this.exception = Throwables.getStackTraceAsString(e);
+            this.exception = ExceptionUtils.getStackTrace(e);
             this.persistedIndex = persistedIndex;
         }
 
@@ -214,7 +213,7 @@ public class BadIndexTracker {
 
         public void failedAccess(Throwable e) {
             failedAccessCount++;
-            exception = Throwables.getStackTraceAsString(e);
+            exception = ExceptionUtils.getStackTrace(e);
         }
     }
 

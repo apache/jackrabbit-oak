@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
@@ -41,13 +40,13 @@ public class RemoveMembersByIdIgnoreTest extends AbstractRemoveMembersByIdTest {
     @Test
     public void testNonExistingMember() throws Exception {
         Set<String> failed = removeNonExistingMember();
-        assertEquals(ImmutableSet.copyOf(NON_EXISTING_IDS), failed);
+        assertEquals(Set.of(NON_EXISTING_IDS), failed);
     }
 
     @Test
     public void testMissingAccessMember() throws Exception {
         Set<String> failed = removeExistingMemberWithoutAccess();
-        assertEquals(ImmutableSet.of(memberGroup.getID()), failed);
+        assertEquals(Set.of(memberGroup.getID()), failed);
 
         root.refresh();
         assertTrue(testGroup.isMember(memberGroup));

@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -34,6 +33,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.NamespaceRegistry;
+
+import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -52,7 +54,7 @@ class CurrentPattern implements RestrictionPattern {
     /**
      * Built-in namespace prefixes
      */
-    private static final Set<String> PREFIXES = ImmutableSet.of(
+    private static final Set<String> PREFIXES = Set.of(
             NamespaceConstants.PREFIX_OAK, 
             NamespaceConstants.PREFIX_REP,
             NamespaceRegistry.PREFIX_JCR);
@@ -67,7 +69,7 @@ class CurrentPattern implements RestrictionPattern {
      * is used for a single node below jcr:system only, while the property name is used in every access control entry.
      * Therefore these two names are omitted from the list.
      */
-    private static final Set<String> NODE_NAMES = ImmutableSet.<String>builder().add(
+    private static final Set<String> NODE_NAMES = Set.of(
             JcrConstants.JCR_CHILDNODEDEFINITION, 
             JcrConstants.JCR_CONTENT, 
             JcrConstants.JCR_FROZENNODE, 
@@ -91,14 +93,14 @@ class CurrentPattern implements RestrictionPattern {
             UserConstants.REP_MEMBERS_LIST,
             IndexConstants.INDEX_DEFINITIONS_NAME,
             "rep:cugPolicy",
-            "rep:principalPolicy").build();
+            "rep:principalPolicy");
     
     private final String treePath;
     private final Set<String> propertyNames;
 
     CurrentPattern(@NotNull String treePath, @NotNull Iterable<String> propertyNames) {
         this.treePath = treePath;
-        this.propertyNames = ImmutableSet.copyOf(propertyNames);
+        this.propertyNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(propertyNames));
     }
 
     @Override
@@ -183,7 +185,7 @@ class CurrentPattern implements RestrictionPattern {
     //-------------------------------------------------------------< Object >---
     @Override
     public int hashCode() {
-        return Objects.hashCode(treePath, propertyNames);
+        return Objects.hash(treePath, propertyNames);
     }
 
     @Override

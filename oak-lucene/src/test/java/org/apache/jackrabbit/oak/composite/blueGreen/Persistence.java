@@ -38,7 +38,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
-import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -50,13 +49,14 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.composite.CompositeNodeStore;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
-import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
+import org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.WhiteboardIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
@@ -106,8 +106,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -188,7 +186,7 @@ public class Persistence {
         userConfigMap.put(UserConstants.PARAM_GROUP_PATH, "/home/groups");
         userConfigMap.put(UserConstants.PARAM_USER_PATH, "/home/users");
         userConfigMap.put(UserConstants.PARAM_DEFAULT_DEPTH, 1);
-        ConfigurationParameters userConfig = ConfigurationParameters.of(ImmutableMap.of(
+        ConfigurationParameters userConfig = ConfigurationParameters.of(Map.of(
                 UserConfiguration.NAME,
                 ConfigurationParameters.of(userConfigMap)));
         SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(userConfig).build();
@@ -288,7 +286,7 @@ public class Persistence {
                                          SecurityProvider securityProvider) throws RepositoryException {
         ContentSession cs = null;
         try {
-            cs = Subject.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+            cs = Java23Subject.doAsPrivileged(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
                 @Override
                 public ContentSession run() throws Exception {
                     return repo.login(null, null);
@@ -355,7 +353,7 @@ public class Persistence {
         private void configureGlobalFullTextIndex() {
             String indexName = "lucene";
             if (!index.hasChildNode(indexName)) {
-                Set<String> INCLUDE_PROPS = ImmutableSet.of("test");
+                Set<String> INCLUDE_PROPS = Set.of("test");
                 IndexDefinitionBuilder indexBuilder = new LuceneIndexDefinitionBuilder(index.child(indexName))
                         .codec("Lucene46")
                         .excludedPaths("/libs");
@@ -372,7 +370,11 @@ public class Persistence {
         }        
         
     }
-    
+
+    public MountInfoProvider getMountInfoProvider() {
+        return MOUNT_INFO_PROVIDER;
+    }
+
     public static class Config {
         public BlobStore blobStore;
         public File indexDir;

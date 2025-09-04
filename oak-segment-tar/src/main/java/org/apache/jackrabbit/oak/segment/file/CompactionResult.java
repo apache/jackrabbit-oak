@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
 import static org.apache.jackrabbit.oak.segment.file.Reclaimers.newOldReclaimer;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
@@ -74,6 +74,41 @@ abstract class CompactionResult {
             RecordId getCompactedRootId() {
                 return compactedRootId;
             }
+
+            @Override
+            boolean requiresGCJournalEntry() {
+                return true;
+            }
+        };
+    }
+
+    /**
+     * Result of incremental compaction if the compaction cycle is incomplete.
+     *
+     * @param newGeneration   the generation successfully created by compaction
+     * @param compactedRootId the record id of the root created by compaction
+     */
+    static CompactionResult partiallySucceeded(
+            @NotNull GCGeneration newGeneration,
+            @NotNull final RecordId compactedRootId,
+            int gcCount
+    ) {
+        return new CompactionResult(newGeneration, gcCount) {
+
+            @Override
+            Predicate<GCGeneration> reclaimer() {
+                return generation -> false;
+            }
+
+            @Override
+            boolean isSuccess() {
+                return true;
+            }
+
+            @Override
+            RecordId getCompactedRootId() {
+                return compactedRootId;
+            }
         };
     }
 
@@ -81,19 +116,16 @@ abstract class CompactionResult {
      * Result of an aborted compaction.
      *
      * @param currentGeneration the current generation of the store
-     * @param failedGeneration  the generation that compaction attempted to
-     *                          create
      */
     static CompactionResult aborted(
         @NotNull GCGeneration currentGeneration,
-        @NotNull final GCGeneration failedGeneration,
         int gcCount
     ) {
         return new CompactionResult(currentGeneration, gcCount) {
 
             @Override
             Predicate<GCGeneration> reclaimer() {
-                return Reclaimers.newExactReclaimer(failedGeneration);
+                return Reclaimers.newEmptyReclaimer();
             }
 
             @Override
@@ -178,6 +210,10 @@ abstract class CompactionResult {
     }
 
     boolean isNotApplicable() {
+        return false;
+    }
+
+    boolean requiresGCJournalEntry() {
         return false;
     }
 

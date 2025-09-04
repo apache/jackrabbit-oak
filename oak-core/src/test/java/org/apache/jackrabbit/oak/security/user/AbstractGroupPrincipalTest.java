@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -31,6 +29,7 @@ import org.mockito.internal.stubbing.answers.ThrowsException;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
@@ -87,7 +86,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
 
     @Test
     public void testIsMemberMissingAuthorizable() {
-        List<Principal> principals = ImmutableList.of(
+        List<Principal> principals = List.of(
                 new PrincipalImpl("name"),
                 () -> "name"
         );
@@ -108,7 +107,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
 
     @Test
     public void testIsMemberOfEveryoneMissingAuthorizable() {
-        List<Principal> principals = ImmutableList.of(
+        List<Principal> principals = List.of(
                 new PrincipalImpl("name"),
                 () -> "name"
         );
@@ -145,7 +144,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
     public void testMembersHandlesFailingPrincipalAccess() throws Exception {
         Authorizable a = when(mock(Authorizable.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
         AbstractGroupPrincipal agp = mock(AbstractGroupPrincipal.class);
-        when(agp.getMembers()).thenReturn(Iterators.singletonIterator(a));
+        when(agp.getMembers()).thenReturn(Collections.singleton(a).iterator());
         when(agp.members()).thenCallRealMethod();
 
         Enumeration<? extends Principal> members = agp.members();
@@ -188,7 +187,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
         @NotNull
         @Override
         Iterator<Authorizable> getMembers() throws RepositoryException {
-            return ImmutableList.of(member).iterator();
+            return List.of(member).iterator();
         }
     }
 

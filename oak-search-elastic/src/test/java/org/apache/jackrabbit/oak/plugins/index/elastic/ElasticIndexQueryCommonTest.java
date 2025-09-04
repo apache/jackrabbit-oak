@@ -32,8 +32,7 @@ import javax.jcr.query.Query;
 public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticIndexQueryCommonTest() {
         indexOptions = new ElasticIndexOptions();
@@ -52,9 +51,7 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
         String query = "explain select [jcr:path] from [nt:base] where " +
                 "native('lucene', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
 
-        String explainWithoutSimilarityTags = "[nt:base] as [nt:base] /* elasticsearch:test-index(/oak:index/test-index) {\"bool\":{\"must\":[{\"more_like_this\":{\"fields\":[\":dynamic-boost-ft\",\"*\"],\"include\":true,\"like\":[{\"_id\":\"/test/a\",\"per_field_analyzer\":{\"_ignored\":\"keyword\"}}],\"min_doc_freq\":0,\"min_term_freq\":0}}]}}" +
-                " where native([nt:base], [lucene], 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0') */";
-
+        String explainWithoutSimilarityTags = "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"should\":[{\"more_like_this\":{\"boost\":3.0,\"include\":true,\"like\":[{\"fields\":[\":dynamic-boost-ft\"],\"_id\":\"/test/a\"}],\"min_doc_freq\":0,\"min_term_freq\":0}},{\"more_like_this\":{\"include\":true,\"like\":[{\"fields\":[\"propb\",\"propb.keyword\",\"propa\",\"propa.keyword\",\"function*lower*@name\",\"function*lower*@name.keyword\",\"c1/p\",\"c1/p.keyword\",\"function*length*@name\",\"function*length*@name.keyword\",\"function*upper*@name\",\"function*upper*@name.keyword\",\"a/name\",\"a/name.keyword\",\"b/name\",\"b/name.keyword\",\"propDate\",\"propDate.keyword\",\":ancestors\",\":depth\",\":dynamic-boost-ft\",\":dynamic-properties\",\":fulltext\",\":lastUpdated\",\":path\",\":path-random-value\",\":simTags\",\":spellcheck\",\":suggest\",\":nullProps\",\":notNullProps\",\":nodeName\"],\"_id\":\"/test/a\"}],\"min_doc_freq\":0,\"min_term_freq\":0}}]}},\"size\":10,\"sort\":[{\"_score\":{\"order\":\"desc\"}},{\":path\":{\"order\":\"asc\"}}],\"track_total_hits\":10000}";
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("text", "Hello World");
         test.addChild("b").setProperty("text", "He said Hello and then the world said Hello as well.");
@@ -63,23 +60,22 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
         indexDefn.setProperty("similarityTagsEnabled", false);
         root.commit();
 
-        // similarity tags disabled, should not be present in the explain
-        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, explainWithoutSimilarityTags, true));
+        // similarity tags disabled, should not be present in the explain output
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, explainWithoutSimilarityTags, false));
 
         indexDefn.setProperty("similarityTagsEnabled", true);
         root.commit();
 
-        // similarity tags enabled, but no similarity tags properties configured, should not be present in the explain
-        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, explainWithoutSimilarityTags, true));
+        // similarity tags enabled, but no similarity tags properties configured, should not be present in the explain output
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, explainWithoutSimilarityTags, false));
 
-        String explainWithSimilarityTags = "[nt:base] as [nt:base] /* elasticsearch:test-index(/oak:index/test-index) {\"bool\":{\"must\":[{\"more_like_this\":{\"fields\":[\":dynamic-boost-ft\",\"*\"],\"include\":true,\"like\":[{\"_id\":\"/test/a\",\"per_field_analyzer\":{\"_ignored\":\"keyword\"}}],\"min_doc_freq\":0,\"min_term_freq\":0}}],\"should\":[{\"more_like_this\":{\"boost\":0.5,\"fields\":[\":simTags\"],\"like\":[{\"_id\":\"/test/a\"}],\"min_doc_freq\":1,\"min_term_freq\":1}}]}}" +
-                " where native([nt:base], [lucene], 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0') */";
+        String explainWithSimilarityTags = "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"should\":[{\"more_like_this\":{\"boost\":3.0,\"include\":true,\"like\":[{\"fields\":[\":dynamic-boost-ft\"],\"_id\":\"/test/a\"}],\"min_doc_freq\":0,\"min_term_freq\":0}},{\"more_like_this\":{\"include\":true,\"like\":[{\"fields\":[\"propb\",\"propb.keyword\",\"propa\",\"propa.keyword\",\"function*lower*@name\",\"function*lower*@name.keyword\",\"c1/p\",\"c1/p.keyword\",\"function*length*@name\",\"function*length*@name.keyword\",\"simProp\",\"simProp.keyword\",\"function*upper*@name\",\"function*upper*@name.keyword\",\"a/name\",\"a/name.keyword\",\"b/name\",\"b/name.keyword\",\"propDate\",\"propDate.keyword\",\":ancestors\",\":depth\",\":dynamic-boost-ft\",\":dynamic-properties\",\":fulltext\",\":lastUpdated\",\":path\",\":path-random-value\",\":simTags\",\":spellcheck\",\":suggest\",\":nullProps\",\":notNullProps\",\":nodeName\"],\"_id\":\"/test/a\"}],\"min_doc_freq\":0,\"min_term_freq\":0}},{\"more_like_this\":{\"boost\":0.5,\"fields\":[\":simTags\"],\"like\":[{\"_id\":\"/test/a\"}],\"min_doc_freq\":1,\"min_term_freq\":1}}]}},\"size\":10,\"sort\":[{\"_score\":{\"order\":\"desc\"}},{\":path\":{\"order\":\"asc\"}}],\"track_total_hits\":10000}";
         Tree properties = indexDefn.getChild(FulltextIndexConstants.INDEX_RULES).getChild("nt:base").getChild("properties");
         Tree simProp = TestUtil.enableForFullText(properties, "simProp", false);
         simProp.setProperty(FulltextIndexConstants.PROP_SIMILARITY_TAGS, true);
         root.commit();
 
-        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, explainWithSimilarityTags, true));
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, explainWithSimilarityTags, false));
     }
 
     @Override
@@ -89,32 +85,30 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
 
     @Override
     public String getContainsValueForInequalityQuery_native() {
-        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"exists\":{\"field\":\"propa\"}}," +
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"exists\":{\"field\":\"propa.keyword\"}}," +
                 "{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
     }
 
     @Override
     public String getContainsValueForInequalityQueryWithoutAncestorFilter_native() {
-        return "\"filter\":[{\"exists\":{\"field\":\"propa\"}},{\"bool\":" +
+        return "\"filter\":[{\"exists\":{\"field\":\"propa.keyword\"}},{\"bool\":" +
                 "{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
     }
 
     @Override
     public String getContainsValueForEqualityInequalityCombined_native() {
         return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"term\":{\"propb.keyword\":{\"value\":\"world\"}}}," +
-                "{\"exists\":{\"field\":\"propa\"}},{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
+                "{\"exists\":{\"field\":\"propa.keyword\"}},{\"bool\":{\"must_not\":[{\"term\":{\"propa.keyword\":{\"value\":\"bar\"}}}]";
     }
 
     @Override
     public String getContainsValueForNotNullQuery_native() {
-        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"exists\":{\"field\":\"propa\"}}]";
+        return "\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}},{\"exists\":{\"field\":\"propa.keyword\"}}]";
     }
 
     @Override
     public String getExplainValueForDescendantTestWithIndexTagExplain() {
-        return "[nt:base] as [nt:base] /* elasticsearch:test-index(/oak:index/test-index) "
-                + "{\"bool\":{\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}}]}}"
-                + " where isdescendantnode([nt:base], [/test]) */";
+        return "{\"_source\":{\"includes\":[\":path\"]},\"query\":{\"bool\":{\"filter\":[{\"term\":{\":ancestors\":{\"value\":\"/test\"}}}]}},\"size\":10,\"sort\":[{\"_score\":{\"order\":\"desc\"}},{\":path\":{\"order\":\"asc\"}}],\"track_total_hits\":10000}";
     }
 
 }

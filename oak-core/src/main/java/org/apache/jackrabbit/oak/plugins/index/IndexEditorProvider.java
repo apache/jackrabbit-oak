@@ -23,12 +23,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+
 /**
  * Extension point for plugging in different kinds of IndexEditor providers.
  * 
  * @see IndexEditor
  */
-public interface IndexEditorProvider {
+public interface IndexEditorProvider extends AutoCloseable {
 
     /**
      * Each provider knows how to produce a certain type of index. If the
@@ -38,13 +40,11 @@ public interface IndexEditorProvider {
      * <p>
      * The {@code definition} builder must points to the index definition
      * node under which the indexer is expected to store the index content.
-     * </p>
      *
      * <p>
      * The <code>callback</code> instance may be of type {@link ContextAwareCallback}
      * and that can be used to access {@link IndexingContext}
-     * </p>
-     * 
+     *
      * @param type  index type
      * @param definition index definition node builder, used for updates
      * @param root root node state, used for things like node type information
@@ -56,4 +56,7 @@ public interface IndexEditorProvider {
             @NotNull String type, @NotNull NodeBuilder definition,
             @NotNull NodeState root, 
             @NotNull IndexUpdateCallback callback) throws CommitFailedException;
+
+    default void close() throws IOException {
+    }
 }

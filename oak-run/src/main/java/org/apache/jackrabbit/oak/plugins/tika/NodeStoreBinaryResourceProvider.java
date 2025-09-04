@@ -16,26 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.internal.graph.Traverser;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
+
+import java.util.Objects;
+import java.util.function.Function;
 
 class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
     private static final Logger log = LoggerFactory.getLogger(NodeStoreBinaryResourceProvider.class);
@@ -48,10 +48,11 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
     }
 
     public FluentIterable<BinaryResource> getBinaries(String path) {
-        return new OakTreeTraverser()
-                .preOrderTraversal(createReadOnlyTree(getNode(nodeStore.getRoot(), path)))
-                .transform(new TreeToBinarySource())
-                .filter(notNull());
+        // had to convert Guava's FluentIterable to Apache Commons Collections FluentIterable
+        return Traverser
+                .preOrderTraversal(createReadOnlyTree(getNode(nodeStore.getRoot(), path)), treeTraverser)
+                .transform(new TreeToBinarySource()::apply)
+                .filter(Objects::nonNull);
     }
 
     private class TreeToBinarySource implements Function<Tree, BinaryResource> {
@@ -85,12 +86,7 @@ class NodeStoreBinaryResourceProvider implements BinaryResourceProvider {
         }
     }
 
-    private static class OakTreeTraverser extends TreeTraverser<Tree> {
-        @Override
-        public Iterable<Tree> children(Tree root) {
-            return root.getChildren();
-        }
-    }
+    final Function<Tree, Iterable<? extends Tree>> treeTraverser = Tree::getChildren;
 
     @Nullable
     private static String getString(Tree tree, String name) {

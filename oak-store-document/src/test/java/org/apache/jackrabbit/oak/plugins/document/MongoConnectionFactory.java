@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDockerRule;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -33,12 +32,24 @@ public class MongoConnectionFactory extends ExternalResource {
 
     private final MongoDockerRule mongo = new MongoDockerRule();
 
-    private final List<MongoConnection> connections = Lists.newArrayList();
+    private final List<MongoConnection> connections = new ArrayList<>();
 
     @Override
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
-        if (MongoDockerRule.isDockerAvailable()) {
+        MongoConnection c = null;
+        try {
+            c = MongoUtils.getConnection(MongoUtils.DB);
+        } finally {
+            try {
+                if (c != null) {
+                    c.close();
+                }
+            } catch (IllegalStateException e) {
+                // may happen when connection is already closed (OAK-7447)
+            }
+        }
+        if (c == null && MongoDockerRule.isDockerAvailable()) {
             s = mongo.apply(s, description);
         }
         return s;
@@ -51,11 +62,14 @@ public class MongoConnectionFactory extends ExternalResource {
 
     @Nullable
     public MongoConnection getConnection(String dbName) {
+        if (DocumentStoreFixture.MongoFixture.SKIP_MONGO) {
+            return null;
+        }
         // first try MongoDB running on configured host and port
         MongoConnection c = MongoUtils.getConnection(dbName);
         if (c == null && MongoDockerRule.isDockerAvailable()) {
             // fall back to docker if available
-            c = new MongoConnection("localhost", mongo.getPort(), dbName);
+            c = new MongoConnection(mongo.getHost(), mongo.getPort(), dbName);
         }
         assumeNotNull(c);
         if (c != null) {

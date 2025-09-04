@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.index.merge;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -36,10 +38,88 @@ import org.junit.Test;
 public class IndexDefMergerTest {
 
     @Test
+    public void compareStringAndSingleValueArray() {
+        assertEquals(null, IndexDefMergerUtils.getStringOrStringFromSingleValueArray(null));
+        assertEquals(null, IndexDefMergerUtils.getStringOrStringFromSingleValueArray("1"));
+        assertEquals(null, IndexDefMergerUtils.getStringOrStringFromSingleValueArray("[\"a\",2]"));
+        assertEquals(null, IndexDefMergerUtils.getStringOrStringFromSingleValueArray("[\"a\",null]"));
+        assertEquals(null, IndexDefMergerUtils.getStringOrStringFromSingleValueArray("[1]"));
+        assertEquals("", IndexDefMergerUtils.getStringOrStringFromSingleValueArray("\"\""));
+        assertEquals("a", IndexDefMergerUtils.getStringOrStringFromSingleValueArray("\"a\""));
+        assertEquals("a", IndexDefMergerUtils.getStringOrStringFromSingleValueArray("[\"a\"]"));
+        assertTrue(IndexDefMergerUtils.equalStringValues("[\"a\"]", "[\"a\"]"));
+        assertTrue(IndexDefMergerUtils.equalStringValues("[\"a\"]", "\"a\""));
+        assertTrue(IndexDefMergerUtils.equalStringValues("\"a\"", "[\"a\"]"));
+        assertTrue(IndexDefMergerUtils.equalStringValues("\"a\"", "\"a\""));
+        assertFalse(IndexDefMergerUtils.equalStringValues("\"a\"", "\"b\""));
+        assertFalse(IndexDefMergerUtils.equalStringValues("1", "1"));
+        assertFalse(IndexDefMergerUtils.equalStringValues("1", "2"));
+        assertFalse(IndexDefMergerUtils.equalStringValues(null, null));
+        assertFalse(IndexDefMergerUtils.equalStringValues("1", null));
+        assertFalse(IndexDefMergerUtils.equalStringValues(null, "1"));
+        assertFalse(IndexDefMergerUtils.equalStringValues("\"1\"", "1"));
+        assertFalse(IndexDefMergerUtils.equalStringValues("1", "\"1\""));
+    }
+
+    @Test
+    public void tryMergeSets() {
+        assertEquals("[\"a\",\"b\",\"c\"]",
+                IndexDefMergerUtils.tryMergeSets(
+                "\"a\"", "[\"b\"]", "\"c\""));
+        assertEquals("[\"a\",\"b\",\"c\"]",
+                IndexDefMergerUtils.tryMergeSets(
+                "[\"a\"]", "[\"b\"]", "[\"c\"]"));
+        assertEquals("[\"a\",\"c\"]",
+                IndexDefMergerUtils.tryMergeSets(
+                "[\"a\"]", "[]", "[\"c\"]"));
+
+        // invalid value types or invalid syntax
+        assertEquals(null,
+                IndexDefMergerUtils.tryMergeSets(
+                "[\"a\"]", "1", "[\"b\"]"));
+        assertEquals(null,
+                IndexDefMergerUtils.tryMergeSets(
+                "[\"a\"]", "null", "[\"b\"]"));
+    }
+
+    @Test
+    public void getStringSet() {
+        assertEquals("[abc]",
+                IndexDefMergerUtils.getStringSet(
+                "\"abc\"").toString());
+        assertEquals("[abc]",
+                IndexDefMergerUtils.getStringSet(
+                "[\"abc\"]").toString());
+        assertEquals("[a, b]",
+                IndexDefMergerUtils.getStringSet(
+                "[\"b\", \"a\"]").toString());
+        assertEquals("[]",
+                IndexDefMergerUtils.getStringSet(
+                "[]").toString());
+
+        // invalid value types or invalid syntax
+        assertEquals(null,
+                IndexDefMergerUtils.getStringSet(
+                null));
+        assertEquals(null,
+                IndexDefMergerUtils.getStringSet(
+                "1"));
+        assertEquals(null,
+                IndexDefMergerUtils.getStringSet(
+                "[1]"));
+        assertEquals(null,
+                IndexDefMergerUtils.getStringSet(
+                "[null]"));
+        assertEquals(null,
+                IndexDefMergerUtils.getStringSet(
+                "[\"a\"],"));
+    }
+
+    @Test
     public void merge() throws IOException, CommitFailedException {
         String s = readFromResource("merge.txt");
         JsonObject json = JsonObject.fromJson(s, true);
-        for(JsonObject e : array(json.getProperties().get("tests"))) {
+        for (JsonObject e : array(json.getProperties().get("tests"))) {
             merge(e);
         }
     }

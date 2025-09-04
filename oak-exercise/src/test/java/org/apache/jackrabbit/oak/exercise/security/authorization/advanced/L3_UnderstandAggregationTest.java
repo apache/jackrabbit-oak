@@ -82,11 +82,11 @@ import static org.junit.Assert.assertTrue;
  *
  * - Write more tests to explore aggregation of additional features within the
  *   authorization setup such as e.g.
- *   > Privilege discovery
- *   > Repository level privileges such as e.g. ability to register a new node type.
- *   > XML Import
- *   > Validation
- *   > Repository Initialization
+ *   + Privilege discovery
+ *   + Repository level privileges such as e.g. ability to register a new node type.
+ *   + XML Import
+ *   + Validation
+ *   + Repository Initialization
  *
  *
  * Advanced Exercises

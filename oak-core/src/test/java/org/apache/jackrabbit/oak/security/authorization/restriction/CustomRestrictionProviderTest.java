@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -78,8 +77,8 @@ public class CustomRestrictionProviderTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         RestrictionProvider rProvider = CompositeRestrictionProvider.newInstance(new PropertyRestrictionProvider(), new RestrictionProviderImpl());
-        Map<String, RestrictionProvider> authorizMap = ImmutableMap.of(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, rProvider);
-        return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)));
+        Map<String, RestrictionProvider> authorizMap = Map.of(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, rProvider);
+        return ConfigurationParameters.of(Map.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)));
     }
 
     @Before

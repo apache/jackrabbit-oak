@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -34,8 +35,6 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Dyna
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.async.CacheActionDispatcher;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Broadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.InMemoryBroadcaster;
-import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.TCPBroadcaster;
-import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.UDPBroadcaster;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.h2.mvstore.FileStore;
 import org.h2.mvstore.MVMap;
@@ -46,19 +45,17 @@ import org.h2.mvstore.WriteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-
 /**
  * A persistent cache for the document store.
  */
 public class PersistentCache implements Broadcaster.Listener {
-    
+
     static final Logger LOG = LoggerFactory.getLogger(PersistentCache.class);
 
     private static final String FILE_PREFIX = "cache-";
     private static final String FILE_SUFFIX = ".data";
     private static final AtomicInteger COUNTER = new AtomicInteger();
-    
+
     private boolean cacheNodes = true;
     private boolean cacheChildren = true;
     private boolean cacheDiff = true;
@@ -70,7 +67,7 @@ public class PersistentCache implements Broadcaster.Listener {
     private boolean asyncDiffCache = false;
     private HashMap<CacheType, GenerationCache> caches = 
             new HashMap<CacheType, GenerationCache>();
-    
+
     private final String directory;
     private MapFactory writeStore;
     private MapFactory readStore;
@@ -87,7 +84,7 @@ public class PersistentCache implements Broadcaster.Listener {
     private DynamicBroadcastConfig broadcastConfig;
     private CacheActionDispatcher writeDispatcher;
     private Thread writeDispatcherThread;
-    
+
     {
         ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
         UUID uuid = UUID.randomUUID();
@@ -229,12 +226,6 @@ public class PersistentCache implements Broadcaster.Listener {
             return;
         } else if (broadcast.equals("inMemory")) {
             broadcaster = InMemoryBroadcaster.INSTANCE;
-        } else if (broadcast.startsWith("udp:")) {
-            String config = broadcast.substring("udp:".length(), broadcast.length());
-            broadcaster = new UDPBroadcaster(config);
-        } else if (broadcast.startsWith("tcp:")) {
-            String config = broadcast.substring("tcp:".length(), broadcast.length());
-            broadcaster = new TCPBroadcaster(config);
         } else {
             throw new IllegalArgumentException("Unknown broadcaster type " + broadcast);
         }

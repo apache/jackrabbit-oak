@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Strings.isNullOrEmpty;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_STRING_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.CachingSegmentReader.DEFAULT_TEMPLATE_CACHE_MB;
@@ -38,7 +36,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.SIZE
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.DEFAULT_MAX_FILE_SIZE;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 
 import org.apache.jackrabbit.oak.osgi.OsgiUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -65,6 +63,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * An OSGi wrapper for the segment node store.
@@ -340,7 +339,7 @@ public class SegmentNodeStoreService {
 
             String getMode() {
                 String mode = configuration.tarmk_mode();
-                if (isNullOrEmpty(mode)) {
+                if (Objects.toString(mode, "").isEmpty()) {
                     return System.getProperty("tarmk.mode", System.getProperty("sun.arch.data.model", "32"));
                 }
                 return mode;
@@ -522,7 +521,7 @@ public class SegmentNodeStoreService {
             @Override
             public String getRepositoryHome() {
                 String repositoryHome = OsgiUtil.lookupConfigurationThenFramework(context, "repository.home");
-                if (isNullOrEmpty(repositoryHome)) {
+                if (Objects.toString(repositoryHome, "").isEmpty()) {
                     return "repository";
                 }
                 return repositoryHome;
@@ -541,7 +540,7 @@ public class SegmentNodeStoreService {
             @Override
             public File getBackupDirectory() {
                 String backupDirectory = configuration.repository_backup_dir();
-                if (isNullOrEmpty(backupDirectory)) {
+                if (Objects.toString(backupDirectory, "").isEmpty()) {
                     return new File(getRepositoryHome(), "segmentstore-backup");
                 }
                 return new File(backupDirectory);

@@ -16,22 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 
 import java.util.function.Predicate;
 
 /**
- * Provider of facets through an {@link ElasticResponseListener}
+ * Provider of facets for Elasticsearch
  */
-public interface ElasticFacetProvider extends FulltextIndex.FacetProvider, ElasticResponseListener {
+public interface ElasticFacetProvider extends FulltextIndex.FacetProvider {
 
     /**
      * Returns the appropriate provider based on the {@link SecureFacetConfiguration}
      * @param facetConfiguration the {@link SecureFacetConfiguration} to extract facet options
+     * @param connection the {@link ElasticConnection} to perform requests
+     * @param indexDefinition the {@link ElasticIndexDefinition} to extract index options
      * @param requestHandler the {@link ElasticRequestHandler} to perform actions at request time
      * @param responseHandler the {@link ElasticResponseHandler} to decode responses
      * @param isAccessible a {@link Predicate} to check if a node is accessible
@@ -41,25 +44,27 @@ public interface ElasticFacetProvider extends FulltextIndex.FacetProvider, Elast
      */
     static ElasticFacetProvider getProvider(
             SecureFacetConfiguration facetConfiguration,
+            ElasticConnection connection,
+            ElasticIndexDefinition indexDefinition,
             ElasticRequestHandler requestHandler,
             ElasticResponseHandler responseHandler,
-            Predicate<String> isAccessible
-    ) {
+            Predicate<String> isAccessible,
+            long facetsEvaluationTimeoutMs) {
         final ElasticFacetProvider facetProvider;
         switch (facetConfiguration.getMode()) {
             case INSECURE:
                 facetProvider = new ElasticInsecureFacetAsyncProvider();
                 break;
             case STATISTICAL:
-                facetProvider = new ElasticStatisticalFacetAsyncProvider(
+                facetProvider = new ElasticStatisticalFacetAsyncProvider(connection, indexDefinition,
                         requestHandler, responseHandler, isAccessible,
-                        facetConfiguration.getRandomSeed(), facetConfiguration.getStatisticalFacetSampleSize()
+                        facetConfiguration.getStatisticalFacetSampleSize(),
+                        facetsEvaluationTimeoutMs
                 );
                 break;
             case SECURE:
             default:
-                facetProvider = new ElasticSecureFacetAsyncProvider(requestHandler, responseHandler, isAccessible);
-
+                facetProvider = new ElasticSecureFacetAsyncProvider(requestHandler, responseHandler, isAccessible, facetsEvaluationTimeoutMs);
         }
         return facetProvider;
     }

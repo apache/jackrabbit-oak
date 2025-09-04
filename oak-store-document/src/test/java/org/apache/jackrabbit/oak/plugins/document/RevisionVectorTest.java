@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import java.util.List;
+import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -40,35 +40,35 @@ public class RevisionVectorTest {
     @Test
     public void construct() {
         RevisionVector rv = new RevisionVector();
-        assertEquals(newHashSet(), newHashSet(rv));
+        assertEquals(Set.of(), SetUtils.toSet(rv));
 
         Revision rev1 = new Revision(1, 0, 1);
         Revision rev2 = new Revision(1, 0, 2);
-        rv = new RevisionVector(newHashSet(rev1, rev2));
-        assertEquals(newHashSet(rev1, rev2), newHashSet(rv));
+        rv = new RevisionVector(Set.of(rev1, rev2));
+        assertEquals(Set.of(rev1, rev2), SetUtils.toSet(rv));
 
-        rv = new RevisionVector(Lists.newArrayList(rev1, rev2));
-        assertEquals(newHashSet(rev1, rev2), newHashSet(rv));
+        rv = new RevisionVector(List.of(rev1, rev2));
+        assertEquals(Set.of(rev1, rev2), SetUtils.toSet(rv));
     }
 
     @Test
     public void update() {
         Revision rev1 = new Revision(1, 0, 1);
         RevisionVector rv = new RevisionVector(rev1);
-        assertEquals(1, Iterables.size(rv));
+        assertEquals(1, IterableUtils.size(rv));
         assertSame(rv, rv.update(rev1));
 
         Revision rev2 = new Revision(2, 0, 1);
         rv = rv.update(rev2);
-        assertEquals(newHashSet(rev2), newHashSet(rv));
+        assertEquals(Set.of(rev2), SetUtils.toSet(rv));
 
         Revision rev3 = new Revision(3, 0, 2);
         rv = rv.update(rev3);
-        assertEquals(newHashSet(rev2, rev3), newHashSet(rv));
+        assertEquals(Set.of(rev2, rev3), SetUtils.toSet(rv));
 
         rev3 = rev3.asBranchRevision();
         rv = rv.update(rev3);
-        assertEquals(newHashSet(rev2, rev3), newHashSet(rv));
+        assertEquals(Set.of(rev2, rev3), SetUtils.toSet(rv));
     }
 
     @Test
@@ -109,7 +109,7 @@ public class RevisionVectorTest {
     public void pmin() {
         RevisionVector rv1 = new RevisionVector();
         RevisionVector rv2 = new RevisionVector();
-        assertEquals(newHashSet(), newHashSet(rv1.pmin(rv2)));
+        assertEquals(Set.of(), SetUtils.toSet(rv1.pmin(rv2)));
 
         Revision rev11 = new Revision(1, 0, 1);
         Revision rev21 = new Revision(2, 0, 1);
@@ -118,50 +118,50 @@ public class RevisionVectorTest {
 
         rv1 = rv1.update(rev11);
         // rv1: [r1-0-1], rv2: []
-        assertEquals(newHashSet(), newHashSet(rv1.pmin(rv2)));
-        assertEquals(newHashSet(), newHashSet(rv2.pmin(rv1)));
+        assertEquals(Set.of(), SetUtils.toSet(rv1.pmin(rv2)));
+        assertEquals(Set.of(), SetUtils.toSet(rv2.pmin(rv1)));
 
         rv2 = rv2.update(rev12);
         // rv1: [r1-0-1], rv2: [r1-0-2]
-        assertEquals(newHashSet(), newHashSet(rv1.pmin(rv2)));
-        assertEquals(newHashSet(), newHashSet(rv2.pmin(rv1)));
+        assertEquals(Set.of(), SetUtils.toSet(rv1.pmin(rv2)));
+        assertEquals(Set.of(), SetUtils.toSet(rv2.pmin(rv1)));
 
         rv1 = rv1.update(rev12);
         // rv1: [r1-0-1, r1-0-2], rv2: [r1-0-2]
-        assertEquals(newHashSet(rev12), newHashSet(rv1.pmin(rv2)));
-        assertEquals(newHashSet(rev12), newHashSet(rv2.pmin(rv1)));
+        assertEquals(Set.of(rev12), SetUtils.toSet(rv1.pmin(rv2)));
+        assertEquals(Set.of(rev12), SetUtils.toSet(rv2.pmin(rv1)));
 
         rv2 = rv2.update(rev22);
         // rv1: [r1-0-1, r1-0-2], rv2: [r2-0-2]
-        assertEquals(newHashSet(rev12), newHashSet(rv1.pmin(rv2)));
-        assertEquals(newHashSet(rev12), newHashSet(rv2.pmin(rv1)));
+        assertEquals(Set.of(rev12), SetUtils.toSet(rv1.pmin(rv2)));
+        assertEquals(Set.of(rev12), SetUtils.toSet(rv2.pmin(rv1)));
 
         rv2 = rv2.update(rev11);
         // rv1: [r1-0-1, r1-0-2], rv2: [r1-0-1, r2-0-2]
-        assertEquals(newHashSet(rev11, rev12), newHashSet(rv1.pmin(rv2)));
-        assertEquals(newHashSet(rev11, rev12), newHashSet(rv2.pmin(rv1)));
+        assertEquals(Set.of(rev11, rev12), SetUtils.toSet(rv1.pmin(rv2)));
+        assertEquals(Set.of(rev11, rev12), SetUtils.toSet(rv2.pmin(rv1)));
 
         rv1 = rv1.update(rev21);
         // rv1: [r2-0-1, r1-0-2], rv2: [r1-0-1, r2-0-2]
-        assertEquals(newHashSet(rev11, rev12), newHashSet(rv1.pmin(rv2)));
-        assertEquals(newHashSet(rev11, rev12), newHashSet(rv2.pmin(rv1)));
+        assertEquals(Set.of(rev11, rev12), SetUtils.toSet(rv1.pmin(rv2)));
+        assertEquals(Set.of(rev11, rev12), SetUtils.toSet(rv2.pmin(rv1)));
 
         rv1 = rv1.update(rev22);
         // rv1: [r2-0-1, r2-0-2], rv2: [r1-0-1, r2-0-2]
-        assertEquals(newHashSet(rev11, rev22), newHashSet(rv1.pmin(rv2)));
-        assertEquals(newHashSet(rev11, rev22), newHashSet(rv2.pmin(rv1)));
+        assertEquals(Set.of(rev11, rev22), SetUtils.toSet(rv1.pmin(rv2)));
+        assertEquals(Set.of(rev11, rev22), SetUtils.toSet(rv2.pmin(rv1)));
 
         rv2 = rv2.update(rev21);
         // rv1: [r2-0-1, r2-0-2], rv2: [r2-0-1, r2-0-2]
-        assertEquals(newHashSet(rev21, rev22), newHashSet(rv1.pmin(rv2)));
-        assertEquals(newHashSet(rev21, rev22), newHashSet(rv2.pmin(rv1)));
+        assertEquals(Set.of(rev21, rev22), SetUtils.toSet(rv1.pmin(rv2)));
+        assertEquals(Set.of(rev21, rev22), SetUtils.toSet(rv2.pmin(rv1)));
     }
 
     @Test
     public void pmax() {
         RevisionVector rv1 = new RevisionVector();
         RevisionVector rv2 = new RevisionVector();
-        assertEquals(newHashSet(), newHashSet(rv1.pmax(rv2)));
+        assertEquals(Set.of(), SetUtils.toSet(rv1.pmax(rv2)));
 
         Revision rev11 = new Revision(1, 0, 1);
         Revision rev21 = new Revision(2, 0, 1);
@@ -170,43 +170,43 @@ public class RevisionVectorTest {
 
         rv1 = rv1.update(rev11);
         // rv1: [r1-0-1], rv2: []
-        assertEquals(newHashSet(rev11), newHashSet(rv1.pmax(rv2)));
-        assertEquals(newHashSet(rev11), newHashSet(rv2.pmax(rv1)));
+        assertEquals(Set.of(rev11), SetUtils.toSet(rv1.pmax(rv2)));
+        assertEquals(Set.of(rev11), SetUtils.toSet(rv2.pmax(rv1)));
 
         rv2 = rv2.update(rev12);
         // rv1: [r1-0-1], rv2: [r1-0-2]
-        assertEquals(newHashSet(rev11, rev12), newHashSet(rv1.pmax(rv2)));
-        assertEquals(newHashSet(rev11, rev12), newHashSet(rv2.pmax(rv1)));
+        assertEquals(Set.of(rev11, rev12), SetUtils.toSet(rv1.pmax(rv2)));
+        assertEquals(Set.of(rev11, rev12), SetUtils.toSet(rv2.pmax(rv1)));
 
         rv1 = rv1.update(rev12);
         // rv1: [r1-0-1, r1-0-2], rv2: [r1-0-2]
-        assertEquals(newHashSet(rev11, rev12), newHashSet(rv1.pmax(rv2)));
-        assertEquals(newHashSet(rev11, rev12), newHashSet(rv2.pmax(rv1)));
+        assertEquals(Set.of(rev11, rev12), SetUtils.toSet(rv1.pmax(rv2)));
+        assertEquals(Set.of(rev11, rev12), SetUtils.toSet(rv2.pmax(rv1)));
 
         rv2 = rv2.update(rev22);
         // rv1: [r1-0-1, r1-0-2], rv2: [r2-0-2]
-        assertEquals(newHashSet(rev11, rev22), newHashSet(rv1.pmax(rv2)));
-        assertEquals(newHashSet(rev11, rev22), newHashSet(rv2.pmax(rv1)));
+        assertEquals(Set.of(rev11, rev22), SetUtils.toSet(rv1.pmax(rv2)));
+        assertEquals(Set.of(rev11, rev22), SetUtils.toSet(rv2.pmax(rv1)));
 
         rv2 = rv2.update(rev11);
         // rv1: [r1-0-1, r1-0-2], rv2: [r1-0-1, r2-0-2]
-        assertEquals(newHashSet(rev11, rev22), newHashSet(rv1.pmax(rv2)));
-        assertEquals(newHashSet(rev11, rev22), newHashSet(rv2.pmax(rv1)));
+        assertEquals(Set.of(rev11, rev22), SetUtils.toSet(rv1.pmax(rv2)));
+        assertEquals(Set.of(rev11, rev22), SetUtils.toSet(rv2.pmax(rv1)));
 
         rv1 = rv1.update(rev21);
         // rv1: [r2-0-1, r1-0-2], rv2: [r1-0-1, r2-0-2]
-        assertEquals(newHashSet(rev21, rev22), newHashSet(rv1.pmax(rv2)));
-        assertEquals(newHashSet(rev21, rev22), newHashSet(rv2.pmax(rv1)));
+        assertEquals(Set.of(rev21, rev22), SetUtils.toSet(rv1.pmax(rv2)));
+        assertEquals(Set.of(rev21, rev22), SetUtils.toSet(rv2.pmax(rv1)));
 
         rv1 = rv1.update(rev22);
         // rv1: [r2-0-1, r2-0-2], rv2: [r1-0-1, r2-0-2]
-        assertEquals(newHashSet(rev21, rev22), newHashSet(rv1.pmax(rv2)));
-        assertEquals(newHashSet(rev21, rev22), newHashSet(rv2.pmax(rv1)));
+        assertEquals(Set.of(rev21, rev22), SetUtils.toSet(rv1.pmax(rv2)));
+        assertEquals(Set.of(rev21, rev22), SetUtils.toSet(rv2.pmax(rv1)));
 
         rv2 = rv2.update(rev21);
         // rv1: [r2-0-1, r2-0-2], rv2: [r2-0-1, r2-0-2]
-        assertEquals(newHashSet(rev21, rev22), newHashSet(rv1.pmax(rv2)));
-        assertEquals(newHashSet(rev21, rev22), newHashSet(rv2.pmax(rv1)));
+        assertEquals(Set.of(rev21, rev22), SetUtils.toSet(rv1.pmax(rv2)));
+        assertEquals(Set.of(rev21, rev22), SetUtils.toSet(rv2.pmax(rv1)));
     }
 
     @Test

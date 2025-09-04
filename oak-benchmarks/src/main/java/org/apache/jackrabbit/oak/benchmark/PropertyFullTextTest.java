@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -36,12 +34,12 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.RowIterator;
 
 import java.io.File;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -181,7 +179,7 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
                 t.setProperty("jcr:primaryType", "nt:unstructured", NAME);
 
                 NodeBuilder uuid = IndexUtils.createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
-                        ImmutableList.<String>of("jcr:uuid"), null);
+                        List.of("jcr:uuid"), null);
                 uuid.setProperty("info",
                         "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
 
@@ -232,7 +230,7 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
 
         public TestContext(@NotNull final String title) {
             LOG.trace("Setting title - {} for test context", title);
-            this.title = checkNotNull(title);
+            this.title = requireNonNull(title);
         }
     }
 

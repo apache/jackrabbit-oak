@@ -33,8 +33,8 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 @Component(
         configurationPolicy = ConfigurationPolicy.REQUIRE,
@@ -63,7 +63,7 @@ public class DataStoreTextProviderService {
     @Activate
     private void activate(BundleContext context, Configuration config) throws IOException {
         String dirPath = config.dir();
-        checkNotNull(dirPath, "Directory path not configured via 'dir'");
+        requireNonNull(dirPath, "Directory path not configured via 'dir'");
         File dir = new File(dirPath);
         checkArgument(dir.exists(), "Directory %s does not exist", dir.getAbsolutePath());
         textWriter = new DataStoreTextWriter(dir, true);

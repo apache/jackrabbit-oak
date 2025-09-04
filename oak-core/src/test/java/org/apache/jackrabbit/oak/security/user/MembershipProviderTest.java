@@ -16,15 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
@@ -33,6 +31,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +67,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         Group member2 = createGroup();
         gr.addMembers(member.getID(), member2.getID());
 
-        Map<String, String> m = Maps.newHashMap();
+        Map<String, String> m = new HashMap<>();
         m.put(getContentID(member.getID()), member.getID());
         m.put(getContentID(member2.getID()), member2.getID());
 
@@ -86,7 +85,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
     public void testRemoveNonMembers() throws Exception {
         Map<String, String> nonMemberIds = createIdMap(1, 5);
 
-        Set<String> expected = Sets.newHashSet(nonMemberIds.values());
+        Set<String> expected = new HashSet<>(nonMemberIds.values());
         Set<String> failed = mp.removeMembers(getTree(createGroup()), nonMemberIds);
         assertEquals(expected, failed);
     }
@@ -117,7 +116,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
             m.put(getContentID(memberTree), memberId);
         }
 
-        Set<String> expected = Sets.newHashSet(m.values());
+        Set<String> expected = new HashSet<>(m.values());
         Set<String> failed = mp.addMembers(getTree(grp), m);
         assertFalse(failed.isEmpty());
         assertEquals(expected, failed);
@@ -316,7 +315,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembers(getTree(g), true);
-        assertEquals(2, Iterators.size(res));
+        assertEquals(2, IteratorUtils.size(res));
     }
 
     @Test
@@ -331,7 +330,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembers(getTree(g), true);
-        assertEquals(2, Iterators.size(res));
+        assertEquals(2, IteratorUtils.size(res));
     }
 
     @Test
@@ -343,7 +342,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembers(getTree(g), false);
-        assertEquals(1, Iterators.size(res));
+        assertEquals(1, IteratorUtils.size(res));
     }
 
     @Test
@@ -360,7 +359,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembership(getTree(user), true);
-        assertEquals(3, Iterators.size(res));
+        assertEquals(3, IteratorUtils.size(res));
     }
 
     @Test
@@ -378,7 +377,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembership(getTree(user), true);
-        assertEquals(3, Iterators.size(res));
+        assertEquals(3, IteratorUtils.size(res));
     }
 
     @Test
@@ -395,7 +394,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         root.commit();
 
         Iterator<Tree> res = mp.getMembership(getTree(user), false);
-        assertEquals(1, Iterators.size(res));
+        assertEquals(1, IteratorUtils.size(res));
     }
     
     @Test
@@ -412,6 +411,6 @@ public class MembershipProviderTest extends MembershipBaseTest {
     }
     
     private static boolean contains(@NotNull Iterator<Tree> treeIterator, @NotNull Tree tree) {
-        return Iterators.contains(Iterators.transform(treeIterator, Tree::getPath), tree.getPath());
+        return IteratorUtils.contains(IteratorUtils.transform(treeIterator, Tree::getPath), tree.getPath());
     }
 }

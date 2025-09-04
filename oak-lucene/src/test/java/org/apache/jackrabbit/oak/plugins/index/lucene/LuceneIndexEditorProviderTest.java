@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -40,6 +36,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.junit.Test;
 
+import java.util.Map;
+import java.util.Set;
+
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
@@ -50,77 +49,80 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class LuceneIndexEditorProviderTest {
-    private NodeState root = INITIAL_CONTENT;
-    private NodeBuilder builder = root.builder();
+    private final NodeState root = INITIAL_CONTENT;
+    private final NodeBuilder builder = root.builder();
 
     @Test
     public void readOnlyBuilderUsedForSync() throws Exception {
-        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
+        try (LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
                 null,
                 null,
                 null,
-                Mounts.defaultMountInfoProvider());
-        editorProvider.setIndexingQueue(mock(DocumentQueue.class));
+                Mounts.defaultMountInfoProvider())) {
+            editorProvider.setIndexingQueue(mock(DocumentQueue.class));
 
-        IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), false, false);
-        NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
-        Editor editor = editorProvider.getIndexEditor(TYPE_LUCENE, defnBuilder, root, callback);
-        LuceneIndexEditor luceneEditor = (LuceneIndexEditor) editor;
+            IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), false, false);
+            NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
+            Editor editor = editorProvider.getIndexEditor(TYPE_LUCENE, defnBuilder, root, callback);
+            LuceneIndexEditor luceneEditor = (LuceneIndexEditor) editor;
 
-        NodeBuilder builderFromContext =
-                (NodeBuilder) FieldUtils.readField(luceneEditor.getContext(), "definitionBuilder", true);
+            NodeBuilder builderFromContext =
+                    (NodeBuilder) FieldUtils.readField(luceneEditor.getContext(), "definitionBuilder", true);
 
-        try {
-            builderFromContext.setProperty("foo", "bar");
-            fail("Should have been read only builder");
-        } catch (UnsupportedOperationException ignore) {
+            try {
+                builderFromContext.setProperty("foo", "bar");
+                fail("Should have been read only builder");
+            } catch (UnsupportedOperationException ignore) {
 
+            }
         }
     }
 
     @Test
     public void reuseOldIndexDefinition() throws Exception{
         IndexTracker tracker = mock(IndexTracker.class);
-        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
+        try (LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
                 tracker,
                 null,
                 null,
-                Mounts.defaultMountInfoProvider());
-        editorProvider.setIndexingQueue(mock(DocumentQueue.class));
-        //Set up a different IndexDefinition which needs to be returned
-        //from tracker with a marker property
-        NodeBuilder testBuilder = createIndexDefinition("fooIndex").builder();
-        testBuilder.setProperty("foo", "bar");
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, testBuilder.getNodeState(), "/foo");
-        when(tracker.getIndexDefinition("/oak:index/fooIndex")).thenReturn(defn);
+                Mounts.defaultMountInfoProvider())) {
+            editorProvider.setIndexingQueue(mock(DocumentQueue.class));
+            //Set up a different IndexDefinition which needs to be returned
+            //from tracker with a marker property
+            NodeBuilder testBuilder = createIndexDefinition("fooIndex").builder();
+            testBuilder.setProperty("foo", "bar");
+            LuceneIndexDefinition defn = new LuceneIndexDefinition(root, testBuilder.getNodeState(), "/foo");
+            when(tracker.getIndexDefinition("/oak:index/fooIndex")).thenReturn(defn);
 
-        IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), false, false);
-        NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
-        Editor editor = editorProvider.getIndexEditor(TYPE_LUCENE, defnBuilder, root, callback);
-        LuceneIndexEditor luceneEditor = (LuceneIndexEditor) editor;
-        FulltextIndexEditorContext<Document> context = luceneEditor.getContext();
+            IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), false, false);
+            NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
+            Editor editor = editorProvider.getIndexEditor(TYPE_LUCENE, defnBuilder, root, callback);
+            LuceneIndexEditor luceneEditor = (LuceneIndexEditor) editor;
+            FulltextIndexEditorContext<Document> context = luceneEditor.getContext();
 
-        //Definition should reflect the marker property
-        assertEquals("bar", context.getDefinition().getDefinitionNodeState().getString("foo"));
+            //Definition should reflect the marker property
+            assertEquals("bar", context.getDefinition().getDefinitionNodeState().getString("foo"));
+        }
     }
 
     @Test
     public void editorNullInCaseOfReindex() throws Exception{
-        LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
+        try (LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
                 null,
                 null,
                 null,
-                Mounts.defaultMountInfoProvider());
-        editorProvider.setIndexingQueue(mock(DocumentQueue.class));
-        IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), true, false);
-        NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
-        Editor editor = editorProvider.getIndexEditor(TYPE_LUCENE, defnBuilder, root, callback);
-        assertNull(editor);
+                Mounts.defaultMountInfoProvider())) {
+            editorProvider.setIndexingQueue(mock(DocumentQueue.class));
+            IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), true, false);
+            NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
+            Editor editor = editorProvider.getIndexEditor(TYPE_LUCENE, defnBuilder, root, callback);
+            assertNull(editor);
+        }
     }
 
     private NodeState createIndexDefinition(String idxName) {
         NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
-                idxName, ImmutableSet.of("foo"), "async");
+                idxName, Set.of("foo"), "async");
         TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.NRT);
         LuceneIndexEditorContext.configureUniqueId(idx);
         LuceneIndexDefinition.updateDefinition(idx);
@@ -128,9 +130,8 @@ public class LuceneIndexEditorProviderTest {
     }
 
     private CommitInfo newCommitInfo() {
-        CommitInfo info = new CommitInfo("admin", "s1",
-                ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext()));
-        return info;
+        return new CommitInfo("admin", "s1",
+                Map.of(CommitContext.NAME, new SimpleCommitContext()));
     }
 
     private static class TestCallback implements IndexUpdateCallback, IndexingContext, ContextAwareCallback {
@@ -172,7 +173,7 @@ public class LuceneIndexEditorProviderTest {
         }
 
         @Override
-        public void indexUpdate() throws CommitFailedException {
+        public void indexUpdate() {
 
         }
 

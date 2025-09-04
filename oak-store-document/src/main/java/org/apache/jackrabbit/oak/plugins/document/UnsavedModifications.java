@@ -16,14 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Supplier;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -31,15 +37,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Supplier;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Commit.createUpdateOp;
@@ -71,8 +69,8 @@ class UnsavedModifications {
      */
     @Nullable
     public Revision put(@NotNull Path path, @NotNull Revision revision) {
-        checkNotNull(path);
-        checkNotNull(revision);
+        requireNonNull(path);
+        requireNonNull(revision);
         for (;;) {
             Revision previous = map.get(path);
             if (previous == null) {
@@ -114,18 +112,9 @@ class UnsavedModifications {
         if (map.isEmpty()) {
             return Collections.emptyList();
         } else {
-            return Iterables.transform(Iterables.filter(map.entrySet(),
-                    new Predicate<Map.Entry<Path, Revision>>() {
-                @Override
-                public boolean apply(Map.Entry<Path, Revision> input) {
-                    return start.compareRevisionTime(input.getValue()) < 1;
-                }
-            }), new Function<Map.Entry<Path, Revision>, Path>() {
-                @Override
-                public Path apply(Map.Entry<Path, Revision> input) {
-                    return input.getKey();
-                }
-            });
+            return IterableUtils.transform(IterableUtils.filter(map.entrySet(),
+                    input ->start.compareRevisionTime(input.getValue()) < 1),
+                    Map.Entry::getKey);
         }
     }
 
@@ -150,10 +139,10 @@ class UnsavedModifications {
         if (map.size() == 0) {
             return stats;
         }
-        checkNotNull(store);
-        checkNotNull(sweepRevision);
-        checkNotNull(snapshot);
-        checkNotNull(lock);
+        requireNonNull(store);
+        requireNonNull(sweepRevision);
+        requireNonNull(snapshot);
+        requireNonNull(lock);
 
         Stopwatch sw = Stopwatch.createStarted();
         // get a copy of the map while holding the lock
@@ -164,16 +153,16 @@ class UnsavedModifications {
         Map<Path, Revision> pending;
         try {
             snapshot.acquiring(getMostRecentRevision());
-            pending = Maps.newTreeMap(PathComparator.INSTANCE);
+            pending = new TreeMap<>(PathComparator.INSTANCE);
             pending.putAll(map);
             sweepRev = sweepRevision.get();
         } finally {
             lock.unlock();
         }
         stats.num = pending.size();
-        List<UpdateOp> updates = Lists.newArrayList();
-        Map<Path, Revision> pathToRevision = Maps.newHashMap();
-        for (Iterable<Map.Entry<Path, Revision>> batch : Iterables.partition(
+        List<UpdateOp> updates = new ArrayList<>();
+        Map<Path, Revision> pathToRevision = new HashMap<>();
+        for (Iterable<Map.Entry<Path, Revision>> batch : IterableUtils.partition(
                 pending.entrySet(), BACKGROUND_MULTI_UPDATE_LIMIT)) {
             for (Map.Entry<Path, Revision> entry : batch) {
                 Path p = entry.getKey();

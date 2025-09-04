@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import java.util.HashMap;
@@ -24,15 +23,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -47,61 +45,61 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void emptyCase() {
-        Set<String> preferred = ImmutableSet.of("u", "v", "x", "y", "z");
+        Set<String> preferred = Set.of("u", "v", "x", "y", "z");
         ChildNodeStateProvider p = new ChildNodeStateProvider(emptyList(), "/a", preferred);
         assertEquals(0, p.getChildNodeCount(1));
-        assertEquals(0, Iterables.size(p.getChildNodeNames()));
-        assertEquals(0, Iterables.size(p.getChildNodeEntries()));
+        assertEquals(0, IterableUtils.size(p.getChildNodeNames()));
+        assertEquals(0, IterableUtils.size(p.getChildNodeEntries()));
         assertFalse(p.hasChildNode("foo"));
         assertFalse(p.getChildNode("foo").exists());
     }
 
     @Test
     public void children() {
-        Set<String> preferred = ImmutableSet.of("jcr:content", "x");
+        Set<String> preferred = Set.of("jcr:content", "x");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f", "/g", "/h"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
-        assertEquals(asList("jcr:content", "c", "d"), copyOf(childNames(p.children())));
+        assertEquals(asList("jcr:content", "c", "d"), ListUtils.toList(childNames(p.children())));
         assertEquals(5, citr.getCount());
 
         citr.reset();
         p = new ChildNodeStateProvider(citr, "/e", preferred);
-        assertEquals(singletonList("f"), copyOf(childNames(p.children())));
+        assertEquals(singletonList("f"), ListUtils.toList(childNames(p.children())));
         assertEquals(7, citr.getCount());
 
 
         p = new ChildNodeStateProvider(citr, "/g", preferred);
-        assertEquals(emptyList(), copyOf(childNames(p.children())));
+        assertEquals(emptyList(), ListUtils.toList(childNames(p.children())));
     }
 
     @Test
     public void children2() {
-        Set<String> preferred = ImmutableSet.of("b");
+        Set<String> preferred = Set.of("b");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/b", "/a/b/c", "/a/b/c/d", "/e", "/e/f", "/g", "/h"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
-        assertEquals(singletonList("b"), copyOf(childNames(p.children())));
+        assertEquals(singletonList("b"), ListUtils.toList(childNames(p.children())));
         assertEquals(5, citr.getCount());
 
         citr.reset();
         p = new ChildNodeStateProvider(citr, "/a/b", preferred);
-        assertEquals(singletonList("c"), copyOf(childNames(p.children())));
+        assertEquals(singletonList("c"), ListUtils.toList(childNames(p.children())));
         assertEquals(5, citr.getCount());
 
         p = new ChildNodeStateProvider(citr, "/a/b/c", preferred);
-        assertEquals(singletonList("d"), copyOf(childNames(p.children())));
+        assertEquals(singletonList("d"), ListUtils.toList(childNames(p.children())));
 
         p = new ChildNodeStateProvider(citr, "/a/b/c/d", preferred);
-        assertEquals(emptyList(), copyOf(childNames(p.children())));
+        assertEquals(emptyList(), ListUtils.toList(childNames(p.children())));
 
         p = new ChildNodeStateProvider(citr, "/h", preferred);
-        assertEquals(emptyList(), copyOf(childNames(p.children())));
+        assertEquals(emptyList(), ListUtils.toList(childNames(p.children())));
     }
 
     @Test
     public void hasChildNode_InLimit() {
-        Set<String> preferred = ImmutableSet.of("jcr:content", "x");
+        Set<String> preferred = Set.of("jcr:content", "x");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
@@ -130,7 +128,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void allPreferredReadable() {
-        Set<String> preferred = ImmutableSet.of("x", "y");
+        Set<String> preferred = Set.of("x", "y");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/x", "/a/x/1", "/a/x/2", "/a/x/3",
                 "/a/y"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
@@ -141,7 +139,7 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void childCount() {
-        Set<String> preferred = ImmutableSet.of("jcr:content", "x");
+        Set<String> preferred = Set.of("jcr:content", "x");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
         assertEquals(1, p.getChildNodeCount(1));
@@ -150,28 +148,28 @@ public class ChildNodeStateProviderTest {
 
     @Test
     public void childNames() {
-        Set<String> preferred = ImmutableSet.of("jcr:content");
+        Set<String> preferred = Set.of("jcr:content");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
-        assertEquals(asList("jcr:content", "c", "d"), copyOf(childNames(p.children())));
+        assertEquals(asList("jcr:content", "c", "d"), ListUtils.toList(childNames(p.children())));
         assertEquals(5, citr.getCount());
     }
 
     @Test
     public void childNames2() {
-        Set<String> preferred = ImmutableSet.of("jcr:content");
+        Set<String> preferred = Set.of("jcr:content");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata",
                 "/a/c", "/a/c/status","/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
-        assertEquals(asList("jcr:content", "c", "d"), copyOf(childNames(p.children())));
+        assertEquals(asList("jcr:content", "c", "d"), ListUtils.toList(childNames(p.children())));
         assertEquals(7, citr.getCount());
     }
 
     @Test
     public void childEntries() {
-        Set<String> preferred = ImmutableSet.of("jcr:content");
+        Set<String> preferred = Set.of("jcr:content");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));
         ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
 
@@ -185,7 +183,7 @@ public class ChildNodeStateProviderTest {
     }
 
     private Iterator<String> childNames(Iterator<NodeStateEntry> children) {
-        return Iterators.transform(children, c -> PathUtils.getName(c.getPath()));
+        return IteratorUtils.transform(children, c -> PathUtils.getName(c.getPath()));
     }
 
 }

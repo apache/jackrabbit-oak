@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,16 +48,28 @@ public class CSVFileBinaryResourceProviderTest {
         p.printRecord(null, null, "text/plain", null, "/c");
 
         File dataFile = temporaryFolder.newFile();
-        Files.write(sb, dataFile, Charsets.UTF_8);
+        Files.writeString(dataFile.toPath(), sb);
 
         CSVFileBinaryResourceProvider provider = new CSVFileBinaryResourceProvider(dataFile, new MemoryBlobStore());
 
-        Map<String, BinaryResource> binaries = provider.getBinaries("/").uniqueIndex(BinarySourceMapper.BY_BLOBID);
+        Map<String, BinaryResource> binaries = StreamUtils.toStream(provider.getBinaries("/")).collect(Collectors.toMap(
+                BinarySourceMapper.BY_BLOBID,
+                element -> element,
+                (oldValue, newValue) -> {
+                    throw new IllegalArgumentException("Duplicate key found: " + BinarySourceMapper.BY_BLOBID.apply(newValue));
+                } // This handles the duplicate key scenario similar to uniqueIndex
+        ));
         assertEquals(3, binaries.size());
         assertEquals("a", binaries.get("a").getBlobId());
         assertEquals("/a", binaries.get("a").getPath());
 
-        binaries = provider.getBinaries("/a").uniqueIndex(BinarySourceMapper.BY_BLOBID);
+        binaries = StreamUtils.toStream(provider.getBinaries("/a")).collect(Collectors.toMap(
+                BinarySourceMapper.BY_BLOBID,
+                element -> element,
+                (oldValue, newValue) -> {
+                    throw new IllegalArgumentException("Duplicate key found: " + BinarySourceMapper.BY_BLOBID.apply(newValue));
+                } // This handles the duplicate key scenario similar to uniqueIndex
+        ));
         assertEquals(1, binaries.size());
 
         provider.close();

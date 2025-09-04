@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -43,6 +42,7 @@ import javax.jcr.query.Query;
 import javax.jcr.security.AccessControlManager;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -68,7 +68,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
         if (acl != null) {
-            Map<String, Value[]> restrictions = ImmutableMap.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {getValueFactory(root).createValue(propertyName, PropertyType.NAME)});
+            Map<String, Value[]> restrictions = Map.of(AccessControlConstants.REP_ITEM_NAMES, new Value[] {getValueFactory(root).createValue(propertyName, PropertyType.NAME)});
             acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.REP_READ_PROPERTIES), true, null, restrictions);
             acMgr.setPolicy(acl.getPath(), acl);
         }
@@ -85,7 +85,7 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         AccessControlManager acm = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, node.getPath());
         if (acl != null) {
-            Map<String, Value> restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(""));
+            Map<String, Value> restrictions = Map.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(""));
             acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acm, PrivilegeConstants.JCR_ALL), true, restrictions);
             acm.setPolicy(acl.getPath(), acl);
             root.commit();
@@ -96,8 +96,8 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         // test that query result corresponds to the direct access (node readable, subnode not readable)
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
-        Iterable<String> expected = ImmutableSet.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
+        Iterable<String> expected = Set.of(node.getPath());
+        assertTrue(IterableUtils.elementsEqual(expected, IterableUtils.transform(result.getRows(), ResultRow::getPath)));
     }
 
     @Test
@@ -108,10 +108,10 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         AccessControlManager acm = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acm, node.getPath());
         if (acl != null) {
-            Map<String, Value> restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(""));
+            Map<String, Value> restrictions = Map.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue(""));
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ALL), true, restrictions);
 
-            restrictions = ImmutableMap.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue("/"+NodeTypeConstants.JCR_PRIMARYTYPE));
+            restrictions = Map.of(AccessControlConstants.REP_GLOB, getValueFactory(root).createValue("/"+NodeTypeConstants.JCR_PRIMARYTYPE));
             acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_READ_PROPERTIES), true, restrictions);
 
             acm.setPolicy(acl.getPath(), acl);
@@ -123,8 +123,8 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         // test that query result corresponds to the direct access (node readable, subnode not readable)
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
-        Iterable<String> expected = ImmutableSet.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
+        Iterable<String> expected = Set.of(node.getPath());
+        assertTrue(IterableUtils.elementsEqual(expected, IterableUtils.transform(result.getRows(), row -> row.getPath())));
     }
 
     @Test
@@ -140,8 +140,8 @@ public abstract class AbstractQueryTest extends AbstractOakCoreTest {
         // test that query result corresponds to the direct access (node readable, subnode not readable)
         Result result = getTestRoot().getQueryEngine().executeQuery(getStatement(), Query.JCR_SQL2, Collections.emptyMap(), Collections.emptyMap());
 
-        Iterable<String> expected = ImmutableSet.of(node.getPath());
-        assertTrue(Iterables.elementsEqual(expected, Iterables.transform(result.getRows(), row -> row.getPath())));
+        Iterable<String> expected = Set.of(node.getPath());
+        assertTrue(IterableUtils.elementsEqual(expected, IterableUtils.transform(result.getRows(), row -> row.getPath())));
     }
 
     private void assertAccess(@NotNull String nodePath, @NotNull String subnodePath, boolean canReadPrimaryType) throws Exception {

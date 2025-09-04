@@ -18,15 +18,16 @@
  */
 package org.apache.jackrabbit.oak.scalability.suites;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -34,18 +35,14 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
 import org.apache.jackrabbit.oak.benchmark.util.OakLuceneIndexUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -79,33 +76,24 @@ import org.slf4j.LoggerFactory;
  * <li>
  *     <code>loaders</code> - Controls the number of concurrent threads for loading blobs initially.
  *     Defaults to 1.
- * </li>
  * <li>
  *     <code>testers</code> - Controls the number of concurrent tester threads. Defaults to 1.
- * </li>
  * <li>
  *     <code>nodeLevels</code> - Comma separated string property that governs the depth and the number of
  *     nodes in the hierarchy. Defaults to 10, 5, 2.
- * </li>
  * <li>
  *     <code>densityLevel</code> - Controls the percentage of root nodes which will have sub nodes created.
  *     Defaults to 100.
- * </li>
  * <li>
  *     <code>index</code> - Controls if the index definitions are to be created. Defaults to false.
- * </li>
  * <li>
  *      <code>asyncIndex</code> - Controls whether the indexing is async. Defaults to false.
- * </li>
  * <li>
  *     <code>noFullIndex</code> - Controls whether fulltext indexing is enabled or disabled. Defaults to false.
- * </li>
  * <li>
  *     <code>randDate</code> - Controls whether to generate random dates in a range. Defaults to false.
- * </li>
  * <li>
  *     <code>customType</code> - Controls if nodes created in the load have a custom node type. Defaults to false.
- * </li>
  * </ul>
  *
  */
@@ -120,8 +108,10 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     /**
      * Controls the number of nodes at each level
      */
-    protected static final List<String> NODE_LEVELS = Splitter.on(",").trimResults()
-            .omitEmptyStrings().splitToList(System.getProperty("nodeLevels", "10,5,2"));
+    protected static final List<String> NODE_LEVELS = Arrays.stream(System.getProperty("nodeLevels", "10,5,2").split(","))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.toList());
 
     /**
      * Controls the number of concurrent tester threads
@@ -206,7 +196,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
     public ScalabilityNodeSuite(Boolean storageEnabled) {
         this.storageEnabled = storageEnabled;
-        this.nodeTypes = newArrayList();
+        this.nodeTypes = new ArrayList<>();
     }
 
     @Override
@@ -245,7 +235,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     }
 
     protected void createIndexes(Session session) throws RepositoryException {
-        Map<String, Map<String, String>> orderedMap = Maps.newHashMap();
+        Map<String, Map<String, String>> orderedMap = new HashMap<>();
         String persistencePath = "";
 
         switch (INDEX_TYPE) {
@@ -263,7 +253,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             // define lucene index on properties
             case LUCENE_FILE:
                 persistencePath =
-                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                    "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
                 OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
                         new String[]{FILTER_PROP, DATE_PROP},
@@ -272,10 +262,10 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                 break;
             case LUCENE_FILE_DOC:
                 persistencePath =
-                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                    "target" + System.getProperty("file.separator") + "lucene" + String
                         .valueOf(System.currentTimeMillis());
             case LUCENE_DOC:
-                Map<String, String> propMap = Maps.newHashMap();
+                Map<String, String> propMap = new HashMap<>();
                 propMap.put(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
                 orderedMap.put(DATE_PROP, propMap);
             case LUCENE:
@@ -305,8 +295,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
         }
 
         // recreate paths created in this run
-        searchRootPaths = newArrayList();
-        searchDescPaths = newArrayList();
+        searchRootPaths = new ArrayList<>();
+        searchDescPaths = new ArrayList<>();
 
         // create the blob load for this iteration
         createLoad(context);
@@ -358,7 +348,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
         SynchronizedDescriptiveStatistics writeStats = new SynchronizedDescriptiveStatistics();
 
-        List<Thread> loadThreads = newArrayList();
+        List<Thread> loadThreads = new ArrayList<>();
         for (int idx = 0; idx < LOADERS; idx++) {
             /* Each loader will write to a directory of the form load-idx */
             Thread t =
@@ -410,7 +400,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             context.startProfiler();
         }
         //Execute the benchmark with the number threads configured 
-        List<Thread> threads = newArrayListWithCapacity(TESTERS);
+        List<Thread> threads = new ArrayList<>(TESTERS);
         for (int idx = 0; idx < TESTERS; idx++) {
             Thread t = new Thread("Tester-" + idx) {
                 @Override
@@ -450,7 +440,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                             .with((Observer) provider)
                             .with(new LuceneIndexEditorProvider());
 
-                    if (!Strings.isNullOrEmpty(ASYNC_INDEX) && ASYNC_INDEX
+                    if (!StringUtils.isEmpty(ASYNC_INDEX) && ASYNC_INDEX
                         .equals(IndexConstants.ASYNC_PROPERTY_NAME)) {
                         oak.withAsyncIndexing();
                     }

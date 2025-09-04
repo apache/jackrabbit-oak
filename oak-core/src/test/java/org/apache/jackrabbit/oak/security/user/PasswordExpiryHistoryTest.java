@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -36,6 +34,9 @@ import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.CREDENTI
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * @see <a href="https://issues.apache.org/jira/browse/OAK-3463">OAK-3463</a>
@@ -56,10 +57,10 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
         pwAction.init(null, ConfigurationParameters.of(
                 PasswordValidationAction.CONSTRAINT, "^.*(?=.{4,}).*"
         ));
-        final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(pwAction);
+        final AuthorizableActionProvider actionProvider = securityProvider -> List.of(pwAction);
 
         ConfigurationParameters userConfig = ConfigurationParameters.of(
-                ImmutableMap.of(
+                Map.of(
                         UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider,
                         UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
                         UserConstants.PARAM_PASSWORD_HISTORY_SIZE, 10

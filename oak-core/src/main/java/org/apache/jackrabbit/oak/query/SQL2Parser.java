@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static java.util.Objects.requireNonNull;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -66,7 +65,7 @@ import org.slf4j.LoggerFactory;
  * language (here named SQL-1) is also supported.
  */
 public class SQL2Parser {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(SQL2Parser.class);
 
     // Character types, used during the tokenizer phase
@@ -98,7 +97,7 @@ public class SQL2Parser {
     private HashMap<String, BindVariableValueImpl> bindVariables;
 
     // The list of selectors of this query
-    private final Map<String, SelectorImpl> selectors = newHashMap();
+    private final Map<String, SelectorImpl> selectors = new HashMap<>();
 
     // SQL injection protection: if disabled, literals are not allowed
     private boolean allowTextLiterals = true;
@@ -127,9 +126,9 @@ public class SQL2Parser {
     public SQL2Parser(NamePathMapper namePathMapper, NodeTypeInfoProvider nodeTypes, QueryEngineSettings settings,
             QueryExecutionStats stats) {
         this.namePathMapper = namePathMapper;
-        this.nodeTypes = checkNotNull(nodeTypes);
-        this.settings = checkNotNull(settings);
-        this.stats = checkNotNull(stats);
+        this.nodeTypes = requireNonNull(nodeTypes);
+        this.settings = requireNonNull(settings);
+        this.stats = requireNonNull(stats);
     }
 
     /**

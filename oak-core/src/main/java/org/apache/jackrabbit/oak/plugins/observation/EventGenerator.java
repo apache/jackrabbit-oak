@@ -18,20 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newLinkedList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.state.MoveDetector.SOURCE_PATH;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -73,7 +72,7 @@ public class EventGenerator {
      */
     private static final int MAX_QUEUED_CONTINUATIONS = 1000;
 
-    private final LinkedList<Continuation> continuations = newLinkedList();
+    private final LinkedList<Continuation> continuations = new LinkedList<>();
 
     /**
      * Creates a new generator instance. Changes to process need to be added
@@ -195,13 +194,13 @@ public class EventGenerator {
                 if (OAK_CHILD_ORDER.equals(before.getName())) {
                     // list the child node names before and after the change
                     List<String> beforeNames =
-                            newArrayList(before.getValue(NAMES));
+                            ListUtils.toList(before.getValue(NAMES));
                     List<String> afterNames =
-                            newArrayList(after.getValue(NAMES));
+                            ListUtils.toList(after.getValue(NAMES));
 
                     // check only those names that weren't added or removed
-                    beforeNames.retainAll(newHashSet(afterNames));
-                    afterNames.retainAll(newHashSet(beforeNames));
+                    beforeNames.retainAll(new HashSet<>(afterNames));
+                    afterNames.retainAll(new HashSet<>(beforeNames));
 
                     // Selection sort beforeNames into afterNames,
                     // recording the swaps as we go

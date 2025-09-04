@@ -16,34 +16,38 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
-import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-
+import com.microsoft.azure.storage.StorageCredentials;
+import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzurePersistenceV8;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzureStorageCredentialManagerV8;
+import org.apache.jackrabbit.oak.segment.azure.v8.AzureUtilitiesV8;
+import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.cli.CliUtils;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.NodeStoreWithFileStore;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.security.InvalidKeyException;
+
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
+import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
 
 public class SegmentAzureFactory implements NodeStoreFactory {
     private final String accountName;
+    private final String sasToken;
     private final String uri;
     private final String connectionString;
     private final String containerName;
@@ -51,6 +55,8 @@ public class SegmentAzureFactory implements NodeStoreFactory {
 
     private int segmentCacheSize;
     private final boolean readOnly;
+    private static final Environment environment = new Environment();
+    private AzureStorageCredentialManagerV8 azureStorageCredentialManagerV8;
 
     public static class Builder {
         private final String dir;
@@ -58,6 +64,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         private final boolean readOnly;
 
         private String accountName;
+        private String sasToken;
         private String uri;
         private String connectionString;
         private String containerName;
@@ -70,6 +77,11 @@ public class SegmentAzureFactory implements NodeStoreFactory {
 
         public Builder accountName(String accountName) {
             this.accountName = accountName;
+            return this;
+        }
+
+        public Builder sasToken(String sasToken) {
+            this.sasToken = sasToken;
             return this;
         }
 
@@ -95,6 +107,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
 
     public SegmentAzureFactory(Builder builder) {
         this.accountName = builder.accountName;
+        this.sasToken = builder.sasToken;
         this.uri = builder.uri;
         this.connectionString = builder.connectionString;
         this.containerName = builder.containerName;
@@ -105,14 +118,14 @@ public class SegmentAzureFactory implements NodeStoreFactory {
 
     @Override
     public NodeStore create(BlobStore blobStore, Closer closer) throws IOException {
-        AzurePersistence azPersistence = null;
+        AzurePersistenceV8 azPersistence = null;
         try {
-            azPersistence = createAzurePersistence();
+            azPersistence = createAzurePersistence(closer);
         } catch (StorageException | URISyntaxException | InvalidKeyException e) {
             throw new IllegalStateException(e);
         }
 
-        File tmpDir = Files.createTempDir();
+        File tmpDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         closer.register(() -> tmpDir.delete());
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
@@ -139,34 +152,44 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         }
     }
 
-    private AzurePersistence createAzurePersistence() throws StorageException, URISyntaxException, InvalidKeyException {
+    private AzurePersistenceV8 createAzurePersistence(Closer closer) throws StorageException, URISyntaxException, InvalidKeyException {
         CloudBlobDirectory cloudBlobDirectory = null;
 
-        if (accountName != null && uri != null) {
-            String key = System.getenv("AZURE_SECRET_KEY");
-            StorageCredentials credentials = new StorageCredentialsAccountAndKey(accountName, key);
-            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credentials, uri, dir);
-        } else if (connectionString != null && containerName != null) {
-            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(connectionString, containerName, dir);
+        // connection string will take precedence over accountkey / sas / service principal
+        if (StringUtils.isNoneBlank(connectionString, containerName)) {
+            cloudBlobDirectory = AzureUtilitiesV8.cloudBlobDirectoryFrom(connectionString, containerName, dir);
+        } else if (StringUtils.isNoneBlank(accountName, uri)) {
+            StorageCredentials credentials = null;
+            if (StringUtils.isNotBlank(sasToken)) {
+                credentials = new StorageCredentialsSharedAccessSignature(sasToken);
+            } else {
+                this.azureStorageCredentialManagerV8 = new AzureStorageCredentialManagerV8();
+                credentials = azureStorageCredentialManagerV8.getStorageCredentialsFromEnvironment(accountName, environment);
+                closer.register(azureStorageCredentialManagerV8);
+            }
+            cloudBlobDirectory = AzureUtilitiesV8.cloudBlobDirectoryFrom(credentials, uri, dir);
         }
 
         if (cloudBlobDirectory == null) {
             throw new IllegalArgumentException("Could not connect to Azure storage. Too few connection parameters specified!");
         }
 
-        return new AzurePersistence(cloudBlobDirectory);
+        return new AzurePersistenceV8(cloudBlobDirectory);
     }
 
     @Override
     public boolean hasExternalBlobReferences() throws IOException {
-        AzurePersistence azPersistence = null;
+        AzurePersistenceV8 azPersistence = null;
+        Closer closer = Closer.create();
+        CliUtils.handleSigInt(closer);
         try {
-            azPersistence = createAzurePersistence();
+            azPersistence = createAzurePersistence(closer);
         } catch (StorageException | URISyntaxException | InvalidKeyException e) {
+            closer.close();
             throw new IllegalStateException(e);
         }
 
-        File tmpDir = Files.createTempDir();
+        File tmpDir = Files.createTempDirectory(getClass().getSimpleName() + "-").toFile();
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
 
@@ -178,6 +201,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             throw new IOException(e);
         } finally {
             tmpDir.delete();
+            closer.close();
         }
     }
 

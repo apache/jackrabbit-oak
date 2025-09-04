@@ -30,11 +30,14 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.57-SNAPSHOT</version>
+  <version>1.85-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
-    <minimalMavenBuildVersion>3.3.9</minimalMavenBuildVersion><!-- evaluated by ASF parent -->
+    <!-- build time stamp: should be updated prior to a release -->
+    <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
+    <project.build.outputTimestamp>1754718239</project.build.outputTimestamp>
+    <minimalMavenBuildVersion>3.6.1</minimalMavenBuildVersion><!-- due to https://issues.apache.org/jira/browse/MNG-6059 -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
@@ -45,7 +48,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.11</jackrabbit.version>
+    <jackrabbit.version>2.22.2</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -53,25 +56,24 @@
     <mongo.url />
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
-    <lucene.version>4.7.1</lucene.version>
-    <solr.version>8.11.1</solr.version>
-    <mongo.driver.version>3.12.11</mongo.driver.version>
+    <lucene.version>4.7.2</lucene.version>
+    <mongo.driver.version>5.2.1</mongo.driver.version>
     <slf4j.api.version>1.7.36</slf4j.api.version>
     <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
-    <logback.version>1.2.10</logback.version>
+    <logback.version>1.2.13</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
-    <!-- OAK-10369 --><guava.osgi.import>com.google.common.*;version="[15.0,20)"</guava.osgi.import>
     <derby.version>10.15.2.0</derby.version>
-    <jackson.version>2.13.5</jackson.version>
-    <testcontainers.version>1.18.3</testcontainers.version>
+    <jackson.version>2.17.3</jackson.version>
+    <testcontainers.version>1.21.1</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
-    <groovy.version>2.5.22</groovy.version>
-
-    <java.version>11</java.version>
-    <maven.compiler.release>${java.version}</maven.compiler.release>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
-    <minimalJavaBuildVersion>${java.version}</minimalJavaBuildVersion>
+    <groovy.version>3.0.24</groovy.version>
+    <netty.version>4.1.119.Final</netty.version>
+    <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
+    <javaTargetVersion>11</javaTargetVersion>
+    <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
+    <maven.compiler.target>${javaTargetVersion}</maven.compiler.target>
+    <minimalJavaBuildVersion>${javaTargetVersion}</minimalJavaBuildVersion>
     
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
@@ -123,8 +125,7 @@
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
             <doclint>none</doclint>
-            <detectJavaApiLink>false</detectJavaApiLink>
-            <aggregate>true</aggregate>
+            <detectJavaApiLink>true</detectJavaApiLink>
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
@@ -137,26 +138,9 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>5.1.8</version>
+          <version>5.1.9</version>
           <extensions>true</extensions>
           <inherited>true</inherited>
-          <dependencies>
-            <dependency>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>org.apache.felix.scr.bnd</artifactId>
-                <version>1.9.6</version>
-                <exclusions>
-                    <!--
-                        This SCR plugin pulls in a bnd version with a different artifactId, thus leading
-                        to two bnd artifacts existing at the same time.
-                      -->
-                    <exclusion>
-                        <groupId>biz.aQute.bnd</groupId>
-                        <artifactId>bnd</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-          </dependencies>
           <configuration>
             <exportScr>true</exportScr>
             <obrRepository>NONE</obrRepository>
@@ -169,8 +153,6 @@
               <!-- Don't default to bundle version for packages without explicit export version.
                    See FELIX-5172 -->
               <_nodefaultversion>true</_nodefaultversion>
-              <!-- Support parsing of maven-scr-plugin annotations through the felix.scr.bnd plugin -->
-              <_plugin>org.apache.felix.scrplugin.bnd.SCRDescriptorBndPlugin;destdir=${project.build.outputDirectory}</_plugin>
             </instructions>
           </configuration>
           <executions>
@@ -229,14 +211,12 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.document.spi</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene</filter>
                   <filter>!org.apache.jackrabbit.oak.plugins.index.lucene.util</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.configuration</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.index</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.query</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.server</filter>
-                  <filter>!org.apache.jackrabbit.oak.plugins.index.solr.util</filter>
                   <filter>!org.apache.jackrabbit.oak.segment.spi.monitor</filter>
                   <filter>!org.apache.jackrabbit.oak.segment.spi.persistence</filter>
+                  <!-- OAK-10838: we can't control the package version for the EOLd copy of lucene-core -->
+                  <filter>!org.apache.lucene.*</filter>
+                  <!-- OAK-11286: blob-cloud, segment: update netty version to 4.1.115 -->
+                  <filter>!io.netty.*</filter>
                   <filter>*</filter>
                 </filters>
               </configuration>
@@ -256,10 +236,12 @@
         <plugin>
           <groupId>org.codehaus.gmavenplus</groupId>
           <artifactId>gmavenplus-plugin</artifactId>
-          <version>1.13.1</version>
+          <version>3.0.2</version>
         </plugin>
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
+          <!-- at least 3.1.0 for https://issues.apache.org/jira/browse/MDEPLOY-200 -->
+          <version>3.1.3</version>
           <configuration>
             <skip>${skip.deployment}</skip>
           </configuration>
@@ -320,20 +302,15 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
-          <plugin>
-            <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>3.1.2</version>
-          </plugin>
         <plugin>
-          <groupId>com.github.spotbugs</groupId>
-          <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.7.1.0</version>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.6.0</version>
         </plugin>
-        
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.14.1</version>
+          <version>2.17.1</version>
         </plugin>
         
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
@@ -358,19 +335,6 @@
                     <execute />
                   </action>
                 </pluginExecution>
-                <pluginExecution>
-                  <pluginExecutionFilter>
-                    <groupId>org.jacoco</groupId>
-                    <artifactId>jacoco-maven-plugin</artifactId>
-                    <versionRange>[0.7.1.201405082137,)</versionRange>
-                    <goals>
-                      <goal>prepare-agent</goal>
-                    </goals>
-                  </pluginExecutionFilter>
-                  <action>
-                    <ignore />
-                  </action>
-                </pluginExecution>
               </pluginExecutions>
             </lifecycleMappingMetadata>
           </configuration>
@@ -388,7 +352,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.8</version>
+          <version>0.8.13</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -464,6 +428,18 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
@@ -533,11 +509,6 @@
         <version>1.1.2</version><!-- R7 version, https://docs.osgi.org/javadoc/osgi.annotation/7.0.0/org/osgi/annotation/versioning/package-summary.html -->
       </dependency>
       <dependency>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>org.apache.felix.scr.annotations</artifactId>
-        <version>1.9.6</version>
-      </dependency>
-      <dependency>
         <groupId>org.jetbrains</groupId>
         <artifactId>annotations</artifactId>
         <version>18.0.0</version>
@@ -550,18 +521,18 @@
       </dependency>
       <dependency>
         <groupId>org.mongodb</groupId>
-        <artifactId>mongo-java-driver</artifactId>
+        <artifactId>mongodb-driver-sync</artifactId>
         <version>${mongo.driver.version}</version>
       </dependency>
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>3.6</version>
+        <version>5.5.0</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>4.11.0</version>
+        <version>5.18.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -617,18 +588,33 @@
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
+        <artifactId>commons-collections4</artifactId>
+        <version>4.5.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.13.0</version>
+        <version>3.18.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>1.14.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-csv</artifactId>
+        <version>1.14.1</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.13.0</version>
+        <version>2.20.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.16.0</version>
+        <version>1.19.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -638,12 +624,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>8.5.92</version>
+        <version>9.0.108</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>8.5.92</version>
+        <version>9.0.108</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -681,6 +667,11 @@
         <version>${jackson.version}</version>
       </dependency>
       <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-xml</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
         <version>4.5.14</version>
@@ -705,20 +696,94 @@
         <artifactId>httpmime</artifactId>
         <version>4.5.14</version>
       </dependency>
+      <!-- Testcontainers dependency -->
       <dependency>
-        <groupId>com.arakelian</groupId>
-        <artifactId>docker-junit-rule</artifactId>
-        <version>2.3.0</version>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers</artifactId>
+        <version>${testcontainers.version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>com.microsoft.azure</groupId>
         <artifactId>azure-storage</artifactId>
-        <version>8.6.0</version>
+        <version>8.6.6</version>
       </dependency>
       <dependency>
         <groupId>com.microsoft.azure</groupId>
         <artifactId>azure-keyvault-core</artifactId>
-        <version>1.2.2</version>
+        <version>1.2.6</version>
+      </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-identity</artifactId>
+        <version>1.11.3</version>
+      </dependency>
+
+      <!-- Azure identity transitive dependencies  -->
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-core</artifactId>
+        <version>1.47.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-json</artifactId>
+        <version>1.1.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.reactivestreams</groupId>
+        <artifactId>reactive-streams</artifactId>
+        <version>1.0.4</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>msal4j</artifactId>
+        <version>1.14.0</version>
+      </dependency>
+      <dependency>
+        <groupId>io.projectreactor</groupId>
+        <artifactId>reactor-core</artifactId>
+        <version>3.4.34</version>
+      </dependency>
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>oauth2-oidc-sdk</artifactId>
+        <version>10.7.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>nimbus-jose-jwt</artifactId>
+        <version>9.40</version>
+      </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-core-http-netty</artifactId>
+        <version>1.14.1</version>
+      </dependency>
+      <dependency>
+        <groupId>io.projectreactor.netty</groupId>
+        <artifactId>reactor-netty-http</artifactId>
+        <version>1.0.40</version>
+      </dependency>
+      <dependency>
+        <groupId>io.projectreactor.netty</groupId>
+        <artifactId>reactor-netty-core</artifactId>
+        <version>1.0.40</version>
+      </dependency>
+      <dependency>
+        <groupId>net.minidev</groupId>
+        <artifactId>json-smart</artifactId>
+        <version>2.4.10</version>
+      </dependency>
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>content-type</artifactId>
+        <version>2.2</version>
+      </dependency>
+      <dependency>
+        <groupId>net.minidev</groupId>
+        <artifactId>accessors-smart</artifactId>
+        <version>2.4.9</version>
       </dependency>
 
       <!-- Pax Exam Integration Test Dependencies -->
@@ -780,6 +845,12 @@
         <groupId>javax.inject</groupId>
         <artifactId>javax.inject</artifactId>
         <version>1</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.github.stefanbirkner</groupId>
+        <artifactId>system-rules</artifactId>
+        <version>1.19.0</version>
         <scope>test</scope>
       </dependency>
     </dependencies>
@@ -867,51 +938,17 @@
                   </execution>
                </executions>
             </plugin>
-            <plugin>
-               <groupId>org.apache.rat</groupId>
-               <artifactId>apache-rat-plugin</artifactId>
-               <executions>
-                  <execution>
-                     <phase>verify</phase>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
-            <plugin>
-               <artifactId>maven-checkstyle-plugin</artifactId>
-               <configuration>
-                  <failOnViolation>false</failOnViolation>
-               </configuration>
-               <executions>
-                  <execution>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
-            <plugin>
-               <groupId>com.github.spotbugs</groupId>
-               <artifactId>spotbugs-maven-plugin</artifactId>
-               <configuration>
-                  <failOnError>false</failOnError>
-               </configuration>
-               <executions>
-                  <execution>
-                     <goals>
-                        <goal>check</goal>
-                     </goals>
-                  </execution>
-               </executions>
-            </plugin>
          </plugins>
       </build>
       <dependencies>
          <dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derby</artifactId>
+            <version>${derby.version}</version>
+         </dependency>
+         <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbyshared</artifactId>
             <version>${derby.version}</version>
          </dependency>
       </dependencies>
@@ -950,33 +987,6 @@
    </profile>
     
     <profile>
-      <id>rat</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.rat</groupId>
-            <artifactId>apache-rat-plugin</artifactId>
-            <executions>
-              <execution>
-                <phase>verify</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-           <plugin>
-             <artifactId>maven-surefire-plugin</artifactId>
-             <configuration>
-               <!-- run a test to prevent Jenkins from failing because no test ran -->
-               <test>PathUtilsTest</test>
-               <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
-             </configuration>
-           </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
       <id>javadoc</id>
       <build>
         <plugins>
@@ -991,14 +1001,6 @@
               </execution>
             </executions>
           </plugin>
-          <plugin>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <configuration>
-              <!-- run a test to prevent Jenkins from failing because no test ran -->
-              <test>PathUtilsTest</test>
-              <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
-            </configuration>
-          </plugin>
         </plugins>
       </build>
     </profile>
@@ -1007,50 +1009,11 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.rat</groupId>
-            <artifactId>apache-rat-plugin</artifactId>
-            <executions>
-              <execution>
-                <phase>verify</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <artifactId>maven-checkstyle-plugin</artifactId>
+            <artifactId>maven-surefire-plugin</artifactId>
             <configuration>
-              <failOnViolation>false</failOnViolation>
+              <skipTests>${surefire.skip.ut}</skipTests>
             </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
           </plugin>
-          <plugin>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs-maven-plugin</artifactId>
-            <configuration>
-              <failOnError>false</failOnError>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-           <plugin>
-             <artifactId>maven-surefire-plugin</artifactId>
-             <configuration>
-               <skipTests>${surefire.skip.ut}</skipTests>
-             </configuration>
-           </plugin>
         </plugins>
       </build>
     </profile>
@@ -1061,6 +1024,8 @@
           <groupId>org.apache.derby</groupId>
           <artifactId>derby</artifactId>
           <version>${derby.version}</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1068,9 +1033,11 @@
       <id>rdb-mysql</id>
       <dependencies>
         <dependency>
-          <groupId>mysql</groupId>
-          <artifactId>mysql-connector-java</artifactId>
-          <version>8.0.19</version>
+          <groupId>com.mysql</groupId>
+          <artifactId>mysql-connector-j</artifactId>
+          <version>9.1.0</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1080,7 +1047,9 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.18</version>
+          <version>42.7.7</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1091,6 +1060,8 @@
           <groupId>com.h2database</groupId>
           <artifactId>h2</artifactId>
           <version>${h2.version}</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1101,6 +1072,8 @@
           <groupId>com.microsoft.sqlserver</groupId>
           <artifactId>mssql-jdbc</artifactId>
           <version>8.2.2.jre8</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1117,36 +1090,20 @@
           <groupId>com.oracle.jdbc</groupId>
           <artifactId>ojdbc8</artifactId>
           <version>12.2.0.1</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
     <profile>
-      <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
-      <!-- for instance:
-        mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
-          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.19.77
-       -->
       <id>rdb-db2</id>
       <dependencies>
         <dependency>
           <groupId>com.ibm.db2</groupId>
-          <artifactId>db2</artifactId>
-          <version>4.19.77</version>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
-      <!-- for instance:
-        mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
-          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.25.13
-       -->
-      <id>rdb-db2-11</id>
-      <dependencies>
-        <dependency>
-          <groupId>com.ibm.db2</groupId>
-          <artifactId>db2</artifactId>
-          <version>4.25.13</version>
+          <artifactId>jcc</artifactId>
+          <version>11.5.9.0</version>
+          <!-- OAK-11423: Jdbc driver dependencies need to have scope compile in order to be included in oak-run. -->
+          <scope>compile</scope>
         </dependency>
       </dependencies>
     </profile>
@@ -1308,7 +1265,11 @@
     </profile>
   </profiles>
 
-  <scm>
-    <tag>jackrabbit-oak-1.54.0</tag>
+  <!-- using adjusted inheritance rules: https://issues.apache.org/jira/browse/MNG-6059 -->
+  <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false">
+    <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
+    <url>https://github.com/apache/jackrabbit/tree/${project.scm.tag}</url>
+    <tag>jackrabbit-oak-1.84.0</tag>
   </scm>
 </project>

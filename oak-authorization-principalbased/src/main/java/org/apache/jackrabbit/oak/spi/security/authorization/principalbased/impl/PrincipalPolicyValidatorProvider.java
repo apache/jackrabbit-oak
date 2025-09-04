@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -26,6 +24,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -48,7 +49,6 @@ import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
@@ -199,7 +199,7 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
             Tree parent = verifyNotNull(parentAfter);
             if (NT_REP_PRINCIPAL_ENTRY.equals(TreeUtil.getPrimaryTypeName(parent))) {
                 try {
-                    String oakPath = Strings.emptyToNull(TreeUtil.getString(parent, REP_EFFECTIVE_PATH));
+                    String oakPath = StringUtils.emptyToNull(TreeUtil.getString(parent, REP_EFFECTIVE_PATH));
                     mgrProvider.getRestrictionProvider().validateRestrictions(oakPath, parent);
                 } catch (AccessControlException e) {
                     throw new CommitFailedException(ACCESS_CONTROL, 35, "Invalid restrictions", e);
@@ -221,7 +221,7 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
                 throw accessControlViolation(36, "Isolated entry of principal policy at " + entryPath);
             }
             Iterable<String> privilegeNames = nodeState.getNames(REP_PRIVILEGES);
-            if (Iterables.isEmpty(privilegeNames)) {
+            if (IterableUtils.isEmpty(privilegeNames)) {
                 throw accessControlViolation(37, "Empty rep:privileges property at " + entryPath);
             }
             PrivilegeManager privilegeManager = mgrProvider.getPrivilegeManager();
@@ -265,7 +265,7 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
 
         @NotNull
         private Tree verifyNotNull(@Nullable Tree tree) {
-            checkState(tree != null);
+            Validate.checkState(tree != null);
             return tree;
         }
     }

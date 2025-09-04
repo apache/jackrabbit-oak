@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -227,7 +226,7 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
             when(ac.getContext()).thenReturn(Context.DEFAULT);
         }
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac1, ac2);
-        PermissionProvider permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        PermissionProvider permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of(EveryonePrincipal.getInstance()));
         permissionProvider.refresh();
 
         verify(pp, times(2)).refresh();
@@ -235,7 +234,7 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
 
     @Test
     public void testAbortingEvaluationFilter() {
-        Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
+        Set<Principal> principalSet = Set.of(EveryonePrincipal.getInstance());
         AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
         AggregationFilter filter = when(mock(AggregationFilter.class).stop(pp, principalSet)).thenReturn(true).getMock();
 

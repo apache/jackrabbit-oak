@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Set;
 import javax.jcr.NamespaceRegistry;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -37,7 +35,7 @@ import static org.junit.Assert.assertTrue;
 
 public class PrefixPatternTest extends AbstractSecurityTest {
 
-    private final Set<String> prefixes = ImmutableSet.of(NamespaceRegistry.PREFIX_JCR);
+    private final Set<String> prefixes = Set.of(NamespaceRegistry.PREFIX_JCR);
 
     private final PrefixPattern pattern = new PrefixPattern(prefixes);
 
@@ -56,7 +54,7 @@ public class PrefixPatternTest extends AbstractSecurityTest {
             testTree.remove();
         }
 
-        List<String> notMatching = ImmutableList.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_MIX, "any");
+        List<String> notMatching = List.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_MIX, "any");
         for (String prefix : notMatching) {
             String name = (prefix.isEmpty()) ? "name" : prefix + ":name";
             Tree testTree = TreeUtil.addChild(rootTree, name, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -72,7 +70,7 @@ public class PrefixPatternTest extends AbstractSecurityTest {
 
     @Test
     public void testMatchesPath() {
-        List<String> notMatching = ImmutableList.of("/", "/a", "/d/jcr:e/a");
+        List<String> notMatching = List.of("/", "/a", "/d/jcr:e/a");
         for (String p : notMatching) {
             assertFalse(p, pattern.matches(p));
         }
@@ -82,7 +80,7 @@ public class PrefixPatternTest extends AbstractSecurityTest {
     
     @Test
     public void testEmptyPrefix() throws Exception {
-        PrefixPattern pp = new PrefixPattern(ImmutableSet.of("", "prefix"));
+        PrefixPattern pp = new PrefixPattern(Set.of("", "prefix"));
         assertTrue(pp.matches("/"));
         assertTrue(pp.matches("/noprefix"));
         assertTrue(pp.matches("/prefix:noprefix"));
@@ -124,9 +122,9 @@ public class PrefixPatternTest extends AbstractSecurityTest {
 
     @Test
     public void testNotEquals() {
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of(NamespaceRegistry.PREFIX_EMPTY)));
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_JCR)));
-        assertNotEquals(pattern, new PrefixPattern(ImmutableSet.of("oak")));
+        assertNotEquals(pattern, new PrefixPattern(Set.of(NamespaceRegistry.PREFIX_EMPTY)));
+        assertNotEquals(pattern, new PrefixPattern(Set.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_JCR)));
+        assertNotEquals(pattern, new PrefixPattern(Set.of("oak")));
         assertNotEquals(pattern, new ItemNamePattern(prefixes));
     }
 

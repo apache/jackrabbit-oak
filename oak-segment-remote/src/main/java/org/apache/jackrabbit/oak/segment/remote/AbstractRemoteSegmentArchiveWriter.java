@@ -46,6 +46,8 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
 
     protected volatile boolean created = false;
 
+    protected WriteAccessController writeAccessController = null;
+
     public AbstractRemoteSegmentArchiveWriter(IOMonitor ioMonitor, FileStoreMonitor monitor) {
         this.ioMonitor = ioMonitor;
         this.monitor = monitor;
@@ -153,6 +155,11 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
     @Override
     public boolean isRemote() {
         return true;
+    }
+
+    @Override
+    public int getMaxEntryCount() {
+        return RemoteUtilities.MAX_ENTRY_COUNT;
     }
 
     /**

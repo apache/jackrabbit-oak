@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -87,7 +86,7 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
 
     @Test
     public void testGetValidators() {
-        List<? extends ValidatorProvider> l = new PrincipalBasedAuthorizationConfiguration().getValidators("wspName", ImmutableSet.of(), new MoveTracker());
+        List<? extends ValidatorProvider> l = new PrincipalBasedAuthorizationConfiguration().getValidators("wspName", Set.of(), new MoveTracker());
         assertEquals(1, l.size());
         assertTrue(l.get(0) instanceof PrincipalPolicyValidatorProvider);
     }
@@ -144,11 +143,11 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         pbac.setSecurityProvider(securityProvider);
         pbac.setRootProvider(getRootProvider());
 
-        Set<Principal> principals = ImmutableSet.of(EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
+        Set<Principal> principals = Set.of(EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
         PermissionProvider pp = pbac.getPermissionProvider(root, "wspName", principals);
         assertSame(EmptyPermissionProvider.getInstance(), pp);
 
-        principals = ImmutableSet.of(getTestSystemUser().getPrincipal());
+        principals = Set.of(getTestSystemUser().getPrincipal());
         pp = pbac.getPermissionProvider(root, "wspName", principals);
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
@@ -165,7 +164,7 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         pbac.setSecurityProvider(getSecurityProvider());
         pbac.setRootProvider(getRootProvider());
 
-        Set<Principal> principals = ImmutableSet.of(getTestUser().getPrincipal());
+        Set<Principal> principals = Set.of(getTestUser().getPrincipal());
         PermissionProvider pp = pbac.getPermissionProvider(root, "wspName", principals);
         assertTrue(pp instanceof PrincipalBasedPermissionProvider);
     }
@@ -177,7 +176,7 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
         pbac.setSecurityProvider(getSecurityProvider());
         pbac.setRootProvider(getRootProvider());
 
-        Set<Principal> principals = ImmutableSet.of(getTestSystemUser().getPrincipal());
+        Set<Principal> principals = Set.of(getTestSystemUser().getPrincipal());
         PermissionProvider pp = pbac.getPermissionProvider(root, "wspName", principals);
         assertTrue(pp instanceof PrincipalBasedPermissionProvider);
     }

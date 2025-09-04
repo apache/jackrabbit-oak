@@ -17,11 +17,12 @@
 package org.apache.jackrabbit.oak.composite;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -36,8 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.INTEGRITY;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
@@ -61,7 +60,7 @@ public class CrossMountReferenceValidator extends DefaultValidator {
     private final Map<String, String> newReferencableNodes;
 
     /** UUID -> referencing node */
-    private final Multimap<String, String> newReferences;
+    private final MultiValuedMap<String, String> newReferences;
 
     private final MountInfoProvider mip;
 
@@ -88,8 +87,8 @@ public class CrossMountReferenceValidator extends DefaultValidator {
         this.parent = null;
         this.path = "/";
         this.mip = mip;
-        this.newReferencableNodes = newHashMap();
-        this.newReferences = ArrayListMultimap.create();
+        this.newReferencableNodes = new HashMap<>();
+        this.newReferences = new ArrayListValuedHashMap<>();
         this.uuidDefinition = root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("uuid");
         this.uuidStores = Multiplexers.getStrategies(true, mip, uuidDefinition, INDEX_CONTENT_NODE_NAME);
         this.failOnDetection = failOnDetection;
@@ -133,7 +132,7 @@ public class CrossMountReferenceValidator extends DefaultValidator {
             return newReferencableNodes.get(uuid);
         }
         for (IndexStoreStrategy store : uuidStores) {
-            for (String path : store.query(Filter.EMPTY_FILTER, null, uuidDefinition, of(uuid))) {
+            for (String path : store.query(Filter.EMPTY_FILTER, null, uuidDefinition, Set.of(uuid))) {
                 return path;
             }
         }

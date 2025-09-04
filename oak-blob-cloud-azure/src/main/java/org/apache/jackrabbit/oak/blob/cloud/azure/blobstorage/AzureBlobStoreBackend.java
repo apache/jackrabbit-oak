@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static org.apache.jackrabbit.guava.common.base.Strings.nullToEmpty;
 import static java.lang.Thread.currentThread;
 
 import java.io.BufferedInputStream;
@@ -29,31 +27,32 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.ResultContinuation;
@@ -72,7 +71,6 @@ import com.microsoft.azure.storage.blob.CopyStatus;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -102,7 +100,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private static final String REF_KEY = "reference.key";
     private static final String LAST_MODIFIED_KEY = "lastModified";
 
-    private static final long BUFFERED_STREAM_THRESHHOLD = 1024 * 1024;
+    private static final long BUFFERED_STREAM_THRESHOLD = 1024 * 1024;
     static final long MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
     static final long MAX_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 100; // 100MB
     static final long MAX_SINGLE_PUT_UPLOAD_SIZE = 1024 * 1024 * 256; // 256MB, Azure limit
@@ -113,8 +111,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private static final int MAX_CONCURRENT_REQUEST_COUNT = 50;
 
     private Properties properties;
-    private String containerName;
-    private String connectionString;
+    private AzureBlobContainerProvider azureBlobContainerProvider;
     private int concurrentRequestCount = DEFAULT_CONCURRENT_REQUEST_COUNT;
     private RetryPolicy retryPolicy;
     private Integer requestTimeout;
@@ -134,7 +131,21 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         this.properties = properties;
     }
 
+    private volatile CloudBlobContainer azureContainer = null;
+
     protected CloudBlobContainer getAzureContainer() throws DataStoreException {
+        if (azureContainer == null) {
+            synchronized (this) {
+                if (azureContainer == null) {
+                    azureContainer = azureBlobContainerProvider.getBlobContainer(getBlobRequestOptions());
+                }
+            }
+        }
+        return azureContainer;
+    }
+
+    @NotNull
+    protected BlobRequestOptions getBlobRequestOptions() {
         BlobRequestOptions requestOptions = new BlobRequestOptions();
         if (null != retryPolicy) {
             requestOptions.setRetryPolicyFactory(retryPolicy);
@@ -146,8 +157,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         if (enableSecondaryLocation) {
             requestOptions.setLocationMode(LocationMode.PRIMARY_THEN_SECONDARY);
         }
-
-        return Utils.getBlobContainer(connectionString, containerName, requestOptions);
+        return requestOptions;
     }
 
     @Override
@@ -169,10 +179,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
             try {
                 Utils.setProxyIfNeeded(properties);
-                containerName = properties.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
                 createBlobContainer = PropertiesUtil.toBoolean(
-                    Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
-                connectionString = Utils.getConnectionStringFromProperties(properties);
+                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER)), true);
+                initAzureDSConfig();
 
                 concurrentRequestCount = PropertiesUtil.toInteger(
                         properties.getProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION),
@@ -195,7 +204,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT), RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT);
                 }
                 presignedDownloadURIVerifyExists = PropertiesUtil.toBoolean(
-                    Strings.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
+                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
 
                 enableSecondaryLocation = PropertiesUtil.toBoolean(
                         properties.getProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
@@ -206,12 +215,11 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
                 if (createBlobContainer && !azureContainer.exists()) {
                     azureContainer.create();
-                    LOG.info("New container created. containerName={}", containerName);
+                    LOG.info("New container created. containerName={}", getContainerName());
                 } else {
-                    LOG.info("Reusing existing container. containerName={}", containerName);
+                    LOG.info("Reusing existing container. containerName={}", getContainerName());
                 }
-                LOG.debug("Backend initialized. duration={}",
-                          +(System.currentTimeMillis() - start));
+                LOG.debug("Backend initialized. duration={}", (System.currentTimeMillis() - start));
 
                 // settings pertaining to DataRecordAccessProvider functionality
                 String putExpiry = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS);
@@ -234,7 +242,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
                 // Initialize reference key secret
                 boolean createRefSecretOnInit = PropertiesUtil.toBoolean(
-                    Strings.emptyToNull(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT)), true);
+                    org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(properties.getProperty(AzureConstants.AZURE_REF_ON_INIT)), true);
 
                 if (createRefSecretOnInit) {
                     getOrCreateReferenceKey();
@@ -247,6 +255,19 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         finally {
             Thread.currentThread().setContextClassLoader(contextClassLoader);
         }
+    }
+
+    private void initAzureDSConfig() {
+        AzureBlobContainerProvider.Builder builder = AzureBlobContainerProvider.Builder.builder(properties.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME))
+                .withAzureConnectionString(properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, ""))
+                .withAccountName(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ""))
+                .withBlobEndpoint(properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, ""))
+                .withSasToken(properties.getProperty(AzureConstants.AZURE_SAS, ""))
+                .withAccountKey(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ""))
+                .withTenantId(properties.getProperty(AzureConstants.AZURE_TENANT_ID, ""))
+                .withClientId(properties.getProperty(AzureConstants.AZURE_CLIENT_ID, ""))
+                .withClientSecret(properties.getProperty(AzureConstants.AZURE_CLIENT_SECRET, ""));
+        azureBlobContainerProvider = builder.build();
     }
 
     @Override
@@ -309,7 +330,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
                 BlobRequestOptions options = new BlobRequestOptions();
                 options.setConcurrentRequestCount(concurrentRequestCount);
-                boolean useBufferedStream = len < BUFFERED_STREAM_THRESHHOLD;
+                boolean useBufferedStream = len < BUFFERED_STREAM_THRESHOLD;
                 final InputStream in = useBufferedStream  ? new BufferedInputStream(new FileInputStream(file)) : new FileInputStream(file);
                 try {
                     blob.upload(in, len, null, options, null);
@@ -419,8 +440,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             blob.downloadAttributes();
             AzureBlobStoreDataRecord record = new AzureBlobStoreDataRecord(
                     this,
-                    connectionString,
-                    containerName,
+                    azureBlobContainerProvider,
                     new DataIdentifier(getIdentifierName(blob.getName())),
                     getLastModified(blob),
                     blob.getProperties().getLength());
@@ -448,35 +468,23 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     }
 
     @Override
-    public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-        return new RecordsIterator<DataIdentifier>(
-                new Function<AzureBlobInfo, DataIdentifier>() {
-                    @Override
-                    public DataIdentifier apply(AzureBlobInfo input) {
-                        return new DataIdentifier(getIdentifierName(input.getName()));
-                    }
-                }
-        );
+    public Iterator<DataIdentifier> getAllIdentifiers() {
+        return new RecordsIterator<>(
+                input -> new DataIdentifier(getIdentifierName(input.getName())));
     }
 
 
 
     @Override
-    public Iterator<DataRecord> getAllRecords() throws DataStoreException {
+    public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
-        return new RecordsIterator<DataRecord>(
-                new Function<AzureBlobInfo, DataRecord>() {
-                    @Override
-                    public DataRecord apply(AzureBlobInfo input) {
-                        return new AzureBlobStoreDataRecord(
-                            backend,
-                            connectionString,
-                            containerName,
-                            new DataIdentifier(getIdentifierName(input.getName())),
-                            input.getLastModified(),
-                            input.getLength());
-                    }
-                }
+        return new RecordsIterator<>(
+                input -> new AzureBlobStoreDataRecord(
+                        backend,
+                        azureBlobContainerProvider,
+                        new DataIdentifier(getIdentifierName(input.getName())),
+                        input.getLastModified(),
+                        input.getLength())
         );
     }
 
@@ -504,6 +512,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     @Override
     public void close() throws DataStoreException {
+        azureBlobContainerProvider.close();
         LOG.info("AzureBlobBackend closed.");
     }
 
@@ -540,7 +549,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         if (null == input) {
             throw new NullPointerException("input");
         }
-        if (Strings.isNullOrEmpty(name)) {
+        if (StringUtils.isEmpty(name)) {
             throw new IllegalArgumentException("name");
         }
         long start = System.currentTimeMillis();
@@ -563,7 +572,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         if (null == input) {
             throw new NullPointerException("input");
         }
-        if (Strings.isNullOrEmpty(name)) {
+        if (StringUtils.isEmpty(name)) {
             throw new IllegalArgumentException("name");
         }
         long start = System.currentTimeMillis();
@@ -616,12 +625,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             blob.downloadAttributes();
             long lastModified = getLastModified(blob);
             long length = blob.getProperties().getLength();
-            AzureBlobStoreDataRecord record =  new AzureBlobStoreDataRecord(this,
-                                                connectionString,
-                                                containerName, new DataIdentifier(name),
-                                                lastModified,
-                                                length,
-                                                true);
+            AzureBlobStoreDataRecord record = new AzureBlobStoreDataRecord(this,
+                    azureBlobContainerProvider,
+                    new DataIdentifier(name),
+                    lastModified,
+                    length,
+                    true);
             LOG.debug("Metadata record read. metadataName={} duration={} record={}", name, (System.currentTimeMillis() - start), record);
             return record;
 
@@ -644,7 +653,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             throw new NullPointerException("prefix");
         }
         long start = System.currentTimeMillis();
-        final List<DataRecord> records = Lists.newArrayList();
+        final List<DataRecord> records = new ArrayList<>();
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
@@ -655,13 +664,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     CloudBlob blob = (CloudBlob) item;
                     blob.downloadAttributes();
                     records.add(new AzureBlobStoreDataRecord(
-                        this,
-                        connectionString,
-                        containerName,
-                        new DataIdentifier(stripMetaKeyPrefix(blob.getName())),
-                        getLastModified(blob),
-                        blob.getProperties().getLength(),
-                        true));
+                            this,
+                            azureBlobContainerProvider,
+                            new DataIdentifier(stripMetaKeyPrefix(blob.getName())),
+                            getLastModified(blob),
+                            blob.getProperties().getLength(),
+                            true));
                 }
             }
             LOG.debug("Metadata records read. recordsRead={} metadataFolder={} duration={}", records.size(), prefix, (System.currentTimeMillis() - start));
@@ -845,8 +853,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
             String cacheKey = identifier.toString()
                     + domain
-                    + nullToEmpty(downloadOptions.getContentTypeHeader())
-                    + nullToEmpty(downloadOptions.getContentDispositionHeader());
+                    + Objects.toString(downloadOptions.getContentTypeHeader(), "")
+                    + Objects.toString(downloadOptions.getContentDispositionHeader(), "");
             if (null != httpDownloadURICache) {
                 uri = httpDownloadURICache.getIfPresent(cacheKey);
             }
@@ -870,13 +878,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 headers.setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds));
 
                 String contentType = downloadOptions.getContentTypeHeader();
-                if (! Strings.isNullOrEmpty(contentType)) {
+                if (! StringUtils.isEmpty(contentType)) {
                     headers.setContentType(contentType);
                 }
 
                 String contentDisposition =
                         downloadOptions.getContentDispositionHeader();
-                if (! Strings.isNullOrEmpty(contentDisposition)) {
+                if (! StringUtils.isEmpty(contentDisposition)) {
                     headers.setContentDisposition(contentDisposition);
                 }
 
@@ -905,7 +913,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     }
 
     DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options) {
-        List<URI> uploadPartURIs = Lists.newArrayList();
+        List<URI> uploadPartURIs = new ArrayList<>();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
 
@@ -986,7 +994,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             }
 
             EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
-            Map<String, String> presignedURIRequestParams = Maps.newHashMap();
+            Map<String, String> presignedURIRequestParams = new HashMap<>();
             // see https://docs.microsoft.com/en-us/rest/api/storageservices/put-block#uri-parameters
             presignedURIRequestParams.put("comp", "block");
             for (long blockId = 1; blockId <= numParts; ++blockId) {
@@ -1038,7 +1046,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
             throws DataRecordUploadException, DataStoreException {
 
-        if (Strings.isNullOrEmpty(uploadTokenStr)) {
+        if (StringUtils.isEmpty(uploadTokenStr)) {
             throw new IllegalArgumentException("uploadToken required");
         }
 
@@ -1072,8 +1080,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     }
                     record = new AzureBlobStoreDataRecord(
                             this,
-                            connectionString,
-                            containerName,
+                            azureBlobContainerProvider,
                             blobId,
                             getLastModified(blob),
                             size);
@@ -1099,7 +1106,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     private String getDefaultBlobStorageDomain() {
         String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        if (Strings.isNullOrEmpty(accountName)) {
+        if (StringUtils.isEmpty(accountName)) {
             LOG.warn("Can't generate presigned URI - Azure account name not found in properties");
             return null;
         }
@@ -1110,7 +1117,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : downloadDomainOverride;
-        if (Strings.isNullOrEmpty(domain)) {
+        if (StringUtils.isEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1120,7 +1127,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
                 : uploadDomainOverride;
-        if (Strings.isNullOrEmpty(domain)) {
+        if (StringUtils.isEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
         return domain;
@@ -1131,7 +1138,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                                    int expirySeconds,
                                    SharedAccessBlobHeaders optionalHeaders,
                                    String domain) {
-        return createPresignedURI(key, permissions, expirySeconds, Maps.newHashMap(), optionalHeaders, domain);
+        return createPresignedURI(key, permissions, expirySeconds, new HashMap<>(), optionalHeaders, domain);
     }
 
     private URI createPresignedURI(String key,
@@ -1148,34 +1155,20 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                                    Map<String, String> additionalQueryParams,
                                    SharedAccessBlobHeaders optionalHeaders,
                                    String domain) {
-        SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy();
-        Date expiry = Date.from(Instant.now().plusSeconds(expirySeconds));
-        policy.setSharedAccessExpiryTime(expiry);
-        policy.setPermissions(permissions);
-
-        if (Strings.isNullOrEmpty(domain)) {
+        if (StringUtils.isEmpty(domain)) {
             LOG.warn("Can't generate presigned URI - no Azure domain provided (is Azure account name configured?)");
             return null;
         }
 
         URI presignedURI = null;
         try {
-            CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
-            String sharedAccessSignature =
-                    null == optionalHeaders ?
-                            blob.generateSharedAccessSignature(policy,
-                                    null) :
-                            blob.generateSharedAccessSignature(policy,
-                                    optionalHeaders,
-                                    null,
-                                    null,
-                                    null,
-                                    true);
-            // Shared access signature is returned encoded already.
+            String sharedAccessSignature = azureBlobContainerProvider.generateSharedAccessSignature(getBlobRequestOptions(), key,
+                    permissions, expirySeconds, optionalHeaders);
 
+            // Shared access signature is returned encoded already.
             String uriString = String.format("https://%s/%s/%s?%s",
                     domain,
-                    containerName,
+                    getContainerName(),
                     key,
                     sharedAccessSignature);
 
@@ -1183,9 +1176,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 StringBuilder builder = new StringBuilder();
                 for (Map.Entry<String, String> e : additionalQueryParams.entrySet()) {
                     builder.append("&");
-                    builder.append(URLEncoder.encode(e.getKey(), Charsets.UTF_8.name()));
+                    builder.append(URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8));
                     builder.append("=");
-                    builder.append(URLEncoder.encode(e.getValue(), Charsets.UTF_8.name()));
+                    builder.append(URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8));
                 }
                 uriString += builder.toString();
             }
@@ -1195,7 +1188,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         catch (DataStoreException e) {
             LOG.error("No connection to Azure Blob Storage", e);
         }
-        catch (URISyntaxException | InvalidKeyException | UnsupportedEncodingException e) {
+        catch (URISyntaxException | InvalidKeyException e) {
             LOG.error("Can't generate a presigned URI for key {}", key, e);
         }
         catch (StorageException e) {
@@ -1248,7 +1241,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         ResultContinuation resultContinuation;
         boolean firstCall = true;
         final Function<AzureBlobInfo, T> transformer;
-        final Queue<AzureBlobInfo> items = Lists.newLinkedList();
+        final Queue<AzureBlobInfo> items = new LinkedList<>();
 
         public RecordsIterator (Function<AzureBlobInfo, T> transformer) {
             this.transformer = transformer;
@@ -1271,7 +1264,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             try {
                 currentThread().setContextClassLoader(getClass().getClassLoader());
 
-                CloudBlobContainer container = Utils.getBlobContainer(connectionString, containerName);
+                CloudBlobContainer container = azureBlobContainerProvider.getBlobContainer();
                 if (!firstCall && (resultContinuation == null || !resultContinuation.hasContinuation())) {
                     LOG.trace("No more records in container. containerName={}", container);
                     return false;
@@ -1285,14 +1278,14 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     }
                 }
                 LOG.debug("Container records batch read. batchSize={} containerName={} duration={}",
-                          results.getLength(), containerName,  (System.currentTimeMillis() - start));
+                          results.getLength(), getContainerName(),  (System.currentTimeMillis() - start));
                 return results.getLength() > 0;
             }
             catch (StorageException e) {
-                LOG.info("Error listing blobs. containerName={}", containerName, e);
+                LOG.info("Error listing blobs. containerName={}", getContainerName(), e);
             }
             catch (DataStoreException e) {
-                LOG.debug("Cannot list blobs. containerName={}", containerName, e);
+                LOG.debug("Cannot list blobs. containerName={}", getContainerName(), e);
             } finally {
                 if (contextClassLoader != null) {
                     currentThread().setContextClassLoader(contextClassLoader);
@@ -1303,22 +1296,20 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     }
 
     static class AzureBlobStoreDataRecord extends AbstractDataRecord {
-        final String connectionString;
-        final String containerName;
+        final AzureBlobContainerProvider azureBlobContainerProvider;
         final long lastModified;
         final long length;
         final boolean isMeta;
 
-        public AzureBlobStoreDataRecord(AbstractSharedBackend backend, String connectionString, String containerName,
+        public AzureBlobStoreDataRecord(AbstractSharedBackend backend, AzureBlobContainerProvider azureBlobContainerProvider,
                                         DataIdentifier key, long lastModified, long length) {
-            this(backend, connectionString, containerName, key, lastModified, length, false);
+            this(backend, azureBlobContainerProvider, key, lastModified, length, false);
         }
 
-        public AzureBlobStoreDataRecord(AbstractSharedBackend backend, String connectionString, String containerName,
+        public AzureBlobStoreDataRecord(AbstractSharedBackend backend, AzureBlobContainerProvider azureBlobContainerProvider,
                                         DataIdentifier key, long lastModified, long length, boolean isMeta) {
             super(backend, key);
-            this.connectionString = connectionString;
-            this.containerName = containerName;
+            this.azureBlobContainerProvider = azureBlobContainerProvider;
             this.lastModified = lastModified;
             this.length = length;
             this.isMeta = isMeta;
@@ -1332,7 +1323,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         @Override
         public InputStream getStream() throws DataStoreException {
             String id = getKeyName(getIdentifier());
-            CloudBlobContainer container = Utils.getBlobContainer(connectionString, containerName);
+            CloudBlobContainer container = azureBlobContainerProvider.getBlobContainer();
             if (isMeta) {
                 id = addMetaKeyPrefix(getIdentifier().toString());
             }
@@ -1361,8 +1352,14 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                    "identifier=" + getIdentifier() +
                    ", length=" + length +
                    ", lastModified=" + lastModified +
-                   ", containerName='" + containerName + '\'' +
+                   ", containerName='" + Optional.ofNullable(azureBlobContainerProvider).map(AzureBlobContainerProvider::getContainerName).orElse(null) + '\'' +
                    '}';
         }
+    }
+
+    private String getContainerName() {
+        return Optional.ofNullable(this.azureBlobContainerProvider)
+                .map(AzureBlobContainerProvider::getContainerName)
+                .orElse(null);
     }
 }

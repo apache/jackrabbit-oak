@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import javax.management.openmbean.CompositeDataSupport;
@@ -34,16 +35,14 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Throwables;
-import org.apache.jackrabbit.guava.common.base.Ticker;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
 
@@ -54,7 +53,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     private long errorWarnIntervalMillis = TimeUnit.MINUTES.toMillis(15);
     private long indexerCycleCount;
     private long corruptIntervalMillis = TimeUnit.MINUTES.toMillis(30);
-    private final Map<String, CorruptIndexInfo> indexes = Maps.newConcurrentMap();
+    private final Map<String, CorruptIndexInfo> indexes = new ConcurrentHashMap<>();
     private MeterStats meter;
 
     void setMeterStats(MeterStats meter) {
@@ -66,7 +65,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             return Collections.emptyMap();
         }
 
-        Map<String, CorruptIndexInfo> result = Maps.newHashMap();
+        Map<String, CorruptIndexInfo> result = new HashMap<>();
         for (CorruptIndexInfo info : indexes.values()){
             if (asyncName.equals(info.asyncName) && info.isFailingSinceLongTime()){
                 result.put(info.path, info);
@@ -76,7 +75,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     }
 
     public Map<String, CorruptIndexInfo> getFailingIndexData(String asyncName){
-        Map<String, CorruptIndexInfo> result = Maps.newHashMap();
+        Map<String, CorruptIndexInfo> result = new HashMap<>();
         for (CorruptIndexInfo info : indexes.values()){
             if (asyncName.equals(info.asyncName)){
                 result.put(info.path, info);
@@ -96,7 +95,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         if (meter != null) {
             // indexes.size() gives us the number of remaining corrupt indices.
             // meter.mark(indexes.size()) increments the current meter count by indexes.size(). We don't want that here.
-            // We actually want to set the the meter count to indexes.size(), the api doesn't seem to support that.
+            // We actually want to set the meter count to indexes.size(), the api doesn't seem to support that.
             // So we instead add indexes.size() - meter.getCount() , which will always be <= 0. So this effectively will reduce the meter count
             // by number of indexes fixed in this call.
             meter.mark(indexes.size() - meter.getCount());
@@ -112,7 +111,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
     @Override
     public boolean skippingCorruptIndex(String async, String indexPath, Calendar corruptSince) {
         CorruptIndexInfo info = getOrCreateInfo(async, indexPath);
-        if (info.skippedIndexing(checkNotNull(corruptSince))) {
+        if (info.skippedIndexing(requireNonNull(corruptSince))) {
             log.warn("Ignoring index [{}] which has been marked as corrupt [{}]. This index " +
                             "MUST be reindexed to work properly", indexPath,
                     info.getStats());
@@ -168,7 +167,8 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         private final String asyncName;
         private final String path;
         private final long lastIndexerCycleCount = indexerCycleCount;
-        private final Stopwatch watch = Stopwatch.createStarted(new ClockTicker(clock));
+        private final Stopwatch watch = Stopwatch.createStarted(clock);
+
         private String exception = "";
         private int failureCount;
         private int skippedCount;
@@ -181,7 +181,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
         }
 
         void addFailure(Exception e){
-            exception = Throwables.getStackTraceAsString(e);
+            exception = ExceptionUtils.getStackTrace(e);
             failureCount++;
         }
 
@@ -310,19 +310,6 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             } catch (OpenDataException e) {
                 throw new IllegalStateException(e);
             }
-        }
-    }
-
-    private static class ClockTicker extends Ticker {
-        private final Clock clock;
-
-        public ClockTicker(Clock clock) {
-            this.clock = clock;
-        }
-
-        @Override
-        public long read() {
-            return TimeUnit.MILLISECONDS.toNanos(clock.getTime());
         }
     }
 }

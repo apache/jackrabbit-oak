@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
@@ -81,12 +80,12 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
         // - jcrEffectivePath : read
         // - root : lifecycleMgt
         policy = (PrincipalPolicyImpl) acMgr.getApplicablePolicies(validPrincipal2)[0];
-        Map<String, Value> restrictions = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("/*/glob"));
-        policy.addEntry(jcrEffectivePath, privilegesFromNames(JCR_READ), restrictions, ImmutableMap.of());
+        Map<String, Value> restrictions = Map.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("/*/glob"));
+        policy.addEntry(jcrEffectivePath, privilegesFromNames(JCR_READ), restrictions, Map.of());
 
         String ntJcrName = getNamePathMapper().getJcrName(JcrConstants.NT_RESOURCE);
-        Map<String, Value[]> mvRestrictions = ImmutableMap.of(getNamePathMapper().getJcrName(REP_NT_NAMES), new Value[] {getValueFactory(root).createValue(ntJcrName, PropertyType.NAME)});
-        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), ImmutableMap.of(), mvRestrictions);
+        Map<String, Value[]> mvRestrictions = Map.of(getNamePathMapper().getJcrName(REP_NT_NAMES), new Value[] {getValueFactory(root).createValue(ntJcrName, PropertyType.NAME)});
+        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), Map.of(), mvRestrictions);
 
         acMgr.setPolicy(policy.getPath(), policy);
 
@@ -95,7 +94,7 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEffectivePolicyByPrincipal() throws Exception {
-        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Set.of(validPrincipal));
         assertEffectivePolicies(effective, 2, 2, true);
 
         List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
@@ -111,7 +110,7 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testEffectivePolicyByPrincipal2() throws Exception {
-        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal2));
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Set.of(validPrincipal2));
         assertEffectivePolicies(effective, 2, 2, true);
 
         List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
@@ -138,8 +137,8 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
             ImmutablePrincipalPolicy effectivePolicy = (ImmutablePrincipalPolicy) policy;
 
             // filter expected entries: only entries that take effect at the target path should be taken into consideration
-            ImmutablePrincipalPolicy byPrincipal = (ImmutablePrincipalPolicy) acMgr.getEffectivePolicies(ImmutableSet.of(effectivePolicy.getPrincipal()))[0];
-            Set<JackrabbitAccessControlEntry> expected = ImmutableSet.copyOf(Iterables.filter(byPrincipal.getEntries(), entry -> {
+            ImmutablePrincipalPolicy byPrincipal = (ImmutablePrincipalPolicy) acMgr.getEffectivePolicies(Set.of(effectivePolicy.getPrincipal()))[0];
+            Set<JackrabbitAccessControlEntry> expected = SetUtils.toSet(IterableUtils.filter(byPrincipal.getEntries(), entry -> {
                 String effectivePath = ((PrincipalAccessControlList.Entry) entry).getEffectivePath();
                 return effectivePath != null && Text.isDescendantOrEqual(effectivePath, path);
             }));

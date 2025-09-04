@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.scheduler;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -143,7 +143,7 @@ public class LockBasedSchedulerCheckpointTest {
     }
 
     private NodeState retrieveCheckpoint(final Scheduler scheduler, final String checkpoint) {
-        checkNotNull(checkpoint);
+        requireNonNull(checkpoint);
         NodeState cp = scheduler.getHeadNodeState().getChildNode("checkpoints").getChildNode(checkpoint)
                 .getChildNode("root");
         if (cp.exists()) {

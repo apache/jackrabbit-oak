@@ -26,9 +26,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -154,7 +154,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
      */
     @NotNull
     public static ConfigurationParameters of(@NotNull String key, @NotNull Object value) {
-        return new ConfigurationParameters(ImmutableMap.of(key, value));
+        return new ConfigurationParameters(Map.of(key, value));
     }
 
     /**
@@ -170,7 +170,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
     @NotNull
     public static ConfigurationParameters of(@NotNull String key1, @NotNull Object value1,
                                              @NotNull String key2, @NotNull Object value2) {
-        return new ConfigurationParameters(ImmutableMap.of(key1, value1, key2, value2));
+        return new ConfigurationParameters(Map.of(key1, value1, key2, value2));
     }
 
     /**
@@ -306,13 +306,13 @@ public final class ConfigurationParameters implements Map<String, Object> {
         if (configProperty instanceof Set) {
             return (Set) configProperty;
         } else if (configProperty instanceof Collection<?>) {
-            return ImmutableSet.copyOf((Collection<?>) configProperty);
+            return Collections.unmodifiableSet(SetUtils.toLinkedSet((Collection<?>) configProperty));
         } else if (configProperty.getClass().isArray()) {
-            return ImmutableSet.copyOf((Object[]) configProperty);
+            return Collections.unmodifiableSet(SetUtils.toLinkedSet((Object[]) configProperty));
         } else {
             String[] arr = PropertiesUtil.toStringArray(configProperty);
             if (arr != null) {
-                return ImmutableSet.copyOf(arr);
+                return Collections.unmodifiableSet(SetUtils.toLinkedSet(arr));
             } else {
                 String str = configProperty.toString();
                 log.warn("Unsupported target type {} for value {}", clazz.getName(), str);

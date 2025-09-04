@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
@@ -29,36 +28,66 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultIndexWriterFactory.class);
+
     private final MountInfoProvider mountInfoProvider;
     private final DirectoryFactory directoryFactory;
     private final LuceneIndexWriterConfig writerConfig;
+    private final IndexWriterPool indexWriterPool;
 
     public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
-                                     DirectoryFactory directoryFactory, LuceneIndexWriterConfig writerConfig) {
-        this.mountInfoProvider = checkNotNull(mountInfoProvider);
-        this.directoryFactory = checkNotNull(directoryFactory);
-        this.writerConfig = checkNotNull(writerConfig);
+                                     DirectoryFactory directoryFactory,
+                                     LuceneIndexWriterConfig writerConfig) {
+        this(mountInfoProvider, directoryFactory, writerConfig, null);
+    }
+
+    public DefaultIndexWriterFactory(MountInfoProvider mountInfoProvider,
+                                     DirectoryFactory directoryFactory,
+                                     LuceneIndexWriterConfig writerConfig,
+                                     IndexWriterPool indexWriterPool) {
+        this.mountInfoProvider = requireNonNull(mountInfoProvider);
+        this.directoryFactory = requireNonNull(directoryFactory);
+        this.writerConfig = requireNonNull(writerConfig);
+        this.indexWriterPool = indexWriterPool;
     }
 
     @Override
     public LuceneIndexWriter newInstance(IndexDefinition def, NodeBuilder definitionBuilder,
                                          CommitInfo commitInfo, boolean reindex) {
-        Preconditions.checkArgument(def instanceof LuceneIndexDefinition,
-                "Expected {} but found {} for index definition",
+        Validate.checkArgument(def instanceof LuceneIndexDefinition,
+                "Expected %s but found %s for index definition",
                 LuceneIndexDefinition.class, def.getClass());
 
-        LuceneIndexDefinition definition = (LuceneIndexDefinition)def;
+        LuceneIndexDefinition definition = (LuceneIndexDefinition) def;
 
-        if (mountInfoProvider.hasNonDefaultMounts()){
-            return new MultiplexingIndexWriter(directoryFactory, mountInfoProvider, definition,
-                    definitionBuilder, reindex, writerConfig);
+        if (mountInfoProvider.hasNonDefaultMounts()) {
+            return wrapWithPipelinedIndexWriter(
+                    new MultiplexingIndexWriter(directoryFactory, mountInfoProvider, definition, definitionBuilder, reindex, writerConfig),
+                    definition.getIndexName());
         }
-        return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory,
+        DefaultIndexWriter writer = new DefaultIndexWriter(definition, definitionBuilder, directoryFactory,
                 FulltextIndexConstants.INDEX_DATA_CHILD_NAME,
                 LuceneIndexConstants.SUGGEST_DATA_CHILD_NAME, reindex, writerConfig);
+
+        return wrapWithPipelinedIndexWriter(writer, definition.getIndexName());
+    }
+
+    public void close() {
+        LOG.debug("Closing LuceneIndexWriterFactory");
+        if (indexWriterPool == null) {
+            LOG.debug("Not using an Index writer pool");
+        } else {
+            indexWriterPool.close();
+        }
+    }
+
+    private LuceneIndexWriter wrapWithPipelinedIndexWriter(LuceneIndexWriter writer, String indexName) {
+        return indexWriterPool == null ? writer : new PooledLuceneIndexWriter(indexWriterPool, writer, indexName);
     }
 }

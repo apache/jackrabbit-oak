@@ -26,21 +26,20 @@ package org.apache.jackrabbit.oak.plugins.memory;
 //                                                                         //
 // WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! //
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
+import java.util.StringJoiner;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.MoveDetector;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -156,7 +155,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         this.rootBuilder = this;
 
         this.baseRevision = 0;
-        this.base = checkNotNull(base);
+        this.base = requireNonNull(base);
 
         this.rootHead = new RootHead(this);
         this.head = rootHead;
@@ -235,8 +234,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * @param newBase new base state
      */
     public void reset(@NotNull NodeState newBase) {
-        checkState(parent == null);
-        base = checkNotNull(newBase);
+        Validate.checkState(parent == null);
+        base = requireNonNull(newBase);
         baseRevision = rootHead.setState(newBase) + 1;
     }
 
@@ -310,7 +309,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean hasChildNode(@NotNull String name) {
-        return head().getCurrentNodeState().hasChildNode(checkNotNull(name));
+        return head().getCurrentNodeState().hasChildNode(requireNonNull(name));
     }
 
     @NotNull
@@ -339,8 +338,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @NotNull
     @Override
     public NodeBuilder setChildNode(@NotNull String name, @NotNull NodeState state) {
-        checkState(exists(), "This builder does not exist: " + this.name);
-        head().getMutableNodeState().setChildNode(name, checkNotNull(state));
+        Validate.checkState(exists(), "This builder does not exist: %s", name);
+        head().getMutableNodeState().setChildNode(name, requireNonNull(state));
         MemoryNodeBuilder builder = createChildBuilder(name);
         updated();
         return builder;
@@ -377,7 +376,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @Override
     public boolean moveTo(@NotNull NodeBuilder newParent, @NotNull String newName)
             throws IllegalArgumentException {
-        checkNotNull(newParent);
+        requireNonNull(newParent);
         checkValidName(newName);
         if (isRoot() || !exists() || newParent.hasChildNode(newName)) {
             return false;
@@ -441,7 +440,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private static String getSourcePathAnnotation(MemoryNodeBuilder builder) {
         PropertyState base = builder.getBaseState().getProperty(MoveDetector.SOURCE_PATH);
         PropertyState head = builder.getNodeState().getProperty(MoveDetector.SOURCE_PATH);
-        if (Objects.equal(base, head)) {
+        if (Objects.equals(base, head)) {
             // Both null: no source path annotation
             // Both non-null but equals: source path annotation is from a previous commit
             return null;
@@ -474,39 +473,39 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean hasProperty(String name) {
-        return head().getCurrentNodeState().hasProperty(checkNotNull(name));
+        return head().getCurrentNodeState().hasProperty(requireNonNull(name));
     }
 
     @Override
     public PropertyState getProperty(String name) {
-        return head.update().getCurrentNodeState().getProperty(checkNotNull(name));
+        return head.update().getCurrentNodeState().getProperty(requireNonNull(name));
     }
 
     @Override
     public boolean getBoolean(@NotNull String name) {
-        return head().getCurrentNodeState().getBoolean(checkNotNull(name));
+        return head().getCurrentNodeState().getBoolean(requireNonNull(name));
     }
 
     @Override @Nullable
     public String getString(@NotNull String name) {
-        return head().getCurrentNodeState().getString(checkNotNull(name));
+        return head().getCurrentNodeState().getString(requireNonNull(name));
     }
 
     @Override @Nullable
     public String getName(@NotNull String name) {
-        return head().getCurrentNodeState().getName(checkNotNull(name));
+        return head().getCurrentNodeState().getName(requireNonNull(name));
     }
 
     @Override @NotNull
     public Iterable<String> getNames(@NotNull String name) {
-        return head().getCurrentNodeState().getNames(checkNotNull(name));
+        return head().getCurrentNodeState().getNames(requireNonNull(name));
     }
 
     @NotNull
     @Override
     public NodeBuilder setProperty(@NotNull PropertyState property) {
-        checkState(exists(), "This builder does not exist: " + name);
-        head().getMutableNodeState().setProperty(checkNotNull(property));
+        Validate.checkState(exists(), "This builder does not exist: %s", name);
+        head().getMutableNodeState().setProperty(requireNonNull(property));
         updated();
         return this;
     }
@@ -528,8 +527,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @NotNull
     @Override
     public NodeBuilder removeProperty(String name) {
-        checkState(exists(), "This builder does not exist: " + name);
-        if (head().getMutableNodeState().removeProperty(checkNotNull(name))) {
+        Validate.checkState(exists(), "This builder does not exist: %s", name);
+        if (head().getMutableNodeState().removeProperty(requireNonNull(name))) {
             updated();
         }
         return this;
@@ -538,7 +537,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
         try {
-            return new ArrayBasedBlob(ByteStreams.toByteArray(stream));
+            return new ArrayBasedBlob(stream.readAllBytes());
         } finally {
             stream.close();
         }
@@ -557,7 +556,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public String toString() {
-        return toStringHelper(this).add("path", getPath()).toString();
+        return new StringJoiner(", ", MemoryNodeBuilder.class.getSimpleName() + "[", "]")
+                .add("path=" + getPath())
+                .toString();
     }
 
     //------------------------------------------------------------< Head >---
@@ -704,7 +705,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
         @Override
         public String toString() {
-            return toStringHelper(this).add("path", builder.getPath()).toString();
+            return new StringJoiner(", ", UnconnectedHead.class.getSimpleName() + "[", "]")
+                    .add("path=" + builder.getPath())
+                    .toString();
         }
     }
 
@@ -769,7 +772,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
         @Override
         public String toString() {
-            return toStringHelper(this).add("path", builder.getPath()).toString();
+            return new StringJoiner(", ", ConnectedHead.class.getSimpleName() + "[", "]")
+                    .add("path=" + builder.getPath())
+                    .toString();
         }
     }
 

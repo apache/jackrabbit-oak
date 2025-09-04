@@ -46,12 +46,10 @@ import org.junit.Test;
  * The test is <b>disabled</b> by default, to run it you need to set the
  * {@code CacheWeightsTest} system property:<br>
  * {@code mvn clean test -Dtest=CacheWeightEstimator -Dtest.opts.memory=-Xmx2G}
- * </p>
  * <p>
  * To collect the results check the
  * {@code org.apache.jackrabbit.oak.segment.CacheWeightsTest-output.txt} file:<br>
  * {@code cat target/surefire-reports/org.apache.jackrabbit.oak.segment.CacheWeightEstimator-output.txt}
- * </p>
  */
 public class CacheWeightEstimator {
 
@@ -339,7 +337,7 @@ public class CacheWeightEstimator {
 
         Buffer data = Buffer.wrap(buffer);
         SegmentId id = randomSegmentId(false);
-        Segment segment = new Segment(store.getSegmentIdProvider(), store.getReader(), id, data);
+        Segment segment = new Segment(store.getSegmentIdProvider(), id, data);
 
         //
         // TODO check impact of MutableRecordNumbers overhead of 65k bytes

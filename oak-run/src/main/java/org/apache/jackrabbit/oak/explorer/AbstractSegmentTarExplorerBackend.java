@@ -18,18 +18,16 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStateHelper;
 import org.apache.jackrabbit.oak.segment.SegmentPropertyState;
-import org.apache.jackrabbit.oak.segment.file.JournalEntry;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
@@ -40,14 +38,14 @@ import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.reverseOrder;
 
 /**
@@ -75,24 +73,19 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         JournalFile journal = getJournal();
 
         if (!journal.exists()) {
-            return newArrayList();
+            return new ArrayList<>();
         }
 
-        List<String> revs = newArrayList();
+        List<String> revs = new ArrayList<>();
         JournalReader journalReader = null;
 
         try {
             journalReader = new JournalReader(journal);
-            Iterator<String> revisionIterator = Iterators.transform(journalReader,
-                    new Function<JournalEntry, String>() {
-                        @Override
-                        public String apply(JournalEntry entry) {
-                            return entry.getRevision();
-                        }
-                    });
+            Iterator<String> revisionIterator = IteratorUtils.transform(journalReader,
+                    entry -> entry.getRevision());
 
             try {
-                revs = newArrayList(revisionIterator);
+                revs = ListUtils.toList(revisionIterator);
             } finally {
                 journalReader.close();
             }
@@ -132,7 +125,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
     public void getGcRoots(UUID uuidIn, Map<UUID, Set<Map.Entry<UUID, String>>> links) throws IOException {
         Deque<UUID> todos = new ArrayDeque<UUID>();
         todos.add(uuidIn);
-        Set<UUID> visited = newHashSet();
+        Set<UUID> visited = new HashSet<>();
         while (!todos.isEmpty()) {
             UUID uuid = todos.remove();
             if (!visited.add(uuid)) {
@@ -147,7 +140,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
                             todos.add(uuidP);
                             Set<Map.Entry<UUID, String>> deps = links.get(uuid);
                             if (deps == null) {
-                                deps = newHashSet();
+                                deps = new HashSet<>();
                                 links.put(uuid, deps);
                             }
                             deps.add(new AbstractMap.SimpleImmutableEntry<UUID, String>(
@@ -161,7 +154,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
 
     @Override
     public Set<UUID> getReferencedSegmentIds() {
-        Set<UUID> ids = newHashSet();
+        Set<UUID> ids = new HashSet<>();
 
         for (SegmentId id : store.getReferencedSegmentIds()) {
             ids.add(id.asUUID());
@@ -278,7 +271,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
 
     @Override
     public Map<UUID, String> getBulkSegmentIds(Blob blob) {
-        Map<UUID, String> result = Maps.newHashMap();
+        Map<UUID, String> result = new HashMap<>();
 
         for (SegmentId segmentId : SegmentBlob.getBulkSegmentIds(blob)) {
             result.put(segmentId.asUUID(), getFile(segmentId));

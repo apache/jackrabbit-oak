@@ -21,11 +21,9 @@ package org.apache.jackrabbit.oak.plugins.value;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.TimeZone;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
@@ -156,14 +154,8 @@ public final class Conversions {
         return new Converter() {
             @Override
             public String toString() {
-                try {
-                    InputStream in = value.getNewStream();
-                    try {
-                        return new String(ByteStreams.toByteArray(in), Charsets.UTF_8);
-                    }
-                    finally {
-                        in.close();
-                    }
+                try (InputStream in = value.getNewStream()) {
+                    return new String(in.readAllBytes(), StandardCharsets.UTF_8);
                 }
                 catch (IOException e) {
                     throw new IllegalArgumentException(e);

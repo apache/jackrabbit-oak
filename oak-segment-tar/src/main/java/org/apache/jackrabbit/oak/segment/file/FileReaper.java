@@ -14,16 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +68,7 @@ public class FileReaper {
         }
 
         Set<String> redo = new HashSet<>();
-        List<String> removed = newArrayList();
+        List<String> removed = new ArrayList<>();
         for (String file : reap) {
             if (archiveManager.delete(file)) {
                 removed.add(file);
@@ -81,7 +78,7 @@ public class FileReaper {
             }
         }
         if (!removed.isEmpty()) {
-            logger.info("Removed files {}", Joiner.on(",").join(removed));
+            logger.info("Removed files {}", String.join(",", removed));
         }
 
         if (redo.isEmpty()) {

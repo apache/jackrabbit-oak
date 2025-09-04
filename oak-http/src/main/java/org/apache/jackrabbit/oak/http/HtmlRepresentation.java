@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.http;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.transform.OutputKeys;
@@ -35,7 +36,6 @@ import org.apache.tika.mime.MediaType;
 import org.apache.tika.sax.XHTMLContentHandler;
 import org.xml.sax.SAXException;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -74,7 +74,7 @@ class HtmlRepresentation implements Representation {
                 xhtml.element("dt", name);
                 xhtml.startElement("dd");
                 xhtml.startElement("a", "href", response.encodeRedirectURL(
-                        URLEncoder.encode(name, Charsets.UTF_8.name()) + "/"));
+                        URLEncoder.encode(name, StandardCharsets.UTF_8) + "/"));
                 xhtml.characters(child.getPath());
                 xhtml.endElement("a");
                 xhtml.endElement("dd");

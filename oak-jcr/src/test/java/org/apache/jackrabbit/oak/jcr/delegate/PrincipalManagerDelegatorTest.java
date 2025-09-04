@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;

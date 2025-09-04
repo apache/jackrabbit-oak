@@ -60,6 +60,8 @@ import org.slf4j.LoggerFactory;
 
 import static java.text.Normalizer.Form.NFKC;
 import static java.text.Normalizer.normalize;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_LAST_DYNAMIC_SYNC;
 
 /**
  * Internal implementation of the sync context
@@ -588,6 +590,13 @@ public class DefaultSyncContext implements SyncContext {
             log.debug("- removing member '{}' for group '{}'", auth.getID(), grp.getID());
         }
         timer.mark("removing");
+        
+        // make sure properties added by 'dynamic sync' are cleared
+        if (!auth.isGroup()) {
+            auth.removeProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+            auth.removeProperty(REP_LAST_DYNAMIC_SYNC);
+            timer.mark("cleanup");
+        }
         log.debug("syncMembership({}) {}", external.getId(), timer);
     }
     
@@ -741,7 +750,7 @@ public class DefaultSyncContext implements SyncContext {
      * @return and array of JCR values
      * @throws RepositoryException if an error occurs
      */
-    @Nullable
+    @NotNull
     protected Value[] createValues(@NotNull Collection<?> propValues) throws RepositoryException {
         List<Value> values = new ArrayList<>();
         for (Object obj : propValues) {

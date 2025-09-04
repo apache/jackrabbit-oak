@@ -36,8 +36,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import javax.jcr.Repository;
 import java.io.File;
-
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import java.util.Set;
 
 public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
 
@@ -64,7 +63,7 @@ public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
                         .with(indexProvider)
                         .with(new PropertyIndexEditorProvider())
                         .with(new NodeTypeIndexProvider())
-                        .with(new PropertyFullTextTest.FullTextPropertyInitialiser(indexName, of("text"),
+                        .with(new PropertyFullTextTest.FullTextPropertyInitialiser(indexName, Set.of("text"),
                                 ElasticIndexDefinition.TYPE_ELASTICSEARCH).nodeScope().analyzed());
                 return new Jcr(oak);
             });

@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
-import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
+
+import static org.apache.jackrabbit.oak.commons.internal.function.Suppliers.memoize;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
@@ -31,12 +30,14 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -49,14 +50,13 @@ import org.junit.Test;
  */
 public class ContentMirrorStoreStrategyTest {
 
-    private static final Set<String> EMPTY = newHashSet();
+    private static final Set<String> EMPTY = new HashSet<>();
 
-    private static final Set<String> KEY = newHashSet("key");
+    private static final Set<String> KEY = Set.of("key");
 
     /**
      * <p>
      * Tests the index pruning mechanism
-     * </p>
      * <ul>
      * <li>
      * adds a few levels of nodes, nodes with an even index will have the
@@ -306,21 +306,21 @@ public class ContentMirrorStoreStrategyTest {
         indexMeta.setChildNode(INDEX_CONTENT_NODE_NAME, builder.getNodeState());
 
         Iterable<String> paths = store.query(filter, null, indexMeta.getNodeState(), KEY);
-        assertThat(copyOf(paths), containsInAnyOrder("a", "a/c", "b"));
+        assertThat(ListUtils.toList(paths), containsInAnyOrder("a", "a/c", "b"));
 
         FilterImpl filter2 = FilterImpl.newTestInstance();
         filter2.restrictPath("/content/a", Filter.PathRestriction.ALL_CHILDREN);
 
         paths = store.query(filter2, null, indexMeta.getNodeState(), KEY);
-        assertThat(copyOf(paths), containsInAnyOrder("a", "a/c"));
+        assertThat(ListUtils.toList(paths), containsInAnyOrder("a", "a/c"));
 
         store = new ContentMirrorStoreStrategy(INDEX_CONTENT_NODE_NAME, "/content", true);
 
         paths = store.query(filter, null, indexMeta.getNodeState(), KEY);
-        assertThat(copyOf(paths), containsInAnyOrder("/content/a", "/content/a/c", "/content/b"));
+        assertThat(ListUtils.toList(paths), containsInAnyOrder("/content/a", "/content/a/c", "/content/b"));
 
         paths = store.query(filter2, null, indexMeta.getNodeState(), KEY);
-        assertThat(copyOf(paths), containsInAnyOrder("/content/a", "/content/a/c"));
+        assertThat(ListUtils.toList(paths), containsInAnyOrder("/content/a", "/content/a/c"));
     }
 
     private static void assertInRange(String msg, double expected, double actual) {

@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.base.Objects.equal;
 import static java.util.Collections.synchronizedList;
 import static java.util.Collections.synchronizedSet;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -44,12 +42,16 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -83,9 +85,6 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.version.VersionException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
@@ -99,6 +98,8 @@ import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 import org.apache.jackrabbit.api.observation.JackrabbitObservationManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.observation.filter.FilterFactory;
@@ -1241,12 +1242,9 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     private static class ExpectationListener implements EventListener {
-        private final Set<Expectation> expected = synchronizedSet(
-                Sets.<Expectation>newCopyOnWriteArraySet());
-        private final Set<Expectation> optional = synchronizedSet(
-                Sets.<Expectation>newCopyOnWriteArraySet());
-        private final List<Event> unexpected = synchronizedList(
-                Lists.<Event>newCopyOnWriteArrayList());
+        private final Set<Expectation> expected = synchronizedSet(new CopyOnWriteArraySet<>());
+        private final Set<Expectation> optional = synchronizedSet(new CopyOnWriteArraySet<>());
+        private final List<Event> unexpected = synchronizedList(new CopyOnWriteArrayList<>());
 
         private volatile Exception failed;
 
@@ -1257,7 +1255,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             expected.add(expectation);
             return expectation;
         }
-        
+
         public Expectation optional(Expectation expectation) {
             if (failed != null) {
                 expectation.fail(failed);
@@ -1270,7 +1268,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             return expect(new Expectation("path = " + path + ", type = " + type) {
                 @Override
                 public boolean onEvent(Event event) throws RepositoryException {
-                    return type == event.getType() && equal(path, event.getPath());
+                    return type == event.getType() && Objects.equals(path, event.getPath());
                 }
             });
         }
@@ -1279,7 +1277,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             return expect(new Expectation("path = " + path + ", identifier = " + identifier + ", type = " + type) {
                 @Override
                 public boolean onEvent(Event event) throws RepositoryException {
-                    return type == event.getType() && equal(path, event.getPath()) && equal(identifier, event.getIdentifier());
+                    return type == event.getType() && Objects.equals(path, event.getPath()) && Objects.equals(identifier, event.getIdentifier());
                 }
             });
         }
@@ -1316,9 +1314,9 @@ public class ObservationTest extends AbstractRepositoryTest {
                 @Override
                 public boolean onEvent(Event event) throws Exception {
                     return event.getType() == NODE_MOVED &&
-                            equal(dst, event.getPath()) &&
-                            equal(src, event.getInfo().get("srcAbsPath")) &&
-                            equal(dst, event.getInfo().get("destAbsPath"));
+                            Objects.equals(dst, event.getPath()) &&
+                            Objects.equals(src, event.getInfo().get("srcAbsPath")) &&
+                            Objects.equals(dst, event.getInfo().get("destAbsPath"));
                 }
             });
         }
@@ -1327,8 +1325,8 @@ public class ObservationTest extends AbstractRepositoryTest {
             expect(new Expectation("Before value " + before + " after value " + after) {
                 @Override
                 public boolean onEvent(Event event) throws Exception {
-                    return equal(before, event.getInfo().get("beforeValue")) &&
-                           equal(after, event.getInfo().get("afterValue"));
+                    return Objects.equals(before, event.getInfo().get("beforeValue")) &&
+                            Objects.equals(after, event.getInfo().get("afterValue"));
                 }
             });
         }
@@ -1347,14 +1345,14 @@ public class ObservationTest extends AbstractRepositoryTest {
             return expect(new Expectation("path = " + path + ", type = " + type + ", beforeValue = " + beforeValue) {
                 @Override
                 public boolean onEvent(Event event) throws RepositoryException {
-                    return type == event.getType() && equal(path, event.getPath()) && event.getInfo().containsKey("beforeValue") && beforeValue.equals(((Value)event.getInfo().get("beforeValue")).getString());
+                    return type == event.getType() && Objects.equals(path, event.getPath()) && event.getInfo().containsKey("beforeValue") && beforeValue.equals(((Value)event.getInfo().get("beforeValue")).getString());
                 }
             });
         }
 
         public List<Expectation> getMissing(int time, TimeUnit timeUnit)
                 throws ExecutionException, InterruptedException {
-            List<Expectation> missing = Lists.newArrayList();
+            List<Expectation> missing = new ArrayList<>();
             long t0 = System.nanoTime();
             try {
                 Futures.allAsList(expected).get(time, timeUnit);
@@ -1370,7 +1368,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         }
 
         public List<Event> getUnexpected() {
-            return Lists.newArrayList(unexpected);
+            return new ArrayList<>(unexpected);
         }
 
         @Override
@@ -2314,7 +2312,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertNotNull(cp);
         FilterProvider filterProvider = cp.getFilterProvider();
         assertNotNull(filterProvider);
-        assertArrayEquals(expectedSubTrees, Iterables.toArray(filterProvider.getSubTrees(), String.class));
+        assertArrayEquals(expectedSubTrees, IterableUtils.toArray(filterProvider.getSubTrees(), String.class));
         
         Node parent = getAdminSession().getRootNode().addNode("parent", "nt:unstructured");
         Node bar = parent.addNode("bar", "nt:unstructured");
@@ -2467,6 +2465,6 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     private void assertMatches(Iterable<String> actuals, String... expected) {
-        assertEquals(newHashSet(expected), newHashSet(actuals));
+        assertEquals(SetUtils.toSet(expected), SetUtils.toSet(actuals));
     }
 }

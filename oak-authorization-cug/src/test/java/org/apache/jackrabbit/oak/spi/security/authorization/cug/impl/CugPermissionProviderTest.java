@@ -25,14 +25,12 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
@@ -89,11 +87,11 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
         PATH_INCUG_MAP.put(INVALID_PATH, false);
     }
 
-    private static final List<String> READABLE_PATHS = ImmutableList.of(
+    private static final List<String> READABLE_PATHS = List.of(
             "/content/a/b/c", "/content/a/b/c/jcr:primaryType",
             "/content/a/b/c/nonExisting", "/content/a/b/c/nonExisting/jcr:primaryType");
 
-    private static final List<String> NOT_READABLE_PATHS = ImmutableList.of(
+    private static final List<String> NOT_READABLE_PATHS = List.of(
             "/", "/jcr:primaryType",
             UNSUPPORTED_PATH, UNSUPPORTED_PATH + "/jcr:primaryType",
             "/content", "/content/jcr:primaryType",
@@ -129,7 +127,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
 
         root.commit();
 
-        cugPermProvider = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH), getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        cugPermProvider = createCugPermissionProvider(Set.of(SUPPORTED_PATH), getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
     }
 
     //---------------------------------------< AggregatedPermissionProvider >---
@@ -427,7 +425,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testGetPrivilegesAtCug() {
-        Set<String> expected = ImmutableSet.of(
+        Set<String> expected = Set.of(
                 PrivilegeConstants.JCR_READ,
                 PrivilegeConstants.REP_READ_NODES,
                 PrivilegeConstants.REP_READ_PROPERTIES);
@@ -445,9 +443,9 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testGetPrivilegesAtCug2() {
-        PermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH), testGroupPrincipal);
+        PermissionProvider pp = createCugPermissionProvider(Set.of(SUPPORTED_PATH), testGroupPrincipal);
 
-        Set<String> expected = ImmutableSet.of(
+        Set<String> expected = Set.of(
                 PrivilegeConstants.JCR_READ,
                 PrivilegeConstants.REP_READ_NODES,
                 PrivilegeConstants.REP_READ_PROPERTIES);
@@ -521,7 +519,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testHasNonReadPrivileges() {
-        for (String p : Iterables.concat(READABLE_PATHS, NOT_READABLE_PATHS)) {
+        for (String p : IterableUtils.chainedIterable(READABLE_PATHS, NOT_READABLE_PATHS)) {
             Tree tree = root.getTree(p);
             if (tree.exists()) {
                 assertFalse(cugPermProvider.hasPrivileges(tree, PrivilegeConstants.JCR_WRITE));
@@ -539,6 +537,15 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
     @Test
     public void testHasPrivilegesNullPath() {
         assertFalse(cugPermProvider.hasPrivileges(null, PrivilegeConstants.JCR_READ));
+    }
+
+    /**
+     * @see PermissionProvider#hasPrivileges(org.apache.jackrabbit.oak.api.Tree, String...)
+     */
+    @Test
+    public void testHasOneNullPrivilege() {
+        final Tree tree = root.getTree(PathUtils.ROOT_PATH);
+        assertFalse(cugPermProvider.hasPrivileges(tree, PrivilegeConstants.JCR_READ, null, PrivilegeConstants.JCR_WRITE));
     }
 
     /**
@@ -639,7 +646,7 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testIsGrantedNonRead() {
-        for (String p : Iterables.concat(READABLE_PATHS, NOT_READABLE_PATHS)) {
+        for (String p : IterableUtils.chainedIterable(READABLE_PATHS, NOT_READABLE_PATHS)) {
             Tree tree = root.getTree(p);
             if (tree.exists()) {
                 assertFalse(cugPermProvider.isGranted(tree, null, Permissions.ALL));

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -28,6 +26,8 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.security.user.AbstractUserTest;
@@ -53,8 +53,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_ADMIN_ID;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_GROUP_PATH;
@@ -126,7 +127,7 @@ public class UserQueryManagerTest extends AbstractUserTest {
                 g = getUserManager(root).createGroup(id);
             }
         } else {
-            checkNotNull(principal);
+            requireNonNull(principal);
             g = getUserManager(root).createGroup(principal);
         }
         groups.add(g);
@@ -144,7 +145,7 @@ public class UserQueryManagerTest extends AbstractUserTest {
                 assertFalse(result.hasNext());
                 break;
             default:
-                assertEquals(ImmutableSet.copyOf(expected), ImmutableSet.copyOf(result));
+                assertEquals(Set.of(expected), SetUtils.toSet(result));
         }
     }
 
@@ -495,7 +496,7 @@ public class UserQueryManagerTest extends AbstractUserTest {
         };
 
         Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
-        assertEquals(ImmutableList.of(user, g2, g), ImmutableList.copyOf(result));
+        assertEquals(List.of(user, g2, g), ListUtils.toList(result));
     }
 
     @Test
@@ -516,7 +517,7 @@ public class UserQueryManagerTest extends AbstractUserTest {
         };
 
         Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
-        assertEquals(ImmutableList.of(user, g, g2), ImmutableList.copyOf(result));
+        assertEquals(List.of(user, g, g2), ListUtils.toList(result));
     }
 
     @Test

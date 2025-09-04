@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Repository;
@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.query.SessionQuerySettings;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -109,12 +110,12 @@ public class SessionContext implements NamePathMapper {
     private BlobAccessProvider blobAccessProvider;
 
     /** Paths (tokens) of all open scoped locks held by this session. */
-    private final Set<String> openScopedLocks = newTreeSet();
+    private final Set<String> openScopedLocks = new TreeSet<>();
 
     /** Paths of all session scoped locks held by this session. */
-    private final Set<String> sessionScopedLocks = newHashSet();
+    private final Set<String> sessionScopedLocks = new HashSet<>();
     
-    private final boolean fastQueryResultSize;
+    private final SessionQuerySettings sessionQuerySettings;
 
     public SessionContext(
              @NotNull Repository repository, @NotNull StatisticManager statisticManager,
@@ -123,7 +124,7 @@ public class SessionContext implements NamePathMapper {
              int observationQueueLength, CommitRateLimiter commitRateLimiter) {
         
         this(repository, statisticManager, securityProvider, whiteboard, attributes, delegate,
-            observationQueueLength, commitRateLimiter, null, null, false);
+            observationQueueLength, commitRateLimiter, null, null, null);
     }
 
     public SessionContext(
@@ -132,13 +133,13 @@ public class SessionContext implements NamePathMapper {
             @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
             int observationQueueLength, CommitRateLimiter commitRateLimiter,
             MountInfoProvider mountInfoProvider, @Nullable BlobAccessProvider blobAccessProvider,
-            boolean fastQueryResultSize) {
-        this.repository = checkNotNull(repository);
+            @Nullable SessionQuerySettings sessionQuerySettings) {
+        this.repository = requireNonNull(repository);
         this.statisticManager = statisticManager;
-        this.securityProvider = checkNotNull(securityProvider);
-        this.whiteboard = checkNotNull(whiteboard);
-        this.attributes = checkNotNull(attributes);
-        this.delegate = checkNotNull(delegate);
+        this.securityProvider = requireNonNull(securityProvider);
+        this.whiteboard = requireNonNull(whiteboard);
+        this.attributes = requireNonNull(attributes);
+        this.delegate = requireNonNull(delegate);
         this.observationQueueLength = observationQueueLength;
         this.commitRateLimiter = commitRateLimiter;
         this.mountInfoProvider = mountInfoProvider;
@@ -150,7 +151,7 @@ public class SessionContext implements NamePathMapper {
                 delegate.getNamespaces(), delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot(), namePathMapper, this.blobAccessProvider);
-        this.fastQueryResultSize = fastQueryResultSize;
+        this.sessionQuerySettings = sessionQuerySettings;
     }
 
     public final Map<String, Object> getAttributes() {
@@ -324,10 +325,7 @@ public class SessionContext implements NamePathMapper {
     }
     
     public boolean getFastQueryResultSize() {
-        if (System.getProperty("oak.fastQuerySize") != null) {
-            return Boolean.getBoolean("oak.fastQuerySize");
-        }
-        return fastQueryResultSize;
+        return this.sessionQuerySettings != null && this.sessionQuerySettings.useDirectResultCount();
     }
 
     @Nullable
@@ -355,6 +353,12 @@ public class SessionContext implements NamePathMapper {
         return namePathMapper.getJcrName(oakName);
     }
 
+    @NotNull
+    @Override
+    public String getExpandedJcrName(@NotNull String oakName) {
+        return namePathMapper.getExpandedJcrName(oakName);
+    }
+
     @Override
     @Nullable
     public String getOakPath(String jcrPath) {
@@ -365,6 +369,12 @@ public class SessionContext implements NamePathMapper {
     @NotNull
     public String getJcrPath(String oakPath) {
         return namePathMapper.getJcrPath(oakPath);
+    }
+
+    @Override
+    @NotNull
+    public String getExpandedJcrPath(@NotNull String oakPath) {
+        return namePathMapper.getExpandedJcrPath(oakPath);
     }
 
     /**

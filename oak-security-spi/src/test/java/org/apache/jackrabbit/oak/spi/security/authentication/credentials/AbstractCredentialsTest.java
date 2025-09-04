@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 import java.util.Date;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -83,7 +82,7 @@ public class AbstractCredentialsTest {
 
     @Test
     public void testSetAttributes() {
-        Map<String,Object> attributes = ImmutableMap.of("attr", true);
+        Map<String,Object> attributes = Map.of("attr", true);
         credentials.setAttributes(attributes);
 
         Map<String,Object> attr = credentials.getAttributes();

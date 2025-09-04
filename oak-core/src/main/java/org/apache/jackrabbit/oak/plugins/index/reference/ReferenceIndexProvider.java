@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -41,7 +40,7 @@ public class ReferenceIndexProvider implements QueryIndexProvider {
     @Override
     @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState state) {
-        return ImmutableList.<QueryIndex> of(new ReferenceIndex(mountInfoProvider));
+        return List.of(new ReferenceIndex(mountInfoProvider));
     }
 
     public ReferenceIndexProvider with(MountInfoProvider mountInfoProvider) {

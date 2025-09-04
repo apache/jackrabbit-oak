@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
+
+import static java.util.Objects.checkIndex;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Editor wrapper that passes only changes in the specified subtree to
@@ -37,9 +37,9 @@ public class SubtreeEditor extends DefaultEditor {
     private final int depth;
 
     private SubtreeEditor(Editor editor, String[] path, int depth) {
-        this.editor = checkNotNull(editor);
-        this.path = checkNotNull(path);
-        checkElementIndex(depth, path.length);
+        this.editor = requireNonNull(editor);
+        this.path = requireNonNull(path);
+        checkIndex(depth, path.length);
         this.depth = depth;
     }
 

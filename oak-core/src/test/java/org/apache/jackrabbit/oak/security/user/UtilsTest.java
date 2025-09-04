@@ -22,7 +22,6 @@ import java.util.Enumeration;
 import java.util.Map;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -121,7 +120,7 @@ public class UtilsTest extends AbstractSecurityTest {
 
     @Test
     public void testGetOrAddTree() throws Exception {
-        Map<String, String> map = ImmutableMap.of(
+        Map<String, String> map = Map.of(
                 "a/b/c", "/a/b/c",
                 "a/../b/c", "/b/c",
                 "a/b/c/../..", "/a",

@@ -19,13 +19,72 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 
-public interface Compactor {
-    SegmentNodeState compact(@NotNull NodeState before, @NotNull NodeState after, @NotNull NodeState onto,
-            Canceller canceller) throws IOException;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
+public abstract class Compactor {
+    public final @Nullable CompactedNodeState compactDown(
+            @NotNull NodeState state,
+            @NotNull Canceller hardCanceller,
+            @NotNull Canceller softCanceller
+    ) throws IOException {
+        return compactDown(EMPTY_NODE, state, hardCanceller, softCanceller);
+    }
+
+    /**
+     * compact the differences between {@code after} and {@code before} on top of {@code after}.
+     * @param before        the node state to diff against from {@code after}
+     * @param after         the node state diffed against {@code before}
+     * @param hardCanceller the trigger for hard cancellation, will abandon compaction if cancelled
+     * @param softCanceller the trigger for soft cancellation, will return partially compacted state if cancelled
+     * @return              the compacted node state or {@code null} if hard-cancelled
+     * @throws IOException  will throw exception if any errors occur during compaction
+     */
+    public abstract @Nullable CompactedNodeState compactDown(
+            @NotNull NodeState before,
+            @NotNull NodeState after,
+            @NotNull Canceller hardCanceller,
+            @NotNull Canceller softCanceller
+    ) throws IOException;
+
+    public final @Nullable CompactedNodeState compactUp(
+            @NotNull NodeState state,
+            @NotNull Canceller canceller
+    ) throws IOException {
+        return compactUp(EMPTY_NODE, state, canceller);
+    }
+
+    /**
+     * compact the differences between {@code after} and {@code before} on top of {@code before}.
+     */
+    public final @Nullable CompactedNodeState compactUp(
+            @NotNull NodeState before,
+            @NotNull NodeState after,
+            @NotNull Canceller canceller
+    ) throws IOException {
+        return compact(before, after, before, canceller);
+    }
+
+    /**
+     * compact the differences between {@code after} and {@code before} on top of {@code onto}.
+     * @param before        the node state to diff against from {@code after}
+     * @param after         the node state diffed against {@code before}
+     * @param onto          the node state to compact to apply the diff to
+     * @param canceller     the trigger for hard cancellation, will abandon compaction if cancelled
+     * @return              the compacted node state or {@code null} if hard-cancelled
+     * @throws IOException  will throw exception if any errors occur during compaction
+     */
+    public abstract @Nullable CompactedNodeState compact(
+            @NotNull NodeState before,
+            @NotNull NodeState after,
+            @NotNull NodeState onto,
+            @NotNull Canceller canceller
+    ) throws IOException;
 }

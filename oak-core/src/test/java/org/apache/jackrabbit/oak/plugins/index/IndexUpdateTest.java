@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
@@ -43,17 +43,18 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -85,9 +86,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
 public class IndexUpdateTest {
 
     private static final EditorHook HOOK = new EditorHook(
@@ -109,11 +107,11 @@ public class IndexUpdateTest {
     @Test
     public void test() throws Exception {
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
         createIndexDefinition(
                 builder.child("newchild").child("other")
                         .child(INDEX_DEFINITIONS_NAME), "subIndex", true,
-                false, ImmutableSet.of("foo"), null);
+                false, Set.of("foo"), null);
 
         NodeState before = builder.getNodeState();
 
@@ -133,13 +131,13 @@ public class IndexUpdateTest {
                 "subIndex", INDEX_CONTENT_NODE_NAME);
 
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
+        assertEquals(Set.of("testRoot"), find(lookup, "foo", "abc"));
 
         PropertyIndexLookup lookupChild = new PropertyIndexLookup(indexed
                 .getChildNode("newchild").getChildNode("other"));
-        assertEquals(ImmutableSet.of("testChild"),
+        assertEquals(Set.of("testChild"),
                 find(lookupChild, "foo", "xyz"));
-        assertEquals(ImmutableSet.of(), find(lookupChild, "foo", "abc"));
+        assertEquals(Set.of(), find(lookupChild, "foo", "abc"));
 
     }
 
@@ -156,7 +154,7 @@ public class IndexUpdateTest {
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -172,7 +170,7 @@ public class IndexUpdateTest {
 
         // next, lookup
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
+        assertEquals(Set.of("testRoot"), find(lookup, "foo", "abc"));
     }
 
     /**
@@ -188,7 +186,7 @@ public class IndexUpdateTest {
         builder.child("testRoot").setProperty("foo", "abc");
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                "rootIndex", true, false, Set.of("foo"), null)
                 .removeProperty("reindex");
 
         NodeState before = builder.getNodeState();
@@ -208,7 +206,7 @@ public class IndexUpdateTest {
 
         // next, lookup
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
+        assertEquals(Set.of("testRoot"), find(lookup, "foo", "abc"));
     }
 
     /**
@@ -225,7 +223,7 @@ public class IndexUpdateTest {
         NodeState before = builder.getNodeState();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+                "rootIndex", false, false, Set.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -241,7 +239,7 @@ public class IndexUpdateTest {
 
         // next, lookup
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
+        assertEquals(Set.of("testRoot"), find(lookup, "foo", "abc"));
     }
 
     @Test
@@ -249,7 +247,7 @@ public class IndexUpdateTest {
         NodeState before = builder.getNodeState();
 
         NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+                "rootIndex", false, false, Set.of("foo"), null);
         idx.child(":index");
 
         NodeState after = builder.getNodeState();
@@ -270,7 +268,7 @@ public class IndexUpdateTest {
         NodeBuilder builder = before.builder();
         builder.child(":testRoot").setProperty("foo", "abc");
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+                "rootIndex", false, false, Set.of("foo"), null);
         NodeState after = builder.getNodeState();
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
@@ -299,16 +297,16 @@ public class IndexUpdateTest {
     @Test
     public void testIndexDefinitions() throws Exception {
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "existing", true, false, ImmutableSet.of("foo"), null);
+                "existing", true, false, Set.of("foo"), null);
 
         NodeState before = builder.getNodeState();
         NodeBuilder other = builder.child("test").child("other");
         // Add index definition
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         createIndexDefinition(
                 other.child(INDEX_DEFINITIONS_NAME), "index2", true, false,
-                ImmutableSet.of("foo"), null);
+                Set.of("foo"), null);
         NodeState after = builder.getNodeState();
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
@@ -326,7 +324,7 @@ public class IndexUpdateTest {
         NodeState before = builder.getNodeState();
 
         NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+                "rootIndex", false, false, Set.of("foo"), null);
         nb.child("prop1").setProperty("foo", "bar");
 
         NodeState after = builder.getNodeState();
@@ -343,7 +341,7 @@ public class IndexUpdateTest {
 
         // next, lookup
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
+        assertEquals(Set.of("testRoot"), find(lookup, "foo", "abc"));
 
     }
 
@@ -357,7 +355,7 @@ public class IndexUpdateTest {
         NodeState before = builder.getNodeState();
 
         NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
         nb.child(":hidden-node-1").setProperty("foo", "bar");
         nb.child(":hidden-node-2").setProperty(IndexConstants.REINDEX_RETAIN, true);
         nb.child("visible-node");
@@ -385,7 +383,7 @@ public class IndexUpdateTest {
         NodeState before = builder.getNodeState();
 
         NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+                "rootIndex", false, false, Set.of("foo"), null);
         nb.child(":hidden-node-2").setProperty(IndexConstants.REINDEX_RETAIN, true);
         nb.child("visible-node");
 
@@ -419,7 +417,7 @@ public class IndexUpdateTest {
         NodeBuilder builder = store.getRoot().builder();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                "rootIndex", true, false, Set.of("foo"), null)
                 .setProperty(REINDEX_ASYNC_PROPERTY_NAME, true);
         builder.child("testRoot").setProperty("foo", "abc");
 
@@ -457,7 +455,7 @@ public class IndexUpdateTest {
 
         // next, lookup
         PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
-        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo",
+        assertEquals(Set.of("testRoot"), find(lookup, "foo",
         "abc"));
     }
 
@@ -472,7 +470,7 @@ public class IndexUpdateTest {
         NodeState before = builder.getNodeState();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
         builder.child(INDEX_DEFINITIONS_NAME).child("azerty");
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
@@ -518,7 +516,7 @@ public class IndexUpdateTest {
         NodeState before = builder.getNodeState();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
         builder.child(INDEX_DEFINITIONS_NAME).child("azerty");
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
@@ -555,16 +553,16 @@ public class IndexUpdateTest {
 
         // create async defs with nrt and sync mixed in
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "asyncIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run"), Type.STRINGS)
+                "asyncIndex", true, false, Set.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, List.of("async-run"), Type.STRINGS)
                 .setProperty(REINDEX_PROPERTY_NAME, false);
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "nrtIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run", "nrt"), Type.STRINGS)
+                "nrtIndex", true, false, Set.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, List.of("async-run", "nrt"), Type.STRINGS)
                 .setProperty(REINDEX_PROPERTY_NAME, false);
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "asyncSyncIndex", true, false, ImmutableSet.of("foo"), null)
-                .setProperty(ASYNC_PROPERTY_NAME, ImmutableList.of("async-run", "sync"), Type.STRINGS)
+                "asyncSyncIndex", true, false, Set.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, List.of("async-run", "sync"), Type.STRINGS)
                 .setProperty(REINDEX_PROPERTY_NAME, false);
 
         // node states to run hook on
@@ -593,7 +591,7 @@ public class IndexUpdateTest {
         NodeState before = builder.getNodeState();
 
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+                "rootIndex", false, false, Set.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -612,7 +610,7 @@ public class IndexUpdateTest {
     public void contextAwareCallback() throws Exception{
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -646,7 +644,7 @@ public class IndexUpdateTest {
     public void contextAwareCallback_async() throws Exception{
         NodeState before = builder.getNodeState();
         NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
         idx.setProperty("async", asList("sync", "async"), Type.STRINGS);
 
         NodeState after = builder.getNodeState();
@@ -660,7 +658,7 @@ public class IndexUpdateTest {
     }
 
     private static class CallbackCapturingProvider extends PropertyIndexEditorProvider {
-        private Map<String, IndexingContext> callbacks = Maps.newHashMap();
+        private Map<String, IndexingContext> callbacks = new HashMap<>();
         IndexUpdateCallback callback;
 
         @Override
@@ -711,7 +709,7 @@ public class IndexUpdateTest {
         NodeTypeInfo type = nodeTypes.getNodeTypeInfo(NT_BASE);        
         SelectorImpl selector = new SelectorImpl(type, NT_BASE);
         Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]", new QueryEngineSettings());
-        return Sets.newHashSet(lookup.query(filter, name,
+        return SetUtils.toSet(lookup.query(filter, name,
                 PropertyValues.newString(value)));
     }
 
@@ -741,7 +739,7 @@ public class IndexUpdateTest {
 
         // async multiple values: "" for sync
         base = EmptyNodeState.EMPTY_NODE.builder()
-                .setProperty(ASYNC_PROPERTY_NAME, Sets.newHashSet(INDEXING_MODE_NRT, "async"),
+                .setProperty(ASYNC_PROPERTY_NAME, Set.of(INDEXING_MODE_NRT, "async"),
                         Type.STRINGS);
         assertTrue(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
@@ -749,7 +747,7 @@ public class IndexUpdateTest {
 
         // async multiple values: "sync" for sync
         base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
-                ASYNC_PROPERTY_NAME, Sets.newHashSet("sync", "async"),
+                ASYNC_PROPERTY_NAME, Set.of("sync", "async"),
                 Type.STRINGS);
         assertTrue(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
@@ -757,7 +755,7 @@ public class IndexUpdateTest {
 
         // async multiple values: no sync present
         base = EmptyNodeState.EMPTY_NODE.builder().setProperty(
-                ASYNC_PROPERTY_NAME, Sets.newHashSet("async", "async-other"),
+                ASYNC_PROPERTY_NAME, Set.of("async", "async-other"),
                 Type.STRINGS);
         assertFalse(IndexUpdate.isIncluded(null, base));
         assertTrue(IndexUpdate.isIncluded("async", base));
@@ -768,7 +766,7 @@ public class IndexUpdateTest {
     public void corruptIndexSkipped() throws Exception{
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -814,7 +812,7 @@ public class IndexUpdateTest {
 
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
 
         builder.child("a").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
@@ -853,7 +851,7 @@ public class IndexUpdateTest {
 
         NodeState before = builder.getNodeState();
         NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
         idx.setProperty("async", asList("async", "sync"), Type.STRINGS);
 
         builder.child("a").setProperty("foo", "abc");
@@ -873,7 +871,7 @@ public class IndexUpdateTest {
 
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
         NodeState after = builder.getNodeState();
 
         CallbackCapturingProvider provider = new CallbackCapturingProvider();
@@ -904,7 +902,7 @@ public class IndexUpdateTest {
 
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null);
+                "rootIndex", true, false, Set.of("foo"), null);
         NodeState after = builder.getNodeState();
 
         CallbackCapturingProvider provider = new CallbackCapturingProvider();
@@ -945,9 +943,9 @@ public class IndexUpdateTest {
     public void indexesDisabled() throws Exception{
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), null);
+                "fooIndex", true, false, Set.of("foo"), null);
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "barIndex", true, false, ImmutableSet.of("bar"), null);
+                "barIndex", true, false, Set.of("bar"), null);
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
@@ -956,7 +954,7 @@ public class IndexUpdateTest {
         before = indexed;
         builder = indexed.builder();
         NodeBuilder newIndex = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "newIndex", true, false, ImmutableSet.of("bar"), null);
+                "newIndex", true, false, Set.of("bar"), null);
         newIndex.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList("/oak:index/fooIndex"), Type.STRINGS);
 
         after = builder.getNodeState();
@@ -987,7 +985,7 @@ public class IndexUpdateTest {
 
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "fooIndex", true, false, ImmutableSet.of("foo"), null);
+                "fooIndex", true, false, Set.of("foo"), null);
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
@@ -1024,15 +1022,15 @@ public class IndexUpdateTest {
          //Create 2 index def - one with config related error and one without
  
          NodeBuilder index1 = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                 "rootIndex1", true, false, ImmutableSet.of("foo"), null);
+                 "rootIndex1", true, false, Set.of("foo"), null);
  
          index1.setProperty(PropertyStates.createProperty(
-                 PathFilter.PROP_INCLUDED_PATHS, ImmutableSet.of("/test/a/b"), Type.STRINGS));
+                 PathFilter.PROP_INCLUDED_PATHS, Set.of("/test/a/b"), Type.STRINGS));
          index1.setProperty(PropertyStates.createProperty(
-                 PathFilter.PROP_EXCLUDED_PATHS, ImmutableSet.of("/test/a"), Type.STRINGS));
+                 PathFilter.PROP_EXCLUDED_PATHS, Set.of("/test/a"), Type.STRINGS));
  
          createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                 "rootIndex2", true, false, ImmutableSet.of("foo2"), null);
+                 "rootIndex2", true, false, Set.of("foo2"), null);
  
          NodeState before = builder.getNodeState();
  
@@ -1074,7 +1072,7 @@ public class IndexUpdateTest {
  
          // next, lookup should work for the index def  2 which did not have any config errors
          PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
-         assertEquals(ImmutableSet.of("test/b","test/a/b"), find(lookup, "foo2", "abc"));
+         assertEquals(Set.of("test/b","test/a/b"), find(lookup, "foo2", "abc"));
  
     }    
 
@@ -1084,7 +1082,7 @@ public class IndexUpdateTest {
     }
 
     private static NodeBuilder child(NodeBuilder nb, String path){
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             nb = nb.child(name);
         }
         return nb;

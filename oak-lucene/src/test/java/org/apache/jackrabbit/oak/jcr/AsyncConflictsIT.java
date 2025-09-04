@@ -55,8 +55,6 @@ import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.read.ListAppender;
 import ch.qos.logback.core.spi.FilterReply;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 public class AsyncConflictsIT extends DocumentClusterIT {
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
     private static final String INDEX_DEF_NODE = "asyncconflict";
@@ -168,7 +166,7 @@ public class AsyncConflictsIT extends DocumentClusterIT {
 
     @Override
     protected Set<IndexEditorProvider> additionalIndexEditorProviders() {
-        return ImmutableSet.of((IndexEditorProvider) new LuceneIndexEditorProvider());
+        return Set.of((IndexEditorProvider) new LuceneIndexEditorProvider());
     }
 
     @Override

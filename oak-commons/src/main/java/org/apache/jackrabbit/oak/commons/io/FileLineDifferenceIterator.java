@@ -27,14 +27,13 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.function.Function;
 
+import org.apache.commons.collections4.iterators.PeekingIterator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 
 /**
  * FileLineDifferenceIterator class which iterates over the difference of 2 files line by line.
@@ -93,7 +92,7 @@ public class FileLineDifferenceIterator implements Closeable, Iterator<String> {
         public Impl(LineIterator marked, LineIterator available, @Nullable Function<String, String> transformer)
                 throws IOException {
             this.marked = marked;
-            this.peekMarked = Iterators.peekingIterator(marked);
+            this.peekMarked = PeekingIterator.peekingIterator(marked);
             this.all = available;
             if (transformer != null) {
                 this.transformer = transformer;

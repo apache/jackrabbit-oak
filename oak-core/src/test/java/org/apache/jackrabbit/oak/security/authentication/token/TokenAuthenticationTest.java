@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
@@ -132,7 +132,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
 
     @Test
     public void testAuthenticateNotMatchingToken() {
-        TokenInfo info = tokenProvider.createToken(userId, ImmutableMap.of(TokenConstants.TOKEN_ATTRIBUTE + "_mandatory", "val"));
+        TokenInfo info = tokenProvider.createToken(userId, Map.of(TokenConstants.TOKEN_ATTRIBUTE + "_mandatory", "val"));
         assertNotNull(info);
         try {
             authentication.authenticate(new TokenCredentials(info.getToken()));

@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.IOException;
@@ -27,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
@@ -76,7 +74,7 @@ public class GCJournal {
             return;
         }
         latest = new GCJournalEntry(repoSize, reclaimedSize,
-                System.currentTimeMillis(), gcGeneration, nodes, checkNotNull(root));
+                System.currentTimeMillis(), gcGeneration, nodes, requireNonNull(root));
         try {
             journalFile.writeLine(latest.toString());
         } catch (IOException e) {
@@ -152,15 +150,14 @@ public class GCJournal {
 
         @Override
         public String toString() {
-            return Joiner.on(",").join(
-                    repoSize,
-                    reclaimedSize,
-                    ts,
-                    gcGeneration.getGeneration(),
-                    gcGeneration.getFullGeneration(),
-                    nodes,
-                    root
-            );
+            return String.join(",",
+                    Long.toString(repoSize),
+                    Long.toString(reclaimedSize),
+                    Long.toString(ts),
+                    Integer.toString(gcGeneration.getGeneration()),
+                    Integer.toString(gcGeneration.getFullGeneration()),
+                    Long.toString(nodes),
+                    root);
         }
 
         static GCJournalEntry fromString(String in) {

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Integer.getInteger;
@@ -74,11 +74,11 @@ import javax.management.MBeanServer;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.junit.LogLevelModifier;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -115,16 +115,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <p>This is a longevity test for revision garbage collection.</p>
+ * <p>This is a longevity test for revision garbage collection.
  *
  * <p>The test schedules a number of readers, writers, a compactor and holds some references for a certain time.
  * All of which can be interactively modified through the accompanying {@link SegmentCompactionITMBean} and the {@link SegmentRevisionGC}.
  *
  *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
  * {@code mvn test -Dtest=SegmentCompactionIT -Dtest.opts.memory=-Xmx4G}
- * </p>
  *
- * <p>TODO Leverage longevity test support from OAK-2771 once we have it.</p>
+ * <p>TODO Leverage longevity test support from OAK-2771 once we have it.
  */
 public class SegmentCompactionIT {
 
@@ -549,7 +548,7 @@ public class SegmentCompactionIT {
             if (k == 0) {
                 return parent;
             } else {
-                String name = Iterables.get(node.getChildNodeNames(), k - 1);
+                String name = IterableUtils.get(node.getChildNodeNames(), k - 1);
                 return node.getChildNode(name);
             }
         }
@@ -557,7 +556,7 @@ public class SegmentCompactionIT {
         private void removeRandomProperty(NodeBuilder nodeBuilder) {
             int count = (int) nodeBuilder.getPropertyCount();
             if (count > 0) {
-                PropertyState property = Iterables.get(nodeBuilder.getProperties(), rnd.nextInt(count));
+                PropertyState property = IterableUtils.get(nodeBuilder.getProperties(), rnd.nextInt(count));
                 nodeBuilder.removeProperty(property.getName());
             }
         }
@@ -611,7 +610,7 @@ public class SegmentCompactionIT {
             if (k == 0) {
                 return parent;
             } else {
-                String name = Iterables.get(node.getChildNodeNames(), k - 1);
+                String name = IterableUtils.get(node.getChildNodeNames(), k - 1);
                 return node.getChildNode(name);
             }
         }
@@ -627,7 +626,7 @@ public class SegmentCompactionIT {
         protected final PropertyState chooseRandomProperty(NodeState node) {
             int count = (int) node.getPropertyCount();
             if (count > 0) {
-                return Iterables.get(node.getProperties(), rnd.nextInt(count));
+                return IterableUtils.get(node.getProperties(), rnd.nextInt(count));
             } else {
                 return null;
             }

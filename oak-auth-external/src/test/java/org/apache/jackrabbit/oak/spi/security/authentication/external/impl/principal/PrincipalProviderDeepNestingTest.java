@@ -19,10 +19,9 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import java.security.Principal;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -85,8 +84,8 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
     @Override
     @Test
     public void testFindPrincipalsByHintTypeGroup() {
-        Set<? extends Principal> expected = ImmutableSet.of(new PrincipalImpl("a"), new PrincipalImpl("aa"), new PrincipalImpl("aaa"));
-        Set<? extends Principal> res = ImmutableSet.copyOf(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_GROUP));
+        Set<? extends Principal> expected = Set.of(new PrincipalImpl("a"), new PrincipalImpl("aa"), new PrincipalImpl("aaa"));
+        Set<? extends Principal> res = SetUtils.toSet(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_GROUP));
 
         assertEquals(expected, res);
     }
@@ -94,11 +93,11 @@ public class PrincipalProviderDeepNestingTest extends ExternalGroupPrincipalProv
     @Override
     @Test
     public void testFindPrincipalsByHintTypeAll() {
-        Set<? extends Principal> expected = ImmutableSet.of(
+        Set<? extends Principal> expected = Set.of(
                 new PrincipalImpl("a"),
                 new PrincipalImpl("aa"),
                 new PrincipalImpl("aaa"));
-        Set<? extends Principal> res = ImmutableSet.copyOf(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL));
+        Set<? extends Principal> res = SetUtils.toSet(principalProvider.findPrincipals("a", PrincipalManager.SEARCH_TYPE_ALL));
 
         assertEquals(expected, res);
     }

@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.stats;
 import org.osgi.annotation.versioning.ProviderType;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 
+import java.util.function.Supplier;
+
 @ProviderType
 public interface StatisticsProvider {
     StatisticsProvider NOOP = new StatisticsProvider() {
@@ -49,6 +51,11 @@ public interface StatisticsProvider {
         public HistogramStats getHistogram(String name, StatsOptions options) {
             return NoopStats.INSTANCE;
         }
+
+        @Override
+        public <T> GaugeStats<T> getGauge(String name, Supplier<T> supplier) {
+            return null;
+        }
     };
 
 
@@ -61,4 +68,14 @@ public interface StatisticsProvider {
     TimerStats getTimer(String name, StatsOptions options);
 
     HistogramStats getHistogram(String name, StatsOptions options);
+
+    /**
+     * Creates a new {@link GaugeStats} and registers it under the given name.
+     * If a gauge with the same exists already then the same instance is returned.
+     * @param name the name of the gauge
+     * @param supplier provides the values which are returned by the gauge
+     * @param <T> the type of the metric
+     * @return the gauge
+     */
+    <T> GaugeStats<T> getGauge(String name, Supplier<T> supplier);
 }

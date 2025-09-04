@@ -27,9 +27,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import com.mongodb.util.JSON;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A light-weight implementation of a MongoDB DBObject for a single revision
@@ -43,7 +42,7 @@ public class RevisionEntry implements DBObject {
 
     public RevisionEntry(@NotNull Revision revision,
                          @Nullable Object value) {
-        this.revision = checkNotNull(revision);
+        this.revision = requireNonNull(revision);
         this.value = value;
     }
 
@@ -84,11 +83,6 @@ public class RevisionEntry implements DBObject {
     @Override
     public Object removeField(String key) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean containsKey(String s) {
-        return containsField(s);
     }
 
     @Override

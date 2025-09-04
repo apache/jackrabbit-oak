@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -57,7 +57,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * @deprecated Replaced by {@code org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder}
@@ -103,7 +103,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
      * @param configuration security configuration
      */
     public SecurityProviderImpl(@NotNull ConfigurationParameters configuration) {
-        checkNotNull(configuration);
+        requireNonNull(configuration);
         this.configuration = configuration;
 
         authenticationConfiguration = initDefaultConfiguration(new AuthenticationConfigurationImpl(this));
@@ -228,7 +228,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
                         AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider)
         );
 
-        Map<String, Object> userMap = ImmutableMap.<String,Object>of(
+        Map<String, Object> userMap = Map.of(
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
                 UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName,
                 UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, userAuthenticationFactory);

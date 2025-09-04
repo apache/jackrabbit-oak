@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 
 import static java.util.Collections.singletonList;
@@ -49,12 +47,30 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     private List<Collection<? extends Document>> collectionIncludeList;
 
+    private List<String> idIncludeList;
+
+    private Thread inThread;
+
     private List<FailedUpdateOpListener> listeners = new ArrayList<>();
+
+    private boolean afterOp = false;
+
+    private boolean noDispose = false;
 
     class Fail {
 
         private Fail() {
             never();
+        }
+
+        Fail afterOp() {
+            afterOp = true;
+            return this;
+        }
+
+        Fail beforeOp() {
+            afterOp = false;
+            return this;
         }
 
         Fail after(int numOps) {
@@ -74,6 +90,8 @@ class FailingDocumentStore extends DocumentStoreWrapper {
             failAfter.set(Long.MAX_VALUE);
             exceptionType = Type.GENERIC;
             collectionIncludeList = null;
+            idIncludeList = null;
+            afterOp = false;
         }
 
         void once() {
@@ -94,6 +112,19 @@ class FailingDocumentStore extends DocumentStoreWrapper {
                 collectionIncludeList = new LinkedList<>();
             }
             collectionIncludeList.add(collectionInclude);
+            return this;
+        }
+
+        Fail on(String idInclude) {
+            if (idIncludeList == null) {
+                idIncludeList = new LinkedList<>();
+            }
+            idIncludeList.add(idInclude);
+            return this;
+        }
+
+        Fail in(Thread thread) {
+            inThread = thread;
             return this;
         }
     }
@@ -127,8 +158,16 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     @Override
     public <T extends Document> void remove(Collection<T> collection,
                                             String key) {
-        maybeFail(collection);
-        super.remove(collection, key);
+        if (!afterOp) {
+            maybeFail(collection);
+        }
+        try {
+            super.remove(collection, key);
+        } finally {
+            if (afterOp) {
+                maybeFail(collection);
+            }
+        }
     }
 
     @Override
@@ -146,8 +185,16 @@ class FailingDocumentStore extends DocumentStoreWrapper {
         int num = 0;
         // remove individually
         for (Map.Entry<String, Long> rm : toRemove.entrySet()) {
-            maybeFail(collection);
-            num += super.remove(collection, singletonMap(rm.getKey(), rm.getValue()));
+            if (!afterOp) {
+                maybeFail(collection);
+            }
+            try {
+                num += super.remove(collection, singletonMap(rm.getKey(), rm.getValue()));
+            } finally {
+                if (afterOp) {
+                    maybeFail(collection);
+                }
+            }
         }
         return num;
     }
@@ -158,8 +205,17 @@ class FailingDocumentStore extends DocumentStoreWrapper {
                                            long startValue,
                                            long endValue)
             throws DocumentStoreException {
-        maybeFail(collection);
-        return super.remove(collection, indexedProperty, startValue, endValue);
+        if (!afterOp) {
+            maybeFail(collection);
+        }
+        try {
+            return super.remove(collection, indexedProperty, startValue, endValue);
+        } finally {
+            if (afterOp) {
+                maybeFail(collection);
+            }
+
+        }
     }
 
     @Override
@@ -169,9 +225,17 @@ class FailingDocumentStore extends DocumentStoreWrapper {
         int i = 0;
         // create individually
         for (UpdateOp op : updateOps) {
-            maybeFail(collection, remaining.subList(i++, remaining.size()));
-            if (!super.create(collection, singletonList(op))) {
-                return false;
+            if (!afterOp) {
+                maybeFail(collection, remaining.subList(i++, remaining.size()));
+            }
+            try {
+                if (!super.create(collection, singletonList(op))) {
+                    return false;
+                }
+            } finally {
+                if (afterOp) {
+                    maybeFail(collection, remaining.subList(i++, remaining.size()));
+                }
             }
         }
         return true;
@@ -179,20 +243,36 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection,
-                                                 UpdateOp update) {
-        maybeFail(collection, singletonList(update));
-        return super.createOrUpdate(collection, update);
+            UpdateOp update) {
+        if (!afterOp) {
+            maybeFail(collection, singletonList(update));
+        }
+        try {
+            return super.createOrUpdate(collection, update);
+        } finally {
+            if (afterOp) {
+                maybeFail(collection, singletonList(update));
+            }
+        }
     }
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
                                                        List<UpdateOp> updateOps) {
         List<UpdateOp> remaining = new ArrayList<>(updateOps);
-        List<T> result = Lists.newArrayList();
+        List<T> result = new ArrayList<>();
         int i = 0;
         for (UpdateOp op : updateOps) {
-            maybeFail(collection, remaining.subList(i++, remaining.size()));
-            result.add(super.createOrUpdate(collection, op));
+            if (!afterOp) {
+                maybeFail(collection, remaining.subList(i++, remaining.size()));
+            }
+            try {
+                result.add(super.createOrUpdate(collection, op));
+            } finally {
+                if (afterOp) {
+                    maybeFail(collection, remaining.subList(i++, remaining.size()));
+                }
+            }
         }
         return result;
     }
@@ -200,8 +280,16 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection,
                                                 UpdateOp update) {
-        maybeFail(collection, singletonList(update));
-        return super.findAndUpdate(collection, update);
+        if (!afterOp) {
+            maybeFail(collection, singletonList(update));
+        }
+        try {
+            return super.findAndUpdate(collection, update);
+        } finally {
+            if (afterOp) {
+                maybeFail(collection, singletonList(update));
+            }
+        }
     }
 
     private <T extends Document> void maybeFail(Collection<T> collection) {
@@ -211,15 +299,34 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     private <T extends Document> void maybeFail(Collection<T> collection,
                                                 List<UpdateOp> remainingOps) {
         if ((collectionIncludeList == null || collectionIncludeList.contains(collection)) &&
-                (random.nextFloat() < p || failAfter.getAndDecrement() <= 0)) {
+                (inThread == null || inThread == Thread.currentThread()) &&
+                (random.nextFloat() < p || failAfter.getAndDecrement() <= 0) &&
+                (idIncludeList == null || (!remainingOps.isEmpty()
+                        && idIncludeList.contains(remainingOps.get(0).getId())))) {
             if (numFailures.getAndDecrement() > 0) {
                 reportRemainingOps(remainingOps);
-                throw new DocumentStoreException("write operation failed", null, exceptionType);
+                failNow(remainingOps);
             }
         }
+    }
+
+    void failNow(List<UpdateOp> remainingOps) {
+        throw new DocumentStoreException("write operation failed", null, exceptionType);
     }
 
     private void reportRemainingOps(List<UpdateOp> remainingOps) {
         listeners.forEach(listener -> remainingOps.forEach(listener::failed));
     }
+
+    public void noDispose() {
+        noDispose = true;
+    }
+
+    @Override
+    public void dispose() {
+        if (!noDispose) {
+            super.dispose();
+        }
+    }
+
 }

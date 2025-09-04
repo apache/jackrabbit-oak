@@ -13,7 +13,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 
@@ -192,14 +192,13 @@ public class AstElementFactory {
      * as the {@link AstElement#copyOf()} can return {@code this} is the cloning is not implemented
      * by the subclass, this method add some spice around it by checking for this case and tracking
      * a DEBUG message in the logs.
-     * </p>
-     * 
+     *
      * @param e the element to be cloned. Cannot be null.
      * @return same as {@link AstElement#copyOf()}
      */
     @NotNull
     public static AstElement copyElementAndCheckReference(@NotNull final AstElement e) {
-        AstElement clone = checkNotNull(e).copyOf();
+        AstElement clone = requireNonNull(e).copyOf();
         
         if (clone == e && LOG.isDebugEnabled()) {
             LOG.debug(

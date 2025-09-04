@@ -19,35 +19,34 @@ package org.apache.jackrabbit.oak.commons;
 import static java.io.File.createTempFile;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.io.FileUtils.forceDelete;
-import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.apache.commons.io.IOUtils.copyLarge;
-import static org.apache.jackrabbit.guava.common.io.Closeables.close;
-import static org.apache.jackrabbit.guava.common.io.FileWriteMode.APPEND;
-import static org.apache.jackrabbit.guava.common.io.Files.asByteSink;
-import static org.apache.jackrabbit.guava.common.io.Files.move;
-import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
 import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
 import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.mergeSortedFiles;
 import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.sortInBatch;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -72,9 +71,7 @@ public final class FileIOUtils {
      * @param file file whose contents needs to be sorted
      */
     public static void sort(File file) throws IOException {
-        File sorted = createTempFile("fleioutilssort", null);
-        merge(sortInBatch(file, lexComparator, true), sorted);
-        move(sorted, file);
+        sort(file, lexComparator);
     }
 
     /**
@@ -85,9 +82,9 @@ public final class FileIOUtils {
      * @throws IOException
      */
     public static void sort(File file, Comparator<String> comparator) throws IOException {
-        File sorted = createTempFile("fleioutilssort", null);
+        File sorted = createTempFile("file-io-utils-sort-", null);
         merge(sortInBatch(file, comparator, true), sorted, comparator);
-        move(sorted, file);
+        Files.move(sorted.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**
@@ -142,28 +139,20 @@ public final class FileIOUtils {
      * @throws IOException
      */
     public static void append(List<File> files, File appendTo, boolean delete) throws IOException {
-        OutputStream appendStream = null;
-        boolean threw = true;
 
-        try {
-            appendStream = asByteSink(appendTo, APPEND).openBufferedStream();
+        try (OutputStream appendStream = new BufferedOutputStream(new FileOutputStream(appendTo, true))) {
 
             for (File f : files) {
-                InputStream iStream = new FileInputStream(f);
-                try {
+                try (InputStream iStream = new FileInputStream(f)) {
                     copyLarge(iStream, appendStream);
-                } finally {
-                    closeQuietly(iStream);
                 }
             }
-            threw = false;
         } finally {
             if (delete) {
                 for (File f : files) {
                     f.delete();
                 }
             }
-            close(appendStream, threw);
         }
     }
 
@@ -232,23 +221,18 @@ public final class FileIOUtils {
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
         @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
-        BufferedWriter writer = newWriter(f, UTF_8);
-        boolean threw = true;
 
         int count = 0;
-        try {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(f, UTF_8))) {
             while (iterator.hasNext()) {
                 writeAsLine(writer, transformer.apply(iterator.next()), escape);
                 count++;
                 if (logger != null) {
                     if (count % 100000 == 0) {
-                        logger.info(Strings.nullToEmpty(message) + count);
+                        logger.info(Objects.toString(message, "") + count);
                     }
                 }
             }
-            threw = false;
-        } finally {
-            close(writer, threw);
         }
         return count;
     }
@@ -262,13 +246,10 @@ public final class FileIOUtils {
      * @throws IOException
      */
     public static Set<String> readStringsAsSet(InputStream stream, boolean unescape) throws IOException {
-        BufferedReader reader = null;
         Set<String> set = new HashSet<>();
-        boolean threw = true;
 
-        try {
-            reader = new BufferedReader(new InputStreamReader(stream, UTF_8));
-            String line  = null;
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8))) {
+            String line;
             while ((line = reader.readLine()) != null) {
                 if (unescape) {
                     set.add(unescapeLineBreaks(line));
@@ -276,9 +257,6 @@ public final class FileIOUtils {
                     set.add(line);
                 }
             }
-            threw = false;
-        } finally {
-            close(reader, threw);
         }
         return set;
     }

@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
-import org.apache.jackrabbit.guava.common.collect.EvictingQueue;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
@@ -37,6 +36,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class SecondaryStoreCache implements DocumentNodeStateCache, SecondaryStoreRootObserver {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -52,7 +53,7 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
     private final MeterStats headRevMatched;
     private final MeterStats prevRevMatched;
     private final int maxSize = 10000;
-    private final EvictingQueue<AbstractDocumentNodeState> queue;
+    private final LinkedHashMap<AbstractDocumentNodeState, Boolean> queue;
     private volatile AbstractDocumentNodeState[] previousRoots = EMPTY;
 
     public SecondaryStoreCache(NodeStore nodeStore, NodeStateDiffer differ, PathFilter pathFilter,
@@ -68,7 +69,12 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
                 .DEFAULT);
         this.headRevMatched = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_HEAD", StatsOptions.DEFAULT);
         this.prevRevMatched = statisticsProvider.getMeter("DOCUMENT_CACHE_SEC_OLD", StatsOptions.DEFAULT);
-        this.queue = EvictingQueue.create(maxSize);
+        this.queue = new LinkedHashMap<>() {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<AbstractDocumentNodeState, Boolean> eldest) {
+                return size() > maxSize;
+            }
+        };
     }
 
     @Nullable
@@ -181,8 +187,8 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
     public void contentChanged(@NotNull AbstractDocumentNodeState root) {
         synchronized (queue){
             //TODO Possibly can be improved
-            queue.add(root);
-            previousRoots = queue.toArray(EMPTY);
+            queue.put(root, Boolean.TRUE);
+            previousRoots = queue.keySet().toArray(EMPTY);
         }
     }
 

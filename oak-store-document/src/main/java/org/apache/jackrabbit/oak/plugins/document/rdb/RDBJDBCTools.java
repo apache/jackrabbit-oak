@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.cycle;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.limit;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -41,8 +38,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.UTF8Encoder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
 
 /**
  * Convenience methods dealing with JDBC specifics.
@@ -379,7 +374,12 @@ public class RDBJDBCTools {
 
     private static void appendInCondition(StringBuilder builder, String field, int placeholdersCount) {
         builder.append(field).append(" in (");
-        Joiner.on(',').appendTo(builder, limit(cycle('?'), placeholdersCount));
+        String append = "?";
+        for (int i = 0; i < placeholdersCount; i++){
+            builder.append(append);
+            append = ",?";
+        }
+
         builder.append(')');
     }
 
@@ -412,7 +412,7 @@ public class RDBJDBCTools {
                             stmt.setBytes(startIndex++, UTF8Encoder.encodeAsByteArray(value));
                         } else {
                             if (!UTF8Encoder.canEncode(value)) {
-                                throw new IOException("can not encode as UTF-8");
+                                throw new IOException("can not encode as valid UTF-8");
                             }
                             stmt.setString(startIndex++, value);
                         }
@@ -425,12 +425,13 @@ public class RDBJDBCTools {
             }
         };
     }
-    
+
     private static DocumentStoreException.Type exceptionTypeFor(Exception cause) {
         return (cause instanceof SQLTransientException) ? DocumentStoreException.Type.TRANSIENT : DocumentStoreException.Type.GENERIC;
     }
-    
+
     public static DocumentStoreException asDocumentStoreException(@NotNull Exception cause, @NotNull String message) {
-        return new DocumentStoreException(message, cause, exceptionTypeFor(cause));
+        return new DocumentStoreException(message + (cause != null ? " (cause: " + cause.getMessage() + ")" : ""), cause,
+                exceptionTypeFor(cause));
     }
 }

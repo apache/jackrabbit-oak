@@ -65,10 +65,10 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
  * - {@link #testEveryoneAsAuthorizableGroup()}
  *   Additional test illustrating that the dynamic nature of the everyone principal
  *   does not change if there exists a corresponding authorizable group.
- *   > Create a new authorizable that corresponds to the everyone principal (Q: what parameters are constants?)
- *   > Verify that principal exposed by the authorizable corresponds to the everyone principal.
- *   > Assert that the dynamic nature of the principal has not changed.
- *   > Test if the dynamic nature also applies to the authorizable
+ *   + Create a new authorizable that corresponds to the everyone principal (Q: what parameters are constants?)
+ *   + Verify that principal exposed by the authorizable corresponds to the everyone principal.
+ *   + Assert that the dynamic nature of the principal has not changed.
+ *   + Test if the dynamic nature also applies to the authorizable
  *
  *
  * Additional Exercises:

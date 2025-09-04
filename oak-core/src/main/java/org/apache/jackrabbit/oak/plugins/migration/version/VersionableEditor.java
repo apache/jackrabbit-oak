@@ -33,10 +33,10 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.createVersionStorage;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.addMixin;
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryBuilder;
@@ -47,19 +47,18 @@ import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistory
  * The VersionableEditor provides two possible ways to handle
  * versionable nodes:
  * <ul>
- *     <li>it can copy the version histories of versionable nodes, or</li>
+ *     <li>it can copy the version histories of versionable nodes, or
  *     <li>
  *         it can skip copying version histories and remove the
  *         {@code mix:versionable} mixin together with any related
  *         properties (see {@link VersionHistoryUtil#removeVersionProperties(NodeBuilder, TypePredicate)}).
- *     </li>
  * </ul>
  */
 public class VersionableEditor extends DefaultEditor {
 
     private static final Logger logger = LoggerFactory.getLogger(VersionableEditor.class);
 
-    private static final Set<String> SKIPPED_PATHS = of("/oak:index", "/jcr:system/jcr:versionStorage");
+    private static final Set<String> SKIPPED_PATHS = Set.of("/oak:index", "/jcr:system/jcr:versionStorage");
 
     private final Provider provider;
 
@@ -79,7 +78,7 @@ public class VersionableEditor extends DefaultEditor {
 
     private VersionableEditor(Provider provider, NodeBuilder rootBuilder) {
         this.rootBuilder = rootBuilder;
-        this.versionStorage = getVersionStorage(rootBuilder);
+        this.versionStorage = createVersionStorage(rootBuilder);
         this.vMgr = new ReadWriteVersionManager(versionStorage, rootBuilder);
 
         this.provider = provider;
@@ -140,8 +139,8 @@ public class VersionableEditor extends DefaultEditor {
                 NodeBuilder versionableBuilder = getNodeBuilder(rootBuilder, this.path);
                 removeVersionProperties(versionableBuilder, isReferenceable);
                 if (isVersionable.test(versionableBuilder.getNodeState())) {
-                    logger.warn("Node {} is still versionable. Creating empty version history.", path);
-                    createEmptyHistory(versionableBuilder);
+                    logger.warn("Node {} is still versionable due to node type constraints. Creating initial version history.", path);
+                    createInitialHistory(versionableBuilder);
                 }
             }
         }
@@ -169,7 +168,7 @@ public class VersionableEditor extends DefaultEditor {
         return getVersionHistoryBuilder(versionStorage, versionableUuid).exists();
     }
 
-    private void createEmptyHistory(NodeBuilder versionable) throws CommitFailedException {
+    private void createInitialHistory(NodeBuilder versionable) throws CommitFailedException {
         vMgr.getOrCreateVersionHistory(versionable, Collections.<String,Object>emptyMap());
     }
 

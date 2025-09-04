@@ -46,13 +46,12 @@ import javax.jcr.Session;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticPurgeOldIndexVersionTest extends ElasticAbstractIndexCommandTest {
 

@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import org.apache.jackrabbit.guava.common.annotations.VisibleForTesting;
-import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
+import org.apache.commons.math3.util.Precision;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -33,8 +32,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 
-import static org.apache.jackrabbit.guava.common.math.DoubleMath.fuzzyEquals;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Math.abs;
 import static java.lang.Math.ceil;
@@ -56,10 +55,10 @@ public class MongoDocumentStoreThrottlingMetricsUpdater implements Closeable {
     private static final String OPLOG_RS = "oplog.rs";
     public static final String SIZE = "size";
     private final ScheduledExecutorService throttlingMetricsExecutor;
-    private final AtomicDouble oplogWindow;
+    private final AtomicReference<Double> oplogWindow;
     private final MongoDatabase localDb;
 
-    public MongoDocumentStoreThrottlingMetricsUpdater(final @NotNull MongoDatabase localDb, final @NotNull AtomicDouble oplogWindow) {
+    public MongoDocumentStoreThrottlingMetricsUpdater(final @NotNull MongoDatabase localDb, final @NotNull AtomicReference<Double> oplogWindow) {
         this.throttlingMetricsExecutor = newSingleThreadScheduledExecutor();
         this.oplogWindow = oplogWindow;
         this.localDb = localDb;
@@ -70,7 +69,7 @@ public class MongoDocumentStoreThrottlingMetricsUpdater implements Closeable {
             Document document = localDb.runCommand(new Document("collStats", OPLOG_RS));
             if (!document.containsKey(MAX_SIZE) || !document.containsKey(SIZE)) {
                 LOG.warn("Could not get stats for local.{}  collection. collstats returned: {}.", OPLOG_RS, document);
-                oplogWindow.set(MAX_VALUE);
+                oplogWindow.set((double) MAX_VALUE);
             } else {
                 int maxSize = document.getInteger(MAX_SIZE);
                 double maxSizeGb = (double) maxSize / (1024 * 1024 * 1024);
@@ -82,11 +81,11 @@ public class MongoDocumentStoreThrottlingMetricsUpdater implements Closeable {
 
                 if (isNull(first) || isNull(last)) {
                     LOG.warn("Objects not found in local.oplog.rs -- is this a new and empty db instance?");
-                    oplogWindow.set(MAX_VALUE);
+                    oplogWindow.set((double) MAX_VALUE);
                 } else {
                     if (!first.containsKey(TS_TIME) || !last.containsKey(TS_TIME)) {
                         LOG.warn("ts element not found in oplog objects");
-                        oplogWindow.set(MAX_VALUE);
+                        oplogWindow.set((double) MAX_VALUE);
                     } else {
                         oplogWindow.set(updateOplogWindow(maxSizeGb, usedSizeGb, first, last));
                     }
@@ -95,14 +94,13 @@ public class MongoDocumentStoreThrottlingMetricsUpdater implements Closeable {
         }, 10, 30, SECONDS);
     }
 
-    // helper methods
-    @VisibleForTesting
+    // helper methods, visible for testing
     static double updateOplogWindow(final double maxSize, final double usedSize, final @NotNull Document first,
                                    final @NotNull Document last) {
         final BsonTimestamp startTime = first.get(TS_TIME, BsonTimestamp.class);
         final BsonTimestamp lastTime = last.get(TS_TIME, BsonTimestamp.class);
 
-        if (Objects.equals(startTime, lastTime) || fuzzyEquals(usedSize, 0, 0.00001)) {
+        if (Objects.equals(startTime, lastTime) || Precision.equals(usedSize, 0, 0.00001)) {
             return MAX_VALUE;
         }
         long timeDiffSec = abs(lastTime.getTime() - startTime.getTime());

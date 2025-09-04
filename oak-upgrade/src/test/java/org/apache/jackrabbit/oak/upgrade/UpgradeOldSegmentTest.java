@@ -36,10 +36,10 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.upgrade.cli.OakUpgrade;
 import org.apache.jackrabbit.oak.upgrade.cli.Util;
@@ -65,7 +65,7 @@ public class UpgradeOldSegmentTest {
         Session s = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
 
         Node myType = s.getNode("/jcr:system/jcr:nodeTypes/test:MyType");
-        assertEquals(2, Iterators.size(myType.getNodes("jcr:propertyDefinition")));
+        assertEquals(2, IteratorUtils.size(myType.getNodes("jcr:propertyDefinition")));
 
         NodeTypeManager ntMgr = s.getWorkspace().getNodeTypeManager();
         assertTrue(ntMgr.hasNodeType("test:MyType"));
@@ -92,7 +92,7 @@ public class UpgradeOldSegmentTest {
         CndImporter.registerNodeTypes(new StringReader(cnd), s, true);
 
         myType = s.getNode("/jcr:system/jcr:nodeTypes/test:MyType");
-        assertEquals(2, Iterators.size(myType.getNodes("jcr:propertyDefinition")));
+        assertEquals(2, IteratorUtils.size(myType.getNodes("jcr:propertyDefinition")));
 
         nt = ntMgr.getNodeType("test:MyType");
         pDefs = nt.getDeclaredPropertyDefinitions();

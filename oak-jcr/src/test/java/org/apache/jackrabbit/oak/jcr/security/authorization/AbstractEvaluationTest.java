@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -35,7 +37,6 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -49,7 +50,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import static org.junit.Assert.assertArrayEquals;
 
@@ -81,7 +81,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     protected Session testSession;
     protected AccessControlManager testAcMgr;
 
-    private Map<String, ACL> toRestore = Maps.newHashMap();
+    private Map<String, ACL> toRestore = new HashMap<>();
 
     @Override
     @Before
@@ -300,7 +300,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
 
         private final String path;
         private final boolean remove;
-        private final Set<AccessControlEntry> entries = Sets.newHashSet();
+        private final Set<AccessControlEntry> entries = new HashSet<>();
 
         private ACL(String path) throws RepositoryException {
             this.path = path;

@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -48,8 +48,7 @@ public class LuceneIndexHelper extends IndexHelper {
             @NotNull NodeBuilder index, @NotNull String name,
             @Nullable Set<String> propertyTypes,
             @Nullable Set<String> excludes, @Nullable String async) {
-        return newLuceneIndexDefinition(index, name, propertyTypes, excludes,
-                async, null);
+        return newLuceneIndexDefinition(index, name, propertyTypes, excludes, async, null);
     }
 
     public static NodeBuilder newLuceneIndexDefinition(
@@ -119,7 +118,7 @@ public class LuceneIndexHelper extends IndexHelper {
     public static NodeBuilder newLucenePropertyIndexDefinition(
             @NotNull NodeBuilder index, @NotNull String name,
             @NotNull Set<String> includes,
-            @NotNull String async) {
+            String async) {
         checkArgument(!includes.isEmpty(), "Lucene property index " +
                 "requires explicit list of property names to be indexed");
 

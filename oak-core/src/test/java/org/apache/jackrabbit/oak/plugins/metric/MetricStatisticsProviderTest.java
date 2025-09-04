@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.metric;
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -36,11 +37,11 @@ import javax.management.Query;
 import javax.management.QueryExp;
 
 import com.codahale.metrics.JmxReporter;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.GaugeStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.NoopStats;
@@ -112,6 +113,20 @@ public class MetricStatisticsProviderTest {
     }
 
     @Test
+    public void gauge() {
+        GaugeStats<String> gaugeStats = statsProvider.getGauge("test", () -> "value");
+
+        assertNotNull(gaugeStats);
+        assertEquals("value", statsProvider.getRegistry().getGauges().get("test").getValue());
+
+        // updating gauge is not possible
+        gaugeStats = statsProvider.getGauge("test", () -> "value2");
+        assertNotNull(gaugeStats);
+        assertEquals("value", statsProvider.getRegistry().getGauges().get("test").getValue());
+
+    }
+
+    @Test
     public void timeSeriesIntegration() throws Exception {
         MeterStats meterStats = statsProvider.getMeter(Type.SESSION_COUNT.name(), StatsOptions.DEFAULT);
 
@@ -153,7 +168,7 @@ public class MetricStatisticsProviderTest {
     public void concurrentAccess() throws Exception{
         //Queue is used to collect instances with minimal overhead in concurrent scenario
         final Queue<MeterStats> statsQueue = new ConcurrentLinkedDeque<MeterStats>();
-        List<Thread> threads = Lists.newArrayList();
+        List<Thread> threads = new ArrayList<>();
         int numWorker = 5;
         final CountDownLatch latch = new CountDownLatch(1);
         for (int i = 0; i < numWorker; i++) {
@@ -177,7 +192,7 @@ public class MetricStatisticsProviderTest {
         }
 
         //Assert that we get same reference for every call
-        Set<MeterStats> statsSet = Sets.newIdentityHashSet();
+        Set<MeterStats> statsSet = SetUtils.newIdentityHashSet();
 
         for (MeterStats m : statsQueue){
             statsSet.add(m);

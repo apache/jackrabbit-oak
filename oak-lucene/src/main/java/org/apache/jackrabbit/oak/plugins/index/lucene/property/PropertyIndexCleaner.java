@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
@@ -39,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -65,8 +65,6 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 public class PropertyIndexCleaner implements Runnable{
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -83,9 +81,9 @@ public class PropertyIndexCleaner implements Runnable{
     public PropertyIndexCleaner(NodeStore nodeStore, IndexPathService indexPathService,
                                 AsyncIndexInfoService asyncIndexInfoService,
                                 StatisticsProvider statsProvider) {
-        this.nodeStore = checkNotNull(nodeStore);
-        this.indexPathService = checkNotNull(indexPathService);
-        this.asyncIndexInfoService = checkNotNull(asyncIndexInfoService);
+        this.nodeStore = requireNonNull(nodeStore);
+        this.indexPathService = requireNonNull(indexPathService);
+        this.asyncIndexInfoService = requireNonNull(asyncIndexInfoService);
 
         this.cleanupTime = statsProvider.getTimer("HYBRID_PROPERTY_CLEANER", StatsOptions.METRICS_ONLY);
         this.noopMeter = statsProvider.getMeter("HYBRID_PROPERTY_NOOP", StatsOptions.METRICS_ONLY);
@@ -310,12 +308,12 @@ public class PropertyIndexCleaner implements Runnable{
     }
 
     private static CommitInfo createCommitInfo() {
-        Map<String, Object> info = ImmutableMap.of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> info = Map.of(CommitContext.NAME, new SimpleCommitContext());
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 
     private static NodeBuilder child(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             //Use getChildNode to avoid creating new entries by default
             nb = nb.getChildNode(name);
         }

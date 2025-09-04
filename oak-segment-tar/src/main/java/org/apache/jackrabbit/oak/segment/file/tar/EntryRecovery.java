@@ -17,7 +17,11 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentId;
+
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 
 public interface EntryRecovery {
@@ -28,4 +32,9 @@ public interface EntryRecovery {
 
     void recoverBinaryReference(GCGeneration generation, UUID segmentId, String reference);
 
+    Segment getSegment(SegmentId id);
+
+    void addSegment(Segment segment);
+
+    Map<SegmentId, Segment> getRecoveredSegments();
 }

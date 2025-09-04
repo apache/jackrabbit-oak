@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 
 /**
@@ -63,9 +62,18 @@ public interface ExternalIdentityConstants {
     String REP_EXTERNAL_PRINCIPAL_NAMES = "rep:externalPrincipalNames";
 
     /**
+     * Name of the property storing the date of the last synchronization of the dynamic membership of an 
+     * external user together with {@link #REP_EXTERNAL_PRINCIPAL_NAMES}.
+     * This property is of type {@link org.apache.jackrabbit.oak.api.Type#DATE}.
+     * 
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-10517">OAK-10517</a>
+     */
+    String REP_LAST_DYNAMIC_SYNC = "rep:lastDynamicSync";
+
+    /**
      * The set of served property names defined by this interface.
      */
-    Set<String> RESERVED_PROPERTY_NAMES = ImmutableSet.of(REP_EXTERNAL_ID, REP_EXTERNAL_PRINCIPAL_NAMES);
+    Set<String> RESERVED_PROPERTY_NAMES = Set.of(REP_EXTERNAL_ID, REP_EXTERNAL_PRINCIPAL_NAMES);
 
     /**
      * Configuration parameter to enable special protection of external IDs

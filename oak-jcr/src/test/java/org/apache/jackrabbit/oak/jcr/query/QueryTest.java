@@ -18,7 +18,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -48,13 +49,13 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -395,22 +396,19 @@ public class QueryTest extends AbstractRepositoryTest {
         r = session.getWorkspace().getQueryManager()
                 .createQuery("explain " + query, "xpath").execute();
         rit = r.getRows();
-        assertEquals("[rep:Authorizable] as [a] /* property principalName = admin " +
-                "where [a].[rep:principalName] = 'admin' */",
-                rit.nextRow().getValue("plan").getString());
+        assertThat(rit.nextRow().getValue("plan").getString(), containsString("[rep:Authorizable] as [a] /* property principalName\n"
+                + "    indexDefinition: /oak:index/principalName\n"
+                + "    values: 'admin'\n"));
 
         query = "//element(*, rep:Authorizable)[admin/@rep:principalName = 'admin']";
         r = session.getWorkspace().getQueryManager()
                 .createQuery("explain " + query, "xpath").execute();
         rit = r.getRows();
-        assertEquals("[rep:Authorizable] as [a] /* nodeType " +
-                "Filter(query=explain select [jcr:path], [jcr:score], * " +
-                "from [rep:Authorizable] as a " +
-                "where [admin/rep:principalName] = 'admin' " +
-                "/* xpath: //element(*, rep:Authorizable)[" +
-                "admin/@rep:principalName = 'admin'] */, path=*, " +
-                "property=[admin/rep:principalName=[admin]]) " +
-                "where [a].[admin/rep:principalName] = 'admin' */",
+        assertEquals("[rep:Authorizable] as [a] /* nodeType\n"
+                + "    path: /\n"
+                + "    primaryTypes: [rep:Group, rep:SystemUser, rep:User, rep:Authorizable]\n"
+                + "    mixinTypes: []\n"
+                + " */",
                 rit.nextRow().getValue("plan").getString());
 
     }
@@ -528,7 +526,7 @@ public class QueryTest extends AbstractRepositoryTest {
                 query, "xpath").execute();
         NodeIterator it = r.getNodes();
 
-        Set<String> expected = Sets.newHashSet("/test/two", "/test/two/child", "/test/one/child");
+        Set<String> expected = SetUtils.toSet("/test/two", "/test/two/child", "/test/one/child");
         while (it.hasNext()) {
             String path = it.nextNode().getPath();
             assertTrue("Unexpected path " + path, expected.contains(path));
@@ -681,8 +679,8 @@ public class QueryTest extends AbstractRepositoryTest {
         q = qm.createQuery("//*[@id=1]", Query.XPATH);
         r = q.execute();
         assertEquals(
-                newHashSet("jcr:path", "jcr:score", "jcr:primaryType"),
-                newHashSet(r.getColumnNames()));
+                Set.of("jcr:path", "jcr:score", "jcr:primaryType"),
+                SetUtils.toSet(r.getColumnNames()));
     }
 
     @Test
@@ -1031,7 +1029,7 @@ public class QueryTest extends AbstractRepositoryTest {
                 new String[]{"oak:Unstructured"}, PropertyType.NAME);
         session.save();
 
-        assertPlan(getPlan(session, xpath), "[rep:User] as [a] /* traverse ");
+        assertPlan(getPlan(session, xpath), "[rep:User] as [a] /* traverse");
 
         xpath = "/jcr:root//element(*,oak:Unstructured)[xyz/@jcr:primaryType] option(traversal fail)";
         // the plan might still use traversal, so we can't just check the plan;

@@ -80,8 +80,8 @@ import static org.junit.Assert.assertTrue;
  *   it and verify and if members-list at 'administrators' has been adjust (test-user removed).
  *
  * - Explain the result both for the main and variant.
- *   > the removal failed: explain why?
- *   > the member-cleanup didn't succeed: explain why?
+ *   + the removal failed: explain why?
+ *   + the member-cleanup didn't succeed: explain why?
  *
  * 4. Test Execution with 'admin'
  *

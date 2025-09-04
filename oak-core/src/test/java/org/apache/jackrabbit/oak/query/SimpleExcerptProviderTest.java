@@ -16,17 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.query;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.oak.query.SimpleExcerptProvider.highlight;
 import static org.junit.Assert.assertEquals;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.junit.Test;
 
 public class SimpleExcerptProviderTest {
@@ -38,30 +40,30 @@ public class SimpleExcerptProviderTest {
         //     System.setProperty("oak.query.caseSensitiveHighlight", "true");
         // }
         assertEquals("<div><span><strong>fox</strong> is jumping and dancing foxtrot</span></div>",
-                highlight(sb("fox is jumping and dancing foxtrot"), of("Fox")));
+                highlight(sb("fox is jumping and dancing foxtrot"), Set.of("Fox")));
         assertEquals("<div><span>fox is <strong>jumping</strong></span></div>",
-                highlight(sb("fox is jumping"), of("jUmP*")));
+                highlight(sb("fox is jumping"), Set.of("jUmP*")));
     }
 
     @Test
     public void simpleTest() throws Exception {
         assertEquals("<div><span><strong>fox</strong> is jumping</span></div>",
-                highlight(sb("fox is jumping"), of("fox")));
+                highlight(sb("fox is jumping"), Set.of("fox")));
         assertEquals("<div><span>fox is <strong>jumping</strong></span></div>",
-                highlight(sb("fox is jumping"), of("jump*")));
+                highlight(sb("fox is jumping"), Set.of("jump*")));
 
     }
 
     @Test
     public void highlightWithWildCard() throws Exception {
         assertEquals("<div><span><strong>fox</strong> is jumping</span></div>",
-                highlight(sb("fox is jumping"), of("fox *")));
+                highlight(sb("fox is jumping"), Set.of("fox *")));
     }
 
     @Test
     public void highlightIgnoreStar() throws Exception {
         assertEquals("<div><span>10 * 10</span></div>",
-                highlight(sb("10 * 10"), of("fox *")));
+                highlight(sb("10 * 10"), Set.of("fox *")));
     }
 
     @Test
@@ -69,7 +71,7 @@ public class SimpleExcerptProviderTest {
         Random r = new Random(1);
         String set = "abc*\'\"<> ";
         for (int i = 0; i < 10000; i++) {
-            highlight(sb(randomString(r, set)), of(randomString(r, set)));
+            highlight(sb(randomString(r, set)), Set.of(randomString(r, set)));
         }
     }
 
@@ -77,7 +79,7 @@ public class SimpleExcerptProviderTest {
     public void hightlightCompleteWordOnly() {
         // using 2 non-simple spaces as mentioned in http://jkorpela.fi/chars/spaces.html
         String[] delimiters = new String[] {" ", "\t", "\n", ":", "\u1680", "\u00A0"};
-        Map<String, String> simpleCheck = Maps.newHashMap(); // highlight "of"
+        Map<String, String> simpleCheck = new HashMap<>(); // highlight "of"
 
         // simple ones
         simpleCheck.put("official conflict of interest",
@@ -94,11 +96,11 @@ public class SimpleExcerptProviderTest {
                 String text = simple.getKey().replaceAll(" ", delimiter);
                 String expect = simple.getValue().replaceAll(" ", delimiter);
                 assertEquals("highlighting '" + text + "' for 'of' (delimiter - '" + delimiter + "')",
-                        expect, highlight(sb(text), of("of")));
+                        expect, highlight(sb(text), Set.of("of")));
             }
         }
 
-        Map<String, String> wildcardCheck = Maps.newHashMap(); // highlight "of*"
+        Map<String, String> wildcardCheck = new HashMap<>(); // highlight "of*"
         wildcardCheck.put("office room",
                 "<div><span><strong>office</strong> room</span></div>");
         wildcardCheck.put("office room off",
@@ -111,7 +113,7 @@ public class SimpleExcerptProviderTest {
                 String text = wildcard.getKey().replaceAll(" ", delimiter);
                 String expect = wildcard.getValue().replaceAll(" ", delimiter);
                 assertEquals("highlighting '" + text + "' for 'of*' (delimiter - '" + delimiter + "')",
-                        expect, highlight(sb(text), of("of*")));
+                        expect, highlight(sb(text), Set.of("of*")));
             }
         }
     }
@@ -123,9 +125,51 @@ public class SimpleExcerptProviderTest {
                 "or not to <strong>be</strong>. " +
                 "That is the <strong>question</strong>!</span></div>";
 
-        assertEquals(expected, highlight(sb(text), of("question", "be")));
-        assertEquals(expected, highlight(sb(text), of("quest*", "be")));
-        assertEquals(expected, highlight(sb(text), of("quest*", "b*")));
+        assertEquals(expected, highlight(sb(text), Set.of("question", "be")));
+        assertEquals(expected, highlight(sb(text), Set.of("quest*", "be")));
+        assertEquals(expected, highlight(sb(text), Set.of("quest*", "b*")));
+    }
+
+    @Test
+    public void testGetExcerptSingleValue() {
+        PropertyValue value = PropertyValues.newString("test");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span>test</span></div>", result.getValue(Type.STRING));
+    }
+
+    @Test
+    public void testGetExcerptMultipleValues() {
+        PropertyValue value = PropertyValues.newString("one,two,three");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span>onetwothree</span></div>", result.getValue(Type.STRING));
+    }
+
+    @Test
+    public void testGetExcerptWithWhitespace() {
+        PropertyValue value = PropertyValues.newString("  one  ,  two  ,  three  ");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span>onetwothree</span></div>", result.getValue(Type.STRING));
+    }
+
+    @Test
+    public void testGetExcerptWithEmptyValues() {
+        PropertyValue value = PropertyValues.newString("one,,three");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span>onethree</span></div>", result.getValue(Type.STRING));
+    }
+
+    @Test
+    public void testGetExcerptWithEmptyInput() {
+        PropertyValue value = PropertyValues.newString("");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span></span></div>", result.getValue(Type.STRING));
+    }
+
+    @Test
+    public void testGetExcerptWithOnlyDelimiters() {
+        PropertyValue value = PropertyValues.newString(" , , ");
+        PropertyValue result = SimpleExcerptProvider.getExcerpt(value);
+        assertEquals("<div><span></span></div>", result.getValue(Type.STRING));
     }
 
     private static String randomString(Random r, String set) {

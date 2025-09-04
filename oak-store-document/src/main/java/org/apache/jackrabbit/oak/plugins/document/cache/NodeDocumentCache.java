@@ -20,30 +20,29 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isLeafPrevio
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Cache for the NodeDocuments. This class is thread-safe and uses the provided NodeDocumentLock.
@@ -130,8 +129,8 @@ public class NodeDocumentCache implements Closeable {
             if (doc == null) {
                 continue;
             }
-            if (!Objects.equal(stamp.modCount, doc.getModCount())
-                    || !Objects.equal(stamp.modified, doc.getModified())) {
+            if (!Objects.equals(stamp.modCount, doc.getModCount())
+                    || !Objects.equals(stamp.modified, doc.getModified())) {
                 invalidate(id);
                 invalidatedCount++;
             }
@@ -304,7 +303,7 @@ public class NodeDocumentCache implements Closeable {
         try {
             NodeDocument cached = getIfPresent(key);
             if (cached != null) {
-                if (Objects.equal(cached.getModCount(), oldDoc.getModCount())) {
+                if (Objects.equals(cached.getModCount(), oldDoc.getModCount())) {
                     putInternal(newDoc);
                 } else {
                     // the cache entry was modified by some other thread in
@@ -324,25 +323,27 @@ public class NodeDocumentCache implements Closeable {
      * @return keys stored in cache
      */
     public Iterable<CacheValue> keys() {
-        return Iterables.concat(nodeDocumentsCache.asMap().keySet(), prevDocumentsCache.asMap().keySet());
+        return IterableUtils.chainedIterable(nodeDocumentsCache.asMap().keySet(), prevDocumentsCache.asMap().keySet());
     }
 
     /**
      * @return values stored in cache
      */
     public Iterable<NodeDocument> values() {
-        return Iterables.concat(nodeDocumentsCache.asMap().values(), prevDocumentsCache.asMap().values());
+        return IterableUtils.chainedIterable(nodeDocumentsCache.asMap().values(), prevDocumentsCache.asMap().values());
     }
 
     public Iterable<CacheStats> getCacheStats() {
-        return Lists.newArrayList(nodeDocumentsCacheStats, prevDocumentsCacheStats);
+        return Arrays.asList(nodeDocumentsCacheStats, prevDocumentsCacheStats);
     }
 
     @Override
     public void close() throws IOException {
+        prevDocumentsCache.invalidateAll();
         if (prevDocumentsCache instanceof Closeable) {
             ((Closeable) prevDocumentsCache).close();
         }
+        nodeDocumentsCache.invalidateAll();
         if (nodeDocumentsCache instanceof Closeable) {
             ((Closeable) nodeDocumentsCache).close();
         }
@@ -365,7 +366,7 @@ public class NodeDocumentCache implements Closeable {
         }
         return new CacheChangesTracker(new Predicate<String>() {
             @Override
-            public boolean apply(@Nullable String input) {
+            public boolean test(@Nullable String input) {
                 return input != null && fromKey.compareTo(input) < 0 && toKey.compareTo(input) > 0;
             }
 
@@ -386,7 +387,7 @@ public class NodeDocumentCache implements Closeable {
     public CacheChangesTracker registerTracker(final Set<String> keys) {
         return new CacheChangesTracker(new Predicate<String>() {
             @Override
-            public boolean apply(@Nullable String input) {
+            public boolean test(@Nullable String input) {
                 return input != null && keys.contains(input);
             }
 

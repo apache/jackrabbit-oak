@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
@@ -30,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 public abstract class AbstractProtectionConfigTest extends AbstractExternalAuthTest {
 
-    static final Map<String, String[]> PROPERTIES = ImmutableMap.of(
+    static final Map<String, String[]> PROPERTIES = Map.of(
             "propertyNames", new String[] {"prop1", "prop2"},
             "nodeNames", new String[] {"node1", "node2"});
     

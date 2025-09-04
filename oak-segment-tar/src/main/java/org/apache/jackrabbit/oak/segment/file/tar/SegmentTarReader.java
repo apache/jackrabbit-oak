@@ -29,9 +29,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
 import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,8 +60,6 @@ public class SegmentTarReader implements SegmentArchiveReader {
     private final String name;
 
     private final Index index;
-
-    private volatile Boolean hasGraph;
 
     public SegmentTarReader(File file, FileAccess access, Index index, IOMonitor ioMonitor) {
         this.access = access;
@@ -130,25 +128,18 @@ public class SegmentTarReader implements SegmentArchiveReader {
     }
 
     @Override
-    public Buffer getGraph() throws IOException {
+    public @NotNull SegmentGraph getGraph() throws IOException {
         int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize();
-        Buffer graph = GraphLoader.loadGraph((whence, amount) -> access.read(end - whence, amount));
-        hasGraph = graph != null;
+        SegmentGraph graph = SegmentGraph.load((whence, amount) -> access.read(end - whence, amount));
+        if (graph == null) {
+            log.warn("Recomputing missing graph for {}.", name);
+            graph = SegmentGraph.compute(this);
+        }
         return graph;
     }
 
     @Override
-    public boolean hasGraph() {
-        if (hasGraph == null) {
-            try {
-                getGraph();
-            } catch (IOException ignore) { }
-        }
-        return hasGraph;
-    }
-
-    @Override
-    public Buffer getBinaryReferences() throws IOException {
+    public @NotNull Buffer getBinaryReferences() throws IOException {
         try {
             int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize() - getGraphEntrySize();
             return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, amount) -> access.read(end - whence, amount));
@@ -163,7 +154,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
     }
 
     @Override
-    public String getName() {
+    public @NotNull String getName() {
         return name;
     }
 
@@ -182,20 +173,12 @@ public class SegmentTarReader implements SegmentArchiveReader {
     }
 
     private int getGraphEntrySize() {
-        Buffer buffer;
-
         try {
-            buffer = getGraph();
+            return getEntrySize(getGraph().size());
         } catch (IOException e) {
             log.warn("Exception while loading pre-compiled tar graph", e);
             return 0;
         }
-
-        if (buffer == null) {
-            return 0;
-        }
-
-        return getEntrySize(buffer.getInt(buffer.limit() - 8));
     }
 
     @Override

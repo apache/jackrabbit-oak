@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree.impl;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
+import java.util.Objects;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -57,11 +58,11 @@ import org.jetbrains.annotations.Nullable;
  *
  * <ul>
  *     <li>{@link DefaultParentProvider}: used with the default usage where the
- *     parent tree is passed to the constructor</li>
+ *     parent tree is passed to the constructor
  *     <li>{@link ParentProvider#ROOT_PROVIDER}: the default parent provider for
- *     the root tree. All children will get {@link DefaultParentProvider}</li>
+ *     the root tree. All children will get {@link DefaultParentProvider}
  *     <li>{@link ParentProvider#UNSUPPORTED}: throws {@code UnsupportedOperationException}
- *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()}</li>
+ *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()}
  * </ul>
  *
  * <h3>Filtering 'hidden' items</h3>
@@ -224,7 +225,7 @@ public final class ImmutableTree extends AbstractTree implements TreeTypeAware, 
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(getName(), nodeBuilder.getNodeState());
+        return Objects.hash(getName(), nodeBuilder.getNodeState());
     }
 
     @Override

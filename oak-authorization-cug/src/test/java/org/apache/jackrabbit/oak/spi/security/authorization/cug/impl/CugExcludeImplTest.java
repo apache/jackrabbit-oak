@@ -22,8 +22,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +33,7 @@ import static org.junit.Assert.assertTrue;
 public class CugExcludeImplTest extends CugExcludeDefaultTest {
 
     private String[] principalNames = new String[] {"a","b","c","test"};
-    private Set<Principal> principals = ImmutableSet.of(new PrincipalImpl("test"));
+    private Set<Principal> principals = Set.of(new PrincipalImpl("test"));
 
     @Override
     CugExclude createInstance() {
@@ -59,13 +57,13 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
 
     @Test
     public void testExcludeTest() {
-        Map<String, Object> m = ImmutableMap.of("principalNames", principalNames);
+        Map<String, Object> m = Map.of("principalNames", principalNames);
         activate(m);
 
         Set<Principal> all = new HashSet<>();
         for (String name : principalNames) {
             Principal p = new PrincipalImpl(name);
-            assertTrue(exclude.isExcluded(ImmutableSet.of(p)));
+            assertTrue(exclude.isExcluded(Set.of(p)));
 
             all.add(p);
             assertTrue(exclude.isExcluded(all));
@@ -74,21 +72,21 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
 
     @Test
     public void testExcludeAnother() {
-        Map<String, Object> m = ImmutableMap.of("principalNames", principalNames);
+        Map<String, Object> m = Map.of("principalNames", principalNames);
         activate(m);
-        assertFalse(exclude.isExcluded(ImmutableSet.of(new PrincipalImpl("another"))));
+        assertFalse(exclude.isExcluded(Set.of(new PrincipalImpl("another"))));
     }
 
     @Test
     public void testModifyExclude() {
-        Map<String, Object> m = ImmutableMap.of("principalNames", principalNames);
+        Map<String, Object> m = Map.of("principalNames", principalNames);
         activate(m);
-        ((CugExcludeImpl) exclude).modified(ImmutableMap.of("principalNames", new String[]{"other"}));
+        ((CugExcludeImpl) exclude).modified(Map.of("principalNames", new String[]{"other"}));
 
         for (String name : principalNames) {
             Principal p = new PrincipalImpl(name);
-            assertFalse(exclude.isExcluded(ImmutableSet.of(p)));
+            assertFalse(exclude.isExcluded(Set.of(p)));
         }
-        assertTrue(exclude.isExcluded(ImmutableSet.of(new PrincipalImpl("other"))));
+        assertTrue(exclude.isExcluded(Set.of(new PrincipalImpl("other"))));
     }
 }

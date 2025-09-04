@@ -18,7 +18,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newConcurrentHashSet;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
 import java.lang.ref.ReferenceQueue;
@@ -26,6 +25,7 @@ import java.lang.ref.WeakReference;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -35,13 +35,13 @@ import org.jetbrains.annotations.NotNull;
  * of {@link Buffer} instances:
  * <ul>
  *     <li>{@link #DIRECT_BUFFER_COUNT}: number of allocated direct byte
- *          buffers.</li>
+ *          buffers.
  *     <li>{@link #DIRECT_BUFFER_CAPACITY}: total capacity of the allocated
- *          direct byte buffers.</li>
+ *          direct byte buffers.
  *     <li>{@link #HEAP_BUFFER_COUNT}: number of allocated heap byte
- *          buffers.</li>
+ *          buffers.
  *     <li>{@link #HEAP_BUFFER_CAPACITY}: total capacity of the allocated
- *          heap byte buffers.</li>
+ *          heap byte buffers.
  * </ul>
  * <p>
  * Users of this class call {@link #trackAllocation(Buffer)} to update above statistics.
@@ -69,7 +69,7 @@ public class SegmentBufferMonitor {
     public static final String HEAP_BUFFER_CAPACITY = "oak.segment.heap-buffer-capacity";
 
     @NotNull
-    private final Set<BufferReference> buffers = newConcurrentHashSet();
+    private final Set<BufferReference> buffers = SetUtils.newConcurrentHashSet();
 
     @NotNull
     private final ReferenceQueue<Buffer> referenceQueue = new ReferenceQueue<>();

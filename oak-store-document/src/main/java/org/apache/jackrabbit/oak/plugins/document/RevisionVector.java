@@ -16,28 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
+import org.apache.commons.collections4.iterators.PeekingIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.peekingIterator;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static java.util.Objects.requireNonNull;
 import static java.util.Arrays.sort;
 
 /**
@@ -64,7 +61,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     private RevisionVector(@NotNull Revision[] revisions,
                            boolean checkUniqueClusterIds,
                            boolean sort) {
-        checkNotNull(revisions);
+        requireNonNull(revisions);
         if (checkUniqueClusterIds) {
             checkUniqueClusterIds(revisions);
         }
@@ -79,11 +76,11 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
     }
 
     public RevisionVector(@NotNull Iterable<Revision> revisions) {
-        this(toArray(revisions, Revision.class), true, true);
+        this(IterableUtils.toArray(revisions, Revision.class), true, true);
     }
 
     public RevisionVector(@NotNull Set<Revision> revisions) {
-        this(toArray(revisions, Revision.class), false, true);
+        this(IterableUtils.toArray(revisions, Revision.class), false, true);
     }
 
     /**
@@ -97,7 +94,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @return the resulting revision vector.
      */
     public RevisionVector update(@NotNull Revision revision) {
-        checkNotNull(revision);
+        requireNonNull(revision);
         Revision existing = null;
         int i;
         for (i = 0; i < revisions.length; i++) {
@@ -175,8 +172,8 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
             }
         }
         int capacity = Math.min(revisions.length, vector.revisions.length);
-        List<Revision> pmin = newArrayListWithCapacity(capacity);
-        PeekingIterator<Revision> it = peekingIterator(vector.iterator());
+        List<Revision> pmin = new ArrayList<>(capacity);
+        PeekingIterator<Revision> it = PeekingIterator.peekingIterator(vector.iterator());
         for (Revision r : revisions) {
             Revision other = peekRevision(it, r.getClusterId());
             if (other != null) {
@@ -187,7 +184,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
                 break;
             }
         }
-        return new RevisionVector(toArray(pmin, Revision.class), false, false);
+        return new RevisionVector(IterableUtils.toArray(pmin, Revision.class), false, false);
     }
 
     /**
@@ -206,8 +203,8 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
             }
         }
         int capacity = Math.max(revisions.length, vector.revisions.length);
-        List<Revision> pmax = newArrayListWithCapacity(capacity);
-        PeekingIterator<Revision> it = peekingIterator(vector.iterator());
+        List<Revision> pmax = new ArrayList<>(capacity);
+        PeekingIterator<Revision> it = PeekingIterator.peekingIterator(vector.iterator());
         for (Revision r : revisions) {
             while (it.hasNext() && it.peek().getClusterId() < r.getClusterId()) {
                 pmax.add(it.next());
@@ -222,8 +219,8 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
             }
         }
         // add remaining
-        Iterators.addAll(pmax, it);
-        return new RevisionVector(toArray(pmax, Revision.class), false, false);
+        it.forEachRemaining(pmax::add);
+        return new RevisionVector(IterableUtils.toArray(pmax, Revision.class), false, false);
     }
 
     /**
@@ -235,15 +232,15 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @return the difference of the two vectors.
      */
     public RevisionVector difference(RevisionVector vector) {
-        List<Revision> diff = newArrayListWithCapacity(revisions.length);
-        PeekingIterator<Revision> it = peekingIterator(vector.iterator());
+        List<Revision> diff = new ArrayList<>(revisions.length);
+        PeekingIterator<Revision> it = PeekingIterator.peekingIterator(vector.iterator());
         for (Revision r : revisions) {
             Revision other = peekRevision(it, r.getClusterId());
             if (!r.equals(other)) {
                 diff.add(r);
             }
         }
-        return new RevisionVector(toArray(diff, Revision.class), false, false);
+        return new RevisionVector(IterableUtils.toArray(diff, Revision.class), false, false);
     }
 
     /**
@@ -256,7 +253,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      * @return {@code true} if considered newer, {@code false} otherwise.
      */
     public boolean isRevisionNewer(@NotNull Revision revision) {
-        checkNotNull(revision);
+        requireNonNull(revision);
         for (Revision r : revisions) {
             if (r.getClusterId() == revision.getClusterId()) {
                 return r.compareRevisionTime(revision) < 0;
@@ -307,7 +304,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
      */
     public Revision getRevision(int clusterId) {
         for (Revision r : revisions) {
-            int cmp = Ints.compare(r.getClusterId(), clusterId);
+            int cmp = Integer.compare(r.getClusterId(), clusterId);
             if (cmp == 0) {
                 return r;
             } else if (cmp > 0) {
@@ -449,7 +446,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
                 return 1;
             }
             Revision otherRev = it.next();
-            int cmp = -Ints.compare(r.getClusterId(), otherRev.getClusterId());
+            int cmp = -Integer.compare(r.getClusterId(), otherRev.getClusterId());
             if (cmp != 0) {
                 return cmp;
             }
@@ -526,7 +523,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
         if (revisions.length < 2) {
             return;
         }
-        Set<Integer> known = Sets.newHashSetWithExpectedSize(revisions.length);
+        Set<Integer> known = SetUtils.newHashSet(revisions.length);
         for (Revision revision : revisions) {
             if (!known.add(revision.getClusterId())) {
                 throw new IllegalArgumentException(
@@ -544,7 +541,7 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
 
         @Override
         public int compare(Revision o1, Revision o2) {
-            return Ints.compare(o1.getClusterId(), o2.getClusterId());
+            return Integer.compare(o1.getClusterId(), o2.getClusterId());
         }
     }
 }

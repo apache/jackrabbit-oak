@@ -24,8 +24,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Validator that excludes a subtree from the validation process and delegates
@@ -43,8 +43,8 @@ public class SubtreeExcludingValidator extends DefaultValidator {
     private final List<String> tail;
 
     protected SubtreeExcludingValidator(Validator validator, List<String> path) {
-        this.validator = checkNotNull(validator);
-        checkNotNull(path);
+        this.validator = requireNonNull(validator);
+        requireNonNull(path);
         checkArgument(!path.isEmpty());
         this.head = path.get(0);
         this.tail = path.subList(1, path.size());

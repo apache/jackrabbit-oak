@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -32,8 +31,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static java.util.Objects.requireNonNull;
+import static java.util.Objects.checkFromToIndex;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
@@ -97,7 +96,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
         this.file = file;
         this.dirDetails = dirDetails;
         this.uniqueKey = readUniqueKey(file);
-        this.blobFactory = checkNotNull(blobFactory);
+        this.blobFactory = requireNonNull(blobFactory);
 
         PropertyState property = file.getProperty(JCR_DATA);
         if (property != null) {
@@ -222,7 +221,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
     @Override
     public void readBytes(byte[] b, int offset, int len)
             throws IOException {
-        checkPositionIndexes(offset, offset + len, checkNotNull(b).length);
+        checkFromToIndex(offset, offset + len, requireNonNull(b).length);
 
         if (len < 0 || position + len > length) {
             String msg = String.format("Invalid byte range request for [%s][%s], " +
@@ -232,7 +231,7 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
         }
 
         setupInputStream();
-        int readCnt = ByteStreams.read(blobInputStream, b, offset, len);
+        int readCnt = IOUtils.read(blobInputStream, b, offset, len);
         if (readCnt < len) {
             String msg = String.format("Couldn't read byte range request for [%s][%s], " +
                     "position: %d, file length: %d, len: %d. Actual read bytes %d",

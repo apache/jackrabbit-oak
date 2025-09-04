@@ -19,27 +19,27 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
+import static java.util.Objects.checkIndex;
 
 /**
  * Include represents a single path pattern which captures the path which
  * needs to be included in bundling. Path patterns can be like below.
  * <ul>
- *     <li>* - Match any immediate child</li>
- *     <li>*\/* - Match child with any name upto 2 levels of depth</li>
- *     <li>jcr:content - Match immediate child with name jcr:content</li>
- *     <li>jcr:content\/** - Match jcr:content and all its child</li>
+ *     <li>* - Match any immediate child
+ *     <li>*\/* - Match child with any name upto 2 levels of depth
+ *     <li>jcr:content - Match immediate child with name jcr:content
+ *     <li>jcr:content\/** - Match jcr:content and all its child
  * </ul>
  *
  * The last path element can specify a directive. Supported directive
  * <ul>
- *     <li>all - Include all nodes under given path</li>
+ *     <li>all - Include all nodes under given path
  * </ul>
  */
 public class Include {
@@ -53,8 +53,8 @@ public class Include {
     private final String pattern;
 
     public Include(String pattern){
-        List<String> pathElements = ImmutableList.copyOf(PathUtils.elements(pattern));
-        List<String> elementList = Lists.newArrayListWithCapacity(pathElements.size());
+        List<String> pathElements = ListUtils.toList(PathUtils.elements(pattern));
+        List<String> elementList = new ArrayList<>(pathElements.size());
         Directive directive = Directive.NONE;
         for (int i = 0; i < pathElements.size(); i++) {
             String e = pathElements.get(i);
@@ -116,14 +116,14 @@ public class Include {
      */
     public boolean match(String nodeName, int depth) {
         int elementIndex = depth - 1;
-        checkElementIndex(elementIndex, elements.length);
+        checkIndex(elementIndex, elements.length);
         String e = elements[elementIndex];
         return STAR.equals(e) || nodeName.equals(e);
     }
 
     public boolean matchAny(int depth){
         int elementIndex = depth - 1;
-        checkElementIndex(elementIndex, elements.length);
+        checkIndex(elementIndex, elements.length);
         return STAR.equals(elements[elementIndex]);
     }
 

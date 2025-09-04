@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.io.InputStream;

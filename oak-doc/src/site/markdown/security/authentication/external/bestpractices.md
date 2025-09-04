@@ -110,16 +110,22 @@ See also section [Best Practices for Authorization](../../authorization/bestprac
 External groups get synchronized together with external users upon repository login. If you wish to defined access control setup for groups prior to the synchronization upon login the following 2 options exist:
 
 - Pre-sync external groups to make them available to the principal manager (see next section)
-- Configure [ImportMode](../../accesscontrol/default.html#configuration)=`besteffort` with the default Oak authorization setup and define access control content for principals before they exist.
+- Configure [ImportMode](../../accesscontrol/default.html#configuration)=`besteffort` with the default Oak authorization setup and define access control content for principals before they exist (see below).
   
-#### Pre-sync of external groups
+##### Pre-sync of external groups
 
-The following 2 options exist to populate the repository with external group principals outside of the regular synchronization upon login:
+The following 2 options exist to populate the repository with external group principals outside the regular synchronization upon login:
 
-- The _oak-auth-external_ module comes with a JMX integration that allows for synchronization of external identities outside of the regular repository login. See [JMX Synchronization Tool](../usersync.html#jmx-synchronization-tool) and [SynchronizationMBean](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/jmx/SynchronizationMBean.html) for details. This requires the `ExternalIdentityProvider` to implement the methods required to retrieve external identities. This is the recommended way to pre-sync groups.
-- In case the `ExternalIdentityProvider` does not support user and group sync outside of the regular repository login, external identities can be created using Jackrabbit User Management API. Note: 
+- The _oak-auth-external_ module comes with a JMX integration that allows for synchronization of external identities outside the regular repository login. See [JMX Synchronization Tool](../usersync.html#jmx-synchronization-tool) and [SynchronizationMBean](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/jmx/SynchronizationMBean.html) for details. This requires the `ExternalIdentityProvider` to implement the methods required to retrieve external identities. This is the recommended way to pre-sync groups.
+- In case the `ExternalIdentityProvider` does not support user and group sync outside the regular repository login, external identities can be created using Jackrabbit User Management API. Note: 
     - The property `rep:externalId` is system maintained and protected and cannot be added or changed once the group has been persisted.
     - Mistakes in defining the protected properties `rep:externalId`, `rep:authorizableId` or `rep:principalName` will result in a mismatch during authentication, sync and permission evaluation. The only way to fix such mistakes is to remove and recreate the group. Access control content associated with a wrong principal name needs to be removed separately.
+
+##### Define Access Control Setup for Non-Existing Principals
+
+While JSR 283 mandates that an `AccessControlException` is thrown whenever the principal specified for any access control content does not exist, Apache Jackrabbit Oak allows for a relaxed contract using configuration option [ImportMode](../../accesscontrol/default.html#xml_import). If set to [`besteffort`](../../accesscontrol/default.html#configuration) access control setup for unknown principals can be created.
+
+See also [SLING-12115](https://issues.apache.org/jira/browse/SLING-12115) for an additional option with [Apache Sling RepoInit](https://sling.apache.org/documentation/bundles/repository-initialization.html) to define create access control entries for non-existing principals.
 
 <!-- references -->
 [login modules]: https://docs.oracle.com/en/java/javase/11/docs/api/java.base/javax/security/auth/spi/LoginModule.html

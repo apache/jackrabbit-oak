@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -189,13 +188,13 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
         @NotNull
         @Override
         public Set<Principal> getMembershipPrincipals(@NotNull Principal principal) {
-            return ImmutableSet.of();
+            return Set.of();
         }
 
         @NotNull
         @Override
         public Set<? extends Principal> getPrincipals(@NotNull String userID) {
-            return ImmutableSet.of();
+            return Set.of();
         }
 
         @NotNull

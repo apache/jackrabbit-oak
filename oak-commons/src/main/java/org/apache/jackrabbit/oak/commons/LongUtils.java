@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import java.util.Arrays;
 import java.util.Date;
 
 public final class LongUtils {
@@ -51,4 +52,84 @@ public final class LongUtils {
     public static long calculateExpirationTime(long expiration) {
         return LongUtils.safeAdd(expiration, new Date().getTime());
     }
+
+    /*
+     * Taken from https://github.com/google/guava/blob/0c33dd12b193402cdf6962d43d69743521aa2f76/guava/src/com/google/common/primitives/Longs.java#L334
+     */
+    private static final class AsciiDigits {
+        private AsciiDigits() {
+        }
+
+        private static final byte[] asciiDigits;
+
+        static {
+            byte[] result = new byte[128];
+            Arrays.fill(result, (byte) -1);
+            for (int i = 0; i < 10; i++) {
+                result['0' + i] = (byte) i;
+            }
+            for (int i = 0; i < 26; i++) {
+                result['A' + i] = (byte) (10 + i);
+                result['a' + i] = (byte) (10 + i);
+            }
+            asciiDigits = result;
+        }
+
+        static int digit(char c) {
+            return (c < 128) ? asciiDigits[c] : -1;
+        }
+    }
+
+    private static final int RADIX = 10;
+
+    /**
+     * Parses the specified string as a signed decimal long value. Unlike {@link Long#parseLong(String)}, this method
+     * returns {@code null} instead of throwing an exception if parsing fails. This can be significantly more efficient
+     * when the string to be parsed is often invalid, as raising an exception is an expensive operation.
+     * <p>
+     * This is a simplified version of
+     * <a href="https://github.com/google/guava/blob/0c33dd12b193402cdf6962d43d69743521aa2f76/guava/src/com/google/common/primitives/Longs.java#L400">Longs.tryParse()</a>
+     * in Guava. This version is hardcoded to only support radix 10.
+     * <p>
+     *
+     * @see org.apache.jackrabbit.guava.common.primitives.Longs#tryParse(String)
+     */
+    public static Long tryParse(String string) {
+        if (string == null || string.isEmpty()) {
+            return null;
+        }
+        boolean negative = string.charAt(0) == '-';
+        int index = negative ? 1 : 0;
+        if (index == string.length()) {
+            return null;
+        }
+        int digit = AsciiDigits.digit(string.charAt(index++));
+        if (digit < 0 || digit >= RADIX) {
+            return null;
+        }
+        long accum = -digit;
+
+        long cap = Long.MIN_VALUE / RADIX;
+
+        while (index < string.length()) {
+            digit = AsciiDigits.digit(string.charAt(index++));
+            if (digit < 0 || digit >= RADIX || accum < cap) {
+                return null;
+            }
+            accum *= RADIX;
+            if (accum < Long.MIN_VALUE + digit) {
+                return null;
+            }
+            accum -= digit;
+        }
+
+        if (negative) {
+            return accum;
+        } else if (accum == Long.MIN_VALUE) {
+            return null;
+        } else {
+            return -accum;
+        }
+    }
+
 }

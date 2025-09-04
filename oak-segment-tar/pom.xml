@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.57-SNAPSHOT</version>
+        <version>1.85-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -31,11 +31,6 @@
     <packaging>bundle</packaging>
 
     <name>Oak Segment Tar</name>
-
-    <properties>
-        <netty.version>4.1.96.Final</netty.version>
-        <concurrentlinkedhashmap.version>1.4.2</concurrentlinkedhashmap.version>
-    </properties>
 
     <build>
         <plugins>
@@ -246,6 +241,11 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+           <groupId>org.apache.commons</groupId>
+           <artifactId>commons-text</artifactId>
+           <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <scope>provided</scope>
@@ -326,15 +326,12 @@
             <version>${netty.version}</version>
             <scope>provided</scope>
         </dependency>
-
-		<!-- ConcurrentLinkedHashMap -->
-
         <dependency>
-            <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
-            <artifactId>concurrentlinkedhashmap-lru</artifactId>
-            <version>${concurrentlinkedhashmap.version}</version>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-native-unix-common</artifactId>
+            <version>${netty.version}</version>
             <scope>provided</scope>
-	    </dependency>
+        </dependency>
 
         <!-- Dependencies on Oak testing modules -->
 

@@ -17,23 +17,24 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
+import static java.util.Objects.requireNonNull;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -52,8 +53,8 @@ public class TypePredicate implements Predicate<NodeState> {
 
     @NotNull
     public static TypePredicate isOrderable(@NotNull NodeState root) {
-        Set<String> orderable = newHashSet();
-        NodeState types = checkNotNull(root)
+        Set<String> orderable = new HashSet<>();
+        NodeState types = requireNonNull(root)
                 .getChildNode(JCR_SYSTEM)
                 .getChildNode(JCR_NODE_TYPES);
         for (ChildNodeEntry entry : types.getChildNodeEntries()) {
@@ -114,7 +115,7 @@ public class TypePredicate implements Predicate<NodeState> {
 
     private static Set<String> add(Set<String> names, String name) {
         if (names == null) {
-            return newHashSet(name);
+            return SetUtils.toSet(name);
         } else {
             names.add(name);
             return names;
@@ -146,10 +147,10 @@ public class TypePredicate implements Predicate<NodeState> {
     private void init() {
         if (!initialized) {
             // lazy initialization of the sets of matching type names
-            NodeState types = checkNotNull(root)
+            NodeState types = requireNonNull(root)
                     .getChildNode(JCR_SYSTEM)
                     .getChildNode(JCR_NODE_TYPES);
-            for (String name : checkNotNull(names)) {
+            for (String name : requireNonNull(names)) {
                 addNodeType(types, name);
             }
             initialized = true;
@@ -161,7 +162,7 @@ public class TypePredicate implements Predicate<NodeState> {
         if (primaryTypes != null && primaryTypes.contains(primary)) {
             return true;
         }
-        if (mixinTypes != null && any(mixins, in(mixinTypes))) {
+        if (mixinTypes != null && StreamUtils.toStream(mixins).anyMatch(mixinTypes::contains)) {
             return true;
         }
         return false;
@@ -175,7 +176,7 @@ public class TypePredicate implements Predicate<NodeState> {
                 return true;
             }
             if (mixinTypes != null
-                    && any(TreeUtil.getNames(input, JCR_MIXINTYPES), in(mixinTypes))) {
+                    && StreamUtils.toStream(TreeUtil.getNames(input, JCR_MIXINTYPES)).anyMatch(mixinTypes::contains)) {
                 return true;
             }
         }
@@ -193,7 +194,7 @@ public class TypePredicate implements Predicate<NodeState> {
                 return true;
             }
             if (mixinTypes != null
-                    && any(input.getNames(JCR_MIXINTYPES), in(mixinTypes))) {
+                    && StreamUtils.toStream(input.getNames(JCR_MIXINTYPES)).anyMatch(mixinTypes::contains)) {
                 return true;
             }
         }
@@ -204,6 +205,6 @@ public class TypePredicate implements Predicate<NodeState> {
 
     @Override
     public String toString() {
-        return Iterables.toString(names);
+        return IterableUtils.toString(names);
     }
 }

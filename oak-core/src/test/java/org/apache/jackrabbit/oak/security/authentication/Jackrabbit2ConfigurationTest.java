@@ -24,7 +24,6 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -244,7 +243,7 @@ public class Jackrabbit2ConfigurationTest extends AbstractSecurityTest {
             cs = login(sc);
 
             AuthInfo ai = cs.getAuthInfo();
-            Set<String> attrNames = ImmutableSet.copyOf(ai.getAttributeNames());
+            Set<String> attrNames = Set.of(ai.getAttributeNames());
             assertTrue(attrNames.contains("attr"));
             assertFalse(attrNames.contains(".token"));
             assertFalse(attrNames.contains(".token.mandatory"));
@@ -268,7 +267,7 @@ public class Jackrabbit2ConfigurationTest extends AbstractSecurityTest {
             cs = login(ic);
 
             AuthInfo ai = cs.getAuthInfo();
-            Set<String> attrNames = ImmutableSet.copyOf(ai.getAttributeNames());
+            Set<String> attrNames = Set.of(ai.getAttributeNames());
             assertTrue(attrNames.contains("attr"));
             assertFalse(attrNames.contains(".token"));
             assertFalse(attrNames.contains(".token.mandatory"));

@@ -20,13 +20,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Predicate;
+
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -49,12 +49,12 @@ public class DeclaredMembershipPredicate implements Predicate<Authorizable> {
         if (groupTree == null) {
             contentIdIterator = Collections.emptyIterator();
         } else {
-            contentIdIterator = Iterators.filter(membershipProvider.getDeclaredMemberContentIDs(groupTree), Predicates.notNull());
+            contentIdIterator = IteratorUtils.filter(membershipProvider.getDeclaredMemberContentIDs(groupTree), x -> x != null);
         }
     }
 
     @Override
-    public boolean apply(@Nullable Authorizable authorizable) {
+    public boolean test(@Nullable Authorizable authorizable) {
         String id = saveGetContentId(authorizable);
         if (id != null) {
             if (declaredMemberContentIds.contains(id)) {

@@ -30,13 +30,12 @@ import org.jetbrains.annotations.Nullable;
  * about and react to the following changes to a {@link User}:
  *
  * <ul>
- * <li>{@link #onDisable(User, String, Root, NamePathMapper)}</li>
+ * <li>{@link #onDisable(User, String, Root, NamePathMapper)}
  * </ul>
  *
  * <p>
  * See {@link AuthorizableAction} for details on persisting changes,
  * configuring actions and the API through which actions are invoked.
- * </p>
  *
  * @since OAK 1.10
  */

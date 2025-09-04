@@ -28,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
@@ -41,7 +42,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class ClusterNodeStoreLockTest {
     private NodeStore store = new MemoryNodeStore();
@@ -53,7 +53,7 @@ public class ClusterNodeStoreLockTest {
         provider = new PropertyIndexEditorProvider();
         NodeBuilder builder = store.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                "rootIndex", true, false, Set.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, name);
         builder.child("testRoot").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);

@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
+import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * events for child nodes of the destination of a move operation.
  */
 public class MoveFilter implements EventFilter {
-    private final Set<String> movedNodes = Sets.newHashSet();
+    private final Set<String> movedNodes = new HashSet<>();
 
     @Override
     public boolean includeAdd(PropertyState after) {

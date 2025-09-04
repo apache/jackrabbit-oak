@@ -20,20 +20,21 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -92,7 +93,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Iterable<String> privilegeNames) {
-        if (Iterables.isEmpty(privilegeNames)) {
+        if (IterableUtils.isEmpty(privilegeNames)) {
             return PrivilegeBits.EMPTY;
         }
 
@@ -117,7 +118,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         if (!validateNames) {
             return getBits(privilegeNames);
         }
-        if (Iterables.isEmpty(privilegeNames)) {
+        if (IterableUtils.isEmpty(privilegeNames)) {
             return PrivilegeBits.EMPTY;
         }
         PrivilegeBits bits = PrivilegeBits.getInstance();
@@ -163,7 +164,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Privilege[] privileges, @NotNull final NameMapper nameMapper) {
-        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges), privilege -> nameMapper.getOakNameOrNull(privilege.getName())), Predicates.notNull()));
+        return getBits(IterableUtils.filter(IterableUtils.transform(Arrays.asList(privileges),
+                privilege -> nameMapper.getOakNameOrNull(privilege.getName())), x -> x != null));
     }
 
     /**
@@ -201,7 +203,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 privilegeNames = bitsToNames.get(pb);
             } else {
                 privilegeNames = collectPrivilegeNames(privilegesTree, pb);
-                bitsToNames.put(pb, ImmutableSet.copyOf(privilegeNames));
+                bitsToNames.put(pb, Collections.unmodifiableSet(SetUtils.toLinkedSet(privilegeNames)));
             }
             return privilegeNames;
         }
@@ -239,7 +241,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         } else if (privilegeNames.length == 1) {
             String privName = privilegeNames[0];
             if (NON_AGGREGATE_PRIVILEGES.contains(privName)) {
-                return ImmutableSet.of(privName);
+                return Set.of(privName);
             } else if (aggregation.containsKey(privName)) {
                 return aggregation.get(privName);
             } else if (AGGREGATE_PRIVILEGES.containsKey(privName)) {
@@ -250,7 +252,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 return extractAggregatedPrivileges(Collections.singleton(privName));
             }
         } else {
-            Set<String> pNames = ImmutableSet.copyOf(privilegeNames);
+            Set<String> pNames = Collections.unmodifiableSet(SetUtils.toLinkedSet(privilegeNames));
             if (NON_AGGREGATE_PRIVILEGES.containsAll(pNames)) {
                 return pNames;
             } else {
@@ -261,12 +263,12 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
     @NotNull
     private Iterable<String> extractAggregatedPrivileges(@NotNull Iterable<String> privilegeNames) {
-        return FluentIterable.from(privilegeNames).transformAndConcat(new ExtractAggregatedPrivileges());
+        return IterableUtils.chainedIterable(FluentIterable.of(privilegeNames).transform(new ExtractAggregatedPrivileges()::apply));
     }
 
     @NotNull
     private Set<String> resolveBuiltInAggregation(@NotNull String privilegeName) {
-        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        Set<String> builder = new LinkedHashSet<>();
         for (String name : AGGREGATE_PRIVILEGES.get(privilegeName)) {
             if (!AGGREGATE_PRIVILEGES.containsKey(name)) {
                 builder.add(name);
@@ -274,7 +276,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 builder.addAll(resolveBuiltInAggregation(name));
             }
         }
-        Set<String> set = builder.build();
+        Set<String> set = Collections.unmodifiableSet(builder);
         aggregation.put(privilegeName, set);
         return set;
     }
@@ -293,10 +295,10 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                 } else if (AGGREGATE_PRIVILEGES.containsKey(privName)) {
                     return resolveBuiltInAggregation(privName);
                 } else {
-                    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+                    Set<String> builder = new LinkedHashSet<>();
                     fillAggregation(getPrivilegesTree().getChild(privName), builder);
 
-                    Set<String> aggregates = builder.build();
+                    Set<String> aggregates = Collections.unmodifiableSet(builder);
                     if (!JCR_ALL.equals(privName) && !aggregates.isEmpty()) {
                         aggregation.put(privName, aggregates);
                     }
@@ -305,7 +307,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             }
         }
 
-        private void fillAggregation(@NotNull Tree privTree, @NotNull ImmutableSet.Builder<String> builder) {
+        private void fillAggregation(@NotNull Tree privTree, @NotNull Set<String> builder) {
             if (!privTree.exists()) {
                 return;
             }

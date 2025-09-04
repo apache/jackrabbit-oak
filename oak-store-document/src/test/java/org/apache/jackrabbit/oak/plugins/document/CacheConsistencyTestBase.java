@@ -17,13 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.junit.After;
 import org.junit.Before;
@@ -73,7 +70,7 @@ public abstract class CacheConsistencyTestBase {
         String id3 = this.getClass().getName() + ".testExceptionInvalidatesCache3";
         UpdateOp up3 = new UpdateOp(id3, true);
         up3.set("_test", "oldvalue");
-        ds.create(Collection.NODES, Lists.newArrayList(up1, up2, up3));
+        ds.create(Collection.NODES, List.of(up1, up2, up3));
         removeMe.add(id1);
         removeMe.add(id2);
         removeMe.add(id3);
@@ -151,7 +148,7 @@ public abstract class CacheConsistencyTestBase {
                 up3 = new UpdateOp(id3, false);
                 up3.set("_test", random);
 
-                ds.createOrUpdate(Collection.NODES, Lists.newArrayList(up1, up2, up3));
+                ds.createOrUpdate(Collection.NODES, List.of(up1, up2, up3));
                 fail("should have failed with DocumentStoreException");
             } catch (DocumentStoreException ex) {
                 assertEquals("should fail with enforced exception", ex.getCause().getMessage(), random);
@@ -160,7 +157,7 @@ public abstract class CacheConsistencyTestBase {
                 // 1) at least one of the documents should be updated
                 // 2) for all documents: reading from cache and uncached
                 // should return the same document
-                Set<String> modifiedDocuments = Sets.newHashSet();
+                Set<String> modifiedDocuments = new HashSet<>();
 
                 for (String id : new String[] { id1, id2, id3 }) {
                     // get cached value

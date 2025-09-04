@@ -18,14 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import java.util.Objects;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.value.BinaryBasedBlob;
 import org.apache.jackrabbit.oak.plugins.value.OakValue;
 
@@ -47,16 +48,16 @@ public abstract class AbstractPropertyState implements PropertyState {
      * @return {@code true} if the properties are equal, {@code false} otherwise
      */
     public static boolean equal(PropertyState a, PropertyState b) {
-        if (Objects.equal(a.getName(), b.getName())
-                && Objects.equal(a.getType(), b.getType())) {
+        if (Objects.equals(a.getName(), b.getName())
+                && Objects.equals(a.getType(), b.getType())) {
             Type<?> type = a.getType();
             if (a.isArray()) {
                 return a.count() == b.count()
-                        && Iterables.elementsEqual(
+                        && IterableUtils.elementsEqual(
                                 (Iterable<?>) a.getValue(type),
                                 (Iterable<?>) b.getValue(type));
             } else {
-                return Objects.equal(a.getValue(type), b.getValue(type));
+                return Objects.equals(a.getValue(type), b.getValue(type));
             }
         } else {
             return false;

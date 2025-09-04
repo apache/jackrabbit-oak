@@ -16,17 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
 import static java.lang.System.identityHashCode;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_FULL_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.GC_GENERATION_OFFSET;
 import static org.apache.jackrabbit.oak.segment.Segment.HEADER_SIZE;
@@ -40,10 +36,13 @@ import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.io.HexDump;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.RecordNumbers.Entry;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
@@ -101,9 +100,6 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     @NotNull
     private final SegmentIdProvider idProvider;
 
-    @NotNull
-    private final SegmentReader reader;
-
     /**
      * Id of this writer.
      */
@@ -142,16 +138,14 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     private boolean dirty;
 
     public SegmentBufferWriter(@NotNull SegmentIdProvider idProvider,
-                               @NotNull SegmentReader reader,
                                @Nullable String wid,
                                @NotNull GCGeneration gcGeneration) {
-        this.idProvider = checkNotNull(idProvider);
-        this.reader = checkNotNull(reader);
+        this.idProvider = requireNonNull(idProvider);
         this.wid = (wid == null
                 ? "w-" + identityHashCode(this)
                 : wid);
 
-        this.gcGeneration = checkNotNull(gcGeneration);
+        this.gcGeneration = requireNonNull(gcGeneration);
     }
 
     @NotNull
@@ -159,7 +153,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
     public RecordId execute(@NotNull GCGeneration gcGeneration,
                             @NotNull WriteOperation writeOperation)
     throws IOException {
-        checkState(gcGeneration.equals(this.gcGeneration));
+        Validate.checkState(gcGeneration.equals(this.gcGeneration));
         return writeOperation.execute(this);
     }
 
@@ -215,12 +209,12 @@ public class SegmentBufferWriter implements WriteOperationHandler {
             "{\"wid\":\"" + wid + '"' +
             ",\"sno\":" + idProvider.getSegmentIdCount() +
             ",\"t\":" + currentTimeMillis() + "}";
-        segment = new Segment(idProvider.newDataSegmentId(), reader, buffer, recordNumbers, segmentReferences, metaInfo);
+        segment = new Segment(idProvider.newDataSegmentId(), buffer, recordNumbers, segmentReferences, metaInfo);
 
         statistics = new Statistics();
         statistics.id = segment.getSegmentId();
 
-        byte[] data = metaInfo.getBytes(UTF_8);
+        byte[] data = metaInfo.getBytes(StandardCharsets.UTF_8);
         RecordWriters.newValueWriter(data.length, data).write(this, store);
 
         dirty = false;
@@ -252,8 +246,8 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      * @param recordId  the record ID.
      */
     public void writeRecordId(RecordId recordId) {
-        checkNotNull(recordId);
-        checkState(segmentReferences.size() + 1 < 0xffff,
+        requireNonNull(recordId);
+        Validate.checkState(segmentReferences.size() + 1 < 0xffff,
                 "Segment cannot have more than 0xffff references");
 
         writeShort(toShort(writeSegmentIdReference(recordId.getSegmentId())));
@@ -333,22 +327,22 @@ public class SegmentBufferWriter implements WriteOperationHandler {
                         segment.getSegmentId(), referencedSegmentIdCount, recordNumberCount, length, totalLength));
             }
 
-            statistics.size = length = totalLength;
+            statistics.size = totalLength;
 
             int pos = HEADER_SIZE;
-            if (pos + length <= buffer.length) {
+            if (pos + totalLength <= buffer.length) {
                 // the whole segment fits to the space *after* the referenced
                 // segment identifiers we've already written, so we can safely
                 // copy those bits ahead even if concurrent code is still
                 // reading from that part of the buffer
-                arraycopy(buffer, 0, buffer, buffer.length - length, pos);
-                pos += buffer.length - length;
+                arraycopy(buffer, 0, buffer, buffer.length - totalLength, pos);
+                pos += buffer.length - totalLength;
             } else {
                 // this might leave some empty space between the header and
                 // the record data, but this case only occurs when the
                 // segment is >252kB in size and the maximum overhead is <<4kB,
                 // which is acceptable
-                length = buffer.length;
+                totalLength = buffer.length;
             }
 
             for (SegmentId segmentId : segmentReferences) {
@@ -364,7 +358,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
             SegmentId segmentId = segment.getSegmentId();
             LOG.debug("Writing data segment: {} ", statistics);
-            store.writeSegment(segmentId, buffer, buffer.length - length, length);
+            store.writeSegment(segmentId, buffer, buffer.length - totalLength, totalLength);
             newSegment(store);
         }
     }
@@ -389,7 +383,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
      */
     public RecordId prepare(RecordType type, int size, Collection<RecordId> ids, SegmentStore store) throws IOException {
         checkArgument(size >= 0);
-        checkNotNull(ids);
+        requireNonNull(ids);
 
         if (segment == null) {
             // Create a segment first if this is the first time this segment buffer writer is used.
@@ -415,7 +409,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         if (segmentSize > buffer.length) {
 
             // Collect the newly referenced segment ids
-            Set<SegmentId> segmentIds = newHashSet();
+            Set<SegmentId> segmentIds = new HashSet<>();
             for (RecordId recordId : ids) {
                 SegmentId segmentId = recordId.getSegmentId();
                 if (!segmentReferences.contains(segmentId)) {

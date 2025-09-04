@@ -22,9 +22,9 @@ package org.apache.jackrabbit.oak.plugins.index.progress;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -86,14 +86,13 @@ public class NodeCounterMBeanEstimator implements NodeCountEstimator {
                 NodeState idxState = NodeStateUtils.getNode(root, indexPath);
 
                 //No include exclude specified so include all
-                if (!idxState.hasProperty(PROP_INCLUDED_PATHS)
-                        && !idxState.hasProperty(PROP_EXCLUDED_PATHS)) {
+                if (!idxState.hasProperty(PROP_INCLUDED_PATHS) && !idxState.hasProperty(PROP_EXCLUDED_PATHS)) {
                     includeAll = true;
                     return;
                 }
 
-                Iterables.addAll(includes, idxState.getStrings(PROP_INCLUDED_PATHS));
-                Iterables.addAll(excludes, idxState.getStrings(PROP_EXCLUDED_PATHS));
+                PathFilter.getStrings(idxState.getProperty(PROP_INCLUDED_PATHS), Set.of()).forEach(includes::add);
+                PathFilter.getStrings(idxState.getProperty(PROP_EXCLUDED_PATHS), Set.of()).forEach(excludes::add);
             }
 
             if (includes.isEmpty()) {

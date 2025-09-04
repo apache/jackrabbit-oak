@@ -18,14 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.MapRecord.HASH_MASK;
 
+import java.util.Comparator;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
-import org.apache.jackrabbit.guava.common.collect.Ordering;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -53,9 +52,9 @@ class MapEntry extends AbstractChildNodeEntry
             @NotNull String name,
             @NotNull RecordId key,
             @Nullable RecordId value) {
-        this.reader = checkNotNull(reader);
-        this.name = checkNotNull(name);
-        this.key = checkNotNull(key);
+        this.reader = requireNonNull(reader);
+        this.name = requireNonNull(name);
+        this.key = requireNonNull(key);
         this.value = value;
     }
 
@@ -72,7 +71,7 @@ class MapEntry extends AbstractChildNodeEntry
             @NotNull String name,
             @NotNull RecordId key,
             @NotNull RecordId value) {
-        return new MapEntry(reader, name, key, checkNotNull(value));
+        return new MapEntry(reader, name, key, requireNonNull(value));
     }
 
     /**
@@ -117,7 +116,7 @@ class MapEntry extends AbstractChildNodeEntry
 
     @Override @NotNull
     public SegmentNodeState getNodeState() {
-        checkState(value != null);
+        Validate.checkState(value != null);
         return reader.readNode(value);
     }
 
@@ -136,7 +135,7 @@ class MapEntry extends AbstractChildNodeEntry
     @NotNull
     @Override
     public RecordId getValue() {
-        checkState(value != null);
+        Validate.checkState(value != null);
         return value;
     }
 
@@ -149,11 +148,10 @@ class MapEntry extends AbstractChildNodeEntry
 
     @Override
     public int compareTo(@NotNull MapEntry that) {
-        return ComparisonChain.start()
-                .compare(getHash() & HASH_MASK, that.getHash() & HASH_MASK)
-                .compare(name, that.name)
-                .compare(value, that.value, Ordering.natural().nullsLast())
-                .result();
+        return Comparator.comparingLong((MapEntry me) -> me.getHash() & HASH_MASK)
+                .thenComparing(MapEntry::getName)
+                .thenComparing(MapEntry::getValue, Comparator.nullsLast(Comparator.naturalOrder()))
+                .compare(this, that);
     }
 
 }

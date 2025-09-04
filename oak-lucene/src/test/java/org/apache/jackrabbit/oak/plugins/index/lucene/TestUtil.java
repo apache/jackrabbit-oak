@@ -19,8 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -155,7 +154,7 @@ public class TestUtil {
     }
 
     public static NodeBuilder child(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             nb = nb.child(name);
         }
         return nb;
@@ -233,7 +232,7 @@ public class TestUtil {
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(createProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES,
-                of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
+                Set.of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 
@@ -262,7 +261,7 @@ public class TestUtil {
     }
 
     private static PropertyState createAsyncProperty(String indexingMode) {
-        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of(indexingMode, "async"), STRINGS);
+        return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, Set.of(indexingMode, "async"), STRINGS);
     }
 
     private static PropertyState createAsyncProperty(IndexingMode indexingMode) {
@@ -271,7 +270,7 @@ public class TestUtil {
             case SYNC:
                 return createAsyncProperty(indexingMode.asyncValueName());
             case ASYNC:
-                return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, of("async"), STRINGS);
+                return createProperty(IndexConstants.ASYNC_PROPERTY_NAME, Set.of("async"), STRINGS);
             default:
                 throw new IllegalArgumentException("Unknown mode " + indexingMode);
         }

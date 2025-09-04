@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -28,6 +23,9 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -48,18 +46,20 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_LAST_DYNAMIC_SYNC;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS_LIST;
 import static org.junit.Assert.assertEquals;
@@ -119,13 +119,13 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
     private void assertDynamicMembership(@NotNull Authorizable a, @NotNull ExternalIdentity externalIdentity, long depth) throws Exception {
         Value[] vs = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
-        Set<String> pNames = ImmutableList.copyOf(vs).stream().map(value -> {
+        Set<String> pNames = Arrays.stream(vs).map(value -> {
             try {
                 return value.getString();
             } catch (RepositoryException e) {
                 return null;
             }
-        }).filter(Objects::nonNull).collect(Collectors.toSet());
+        }).filter(Objects::nonNull).collect(toSet());
 
         Set<String> expected = new HashSet<>();
         collectGroupPrincipals(expected, externalIdentity.getDeclaredGroups(), depth);
@@ -163,9 +163,9 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
             List<String> ids = getIds(a.memberOf());
             assertTrue("Expected "+ids+ " to contain "+gr.getID(), ids.contains(gr.getID()));
             
-            if (Iterables.contains(declaredGroupRefs, ref)) {
+            if (IterableUtils.contains(declaredGroupRefs, ref)) {
                 assertTrue(gr.isDeclaredMember(a));
-                assertTrue(Iterators.contains(a.declaredMemberOf(), gr));
+                assertTrue(IteratorUtils.contains(a.declaredMemberOf(), gr));
             }
         }
     }
@@ -202,7 +202,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
     private static boolean containsMemberRef(@NotNull Tree tree, @NotNull String ref) {
         Iterable<String> memberRefs = TreeUtil.getStrings(tree, REP_MEMBERS);
-        return memberRefs != null && Iterables.contains(memberRefs, ref);
+        return memberRefs != null && IterableUtils.contains(memberRefs, ref);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -244,7 +244,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
         assertNotNull(extPrincipalNames);
 
-        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        Set<String> pNames = SetUtils.toSet(extPrincipalNames.getValue(Type.STRINGS));
         for (ExternalIdentityRef ref : externalUser.getDeclaredGroups()) {
             assertTrue(pNames.remove(idp.getIdentity(ref).getPrincipalName()));
         }
@@ -262,8 +262,8 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
         assertNotNull(extPrincipalNames);
 
-        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
-        Set<String> expected = Sets.newHashSet();
+        Set<String> pNames = SetUtils.toSet(extPrincipalNames.getValue(Type.STRINGS));
+        Set<String> expected = new HashSet<>();
         collectGroupPrincipals(expected, externalUser.getDeclaredGroups(), Long.MAX_VALUE);
 
         assertEquals(expected, pNames);
@@ -352,7 +352,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         assertNotNull(extPrincipalNames);
 
         // the resulting rep:externalPrincipalNames must NOT contain the name of the colliding principal
-        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        Set<String> pNames = SetUtils.toSet(extPrincipalNames.getValue(Type.STRINGS));
         assertFalse(pNames + " must not contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
     }
 
@@ -375,7 +375,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         assertNotNull(extPrincipalNames);
 
         // the resulting rep:externalPrincipalNames must NOT contain the name of the colliding principal
-        Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
+        Set<String> pNames = SetUtils.toSet(extPrincipalNames.getValue(Type.STRINGS));
         assertFalse(pNames + " must not contain " + externalGroup.getPrincipalName(), pNames.contains(externalGroup.getPrincipalName()));
     }
 
@@ -587,12 +587,12 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
         // sync user with modified membership => must be reflected
         // 1. empty set of declared groups
-        ExternalUser mod = new TestUserWithGroupRefs(externalUser, ImmutableSet.of());
+        ExternalUser mod = new TestUserWithGroupRefs(externalUser, Set.of());
         syncContext.syncMembership(mod, a, nesting);
         assertDynamicMembership(a, mod, nesting);
 
         // 2. set with different groups than defined on IDP
-        mod = new TestUserWithGroupRefs(externalUser, ImmutableSet.of(
+        mod = new TestUserWithGroupRefs(externalUser, Set.of(
                 idp.getGroup("a").getExternalId(),
                 idp.getGroup("aa").getExternalId(),
                 idp.getGroup("secondGroup").getExternalId()));
@@ -608,7 +608,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
         // sync user with modified membership => must be reflected
         // 1. empty set of declared groups
-        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, ImmutableSet.of());
+        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, Set.of());
         syncContext.syncMembership(mod, a, nesting);
         assertSyncedMembership(userManager, a, mod, nesting);
     }
@@ -621,7 +621,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
 
         // sync user with modified membership => must be reflected
         // 2. set with different groups that defined on IDP
-        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, ImmutableSet.of(
+        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, Set.of(
                         idp.getGroup("a").getExternalId(),
                         idp.getGroup("aa").getExternalId(),
                         idp.getGroup("secondGroup").getExternalId()));
@@ -657,7 +657,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
 
-        assertEquals(Iterables.size(sameIdpGroups), extPrincipalNames.length);
+        assertEquals(IterableUtils.size(sameIdpGroups), extPrincipalNames.length);
         for (Value v : extPrincipalNames) {
             assertNotEquals(foreignGroup.getPrincipalName(), v.getString());
         }
@@ -673,7 +673,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         
         ExternalUser second = idp.getUser(ID_SECOND_USER);
         testuser.withGroups(second.getExternalId());
-        assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
+        assertFalse(IterableUtils.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
 
         sync(testuser, SyncResult.Status.ADD);
 
@@ -681,7 +681,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
 
-        assertEquals(Iterables.size(groupRefs), extPrincipalNames.length);
+        assertEquals(IterableUtils.size(groupRefs), extPrincipalNames.length);
         for (Value v : extPrincipalNames) {
             assertNotEquals(second.getPrincipalName(), v.getString());
         }
@@ -695,7 +695,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         // in contrast to 'testSyncMembershipWithUserRef' the conflicting group-ref refers to a user in the repository
         // and the conflict is spotted as the existing synched identity is not a group.
         testuser.withGroups(previouslySyncedUser.getExternalId());
-        assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
+        assertFalse(IterableUtils.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
 
         sync(testuser, SyncResult.Status.ADD);
 
@@ -703,7 +703,7 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
 
-        assertEquals(Iterables.size(groupRefs), extPrincipalNames.length);
+        assertEquals(IterableUtils.size(groupRefs), extPrincipalNames.length);
         for (Value v : extPrincipalNames) {
             assertNotEquals(previouslySyncedUser.getPrincipalName(), v.getString());
         }
@@ -759,10 +759,12 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         User user = userManager.getAuthorizable(PREVIOUS_SYNCED_ID, User.class);
         assertNotNull(user);
         assertFalse(user.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+        assertFalse(user.hasProperty(REP_LAST_DYNAMIC_SYNC));
         
         assertTrue(syncContext.convertToDynamicMembership(user));
         assertTrue(user.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
-        
+        assertTrue(user.hasProperty(REP_LAST_DYNAMIC_SYNC));
+
         assertDeclaredGroups(previouslySyncedUser);
     }
 

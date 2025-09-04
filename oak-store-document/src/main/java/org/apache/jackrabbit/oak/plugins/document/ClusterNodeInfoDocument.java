@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Objects.nonNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.fromString;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.getTimestampDifference;
 
-import org.apache.jackrabbit.guava.common.annotations.VisibleForTesting;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,7 +59,7 @@ public class ClusterNodeInfoDocument extends Document {
     }
 
     public long getLeaseEndTime(){
-        return checkNotNull((Long) get(ClusterNodeInfo.LEASE_END_KEY), "Lease End Time not set");
+        return requireNonNull((Long) get(ClusterNodeInfo.LEASE_END_KEY), "Lease End Time not set");
     }
 
     /**
@@ -108,7 +107,7 @@ public class ClusterNodeInfoDocument extends Document {
      */
     public boolean isRecoveryNeeded(long currentTimeMillis) {
         return isActive() &&
-                (currentTimeMillis > getLeaseEndTime() ||
+                (currentTimeMillis - getLeaseEndTime() > ClusterNodeInfo.getRecoveryDelayMillis() ||
                         isBeingRecovered());
     }
 
@@ -187,8 +186,8 @@ public class ClusterNodeInfoDocument extends Document {
      *
      * @return {@link Predicate} to filter revisions older than lastWrittenRootRev
      */
+    // VisibleForTesting
     @NotNull
-    @VisibleForTesting
     Predicate<Revision> isOlderThanLastWrittenRootRevPredicate() {
         return r -> nonNull(getLastWrittenRootRev()) && getTimestampDifference(r, fromString(getLastWrittenRootRev())) < 0;
     }

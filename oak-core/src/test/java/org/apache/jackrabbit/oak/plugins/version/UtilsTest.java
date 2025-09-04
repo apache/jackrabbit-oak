@@ -17,12 +17,17 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class UtilsTest {
 
@@ -40,5 +45,33 @@ public class UtilsTest {
     public void frozenNodeDefinitionMissing() {
         // assume empty repository on recent Oak without referenceable nt:frozenNode
         assertFalse(Utils.isFrozenNodeReferenceable(EmptyNodeState.EMPTY_NODE));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void uuidFromNodeWithNullUuidValue() {
+        NodeState nodeState = Mockito.mock(NodeState.class);
+        Mockito.when(nodeState.getProperty("jcr:uuid")).thenReturn(null);
+        Utils.uuidFromNode(nodeState);
+        fail("Shouldn't reach here");
+    }
+
+    @Test
+    public void uuidFromNodeBuilder() {
+        NodeBuilder nodeBuilder = Mockito.mock(NodeBuilder.class);
+        NodeState nodeState = Mockito.mock(NodeState.class);
+        PropertyState propertyState = Mockito.mock(PropertyState.class);
+        Mockito.when(nodeBuilder.getNodeState()).thenReturn(nodeState);
+        Mockito.when(nodeState.getProperty("jcr:uuid")).thenReturn(propertyState);
+        Mockito.when(propertyState.getValue(Mockito.any())).thenReturn("uuid");
+        assertEquals("uuid", Utils.uuidFromNode(nodeState));
+    }
+
+    @Test
+    public void uuidFromNodeState() {
+        NodeState nodeState = Mockito.mock(NodeState.class);
+        PropertyState propertyState = Mockito.mock(PropertyState.class);
+        Mockito.when(nodeState.getProperty("jcr:uuid")).thenReturn(propertyState);
+        Mockito.when(propertyState.getValue(Mockito.any())).thenReturn("uuid");
+        assertEquals("uuid", Utils.uuidFromNode(nodeState));
     }
 }

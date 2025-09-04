@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.json.JsopDiff;
@@ -49,8 +47,8 @@ import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
 
 public class LuceneIndexInfoProvider implements IndexInfoProvider {
@@ -63,9 +61,9 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     private final File workDir;
 
     public LuceneIndexInfoProvider(NodeStore nodeStore, AsyncIndexInfoService asyncInfoService, File workDir) {
-        this.nodeStore = checkNotNull(nodeStore);
-        this.asyncInfoService = checkNotNull(asyncInfoService);
-        this.workDir = checkNotNull(workDir);
+        this.nodeStore = requireNonNull(nodeStore);
+        this.asyncInfoService = requireNonNull(asyncInfoService);
+        this.workDir = requireNonNull(workDir);
     }
 
     @Override
@@ -111,15 +109,14 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         }
 
         AsyncIndexInfo asyncInfo = asyncInfoService.getInfo(asyncName);
-        checkNotNull(asyncInfo, "No async info found for name [%s] " +
-                "for index at [%s]", asyncName, indexPath);
+        requireNonNull(asyncInfo, String.format("No async info found for name [%s] for index at [%s]", asyncName, indexPath));
 
         info.indexedUptoTime = asyncInfo.getLastIndexedTo();
         info.asyncName = asyncName;
     }
 
     private void computeSize(NodeState idxState, LuceneIndexInfo info) throws IOException {
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(nodeStore.getRoot(), idxState, info.indexPath).build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(nodeStore.getRoot(), idxState, info.indexPath).build();
         for (String dirName : idxState.getChildNodeNames()) {
             if (NodeStateUtils.isHidden(dirName)) {
                 // This is true for both read-write index data dir (:data) and the read-only mount (:oak-libs-mount-index-data)
@@ -199,6 +196,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         String indexDiff;
         boolean hasHiddenOakLibsMount;
         boolean hasPropertyIndexNode;
+        boolean isActive;
         long suggestSize;
         long creationTimestamp;
         long reindexCompletionTimestamp;
@@ -263,6 +261,16 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         }
 
         @Override
+        public void setActive(boolean value) {
+            isActive = value;
+        }
+
+        @Override
+        public boolean isActive() {
+            return isActive;
+        }
+
+        @Override
         public long getSuggestSizeInBytes() {
             return suggestSize;
         }
@@ -279,7 +287,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
     }
 
     static class FilteringEqualsDiff extends EqualsDiff {
-        private static final Set<String> IGNORED_PROP_NAMES = ImmutableSet.of(
+        private static final Set<String> IGNORED_PROP_NAMES = Set.of(
                 IndexConstants.REINDEX_COUNT,
                 IndexConstants.REINDEX_PROPERTY_NAME
         );

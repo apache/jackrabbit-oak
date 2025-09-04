@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static java.util.Objects.requireNonNull;
 import static javax.jcr.observation.Event.NODE_REMOVED;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -131,7 +131,7 @@ public class OakEventFilterImpl extends OakEventFilter {
             }
             if (predicateMatches) {
                 // greedy match - we switch to the globbing path filters
-                List<EventFilter> filters = newArrayList();
+                List<EventFilter> filters = new ArrayList<>();
                 for (String relativeGlobPath : relativeGlobPaths) {
                     if (relativeGlobPath.endsWith("*")) {
                         filters.add(new GlobbingPathFilter(relativeGlobPath, patternMap));
@@ -248,7 +248,7 @@ public class OakEventFilterImpl extends OakEventFilter {
     private Set<String> relativeGlobPaths;
 
     public OakEventFilterImpl(@NotNull JackrabbitEventFilter delegate) {
-        checkNotNull(delegate);
+        requireNonNull(delegate);
         this.delegate = delegate;
     }
 
@@ -506,7 +506,7 @@ public class OakEventFilterImpl extends OakEventFilter {
     }
 
     public OakEventFilterImpl aggregator(EventAggregator aggregator) {
-        checkNotNull(aggregator);
+        requireNonNull(aggregator);
         this.aggregator = aggregator;
         return this;
     }

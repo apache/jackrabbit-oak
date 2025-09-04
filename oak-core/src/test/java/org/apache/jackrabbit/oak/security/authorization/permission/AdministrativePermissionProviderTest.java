@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -40,6 +39,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Map;
 
 public class AdministrativePermissionProviderTest extends AbstractSecurityTest {
 
@@ -79,7 +80,7 @@ public class AdministrativePermissionProviderTest extends AbstractSecurityTest {
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters acConfig = ConfigurationParameters.of(
                 PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, new String[] {ADMINISTRATOR_GROUP});
-        return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));
+        return ConfigurationParameters.of(Map.of(AuthorizationConfiguration.NAME, acConfig));
     }
 
     @Test

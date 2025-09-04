@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.security.Principal;
 import java.util.Map;
+import java.util.Set;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -31,8 +32,6 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.NamedAccessControlPolicy;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -252,9 +251,9 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
 
         TreeUtil.addMixin(aTree, ThreeRolesConstants.MIX_REP_THREE_ROLES_POLICY, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
         Tree rolePolicy = TreeUtil.addChild(aTree, ThreeRolesConstants.REP_3_ROLES_POLICY, ThreeRolesConstants.NT_REP_THREE_ROLES_POLICY);
-        rolePolicy.setProperty(ThreeRolesConstants.REP_READERS, ImmutableSet.of("principalR", EveryonePrincipal.NAME), Type.STRINGS);
-        rolePolicy.setProperty(ThreeRolesConstants.REP_EDITORS, ImmutableSet.of("principalE",getTestUser().getPrincipal().getName()), Type.STRINGS);
-        rolePolicy.setProperty(ThreeRolesConstants.REP_OWNERS,  ImmutableSet.of("principalO"), Type.STRINGS);
+        rolePolicy.setProperty(ThreeRolesConstants.REP_READERS, Set.of("principalR", EveryonePrincipal.NAME), Type.STRINGS);
+        rolePolicy.setProperty(ThreeRolesConstants.REP_EDITORS, Set.of("principalE",getTestUser().getPrincipal().getName()), Type.STRINGS);
+        rolePolicy.setProperty(ThreeRolesConstants.REP_OWNERS,  Set.of("principalO"), Type.STRINGS);
 
         // add one node outside the scope of the supported path
         Tree outside = TreeUtil.addChild(root.getTree("/"), "outside", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
@@ -308,7 +307,7 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
     @Test
     public void testGetEffectivePolicies() throws Exception {
         // EXERCISE: set expected number of effective policies for all paths in the map.
-        Map<String,Integer> m = ImmutableMap.of("/", -1, "/test", -1, "/test/a/b", -1, "/outside", -1);
+        Map<String,Integer> m = Map.of("/", -1, "/test", -1, "/test/a/b", -1, "/outside", -1);
 
         for (String path : m.keySet()) {
             AccessControlPolicy[] policies = getAcManager(root).getEffectivePolicies(path);
@@ -326,7 +325,7 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
     @Test
     public void testGetApplicablePolicies() throws Exception {
         // EXERCISE: set expected number of applicable policies for all paths in the map.
-        Map<String,Integer> m = ImmutableMap.of("/test/a", -1, "/test/a/b", -1, "/outside", -1);
+        Map<String,Integer> m = Map.of("/test/a", -1, "/test/a/b", -1, "/outside", -1);
 
         for (String path : m.keySet()) {
             AccessControlPolicyIterator it = getAcManager(root).getApplicablePolicies(path);
@@ -352,7 +351,7 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
         root.commit();
 
         PrincipalManager pm = getPrincipalManager(root);
-        Map<Principal,Long> m = ImmutableMap.of(
+        Map<Principal,Long> m = Map.of(
                 getTestUser().getPrincipal(), Permissions.NO_PERMISSION,
                 pm.getEveryone(), Permissions.NO_PERMISSION,
                 pm.getPrincipal("principalR"), Permissions.READ,
@@ -360,7 +359,7 @@ public class L4_CustomAccessControlManagementTest extends AbstractSecurityTest {
                 pm.getPrincipal("principalO"), ThreeRolesConstants.SUPPORTED_PERMISSIONS
         );
         for (Principal principal : m.keySet()) {
-            PermissionProvider pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(principal));
+            PermissionProvider pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of(principal));
             assertTrue(pp.isGranted(t, null, m.get(principal)));
         }
     }

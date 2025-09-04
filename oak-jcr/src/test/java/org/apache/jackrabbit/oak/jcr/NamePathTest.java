@@ -17,21 +17,26 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.Random;
 
+import javax.jcr.NamespaceException;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class NamePathTest {
@@ -55,7 +60,7 @@ public class NamePathTest {
 
     @Test
     public void testSlashInPath() throws RepositoryException {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "//jcr:content",
                 "//content"
         );
@@ -64,7 +69,7 @@ public class NamePathTest {
 
     @Test
     public void testSlashInName() throws RepositoryException {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "/jcr:content",
                 "/content",
                 "jcr:con/ent",
@@ -76,7 +81,7 @@ public class NamePathTest {
 
     @Test
     public void testColonInPath() throws RepositoryException {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "/jcr:con:ent"
         );
         testPaths(paths);
@@ -84,7 +89,7 @@ public class NamePathTest {
 
     @Test
     public void testColonInName() throws RepositoryException {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "jcr:con:ent"
         );
         testNames(names);
@@ -92,7 +97,7 @@ public class NamePathTest {
 
     @Test
     public void testSquareBracketsInPath() throws RepositoryException {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "//jcr:content",
                 "/jcr:con]ent",
                 "/con]ent"
@@ -102,7 +107,7 @@ public class NamePathTest {
 
     @Test
     public void testSquareBracketsInName() throws RepositoryException {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "jcr:content[1]",
                 "content[1]",
                 "jcr:conten[t]",
@@ -128,7 +133,7 @@ public class NamePathTest {
 
     @Test
     public void testAsteriskInPath() throws RepositoryException {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "/jcr:con*ent",
                 "/jcr:*ontent",
                 "/jcr:conten*",
@@ -141,7 +146,7 @@ public class NamePathTest {
 
     @Test
     public void testAsteriskInName() throws RepositoryException {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "jcr:con*ent",
                 "jcr:*ontent",
                 "jcr:conten*",
@@ -154,7 +159,7 @@ public class NamePathTest {
 
     @Test
     public void testVerticalLineInPath() throws Exception {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "/jcr:con|ent",
                 "/jcr:|ontent",
                 "/jcr:conten|",
@@ -167,7 +172,7 @@ public class NamePathTest {
 
     @Test
     public void testVerticalLineInName() throws Exception {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "jcr:con|ent",
                 "jcr:|ontent",
                 "jcr:conten|",
@@ -180,7 +185,7 @@ public class NamePathTest {
 
     @Test
     public void testWhitespaceInPath() throws Exception {
-        List<String> paths = ImmutableList.of(
+        List<String> paths = List.of(
                 "/content ",
                 "/ content",
                 "/content\t",
@@ -194,7 +199,7 @@ public class NamePathTest {
 
     @Test
     public void testWhitespaceInName() throws Exception {
-        List<String> names = ImmutableList.of(
+        List<String> names = List.of(
                 "jcr:content ",
                 "content ",
                 " content",
@@ -210,6 +215,57 @@ public class NamePathTest {
     public void testSpaceInNames() throws RepositoryException {
         Node n = session.getRootNode().addNode("c o n t e n t");
         session.getNode(n.getPath());
+    }
+
+    @Test
+    public void testPrefixRemapping() throws NamespaceException, RepositoryException {
+        Random r = new Random();
+        int i1 = r.nextInt();
+        int i2 = r.nextInt();
+        String prefix = "nstest" + i1 + "XXX";
+        String uri1 = "foobar:1-" + i1;
+        String uri2 = "foobar:2-" + i2;
+        String testLocalName = "test";
+        String expandedTestName ="{" + uri1  + "}" + testLocalName;
+
+        DefaultNamePathResolver resolver = new DefaultNamePathResolver(session);
+
+        try {
+            session.getWorkspace().getNamespaceRegistry().registerNamespace(prefix, uri1);
+
+            String originalName = prefix + ":" + testLocalName;
+            Node testNode = session.getRootNode().addNode(originalName);
+            session.save();
+
+            // verify that name resolver finds correct namespaceURI
+            assertEquals(uri1, resolver.getQName(testNode.getName()).getNamespaceURI());
+
+            // check that expanded name works
+            Node n2 = session.getRootNode().getNode(expandedTestName);
+            assertTrue(testNode.isSame(n2));
+
+            // remap prefix1 to uri2
+            session.setNamespacePrefix(prefix, uri2);
+
+            // check that expanded name still works
+            Node n3 = session.getRootNode().getNode(expandedTestName);
+            assertTrue(testNode.isSame(n3));
+
+            String remappedName = n3.getName();
+            assertNotEquals(originalName, remappedName);
+
+            int colon = remappedName.indexOf(':');
+            assertTrue("remapped name must contain colon:" + remappedName, colon > 0);
+            String remappedPrefix = remappedName.substring(0, colon);
+            assertNotEquals("prefix after mapping must be different", prefix, remappedPrefix);
+
+            // OAK-10544: adding the line below makes the test pass
+            // session.getNamespacePrefix(uri1);
+
+            assertEquals("remapped prefix need to map to original URI " + uri1, uri1, session.getNamespaceURI(remappedPrefix));
+        } finally {
+            session.getWorkspace().getNamespaceRegistry().unregisterNamespace(prefix);
+        }
     }
 
 

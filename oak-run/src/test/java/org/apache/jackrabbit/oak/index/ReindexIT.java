@@ -16,15 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
@@ -52,13 +50,12 @@ import javax.jcr.query.RowIterator;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.security.Permission;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static java.lang.System.getSecurityManager;
-import static java.lang.System.setSecurityManager;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -69,7 +66,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class ReindexIT extends LuceneAbstractIndexCommandTest {
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
@@ -129,10 +125,17 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
 
     @Test
     public void reindexIgnoreMissingTikaDepThrow() throws Exception{
+        final AtomicInteger exitCode = new AtomicInteger(-1);
         IndexCommand command = new IndexCommand() {
             @Override
             public void checkTikaDependency() throws ClassNotFoundException {
                 throw new ClassNotFoundException();
+            }
+
+            //avoid System.exit(), we just want to make sure that exit is called with the correct code
+            @Override
+            public void exit(int status) {
+                exitCode.set(status);
             }
         };
         String[] args = {
@@ -140,7 +143,8 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
                 "--", // -- indicates that options have ended and rest needs to be treated as non option
                 "test"
         };
-        assertExits(1, () -> command.execute(args));
+        command.execute(args);
+        assertEquals("Epxpect to exit with status 1", 1, exitCode.get());
         assertEquals("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue", errContent.toString("UTF-8").trim());
     }
 
@@ -334,7 +338,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
                 "}";
 
         File jsonFile = temporaryFolder.newFile();
-        Files.write(json, jsonFile, UTF_8);
+        Files.writeString(jsonFile.toPath(), json);
 
         File outDir = temporaryFolder.newFolder();
         File storeDir = fixture.getDir();
@@ -356,7 +360,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         assertThat(explain, containsString("/oak:index/barIndex"));
 
         IndexPathService idxPathService = new IndexPathServiceImpl(fixture2.getNodeStore());
-        List<String> indexPaths = Lists.newArrayList(idxPathService.getIndexPaths());
+        List<String> indexPaths = ListUtils.toList(idxPathService.getIndexPaths());
 
         assertThat(indexPaths, hasItem("/oak:index/nodetype"));
         assertThat(indexPaths, hasItem("/oak:index/barIndex"));
@@ -383,7 +387,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
 
         Query q = qm.createQuery("select * from [nt:base] where [foo] is not null", Query.JCR_SQL2);
         QueryResult result = q.execute();
-        int size = Iterators.size(result.getNodes());
+        int size = IteratorUtils.size(result.getNodes());
         session.logout();
         return size;
     }
@@ -414,7 +418,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
     }
 
     private List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
-        List<String> results = Lists.newArrayList();
+        List<String> results = new ArrayList<>();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
             Row row = it.nextRow();
@@ -422,48 +426,4 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         }
         return results;
     }
-
-    public static <E extends Throwable> void assertExits(final int expectedStatus, final ThrowingExecutable<E> executable) throws E {
-        final SecurityManager originalSecurityManager = getSecurityManager();
-        setSecurityManager(new SecurityManager() {
-            @Override
-            public void checkPermission(final Permission perm) {
-                if (originalSecurityManager != null)
-                    originalSecurityManager.checkPermission(perm);
-            }
-
-            @Override
-            public void checkPermission(final Permission perm, final Object context) {
-                if (originalSecurityManager != null)
-                    originalSecurityManager.checkPermission(perm, context);
-            }
-
-            @Override
-            public void checkExit(final int status) {
-                super.checkExit(status);
-                throw new ExitException(status);
-            }
-        });
-        try {
-            executable.run();
-            fail("Expected System.exit(" + expectedStatus + ") to be called, but it wasn't called.");
-        } catch (final ExitException e) {
-            assertEquals(expectedStatus, e.status);
-        } finally {
-            setSecurityManager(originalSecurityManager);
-        }
-    }
-
-    public interface ThrowingExecutable<E extends Throwable> {
-        void run() throws E;
-    }
-
-    private static class ExitException extends SecurityException {
-        final int status;
-
-        private ExitException(final int status) {
-            this.status = status;
-        }
-    }
-
 }

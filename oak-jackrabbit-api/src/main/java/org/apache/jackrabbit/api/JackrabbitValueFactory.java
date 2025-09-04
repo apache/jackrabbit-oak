@@ -46,7 +46,6 @@ import org.osgi.annotation.versioning.ProviderType;
  *     <li>
  *         Direct Binary Access - enable a client to upload or download binaries
  *         directly to/from a storage location
- *     </li>
  * </ul>
  *
  * <p>
@@ -97,14 +96,12 @@ import org.osgi.annotation.versioning.ProviderType;
  *         optionally choose to provide a {@link BinaryUploadOptions} via
  *         {@link #initiateBinaryUpload(long, int, BinaryUploadOptions)} if
  *         additional options must be specified.
- *     </li>
  *     <li>
  *         <b>Upload</b>: The remote client performs the actual binary upload
  *         directly to the binary storage provider. The {@link BinaryUpload}
  *         returned from the previous call to {@link
  *         #initiateBinaryUpload(long, int)} contains detailed instructions on
  *         how to complete the upload successfully.
- *     </li>
  *     <li>
  *         <b>Complete</b>: The remote client notifies the Jackrabbit-based
  *         application that step 2 is complete. The upload token returned in
@@ -114,7 +111,6 @@ import org.osgi.annotation.versioning.ProviderType;
  *         with a regular {@link Binary JCR Binary} that can then be used to
  *         write JCR content including the binary (such as an nt:file structure)
  *         and persist it using {@link Session#save}.
- *     </li>
  * </ol>
  */
 @ProviderType

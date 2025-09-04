@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.JAVA_IO_TMPDIR;
-import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
-import static org.apache.jackrabbit.guava.common.io.Closeables.close;
 import static java.io.File.createTempFile;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.FileUtils.forceDelete;
@@ -34,28 +30,24 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -71,10 +63,13 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
@@ -178,7 +173,7 @@ public class DataStoreCheckCommand implements Command {
                 return 0;
             }
 
-            String dumpPath = JAVA_IO_TMPDIR.value();
+            String dumpPath = System.getProperty("java.io.tmpdir");
             if (options.has(dump)) {
                 dumpPath = options.valueOf(dump);
             }
@@ -188,9 +183,9 @@ public class DataStoreCheckCommand implements Command {
             NodeStore nodeStore = null;
             if (options.has(store)) {
                 String source = options.valueOf(store);
-                if (source.startsWith(MongoURI.MONGODB_PREFIX)) {
-                    MongoClientURI uri = new MongoClientURI(source);
-                    MongoClient client = new MongoClient(uri);
+                if (source.startsWith(MongoConnection.MONGODB_PREFIX)) {
+                    ConnectionString uri = new ConnectionString(source);
+                    MongoClient client = MongoClients.create(uri);
                     DocumentNodeStore docNodeStore =
                         newMongoDocumentNodeStoreBuilder().setMongoDB(client, uri.getDatabase()).build();
                     closer.register(Utils.asCloseable(docNodeStore));
@@ -285,7 +280,7 @@ public class DataStoreCheckCommand implements Command {
     }
 
     private static void verboseIds(Closer closer, final String dsType, File readFile, File writeFile) throws IOException {
-        LineIterator idIterator = FileUtils.lineIterator(readFile, Charsets.UTF_8.name());
+        LineIterator idIterator = FileUtils.lineIterator(readFile, StandardCharsets.UTF_8.name());
         try {
             // Create a temp file to write real ids and register with closer
             File longIdTemp = createTempFile("longids", null);
@@ -319,12 +314,15 @@ public class DataStoreCheckCommand implements Command {
     }
 
     static String encodeId(String id, String dsType) {
-        List<String> idLengthSepList = Splitter.on(HASH).trimResults().omitEmptyStrings().splitToList(id);
+        List<String> idLengthSepList = Arrays.stream(id.split(HASH))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
         String blobId = idLengthSepList.get(0);
 
         if (dsType.equals(FDS)) {
-            return (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value() + blobId
-                .substring(4, 6) + FILE_SEPARATOR.value() + blobId);
+            return String.join(System.getProperty("file.separator"), blobId.substring(0, 2), blobId.substring(2, 4),
+                    blobId.substring(4, 6), blobId);
         } else if (dsType.equals(S3DS) || dsType.equals(AZUREDS)) {
             return (blobId.substring(0, 4) + DASH + blobId.substring(4));
         }
@@ -332,13 +330,19 @@ public class DataStoreCheckCommand implements Command {
     }
 
     private static String decodeId(String id) {
-        List<String> list = Splitter.on(FILE_SEPARATOR.value()).trimResults().omitEmptyStrings().splitToList(id);
+        List<String> list = Arrays.stream(id.split(Pattern.quote(System.getProperty("file.separator"))))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
         String pathStrippedId = list.get(list.size() -1);
-        return Joiner.on("").join(Splitter.on(DASH).omitEmptyStrings().trimResults().splitToList(pathStrippedId));
+        return Arrays.stream(pathStrippedId.split(DASH))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.joining(""));
     }
 
     static class FileRegister implements Closeable {
-        Map<OptionSpec, File> opFiles = Maps.newHashMap();
+        Map<OptionSpec, File> opFiles = new HashMap<>();
         String suffix = String.valueOf(System.currentTimeMillis());
         OptionSet options;
 
@@ -376,7 +380,7 @@ public class DataStoreCheckCommand implements Command {
     private static void checkConsistency(File ids, File refs, File missing, String trackRoot, String dsType)
         throws IOException {
         System.out.println("Starting consistency check");
-        Stopwatch watch = createStarted();
+        Stopwatch watch = Stopwatch.createStarted();
 
         FileLineDifferenceIterator iter = new FileLineDifferenceIterator(ids, refs, new java.util.function.Function<String, String>() {
             @Nullable
@@ -430,15 +434,12 @@ public class DataStoreCheckCommand implements Command {
 
     private static void retrieveBlobReferences(GarbageCollectableBlobStore blobStore, BlobReferenceRetriever marker,
         File marked, String dsType, boolean isVerbose) throws IOException {
-        final BufferedWriter writer = Files.newWriter(marked, Charsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
-        boolean threw = true;
-        try {
-            final Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(marked, StandardCharsets.UTF_8))) {
             final GarbageCollectableBlobStore finalBlobStore = blobStore;
 
             System.out.println("Starting dump of blob references");
-            Stopwatch watch = createStarted();
+            Stopwatch watch = Stopwatch.createStarted();
 
             marker.collectReferences(
                 new ReferenceCollector() {
@@ -452,7 +453,8 @@ public class DataStoreCheckCommand implements Command {
                                 if (isVerbose) {
                                     id = encodeId(id, dsType);
                                 }
-                                String combinedId = delimJoiner.join(id, escapeLineBreak(nodeId));
+                                String combinedId = nodeId == null ?
+                                        id : String.join(DELIM, id, escapeLineBreak(nodeId));
                                 count.getAndIncrement();
                                 writeAsLine(writer, combinedId, false);
                             }
@@ -463,13 +465,11 @@ public class DataStoreCheckCommand implements Command {
                 }
             );
             writer.flush();
+            writer.close();
             sort(marked, idComparator);
 
             System.out.println(count.get() + " blob references found");
             System.out.println("Finished in " + watch.elapsed(TimeUnit.SECONDS) + " seconds");
-            threw = false;
-        } finally {
-            close(writer, threw);
         }
     }
 
@@ -477,7 +477,7 @@ public class DataStoreCheckCommand implements Command {
         throws Exception {
 
         System.out.println("Starting dump of blob ids");
-        Stopwatch watch = createStarted();
+        Stopwatch watch = Stopwatch.createStarted();
 
         Iterator<String> blobIter = blobStore.getAllChunkIds(0);
         int count = writeStrings(blobIter, blob, false);
@@ -491,7 +491,6 @@ public class DataStoreCheckCommand implements Command {
         private final String dsType;
         private final File references;
         private final NodeStore nodeStore;
-        private final Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
 
         public NodeTraverser(NodeStore nodeStore, String dsType) throws IOException {
             this.references = File.createTempFile("traverseref", null);
@@ -536,7 +535,7 @@ public class DataStoreCheckCommand implements Command {
         }
 
         private String getLine(String id, String path) {
-            return delimJoiner.join(encodeId(id, dsType), escapeLineBreak(path));
+            return path != null ? String.join(DELIM, encodeId(id, dsType), escapeLineBreak(path)) : id;
         }
 
         private void traverseChildren(NodeState state, String path, BufferedWriter writer, AtomicInteger count) {
@@ -547,14 +546,11 @@ public class DataStoreCheckCommand implements Command {
         }
 
         public void traverse(String ... paths) throws IOException {
-            BufferedWriter writer = null;
             final AtomicInteger count = new AtomicInteger();
-            boolean threw = true;
             System.out.println("Starting dump of blob references by traversing");
-            Stopwatch watch = createStarted();
+            Stopwatch watch = Stopwatch.createStarted();
 
-            try {
-                writer = Files.newWriter(references, Charsets.UTF_8);
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(references, StandardCharsets.UTF_8))) {
                 if (paths.length == 0) {
                     traverseChildren(nodeStore.getRoot(), "/", writer, count);
                 } else {
@@ -569,13 +565,11 @@ public class DataStoreCheckCommand implements Command {
                 }
 
                 writer.flush();
+                writer.close();
                 sort(references, idComparator);
 
                 System.out.println(count.get() + " blob references found");
                 System.out.println("Finished in " + watch.elapsed(TimeUnit.SECONDS) + " seconds");
-                threw = false;
-            } finally {
-                Closeables.close(writer, threw);
             }
         }
 

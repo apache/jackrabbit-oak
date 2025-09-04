@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 @Component
 public class PropertyIndexInfoProvider implements IndexInfoProvider {
@@ -154,6 +154,16 @@ public class PropertyIndexInfoProvider implements IndexInfoProvider {
         @Override
         public boolean hasPropertyIndexNode() {
             return false;
+        }
+
+        @Override
+        public boolean isActive() {
+            return true;
+        }
+
+        @Override
+        public void setActive(boolean value) {
+            // ignore
         }
 
         @Override

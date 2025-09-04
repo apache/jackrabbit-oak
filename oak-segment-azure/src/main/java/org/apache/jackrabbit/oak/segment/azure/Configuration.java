@@ -27,7 +27,7 @@ import static org.apache.jackrabbit.oak.segment.azure.Configuration.PID;
         pid = {PID},
         name = "Apache Jackrabbit Oak Azure Segment Store Service",
         description = "Azure backend for the Oak Segment Node Store")
-@interface Configuration {
+public @interface Configuration {
 
     String PID = "org.apache.jackrabbit.oak.segment.azure.AzureSegmentStoreService";
 
@@ -67,6 +67,21 @@ import static org.apache.jackrabbit.oak.segment.azure.Configuration.PID;
         name = "Azure Blob Endpoint URL (optional)",
         description = "Blob Endpoint URL used to connect to the Azure Storage")
     String blobEndpoint() default "";
+
+    @AttributeDefinition(
+            name = "Azure Service Principal ID (optional)",
+            description = "Azure Service Principal ID for Azure Storage authentication")
+    String clientId() default "";
+
+    @AttributeDefinition(
+            name = "Azure Service Principal Password (optional)",
+            description = "Azure Service Principal Password for Azure Storage authentication")
+    String clientSecret() default "";
+
+    @AttributeDefinition(
+            name = "Azure Active Directory ID (optional)",
+            description = "Azure Active Directory ID for Azure Storage authentication")
+    String tenantId() default "";
 
     @AttributeDefinition(
             name = "Role",

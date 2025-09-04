@@ -25,10 +25,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSet;
 import org.apache.jackrabbit.oak.spi.observation.ChangeSetBuilder;
 import org.junit.Test;
@@ -343,7 +341,7 @@ public class ChangeSetFilterImplTest {
         }
         ChangeSet cs = builder.build();
 
-        Set<String> includes = Sets.newHashSet();
+        Set<String> includes = new HashSet<>();
         for (int i = 0; i < 100; i++) {
             includes.add("/foo/bar/n-" + i + "/*.jsp");
         }

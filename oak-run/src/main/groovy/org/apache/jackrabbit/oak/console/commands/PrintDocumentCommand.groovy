@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
-import org.apache.jackrabbit.guava.common.collect.Sets
 import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
@@ -64,7 +63,7 @@ class PrintDocumentCommand extends CommandSupport{
     private void println(NodeDocument doc, PrintWriter writer)
             throws IOException {
         int level = 1;
-        Set<String> mapKeys = Sets.newHashSet();
+        Set<String> mapKeys = new HashSet<>();
         writer.write('{');
         String comma = "";
         for (String key : doc.keySet()) {

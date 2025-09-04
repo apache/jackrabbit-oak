@@ -17,13 +17,14 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.ValidationEntry;
@@ -42,8 +43,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
@@ -53,7 +52,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
 
     private final String accessControlledPath;
     private final String nodeName;
-    private final Map<String, List<AcEntry>> entries = Maps.newHashMap();
+    private final Map<String, List<AcEntry>> entries = new HashMap<>();
     private final NodeBuilder permissionRoot;
     private final PrivilegeBitsProvider bitsProvider;
     private final AuthorizationMonitor monitor;
@@ -74,10 +73,10 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
         nodeName = PermissionUtil.getEntryName(accessControlledPath);
 
-        Set<String> orderedChildNames = newLinkedHashSet(node.getNames(OAK_CHILD_ORDER));
+        Set<String> orderedChildNames = SetUtils.toLinkedSet(node.getNames(OAK_CHILD_ORDER));
         long n = orderedChildNames.size();
         if (node.getChildNodeCount(n + 1) > n) {
-            addAll(orderedChildNames, node.getChildNodeNames());
+            node.getChildNodeNames().forEach(orderedChildNames::add);
         }
 
         int index = 0;
@@ -86,7 +85,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             if (isACE.test(ace)) {
                 boolean isAllow = isGrantACE.test(ace);
                 PrivilegeBits privilegeBits = bitsProvider.getBits(ace.getNames(REP_PRIVILEGES));
-                Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), providerCtx.getTreeProvider().createReadOnlyTree(ace));
+                Set<Restriction> restrictions = restrictionProvider.readRestrictions(StringUtils.emptyToNull(accessControlledPath), providerCtx.getTreeProvider().createReadOnlyTree(ace));
 
                 String principalName = Text.escapeIllegalJcrChars(ace.getString(REP_PRINCIPAL_NAME));
                 AcEntry entry = new AcEntry(principalName, index, isAllow, privilegeBits, restrictions);

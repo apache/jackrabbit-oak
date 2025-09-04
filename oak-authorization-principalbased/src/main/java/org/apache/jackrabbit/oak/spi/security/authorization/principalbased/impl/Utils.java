@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Collections2;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -39,6 +37,7 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 final class Utils implements Constants {
@@ -76,7 +75,7 @@ final class Utils implements Constants {
      */
     public static boolean canHandle(@NotNull Principal principal, @NotNull Filter filter, int importBehavior) throws AccessControlException {
         String name = principal.getName();
-        if (Strings.isNullOrEmpty(name)) {
+        if (StringUtils.isEmpty(name)) {
             throw new AccessControlException("Invalid principal " + name);
         }
 
@@ -107,14 +106,14 @@ final class Utils implements Constants {
      * @return An array of {@link Privilege} for the given names.
      */
     public static Privilege[] privilegesFromOakNames(@NotNull Set<String> privilegeNames, @NotNull PrivilegeManager privilegeManager, @NotNull NamePathMapper namePathMapper) {
-        return Collections2.filter(Collections2.transform(privilegeNames, privilegeName -> {
+        return privilegeNames.stream().map(privilegeName -> {
             try {
                 return privilegeManager.getPrivilege(namePathMapper.getJcrName(privilegeName));
             } catch (RepositoryException e) {
                 log.error("Unknown privilege in access control entry : {}", privilegeName);
                 return null;
             }
-        }), Predicates.notNull()).toArray(new Privilege[0]);
+        }).filter(Objects::nonNull).toArray(Privilege[]::new);
     }
 
     public static boolean hasModAcPermission(@NotNull PermissionProvider permissionProvider, @NotNull String effectivePath) {

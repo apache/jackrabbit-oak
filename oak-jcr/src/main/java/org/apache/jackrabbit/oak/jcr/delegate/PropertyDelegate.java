@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ValueFormatException;
@@ -29,6 +28,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.StringJoiner;
 
 /**
  * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
@@ -49,8 +50,8 @@ public class PropertyDelegate extends ItemDelegate {
 
     PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, String name) {
         super(sessionDelegate);
-        this.parent = checkNotNull(parent);
-        this.name = checkNotNull(name);
+        this.parent = requireNonNull(parent);
+        this.name = requireNonNull(name);
         this.state = parent.getProperty(name);
     }
 
@@ -158,9 +159,9 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
-                .add("parent", parent)
-                .add("property", parent.getProperty(name))
+        return new StringJoiner(", ", PropertyDelegate.class.getSimpleName() + "[", "]")
+                .add("parent=" + parent)
+                .add("property=" + parent.getProperty(name))
                 .toString();
     }
 

@@ -61,7 +61,7 @@ logged. For efficiency reasons the stack trace will not be logged if
 
 Oak scales to large number of direct child nodes of a node as long as those
 are *not* orderable. For orderable child nodes Oak keeps the order in an
-internal property, which will lead to a performance degradation when the list
+internal property on the parent node, which will lead to a performance degradation when the list
 grows too large. For such scenarios Oak provides the ``oak:Unstructured`` node
 type, which is equivalent to ``nt:unstructured`` except that it is not orderable.
 

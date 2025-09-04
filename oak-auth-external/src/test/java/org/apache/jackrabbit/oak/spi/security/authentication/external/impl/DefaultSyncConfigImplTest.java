@@ -16,15 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl.PARAM_DISABLE_MISSING_USERS_DEFAULT;
@@ -126,11 +124,11 @@ public class DefaultSyncConfigImplTest {
     public void testValidMapping() {
         String[] validMapping = new String[] {"valid=mapping","valid2=mapping"};
         DefaultSyncConfig.User userConfig = DefaultSyncConfigImpl.of(ConfigurationParameters.of(PARAM_USER_PROPERTY_MAPPING, validMapping)).user();
-        assertEquals(ImmutableMap.of("valid","mapping","valid2","mapping"), userConfig.getPropertyMapping());
+        assertEquals(Map.of("valid","mapping","valid2","mapping"), userConfig.getPropertyMapping());
     }
 
     private static Map<String,String> getMapping(@NotNull String[] defaultMapping) {
-        Map<String,String> expectedMapping = Maps.newHashMap();
+        Map<String,String> expectedMapping = new HashMap<>();
         for (String s : defaultMapping) {
             int indx = s.indexOf('=');
             expectedMapping.put(s.substring(0, indx), s.substring(indx+1));

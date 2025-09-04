@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.standby;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -33,7 +32,6 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -114,8 +112,7 @@ public class StandbyTestIT extends TestBase {
             Blob b = ps.getValue(Type.BINARY);
             assertEquals(blobSize, b.length());
 
-            byte[] testData = new byte[blobSize];
-            ByteStreams.readFully(b.getNewStream(), testData);
+            byte[] testData = b.getNewStream().readAllBytes();
             assertArrayEquals(data, testData);
         }
     }
@@ -167,8 +164,7 @@ public class StandbyTestIT extends TestBase {
             Blob b = ps.getValue(Type.BINARY);
             assertEquals(blobSize, b.length());
 
-            byte[] testData = new byte[blobSize];
-            ByteStreams.readFully(b.getNewStream(), testData);
+            byte[] testData = b.getNewStream().readAllBytes();
             assertArrayEquals(data, testData);
         }
     }
@@ -245,8 +241,7 @@ public class StandbyTestIT extends TestBase {
             Blob b = ps.getValue(Type.BINARY);
             assertEquals(blobSize, b.length());
 
-            byte[] testData = new byte[blobSize];
-            ByteStreams.readFully(b.getNewStream(), testData);
+            byte[] testData = b.getNewStream().readAllBytes();
             assertArrayEquals(data, testData);
         }
     }
@@ -335,8 +330,7 @@ public class StandbyTestIT extends TestBase {
             Blob b = ps.getValue(Type.BINARY);
             assertEquals(blobSize, b.length());
 
-            byte[] testData = new byte[blobSize];
-            ByteStreams.readFully(b.getNewStream(), testData);
+            byte[] testData = b.getNewStream().readAllBytes();
             assertArrayEquals(data, testData);
         }
     }
@@ -428,8 +422,7 @@ public class StandbyTestIT extends TestBase {
             Blob b = ps.getValue(Type.BINARY);
             assertEquals(blobSize, b.length());
 
-            byte[] testData = new byte[blobSize];
-            ByteStreams.readFully(b.getNewStream(), testData);
+            byte[] testData = b.getNewStream().readAllBytes();
             assertArrayEquals(data, testData);
         }
     }
@@ -954,8 +947,7 @@ public class StandbyTestIT extends TestBase {
             Blob b = ps.getValue(Type.BINARY);
             assertEquals(blobSize, b.length());
 
-            byte[] testData = new byte[blobSize];
-            ByteStreams.readFully(b.getNewStream(), testData);
+            byte[] testData = b.getNewStream().readAllBytes();
             assertArrayEquals(data, testData);
         }
     }

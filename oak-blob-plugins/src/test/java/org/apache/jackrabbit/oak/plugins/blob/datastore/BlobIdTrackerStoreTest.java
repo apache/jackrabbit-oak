@@ -22,11 +22,14 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.BlobIdStore;
 import org.junit.After;
@@ -38,9 +41,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.symmetricDifference;
 import static java.lang.String.valueOf;
 import static java.util.UUID.randomUUID;
 import static org.apache.commons.io.IOUtils.closeQuietly;
@@ -129,8 +129,7 @@ public class BlobIdTrackerStoreTest {
         Set<String> retrieved = retrieve(store);
 
         assertTrue("Incorrect elements with add before snapshot",
-            symmetricDifference(initAdd, retrieved)
-                .containsAll(newHashSet("10001", "10002", "10003")));
+                SetUtils.symmetricDifference(initAdd, retrieved).containsAll(Set.of("10001", "10002", "10003")));
     }
 
     @Test
@@ -203,7 +202,7 @@ public class BlobIdTrackerStoreTest {
         store.snapshot();
         Set<String> retrieved = retrieve(store);
         assertEquals("Incorrect elements after concurrent snapshot",
-            newHashSet(range(0, 100000)), retrieved);
+            new HashSet<>(range(0, 100000)), retrieved);
     }
 
     @Test
@@ -212,7 +211,7 @@ public class BlobIdTrackerStoreTest {
         final CountDownLatch start = new CountDownLatch(1);
         final CountDownLatch done = new CountDownLatch(2);
         Set<String> initAdd = add(store, range(0, 100000));
-        final Set<String> retrieves = newHashSet();
+        final Set<String> retrieves = new HashSet<>();
 
         Thread retrieveThread = retrieveThread(store, retrieves, start, done);
         Thread snapshotThread = snapshotThread(store, start, done);
@@ -300,7 +299,7 @@ public class BlobIdTrackerStoreTest {
         store.snapshot();
         Set<String> retrieved = retrieve(store);
         assertEquals("Incorrect elements after concurrent snapshot",
-            newHashSet(range(0, 100000)), retrieved);
+            new HashSet<>(range(0, 100000)), retrieved);
 
     }
 
@@ -388,7 +387,7 @@ public class BlobIdTrackerStoreTest {
     }
 
     private static Set<String> add(BlobIdStore store, List<String> ints) throws IOException {
-        Set<String> s = newHashSet();
+        Set<String> s = new HashSet<>();
         for (String rec : ints) {
             store.addRecord(rec);
             s.add(rec);
@@ -397,7 +396,7 @@ public class BlobIdTrackerStoreTest {
     }
 
     private static Set<String> retrieve(BlobIdStore store) throws IOException {
-        Set<String> retrieved = newHashSet();
+        Set<String> retrieved = new HashSet<>();
         Iterator<String> iter = store.getRecords();
         while(iter.hasNext()) {
             retrieved.add(iter.next());
@@ -420,7 +419,7 @@ public class BlobIdTrackerStoreTest {
     }
 
     private static List<String> range(int min, int max) {
-        List<String> list = newArrayList();
+        List<String> list = new ArrayList<>();
         for (int i = min; i <= max; i++) {
             list.add(valueOf(i));
         }

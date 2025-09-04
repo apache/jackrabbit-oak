@@ -16,13 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
@@ -39,6 +37,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.Value;
 import java.security.Principal;
 import java.util.Map;
+import java.util.Set;
 
 import static javax.jcr.Session.ACTION_READ;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NT_NAMES;
@@ -81,8 +80,8 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
     private void grantReadOnVersionStoreTrees() throws Exception {
         JackrabbitAccessControlManager jacm = getAccessControlManager(root);
         PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, jacm);
-        Map<String, Value[]> restr = ImmutableMap.of(REP_NT_NAMES, new Value[] {getValueFactory(root).createValue(REP_VERSIONSTORAGE, PropertyType.NAME)});
-        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ), ImmutableMap.of(), restr);
+        Map<String, Value[]> restr = Map.of(REP_NT_NAMES, new Value[] {getValueFactory(root).createValue(REP_VERSIONSTORAGE, PropertyType.NAME)});
+        policy.addEntry(PathUtils.ROOT_PATH, privilegesFromNames(PrivilegeConstants.JCR_READ), Map.of(), restr);
         jacm.setPolicy(policy.getPath(), policy);
         root.commit();
 
@@ -190,7 +189,7 @@ public class PermissionProviderVersionStoreTest extends AbstractPrincipalBasedTe
 
         grantReadOnVersionStoreTrees();
 
-        assertTrue(Iterables.elementsEqual(ImmutableSet.of(PrivilegeConstants.JCR_READ), permissionProvider.getPrivileges(versionStore)));
+        assertTrue(IterableUtils.elementsEqual(Set.of(PrivilegeConstants.JCR_READ), permissionProvider.getPrivileges(versionStore)));
     }
 
     @Test

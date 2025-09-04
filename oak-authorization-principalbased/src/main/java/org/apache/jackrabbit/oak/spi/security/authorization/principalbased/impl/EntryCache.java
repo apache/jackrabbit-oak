@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 class EntryCache implements Constants {
 
@@ -63,7 +64,7 @@ class EntryCache implements Constants {
             for (Tree child : policyTree.getChildren()) {
                 if (Constants.NT_REP_PRINCIPAL_ENTRY.equals(TreeUtil.getPrimaryTypeName(child))) {
                     PermissionEntryImpl entry = new PermissionEntryImpl(child);
-                    String key = Strings.nullToEmpty(entry.effectivePath);
+                    String key = Objects.toString(entry.effectivePath, "");
                     List<PermissionEntry> list = entries.computeIfAbsent(key, k -> new ArrayList<>());
                     list.add(entry);
                 }
@@ -84,7 +85,7 @@ class EntryCache implements Constants {
         private final RestrictionPattern pattern;
 
         private PermissionEntryImpl(@NotNull Tree entryTree) {
-            effectivePath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
+            effectivePath = StringUtils.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
             privilegeBits = bitsProvider.getBits(entryTree.getProperty(REP_PRIVILEGES).getValue(Type.NAMES));
             if (Utils.hasRestrictions(entryTree)) {
                 pattern = restrictionProvider.getPattern(effectivePath, restrictionProvider.readRestrictions(effectivePath, entryTree));

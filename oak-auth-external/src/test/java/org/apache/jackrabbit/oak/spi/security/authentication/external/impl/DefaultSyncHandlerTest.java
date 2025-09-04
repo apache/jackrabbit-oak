@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
@@ -44,6 +42,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -245,7 +244,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
         sync(USER_ID, false);
 
         // membership-nesting is 1 => expect only 'USER_ID' plus the declared group-membership
-        Set<String> expected = Sets.newHashSet(USER_ID);
+        Set<String> expected = SetUtils.toSet(USER_ID);
         for (ExternalIdentityRef extRef : idp.getUser(USER_ID).getDeclaredGroups()) {
             expected.add(extRef.getId());
         }
@@ -278,7 +277,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
 
     @Test
     public void testListIdentitiesIgnoresMissingExternalIdRef() throws Exception {
-        Iterator<Authorizable> it = Iterators.singletonIterator(getTestUser());
+        Iterator<Authorizable> it = Collections.singleton(((Authorizable) getTestUser())).iterator();
 
         UserManager um = mock(UserManager.class);
         when(um.findAuthorizables(DefaultSyncContext.REP_EXTERNAL_ID, null)).thenReturn(it);
@@ -289,7 +288,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
 
     @Test
     public void testListIdentitiesIgnoresNull() throws Exception {
-        Iterator<Authorizable> it = Iterators.singletonIterator(null);
+        Iterator<Authorizable> it = Collections.singleton((Authorizable) null).iterator();
 
         UserManager um = mock(UserManager.class);
         when(um.findAuthorizables(DefaultSyncContext.REP_EXTERNAL_ID, null)).thenReturn(it);
@@ -301,7 +300,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
     @Test
     public void testListIdentitiesWithRepositoryException() throws Exception {
         Authorizable a = when(mock(Authorizable.class).getProperty(REP_EXTERNAL_ID)).thenThrow(new RepositoryException()).getMock();
-        Iterator<Authorizable> it = Iterators.singletonIterator(a);
+        Iterator<Authorizable> it = Collections.singleton(a).iterator();
 
         UserManager um = mock(UserManager.class);
         when(um.findAuthorizables(REP_EXTERNAL_ID, null)).thenReturn(it);
@@ -352,7 +351,7 @@ public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
     @Test
     public void testActivate() {
         DefaultSyncHandler handler = new DefaultSyncHandler();
-        Map<String,Object> props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_NAME, "testName");
+        Map<String,Object> props = Map.of(DefaultSyncConfigImpl.PARAM_NAME, "testName");
         context.registerInjectActivateService(handler, props);
 
         assertEquals("testName", handler.getName());

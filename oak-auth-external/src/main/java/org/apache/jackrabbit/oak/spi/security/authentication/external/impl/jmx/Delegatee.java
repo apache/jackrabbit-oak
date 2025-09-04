@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -47,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
 import java.io.IOException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -56,7 +55,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 final class Delegatee {
 
@@ -108,7 +107,7 @@ final class Delegatee {
                                     int batchSize) {
         ContentSession systemSession;
         try {
-            systemSession = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repository.login(null, null));
+            systemSession = Java23Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repository.login(null, null));
         } catch (PrivilegedActionException e) {
             throw new SyncRuntimeException(ERROR_CREATE_DELEGATEE, e);
         }
@@ -236,7 +235,7 @@ final class Delegatee {
      */
     @NotNull
     String[] listOrphanedUsers() {
-        return Iterators.toArray(internalListOrphanedIdentities(), String.class);
+        return IteratorUtils.toArray(internalListOrphanedIdentities(), String.class);
     }
 
     /**
@@ -357,11 +356,11 @@ final class Delegatee {
     private Iterator<String> internalListOrphanedIdentities() {
         try {
             Iterator<SyncedIdentity> it = handler.listIdentities(userMgr);
-            return Iterators.filter(Iterators.transform(it, syncedIdentity -> {
+            return IteratorUtils.filter(IteratorUtils.transform(it, syncedIdentity -> {
                 if (syncedIdentity != null && isMyIDP(syncedIdentity)) {
                     try {
                         // nonNull-ExternalIdRef has already been asserted by 'isMyIDP'
-                        ExternalIdentity extId = idp.getIdentity(checkNotNull(syncedIdentity.getExternalIdRef()));
+                        ExternalIdentity extId = idp.getIdentity(requireNonNull(syncedIdentity.getExternalIdRef()));
                         if (extId == null) {
                             return syncedIdentity.getId();
                         }
@@ -370,7 +369,7 @@ final class Delegatee {
                     }
                 }
                 return null;
-            }), Predicates.notNull());
+            }), x -> x != null);
         } catch (RepositoryException e) {
             log.error("Error while listing orphaned users", e);
             return Collections.emptyIterator();

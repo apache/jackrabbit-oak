@@ -64,11 +64,17 @@ public class TikaExtractionOsgiIT {
     private static final String COMPRESS_VERSION = "commons-compress";
     private static final String LANG3_VERSION = "commons-lang3";
     private static final String MATH3_VERSION = "commons-math3";
+    private static final String COMMONS_CSV_VERSION = "commons-csv";
     private static final String[] VERSION_KEYS = new String[]{TIKA_VERSION, POI_VERSION
             , COLLECTIONS4_VERSION, COMPRESS_VERSION
-            , LANG3_VERSION, MATH3_VERSION};
+            , LANG3_VERSION, MATH3_VERSION, COMMONS_CSV_VERSION};
 
     private static final String EXPECTED_TEXT_FRAGMENT = "A sample document";
+    private static final String EXPECTED_CSV_FRAGMENT =
+        "a,b\n" +
+        "a,b\n" +
+        "a,b\n" +
+        "a,b";
 
     @Configuration
     public Option[] configuration() throws IOException {
@@ -111,7 +117,8 @@ public class TikaExtractionOsgiIT {
                 composite(
                         mavenBundle("org.apache.tika", "tika-core", versions.get(TIKA_VERSION))
                         , mavenBundle("org.apache.tika", "tika-parsers", versions.get(TIKA_VERSION))
-
+                        // for csv parsing
+                        , mavenBundle("org.apache.commons", "commons-csv", versions.get(COMMONS_CSV_VERSION))
                         // poi dependency start
                         , wrappedBundle(mavenBundle("org.apache.poi", "poi", versions.get(POI_VERSION)))
                         , wrappedBundle(mavenBundle("org.apache.poi", "poi-scratchpad", versions.get(POI_VERSION)))
@@ -199,7 +206,16 @@ public class TikaExtractionOsgiIT {
         assertFileContains("test.txt");
     }
 
+    @Test
+    public void csv() throws Exception {
+        assertFileContains("test2.txt", EXPECTED_CSV_FRAGMENT);
+    }
+
     private void assertFileContains(String resName) throws Exception {
+        assertFileContains(resName, EXPECTED_TEXT_FRAGMENT);
+    }
+
+    private void assertFileContains(String resName, String parsedContent) throws Exception {
         AutoDetectParser parser = new AutoDetectParser(registeredParser);
         ContentHandler handler = new WriteOutContentHandler();
         Metadata metadata = new Metadata();
@@ -210,10 +226,9 @@ public class TikaExtractionOsgiIT {
             parser.parse(stream, handler, metadata);
 
             String actual = handler.toString().trim();
-            assertEquals(EXPECTED_TEXT_FRAGMENT, actual);
+            assertEquals(parsedContent, actual);
         } finally {
             stream.close();
         }
-
     }
 }

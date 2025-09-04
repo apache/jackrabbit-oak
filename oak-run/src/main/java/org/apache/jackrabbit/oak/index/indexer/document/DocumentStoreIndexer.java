@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 
@@ -30,27 +29,23 @@ public class DocumentStoreIndexer extends DocumentStoreIndexerBase implements Cl
 
     private final ExtendedIndexHelper extendedIndexHelper;
 
-    public DocumentStoreIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) throws IOException {
+    public DocumentStoreIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) {
         super(extendedIndexHelper, indexerSupport);
         this.extendedIndexHelper = extendedIndexHelper;
-        setProviders();
     }
 
     private NodeStateIndexerProvider createLuceneIndexProvider() throws IOException {
         return new LuceneIndexerProvider(extendedIndexHelper, indexerSupport);
     }
 
-    protected List<NodeStateIndexerProvider> createProviders() throws IOException {
-        List<NodeStateIndexerProvider> providers = ImmutableList.of(
-                createLuceneIndexProvider()
-        );
-
-        providers.forEach(closer::register);
-        return providers;
+    protected NodeStateIndexerProvider createProvider() throws IOException {
+        NodeStateIndexerProvider provider = createLuceneIndexProvider();
+        closer.register(provider);
+        return provider;
     }
 
     @Override
-    protected void preIndexOpertaions(List<NodeStateIndexer> indexers) {
+    protected void preIndexOperations(List<NodeStateIndexer> indexers) {
         // NOOP
     }
 }

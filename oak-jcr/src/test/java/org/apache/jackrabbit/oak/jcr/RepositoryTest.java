@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -38,7 +39,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -47,6 +50,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.jcr.Binary;
@@ -81,7 +85,6 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.AppenderBase;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -101,10 +104,10 @@ import org.apache.jackrabbit.spi.commons.value.QValueValue;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.ArgumentMatchers;
 import org.slf4j.LoggerFactory;
 
 public class RepositoryTest extends AbstractRepositoryTest {
+
     private static final String TEST_NODE = "test_node";
     private static final String TEST_PATH = '/' + TEST_NODE;
 
@@ -142,7 +145,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertNotNull(session);
         Set<Principal> principals = (Set<Principal>) session.getAttribute(RepositoryImpl.BOUND_PRINCIPALS);
         assertNotNull(principals);
-        Set<String> expectedPrincipalNames = new HashSet<>(Arrays.asList("admin", "everyone"));
+        Set<String> expectedPrincipalNames = Set.of("admin", "everyone");
         assertEquals(expectedPrincipalNames, principals.stream().map(Principal::getName).collect(Collectors.toSet()));
     }
 
@@ -160,7 +163,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Set<Principal> principals = (Set<Principal>) session.getAttribute(RepositoryImpl.BOUND_PRINCIPALS);
         assertNotNull(principals);
         // admin must not be contained in the principals (altough added in the login attributes)
-        Set<String> expectedPrincipalNames = new HashSet<>(Arrays.asList("anonymous", "everyone"));
+        Set<String> expectedPrincipalNames = Set.of("anonymous", "everyone");
         assertEquals(expectedPrincipalNames, principals.stream().map(Principal::getName).collect(Collectors.toSet()));
         session.logout();
     }
@@ -1997,6 +2000,55 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void testUnregisterNamespaceWhenUsed() throws RepositoryException {
+
+        // see OAK-11138
+
+        String testNamespaceName1 = "file:///foo";
+        String testNamespaceName2 = "file:///bar";
+        Session session = getAdminSession();
+
+        NamespaceRegistry nsReg = session.getWorkspace().getNamespaceRegistry();
+        assertFalse(asList(nsReg.getPrefixes()).contains("foo"));
+        assertFalse(asList(nsReg.getURIs()).contains(testNamespaceName1));
+
+        nsReg.registerNamespace("foo", testNamespaceName1);
+        assertTrue(asList(nsReg.getPrefixes()).contains("foo"));
+        assertTrue(asList(nsReg.getURIs()).contains(testNamespaceName1));
+
+        // check that nodes are "same" independent of how retrieved
+        Node x1 = session.getRootNode().addNode("foo:test");
+        session.save();
+        Node x2 = session.getRootNode().getNode("{" + testNamespaceName1 + "}test");
+        assertTrue(x1.isSame(x2));
+
+        // unregister and add with a new name
+        nsReg.unregisterNamespace("foo");
+        assertFalse(asList(nsReg.getPrefixes()).contains("foo"));
+        assertFalse(asList(nsReg.getURIs()).contains(testNamespaceName1));
+        nsReg.registerNamespace("foo", testNamespaceName2);
+        assertTrue(asList(nsReg.getPrefixes()).contains("foo"));
+        assertTrue(asList(nsReg.getURIs()).contains(testNamespaceName2));
+
+        try {
+            session.getRootNode().getNode("{" + testNamespaceName1 + "}test");
+        } catch (PathNotFoundException expected) {
+            // we expect that this fails as the namespace name has been removed
+        }
+
+        // after remapping, the node created earlier is stil accessible with the
+        // name prefix, but the expanded name has changed
+        Node x3 = session.getRootNode().getNode("{" + testNamespaceName2 + "}test");
+        Node x4 = session.getRootNode().getNode("foo:test");
+        assertTrue(x3.isSame(x4));
+
+        nsReg.unregisterNamespace("foo");
+
+        session.getRootNode().getNode("foo:test").remove();
+        session.save();
+    }
+
+    @Test
     public void sessionRemappedNamespace() throws RepositoryException {
         NamespaceRegistry nsReg =
                 getAdminSession().getWorkspace().getNamespaceRegistry();
@@ -2238,7 +2290,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Node node = session.getRootNode().addNode("node", "fooType");
         node.setProperty("fooProp", "fooValue");
         session.save();
-        
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         session.exportDocumentView("/node", out, true, false);
         node.remove();
@@ -2250,9 +2302,102 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals("fooValue", session.getProperty("/node/fooProp").getString());
     }
 
+    private void internalShadedNamespaceMappingsInImport(String xml, String ns1, String ns2) throws Exception {
+        Session session = getAdminSession();
+        session.getWorkspace().importXML(
+                "/", new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)) , IMPORT_UUID_CREATE_NEW);
+        session.save();
+
+        String pref1 = session.getNamespacePrefix(ns1);
+        String pref2 = session.getNamespacePrefix(ns2);
+        assertNotEquals("prefixes should be different - " + pref1 + " vs " + pref2, pref1, pref2);
+
+        Node nPrefFoo = session.getNode("/" + pref1 + ":foo");
+        Node nExpFoo = session.getNode("/{" + ns1 + "}foo");
+        assertTrue(nPrefFoo.isSame(nExpFoo));
+
+        Node nPrefQux = nPrefFoo.getNode(pref2 + ":qux");
+        Node nExpQux = nExpFoo.getNode("{" + ns2 + "}qux");
+        assertTrue(nPrefQux.isSame(nExpQux));
+
+        Node nPrefXyz = nPrefQux.getNode(pref1 + ":xyz");
+        Node nExpXyz = nExpQux.getNode("{" + ns1 + "}xyz");
+        assertTrue(nPrefXyz.isSame(nExpXyz));
+
+        Node nPrefBar = nPrefFoo.getNode( pref1 + ":" + "bar");
+        Node nExpBar = nExpFoo.getNode("{" + ns1 + "}bar");
+        assertTrue(nPrefBar.isSame(nExpBar));
+    }
+
+    // tests import with namespace prefixes re-used for different namespace names
+    @Test
+    public void reusedNameSpacePrefixesInDocViewImport() throws Exception {
+        String ns1 = "urn:uuid:" + UUID.randomUUID();
+        String ns2 = "urn:uuid:" + UUID.randomUUID();
+
+        String docView =
+                "<a:foo xmlns:a=\"" + ns1 + "\">" +
+                "  <a:qux xmlns:a=\"" + ns2 + "\">" +
+                "    <a:xyz xmlns:a=\"" + ns1 + "\"/>" +
+                "  </a:qux>" +
+                "  <a:bar/>" +
+                "</a:foo>";
+        String sysView =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<sv:node xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\"" +
+                "         xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\"" +
+                "         xmlns:jcr=\"http://www.jcp.org/jcr/1.0\"" +
+                "         xmlns:a=\"" + ns1 + "\"" +
+                "         sv:name=\"a:foo\">" +
+                "    <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+                "        <sv:value>nt:unstructured</sv:value>" +
+                "    </sv:property>" +
+                "    <sv:node xmlns:a=\"" + ns2 + "\" sv:name=\"a:qux\">" +
+                "        <sv:node xmlns:a=\"" + ns1 + "\" sv:name=\"a:xyz\"/>" +
+                "    </sv:node>" +
+                "    <sv:node sv:name=\"a:bar\"/>" +
+                "</sv:node>";
+
+        internalShadedNamespaceMappingsInImport(docView, ns1, ns2);
+        internalShadedNamespaceMappingsInImport(sysView, ns1, ns2);
+    }
+
+    // tests import with no namespace prefixes
+    @Test
+    public void noNameSpacePrefixesInImport() throws Exception {
+        String ns1 = "urn:uuid:" + UUID.randomUUID();
+        String ns2 = "urn:uuid:" + UUID.randomUUID();
+
+        String docView =
+                "<foo xmlns=\"" + ns1 + "\">" +
+                        "  <qux xmlns=\"" + ns2 + "\">" +
+                        "    <xyz xmlns=\"" + ns1 + "\"/>" +
+                        "  </qux>" +
+                        "  <bar/>" +
+                        "</foo>";
+        String sysView =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                        "<sv:node xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\"" +
+                        "         xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\"" +
+                        "         xmlns:jcr=\"http://www.jcp.org/jcr/1.0\"" +
+                        "         xmlns=\"" + ns1 + "\"" +
+                        "         sv:name=\"foo\">" +
+                        "    <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+                        "        <sv:value>nt:unstructured</sv:value>" +
+                        "    </sv:property>" +
+                        "    <sv:node xmlns=\"" + ns2 + "\" sv:name=\"qux\">" +
+                        "        <sv:node xmlns=\"" + ns1 + "\" sv:name=\"xyz\"/>" +
+                        "    </sv:node>" +
+                        "    <sv:node sv:name=\"bar\"/>" +
+                        "</sv:node>";
+
+        internalShadedNamespaceMappingsInImport(docView, ns1, ns2);
+        internalShadedNamespaceMappingsInImport(sysView, ns1, ns2);
+    }
+
     @Test
     public void largeMultiValueProperty() throws Exception{
-        final List<String> logMessages = Lists.newArrayList();
+        final List<String> logMessages = new ArrayList<>();
         Appender<ILoggingEvent> a = new AppenderBase<ILoggingEvent>() {
             @Override
             protected void append(ILoggingEvent e) {

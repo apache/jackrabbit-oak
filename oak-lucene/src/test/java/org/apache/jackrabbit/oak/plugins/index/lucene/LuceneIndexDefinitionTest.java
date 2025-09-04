@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -46,7 +45,6 @@ import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.TieredMergePolicy;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_LONG;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -111,8 +109,8 @@ public class LuceneIndexDefinitionTest {
 
     @Test
     public void propertyTypes() throws Exception{
-        builder.setProperty(createProperty(INCLUDE_PROPERTY_TYPES, of(TYPENAME_LONG), STRINGS));
-        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar"), STRINGS));
+        builder.setProperty(createProperty(INCLUDE_PROPERTY_TYPES, Set.of(TYPENAME_LONG), STRINGS));
+        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("foo" , "bar"), STRINGS));
         builder.setProperty(FULL_TEXT_ENABLED, false);
         LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
@@ -132,7 +130,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void propertyDefinition() throws Exception{
         builder.child(PROP_NODE).child("foo").setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
-        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar"), STRINGS));
+        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("foo" , "bar"), STRINGS));
         LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
 
@@ -217,7 +215,7 @@ public class LuceneIndexDefinitionTest {
     public void relativePropertyConfig() throws Exception{
         builder.child(PROP_NODE).child("foo1").child("bar").setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         builder.child(PROP_NODE).child("foo2").child("bar2").child("baz").setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
-        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "foo1/bar", "foo2/bar2/baz"), STRINGS));
+        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, Set.of("foo", "foo1/bar", "foo2/bar2/baz"), STRINGS));
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertNotNull(rule.getConfig("foo1/bar"));
@@ -312,7 +310,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void indexRuleInheritanceOrdering() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
-        rules.setProperty(OAK_CHILD_ORDER, ImmutableList.of("nt:hierarchyNode", "nt:base"),NAMES);
+        rules.setProperty(OAK_CHILD_ORDER, List.of("nt:hierarchyNode", "nt:base"),NAMES);
         rules.child("nt:hierarchyNode").setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
         rules.child("nt:base").setProperty(FulltextIndexConstants.FIELD_BOOST, 3.0);
 
@@ -325,7 +323,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void indexRuleInheritanceOrdering2() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
-        rules.setProperty(OAK_CHILD_ORDER, ImmutableList.of("nt:base", "nt:hierarchyNode"),NAMES);
+        rules.setProperty(OAK_CHILD_ORDER, List.of("nt:base", "nt:hierarchyNode"),NAMES);
         rules.child("nt:hierarchyNode").setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
         rules.child("nt:base").setProperty(FulltextIndexConstants.FIELD_BOOST, 3.0);
 
@@ -400,7 +398,7 @@ public class LuceneIndexDefinitionTest {
                 .setProperty(FulltextIndexConstants.PROP_IS_REGEX, true)
                 .setProperty(FulltextIndexConstants.FIELD_BOOST, 4.0);
 
-        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop2", "prop1"), NAMES);
+        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, List.of("prop2", "prop1"), NAMES);
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
 
@@ -416,7 +414,7 @@ public class LuceneIndexDefinitionTest {
         assertEquals(4.0f, rule1.getConfig("fooProp").boost, 0);
 
         //Order it correctly to get expected result
-        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop1", "prop2"), NAMES);
+        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, List.of("prop1", "prop2"), NAMES);
         defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
         rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
         assertEquals(3.0f, rule1.getConfig("fooProp").boost, 0);
@@ -464,7 +462,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void versionFullTextIsV1() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
 
         //Simulate condition that index exists
         defnb.child(INDEX_DATA_CHILD_NAME);
@@ -476,7 +474,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void versionDefnUpdateFulltextIsV1() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
 
         //Simulate condition that index exists
         defnb.child(INDEX_DATA_CHILD_NAME);
@@ -489,7 +487,7 @@ public class LuceneIndexDefinitionTest {
 
     @Test
     public void versionPropertyIsV2() throws Exception{
-        NodeBuilder defnb = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        NodeBuilder defnb = newLucenePropertyIndexDefinition(builder, "test", Set.of("foo"), "async");
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(IndexFormatVersion.V2, defn.getVersion());
@@ -498,7 +496,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void versionFreshIsCurrent() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(IndexFormatVersion.getDefault(), defn.getVersion());
@@ -507,7 +505,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void versionFreshCompateMode() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
         defnb.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
@@ -517,7 +515,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void formatUpdate() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING), of("foo", "Bar"), "async");
+                "lucene", Set.of(TYPENAME_STRING), Set.of("foo", "Bar"), "async");
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertTrue(defn.isOfOldFormat());
 
@@ -534,7 +532,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void propertyRegExAndRelativeProperty() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING), of("foo"), "async");
+                "lucene", Set.of(TYPENAME_STRING), Set.of("foo"), "async");
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertTrue(defn.isOfOldFormat());
 
@@ -549,7 +547,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void fulltextEnabledAndAggregate() throws Exception{
         NodeBuilder defnb = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of("foo"), "async");
+                "lucene", Set.of("foo"), "async");
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertFalse(defn.isFullTextEnabled());
 
@@ -564,7 +562,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void costConfig() throws Exception{
         NodeBuilder defnb = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of("foo"), "async");
+                "lucene", Set.of("foo"), "async");
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(1.0, defn.getCostPerEntry(), 0);
         assertEquals(1.0, defn.getCostPerExecution(), 0);
@@ -584,7 +582,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void fulltextCost() throws Exception{
         NodeBuilder defnb = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of("foo"), "async");
+                "lucene", Set.of("foo"), "async");
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(300, defn.getFulltextEntryCount(300));
         assertEquals(IndexDefinition.DEFAULT_ENTRY_COUNT + 100,
@@ -600,7 +598,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void customAnalyzer() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
 
         //Set this to -1 to avoid wrapping by LimitAnalyzer
         defnb.setProperty(FulltextIndexConstants.MAX_FIELD_LENGTH, -1);
@@ -614,7 +612,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void customTikaConfig() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertFalse(defn.hasCustomTikaConfig());
 
@@ -629,7 +627,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void customTikaMimeTypes() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals("application/test", defn.getTikaMappedMimeType("application/test"));
 
@@ -647,7 +645,7 @@ public class LuceneIndexDefinitionTest {
     @Test
     public void maxExtractLength() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "lucene", of(TYPENAME_STRING));
+                "lucene", Set.of(TYPENAME_STRING));
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(-IndexDefinition.DEFAULT_MAX_EXTRACT_LENGTH * IndexDefinition.DEFAULT_MAX_FIELD_LENGTH,
                 defn.getMaxExtractLength());

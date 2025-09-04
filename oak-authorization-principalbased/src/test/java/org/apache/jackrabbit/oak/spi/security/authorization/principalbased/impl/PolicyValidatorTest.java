@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -27,6 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -43,6 +40,7 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -267,7 +265,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
     @Test
     public void tetPolicyChildAddedMissingMixinOnParent() {
         NodeState rootState = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
-        assertFalse(Iterables.contains(rootState.getNames(JcrConstants.JCR_MIXINTYPES), MIX_REP_PRINCIPAL_BASED_MIXIN));
+        assertFalse(IterableUtils.contains(rootState.getNames(JcrConstants.JCR_MIXINTYPES), MIX_REP_PRINCIPAL_BASED_MIXIN));
 
         NodeState child = mockNodeState(NT_REP_PRINCIPAL_POLICY);
         try {
@@ -375,7 +373,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddUnknownRestriction() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of(JCR_READ));
+        Tree entry = createPolicyEntryTree(Set.of(JCR_READ));
         Tree restrictions = TreeUtil.addChild(entry, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         restrictions.setProperty("unknown", "test");
 
@@ -389,10 +387,10 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddInvalidRestriction() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of(JCR_READ));
+        Tree entry = createPolicyEntryTree(Set.of(JCR_READ));
         Tree restrictions = TreeUtil.addChild(entry, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         // wrong type. must be NAMES.
-        restrictions.setProperty(REP_ITEM_NAMES, ImmutableSet.of("test"), Type.STRINGS);
+        restrictions.setProperty(REP_ITEM_NAMES, Set.of("test"), Type.STRINGS);
         try {
             root.commit();
             failCommitFailedExpected(35);
@@ -404,20 +402,20 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
     @Test
     public void testAddRestrictionWithDifferentACE() throws Exception {
         // validator must not complain about adding restrictions to a different authorization model
-        Map<String, Value> restr = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("val"));
+        Map<String, Value> restr = Map.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("val"));
         addDefaultEntry(PathUtils.ROOT_PATH, EveryonePrincipal.getInstance(), restr, null, JCR_LIFECYCLE_MANAGEMENT);
         root.commit();
     }
 
     @Test
     public void testChangeWithInvalidRestriction() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of(JCR_READ));
+        Tree entry = createPolicyEntryTree(Set.of(JCR_READ));
         Tree restrictions = TreeUtil.addChild(entry, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         restrictions.setProperty(REP_GLOB, "*/glob/*");
         root.commit();
 
         // modify restriction tree changing glob property with type-cardinality mismatch
-        restrictions.setProperty(REP_GLOB, ImmutableSet.of("test"), Type.STRINGS);
+        restrictions.setProperty(REP_GLOB, Set.of("test"), Type.STRINGS);
         try {
             root.commit();
             failCommitFailedExpected(35);
@@ -428,13 +426,13 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testChangeFromSingleValuedToMvRestriction() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of(JCR_READ));
+        Tree entry = createPolicyEntryTree(Set.of(JCR_READ));
         Tree restrictions = TreeUtil.addChild(entry, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         restrictions.setProperty(REP_GLOB, "*/glob/*");
         root.commit();
 
         restrictions.removeProperty(REP_GLOB);
-        restrictions.setProperty(REP_ITEM_NAMES, ImmutableSet.of("someName", "anotherName"), Type.NAMES);
+        restrictions.setProperty(REP_ITEM_NAMES, Set.of("someName", "anotherName"), Type.NAMES);
         root.commit();
     }
 
@@ -473,7 +471,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddEntryWithEmptyPrivilegeSet() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of());
+        Tree entry = createPolicyEntryTree(Set.of());
         try {
             root.commit();
             failCommitFailedExpected(37);
@@ -486,7 +484,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
     public void testAddEntryWithAbstractPrivilege() throws Exception {
         getPrivilegeManager(root).registerPrivilege("abstractPriv", true, new String[0]);
 
-        Tree entry = createPolicyEntryTree(ImmutableSet.of("abstractPriv"));
+        Tree entry = createPolicyEntryTree(Set.of("abstractPriv"));
         try {
             root.commit();
             failCommitFailedExpected(38);
@@ -497,7 +495,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testAddEntryWithInvalidPrivilege() throws Exception {
-        Tree entry = createPolicyEntryTree(ImmutableSet.of("invalidPrivilege"));
+        Tree entry = createPolicyEntryTree(Set.of("invalidPrivilege"));
         try {
             root.commit();
             failCommitFailedExpected(39);
@@ -526,7 +524,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         try {
             NodeState entry = mockNodeState(NT_REP_PRINCIPAL_ENTRY);
             when(entry.getProperty(REP_EFFECTIVE_PATH)).thenReturn(PropertyStates.createProperty(REP_EFFECTIVE_PATH,"/path", Type.PATH));
-            when(entry.getNames(REP_PRIVILEGES)).thenReturn(ImmutableList.of("privName"));
+            when(entry.getNames(REP_PRIVILEGES)).thenReturn(List.of("privName"));
 
             v.childNodeChanged("entryName", entry, entry);
             fail("CommitFailedException type OAK code 13 expected.");
@@ -555,7 +553,7 @@ public class PolicyValidatorTest extends AbstractPrincipalBasedTest {
         try {
             NodeState entry = mockNodeState(NT_REP_PRINCIPAL_ENTRY);
             when(entry.getProperty(REP_EFFECTIVE_PATH)).thenReturn(null);
-            when(entry.getNames(REP_PRIVILEGES)).thenReturn(ImmutableList.of(JCR_READ));
+            when(entry.getNames(REP_PRIVILEGES)).thenReturn(List.of(JCR_READ));
 
             v.childNodeChanged("entryName", entry, entry);
             fail("CommitFailedException type CONSTRAINT code 21 expected.");

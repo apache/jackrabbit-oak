@@ -20,11 +20,14 @@ package org.apache.jackrabbit.oak.segment.spi.monitor;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.GaugeStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+
+import java.util.function.Supplier;
 
 public class RoleStatisticsProvider implements StatisticsProvider{
 
@@ -73,6 +76,11 @@ public class RoleStatisticsProvider implements StatisticsProvider{
     @Override
     public HistogramStats getHistogram(String name, StatsOptions options) {
         return delegate.getHistogram(addRoleToName(name, role), options);
+    }
+
+    @Override
+    public <T> GaugeStats<T> getGauge(String name, Supplier<T> supplier) {
+        return delegate.getGauge(addRoleToName(name, role), supplier);
     }
 
     private static String addRoleToName(String name, String role) {

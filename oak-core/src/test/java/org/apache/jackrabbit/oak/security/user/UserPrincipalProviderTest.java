@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -29,6 +27,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
@@ -268,7 +267,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
                 SEARCH_TYPE_GROUP, 0, -1);
         Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
                 SEARCH_TYPE_GROUP, 0, -1);
-        assertTrue(Iterators.elementsEqual(i1, i2));
+        assertTrue(IteratorUtils.elementsEqual(i1, i2));
     }
 
     @Test
@@ -280,8 +279,8 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
             root.commit();
 
             Iterator<? extends Principal> principals = principalProvider.findPrincipals(null, SEARCH_TYPE_GROUP);
-            Iterator filtered = Iterators.filter(principals, (Predicate<Principal>) principal -> EveryonePrincipal.NAME.equals(principal.getName()));
-            assertEquals(1, Iterators.size(filtered));
+            Iterator filtered = IteratorUtils.filter(principals, principal -> EveryonePrincipal.NAME.equals(principal.getName()));
+            assertEquals(1, IteratorUtils.size(filtered));
         } finally {
             if (everyoneGroup != null) {
                 everyoneGroup.remove();
@@ -297,7 +296,7 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
                     SEARCH_TYPE_GROUP, 0, limit);
             Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
                     SEARCH_TYPE_GROUP, 0, limit);
-            assertTrue(Iterators.elementsEqual(i1, i2));
+            assertTrue(IteratorUtils.elementsEqual(i1, i2));
         }
     }
 
@@ -312,14 +311,26 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
         assertNotNull(it);
         assertFalse(it.hasNext());
     }
-    
+
+    @Test
+    public void testFindPrincipalsQueryFailsNullHint() throws ParseException {
+        QueryEngine qe = mock(QueryEngine.class);
+        when(qe.executeQuery(anyString(), anyString(), anyLong(), anyLong(), any(Map.class), any(Map.class))).thenThrow(new ParseException("err",0));
+
+        Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
+        UserPrincipalProvider upp = new UserPrincipalProvider(r, getUserConfiguration(), NamePathMapper.DEFAULT);
+        Iterator<? extends Principal> it = upp.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_ALL, -1, -1);
+        assertNotNull(it);
+        assertFalse(it.hasNext());
+    }
+
     @Test
     public void testCreatePrincipalInvalidType() throws Exception {
         Method m = UserPrincipalProvider.class.getDeclaredMethod("createPrincipal", Tree.class);
         m.setAccessible(true);
-        
+
         assertNull(m.invoke(principalProvider, (Tree)null));
-        
+
         PropertyState ps = PropertyStates.createProperty(JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
         Tree tree = when(mock(Tree.class).getProperty(JCR_PRIMARYTYPE)).thenReturn(ps).getMock();
         assertNull(m.invoke(principalProvider, tree));

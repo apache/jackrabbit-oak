@@ -16,7 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.memory;
 
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.assertUnconditional;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,11 +31,10 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -40,19 +45,13 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
-import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.assertUnconditional;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkConditions;
 
 /**
  * Emulates a MongoDB store (possibly consisting of multiple shards and
@@ -98,14 +97,14 @@ public class MemoryDocumentStore implements DocumentStore {
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
+    private static final long SIZE_LIMIT = SystemPropertySupplier.create("memoryds.size.limit", -1).get();
+
     public MemoryDocumentStore() {
         this(false);
     }
 
     public MemoryDocumentStore(boolean maintainModCount) {
-        metadata = ImmutableMap.<String,String>builder()
-                        .put("type", "memory")
-                        .build();
+        metadata = Map.of("type", "memory");
         this.maintainModCount = maintainModCount;
     }
 
@@ -227,13 +226,10 @@ public class MemoryDocumentStore implements DocumentStore {
         Lock lock = rwLock.writeLock();
         lock.lock();
         try {
-            Maps.filterValues(map, new Predicate<T>() {
-                @Override
-                public boolean apply(@Nullable T doc) {
-                    Long modified = Utils.asLong((Number) doc.get(indexedProperty));
-                    return startValue < modified && modified < endValue;
-                }
-            }).clear();
+            map.entrySet().removeIf(entry -> {
+                Long modified = Utils.asLong((Number) entry.getValue().get(indexedProperty));
+                return startValue < modified && modified < endValue;
+            });
         } finally {
             lock.unlock();
         }
@@ -338,6 +334,7 @@ public class MemoryDocumentStore implements DocumentStore {
             // update the document
             UpdateUtils.applyChanges(doc, update);
             maintainModCount(doc);
+            checkSize(doc);
             doc.seal();
             map.put(update.getId(), doc);
             return oldDoc;
@@ -392,7 +389,7 @@ public class MemoryDocumentStore implements DocumentStore {
     public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
         return null;
     }
-    
+
     @Override
     public void dispose() {
         // ignore
@@ -415,7 +412,10 @@ public class MemoryDocumentStore implements DocumentStore {
         }
         lastReadWriteMode = readWriteMode;
         try {
-            Map<String, String> map = Splitter.on(", ").withKeyValueSeparator(":").split(readWriteMode);
+            Map<String, String> map = Arrays.stream(readWriteMode.split(", "))
+                    .map(s -> s.split(":", 2))
+                    .filter(arr -> arr.length == 2)
+                    .collect(Collectors.toMap(arr -> arr[0], arr -> arr[1]));
             String read = map.get("read");
             if (read != null) {
                 ReadPreference readPref = ReadPreference.valueOf(read);
@@ -456,12 +456,11 @@ public class MemoryDocumentStore implements DocumentStore {
     @NotNull
     @Override
     public Map<String, String> getStats() {
-        return ImmutableMap.<String, String>builder()
-                .put(Collection.NODES.toString(), String.valueOf(nodes.size()))
-                .put(Collection.CLUSTER_NODES.toString(), String.valueOf(clusterNodes.size()))
-                .put(Collection.SETTINGS.toString(), String.valueOf(settings.size()))
-                .put(Collection.JOURNAL.toString(), String.valueOf(externalChanges.size()))
-                .build();
+        return Map.of(
+                Collection.NODES.toString(), String.valueOf(nodes.size()),
+                Collection.CLUSTER_NODES.toString(), String.valueOf(clusterNodes.size()),
+                Collection.SETTINGS.toString(), String.valueOf(settings.size()),
+                Collection.JOURNAL.toString(), String.valueOf(externalChanges.size()));
     }
 
     @Override
@@ -470,14 +469,24 @@ public class MemoryDocumentStore implements DocumentStore {
         return 0;
     }
 
+    private void checkSize(Document doc) {
+        if (SIZE_LIMIT >= 0) {
+            int size = doc.getMemory();
+            if (size >= SIZE_LIMIT) {
+                throw new DocumentStoreException(
+                        String.format("Resulting size for _id '%s' is %d, exceeding configured size limit of %d. Diagnostics: %s.",
+                                doc.getId(), size, SIZE_LIMIT, Utils.mapEntryDiagnostics(doc.entrySet())));
+            }
+        }
+    }
+
     private void maintainModCount(Document doc) {
-        if (!maintainModCount) {
-            return;
+        if (maintainModCount) {
+            Long modCount = doc.getModCount();
+            if (modCount == null) {
+                modCount = 0L;
+            }
+            doc.put(Document.MOD_COUNT, modCount + 1);
         }
-        Long modCount = doc.getModCount();
-        if (modCount == null) {
-            modCount = 0L;
-        }
-        doc.put(Document.MOD_COUNT, modCount + 1);
     }
 }

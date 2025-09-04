@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -31,10 +31,7 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.CountingInputStream;
+import org.apache.commons.io.input.CountingInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -43,6 +40,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
@@ -58,7 +57,7 @@ import org.apache.lucene.store.IOContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 public class IndexConsistencyChecker {
@@ -217,9 +216,9 @@ public class IndexConsistencyChecker {
      *                    would be left as is
      */
     public IndexConsistencyChecker(NodeState rootState, String indexPath, File workDirRoot) {
-        this.rootState = checkNotNull(rootState);
-        this.indexPath = checkNotNull(indexPath);
-        this.workDirRoot = checkNotNull(workDirRoot);
+        this.rootState = requireNonNull(rootState);
+        this.indexPath = requireNonNull(indexPath);
+        this.workDirRoot = requireNonNull(workDirRoot);
     }
 
     public void setPrintStream(PrintStream printStream) {
@@ -273,7 +272,7 @@ public class IndexConsistencyChecker {
 
     private void checkIndex(Result result, Closer closer) throws IOException {
         NodeState idx = NodeStateUtils.getNode(rootState, indexPath);
-        LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx, indexPath).build();
+        LuceneIndexDefinition defn = LuceneIndexDefinition.newLuceneBuilder(rootState, idx, indexPath).build();
         workDir = createWorkDir(workDirRoot, PathUtils.getName(indexPath));
 
         for (String dirName : idx.getChildNodeNames()){
@@ -390,17 +389,17 @@ public class IndexConsistencyChecker {
         try{
             InputStream is = blob.getNewStream();
             CountingInputStream cis = new CountingInputStream(is);
-            IOUtils.copyLarge(cis, ByteStreams.nullOutputStream());
+            IOUtils.copyLarge(cis, OutputStream.nullOutputStream());
 
             if (cis.getCount() != blob.length()){
                 String msg = String.format("Invalid blob %s. Length mismatch - expected ${%d} -> found ${%d}",
-                        blobPath, blob.length(), cis.getCount());
-                result.invalidBlobIds.add(new FileSizeStatus(blobPath, cis.getCount(), blob.length()));
+                        blobPath, blob.length(), cis.getByteCount());
+                result.invalidBlobIds.add(new FileSizeStatus(blobPath, cis.getByteCount(), blob.length()));
                 log.warn("[{}] {}", indexPath, msg);
                 result.clean = false;
                 result.blobSizeMismatch = true;
             }
-            result.binaryPropSize += cis.getCount();
+            result.binaryPropSize += cis.getByteCount();
         } catch (Exception e) {
             log.warn("[{}] Error occurred reading blob at {}", indexPath, blobPath, e);
             result.missingBlobIds.add(id);
@@ -430,7 +429,7 @@ public class IndexConsistencyChecker {
         private final Logger log;
 
         public LoggingPrintStream(Logger log) {
-            super(ByteStreams.nullOutputStream());
+            super(OutputStream.nullOutputStream());
             this.log = log;
         }
 

@@ -22,9 +22,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -73,7 +72,7 @@ public class ConcurrentPrefetchAndUpdateIT extends AbstractMongoConnectionTest {
     @Test
     public void cacheConsistency() throws Exception {
         Revision r = newRevision();
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
         for (int i = 0; i < NUM_NODES; i++) {
             String id = Utils.getIdFromPath("/node-" + i);
             ids.add(id);
@@ -115,7 +114,7 @@ public class ConcurrentPrefetchAndUpdateIT extends AbstractMongoConnectionTest {
         randomWait();
         UpdateOp op = new UpdateOp("foo", false);
         NodeDocument.setLastRev(op, newRevision());
-        List<UpdateOp> ops = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
         for (String id : ids) {
             ops.add(op.shallowCopy(id));
         }

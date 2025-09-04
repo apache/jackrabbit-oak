@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.segment.data;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 
 class SegmentDataV12 implements SegmentData {
 
@@ -62,10 +62,6 @@ class SegmentDataV12 implements SegmentData {
 
     // Relative to a record reference - END
 
-    private static final int MAX_SMALL_LENGTH_VALUE = 1 << 7;
-
-    private static final int MAX_MEDIUM_LENGTH_VALUE = (1 << 14) + MAX_SMALL_LENGTH_VALUE;
-
     final Buffer buffer;
 
     SegmentDataV12(Buffer buffer) {
@@ -85,7 +81,7 @@ class SegmentDataV12 implements SegmentData {
             signature[i] = buffer.get(SIGNATURE_OFFSET + i);
         }
 
-        return new String(signature, Charsets.UTF_8);
+        return new String(signature, StandardCharsets.UTF_8);
     }
 
     @Override
@@ -148,68 +144,6 @@ class SegmentDataV12 implements SegmentData {
 
     private int index(int recordReferenceOffset) {
         return SegmentDataUtils.index(buffer, recordReferenceOffset);
-    }
-
-    @Override
-    public long readLength(int recordReferenceOffset) {
-        return internalReadLength(index(recordReferenceOffset));
-    }
-
-    private long internalReadLength(int index) {
-        int head = buffer.get(index) & 0xff;
-
-        if ((head & 0x80) == 0) {
-            return head;
-        }
-
-        if ((head & 0x40) == 0) {
-            return MAX_SMALL_LENGTH_VALUE + (buffer.getShort(index) & 0x3fff);
-        }
-
-        return MAX_MEDIUM_LENGTH_VALUE + (buffer.getLong(index) & 0x3fffffffffffffffL);
-    }
-
-    @Override
-    public StringData readString(int recordReferenceOffset) {
-        return internalReadString(index(recordReferenceOffset));
-    }
-
-    private StringData internalReadString(int index) {
-        long length = internalReadLength(index);
-
-        if (length < MAX_SMALL_LENGTH_VALUE) {
-            return internalReadString(index + Byte.BYTES, (int) length);
-        }
-
-        if (length < MAX_MEDIUM_LENGTH_VALUE) {
-            return internalReadString(index + Short.BYTES, (int) length);
-        }
-
-        if (length < Integer.MAX_VALUE) {
-            return new StringData(internalReadRecordId(index + Long.BYTES), (int) length);
-        }
-
-        throw new IllegalStateException("String is too long: " + length + "; possibly trying to read a "
-                + "BLOB using getString; can not convert BLOB to String");
-    }
-
-    private StringData internalReadString(int index, int length) {
-        Buffer duplicate = buffer.duplicate();
-        duplicate.position(index);
-        duplicate.limit(index + length);
-        String string = duplicate.decode(Charsets.UTF_8).toString();
-        return new StringData(string, length);
-    }
-
-    @Override
-    public RecordIdData readRecordId(int recordReferenceOffset) {
-        return internalReadRecordId(index(recordReferenceOffset));
-    }
-
-    private RecordIdData internalReadRecordId(int index) {
-        int segmentReference = buffer.getShort(index) & 0xffff;
-        int recordNumber = buffer.getInt(index + Short.BYTES);
-        return new RecordIdData(segmentReference, recordNumber);
     }
 
     @Override

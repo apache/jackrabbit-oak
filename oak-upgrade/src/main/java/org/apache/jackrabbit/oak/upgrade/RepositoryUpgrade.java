@@ -16,15 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.ALL;
 import static org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState.NONE;
@@ -37,14 +29,21 @@ import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.S
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.jcr.NamespaceException;
 import javax.jcr.Node;
@@ -58,13 +57,7 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.HashBiMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.core.RepositoryContext;
@@ -82,6 +75,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
@@ -144,7 +140,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermDocs;
 import org.apache.lucene.index.TermEnum;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -326,7 +321,7 @@ public class RepositoryUpgrade {
      * @param includes Paths to be included in the copy.
      */
     public void setIncludes(@NotNull String... includes) {
-        this.includePaths = copyOf(checkNotNull(includes));
+        this.includePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(includes)));
     }
 
     /**
@@ -336,7 +331,7 @@ public class RepositoryUpgrade {
      * @param excludes Paths to be excluded from the copy.
      */
     public void setExcludes(@NotNull String... excludes) {
-        this.excludePaths = copyOf(checkNotNull(excludes));
+        this.excludePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(excludes)));
     }
 
     /**
@@ -346,7 +341,7 @@ public class RepositoryUpgrade {
      * @param merges Paths to be merged during copy.
      */
     public void setMerges(@NotNull String... merges) {
-        this.mergePaths = copyOf(checkNotNull(merges));
+        this.mergePaths = Collections.unmodifiableSet(SetUtils.toLinkedSet(requireNonNull(merges)));
     }
 
     /**
@@ -440,7 +435,7 @@ public class RepositoryUpgrade {
                 }
             }
 
-            HashBiMap<String, String> uriToPrefix = HashBiMap.create();
+            Map<String, String> uriToPrefix = new DualHashBidiMap<>();
             logger.info("Copying registered namespaces");
             copyNamespaces(targetBuilder, uriToPrefix);
             logger.debug("Namespace registration completed.");
@@ -511,7 +506,7 @@ public class RepositoryUpgrade {
             watch.reset().start();
             logger.info("Applying default commit hooks");
             // TODO: default hooks?
-            List<CommitHook> hooks = newArrayList();
+            List<CommitHook> hooks = new ArrayList<>();
 
             UserConfiguration userConf =
                     security.getConfiguration(UserConfiguration.class);
@@ -661,14 +656,14 @@ public class RepositoryUpgrade {
                     UserManagerImpl.PARAM_PASSWORD_HASH_ALGORITHM, UserConstants.PARAM_PASSWORD_HASH_ALGORITHM,
                     UserManagerImpl.PARAM_PASSWORD_HASH_ITERATIONS, UserConstants.PARAM_PASSWORD_HASH_ITERATIONS);
         }
-        return ConfigurationParameters.of(ImmutableMap.of(
+        return ConfigurationParameters.of(Map.of(
                 UserConfiguration.NAME,
                 ConfigurationParameters.of(loginConfig, userConfig)));
     }
 
     protected ConfigurationParameters mapConfigurationParameters(
             BeanConfig config, String... mapping) {
-        Map<String, String> map = newHashMap();
+        Map<String, String> map = new HashMap<>();
         if (config != null) {
             Properties properties = config.getParameters();
             for (int i = 0; i + 1 < mapping.length; i += 2) {
@@ -715,7 +710,7 @@ public class RepositoryUpgrade {
             } else {
                 prefix = addCustomMapping(namespaces, uri, prefixHint);
             }
-            checkState(uriToPrefix.put(uri, prefix) == null);
+            Validate.checkState(uriToPrefix.put(uri, prefix) == null);
         }
 
         Namespaces.buildIndexNode(namespaces);
@@ -747,7 +742,7 @@ public class RepositoryUpgrade {
     private void copyCustomPrivileges(PrivilegeManager pMgr) throws RepositoryException {
         PrivilegeRegistry registry = source.getPrivilegeRegistry();
 
-        List<Privilege> customAggrPrivs = Lists.newArrayList();
+        List<Privilege> customAggrPrivs = new ArrayList<>();
 
         logger.debug("Registering custom non-aggregated privileges");
         for (Privilege privilege : registry.getRegisteredPrivileges()) {
@@ -777,15 +772,9 @@ public class RepositoryUpgrade {
             while (it.hasNext()) {
                 Privilege aggrPriv = it.next();
 
-                List<String> aggrNames = Lists.transform(
-                        ImmutableList.copyOf(aggrPriv.getDeclaredAggregatePrivileges()),
-                        new Function<Privilege, String>() {
-                            @Nullable
-                            @Override
-                            public String apply(@Nullable Privilege input) {
-                                return (input == null) ? null : input.getName();
-                            }
-                        });
+                List<String> aggrNames = Arrays.stream(aggrPriv.getDeclaredAggregatePrivileges())
+                        .map(input -> (input == null) ? null : input.getName())
+                        .collect(Collectors.toList());
                 if (allAggregatesRegistered(pMgr, aggrNames)) {
                     pMgr.registerPrivilege(aggrPriv.getName(), aggrPriv.isAbstract(), aggrNames.toArray(new String[aggrNames.size()]));
                     it.remove();
@@ -832,7 +821,7 @@ public class RepositoryUpgrade {
 
     private void copyNodeTypes(NodeTypeManager ntMgr, ValueFactory valueFactory) throws RepositoryException {
         NodeTypeRegistry sourceRegistry = source.getNodeTypeRegistry();
-        List<NodeTypeTemplate> templates = Lists.newArrayList();
+        List<NodeTypeTemplate> templates = new ArrayList<>();
         for (Name name : sourceRegistry.getRegisteredNodeTypes()) {
             String oakName = getOakName(name);
             // skip built-in nodetypes (OAK-1235)
@@ -859,7 +848,7 @@ public class RepositoryUpgrade {
 
         Name[] supertypes = def.getSupertypes();
         if (supertypes != null && supertypes.length > 0) {
-            List<String> names = newArrayListWithCapacity(supertypes.length);
+            List<String> names = new ArrayList<>(supertypes.length);
             for (Name supertype : supertypes) {
                 names.add(getOakName(supertype));
             }
@@ -895,7 +884,7 @@ public class RepositoryUpgrade {
         tmpl.setProtected(def.isProtected());
         tmpl.setSameNameSiblings(def.allowsSameNameSiblings());
 
-        List<String> names = newArrayListWithCapacity(def.getRequiredPrimaryTypes().length);
+        List<String> names = new ArrayList<>(def.getRequiredPrimaryTypes().length);
         for (Name type : def.getRequiredPrimaryTypes()) {
             names.add(getOakName(type));
         }
@@ -951,8 +940,11 @@ public class RepositoryUpgrade {
     private String copyWorkspace(NodeState sourceRoot, NodeBuilder targetRoot, String workspaceName)
             throws RepositoryException {
         final Set<String> includes = calculateEffectiveIncludePaths(includePaths, sourceRoot);
-        final Set<String> excludes = union(copyOf(this.excludePaths), of("/jcr:system/jcr:versionStorage"));
-        final Set<String> merges = union(copyOf(this.mergePaths), of("/jcr:system"));
+        final Set<String> excludes = SetUtils.toLinkedSet(this.excludePaths);
+        excludes.add("/jcr:system/jcr:versionStorage");
+
+        final Set<String> merges = SetUtils.toLinkedSet(this.mergePaths);
+        merges.add("/jcr:system");
 
         logger.info("Copying workspace {} [i: {}, e: {}, m: {}]", workspaceName, includes, excludes, merges);
 
@@ -971,11 +963,11 @@ public class RepositoryUpgrade {
 
     static Set<String> calculateEffectiveIncludePaths(Set<String> includePaths, NodeState sourceRoot) {
         if (!includePaths.contains("/")) {
-            return copyOf(includePaths);
+            return Collections.unmodifiableSet(SetUtils.toLinkedSet(includePaths));
         }
 
         // include child nodes from source individually to avoid deleting other initialized content
-        final Set<String> includes = newHashSet();
+        final Set<String> includes = new HashSet<>();
         for (String childNodeName : sourceRoot.getChildNodeNames()) {
             includes.add("/" + childNodeName);
         }
@@ -1025,7 +1017,7 @@ public class RepositoryUpgrade {
         if (name.length() <= Utils.NODE_NAME_LIMIT / 3) {
             return false;
         }
-        if (name.getBytes(Charsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
+        if (name.getBytes(StandardCharsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
             return false;
         }
         return true;
@@ -1038,7 +1030,7 @@ public class RepositoryUpgrade {
         if (parentPath.length() < Utils.PATH_SHORT) {
             return false;
         }
-        if (parentPath.getBytes(Charsets.UTF_8).length < Utils.PATH_LONG) {
+        if (parentPath.getBytes(StandardCharsets.UTF_8).length < Utils.PATH_LONG) {
             return false;
         }
         return true;

@@ -16,19 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
 import java.io.IOException;
+
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.FSDirectoryFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.util.Arrays.asList;
+import static java.util.Objects.requireNonNull;
 
 public class OutOfBandIndexer extends OutOfBandIndexerBase {
     private final ExtendedIndexHelper extendedIndexHelper;
@@ -38,17 +37,17 @@ public class OutOfBandIndexer extends OutOfBandIndexerBase {
 
     public OutOfBandIndexer(ExtendedIndexHelper extendedIndexHelper, IndexerSupport indexerSupport) {
         super(extendedIndexHelper,indexerSupport);
-        this.extendedIndexHelper = checkNotNull(extendedIndexHelper);
+        this.extendedIndexHelper = requireNonNull(extendedIndexHelper);
     }
 
     protected IndexEditorProvider createIndexEditorProvider() throws IOException {
-        IndexEditorProvider lucene = createLuceneEditorProvider();
-        IndexEditorProvider property = createPropertyEditorProvider();
+        LuceneIndexEditorProvider lucene = createLuceneEditorProvider();
+        SegmentPropertyIndexEditorProvider property = createPropertyEditorProvider();
 
-        return CompositeIndexEditorProvider.compose(asList(lucene, property));
+        return CompositeIndexEditorProvider.compose(lucene, property);
     }
 
-    private IndexEditorProvider createPropertyEditorProvider() throws IOException {
+    private SegmentPropertyIndexEditorProvider createPropertyEditorProvider() throws IOException {
         SegmentPropertyIndexEditorProvider provider =
                 new SegmentPropertyIndexEditorProvider(new File(getLocalIndexDir(), "propertyIndexStore"));
         provider.with(extendedIndexHelper.getMountInfoProvider());
@@ -56,7 +55,7 @@ public class OutOfBandIndexer extends OutOfBandIndexerBase {
         return provider;
     }
 
-    private IndexEditorProvider createLuceneEditorProvider() throws IOException {
+    private LuceneIndexEditorProvider createLuceneEditorProvider() throws IOException {
         LuceneIndexHelper luceneIndexHelper = extendedIndexHelper.getLuceneIndexHelper();
         DirectoryFactory dirFactory = new FSDirectoryFactory(getLocalIndexDir());
         luceneIndexHelper.setDirectoryFactory(dirFactory);

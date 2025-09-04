@@ -16,18 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
@@ -70,7 +69,7 @@ public class BlobReferenceIteratorTest {
 
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<Object[]> fixtures() {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
@@ -122,7 +121,7 @@ public class BlobReferenceIteratorTest {
 
     @Test
     public void testBlobIterator() throws Exception {
-        List<ReferencedBlob> blobs = Lists.newArrayList();
+        List<ReferencedBlob> blobs = new ArrayList<>();
 
         // 1. Set some single value Binary property
         for (int i = 0; i < 10; i++) {
@@ -133,7 +132,7 @@ public class BlobReferenceIteratorTest {
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
 
-        List<ReferencedBlob> collectedBlobs = ImmutableList.copyOf(store.getReferencedBlobsIterator());
+        List<ReferencedBlob> collectedBlobs = ListUtils.toList(store.getReferencedBlobsIterator());
         assertEquals(blobs.size(), collectedBlobs.size());
         assertEquals(new HashSet<>(blobs), new HashSet<>(collectedBlobs));
     }

@@ -25,7 +25,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
@@ -67,7 +66,7 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
     
     @Test
     public void testGetPrivilege() throws RepositoryException {
-        Set<String> aggregatedPrivilegeNames = ImmutableSet.of("jcr:read",
+        Set<String> aggregatedPrivilegeNames = Set.of("jcr:read",
                 "jcr:modifyProperties", "jcr:write", "rep:write", "jcr:all");
 
         for (Privilege priv : privilegeManager.getRegisteredPrivileges()) {

@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 import java.io.IOException;
 

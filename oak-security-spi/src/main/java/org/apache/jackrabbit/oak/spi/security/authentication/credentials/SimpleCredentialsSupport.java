@@ -16,16 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -48,7 +46,7 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     @Override
     @NotNull
     public Set<Class> getCredentialClasses() {
-        return ImmutableSet.<Class>of(SimpleCredentials.class);
+        return Set.of(SimpleCredentials.class);
     }
 
     @Override
@@ -65,14 +63,11 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     @NotNull
     public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
-            final SimpleCredentials sc = (SimpleCredentials) credentials;
-            return Maps.asMap(ImmutableSet.copyOf(sc.getAttributeNames()), new Function<String, Object>() {
-                @Nullable
-                @Override
-                public Object apply(String input) {
-                    return sc.getAttribute(input);
-                }
-            });
+            SimpleCredentials sc = (SimpleCredentials) credentials;
+            Map<String, Object> result = new LinkedHashMap<>();
+            Arrays.asList(sc.getAttributeNames()).forEach(
+                    attributeName -> result.put(attributeName, sc.getAttribute(attributeName)));
+            return Collections.unmodifiableMap(result);
         } else {
             return Collections.emptyMap();
         }

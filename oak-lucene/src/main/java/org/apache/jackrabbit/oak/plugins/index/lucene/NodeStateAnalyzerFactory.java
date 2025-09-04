@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
@@ -25,13 +24,13 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -59,8 +58,7 @@ import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Constructs a Lucene Analyzer from nodes (based on NodeState content).
@@ -70,9 +68,10 @@ import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
  * based config. Resource lookup are performed via binary property access
  */
 final class NodeStateAnalyzerFactory {
+
     private static final AtomicBoolean versionWarningAlreadyLogged = new AtomicBoolean(false);
 
-    private static final Set<String> IGNORE_PROP_NAMES = ImmutableSet.of(
+    private static final Set<String> IGNORE_PROP_NAMES = Set.of(
             FulltextIndexConstants.ANL_CLASS,
             FulltextIndexConstants.ANL_NAME,
             JcrConstants.JCR_PRIMARYTYPE
@@ -107,7 +106,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     private TokenFilterFactory[] loadTokenFilterFactories(NodeState tokenFiltersState) {
-        List<TokenFilterFactory> result = newArrayList();
+        List<TokenFilterFactory> result = new ArrayList<>();
 
         Tree tree = TreeFactory.createReadOnlyTree(tokenFiltersState);
         for (Tree t : tree.getChildren()){
@@ -124,7 +123,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     private CharFilterFactory[] loadCharFilterFactories(NodeState charFiltersState) {
-        List<CharFilterFactory> result = newArrayList();
+        List<CharFilterFactory> result = new ArrayList<>();
 
         //Need to read children in order
         Tree tree = TreeFactory.createReadOnlyTree(charFiltersState);
@@ -142,7 +141,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     private TokenizerFactory loadTokenizer(NodeState state) {
-        String clazz = checkNotNull(state.getString(FulltextIndexConstants.ANL_NAME));
+        String clazz = requireNonNull(state.getString(FulltextIndexConstants.ANL_NAME));
         Map<String, String> args = convertNodeState(state);
         TokenizerFactory tf = TokenizerFactory.forName(clazz, args);
         init(tf, state);
@@ -200,7 +199,7 @@ final class NodeStateAnalyzerFactory {
     }
 
     Map<String, String> convertNodeState(NodeState state) {
-        Map<String, String> result = Maps.newHashMap();
+        Map<String, String> result = new HashMap<>();
         for (PropertyState ps : state.getProperties()) {
             String name = ps.getName();
             if (ps.getType() != Type.BINARY
@@ -285,7 +284,12 @@ final class NodeStateAnalyzerFactory {
 
         @Override
         public <T> T newInstance(String cname, Class<T> expectedType) {
-            throw new UnsupportedOperationException();
+            try {
+                Class<? extends T> clazz = findClass(cname, expectedType);
+                return clazz.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create instance of " + cname, e);
+            }
         }
     }
 }

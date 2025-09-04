@@ -20,12 +20,13 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Objects;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
@@ -45,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -61,10 +62,10 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
  * <ul>
  * <li>Users are created below /rep:security/rep:authorizables/rep:users or
  * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_USER_PATH}
- * respectively.</li>
+ * respectively.
  * <li>Groups are created below /rep:security/rep:authorizables/rep:groups or
  * the path configured in the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_PATH}
- * respectively.</li>
+ * respectively.
  * <li>Below each category authorizables are created within a human readable
  * structure based on the defined intermediate path or some internal logic
  * with a depth defined by the {@code defaultDepth} config option.<br>
@@ -78,14 +79,13 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
  *         + aS              [rep:AuthorizableFolder]
  * ->        + aSmith        [rep:User]
  * </pre>
- * </li>
  * <li>The node name is calculated from the specified authorizable ID according
  * to the logic provided by the configured {@link AuthorizableNodeName}
  * implementation. If no name generator is present in the configuration
  * the {@link AuthorizableNodeName#DEFAULT default} implementation is used. The
- * name of the configuration option is {@link UserConstants#PARAM_AUTHORIZABLE_NODE_NAME}</li>
+ * name of the configuration option is {@link UserConstants#PARAM_AUTHORIZABLE_NODE_NAME}
  * <li>If no intermediate path is passed the names of the intermediate
- * folders are calculated from the leading chars of the escaped node name.</li>
+ * folders are calculated from the leading chars of the escaped node name.
  * <li>If the escaped node name is shorter than the {@code defaultDepth}
  * the last char is repeated.<br>
  * E.g. creating a user node for an ID 'a' would result in the following
@@ -97,36 +97,36 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
  *       + a                 [rep:AuthorizableFolder]
  *         + aa              [rep:AuthorizableFolder]
  * ->        + a             [rep:User]
- * </pre></li>
+ * </pre>
  *
  * <h3>Conflicts</h3>
  *
  * <ul>
  * <li>If the authorizable node to be created would collide with an existing
- * folder the conflict is resolved by using the colling folder as target.</li>
+ * folder the conflict is resolved by using the colling folder as target.
  * <li>The current implementation asserts that authorizable nodes are always
  * created underneath an node of type {@code rep:AuthorizableFolder}. If this
- * condition is violated a {@code ConstraintViolationException} is thrown.</li>
+ * condition is violated a {@code ConstraintViolationException} is thrown.
  * <li>If the specified intermediate path results in an authorizable node
  * being located outside of the configured content structure a
- * {@code ConstraintViolationException} is thrown.</li>
+ * {@code ConstraintViolationException} is thrown.
  * </ul>
  *
  * <h3>Configuration Options</h3>
  * <ul>
  * <li>{@link UserConstants#PARAM_USER_PATH}: Underneath this structure
  * all user nodes are created. Default value is
- * "/rep:security/rep:authorizables/rep:users"</li>
+ * "/rep:security/rep:authorizables/rep:users"
  * <li>{@link UserConstants#PARAM_GROUP_PATH}: Underneath this structure
  * all group nodes are created. Default value is
- * "/rep:security/rep:authorizables/rep:groups"</li>
+ * "/rep:security/rep:authorizables/rep:groups"
  * <li>{@link UserConstants#PARAM_DEFAULT_DEPTH}: A positive {@code integer}
  * greater than zero defining the depth of the default structure that is
- * always created. Default value: 2</li>
+ * always created. Default value: 2
  * <li>{@link UserConstants#PARAM_AUTHORIZABLE_NODE_NAME}: An implementation
  * of {@link AuthorizableNodeName} used to create a node name for a given
  * authorizableId. By {@link AuthorizableNodeName.Default default} the
- * ID itself is used as node name. (since OAK 1.0)</li>
+ * ID itself is used as node name. (since OAK 1.0)
  * </ul>
  *
  * <h3>Compatibility with Jackrabbit 2.x</h3>
@@ -134,8 +134,8 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
  * Due to the fact that this JCR implementation is expected to deal with huge amount
  * of child nodes the following configuration options are no longer supported:
  * <ul>
- * <li>autoExpandTree</li>
- * <li>autoExpandSize</li>
+ * <li>autoExpandTree
+ * <li>autoExpandSize
  * </ul>
  *
  * <h2>User and Group Access</h2>
@@ -268,7 +268,7 @@ class UserProvider extends AuthorizableBaseProvider {
         }
 
         Tree typeRoot = root.getTree(NODE_TYPES_PATH);
-        String userId = Strings.nullToEmpty(root.getContentSession().getAuthInfo().getUserID());
+        String userId = Objects.toString(root.getContentSession().getAuthInfo().getUserID(), "");
         Tree authorizableNode = TreeUtil.addChild(folder, nodeName, ntName, typeRoot, userId);
         authorizableNode.setProperty(REP_AUTHORIZABLE_ID, authorizableId);
         authorizableNode.setProperty(JcrConstants.JCR_UUID, getContentID(authorizableId));
@@ -358,7 +358,7 @@ class UserProvider extends AuthorizableBaseProvider {
     }
 
     private String getNodeName(@NotNull String authorizableId) {
-        AuthorizableNodeName generator = checkNotNull(config.getConfigValue(PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT, AuthorizableNodeName.class));
+        AuthorizableNodeName generator = requireNonNull(config.getConfigValue(PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT, AuthorizableNodeName.class));
         return generator.generateNodeName(authorizableId);
     }
 }

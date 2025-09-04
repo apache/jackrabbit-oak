@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.osgi;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.guava.common.io.Files;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.osgi.framework.BundleContext;
@@ -76,7 +76,7 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
     private void synchronizeConfigs(ConfigInstaller configInstaller) throws Exception {
         Set<String> existingPids = configInstaller.determineExistingConfigs();
 
-        Map<String, Map<String, Object>> configs = Maps.newHashMap();
+        Map<String, Map<String, Object>> configs = new HashMap<>();
 
         Map<String, Map<String, Object>> configFromFile =
                 parseJSONConfig((String) config.get(OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE));
@@ -94,18 +94,21 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
         //current config files. Such configs must be remove. Note it does not lead to
         //removal of configs added by using ConfigAdmin directly, say using WebConsole
         //ui
-        Set<String> pidsToBeRemoved = Sets.difference(existingPids, configs.keySet());
+        Set<String> pidsToBeRemoved = SetUtils.difference(existingPids, configs.keySet());
         configInstaller.removeConfigs(pidsToBeRemoved);
     }
 
     @SuppressWarnings("unchecked")
     private Map<String, Map<String, Object>> parseJSONConfig(String jsonFilePath) throws IOException {
-        Map<String, Map<String, Object>> configs = Maps.newHashMap();
+        Map<String, Map<String, Object>> configs = new HashMap<>();
         if (jsonFilePath == null) {
             return configs;
         }
 
-        List<String> files = Splitter.on(',').trimResults().omitEmptyStrings().splitToList(jsonFilePath);
+        List<String> files = Arrays.stream(jsonFilePath.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
         for (String filePath : files) {
             File jsonFile = new File(filePath);
             if (!jsonFile.exists()) {
@@ -113,7 +116,7 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
                 continue;
             }
 
-            String content = Files.toString(jsonFile, Charsets.UTF_8);
+            String content = new String(Files.readAllBytes(jsonFile.toPath()), StandardCharsets.UTF_8);
             JSONObject json = (JSONObject) JSONValue.parse(content);
             configs.putAll(json);
         }

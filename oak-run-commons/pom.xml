@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.57-SNAPSHOT</version>
+        <version>1.85-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -110,6 +110,11 @@
             <artifactId>oak-jcr</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-commons</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.jetbrains</groupId>
@@ -117,11 +122,15 @@
         </dependency>
         <dependency>
             <groupId>org.mongodb</groupId>
-            <artifactId>mongo-java-driver</artifactId>
+            <artifactId>mongodb-driver-sync</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.felix</groupId>
@@ -199,8 +208,20 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.arakelian</groupId>
-            <artifactId>docker-junit-rule</artifactId>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>toxiproxy</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -210,10 +231,10 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <!-- see https://issues.apache.org/jira/browse/OAK-7787 -->
-            <groupId>javax.activation</groupId>
-            <artifactId>activation</artifactId>
-            <version>1.1.1</version>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-blob-cloud-azure</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -36,8 +35,7 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static java.util.Objects.requireNonNull;
 
 @Component
 public class IndexInfoServiceImpl implements IndexInfoService{
@@ -62,17 +60,26 @@ public class IndexInfoServiceImpl implements IndexInfoService{
 
     @Override
     public Iterable<IndexInfo> getAllIndexInfo() {
-        return Iterables.filter(Iterables.transform(indexPathService.getIndexPaths(), new Function<String, IndexInfo>() {
-            @Override
-            public IndexInfo apply(String indexPath) {
-                try {
-                    return getInfo(indexPath);
-                } catch (Exception e) {
-                    log.warn("Error occurred while capturing IndexInfo for path {}", indexPath, e);
-                    return null;
+        HashSet<String> allIndexes = new HashSet<>();
+        indexPathService.getIndexPaths().forEach(allIndexes::add);
+        HashSet<String> activeIndexes = new HashSet<>();
+        if (indexPathService.getMountInfoProvider().hasNonDefaultMounts()) {
+            activeIndexes.addAll(IndexName.filterReplacedIndexes(allIndexes, nodeStore.getRoot(), true));
+        } else {
+            activeIndexes.addAll(allIndexes);
+        }
+        return IterableUtils.filter(IterableUtils.transform(indexPathService.getIndexPaths(), indexPath -> {
+            try {
+                IndexInfo info = getInfo(indexPath);
+                if (info != null) {
+                    info.setActive(activeIndexes.contains(indexPath));
                 }
+                return info;
+            } catch (Exception e) {
+                log.warn("Error occurred while capturing IndexInfo for path {}", indexPath, e);
+                return null;
             }
-        }), notNull());
+        }), x -> x != null);
     }
 
     @Override
@@ -110,7 +117,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
             service = IndexInfoProvider.class
     )
     public void bindInfoProviders(IndexInfoProvider infoProvider){
-        infoProviders.put(checkNotNull(infoProvider.getType()), infoProvider);
+        infoProviders.put(requireNonNull(infoProvider.getType()), infoProvider);
     }
 
     public void unbindInfoProviders(IndexInfoProvider infoProvider){
@@ -129,6 +136,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
     private static class SimpleIndexInfo implements IndexInfo {
         private final String indexPath;
         private final String type;
+        private boolean isActive;
 
         private SimpleIndexInfo(String indexPath, String type) {
             this.indexPath = indexPath;
@@ -202,6 +210,16 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         @Override
         public long getReindexCompletionTimestamp() {
             return -1;
+        }
+
+        @Override
+        public void setActive(boolean value) {
+            isActive = value;
+        }
+
+        @Override
+        public boolean isActive() {
+            return isActive;
         }
     }
 }

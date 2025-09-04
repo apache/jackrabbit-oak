@@ -27,15 +27,15 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import org.apache.commons.codec.digest.MurmurHash3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,7 +104,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     private static void decodeGetHeadResponse(int length, ByteBuf in, List<Object> out) {
         byte[] data = new byte[length - 1];
         in.readBytes(data);
-        String recordId = new String(data, Charsets.UTF_8);
+        String recordId = new String(data, StandardCharsets.UTF_8);
         out.add(new GetHeadResponse(null, recordId));
     }
 
@@ -134,7 +134,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         int blobIdLength = in.readInt();
         byte[] blobIdBytes = new byte[blobIdLength];
         in.readBytes(blobIdBytes);
-        String blobId = new String(blobIdBytes, Charsets.UTF_8);
+        String blobId = new String(blobIdBytes, StandardCharsets.UTF_8);
         File tempFile = new File(spoolFolder, blobId + ".tmp");
 
         // START_CHUNK flag enabled
@@ -152,7 +152,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
         byte[] chunkData = new byte[in.readableBytes()];
         in.readBytes(chunkData);
 
-        if (hash(mask, blobLength, chunkData) != hash) {
+        if (HashUtils.hashMurmur32(mask, blobLength, chunkData) != hash) {
             log.debug("Invalid checksum, discarding current chunk from {}", blobId);
             return;
         } else {
@@ -180,7 +180,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
 
         in.readBytes(data);
 
-        String body = new String(data, Charsets.UTF_8);
+        String body = new String(data, StandardCharsets.UTF_8);
 
         int colon = body.indexOf(":");
 
@@ -203,11 +203,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     }
 
     private static long hash(byte[] data) {
-        return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
-    }
-
-    private static long hash(byte mask, long blobLength, byte[] data) {
-        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data).hash().padToLong();
+        return Integer.toUnsignedLong(MurmurHash3.hash32x86(data));
     }
 
 }

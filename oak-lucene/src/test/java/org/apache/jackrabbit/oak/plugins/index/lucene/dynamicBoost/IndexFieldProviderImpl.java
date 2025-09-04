@@ -33,7 +33,7 @@ import org.apache.lucene.document.FieldType;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+
 
 /**
  * An example index field provider.
@@ -52,27 +52,27 @@ public class IndexFieldProviderImpl implements IndexFieldProvider {
     private static final String NT_DAM_ASSET = "dam:Asset";    
 
     @Override
-    public Set<String> getSupportedTypes() {
-        Set<String> supportedTypes = new HashSet<String>();
+    public @NotNull Set<String> getSupportedTypes() {
+        Set<String> supportedTypes = new HashSet<>();
         supportedTypes.add(NT_DAM_ASSET);
         return supportedTypes;
     }
     
     @Override
     public @NotNull Iterable<Field> getAugmentedFields(String path, NodeState nodeState, NodeState indexDefinition) {
-        Set<Field> fields = newHashSet();
+        Set<Field> fields = new HashSet<>();
         NodeState dynaTags = nodeState.getChildNode(JcrConstants.JCR_CONTENT).getChildNode(METADATA_FOLDER).getChildNode(PREDICTED_TAGS);
         for (String nodeName : dynaTags.getChildNodeNames()) {
             NodeState dynaTag = dynaTags.getChildNode(nodeName);
             String dynaTagName = dynaTag.getProperty(PREDICTED_TAG_NAME).getValue(Type.STRING);
-            Double dynaTagConfidence = dynaTag.getProperty(PREDICTED_TAG_CONFIDENCE).getValue(Type.DOUBLE);
+            double dynaTagConfidence = dynaTag.getProperty(PREDICTED_TAG_CONFIDENCE).getValue(Type.DOUBLE);
 
             List<String> tokens = new ArrayList<>(splitForIndexing(dynaTagName));
             if (tokens.size() > 1) { // Actual name not in tokens
                 tokens.add(dynaTagName);
             }
             for (String token : tokens) {
-                if (token.length() > 0) {
+                if (!token.isEmpty()) {
                     fields.add(new AugmentedField(PREDICTED_TAGS_REL_PATH + token.toLowerCase(), dynaTagConfidence));
                 }
             }

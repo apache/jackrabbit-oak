@@ -18,11 +18,14 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.index.indexer.document.*;
+import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexerBase;
+import org.apache.jackrabbit.oak.index.indexer.document.ElasticIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.ElasticIndexerProvider;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexerProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticRetryPolicy;
 
-import java.io.IOException;
 import java.util.List;
 
 /*
@@ -36,11 +39,12 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
     private final int port;
     private final String apiKeyId;
     private final String apiSecretId;
+    private final ElasticRetryPolicy retryPolicy;
 
     public ElasticDocumentStoreIndexer(IndexHelper indexHelper, IndexerSupport indexerSupport,
                                        String indexPrefix, String scheme,
                                        String host, int port,
-                                       String apiKeyId, String apiSecretId) throws IOException {
+                                       String apiKeyId, String apiSecretId) {
         super(indexHelper, indexerSupport);
         this.indexHelper = indexHelper;
         this.indexPrefix = indexPrefix;
@@ -49,23 +53,21 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
         this.port = port;
         this.apiKeyId = apiKeyId;
         this.apiSecretId = apiSecretId;
-        setProviders();
+        this.retryPolicy = ElasticRetryPolicy.createRetryPolicyFromSystemProperties();
     }
 
-    protected List<NodeStateIndexerProvider> createProviders() {
-        List<NodeStateIndexerProvider> providers = ImmutableList.of(
-                createElasticIndexerProvider()
-        );
-
-        providers.forEach(closer::register);
-        return providers;
+    protected NodeStateIndexerProvider createProvider() {
+        NodeStateIndexerProvider provider = createElasticIndexerProvider();
+        closer.register(provider);
+        return provider;
     }
+
     /*
     Used to provision elastic index before starting indexing
     Otherwise proper alias naming and mapping will not be applied
      */
     @Override
-    protected void preIndexOpertaions(List<NodeStateIndexer> indexers) {
+    protected void preIndexOperations(List<NodeStateIndexer> indexers) {
         // For all the available indexers check if it's an ElasticIndexer
         // and then provision the index
         for (NodeStateIndexer indexer : indexers) {
@@ -83,14 +85,14 @@ public class ElasticDocumentStoreIndexer extends DocumentStoreIndexerBase {
                         host,
                         port
                 );
-        final ElasticConnection coordinate;
+        final ElasticConnection connection;
         if (apiKeyId != null && apiSecretId != null) {
-            coordinate = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
+            connection = buildStep.withApiKeys(apiKeyId, apiSecretId).build();
         } else {
-            coordinate = buildStep.build();
+            connection = buildStep.build();
         }
-        closer.register(coordinate);
-        return new ElasticIndexerProvider(indexHelper, coordinate);
+        closer.register(connection);
+        return new ElasticIndexerProvider(indexHelper, connection, retryPolicy);
     }
 
 }

@@ -16,16 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.state;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -58,7 +56,7 @@ public class MoveDetectorTest {
     public void simpleMove() throws CommitFailedException {
         NodeState moved1 = move(root.builder(), "/test/x", "/test/y/xx").getNodeState();
         MoveExpectation moveExpectation1 = new MoveExpectation(
-                ImmutableMap.of("/test/x", "/test/y/xx"));
+                Map.of("/test/x", "/test/y/xx"));
         MoveDetector moveDetector1 = new MoveDetector(moveExpectation1);
         CommitFailedException exception1 = EditorDiff.process(moveDetector1, root, moved1);
         if (exception1 != null) {
@@ -69,7 +67,7 @@ public class MoveDetectorTest {
         // Test whether we can also detect the move back on top of the previous, persisted move
         NodeState moved2 = move(moved1.builder(), "/test/y/xx", "/test/x").getNodeState();
         MoveExpectation moveExpectation2 = new MoveExpectation(
-                ImmutableMap.of("/test/y/xx", "/test/x"));
+                Map.of("/test/y/xx", "/test/x"));
         MoveDetector moveDetector2 = new MoveDetector(moveExpectation2);
         CommitFailedException exception2 = EditorDiff.process(moveDetector2, moved1, moved2);
         if (exception2 != null) {
@@ -89,7 +87,7 @@ public class MoveDetectorTest {
         move(rootBuilder, "/test/x", "/test/y/xx");
         NodeState moved = move(rootBuilder, "/test/y/xx", "/test/z/xxx").getNodeState();
         MoveExpectation moveExpectation = new MoveExpectation(
-                ImmutableMap.of("/test/x", "/test/z/xxx"));
+                Map.of("/test/x", "/test/z/xxx"));
         MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
@@ -108,7 +106,7 @@ public class MoveDetectorTest {
         rootBuilder.getChildNode("test").setChildNode("added");
         NodeState moved = move(rootBuilder, "/test/added", "/test/y/added").getNodeState();
         MoveExpectation moveExpectation = new MoveExpectation(
-                ImmutableMap.<String, String>of());
+                Map.of());
         MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
@@ -127,7 +125,7 @@ public class MoveDetectorTest {
         move(rootBuilder, "/test/z", "/test/y/z");
         NodeState moved = move(rootBuilder, "/test/y/z/zz", "/test/x/zz").getNodeState();
         MoveExpectation moveExpectation = new MoveExpectation(
-                ImmutableMap.of("/test/z", "/test/y/z", "/test/z/zz", "/test/x/zz"));
+                Map.of("/test/z", "/test/y/z", "/test/z/zz", "/test/x/zz"));
         MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
@@ -147,7 +145,7 @@ public class MoveDetectorTest {
         move(rootBuilder, "/test/z", "/test/y/z");
         NodeState moved = move(rootBuilder, "/test/y/z/added", "/test/x/added").getNodeState();
         MoveExpectation moveExpectation = new MoveExpectation(
-                ImmutableMap.of("/test/z", "/test/y/z"));
+                Map.of("/test/z", "/test/y/z"));
         MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
@@ -166,7 +164,7 @@ public class MoveDetectorTest {
         move(rootBuilder, "/test/x", "/test/y/xx");
         NodeState moved = move(rootBuilder, "/test/y/xx", "/test/x").getNodeState();
         MoveExpectation moveExpectation = new MoveExpectation(
-                ImmutableMap.<String, String>of());
+                Map.of());
         MoveDetector moveDetector = new MoveDetector(moveExpectation);
         CommitFailedException exception = EditorDiff.process(moveDetector, root, moved);
         if (exception != null) {
@@ -201,7 +199,7 @@ public class MoveDetectorTest {
         }
 
         public MoveExpectation(Map<String, String> moves) {
-            this(Maps.newHashMap(moves), "/");
+            this(new HashMap<>(moves), "/");
         }
 
         @Override

@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.aws.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.newFileStore;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.newSegmentNodeStorePersistence;
@@ -26,14 +25,16 @@ import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.printableS
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.io.Files;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
@@ -72,6 +73,12 @@ public class AwsCompact {
 
         private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
 
+        private GCType gcType = GCType.FULL;
+
+        private CompactorType compactorType = CompactorType.PARALLEL_COMPACTOR;
+
+        private int concurrency = 1;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -83,7 +90,7 @@ public class AwsCompact {
          * @return this builder.
          */
         public Builder withPath(String path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -129,12 +136,43 @@ public class AwsCompact {
         }
 
         /**
+         * The garbage collection type used. If not specified it defaults to full compaction
+         * @param gcType the GC type
+         * @return this builder
+         */
+        public Builder withGCType(GCType gcType) {
+            this.gcType = gcType;
+            return this;
+        }
+
+        /**
+         * The compactor type to be used by compaction. If not specified it defaults to
+         * "parallel" compactor
+         * @param compactorType the compactor type
+         * @return this builder
+         */
+        public Builder withCompactorType(CompactorType compactorType) {
+            this.compactorType = compactorType;
+            return this;
+        }
+
+        /**
+         * The number of threads to be used for compaction. This only applies to the "parallel" compactor
+         * @param concurrency the number of threads
+         * @return this builder
+         */
+        public Builder withConcurrency(int concurrency) {
+            this.concurrency = concurrency;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Compact} command.
          *
          * @return an instance of {@link Runnable}.
          */
         public AwsCompact build() {
-            checkNotNull(path);
+            requireNonNull(path);
             return new AwsCompact(this);
         }
     }
@@ -147,11 +185,20 @@ public class AwsCompact {
 
     private final long gcLogInterval;
 
+    private final GCType gcType;
+
+    private final CompactorType compactorType;
+
+    private final int concurrency;
+
     private AwsCompact(Builder builder) {
         this.path = builder.path;
         this.segmentCacheSize = builder.segmentCacheSize;
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
+        this.gcType = builder.gcType;
+        this.compactorType = builder.compactorType;
+        this.concurrency = builder.concurrency;
     }
 
     public int run() throws IOException {
@@ -172,9 +219,20 @@ public class AwsCompact {
         printArchives(System.out, beforeArchives);
         System.out.printf("    -> compacting\n");
 
-        try (FileStore store = newFileStore(persistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
-                gcLogInterval)) {
-            if (!store.compactFull()) {
+        try (FileStore store = newFileStore(persistence,
+                Files.createTempDirectory(getClass().getSimpleName() + "-").toFile(), strictVersionCheck, segmentCacheSize,
+                gcLogInterval, compactorType, concurrency)) {
+            boolean success = false;
+            switch (gcType) {
+                case FULL:
+                    success = store.compactFull();
+                    break;
+                case TAIL:
+                    success = store.compactTail();
+                    break;
+            }
+
+            if (!success) {
                 System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
                 return 1;
             }

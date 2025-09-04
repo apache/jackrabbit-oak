@@ -19,9 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -74,10 +73,10 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
         assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
-        assertEquals(1, Iterables.size(cids));
-        assertEquals(c2Id, Iterables.get(cids, 0).intValue());
+        assertEquals(1, IterableUtils.size(cids));
+        assertEquals(c2Id, IterableUtils.get(cids, 0).intValue());
 
-        ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
+        ds1.getLastRevRecoveryAgent().recover(IterableUtils.get(cids, 0));
 
         assertEquals(zlastRev2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
         assertEquals(zlastRev2, getDocument(ds1, "/x").getLastRev().get(c2Id));
@@ -112,18 +111,18 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
         //.. but, it won't be returned while we iterate candidate nodes from self
-        assertEquals(0, Iterables.size(cids));
+        assertEquals(0, IterableUtils.size(cids));
 
         cids = ds2.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
         //... checking that from other node still reports
-        assertEquals(1, Iterables.size(cids));
-        assertEquals(c1Id, Iterables.get(cids, 0).intValue());
+        assertEquals(1, IterableUtils.size(cids));
+        assertEquals(c1Id, IterableUtils.get(cids, 0).intValue());
 
         ds2.runBackgroundOperations();
         assertFalse(ds2.getRoot().getChildNode("x").getChildNode("y").hasChildNode("z"));
 
         // yet, calling recover with self-cluster-id still works (useful for startup LRRA)
-        ds1.getLastRevRecoveryAgent().recover(Iterables.get(cids, 0));
+        ds1.getLastRevRecoveryAgent().recover(IterableUtils.get(cids, 0));
 
         ds2.runBackgroundOperations();
         assertTrue(ds2.getRoot().getChildNode("x").getChildNode("y").hasChildNode("z"));
@@ -236,12 +235,12 @@ public class LastRevRecoveryAgentTest extends AbstractTwoNodeTest {
         assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
 
         Iterable<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
-        assertEquals(1, Iterables.size(cids));
-        assertEquals(c2Id, Iterables.get(cids, 0).intValue());
+        assertEquals(1, IterableUtils.size(cids));
+        assertEquals(c2Id, IterableUtils.get(cids, 0).intValue());
 
         int updates = ds1.getLastRevRecoveryAgent().recover(
                 Utils.getAllDocuments(store1),
-                Iterables.get(cids, 0),
+                IterableUtils.get(cids, 0),
                 true // dryRun
         );
         assertEquals(3, updates);

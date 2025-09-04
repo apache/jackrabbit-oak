@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
@@ -224,7 +223,7 @@ public class DataStoreCopyCommandTest {
                 "--out-dir",
                 outDir.getRoot().getAbsolutePath()
         );
-        assertEquals(Joiner.on(File.separator).join(outDir.getRoot().getAbsolutePath(), "29",
+        assertEquals(String.join(File.separator, outDir.getRoot().getAbsolutePath(), "29",
                         "0F", "49","290F493C44F5D63D06B374D0A5ABD292FAE38B92CAB2FAE5EFEFE1B0E9347F56"),
                 cmd.getDestinationFromId(BLOB1)
         );

@@ -24,7 +24,6 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.felix.scr.annotations.Component;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
@@ -33,7 +32,6 @@ import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 
-@Component(componentAbstract = true)
 public abstract class AbstractS3DataStoreService extends AbstractDataStoreService {
     private static final String DESCRIPTION = "oak.datastore.description";
 

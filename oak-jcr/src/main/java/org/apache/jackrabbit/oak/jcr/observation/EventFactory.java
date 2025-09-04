@@ -18,26 +18,26 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.isEmpty;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.StringJoiner;
 
 import javax.jcr.Value;
 import javax.jcr.observation.Event;
 
-import org.apache.jackrabbit.guava.common.base.MoreObjects;
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -96,10 +96,10 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.builder()
-                        .putAll(createInfoMap(primaryType, mixinTypes))
-                        .put("afterValue", createValue(after))
-                        .build();
+                Map<Object, Object> builder = new HashMap<>();
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                builder.put("afterValue", createValue(after));
+                return Collections.unmodifiableMap(builder);
             }
         };
     }
@@ -115,11 +115,11 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.builder()
-                        .putAll(createInfoMap(primaryType, mixinTypes))
-                        .put("beforeValue", createValue(before))
-                        .put("afterValue", createValue(after))
-                        .build();
+                Map<Object, Object> builder = new HashMap<>();
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                builder.put("beforeValue", createValue(before));
+                builder.put("afterValue", createValue(after));
+                return Collections.unmodifiableMap(builder);
             }
         };
     }
@@ -134,10 +134,10 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.builder()
-                        .putAll(createInfoMap(primaryType, mixinTypes))
-                        .put("beforeValue", createValue(before))
-                        .build();
+                Map<Object, Object> builder = new HashMap<>();
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                builder.put("beforeValue", createValue(before));
+                return Collections.unmodifiableMap(builder);
             }
         };
     }
@@ -190,11 +190,11 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.builder()
-                    .put("srcAbsPath", mapper.getJcrPath(sourcePath))
-                    .put("destAbsPath", getPath())
-                    .putAll(createInfoMap(primaryType, mixinTypes))
-                    .build();
+                Map<Object, Object> builder = new HashMap<>();
+                builder.put("srcAbsPath", mapper.getJcrPath(sourcePath));
+                builder.put("destAbsPath", getPath());
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                return Collections.unmodifiableMap(builder);
             }
         };
     }
@@ -210,27 +210,27 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.builder()
-                    .put("srcChildRelPath", mapper.getJcrName(name))
-                    .put("destChildRelPath", mapper.getJcrName(destName))
-                    .putAll(createInfoMap(primaryType, mixinTypes))
-                    .build();
+                Map<Object, Object> builder = new HashMap<>();
+                builder.put("srcChildRelPath", mapper.getJcrName(name));
+                builder.put("destChildRelPath", mapper.getJcrName(destName));
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                return Collections.unmodifiableMap(builder);
             }
         };
     }
 
     private Map<String, ?> createInfoMap(String primaryType, Iterable<String> mixinTypes) {
-        if (isEmpty(mixinTypes)) {
-            return ImmutableMap.of(
+        if (IterableUtils.isEmpty(mixinTypes)) {
+            return Map.of(
                     JCR_PRIMARYTYPE, mapper.getJcrName(primaryType));
         } else {
-            List<String> jcrNames = Lists.newArrayList();
+            List<String> jcrNames = new ArrayList<>();
             for (String name : mixinTypes) {
                 jcrNames.add(mapper.getJcrName(name));
             }
-            return ImmutableMap.of(
+            return Map.of(
                     JCR_PRIMARYTYPE, mapper.getJcrName(primaryType),
-                    JCR_MIXINTYPES, toArray(jcrNames, String.class));
+                    JCR_MIXINTYPES, IterableUtils.toArray(jcrNames, String.class));
         }
     }
 
@@ -308,8 +308,8 @@ public class EventFactory {
                         && getPath().equals(that.getPath())
                         && getIdentifier().equals(that.getIdentifier())
                         && getInfo().equals(that.getInfo())
-                        && Objects.equal(getUserID(), that.getUserID())
-                        && Objects.equal(getUserData(), that.getUserData())
+                        && Objects.equals(getUserID(), that.getUserID())
+                        && Objects.equals(getUserData(), that.getUserData())
                         && getDate() == that.getDate()
                         && isExternal() == that.isExternal();
             } else {
@@ -319,22 +319,22 @@ public class EventFactory {
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(
+            return Objects.hash(
                     getType(), getPath(), getIdentifier(), getInfo(),
                     getUserID(), getUserData(), getDate(), isExternal());
         }
 
         @Override
         public String toString() {
-            return MoreObjects.toStringHelper("Event")
-                    .add("type", getType())
-                    .add("path", getPath())
-                    .add("identifier", getIdentifier())
-                    .add("info", getInfo())
-                    .add("userID", getUserID())
-                    .add("userData", getUserData())
-                    .add("date", getDate())
-                    .add("external", isExternal())
+            return new StringJoiner(", ", "Event [", "]")
+                    .add("type=" + getType())
+                    .add("path=" + getPath())
+                    .add("identifier=" + getIdentifier())
+                    .add("info=" + getInfo())
+                    .add("userID=" + getUserID())
+                    .add("userData=" + getUserData())
+                    .add("date=" + getDate())
+                    .add("external=" + isExternal())
                     .toString();
         }
 

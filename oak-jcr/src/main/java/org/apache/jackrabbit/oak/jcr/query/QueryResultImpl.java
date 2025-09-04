@@ -69,7 +69,7 @@ public class QueryResultImpl implements QueryResult {
     }
 
     @Override
-    public String[] getColumnNames() throws RepositoryException {
+    public String[] getColumnNames() {
         return result.getColumnNames();
     }
 
@@ -80,7 +80,7 @@ public class QueryResultImpl implements QueryResult {
 
     @Override
     public RowIterator getRows() throws RepositoryException {
-        Iterator<RowImpl> rowIterator = new Iterator<RowImpl>() {
+        Iterator<RowImpl> rowIterator = new Iterator<>() {
 
             private final Iterator<? extends ResultRow> it = result.getRows().iterator();
             private final String pathSelector;
@@ -135,13 +135,15 @@ public class QueryResultImpl implements QueryResult {
             }
 
         };
-        final PrefetchIterator<RowImpl> prefIt = new  PrefetchIterator<RowImpl>(
+        final PrefetchIterator<RowImpl> prefIt = new PrefetchIterator<>(
                 sessionDelegate.sync(rowIterator),
-                new PrefetchOptions() { {
-                    size = result.getSize();
-                    fastSize = sessionContext.getFastQueryResultSize();
-                    fastSizeCallback = result;
-                } });
+                new PrefetchOptions() {
+                    {
+                        size = result.getSize();
+                        fastSize = sessionContext.getFastQueryResultSize();
+                        fastSizeCallback = result;
+                    }
+                });
         return new RowIteratorAdapter(prefIt) {
             @Override
             public long getSize() {
@@ -171,62 +173,64 @@ public class QueryResultImpl implements QueryResult {
             throw new RepositoryException("Query does not contain a selector: " +
                     Arrays.toString(columnSelectorNames));
         }
-        Iterator<NodeImpl<? extends NodeDelegate>> nodeIterator = 
-                new Iterator<NodeImpl<? extends NodeDelegate>>() {
+        Iterator<NodeImpl<? extends NodeDelegate>> nodeIterator =
+                new Iterator<>() {
 
-            private final Iterator<? extends ResultRow> it = result.getRows().iterator();
-            private NodeImpl<? extends NodeDelegate> current;
+                    private final Iterator<? extends ResultRow> it = result.getRows().iterator();
+                    private NodeImpl<? extends NodeDelegate> current;
 
-            {
-                fetch();
-            }
+                    {
+                        fetch();
+                    }
 
-            private void fetch() {
-                current = null;
-                while (it.hasNext()) {
-                    ResultRow r = it.next();
-                    Tree tree = r.getTree(selectorName);
-                    if (tree != null && tree.exists()) {
-                        try {
-                            current = getNode(tree);
-                            break;
-                        } catch (RepositoryException e) {
-                            LOG.warn("Unable to fetch result node for path "
-                                     + tree.getPath(), e);
+                    private void fetch() {
+                        current = null;
+                        while (it.hasNext()) {
+                            ResultRow r = it.next();
+                            Tree tree = r.getTree(selectorName);
+                            if (tree != null && tree.exists()) {
+                                try {
+                                    current = getNode(tree);
+                                    break;
+                                } catch (RepositoryException e) {
+                                    LOG.warn("Unable to fetch result node for path "
+                                            + tree.getPath(), e);
+                                }
+                            }
                         }
                     }
-                }
-            }
 
-            @Override
-            public boolean hasNext() {
-                return current != null;
-            }
+                    @Override
+                    public boolean hasNext() {
+                        return current != null;
+                    }
 
-            @Override
-            public NodeImpl<? extends NodeDelegate> next() {
-                if (current == null) {
-                    throw new NoSuchElementException();
-                }
-                NodeImpl<? extends NodeDelegate> n = current;
-                fetch();
-                return n;
-            }
+                    @Override
+                    public NodeImpl<? extends NodeDelegate> next() {
+                        if (current == null) {
+                            throw new NoSuchElementException();
+                        }
+                        NodeImpl<? extends NodeDelegate> n = current;
+                        fetch();
+                        return n;
+                    }
 
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
 
-        };
-        final PrefetchIterator<NodeImpl<? extends NodeDelegate>> prefIt = 
-                new  PrefetchIterator<NodeImpl<? extends NodeDelegate>>(
-                    sessionDelegate.sync(nodeIterator),
-                    new PrefetchOptions() { {
-                        size = result.getSize();
-                        fastSize = sessionContext.getFastQueryResultSize();
-                        fastSizeCallback = result;
-                    } });
+                };
+        final PrefetchIterator<NodeImpl<? extends NodeDelegate>> prefIt =
+                new PrefetchIterator<>(
+                        sessionDelegate.sync(nodeIterator),
+                        new PrefetchOptions() {
+                            {
+                                size = result.getSize();
+                                fastSize = sessionContext.getFastQueryResultSize();
+                                fastSizeCallback = result;
+                            }
+                        });
         return new NodeIteratorAdapter(prefIt) {
             @Override
             public long getSize() {

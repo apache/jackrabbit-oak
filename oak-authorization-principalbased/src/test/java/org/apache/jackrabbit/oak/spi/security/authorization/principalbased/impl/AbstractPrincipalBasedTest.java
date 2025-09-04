@@ -16,10 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ObjectArrays;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -29,6 +26,8 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -50,16 +49,14 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
-import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
@@ -68,7 +65,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     static final String TEST_OAK_PATH = "/oak:content/child/grandchild/oak:subtree";
 
-    static final Map<String, String> LOCAL_NAME_MAPPINGS = ImmutableMap.of(
+    static final Map<String, String> LOCAL_NAME_MAPPINGS = Map.of(
             "a","internal",
             "b","http://www.jcp.org/jcr/1.0",
             "c","http://jackrabbit.apache.org/oak/ns/1.0"
@@ -115,7 +112,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     @Override
     @NotNull
     protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        Iterable<String> pn = Iterables.transform(ImmutableSet.copyOf(privilegeNames), privName -> getNamePathMapper().getJcrName(privName));
+        Iterable<String> pn = IterableUtils.transform(SetUtils.toLinkedSet(privilegeNames), privName -> getNamePathMapper().getJcrName(privName));
         return super.privilegesFromNames(pn);
     }
 
@@ -146,7 +143,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     @NotNull
     PrincipalPolicyImpl getPrincipalPolicyImpl(@NotNull Principal testPrincipal, @NotNull JackrabbitAccessControlManager acMgr) throws Exception {
-        for (JackrabbitAccessControlPolicy policy : ObjectArrays.concat(acMgr.getApplicablePolicies(testPrincipal), acMgr.getPolicies(testPrincipal), JackrabbitAccessControlPolicy.class)) {
+        for (JackrabbitAccessControlPolicy policy : ArrayUtils.addAll(acMgr.getApplicablePolicies(testPrincipal), acMgr.getPolicies(testPrincipal))) {
             if (policy instanceof PrincipalPolicyImpl) {
                 return (PrincipalPolicyImpl) policy;
             }
@@ -177,7 +174,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     boolean addDefaultEntry(@Nullable String path, @NotNull Principal principal, @Nullable Map<String, Value> restr, @Nullable Map<String, Value[]> mvRestr, @NotNull String... privNames) throws Exception {
         JackrabbitAccessControlManager jacm = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(jacm, path);
-        checkNotNull(acl);
+        requireNonNull(acl);
 
         boolean mod = acl.addEntry(principal, privilegesFromNames(privNames), true, restr, mvRestr);
         jacm.setPolicy(acl.getPath(), acl);
@@ -186,7 +183,7 @@ public abstract class AbstractPrincipalBasedTest extends AbstractSecurityTest {
 
     @NotNull
     PrincipalBasedPermissionProvider createPermissionProvider(@NotNull Root root, @NotNull Principal... principals) {
-        PermissionProvider pp = principalBasedAuthorizationConfiguration.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals));
+        PermissionProvider pp = principalBasedAuthorizationConfiguration.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Set.of(principals));
         if (pp instanceof PrincipalBasedPermissionProvider) {
             return (PrincipalBasedPermissionProvider) pp;
         } else {

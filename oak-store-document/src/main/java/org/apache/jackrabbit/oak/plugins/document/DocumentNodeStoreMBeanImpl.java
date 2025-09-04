@@ -24,23 +24,18 @@ import java.util.TimeZone;
 
 import javax.management.openmbean.CompositeData;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Implementation of a DocumentNodeStoreMBean.
@@ -90,50 +85,23 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public String[] getInactiveClusterNodes() {
-        return toArray(transform(filter(clusterNodes,
-                new Predicate<ClusterNodeInfoDocument>() {
-            @Override
-            public boolean apply(ClusterNodeInfoDocument input) {
-                return !input.isActive();
-            }
-        }), new Function<ClusterNodeInfoDocument, String>() {
-            @Override
-            public String apply(ClusterNodeInfoDocument input) {
-                return input.getClusterId() + "=" + input.getCreated();
-            }
-        }), String.class);
+        return IterableUtils.toArray(IterableUtils.transform(IterableUtils.filter(clusterNodes,
+                input -> !input.isActive()),
+                input -> input.getClusterId() + "=" + input.getCreated()), String.class);
     }
 
     @Override
     public String[] getActiveClusterNodes() {
-        return toArray(transform(filter(clusterNodes,
-                new Predicate<ClusterNodeInfoDocument>() {
-            @Override
-            public boolean apply(ClusterNodeInfoDocument input) {
-                return input.isActive();
-            }
-        }), new Function<ClusterNodeInfoDocument, String>() {
-            @Override
-            public String apply(ClusterNodeInfoDocument input) {
-                return input.getClusterId() + "=" + input.getLeaseEndTime();
-            }
-        }), String.class);
+        return IterableUtils.toArray(IterableUtils.transform(IterableUtils.filter(clusterNodes,
+                input -> input.isActive()),
+                input -> input.getClusterId() + "=" + input.getLeaseEndTime()), String.class);
     }
 
     @Override
     public String[] getLastKnownRevisions() {
-        return toArray(transform(filter(nodeStore.getHeadRevision(),
-                new Predicate<Revision>() {
-            @Override
-            public boolean apply(Revision input) {
-                return input.getClusterId() != getClusterId();
-            }
-        }), new Function<Revision, String>() {
-            @Override
-            public String apply(Revision input) {
-                return input.getClusterId() + "=" + input.toString();
-            }
-        }), String.class);
+        return IterableUtils.toArray(IterableUtils.transform(IterableUtils.filter(nodeStore.getHeadRevision(),
+                input -> input.getClusterId() != getClusterId()),
+                input -> input.getClusterId() + "=" + input.toString()), String.class);
     }
 
     @Override
@@ -199,7 +167,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public int recover(String path, int clusterId) {
-        checkNotNull(path, "path must not be null");
+        requireNonNull(path, "path must not be null");
         checkArgument(PathUtils.isAbsolute(path), "path must be absolute");
         checkArgument(clusterId >= 0, "clusterId must not be a negative");
 

@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
 import org.jetbrains.annotations.NotNull;
@@ -78,14 +77,14 @@ final class SyncHandlerMappingTracker extends ServiceTracker {
     }
 
     Iterable<String> getIdpNames(@NotNull final String syncHandlerName) {
-        return Iterables.filter(Iterables.transform(referenceMap.values(), mapping -> {
+        return IterableUtils.filter(IterableUtils.transform(referenceMap.values(), mapping -> {
             if (syncHandlerName.equals(mapping.syncHandlerName)) {
                 return mapping.idpName;
             } else {
                 // different synchandler name
                 return null;
             }
-        }), Predicates.notNull());
+        }), x -> x != null);
     }
 
     private static final class Mapping {

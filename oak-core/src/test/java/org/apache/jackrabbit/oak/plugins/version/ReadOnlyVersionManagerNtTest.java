@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -52,7 +52,7 @@ public class ReadOnlyVersionManagerNtTest extends ReadOnlyVersionManagerTest {
     
     @Test
     public void testNtFrozenNodeUuid() throws Exception {
-        Tree baseVersion = checkNotNull(versionManager.getBaseVersion(versionable));
+        Tree baseVersion = requireNonNull(versionManager.getBaseVersion(versionable));
         Tree frozen = baseVersion.getChild(VersionConstants.JCR_FROZENNODE);
         PropertyState uuid = frozen.getProperty("jcr:uuid");
         if (oakReferenceableFrozenNode == null ||

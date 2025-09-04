@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -62,16 +61,16 @@ public class LuceneDocumentHolderTest {
         assertThat(asMultiMap(holder.getSyncIndexedDocs()).values(), containsInAnyOrder("/a", "/b"));
     }
 
-    private static ListMultimap<String, String> asMultiMap(Iterable<? extends LuceneDocInfo> itr){
-        ListMultimap<String, String> docs = ArrayListMultimap.create();
+    private static ListValuedMap<String, String> asMultiMap(Iterable<? extends LuceneDocInfo> itr){
+        ListValuedMap<String, String> docs = new ArrayListValuedHashMap<>();
         for (LuceneDocInfo d : itr){
             docs.put(d.getIndexPath(), d.getDocPath());
         }
         return docs;
     }
 
-    private static ListMultimap<String, String> asMultiMap(Map<String, Collection<LuceneDoc>> map){
-        ListMultimap<String, String> docs = ArrayListMultimap.create();
+    private static ListValuedMap<String, String> asMultiMap(Map<String, Collection<LuceneDoc>> map){
+        ListValuedMap<String, String> docs = new ArrayListValuedHashMap<>();
         for (Collection<LuceneDoc> lds : map.values()){
             for (LuceneDoc d : lds){
                 docs.put(d.getIndexPath(), d.getDocPath());
@@ -82,8 +81,8 @@ public class LuceneDocumentHolderTest {
 
     private static class DummyQueue implements IndexingQueue {
         boolean enabled;
-        ListMultimap<String, String> docs = ArrayListMultimap.create();
-        Map<String, LuceneDoc> luceneDocs = Maps.newHashMap();
+        ListValuedMap<String, String> docs = new ArrayListValuedHashMap<>();
+        Map<String, LuceneDoc> luceneDocs = new HashMap<>();
 
         @Override
         public boolean addIfNotFullWithoutWait(LuceneDoc doc) {

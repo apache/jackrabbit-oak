@@ -18,12 +18,16 @@ package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
 import java.io.InputStream;
-import org.apache.jackrabbit.guava.common.base.Predicate;
+import java.util.Objects;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.LazyValue;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -33,10 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
+import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -99,8 +100,8 @@ class SecureNodeBuilder implements NodeBuilder {
         this.rootBuilder = this;
         this.parent = null;
         this.name = null;
-        this.permissionProvider = checkNotNull(permissionProvider);
-        this.builder = checkNotNull(builder);
+        this.permissionProvider = requireNonNull(permissionProvider);
+        this.builder = requireNonNull(builder);
     }
 
     private SecureNodeBuilder(SecureNodeBuilder parent, String name) {
@@ -156,7 +157,7 @@ class SecureNodeBuilder implements NodeBuilder {
     }
 
     public void baseChanged() {
-        checkState(parent == null);
+        Validate.checkState(parent == null);
         treePermission = null; // trigger re-evaluation
         rootPermission = null;
     }
@@ -176,7 +177,7 @@ class SecureNodeBuilder implements NodeBuilder {
     @Override
     public PropertyState getProperty(String name) {
         PropertyState property = builder.getProperty(name);
-        if (new ReadablePropertyPredicate().apply(property)) {
+        if (new ReadablePropertyPredicate().test(property)) {
             return property;
         } else {
             return null;
@@ -193,9 +194,9 @@ class SecureNodeBuilder implements NodeBuilder {
         if (getTreePermission().canReadProperties() || isNew()) {
             return builder.getPropertyCount();
         } else {
-            return size(filter(
+            return IterableUtils.size(IterableUtils.filter(
                     builder.getProperties(),
-                    new ReadablePropertyPredicate()));
+                    new ReadablePropertyPredicate()::test));
         }
     }
 
@@ -205,9 +206,9 @@ class SecureNodeBuilder implements NodeBuilder {
         if (getTreePermission().canReadProperties() || isNew()) {
             return builder.getProperties();
         } else {
-            return filter(
+            return IterableUtils.filter(
                     builder.getProperties(),
-                    new ReadablePropertyPredicate());
+                    new ReadablePropertyPredicate()::test);
         }
     }
 
@@ -284,7 +285,7 @@ class SecureNodeBuilder implements NodeBuilder {
     @NotNull
     @Override
     public Iterable<String> getChildNodeNames() {
-        return filter(
+        return IterableUtils.filter(
                 builder.getChildNodeNames(),
                 input -> input != null && getChildNode(input).exists());
     }
@@ -333,7 +334,7 @@ class SecureNodeBuilder implements NodeBuilder {
         if (getTreePermission().canReadAll()) {
             return builder.getChildNodeCount(max);
         } else {
-            return size(getChildNodeNames());
+            return IterableUtils.size(getChildNodeNames());
         }
     }
 
@@ -352,12 +353,15 @@ class SecureNodeBuilder implements NodeBuilder {
         if (treePermission == null
                 || rootPermission != rootBuilder.treePermission) {
             NodeState base = builder.getBaseState();
+            String msg = "see OAK-11790 and OAK-11843";
             if (parent == null) {
                 Tree baseTree = TreeFactory.createReadOnlyTree(base);
-                treePermission = permissionProvider.get().getTreePermission(baseTree, TreePermission.EMPTY);
+                PermissionProvider provider = requireNonNull(permissionProvider.get(), msg);
+                treePermission = requireNonNull(provider.getTreePermission(baseTree, TreePermission.EMPTY), msg);
                 rootPermission = treePermission;
             } else {
-                treePermission = parent.getTreePermission().getChildPermission(name, base);
+                TreePermission parentTreePermission = Objects.requireNonNull(parent.getTreePermission(), msg);
+                treePermission = Objects.requireNonNull(parentTreePermission.getChildPermission(name, base), msg);
                 rootPermission = parent.rootPermission;
             }
         }
@@ -376,7 +380,7 @@ class SecureNodeBuilder implements NodeBuilder {
      */
     private class ReadablePropertyPredicate implements Predicate<PropertyState> {
         @Override
-        public boolean apply(@Nullable PropertyState property) {
+        public boolean test(@Nullable PropertyState property) {
             if (property != null) {
                 String propertyName = property.getName();
                 return NodeStateUtils.isHidden(propertyName) ||

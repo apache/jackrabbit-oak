@@ -21,7 +21,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Simple abstraction of the version storage.
@@ -67,7 +67,7 @@ public class VersionStorage {
      */
     private static Tree getVersionStorageTree(@NotNull Root workspaceRoot) {
         // TODO: this assumes the version store is in the same workspace.
-        return checkNotNull(workspaceRoot).getTree(VERSION_STORAGE_PATH);
+        return requireNonNull(workspaceRoot).getTree(VERSION_STORAGE_PATH);
     }
 
 }

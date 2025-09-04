@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
@@ -45,6 +43,7 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,7 +103,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     }
 
     private final Map<String, CredentialsSupport> credentialsSupport = new ConcurrentHashMap<>(
-            ImmutableMap.of(SimpleCredentialsSupport.class.getName(), SimpleCredentialsSupport.getInstance()));
+            Map.of(SimpleCredentialsSupport.class.getName(), SimpleCredentialsSupport.getInstance()));
 
     @SuppressWarnings("UnusedDeclaration")
     public TokenConfigurationImpl() {
@@ -147,7 +146,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
         ValidatorProvider vp = new TokenValidatorProvider(getSecurityProvider().getParameters(UserConfiguration.NAME), getTreeProvider());
-        return ImmutableList.of(vp);
+        return List.of(vp);
     }
 
     @Override
@@ -177,7 +176,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         } else if (size == 1) {
             return credentialsSupport.values().iterator().next();
         } else {
-            return CompositeCredentialsSupport.newInstance(() -> ImmutableSet.copyOf(credentialsSupport.values()));
+            return CompositeCredentialsSupport.newInstance(() -> Collections.unmodifiableSet(SetUtils.toLinkedSet(credentialsSupport.values())));
         }
     }
 }

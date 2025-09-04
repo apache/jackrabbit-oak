@@ -20,9 +20,9 @@ package org.apache.jackrabbit.oak.indexversion;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.plugins.index.property.RecursiveDelete;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class PurgeOldVersionUtils {
 
@@ -49,8 +49,8 @@ public class PurgeOldVersionUtils {
      */
     public static NodeBuilder getNode(@NotNull NodeBuilder nodeBuilder, @NotNull String path) {
         NodeBuilder resultNodeBuilder = nodeBuilder;
-        for (String name : PathUtils.elements(checkNotNull(path))) {
-            resultNodeBuilder = resultNodeBuilder.getChildNode(checkNotNull(name));
+        for (String name : PathUtils.elements(requireNonNull(path))) {
+            resultNodeBuilder = resultNodeBuilder.getChildNode(requireNonNull(name));
         }
         return resultNodeBuilder;
     }

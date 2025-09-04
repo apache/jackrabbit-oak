@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
@@ -51,9 +51,9 @@ class ResetDiff implements NodeStateDiff {
                       @NotNull Path path,
                       @NotNull Map<Path, UpdateOp> operations) {
         this.parent = parent;
-        this.revision = checkNotNull(revision);
-        this.path = checkNotNull(path);
-        this.operations = checkNotNull(operations);
+        this.revision = requireNonNull(revision);
+        this.path = requireNonNull(path);
+        this.operations = requireNonNull(operations);
     }
 
     @Override

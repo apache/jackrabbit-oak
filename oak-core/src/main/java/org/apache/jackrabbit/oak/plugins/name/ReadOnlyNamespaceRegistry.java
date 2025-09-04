@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -31,6 +30,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Read-only namespace registry. Used mostly internally when access to the
@@ -42,12 +46,22 @@ import org.jetbrains.annotations.NotNull;
 public class ReadOnlyNamespaceRegistry
         implements NamespaceRegistry, NamespaceConstants {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ReadOnlyNamespaceRegistry.class);
+
+    private static volatile boolean CONSISTENCY_CHECKED;
+
+    protected final Root root;
     protected final Tree namespaces;
     protected final Tree nsdata;
 
     public ReadOnlyNamespaceRegistry(Root root) {
+        this.root = root;
         this.namespaces = root.getTree(NAMESPACES_PATH);
         this.nsdata = namespaces.getChild(REP_NSDATA);
+        if (!CONSISTENCY_CHECKED) {
+            checkConsistency(root);
+            CONSISTENCY_CHECKED = true;
+        }
     }
 
     private Iterable<String> getNSData(String name) {
@@ -74,12 +88,16 @@ public class ReadOnlyNamespaceRegistry
 
     @Override @NotNull
     public String[] getPrefixes() {
-        return toArray(getNSData(REP_PREFIXES), String.class);
+        List<String> prefixes = new ArrayList();
+        getNSData(REP_PREFIXES).forEach(prefixes::add);
+        return prefixes.toArray(new String[prefixes.size()]);
     }
 
     @Override @NotNull
     public String[] getURIs() {
-        return toArray(getNSData(REP_URIS), String.class);
+        List<String> uris = new ArrayList<>();
+        getNSData(REP_URIS).forEach(uris::add);
+        return uris.toArray(new String[uris.size()]);
     }
 
     @Override @NotNull
@@ -112,4 +130,15 @@ public class ReadOnlyNamespaceRegistry
                 "No namespace prefix registered for URI " + uri);
     }
 
+    public boolean checkConsistency() throws IllegalStateException {
+        return checkConsistency(root);
+    }
+
+    public boolean checkConsistency(Root root) throws IllegalStateException {
+        NamespaceRegistryModel model = NamespaceRegistryModel.create(root);
+        if (model == null) {
+            LOG.warn("Consistency check skipped because there is no namespace registry.");
+        }
+        return model == null || model.isConsistent();
+    }
 }

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.composite.checks;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -39,8 +40,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class UniqueIndexNodeStoreCheckerTest {
 
@@ -166,7 +165,7 @@ public class UniqueIndexNodeStoreCheckerTest {
         
         NodeBuilder builder = ns.getRoot().builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, true, ImmutableSet.of("foo"), null);
+                true, true, Set.of("foo"), null);
         index.setProperty("entryCount", -1);   
         
         action.accept(builder);

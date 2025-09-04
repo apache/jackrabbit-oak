@@ -22,13 +22,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
@@ -50,13 +47,19 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.Assert;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isAvoidMergeLockEnabled;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -123,7 +126,7 @@ public class UtilsTest {
 
     @Test
     public void getParentId() throws Exception{
-        Path longPath = Path.fromString(PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo"));
+        Path longPath = Path.fromString(PathUtils.concat("/" + "p".repeat(Utils.PATH_LONG + 1), "foo"));
         assertTrue(Utils.isLongPath(longPath));
 
         assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
@@ -182,6 +185,245 @@ public class UtilsTest {
         builder.setDocStoreThrottlingFeature(docStoreThrottlingFeature);
         boolean throttlingEnabled = isThrottlingEnabled(builder);
         assertTrue("Throttling is enabled via Feature Toggle", throttlingEnabled);
+    }
+
+    @Test
+    public void fullGCEnabledDefaultValue() {
+        boolean fullGCEnabled = isFullGCEnabled(newDocumentNodeStoreBuilder());
+        assertFalse("Full GC is disabled by default", fullGCEnabled);
+    }
+
+    @Test
+    public void fullGCExplicitlyDisabled() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setFullGCEnabled(false);
+        Feature docStoreFullGCFeature = mock(Feature.class);
+        when(docStoreFullGCFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
+        boolean fullGCEnabled = isFullGCEnabled(builder);
+        assertFalse("Full GC is disabled explicitly", fullGCEnabled);
+    }
+
+    @Test
+    public void fullGCEnabledViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setFullGCEnabled(true);
+        Feature docStoreFullGCFeature = mock(Feature.class);
+        when(docStoreFullGCFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
+        boolean fullGCEnabled = isFullGCEnabled(builder);
+        assertTrue("Full GC is enabled via configuration", fullGCEnabled);
+    }
+
+    @Test
+    public void fullGCEnabledViaFeatureToggle() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setFullGCEnabled(false);
+        Feature docStoreFullGCFeature = mock(Feature.class);
+        when(docStoreFullGCFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
+        boolean fullGCEnabled = isFullGCEnabled(builder);
+        assertTrue("Full GC is enabled via Feature Toggle", fullGCEnabled);
+    }
+
+    @Test
+    public void fullGCDisabledForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setFullGCEnabled(true);
+        Feature docStoreFullGCFeature = mock(Feature.class);
+        when(docStoreFullGCFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
+        boolean fullGCEnabled = isFullGCEnabled(builder);
+        assertFalse("Full GC is disabled for RDB Document Store", fullGCEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockEnabledDefaultValue() {
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(newDocumentNodeStoreBuilder());
+        assertFalse("Avoid Merge Lock is enabled by default", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockExplicitlyDisabled() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(false);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertFalse("Avoid Merge Lock is disabled explicitly", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockEnabledViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(true);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertTrue("Avoid Merge Lock is enabled via configuration", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockEnabledViaFeatureToggle() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(false);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertTrue("Avoid Merge Lock is enabled via Feature Toggle", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void avoidMergeLockDisabledForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(true);
+        Feature docStoreAvoidMergeLockFeature = mock(Feature.class);
+        when(docStoreAvoidMergeLockFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature);
+        boolean avoidMergeLockEnabled = isAvoidMergeLockEnabled(builder);
+        assertFalse("Avoid Merge Lock is enabled for RDB Document Store", avoidMergeLockEnabled);
+    }
+
+    @Test
+    public void fullGCModeDefaultValue() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        int fullGCModeDefaultValue = builder.getFullGCMode();
+        final int fullGcModeNone = 0;
+        assertEquals("Full GC mode has NONE value by default", fullGcModeNone, fullGCModeDefaultValue);
+    }
+
+    @Test
+    public void fullGCGenerationDefaultValue() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        long fullGCGenerationDefaultValue = builder.getFullGCGeneration();
+        final long fullGcgeneration = 0;
+        assertEquals("Full GC generation has 0 value by default", fullGcgeneration, fullGCGenerationDefaultValue);
+    }
+
+    @Test
+    public void fullGCModeSetViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        final int fullGcModeGapOrphans = 2;
+        builder.setFullGCMode(fullGcModeGapOrphans);
+        int fullGCModeValue = builder.getFullGCMode();
+        assertEquals("Full GC mode set correctly via configuration", fullGcModeGapOrphans, fullGCModeValue);
+    }
+
+    @Test
+    public void fullGCGenerationSetViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        final long fullGcGeneration = 2;
+        builder.setFullGCGeneration(fullGcGeneration);
+        long fullGCGenerationValue = builder.getFullGCGeneration();
+        assertEquals("Full GC generation set correctly via configuration", fullGcGeneration, fullGCGenerationValue);
+    }
+
+    @Test
+    public void fullGCModeHasDefaultValueForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setFullGCMode(3);
+        int fullGCModeValue = builder.getFullGCMode();
+        assertEquals("Full GC mode has default value 0 for RDB Document Store", 0, fullGCModeValue);
+    }
+
+    @Test
+    public void fullGCGenerationHasDefaultValueForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setFullGCGeneration(3);
+        long fullGCGenerationValue = builder.getFullGCGeneration();
+        assertEquals("Full GC generation has default value 0 for RDB Document Store", 0, fullGCGenerationValue);
+    }
+
+    @Test
+    public void embeddedVerificationEnabledDefaultValue() {
+        boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(newDocumentNodeStoreBuilder());
+        assertTrue("Embedded Verification is enabled by default", embeddedVerificationEnabled);
+    }
+
+    @Test
+    public void embeddedVerificationExplicitlyDisabled() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setEmbeddedVerificationEnabled(false);
+        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
+        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
+        boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
+        assertFalse("Embedded Verification is disabled explicitly", embeddedVerificationEnabled);
+    }
+
+    @Test
+    public void embeddedVerificationEnabledViaConfiguration() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setEmbeddedVerificationEnabled(true);
+        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
+        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
+        boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
+        assertTrue("Embedded Verification is enabled via configuration", embeddedVerificationEnabled);
+    }
+
+    @Test
+    public void embeddedVerificationEnabledViaFeatureToggle() {
+        DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
+        builder.setEmbeddedVerificationEnabled(false);
+        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
+        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
+        boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
+        assertTrue("Embedded Verification is enabled via Feature Toggle", embeddedVerificationEnabled);
+    }
+
+    @Test
+    public void embeddedVerificationDisabledForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setEmbeddedVerificationEnabled(true);
+        Feature docStoreEmbeddedVerificationFeature = mock(Feature.class);
+        when(docStoreEmbeddedVerificationFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature);
+        boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(builder);
+        assertFalse("Embedded Verification is disabled for RDB Document Store", embeddedVerificationEnabled);
+    }
+
+    @Test
+    public void prevNoPropDisabledByDefault() {
+        assertPrevNoPropDisabled(newDocumentNodeStoreBuilder());
+    }
+
+    @Test
+    public void prevNoPropDisabled() {
+        assertPrevNoPropDisabled(newDocumentNodeStoreBuilder()
+                .setPrevNoPropCacheFeature(createFeature(false)));
+    }
+
+    private void assertPrevNoPropDisabled(DocumentNodeStoreBuilder<?> builder) {
+        assertNotNull(builder);
+        @Nullable
+        Feature feature = builder.getPrevNoPropCacheFeature();
+        if (feature != null) {
+            assertFalse(feature.isEnabled());
+        }
+        assertEquals(0, builder.getPrevNoPropCacheSize());
+        assertNull(builder.buildPrevNoPropCache());
+    }
+
+    @Test
+    public void prevNoPropEnabled() {
+        DocumentNodeStoreBuilder<?> b =
+                newDocumentNodeStoreBuilder().setPrevNoPropCacheFeature(createFeature(true));
+        assertNotNull(b);
+        assertTrue(b.getPrevNoPropCacheFeature().isEnabled());
+        assertEquals(DEFAULT_MEMORY_CACHE_SIZE * DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE / 100,
+                b.getPrevNoPropCacheSize());
+        assertNotNull(b.buildPrevNoPropCache());
+    }
+
+    public static Feature createFeature(boolean enabled) {
+        Feature f = mock(Feature.class);
+        when(f.isEnabled()).thenReturn(enabled);
+        return f;
     }
 
     @Test
@@ -265,7 +507,7 @@ public class UtilsTest {
             }
             store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-            assertEquals(1001 /* root + 1000 children */, Iterables.size(
+            assertEquals(1001 /* root + 1000 children */, IterableUtils.size(
                     Utils.getAllDocuments(store.getDocumentStore())));
         } finally {
             store.dispose();
@@ -275,34 +517,34 @@ public class UtilsTest {
     @Test
     public void getMaxExternalRevisionTime() {
         int localClusterId = 1;
-        List<Revision> revs = ImmutableList.of();
+        List<Revision> revs = Collections.emptyList();
         long revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(Long.MIN_VALUE, revTime);
 
-        revs = ImmutableList.of(Revision.fromString("r1-0-1"));
+        revs = List.of(Revision.fromString("r1-0-1"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(Long.MIN_VALUE, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r1-0-1"),
                 Revision.fromString("r2-0-2"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r3-0-1"),
                 Revision.fromString("r2-0-2"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r1-0-1"),
                 Revision.fromString("r2-0-2"),
                 Revision.fromString("r2-0-3"));
         revTime = Utils.getMaxExternalTimestamp(revs, localClusterId);
         assertEquals(2, revTime);
 
-        revs = ImmutableList.of(
+        revs = List.of(
                 Revision.fromString("r1-0-1"),
                 Revision.fromString("r3-0-2"),
                 Revision.fromString("r2-0-3"));

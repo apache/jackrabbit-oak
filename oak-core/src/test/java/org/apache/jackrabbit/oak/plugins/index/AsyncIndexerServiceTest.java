@@ -16,15 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdateTest.CommitInfoCollector;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexerService.AsyncConfig;
@@ -62,7 +60,7 @@ public class AsyncIndexerServiceTest {
     @Test
     public void asyncReg() throws Exception{
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5"}
         );
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -81,9 +79,9 @@ public class AsyncIndexerServiceTest {
     }
 
     @Test
-    public void leaseTimeout() throws Exception{
+    public void leaseTimeout() {
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5"},
                 "leaseTimeOutMinutes" , "20"
         );
@@ -93,9 +91,24 @@ public class AsyncIndexerServiceTest {
     }
 
     @Test
+    public void leaseTimeout2() {
+        injectDefaultServices();
+        Map<String,Object> config = Map.of(
+                "asyncConfigs", new String[] {"async:5:13", "foo-async:5"},
+                "leaseTimeOutMinutes" , "20"
+        );
+        MockOsgi.activate(service, context.bundleContext(), config);
+        AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
+        assertEquals(TimeUnit.MINUTES.toMillis(13), indexUpdate.getLeaseTimeOut());
+
+        indexUpdate = getIndexUpdate("foo-async");
+        assertEquals(TimeUnit.MINUTES.toMillis(20), indexUpdate.getLeaseTimeOut());
+    }
+
+    @Test
     public void changeCollectionEnabled() throws Exception{
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5"}
         );
         context.registerService(IndexEditorProvider.class, new PropertyIndexEditorProvider());
@@ -103,7 +116,7 @@ public class AsyncIndexerServiceTest {
 
         NodeBuilder builder = nodeStore.getRoot().builder();
         createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
-                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                "rootIndex", true, false, Set.of("foo"), null)
                 .setProperty(ASYNC_PROPERTY_NAME, "async");
         builder.child("testRoot").setProperty("foo", "abc");
 
@@ -127,7 +140,7 @@ public class AsyncIndexerServiceTest {
         nodeStore = new MemoryNodeStore();
         injectDefaultServices();
 
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5"},
                 "leaseTimeOutMinutes" , "20"
         );
@@ -141,18 +154,24 @@ public class AsyncIndexerServiceTest {
         List<AsyncConfig> configs = AsyncIndexerService.getAsyncConfig(new String[]{"async:15"});
         assertEquals(1, configs.size());
         assertEquals("async", configs.get(0).name);
-        assertEquals(15, configs.get(0).timeIntervalInSecs);
+        assertEquals(Long.valueOf(15L), configs.get(0).timeIntervalInSecs);
 
         configs = AsyncIndexerService.getAsyncConfig(new String[]{"async:15", "foo-async:23"});
         assertEquals(2, configs.size());
         assertEquals("foo-async", configs.get(1).name);
-        assertEquals(23, configs.get(1).timeIntervalInSecs);
+        assertEquals(Long.valueOf(23L), configs.get(1).timeIntervalInSecs);
+
+        configs = AsyncIndexerService.getAsyncConfig(new String[]{"async:15", "foo-async:23:5"});
+        assertEquals(2, configs.size());
+        assertEquals("foo-async", configs.get(1).name);
+        assertEquals(Long.valueOf(23L), configs.get(1).timeIntervalInSecs);
+        assertEquals(Long.valueOf(5L), configs.get(1).leaseTimeOutInMin);
     }
 
     @Test
     public void corruptIndexTimeout() throws Exception{
         injectDefaultServices();
-        Map<String,Object> config = ImmutableMap.<String, Object>of(
+        Map<String,Object> config = Map.of(
                 "asyncConfigs", new String[] {"async:5"},
                 "failingIndexTimeoutSeconds" , "43",
                 "errorWarnIntervalSeconds" , "53"

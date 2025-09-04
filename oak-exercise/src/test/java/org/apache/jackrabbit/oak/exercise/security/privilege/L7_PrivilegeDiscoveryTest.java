@@ -26,8 +26,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -191,7 +189,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
     public void testHasPrivileges() throws Exception {
         AccessControlManager acMgr = userSession.getAccessControlManager();
 
-        Map<String, String[]> expectedAllow = ImmutableMap.of(
+        Map<String, String[]> expectedAllow = Map.of(
                 testRoot, new String[] {null, null, null, null, null, "..."}, // EXERCISE
                 testPath, new String[] {null, null, null, null, null, "..."}, // EXERCISE
                 childPath, new String[] {null, null, null, null, null, "..."} // EXERCISE
@@ -200,7 +198,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
             assertTrue(acMgr.hasPrivileges(path, AccessControlUtils.privilegesFromNames(userSession, expectedAllow.get(path))));
         }
 
-        Map<String, String[]> expectedDeny = ImmutableMap.of(
+        Map<String, String[]> expectedDeny = Map.of(
                 testRoot, new String[] {null, null, null, null, null, "..."}, // EXERCISE
                 testPath, new String[] {null, null, null, null, null, "..."}, // EXERCISE
                 childPath, new String[] {null, null, null, null, null, "..."} // EXERCISE
@@ -241,23 +239,23 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
         Set<Privilege> expected = null; // EXERCISE
         Privilege[] testRootPrivs = acMgr.getPrivileges(testRoot);
-        assertEquals(expected, ImmutableSet.copyOf(testRootPrivs));
+        assertEquals(expected, Set.of(testRootPrivs));
 
         expected = null; // EXERCISE
         Privilege[] privs = acMgr.getPrivileges(testPath);
-        assertEquals(expected, ImmutableSet.copyOf(privs));
+        assertEquals(expected, Set.of(privs));
 
         expected = null; // EXERCISE
         Privilege[] childPrivs = acMgr.getPrivileges(childPath);
-        assertEquals(expected, ImmutableSet.copyOf(childPrivs));
+        assertEquals(expected, Set.of(childPrivs));
     }
 
     public void testGetPrivilegesForPrincipals() throws Exception {
         JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) superuser.getAccessControlManager();
 
         // 1. EXERCISE: expected privileges for the 'uPrincipal' only
-        Set<Principal> principals = ImmutableSet.of(uPrincipal);
-        Map<String, Set<Privilege>> expected = ImmutableMap.of(
+        Set<Principal> principals = Set.of(uPrincipal);
+        Map<String, Set<Privilege>> expected = Map.of(
                 testRoot, null, // EXERCISE
                 testPath, null, // EXERCISE
                 childPath, null // EXERCISE
@@ -265,12 +263,12 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         for (String path : expected.keySet()) {
             Set<Privilege> expectedPrivs = expected.get(path);
             Privilege[] privs = acMgr.getPrivileges(path, principals);
-            assertEquals(expectedPrivs, ImmutableSet.copyOf(privs));
+            assertEquals(expectedPrivs, Set.of(privs));
         }
 
         // 2. EXERCISE: expected privileges for the 'gPrincipal' only
-        principals = ImmutableSet.of(gPrincipal);
-        expected = ImmutableMap.of(
+        principals = Set.of(gPrincipal);
+        expected = Map.of(
                 testRoot, null,
                 testPath, null,
                 childPath, null
@@ -278,12 +276,12 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         for (String path : expected.keySet()) {
             Set<Privilege> expectedPrivs = expected.get(path);
             Privilege[] privs = acMgr.getPrivileges(path, principals);
-            assertEquals(expectedPrivs, ImmutableSet.copyOf(privs));
+            assertEquals(expectedPrivs, Set.of(privs));
         }
 
         // 3. EXERCISE: expected privileges for the 'uPrincipal' and 'gPrincipal'
-        principals = ImmutableSet.of(uPrincipal, gPrincipal);
-        expected = ImmutableMap.of(
+        principals = Set.of(uPrincipal, gPrincipal);
+        expected = Map.of(
                 testRoot, null,
                 testPath, null,
                 childPath, null
@@ -291,12 +289,12 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         for (String path : expected.keySet()) {
             Set<Privilege> expectedPrivs = expected.get(path);
             Privilege[] privs = acMgr.getPrivileges(path, principals);
-            assertEquals(expectedPrivs, ImmutableSet.copyOf(privs));
+            assertEquals(expectedPrivs, Set.of(privs));
         }
 
         // 4. EXERCISE: expected privileges for the 'uPrincipal', 'gPrincipal' + everyone
-        principals = ImmutableSet.of(uPrincipal, gPrincipal, EveryonePrincipal.getInstance());
-        expected = ImmutableMap.of(
+        principals = Set.of(uPrincipal, gPrincipal, EveryonePrincipal.getInstance());
+        expected = Map.of(
                 testRoot, null,
                 testPath, null,
                 childPath, null
@@ -304,7 +302,7 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
         for (String path : expected.keySet()) {
             Set<Privilege> expectedPrivs = expected.get(path);
             Privilege[] privs = acMgr.getPrivileges(path, principals);
-            assertEquals(expectedPrivs, ImmutableSet.copyOf(privs));
+            assertEquals(expectedPrivs, Set.of(privs));
         }
     }
 
@@ -313,9 +311,9 @@ public class L7_PrivilegeDiscoveryTest extends AbstractJCRTest {
 
         // EXERCISE: complete the test case and explain the behaviour
 
-        Privilege[] privs = acMgr.getPrivileges(testPath, ImmutableSet.of(gPrincipal));
+        Privilege[] privs = acMgr.getPrivileges(testPath, Set.of(gPrincipal));
         Set<Privilege> expectedPrivs = null;
-        assertEquals(expectedPrivs, ImmutableSet.copyOf(privs));
+        assertEquals(expectedPrivs, Set.of(privs));
     }
 
     public void testHasPermissionVsHasPrivilege() throws Exception {

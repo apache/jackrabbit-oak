@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -28,7 +27,11 @@ import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,8 +39,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static java.util.Collections.singletonList;
 
 class CompositionContext {
@@ -67,10 +68,10 @@ class CompositionContext {
         this.prefetchNodeStore = globalStore instanceof PrefetchNodeStore ? (PrefetchNodeStore) globalStore : PrefetchNodeStore.NOOP;
         this.nonDefaultStores = nonDefaultStores;
 
-        ImmutableSet.Builder<MountedNodeStore> b = ImmutableSet.builder();
+        Set<MountedNodeStore> b = new LinkedHashSet<>();
         b.add(this.globalStore);
         b.addAll(this.nonDefaultStores);
-        allStores = b.build();
+        allStores = Collections.unmodifiableSet(b);
 
         this.nodeStoresByMount = allStores.stream().collect(Collectors.toMap(MountedNodeStore::getMount, Function.identity()));
         this.nodeStateMonitor = nodeStateMonitor;
@@ -122,7 +123,7 @@ class CompositionContext {
         }
 
         // scenario 2 - multiple mounts participate
-        List<MountedNodeStore> mountedStores = newArrayList();
+        List<MountedNodeStore> mountedStores = new ArrayList<>();
         mountedStores.add(globalStore);
 
         // we need mounts placed exactly one level beneath this path
@@ -164,7 +165,7 @@ class CompositionContext {
     }
 
     CompositeNodeState createRootNodeState(NodeState globalRootState) {
-        Map<MountedNodeStore, NodeState> nodeStates = newHashMap();
+        Map<MountedNodeStore, NodeState> nodeStates = new HashMap<>();
         nodeStates.put(getGlobalStore(), globalRootState);
         for (MountedNodeStore nodeStore : getNonDefaultStores()) {
             nodeStates.put(nodeStore, nodeStore.getNodeStore().getRoot());

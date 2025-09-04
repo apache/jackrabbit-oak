@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -31,6 +32,7 @@ import java.security.SecureRandom;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -43,8 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.io.BaseEncoding;
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -54,8 +55,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 
 /**
  * An abstract data store that splits the binaries in relatively small blocks,
@@ -63,9 +64,9 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
  * <p>
  * Each data store id is a list of zero or more entries. Each entry is either
  * <ul>
- * <li>data (a number of bytes), or</li>
- * <li>the hash code of the content of a number of bytes, or</li>
- * <li>the hash code of the content of a data store id (indirect hash)</li>
+ * <li>data (a number of bytes), or
+ * <li>the hash code of the content of a number of bytes, or
+ * <li>the hash code of the content of a data store id (indirect hash)
  * </ul>
  * Thanks to the indirection, blocks can be kept relatively small, so that
  * caching is simpler, and so that the storage backend doesn't need to support
@@ -134,6 +135,12 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
      * Encryption key for creating secure references from blobId
      */
     private byte[] referenceKey;
+
+    /**
+     * Encode in Base 32, hex encoding, no line breaks, padding with "="
+     */
+    private static final Base32 BASE32ENCODER =
+            new Base32(0, new byte[0], true,  (byte)'=');
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -232,12 +239,12 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
 
     @Override
     public String getReference(@NotNull String blobId) {
-        checkNotNull(blobId, "BlobId must be specified");
+        requireNonNull(blobId, "BlobId must be specified");
         try {
             Mac mac = Mac.getInstance(ALGORITHM);
             mac.init(new SecretKeySpec(getReferenceKey(), ALGORITHM));
             byte[] hash = mac.doFinal(blobId.getBytes("UTF-8"));
-            return blobId + ':' + BaseEncoding.base32Hex().encode(hash);
+            return blobId + ':' + BASE32ENCODER.encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         } catch (InvalidKeyException e) {
@@ -249,7 +256,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
 
     @Override
     public String getBlobId(@NotNull String reference) {
-        checkNotNull(reference, "BlobId must be specified");
+        requireNonNull(reference, "BlobId must be specified");
         int colon = reference.indexOf(':');
         if (colon != -1) {
             String blobId = reference.substring(0, colon);
@@ -307,7 +314,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
      * @param encodedKey base64 encoded key
      */
     public void setReferenceKeyEncoded(String encodedKey) {
-        setReferenceKey(BaseEncoding.base64().decode(encodedKey));
+        setReferenceKey(Base64.getDecoder().decode(encodedKey));
     }
 
     /**
@@ -325,7 +332,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
      *      java.util.Map, boolean)
      */
     public void setReferenceKeyPlainText(String textKey) {
-        setReferenceKey(textKey.getBytes(Charsets.UTF_8));
+        setReferenceKey(textKey.getBytes(StandardCharsets.UTF_8));
     }
 
     protected void usesBlobId(String blobId) {

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.aws.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.printMessage;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.printableStopwatch;
@@ -27,8 +27,7 @@ import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.storeTypeF
 
 import java.io.PrintWriter;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Check;
@@ -80,7 +79,7 @@ public class AwsSegmentCopy {
          * @return this builder.
          */
         public Builder withSource(String source) {
-            this.source = checkNotNull(source);
+            this.source = requireNonNull(source);
             return this;
         }
 
@@ -92,7 +91,7 @@ public class AwsSegmentCopy {
          * @return this builder.
          */
         public Builder withDestination(String destination) {
-            this.destination = checkNotNull(destination);
+            this.destination = requireNonNull(destination);
             return this;
         }
 
@@ -103,7 +102,7 @@ public class AwsSegmentCopy {
          * @return this builder.
          */
         public Builder withSrcPersistencee(SegmentNodeStorePersistence srcPersistence) {
-            this.srcPersistence = checkNotNull(srcPersistence);
+            this.srcPersistence = requireNonNull(srcPersistence);
             return this;
         }
 
@@ -114,7 +113,7 @@ public class AwsSegmentCopy {
          * @return this builder.
          */
         public Builder withDestPersistence(SegmentNodeStorePersistence destPersistence) {
-            this.destPersistence = checkNotNull(destPersistence);
+            this.destPersistence = requireNonNull(destPersistence);
             return this;
         }
 
@@ -159,8 +158,8 @@ public class AwsSegmentCopy {
          */
         public AwsSegmentCopy build() {
             if (srcPersistence == null && destPersistence == null) {
-                checkNotNull(source);
-                checkNotNull(destination);
+                requireNonNull(source);
+                requireNonNull(destination);
             }
             return new AwsSegmentCopy(this);
         }

@@ -80,7 +80,7 @@ public final class JcrNameParser {
         // trivial check
         int len = jcrName == null ? 0 : jcrName.length();
         if (len == 0) {
-            listener.error("Empty name");
+            listener.error("Empty name.");
             return false;
         }
         if (".".equals(jcrName) || "..".equals(jcrName)) {
@@ -97,7 +97,7 @@ public final class JcrNameParser {
             char c = jcrName.charAt(i);
             if (c == ':') {
                 if (state == STATE_PREFIX_START) {
-                    listener.error("Prefix must not be empty");
+                    listener.error("Prefix must not be empty.");
                     return false;
                 } else if (state == STATE_PREFIX) {
                     prefix = jcrName.substring(0, i);
@@ -109,17 +109,17 @@ public final class JcrNameParser {
                 } else if (state == STATE_URI) {
                     // ignore -> validation of uri later on.
                 } else {
-                    listener.error("'" + c + "' not allowed in name");
+                    listener.error("'" + c + "' not allowed in name.");
                     return false;
                 }
             } else if (c == '[' || c == ']' || c == '*' || c == '|') {
-                listener.error("'" + c + "' not allowed in name");
+                listener.error("'" + c + "' not allowed in name.");
                 return false;
             } else if (c == '/') {
                 if (state == STATE_URI_START) {
                     state = STATE_URI;
                 } else if (state != STATE_URI) {
-                    listener.error("'" + c + "' not allowed in name");
+                    listener.error("'" + c + "' not allowed in name.");
                     return false;
                 }
             } else if (c == '{') {
@@ -179,12 +179,12 @@ public final class JcrNameParser {
         // take care of qualified jcrNames starting with '{' that are not having
         // a terminating '}' -> make sure there are no illegal characters present.
         if (state == STATE_URI && (jcrName.indexOf(':') > -1 || jcrName.indexOf('/') > -1)) {
-            listener.error("Local name may not contain ':' nor '/'");
+            listener.error("Local name may not contain ':' nor '/'.");
             return false;
         }
 
         if (nameStart == len || state == STATE_NAME_START) {
-            listener.error("Local name must not be empty");
+            listener.error("Local name must not be empty.");
             return false;
         }
 

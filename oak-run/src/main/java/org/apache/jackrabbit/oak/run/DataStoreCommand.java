@@ -18,8 +18,10 @@ package org.apache.jackrabbit.oak.run;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,13 +39,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.Closeables;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -56,7 +51,9 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -86,11 +83,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
-import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
+
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
@@ -199,10 +194,8 @@ public class DataStoreCommand implements Command {
             if (dataStoreOpts.dumpRefs()) {
                 log.info("Initiating dump of data store references");
                 final File referencesTemp = File.createTempFile("traverseref", null, new File(opts.getTempDirectory()));
-                final BufferedWriter writer = Files.newWriter(referencesTemp, UTF_8);
 
-                boolean threw = true;
-                try {
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(referencesTemp, StandardCharsets.UTF_8))) {
                     BlobReferenceRetriever retriever = getRetriever(fixture, dataStoreOpts, opts);
 
                     retriever.collectReferences(new ReferenceCollector() {
@@ -213,12 +206,11 @@ public class DataStoreCommand implements Command {
 
                                 while (idIter.hasNext()) {
                                     String id = idIter.next();
-                                    final Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
                                     // If --verbose is present, convert blob ID to a backend friendly format and
                                     // concat the path that has the ref. Otherwise simply add the ID to the o/p file
                                     // as it is.
                                     String line = dataStoreOpts.isVerbose() ?
-                                        VerboseIdLogger.encodeId(delimJoiner.join(id, escapeLineBreak(nodeId)),
+                                        VerboseIdLogger.encodeId(nodeId != null ? id + DELIM + escapeLineBreak(nodeId) : id,
                                             optionBean.getBlobStoreType()) :
                                         id;
                                     writeAsLine(writer, line, true);
@@ -230,7 +222,7 @@ public class DataStoreCommand implements Command {
                     });
 
                     writer.flush();
-                    threw = false;
+                    writer.close();
 
                     sort(referencesTemp, idComparator);
 
@@ -240,8 +232,6 @@ public class DataStoreCommand implements Command {
                     FileUtils.forceMkdir(parent);
 
                     FileUtils.copyFile(referencesTemp, references);
-                } finally {
-                    Closeables.close(writer, threw);
                 }
             } else if (dataStoreOpts.dumpIds()) {
                 log.info("Initiating dump of data store IDs");
@@ -291,7 +281,7 @@ public class DataStoreCommand implements Command {
 
     private static List<String> getMetadata(NodeStoreFixture fixture) {
         String repositoryId = ClusterRepositoryInfo.getId(fixture.getStore());
-        checkNotNull(repositoryId);
+        requireNonNull(repositoryId);
 
         SharedDataStore dataStore = (SharedDataStore) fixture.getBlobStore();
         // Get all the start markers available
@@ -318,7 +308,7 @@ public class DataStoreCommand implements Command {
             dataStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
         log.info("Repository files {}", repoFiles);
 
-        List<String> records = Lists.newArrayList();
+        List<String> records = new ArrayList<>();
         for (DataRecord repoRec : repoFiles) {
             String id =
                 SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getIdFromName(repoRec.getIdentifier().toString());
@@ -342,7 +332,7 @@ public class DataStoreCommand implements Command {
             if (id != null && id.equals(repositoryId)) {
                 isLocal = "*";
             }
-            records.add(Joiner.on("|").join(id, markerTime, refTime, isLocal));
+            records.add(String.join("|", id, Long.toString(markerTime), Long.toString(refTime), isLocal));
         }
         log.info("Metadata retrieved {}", records);
         return records;
@@ -357,7 +347,7 @@ public class DataStoreCommand implements Command {
         closer.register(new ExecutorCloser(service));
 
         String repositoryId = ClusterRepositoryInfo.getId(fixture.getStore());
-        checkNotNull(repositoryId);
+        requireNonNull(repositoryId);
 
         MarkSweepGarbageCollector collector =
             new MarkSweepGarbageCollector(retriever, (GarbageCollectableBlobStore) fixture.getBlobStore(), service,
@@ -394,7 +384,7 @@ public class DataStoreCommand implements Command {
     private static void retrieveBlobIds(GarbageCollectableBlobStore blobStore, File blob) throws Exception {
 
         System.out.println("Starting dump of blob ids");
-        Stopwatch watch = createStarted();
+        Stopwatch watch = Stopwatch.createStarted();
 
         Iterator<String> blobIter = blobStore.getAllChunkIds(0);
         int count = writeStrings(blobIter, blob, false);
@@ -405,7 +395,7 @@ public class DataStoreCommand implements Command {
     }
 
     private static void verboseIds(BlobStoreOptions blobOpts, File readFile, File writeFile) throws IOException {
-        LineIterator idIterator = FileUtils.lineIterator(readFile, UTF_8.name());
+        LineIterator idIterator = FileUtils.lineIterator(readFile, StandardCharsets.UTF_8.name());
 
         try (BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(idIterator, readFile,
             (Function<String, String>) input -> VerboseIdLogger.encodeId(input, blobOpts.getBlobStoreType()))) {
@@ -424,7 +414,7 @@ public class DataStoreCommand implements Command {
     private static void logCliArgs(String[] args) {
         String[] filteredArgs = Arrays.stream(args).filter(str -> !str.startsWith("az:") && !str.startsWith("mongodb:"))
             .toArray(String[]::new);
-        log.info("Command line arguments used for datastore command [{}]", Joiner.on(' ').join(filteredArgs));
+        log.info("Command line arguments used for datastore command [{}]", String.join(" ", filteredArgs));
         List<String> inputArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
         if (!inputArgs.isEmpty()) {
             log.info("System properties and vm options passed {}", inputArgs);
@@ -547,10 +537,10 @@ public class DataStoreCommand implements Command {
 
         private void getInclusionListFromRegex(NodeState rootState, String rootPath, String inclusionRegex,
             Map<NodeState, String> inclusionNodeStates) {
-            Splitter delimSplitter = Splitter.on("/").trimResults().omitEmptyStrings();
-            List<String> pathElementList = delimSplitter.splitToList(inclusionRegex);
-
-            Joiner delimJoiner = Joiner.on("/").skipNulls();
+            List<String> pathElementList = Arrays.stream(inclusionRegex.split("/"))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
 
             // Get the first pathElement from the regexPath
             String pathElement = pathElementList.get(0);
@@ -561,7 +551,7 @@ public class DataStoreCommand implements Command {
                     // Remove the current Path Element from the regexPath
                     // and recurse on getInclusionListFromRegex with this childNodeState and the regexPath
                     // under the current pathElement
-                    String sub = delimJoiner.join(pathElementList.subList(1, pathElementList.size()));
+                    String sub = String.join("/", pathElementList.subList(1, pathElementList.size()));
                     getInclusionListFromRegex(rootState.getChildNode(nodeName), rootPathTemp, sub, inclusionNodeStates);
                 }
             } else {
@@ -585,9 +575,6 @@ public class DataStoreCommand implements Command {
                 return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
             }
         };
-        private final static Joiner delimJoiner = Joiner.on(DELIM).skipNulls();
-        private final static Splitter delimSplitter = Splitter.on(DELIM).trimResults().omitEmptyStrings();
-
         private final BlobStoreOptions optionBean;
         private final BlobStoreOptions.Type blobStoreType;
         private final File outDir;
@@ -640,9 +627,9 @@ public class DataStoreCommand implements Command {
          * @param line   can be either of the format b47b...#12311,/a/b/c or
          *               b47b...#12311
          * @param dsType
-         * @return In case of ref dump, concatanated encoded blob ref in a
+         * @return In case of ref dump, concatenated encoded blob ref in a
          * format understood by backing datastore impl and the path
-         * on which ref is present separated by delimJoiner
+         * on which ref is present separated by delimiters.
          * In case of id dump, just the encoded blob ids.
          */
         static String encodeId(String line, BlobStoreOptions.Type dsType) {
@@ -650,18 +637,23 @@ public class DataStoreCommand implements Command {
             // Line would be like b47b58169f121822cd4a0a0a153ba5910e581ad2bc450b6af7e51e6214c2b173#123311,/a/b/c
             // In case of dumping ids, there would not be any paths associated and there the line would simply be
             // b47b58169f121822cd4a0a0a153ba5910e581ad2bc450b6af7e51e6214c2b173#123311
-            List<String> list = delimSplitter.splitToList(line);
+            List<String> list = Arrays.stream(line.split(DELIM))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
 
             String id = list.get(0);
             // Split b47b58169f121822cd4a0a0a153ba5910e581ad2bc450b6af7e51e6214c2b173#123311 on # to get the id
-            List<String> idLengthSepList = Splitter.on(HASH).trimResults().omitEmptyStrings().splitToList(id);
+            List<String> idLengthSepList = Arrays.stream(id.split(HASH))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
             String blobId = idLengthSepList.get(0);
 
             if (dsType == FAKE || dsType == FDS) {
                 // 0102030405... => 01/02/03/0102030405...
-                blobId =
-                    (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value()
-                        + blobId.substring(4, 6) + FILE_SEPARATOR.value() + blobId);
+                blobId = String.join(System.getProperty("file.separator"), blobId.substring(0, 2), blobId.substring(2, 4),
+                        blobId.substring(4, 6), blobId);
             } else if (dsType == S3 || dsType == AZURE) {
                 //b47b58169f121822cd4a0... => b47b-58169f121822cd4a0...
                 blobId = (blobId.substring(0, 4) + DASH + blobId.substring(4));
@@ -673,7 +665,7 @@ public class DataStoreCommand implements Command {
             // In case of blob ids dump, the list size would be 1 (Consisting of just the id)
             if (list.size() > 1) {
                 // Join back the encoded blob ref and the path on which the ref is present
-                return delimJoiner.join(blobId, EscapeUtils.unescapeLineBreaks(list.get(1)));
+                return String.join(DELIM, blobId, EscapeUtils.unescapeLineBreaks(list.get(1)));
             } else {
                 // return the encoded blob id
                 return blobId;
@@ -687,7 +679,7 @@ public class DataStoreCommand implements Command {
                 File tempFile = new File(outDir, outFile.getName() + "-temp");
                 FileUtils.moveFile(outFile, tempFile);
                 try (BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(
-                    FileUtils.lineIterator(tempFile, UTF_8.toString()), tempFile,
+                    FileUtils.lineIterator(tempFile, StandardCharsets.UTF_8.toString()), tempFile,
                     (Function<String, String>) input -> encodeId(input, blobStoreType))) {
                     writeStrings(iterator, outFile, true, log, "Transformed to verbose ids - ");
                 }
@@ -704,4 +696,3 @@ public class DataStoreCommand implements Command {
         System.out.println(dt);
     }
 }
-

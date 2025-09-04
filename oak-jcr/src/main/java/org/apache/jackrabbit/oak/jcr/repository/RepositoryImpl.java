@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.repository;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.Closeable;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -39,8 +40,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
@@ -55,12 +54,15 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
+import org.apache.jackrabbit.oak.jcr.session.SessionSaveDelayer;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.jcr.version.FrozenNodeLogger;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.query.SessionQuerySettings;
+import org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -118,6 +120,8 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final Registration gcMonitorRegistration;
     private final MountInfoProvider mountInfoProvider;
     private final BlobAccessProvider blobAccessProvider;
+    private final SessionQuerySettingsProvider sessionQuerySettingsProvider;
+    private final SessionSaveDelayer sessionSaveDelayer;
 
     /**
      * {@link ThreadLocal} counter that keeps track of the save operations
@@ -158,9 +162,9 @@ public class RepositoryImpl implements JackrabbitRepository {
                           CommitRateLimiter commitRateLimiter,
                           boolean fastQueryResultSize,
                           boolean createSessionMBeans) {
-        this.contentRepository = checkNotNull(contentRepository);
-        this.whiteboard = checkNotNull(whiteboard);
-        this.securityProvider = checkNotNull(securityProvider);
+        this.contentRepository = requireNonNull(contentRepository);
+        this.whiteboard = requireNonNull(whiteboard);
+        this.securityProvider = requireNonNull(securityProvider);
         this.observationQueueLength = observationQueueLength;
         this.commitRateLimiter = commitRateLimiter;
         this.descriptors = determineDescriptors();
@@ -172,6 +176,9 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.mountInfoProvider = WhiteboardUtils.getService(whiteboard, MountInfoProvider.class);
         this.blobAccessProvider = WhiteboardUtils.getService(whiteboard, BlobAccessProvider.class);
         this.frozenNodeLogger = new FrozenNodeLogger(clock, whiteboard);
+        this.sessionQuerySettingsProvider = Optional.ofNullable(WhiteboardUtils.getService(whiteboard, SessionQuerySettingsProvider.class))
+                .orElseGet(() -> new FastQuerySizeSettingsProvider(fastQueryResultSize));
+        this.sessionSaveDelayer = new SessionSaveDelayer(whiteboard);
     }
 
     //---------------------------------------------------------< Repository >---
@@ -320,7 +327,7 @@ public class RepositoryImpl implements JackrabbitRepository {
 
         return new SessionDelegate(
                 contentSession, securityProvider, refreshStrategy,
-                threadSaveCount, statisticManager, clock) {
+                threadSaveCount, statisticManager, clock, sessionSaveDelayer) {
             
             // Defer session MBean registration to avoid cluttering the
             // JMX name space with short lived sessions
@@ -350,6 +357,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         statisticManager.dispose();
         gcMonitorRegistration.unregister();
         frozenNodeLogger.close();
+        sessionSaveDelayer.close();
         clock.close();
         new ExecutorCloser(scheduledExecutor).close();
         if (contentRepository instanceof Closeable) {
@@ -371,7 +379,8 @@ public class RepositoryImpl implements JackrabbitRepository {
             Map<String, Object> attributes, SessionDelegate delegate, int observationQueueLength,
             CommitRateLimiter commitRateLimiter) {
         return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes,
-                delegate, observationQueueLength, commitRateLimiter, mountInfoProvider, blobAccessProvider, fastQueryResultSize);
+                delegate, observationQueueLength, commitRateLimiter, mountInfoProvider, blobAccessProvider,
+                sessionQuerySettingsProvider.getQuerySettings(delegate.getContentSession()));
     }
 
     /**
@@ -498,7 +507,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         } else if (!relaxedLocking) {
             return singletonMap(REFRESH_INTERVAL, (Object) refreshInterval);
         } else {
-            return ImmutableMap.of(
+            return Map.of(
                     REFRESH_INTERVAL, (Object) refreshInterval,
                     RELAXED_LOCKING,  (Object) Boolean.valueOf(relaxedLocking));
         }
@@ -562,6 +571,31 @@ public class RepositoryImpl implements JackrabbitRepository {
                 completed.unregister();
                 completed = null;
             }
+        }
+    }
+
+    /**
+     * This is a fallback implementation of {@link org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider} that
+     * unifies and replaces the previous handling of {@code fastQueryResultSize} and {@code oak.fastQuerySize} here
+     * and in the {@link org.apache.jackrabbit.oak.jcr.session.SessionContext}.
+     */
+    private static class FastQuerySizeSettingsProvider implements SessionQuerySettingsProvider {
+        private final boolean fastQueryResultSize;
+
+        public FastQuerySizeSettingsProvider(boolean fastQueryResultSize) {
+            this.fastQueryResultSize = fastQueryResultSize;
+        }
+
+        @Override
+        public @NotNull SessionQuerySettings getQuerySettings(@NotNull ContentSession session) {
+            return new SessionQuerySettings() {
+                @Override
+                public boolean useDirectResultCount() {
+                    return Optional.ofNullable(System.getProperty("oak.fastQuerySize"))
+                            .map(Boolean::valueOf)
+                            .orElse(FastQuerySizeSettingsProvider.this.fastQueryResultSize);
+                }
+            };
         }
     }
 }

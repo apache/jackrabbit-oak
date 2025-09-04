@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.String.join;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.FULL;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.TAIL;
@@ -28,54 +26,61 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Predicate;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.junit.Test;
 
 public class ReclaimersTest {
 
-    private static final Map<String, GCGeneration> gcHistory = ImmutableMap.<String, GCGeneration>builder()
-        .put("00w", newGCGeneration(0, 0, false))
+    private static final Map<String, GCGeneration> gcHistory;
+
+    static  {
+        Map<String, GCGeneration> builder = new HashMap<>();
+
+        builder.put("00w", newGCGeneration(0, 0, false));
 
         // First compaction. Always FULL
-        .put("11c", newGCGeneration(1, 1, true))
-        .put("11w", newGCGeneration(1, 1, false))
+        builder.put("11c", newGCGeneration(1, 1, true));
+        builder.put("11w", newGCGeneration(1, 1, false));
 
         // TAIL compaction
-        .put("21c", newGCGeneration(2, 1, true))
-        .put("21w", newGCGeneration(2, 1, false))
+        builder.put("21c", newGCGeneration(2, 1, true));
+        builder.put("21w", newGCGeneration(2, 1, false));
 
         // TAIL compaction
-        .put("31c", newGCGeneration(3, 1, true))
-        .put("31w", newGCGeneration(3, 1, false))
+        builder.put("31c", newGCGeneration(3, 1, true));
+        builder.put("31w", newGCGeneration(3, 1, false));
 
         // FULL compaction
-        .put("42c", newGCGeneration(4, 2, true))
-        .put("42w", newGCGeneration(4, 2, false))
+        builder.put("42c", newGCGeneration(4, 2, true));
+        builder.put("42w", newGCGeneration(4, 2, false));
 
         // TAIL compaction
-        .put("52c", newGCGeneration(5, 2, true))
-        .put("52w", newGCGeneration(5, 2, false))
+        builder.put("52c", newGCGeneration(5, 2, true));
+        builder.put("52w", newGCGeneration(5, 2, false));
 
         // TAIL compaction
-        .put("62c", newGCGeneration(6, 2, true))
-        .put("62w", newGCGeneration(6, 2, false))
+        builder.put("62c", newGCGeneration(6, 2, true));
+        builder.put("62w", newGCGeneration(6, 2, false));
 
         // FULL compaction
-        .put("73c", newGCGeneration(7, 3, true))
-        .put("73w", newGCGeneration(7, 3, false))
+        builder.put("73c", newGCGeneration(7, 3, true));
+        builder.put("73w", newGCGeneration(7, 3, false));
 
-        .build();
+        gcHistory = Collections.unmodifiableMap(builder);
+    };
 
     private static void assertReclaim(Predicate<GCGeneration> reclaimer, String... reclaims) {
-        Set<String> toReclaim = newHashSet(reclaims);
+        Set<String> toReclaim = SetUtils.toSet(reclaims);
         for (Entry<String, GCGeneration> generation : gcHistory.entrySet()) {
-            if (reclaimer.apply(generation.getValue())) {
+            if (reclaimer.test(generation.getValue())) {
                 assertTrue(
                     reclaimer + " should not reclaim " + generation.getKey(),
                     toReclaim.remove(generation.getKey()));
@@ -194,9 +199,9 @@ public class ReclaimersTest {
     @Test
     public void testExactReclaimer() {
         Predicate<GCGeneration> reclaimer = newExactReclaimer(newGCGeneration(3, 3, false));
-        assertTrue(reclaimer.apply(newGCGeneration(3, 3, false)));
-        assertFalse(reclaimer.apply(newGCGeneration(3, 3, true)));
-        assertFalse(reclaimer.apply(newGCGeneration(3, 2, false)));
-        assertFalse(reclaimer.apply(newGCGeneration(2, 3, false)));
+        assertTrue(reclaimer.test(newGCGeneration(3, 3, false)));
+        assertFalse(reclaimer.test(newGCGeneration(3, 3, true)));
+        assertFalse(reclaimer.test(newGCGeneration(3, 2, false)));
+        assertFalse(reclaimer.test(newGCGeneration(2, 3, false)));
     }
 }

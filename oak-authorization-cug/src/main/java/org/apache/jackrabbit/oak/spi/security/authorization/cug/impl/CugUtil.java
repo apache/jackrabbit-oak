@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -96,7 +96,7 @@ final class CugUtil implements CugConstants {
     }
 
     static Set<String> getSupportedPaths(@NotNull ConfigurationParameters params, @NotNull MountInfoProvider mountInfoProvider) {
-        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
+        Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, Set.of());
         if (!supportedPaths.isEmpty() && mountInfoProvider.hasNonDefaultMounts()) {
             for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {
                 for (String path : supportedPaths) {

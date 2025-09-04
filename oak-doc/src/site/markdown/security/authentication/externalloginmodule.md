@@ -203,7 +203,7 @@ handles the same set of supported credentials!
           @Nonnull
           @Override
           public Set<Class> getCredentialClasses() {
-              return ImmutableSet.<Class>of(MyCredentials.class);
+              return Set.<Class>of(MyCredentials.class);
           }
   
           @CheckForNull
@@ -220,7 +220,7 @@ handles the same set of supported credentials!
           @Override
           public Map<String, ?> getAttributes(@Nonnull Credentials credentials) {
               // our credentials never contain additional attributes
-              return ImmutableMap.of();
+              return Map.of();
           }
           
           //-------------------------------------< ExternalIdentityProvider >---

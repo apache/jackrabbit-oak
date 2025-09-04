@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.jetbrains.annotations.NotNull;
@@ -31,12 +30,13 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import java.util.Set;
+
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.PRIVILEGES_PATH;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_AGGREGATES;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -68,14 +68,14 @@ public class PrivilegeUtilTest {
 
     @Test
     public void testReadDefinitionsWithAggregates() {
-        Iterable<String> aggregateNames = ImmutableSet.of(JCR_READ);
+        Iterable<String> aggregateNames = Set.of(JCR_READ);
         Tree defTree = when(mock(Tree.class).getProperty(REP_AGGREGATES)).thenReturn(PropertyStates.createProperty(REP_AGGREGATES, aggregateNames, Type.NAMES)).getMock();
         when(defTree.getName()).thenReturn("name");
 
 
         PrivilegeDefinition def = PrivilegeUtil.readDefinition(defTree);
         assertEquals("name", def.getName());
-        assertTrue(Iterables.elementsEqual(aggregateNames, PrivilegeUtil.readDefinition(defTree).getDeclaredAggregateNames()));
+        assertTrue(IterableUtils.elementsEqual(aggregateNames, PrivilegeUtil.readDefinition(defTree).getDeclaredAggregateNames()));
     }
     
     @Test

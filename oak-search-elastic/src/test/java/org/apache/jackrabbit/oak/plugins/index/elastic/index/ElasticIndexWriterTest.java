@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
-import org.elasticsearch.action.DocWriteRequest;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.index.IndexRequest;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.inference.InferenceConfig;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -29,12 +29,17 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.OrderingComparison.lessThan;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,35 +60,48 @@ public class ElasticIndexWriterTest {
 
     private ElasticIndexWriter indexWriter;
 
+    private String indexAlias;
+
+    private AutoCloseable closeable;
+
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
+        when(indexDefinitionMock.getIndexName()).thenReturn("test-index-name");
+        // In this test we are explicitly disabling inference as bulkprocessor
+        // is called with update document if inference is enabled.
+        InferenceConfig.reInitialize(new MemoryNodeStore(), "/oak:index/:inferenceConfig", false);
         indexWriter = new ElasticIndexWriter(indexTrackerMock, elasticConnectionMock, indexDefinitionMock, bulkProcessorHandlerMock);
+        indexAlias = indexDefinitionMock.getIndexAlias();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        closeable.close();
     }
 
     @Test
     public void singleUpdateDocument() throws IOException {
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
 
-        ArgumentCaptor<IndexRequest> acIndexRequest = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(bulkProcessorHandlerMock).add(acIndexRequest.capture());
+        ArgumentCaptor<ElasticDocument> esDocumentCaptor = ArgumentCaptor.forClass(ElasticDocument.class);
+        ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
+        verify(bulkProcessorHandlerMock).index(eq(indexAlias), idCaptor.capture(), esDocumentCaptor.capture());
 
-        IndexRequest request = acIndexRequest.getValue();
-        assertEquals("test-index", request.index());
-        assertEquals("/foo", request.id());
+        assertEquals("/foo", idCaptor.getValue());
+        assertEquals("/foo", esDocumentCaptor.getValue().path);
     }
 
     @Test
     public void singleDeleteDocument() throws IOException {
         indexWriter.deleteDocuments("/bar");
 
-        ArgumentCaptor<DeleteRequest> acDeleteRequest = ArgumentCaptor.forClass(DeleteRequest.class);
-        verify(bulkProcessorHandlerMock).add(acDeleteRequest.capture());
+        ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
+        verify(bulkProcessorHandlerMock).delete(eq(indexAlias), idCaptor.capture());
 
-        DeleteRequest request = acDeleteRequest.getValue();
-        assertEquals("test-index", request.index());
-        assertEquals("/bar", request.id());
+        String id = idCaptor.getValue();
+        assertEquals("/bar", id);
     }
 
     @Test
@@ -93,8 +111,8 @@ public class ElasticIndexWriterTest {
         indexWriter.deleteDocuments("/foo");
         indexWriter.deleteDocuments("/bar");
 
-        ArgumentCaptor<DocWriteRequest<?>> request = ArgumentCaptor.forClass(DocWriteRequest.class);
-        verify(bulkProcessorHandlerMock, times(4)).add(request.capture());
+        verify(bulkProcessorHandlerMock, times(2)).index(eq(indexAlias), anyString(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock, times(2)).delete(eq(indexAlias), anyString());
     }
 
     @Test
@@ -103,18 +121,40 @@ public class ElasticIndexWriterTest {
 
         indexWriter.updateDocument(generatedPath, new ElasticDocument(generatedPath));
 
-        ArgumentCaptor<IndexRequest> acIndexRequest = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(bulkProcessorHandlerMock).add(acIndexRequest.capture());
+        ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
+        verify(bulkProcessorHandlerMock).index(eq(indexAlias), idCaptor.capture(), any(ElasticDocument.class));
 
-        IndexRequest request = acIndexRequest.getValue();
-        assertThat(request.id(), not(generatedPath));
-        assertThat(request.id().length(), lessThan(513));
+        String id = idCaptor.getValue();
+        assertThat(id, not(generatedPath));
+        assertThat(id.length(), lessThan(513));
     }
 
     @Test
-    public void closeBulkProcessor() throws IOException {
+    public void closeIndex() throws IOException {
         indexWriter.close(System.currentTimeMillis());
-        verify(bulkProcessorHandlerMock).close();
+        // Closes the index but not the bulk processor
+        verify(bulkProcessorHandlerMock).flushIndex(eq(indexAlias));
+        verify(bulkProcessorHandlerMock, never()).close();
+    }
+
+    @Test
+    public void externallyModifiableIndexes() throws IOException {
+        when(indexDefinitionMock.isExternallyModifiable()).thenReturn(true);
+        indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
+        verify(bulkProcessorHandlerMock).update(eq(indexAlias), anyString(), any(ElasticDocument.class));
+    }
+
+    @Test
+    public void splitLargeString() {
+        assertEquals("[a]",
+                Arrays.toString(ElasticIndexWriter.splitLargeString(
+                        "a", 1024)));
+        assertEquals("[h, e, l, l, o,  , w, o, r, l, d]",
+                Arrays.toString(ElasticIndexWriter.splitLargeString(
+                        "hello world", 1)));
+        assertEquals("[he, ll, o , wo, rl, d]",
+                Arrays.toString(ElasticIndexWriter.splitLargeString(
+                        "hello world", 2)));
     }
 
 }

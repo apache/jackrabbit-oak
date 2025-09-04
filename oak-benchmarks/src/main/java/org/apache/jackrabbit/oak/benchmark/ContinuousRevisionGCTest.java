@@ -23,8 +23,7 @@ import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**

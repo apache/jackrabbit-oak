@@ -20,8 +20,7 @@ import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 
 import java.io.IOException;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Component;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
@@ -42,11 +41,10 @@ import org.junit.Test;
  * Validates that the <tt>NodeTypeDefinitionNodeStoreChecker</tt> is properly applied
  * 
  * <p>This class does not attempt to exhaustively validate the checks that should be performed, only
- * that they are performed when needed.</p>
+ * that they are performed when needed.
  *
  */
-@Component
-@Service(MountedNodeStoreChecker.class)
+@Component(service = {MountedNodeStoreChecker.class})
 public class NodeTypeDefinitionNodeStoreCheckerTest {
 
     @Test

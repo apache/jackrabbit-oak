@@ -30,14 +30,19 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MongoFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -52,17 +57,11 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.ReadPreference;
 
 @RunWith(Parameterized.class)
@@ -84,9 +83,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     }
 
     private static Predicate<NodeDocument> splitDocsWithClusterId(final int clusterId) {
-        return new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(@Nullable NodeDocument doc) {
+        return doc -> {
                 if (!Utils.isPreviousDocId(doc.getId())) {
                     return false;
                 }
@@ -94,8 +91,7 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
                 p = p.getAncestor(1);
                 Revision rev = Revision.fromString(p.getName());
                 return rev.getClusterId() == clusterId;
-            }
-        };
+            };
     }
 
     private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
@@ -121,14 +117,14 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
     protected DocumentNodeStore ds2;
     private VersionGCSupport gcSupport1;
     private CountingMongoDatabase db;
-    private List<String> ids = Lists.newArrayList();
+    private List<String> ids = new ArrayList<>();
 
     private Clock clock;
     private AtomicInteger offset = new AtomicInteger(0);
 
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<DocumentStoreFixture> fixtures() {
-        List<DocumentStoreFixture> fixtures = Lists.newArrayList();
+        List<DocumentStoreFixture> fixtures = new ArrayList<>();
         if (MONGO.isAvailable()) {
             fixtures.add(new MongoFixture() {
                 @Override
@@ -285,9 +281,9 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
         RevisionVector sweepRevs = ds1.getSweepRevisions();
         Iterable<NodeDocument> garbage = gcSupport1.identifyGarbage(GC_TYPES, sweepRevs, oldestRevTimeStamp);
         assertNotNull(garbage);
-        assertEquals(totalSplits, Iterables.size(garbage));
-        assertEquals(numSplit1, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(1))));
-        assertEquals(numSplit2, Iterables.size(Iterables.filter(garbage, splitDocsWithClusterId(2))));
+        assertEquals(totalSplits, IterableUtils.size(garbage));
+        assertEquals(numSplit1, IterableUtils.size(IterableUtils.filter(garbage, splitDocsWithClusterId(1)::test)));
+        assertEquals(numSplit2, IterableUtils.size(IterableUtils.filter(garbage, splitDocsWithClusterId(2)::test)));
 
         Stats stats = deleteSplitDocuments(gcSupport1, sweepRevs, oldestRevTimeStamp);
         assertNotNull(stats);
@@ -403,6 +399,6 @@ public class MongoVersionGCSupportDefaultNoBranchTest {
             throws Exception {
         NodeDocument doc = store.find(NODES, getIdFromPath(path), -1);
         assertNotNull(doc);
-        return Iterators.size(doc.getAllPreviousDocs());
+        return IteratorUtils.size(doc.getAllPreviousDocs());
     }
 }

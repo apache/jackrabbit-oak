@@ -25,13 +25,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
@@ -54,7 +55,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.concat;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.ALL;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.EMPTY;
 
@@ -62,7 +62,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     private static final Logger log = LoggerFactory.getLogger(CompiledPermissionImpl.class);
 
-    private static final Map<Long, PrivilegeBits> READ_BITS = ImmutableMap.of(
+    private static final Map<Long, PrivilegeBits> READ_BITS = Map.of(
             Permissions.READ, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ),
             Permissions.READ_NODE, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_NODES),
             Permissions.READ_PROPERTY, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_PROPERTIES),
@@ -357,7 +357,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             }
 
             if (entry.isAllow) {
-                if (!respectParent || predicate.apply(entry, false)) {
+                if (!respectParent || predicate.test(entry, false)) {
                     allowBits.addDifference(entry.privilegeBits, denyBits);
                 }
                 long ap = PrivilegeBits.calculatePermissions(allowBits, parentAllowBits, true);
@@ -366,7 +366,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                     return true;
                 }
             } else {
-                if (!respectParent || predicate.apply(entry, false)) {
+                if (!respectParent || predicate.test(entry, false)) {
                     denyBits.addDifference(entry.privilegeBits, allowBits);
                 }
                 long dp = PrivilegeBits.calculatePermissions(denyBits, parentDenyBits, false);
@@ -441,7 +441,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         if (groupStore != null) {
             groupEntries = groupStore.getEntryIterator(predicate);
         }
-        return concat(userEntries, groupEntries);
+        return IteratorUtils.chainedIterator(userEntries, groupEntries);
     }
 
     @Nullable
@@ -605,7 +605,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             if (groupStore != null) {
                 groupIt = new LazyIterator(this, false, predicate);
             }
-            return concat(userIt, groupIt);
+            return IteratorUtils.chainedIterator(userIt, groupIt);
         }
 
         @NotNull
@@ -656,7 +656,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             while (next == null) {
                 if (nextEntries.hasNext()) {
                     PermissionEntry pe = nextEntries.next();
-                    if (predicate.apply(pe)) {
+                    if (predicate.test(pe)) {
                         next = pe;
                     } else {
                         treePermission.skipped  = true;

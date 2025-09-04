@@ -144,6 +144,11 @@ public final class S3Constants {
      */
     public static final String PROXY_PORT = "proxyPort";
 
+    /**
+     * Constant to set remote storage mode
+     */
+    public static final String MODE = "mode";
+
     public static final String PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS = "presignedHttpUploadURIExpirySeconds";
 
     public static final String PRESIGNED_HTTP_DOWNLOAD_URI_EXPIRY_SECONDS = "presignedHttpDownloadURIExpirySeconds";

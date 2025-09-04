@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
@@ -29,15 +27,18 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.user.autosave.AutoSaveEnabledManager;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
+import org.apache.jackrabbit.oak.spi.security.user.cache.CacheConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
@@ -50,6 +51,7 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.PropertyDefinition;
 import java.lang.reflect.Field;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
@@ -424,7 +426,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         refTracker.processedReference(unknownReferenceObj);
 
         importer.processReferences();
-        assertTrue(Iterators.contains(refTracker.getProcessedReferences(), unknownReferenceObj));
+        assertTrue(IteratorUtils.contains(refTracker.getProcessedReferences(), unknownReferenceObj));
     }
 
     //------------------------------------------------< propertiesCompleted >---
@@ -623,7 +625,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
 
     @Test(expected = IllegalStateException.class)
     public void testStartChildInfoIllegalState() {
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, "member1")));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -633,7 +635,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
         importer.start(memberRefList);
 
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, "member1")));
     }
 
     @Test
@@ -644,7 +646,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
         assertTrue(importer.start(memberRefList));
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of());
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of());
     }
 
     @Test
@@ -655,7 +657,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
         assertTrue(importer.start(memberRefList));
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo(REP_MEMBERS, "member1")));
     }
 
     @Test
@@ -666,7 +668,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
         importer.start(memberRefList);
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo("otherName", "member1")));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), List.of(createPropInfo("otherName", "member1")));
         importer.processReferences();
 
         // no members should have been added to the group node
@@ -682,7 +684,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         Tree repMembers = groupTree.addChild("memberTree");
         repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
         assertTrue(importer.start(repMembers));
-        importer.startChildInfo(createNodeInfo("memberTree", NT_REP_MEMBERS), ImmutableList.of(createPropInfo("anyProp", "memberValue")));
+        importer.startChildInfo(createNodeInfo("memberTree", NT_REP_MEMBERS), List.of(createPropInfo("anyProp", "memberValue")));
     }
 
     @Test
@@ -693,7 +695,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
         assertTrue(importer.start(memberRefList));
-        importer.startChildInfo(createNodeInfo("memberRef", NT_OAK_UNSTRUCTURED), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_OAK_UNSTRUCTURED), List.of(createPropInfo(REP_MEMBERS, "member1")));
     }
 
     //-------------------------------------------------------< endChildInfo >---

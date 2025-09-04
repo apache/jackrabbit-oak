@@ -19,9 +19,8 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.jetbrains.annotations.NotNull;
@@ -81,7 +80,7 @@ public class PrincipalPermissionEntriesTest {
     @Test
     public void testPutAllEntriesSetsFullyLoadedIgnoresExpectedSize() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
-        ppe.putAllEntries(ImmutableMap.of());
+        ppe.putAllEntries(Map.of());
 
         assertTrue(ppe.isFullyLoaded());
     }
@@ -89,14 +88,14 @@ public class PrincipalPermissionEntriesTest {
     @Test
     public void testPutAllEntriesSetsFullyLoaded() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
-        ppe.putAllEntries(ImmutableMap.of("/path", ImmutableSet.of(permissionEntry)));
+        ppe.putAllEntries(Map.of("/path", Set.of(permissionEntry)));
         assertTrue(ppe.isFullyLoaded());
     }
 
     @Test
     public void testPutAllEntriesWithoutExpectedSizeSetsFullyLoaded() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
-        ppe.putAllEntries(ImmutableMap.of("/path", ImmutableSet.of(permissionEntry)));
+        ppe.putAllEntries(Map.of("/path", Set.of(permissionEntry)));
         assertTrue(ppe.isFullyLoaded());
     }
 
@@ -104,7 +103,7 @@ public class PrincipalPermissionEntriesTest {
     public void testPutAllEntries() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
 
-        Map<String, Collection<PermissionEntry>> allEntries = ImmutableMap.of("/path", ImmutableSet.of(permissionEntry));
+        Map<String, Collection<PermissionEntry>> allEntries = Map.of("/path", Set.of(permissionEntry));
         ppe.putAllEntries(allEntries);
 
         assertEquals(allEntries, ppe.getEntries());
@@ -113,7 +112,7 @@ public class PrincipalPermissionEntriesTest {
     @Test
     public void testPutEntriesByPathSetsFullyLoaded() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
-        ppe.putEntriesByPath("/path", ImmutableSet.of(permissionEntry));
+        ppe.putEntriesByPath("/path", Set.of(permissionEntry));
 
         assertTrue(ppe.isFullyLoaded());
     }
@@ -121,7 +120,7 @@ public class PrincipalPermissionEntriesTest {
     @Test
     public void testPutEntriesByPathExceedingExpectedSizeSetsFullyLoaded() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
-        Collection<PermissionEntry> collection = ImmutableSet.of(permissionEntry);
+        Collection<PermissionEntry> collection = Set.of(permissionEntry);
         ppe.putEntriesByPath("/path", collection);
         ppe.putEntriesByPath("/path2", collection);
 
@@ -131,7 +130,7 @@ public class PrincipalPermissionEntriesTest {
     @Test
     public void testPutEntriesByPathNotReachingExpectedSize() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(2);
-        ppe.putEntriesByPath("/path", ImmutableSet.of(permissionEntry));
+        ppe.putEntriesByPath("/path", Set.of(permissionEntry));
 
         assertFalse(ppe.isFullyLoaded());
     }
@@ -139,7 +138,7 @@ public class PrincipalPermissionEntriesTest {
     @Test
     public void testPutEntriesByPath() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(2);
-        ppe.putEntriesByPath("/path", ImmutableSet.of(permissionEntry));
+        ppe.putEntriesByPath("/path", Set.of(permissionEntry));
 
         assertEquals(1, ppe.getEntries().size());
         assertEquals(1, ppe.getSize());
@@ -148,7 +147,7 @@ public class PrincipalPermissionEntriesTest {
     @Test
     public void testPutEmptyEntriesByPath() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
-        ppe.putEntriesByPath("/path", ImmutableSet.of());
+        ppe.putEntriesByPath("/path", Set.of());
 
         assertTrue(ppe.isFullyLoaded());
         assertEquals(1, ppe.getSize());
@@ -171,9 +170,9 @@ public class PrincipalPermissionEntriesTest {
     @Test
     public void testGetEntriesByPath() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(2);
-        Collection<PermissionEntry> collection = ImmutableSet.of(permissionEntry);
+        Collection<PermissionEntry> collection = Set.of(permissionEntry);
         Map<String, Collection<PermissionEntry>> allEntries =
-                        ImmutableMap.of("/path", collection, "/path2", collection);
+                        Map.of("/path", collection, "/path2", collection);
 
         ppe.putAllEntries(allEntries);
 
@@ -192,7 +191,7 @@ public class PrincipalPermissionEntriesTest {
     public void testGetSize() {
         PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
 
-        ppe.putEntriesByPath("/path", ImmutableSet.of(permissionEntry));
+        ppe.putEntriesByPath("/path", Set.of(permissionEntry));
         assertEquals(1, ppe.getSize());
 
         ppe.rememberNotAccessControlled("/path2");

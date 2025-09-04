@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
+import static java.util.Objects.requireNonNull;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -53,12 +51,7 @@ public final class NodeStateUtils {
      * @return true if one of the nodes is hidden
      */
     public static boolean isHiddenPath(@NotNull String path) {
-        for (String n : PathUtils.elements(path)) {
-            if (isHidden(n)) {
-                return true;
-            }
-        }
-        return false;
+        return (!path.isEmpty() && path.charAt(0) == ':') || path.contains("/:");
     }
 
     @Nullable
@@ -75,8 +68,8 @@ public final class NodeStateUtils {
      */
     @NotNull
     public static NodeState getNode(@NotNull NodeState node, @NotNull String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
-            node = node.getChildNode(checkNotNull(name));
+        for (String name : PathUtils.elements(requireNonNull(path))) {
+            node = node.getChildNode(requireNonNull(name));
         }
         return node;
     }
@@ -92,15 +85,13 @@ public final class NodeStateUtils {
         if (node == null) {
             return "[null]";
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append(toString(node, 1, "  ", "/"));
-        return sb.toString();
+        return toString(node, 1, "  ", "/");
     }
 
     private static String toString(NodeState ns, int level, String prepend,
             String name) {
         StringBuilder node = new StringBuilder();
-        node.append(repeat(prepend, level)).append(name);
+        node.append(prepend.repeat(level)).append(name);
 
         StringBuilder props = new StringBuilder();
         boolean first = true;
@@ -119,7 +110,7 @@ public final class NodeStateUtils {
             node.append("}");
         }
         for (ChildNodeEntry c : ns.getChildNodeEntries()) {
-            node.append(IOUtils.LINE_SEPARATOR);
+            node.append(System.lineSeparator());
             node.append(toString(c.getNodeState(), level + 1, prepend,
                     c.getName()));
         }

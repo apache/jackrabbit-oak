@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 import java.io.BufferedInputStream;
@@ -32,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -59,6 +57,7 @@ import org.apache.jackrabbit.oak.api.blob.BlobUploadOptions;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.ExtendedBlobStatsCollector;
@@ -77,14 +76,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 
 /**
  * BlobStore wrapper for DataStore. Wraps Jackrabbit 2 DataStore and expose them as BlobStores
@@ -310,7 +301,7 @@ public class DataStoreBlobStore
     public void close() throws DataStoreException {
         // If marked as shared transient then delete the repository marker in close
         if (SHARED_TRANSIENT) {
-            if (!Strings.isNullOrEmpty(getRepositoryId())) {
+            if (!org.apache.commons.lang3.StringUtils.isEmpty(getRepositoryId())) {
                 deleteMetadataRecord(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(getRepositoryId()));
             }
         }
@@ -328,15 +319,13 @@ public class DataStoreBlobStore
 
     @Override
     public String writeBlob(InputStream stream, BlobOptions options) throws IOException {
-        boolean threw = true;
-        try {
+        requireNonNull(stream);
+        try (stream) {
             long start = System.nanoTime();
 
-            checkNotNull(stream);
             DataRecord dr = writeStream(stream, options);
             String id = getBlobId(dr);
             updateTracker(id);
-            threw = false;
 
             stats.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, dr.getLength());
             stats.uploadCompleted(id);
@@ -345,10 +334,6 @@ public class DataStoreBlobStore
         } catch (DataStoreException e) {
             stats.uploadFailed();
             throw new IOException(e);
-        } finally {
-            //DataStore does not closes the stream internally
-            //So close the stream explicitly
-            Closeables.close(stream, threw);
         }
     }
 
@@ -369,22 +354,17 @@ public class DataStoreBlobStore
         //This is inefficient as repeated calls for same blobId would involve opening new Stream
         //instead clients should directly access the stream from DataRecord by special casing for
         //BlobStore which implements DataStore
-        InputStream stream = getInputStream(encodedBlobId);
-        boolean threw = true;
-        try {
-            ByteStreams.skipFully(stream, pos);
+        try (InputStream stream = getInputStream(encodedBlobId)) {
+            IOUtils.skipFully(stream, pos);
             int readCount = stream.read(buff, off, length);
-            threw = false;
             return readCount;
-        } finally {
-            Closeables.close(stream, threw);
         }
     }
 
     @Override
     public long getBlobLength(String encodedBlobId) throws IOException {
         try {
-            checkNotNull(encodedBlobId, "BlobId must be specified");
+            requireNonNull(encodedBlobId, "BlobId must be specified");
             BlobId id = BlobId.of(encodedBlobId);
             if (encodeLengthInId && id.hasLengthInfo()) {
                 return id.length;
@@ -397,7 +377,7 @@ public class DataStoreBlobStore
 
     @Override
     public String getBlobId(@NotNull String reference) {
-        checkNotNull(reference);
+        requireNonNull(reference);
         DataRecord record;
         try {
             record = delegate.getRecordFromReference(reference);
@@ -412,7 +392,7 @@ public class DataStoreBlobStore
 
     @Override
     public String getReference(@NotNull String encodedBlobId) {
-        checkNotNull(encodedBlobId);
+        requireNonNull(encodedBlobId);
         String blobId = extractBlobId(encodedBlobId);
         //Reference are not created for in memory record
         if (InMemoryDataRecord.isInstance(blobId)) {
@@ -444,13 +424,9 @@ public class DataStoreBlobStore
                     @Override
                     public byte[] call() throws Exception {
                         boolean threw = true;
-                        InputStream stream = getStream(blobId.blobId);
-                        try {
+                        try (InputStream stream = getStream(blobId.blobId)) {
                             byte[] result = IOUtils.toByteArray(stream);
-                            threw = false;
                             return result;
-                        } finally {
-                            Closeables.close(stream, threw);
                         }
                     }
                 });
@@ -516,37 +492,31 @@ public class DataStoreBlobStore
 
     @Override
     public Iterator<String> getAllChunkIds(final long maxLastModifiedTime) throws Exception {
-        return transform(filter(getAllRecords(), new Predicate<DataRecord>() {
-            @Override
-            public boolean apply(@Nullable DataRecord input) {
+        return IteratorUtils.transform(IteratorUtils.filter(getAllRecords(), input -> {
                 if (input != null && (maxLastModifiedTime <= 0
                         || input.getLastModified() < maxLastModifiedTime)) {
                     return true;
                 }
                 return false;
-            }
-        }), new Function<DataRecord, String>() {
-            @Override
-            public String apply(DataRecord input) {
+            }), input -> {
                 if (encodeLengthInId) {
                     return BlobId.of(input).encodedValue();
                 }
                 return input.getIdentifier().toString();
-            }
-        });
+            });
     }
 
     @Override
     public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         return (chunkIds.size() == countDeleteChunks(chunkIds, maxLastModifiedTime));
-    }    
-    
+    }
+
     @Override
     public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         int count = 0;
         if (delegate instanceof MultiDataStoreAware) {
             try {
-                List<String> deleted = Lists.newArrayListWithExpectedSize(512);
+                List<String> deleted = new ArrayList<>(512);
                 for (String chunkId : chunkIds) {
                     long start = System.nanoTime();
 
@@ -585,7 +555,7 @@ public class DataStoreBlobStore
     @Override
     public Iterator<String> resolveChunks(String blobId) throws IOException {
         if (!InMemoryDataRecord.isInstance(blobId)) {
-            return Iterators.singletonIterator(blobId);
+            return Collections.singleton(blobId).iterator();
         }
         return Collections.emptyIterator();
     }
@@ -774,19 +744,15 @@ public class DataStoreBlobStore
 
         Iterator<DataRecord> result = delegate instanceof SharedDataStore ?
                 ((SharedDataStore) delegate).getAllRecords() :
-                Iterators.transform(delegate.getAllIdentifiers(),
-                        new Function<DataIdentifier, DataRecord>() {
-                            @Nullable
-                            @Override
-                            public DataRecord apply(@Nullable DataIdentifier input) {
+                IteratorUtils.transform(delegate.getAllIdentifiers(),
+                        input -> {
                                 try {
                                     return delegate.getRecord(input);
                                 } catch (DataStoreException e) {
                                     log.warn("Error occurred while fetching DataRecord for identifier {}", input, e);
                                 }
                                 return null;
-                            }
-                        });
+                            });
 
         if (stats instanceof ExtendedBlobStatsCollector) {
             ((ExtendedBlobStatsCollector) stats).getAllRecordsCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
@@ -911,7 +877,7 @@ public class DataStoreBlobStore
         } else {
             id = delegate.getRecord(new DataIdentifier(blobId));
         }
-        checkNotNull(id, "No DataRecord found for blobId [%s]", blobId);
+        requireNonNull(id, String.format("No DataRecord found for blobId [%s]", blobId));
         return id;
     }
 

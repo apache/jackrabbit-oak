@@ -18,8 +18,9 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -48,7 +49,7 @@ import org.jetbrains.annotations.Nullable;
 
 class CugPermissionProvider implements AggregatedPermissionProvider, CugConstants {
 
-    private static final Set<String> READ_PRIVILEGE_NAMES = ImmutableSet.of(
+    private static final Set<String> READ_PRIVILEGE_NAMES = Set.of(
             PrivilegeConstants.JCR_READ,
             PrivilegeConstants.REP_READ_NODES,
             PrivilegeConstants.REP_READ_PROPERTIES
@@ -141,7 +142,7 @@ class CugPermissionProvider implements AggregatedPermissionProvider, CugConstant
             return false;
         }
         for (String privilegeName : privilegeNames) {
-            if (!READ_PRIVILEGE_NAMES.contains(privilegeName)) {
+            if (Objects.nonNull(privilegeName) && !READ_PRIVILEGE_NAMES.contains(privilegeName)) {
                 return false;
             }
         }

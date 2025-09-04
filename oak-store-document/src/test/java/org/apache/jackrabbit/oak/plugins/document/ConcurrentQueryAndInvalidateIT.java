@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
@@ -74,8 +73,8 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
 
     private void cacheUpdate(final Invalidate inv) throws Exception {
         Revision r = newRevision();
-        List<UpdateOp> ops = Lists.newArrayList();
-        List<String> ids = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
+        List<String> ids = new ArrayList<>();
         for (int i = 0; i < NUM_NODES; i++) {
             String id = Utils.getIdFromPath("/node-" + i);
             ids.add(id);
@@ -128,8 +127,8 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
     private Iterable<String> updateDocuments() {
         UpdateOp op = new UpdateOp("foo", false);
         NodeDocument.setLastRev(op, newRevision());
-        List<UpdateOp> ops = Lists.newArrayList();
-        List<String> ids = Lists.newArrayList();
+        List<UpdateOp> ops = new ArrayList<>();
+        List<String> ids = new ArrayList<>();
         for (int i = 0; i < NUM_NODES; i++) {
             String id = getIdFromPath("/node-" + i);
             ids.add(id);

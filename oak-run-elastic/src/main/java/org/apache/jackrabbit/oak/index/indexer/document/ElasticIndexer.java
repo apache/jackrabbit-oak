@@ -33,6 +33,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWr
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Set;
@@ -43,6 +45,7 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefini
 NodeStateIndexer for Elastic. Indexes entries from a given nodestate.
  */
 public class ElasticIndexer implements NodeStateIndexer {
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexer.class);
 
     private final IndexDefinition definition;
     private final FulltextBinaryTextExtractor binaryTextExtractor;
@@ -51,6 +54,7 @@ public class ElasticIndexer implements NodeStateIndexer {
     private final FulltextIndexWriter<ElasticDocument> indexWriter;
     private final ElasticIndexEditorProvider elasticIndexEditorProvider;
     private final IndexHelper indexHelper;
+    private final IndexerStatisticsTracker indexerStatisticsTracker = new IndexerStatisticsTracker(LOG);
 
     public ElasticIndexer(IndexDefinition definition, FulltextBinaryTextExtractor binaryTextExtractor,
                           NodeBuilder definitionBuilder, IndexingProgressReporter progressReporter,
@@ -65,8 +69,14 @@ public class ElasticIndexer implements NodeStateIndexer {
     }
 
     @Override
+    public void onIndexingStarting() {
+        indexerStatisticsTracker.onIndexingStarting();
+        binaryTextExtractor.resetStartTime();
+    }
+
+    @Override
     public boolean shouldInclude(String path) {
-        return getFilterResult(path) != PathFilter.Result.EXCLUDE;
+        return definition.shouldInclude(path);
     }
 
     @Override
@@ -77,14 +87,14 @@ public class ElasticIndexer implements NodeStateIndexer {
 
     public void provisionIndex() {
         FulltextIndexEditor editor = (FulltextIndexEditor) elasticIndexEditorProvider.getIndexEditor(
-                TYPE_ELASTICSEARCH, definitionBuilder, indexHelper.getNodeStore().getRoot(), new ReportingCallback(definition.getIndexPath(),false));
+                TYPE_ELASTICSEARCH, definitionBuilder, indexHelper.getNodeStore().getRoot(), new ReportingCallback(definition.getIndexPath(), false));
         editor.getContext().enableReindexMode();
     }
 
     @Override
     public boolean index(NodeStateEntry entry) throws IOException, CommitFailedException {
 
-        if (getFilterResult(entry.getPath()) != PathFilter.Result.INCLUDE) {
+        if (definition.getFilterResult(entry.getPath()) != PathFilter.Result.INCLUDE) {
             return false;
         }
         IndexDefinition.IndexingRule indexingRule = definition.getApplicableIndexingRule(entry.getNodeState());
@@ -92,12 +102,14 @@ public class ElasticIndexer implements NodeStateIndexer {
         if (indexingRule == null) {
             return false;
         }
+        long startEntryNanos = System.nanoTime();
         ElasticDocumentMaker maker = newDocumentMaker(indexingRule, entry.getPath());
 
         ElasticDocument doc = maker.makeDocument(entry.getNodeState());
-
+        long endEntryMakeDocumentNanos = System.nanoTime();
         if (doc != null) {
             writeToIndex(doc, entry.getPath());
+            indexerStatisticsTracker.onEntryEnd(entry.getPath(), startEntryNanos, endEntryMakeDocumentNanos);
             progressReporter.indexUpdate(definition.getIndexPath());
             return true;
         }
@@ -115,12 +127,15 @@ public class ElasticIndexer implements NodeStateIndexer {
     }
 
     @Override
-    public void close() throws IOException {
-        indexWriter.close(System.currentTimeMillis());
+    public String getIndexName() {
+        return definition.getIndexName();
     }
 
-    private PathFilter.Result getFilterResult(String path) {
-        return definition.getPathFilter().filter(path);
+    @Override
+    public void close() throws IOException {
+        LOG.info("Statistics: {}", indexerStatisticsTracker.formatStats());
+        binaryTextExtractor.logStats();
+        indexWriter.close(System.currentTimeMillis());
     }
 
     private void writeToIndex(ElasticDocument doc, String path) throws IOException {

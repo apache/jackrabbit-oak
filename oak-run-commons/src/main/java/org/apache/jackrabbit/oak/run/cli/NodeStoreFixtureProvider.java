@@ -28,9 +28,11 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counting;
 import com.codahale.metrics.MetricRegistry;
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.ConsoleIndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -62,6 +64,7 @@ public class NodeStoreFixtureProvider {
 
         StatisticsProvider statisticsProvider = createStatsProvider(options, wb, closer);
         wb.register(StatisticsProvider.class, statisticsProvider, emptyMap());
+        wb.register(IndexingReporter.class, new ConsoleIndexingReporter(), emptyMap());
 
         NodeStore store;
         if (commonOpts.isMemory()) {
@@ -97,15 +100,19 @@ public class NodeStoreFixtureProvider {
         return !manifest.exists();
     }
 
+    public static StatisticsProvider createStatsProvider(Whiteboard wb, Closer closer) {
+        ScheduledExecutorService executorService =
+                MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
+        MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
+        closer.register(statsProvider);
+        closer.register(() -> reportMetrics(statsProvider));
+        wb.register(MetricRegistry.class, statsProvider.getRegistry(), emptyMap());
+        return statsProvider;
+    }
+
     private static StatisticsProvider createStatsProvider(Options options, Whiteboard wb, Closer closer) {
         if (options.getCommonOpts().isMetricsEnabled()) {
-            ScheduledExecutorService executorService =
-                    MoreExecutors.getExitingScheduledExecutorService(new ScheduledThreadPoolExecutor(1));
-            MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
-            closer.register(statsProvider);
-            closer.register(() -> reportMetrics(statsProvider));
-            wb.register(MetricRegistry.class, statsProvider.getRegistry(), emptyMap());
-            return statsProvider;
+            return createStatsProvider(wb, closer);
         }
         return StatisticsProvider.NOOP;
     }
@@ -160,7 +167,7 @@ public class NodeStoreFixtureProvider {
         }
     }
 
-    private static class ClosingWhiteboard implements Whiteboard {
+    public static class ClosingWhiteboard implements Whiteboard {
         private final Whiteboard delegate;
         private final Closer closer;
 

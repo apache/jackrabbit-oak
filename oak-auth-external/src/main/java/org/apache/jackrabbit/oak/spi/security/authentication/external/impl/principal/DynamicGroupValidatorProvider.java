@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -42,7 +42,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.findGroupIdInHierarchy;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isGroup;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.DynamicGroupUtil.isMemberProperty;
@@ -66,7 +66,7 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
         this.treeProvider = treeProvider;
         this.idpNamesWithDynamicGroups = idpNamesWithDynamicGroups;
 
-        this.groupRootPath = checkNotNull(UserUtil.getAuthorizableRootPath(securityProvider.getParameters(UserConfiguration.NAME), AuthorizableType.GROUP));
+        this.groupRootPath = requireNonNull(UserUtil.getAuthorizableRootPath(securityProvider.getParameters(UserConfiguration.NAME), AuthorizableType.GROUP));
     }
 
     @Override
@@ -78,7 +78,7 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
         this.rootBefore = rootProvider.createReadOnlyRoot(before);
         this.rootAfter = rootProvider.createReadOnlyRoot(after);
         
-        return new SubtreeValidator(new DynamicGroupValidator(), Iterables.toArray(PathUtils.elements(groupRootPath), String.class));
+        return new SubtreeValidator(new DynamicGroupValidator(), IterableUtils.toArray(PathUtils.elements(groupRootPath), String.class));
     }
     
     private class DynamicGroupValidator extends DefaultValidator {
@@ -111,8 +111,8 @@ class DynamicGroupValidatorProvider extends ValidatorProvider implements Externa
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
             if (isDynamicGroup && isMemberProperty(before)) {
-                Set<String> refsBefore = Sets.newHashSet(before.getValue(Type.STRINGS));
-                Set<String> refsAfter = Sets.newHashSet(after.getValue(Type.STRINGS));
+                Set<String> refsBefore = SetUtils.toSet(before.getValue(Type.STRINGS));
+                Set<String> refsAfter = SetUtils.toSet(after.getValue(Type.STRINGS));
                 refsAfter.removeAll(refsBefore);
                 if (!refsAfter.isEmpty()) {
                     throw commitFailedException(getParentBefore());

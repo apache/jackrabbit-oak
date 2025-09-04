@@ -29,6 +29,10 @@ import java.io.InputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -60,10 +64,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Files;
-
 /**
  * Abstract class for DataStore cache related tests.
  */
@@ -89,7 +89,7 @@ public class AbstractDataStoreCacheTest {
             try {
                 File move = getFile(id, root);
                 move.getParentFile().mkdirs();
-                Files.copy(f, move);
+                Files.copy(f.toPath(), move.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 LOG.info("In TestStagingUploader after write [{}]", move);
             } catch (IOException e) {
                 throw new DataStoreException(e);
@@ -113,7 +113,7 @@ public class AbstractDataStoreCacheTest {
     }
 
 
-    static class TestCacheLoader<S, I> extends CacheLoader<String, FileInputStream> {
+    static class TestCacheLoader extends CacheLoader<String, InputStream> {
         protected File root;
 
         public TestCacheLoader(File dir) {
@@ -125,7 +125,7 @@ public class AbstractDataStoreCacheTest {
             try {
                 File move = getFile(id, root);
                 move.getParentFile().mkdirs();
-                Files.copy(f, move);
+                Files.copy(f.toPath(), move.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 LOG.info("In TestCacheLoader after write [{}], [{}]", id, move);
             } catch (IOException e) {
                 throw new DataStoreException(e);
@@ -164,7 +164,7 @@ public class AbstractDataStoreCacheTest {
     /**
      * Test loader which uses the ErrorInputStream for load
      */
-    static class TestErrorCacheLoader<S, I> extends TestCacheLoader<String, FileInputStream> {
+    static class TestErrorCacheLoader extends TestCacheLoader {
         private long max;
 
         public TestErrorCacheLoader(File dir, long max) {
@@ -231,7 +231,7 @@ public class AbstractDataStoreCacheTest {
         public TestExecutor(int threads, CountDownLatch beforeLatch, CountDownLatch afterLatch,
             CountDownLatch afterExecuteLatch) {
             this.delegate = new TestPoolExecutor(threads, beforeLatch, afterExecuteLatch);
-            this.futures = Lists.newArrayList();
+            this.futures = new ArrayList<>();
             this.afterLatch = afterLatch;
         }
 
@@ -304,7 +304,7 @@ public class AbstractDataStoreCacheTest {
     // A mock Backend implementation that uses a Map to keep track of what
     // records have been added and removed, for test purposes only.
     static class TestMemoryBackend extends AbstractSharedBackend {
-        final Map<DataIdentifier, File> _backend = Maps.newHashMap();
+        final Map<DataIdentifier, File> _backend = new HashMap<>();
         private final File root;
 
         public TestMemoryBackend(File root) {

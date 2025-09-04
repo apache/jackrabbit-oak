@@ -21,8 +21,10 @@ package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.management.openmbean.ArrayType;
 import javax.management.openmbean.CompositeData;
@@ -35,13 +37,12 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.guava.common.collect.TreeTraverser;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.internal.graph.Traverser;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
@@ -50,7 +51,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
-import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -141,8 +141,8 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
                     status = String.format("stats cannot be determined as number of values exceed the max limit of " +
                             "[%d]. Estimated value count [%d]", maxValueCount, childNodeCount);
                 } else {
-                    String[] values = Iterables.toArray(
-                            Iterables.limit(data.getChildNodeNames(), maxValueCount),
+                    String[] values = IterableUtils.toArray(
+                            IterableUtils.limit(data.getChildNodeNames(), maxValueCount),
                             String.class
                     );
 
@@ -162,23 +162,22 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
 
     private String[] determineIndexedPaths(Iterable<? extends ChildNodeEntry> values,
                                            final int maxDepth, int maxPathCount) {
-        Set<String> paths = Sets.newHashSet();
-        Set<String> intermediatePaths = Sets.newHashSet();
+        Set<String> paths = new HashSet<>();
+        Set<String> intermediatePaths = new HashSet<>();
         int maxPathLimitBreachedAtLevel = -1;
         topLevel:
         for (ChildNodeEntry cne : values) {
             Tree t = TreeFactory.createReadOnlyTree(cne.getNodeState());
-            TreeTraverser<Tree> traverser = new TreeTraverser<Tree>() {
-                @Override
-                public Iterable<Tree> children(@NotNull  Tree root) {
-                    //Break at maxLevel
-                    if (PathUtils.getDepth(root.getPath()) >= maxDepth) {
-                        return Collections.emptyList();
-                    }
-                    return root.getChildren();
+
+            final Function<Tree, Iterable<? extends Tree>> treeGetter = root -> {
+                //Break at maxLevel
+                if (PathUtils.getDepth(root.getPath()) >= maxDepth) {
+                    return Collections.emptyList();
                 }
+                return root.getChildren();
             };
-            for (Tree node : traverser.breadthFirstTraversal(t)) {
+
+            for (Tree node : Traverser.breadthFirstTraversal(t, treeGetter)) {
                 PropertyState matchState = node.getProperty("match");
                 boolean match = matchState == null ? false : matchState.getValue(Type.BOOLEAN);
                 int depth = PathUtils.getDepth(node.getPath());
@@ -199,13 +198,13 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
         }
 
         if (maxPathLimitBreachedAtLevel < 0) {
-            return Iterables.toArray(paths, String.class);
+            return IterableUtils.toArray(paths, String.class);
         }
 
         //If max limit for path is reached then we can safely
         //say about includedPaths upto depth = level at which limit reached - 1
         //As for that level we know *all* the path roots
-        Set<String> result = Sets.newHashSet();
+        Set<String> result = new HashSet<>();
         int safeDepth = maxPathLimitBreachedAtLevel - 1;
         if (safeDepth > 0) {
             for (String path : intermediatePaths) {
@@ -215,7 +214,7 @@ public class PropertyIndexStats extends AnnotatedStandardMBean implements Proper
                 }
             }
         }
-        return Iterables.toArray(result, String.class);
+        return IterableUtils.toArray(result, String.class);
     }
 
     @SuppressWarnings("unchecked")

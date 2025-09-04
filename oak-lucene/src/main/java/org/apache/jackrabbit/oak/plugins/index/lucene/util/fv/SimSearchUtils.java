@@ -225,8 +225,10 @@ public class SimSearchUtils {
         if (expectedTruePositive >= 1.0 && similarity < 1) {
             builder.setMinimumNumberShouldMatch((int) (Math.ceil(minhashes.size() * similarity)));
         }
-        log.trace("similarity query with bands : {}, minShouldMatch : {}, no. of clauses : {}", bandSize,
-                builder.getMinimumNumberShouldMatch(), builder.clauses().size());
+        if (log.isTraceEnabled()) {
+            log.trace("similarity query with bands : {}, minShouldMatch : {}, no. of clauses : {}", bandSize,
+                    builder.getMinimumNumberShouldMatch(), builder.clauses().size());
+        }
         return builder;
 
     }

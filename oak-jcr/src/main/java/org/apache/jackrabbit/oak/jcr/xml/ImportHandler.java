@@ -65,6 +65,7 @@ public class ImportHandler extends DefaultHandler {
     protected Locator locator;
     private TargetImportHandler targetHandler;
     private final Map<String, String> tempPrefixMap = new HashMap<String, String>();
+    private final NamespaceHelper namespaceHelper;
 
     public ImportHandler(String absPath, SessionContext sessionContext,
                          int uuidBehavior, boolean isWorkspaceImport) throws RepositoryException {
@@ -74,6 +75,7 @@ public class ImportHandler extends DefaultHandler {
         SessionDelegate sd = sessionContext.getSessionDelegate();
         root = (isWorkspaceImport) ? sd.getContentSession().getLatestRoot() : sd.getRoot();
         importer = new ImporterImpl(absPath, sessionContext, root, uuidBehavior, isWorkspaceImport);
+        namespaceHelper = new NamespaceHelper(sessionContext.getSession());
     }
 
     //---------------------------------------------------------< ErrorHandler >
@@ -136,7 +138,7 @@ public class ImportHandler extends DefaultHandler {
     public void startPrefixMapping(String prefix, String uri)
             throws SAXException {
         try {
-            new NamespaceHelper(sessionContext.getSession()).registerNamespace(
+            namespaceHelper.registerNamespace(
                     prefix, uri);
             if (targetHandler != null) {
                 targetHandler.startPrefixMapping(prefix, uri);

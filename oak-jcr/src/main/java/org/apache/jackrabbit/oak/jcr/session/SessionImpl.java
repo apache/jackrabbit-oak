@@ -16,17 +16,18 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newTreeSet;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_COUNT;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.AccessControlException;
+import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
@@ -278,7 +279,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public String[] getAttributeNames() {
-        Set<String> names = newTreeSet(sessionContext.getAttributes().keySet());
+        Set<String> names = new TreeSet<>(sessionContext.getAttributes().keySet());
         Collections.addAll(names, sd.getAuthInfo().getAttributeNames());
         names.add(RepositoryImpl.BOUND_PRINCIPALS);
         return names.toArray(new String[names.size()]);
@@ -287,7 +288,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public Object getAttribute(String name) {
         if (RepositoryImpl.BOUND_PRINCIPALS.equals(name)) {
-            return sd.getAuthInfo().getPrincipals();
+            return internalGetBoundPrincipals();
         }
         Object attribute = sd.getAuthInfo().getAttribute(name);
         if (attribute == null) {
@@ -846,10 +847,48 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     @Override
+    @NotNull
+    public Set<Principal> getBoundPrincipals() throws RepositoryException {
+        return internalGetBoundPrincipals();
+    }
+
+    @NotNull
+    private Set<Principal> internalGetBoundPrincipals() {
+        return sd.getAuthInfo().getPrincipals();
+    }
+
+    @Override
     public String toString() {
         if (isLive()) {
             return sd.getContentSession().toString();
         }
         return "null";
+    }
+
+    @Override
+    @NotNull
+    public String getExpandedName(@NotNull Item item) throws RepositoryException {
+        try {
+            ItemImpl<?> itemImpl = checkItemImpl(item);
+            return itemImpl.sessionContext.getExpandedJcrName(itemImpl.getOakName());
+        } catch (IllegalStateException e) {
+            // unwrap RepositoryException when available
+            if (e.getCause() instanceof RepositoryException) {
+                throw (RepositoryException) e.getCause();
+            } else {
+                throw new RepositoryException("Namespace exception " + e.getMessage());
+            }
+        }
+    }
+
+    @Override
+    @NotNull
+    public String getExpandedPath(@NotNull Item item) throws RepositoryException {
+        try {
+            ItemImpl<?> itemImpl = checkItemImpl(item);
+            return itemImpl.sessionContext.getExpandedJcrPath(itemImpl.getOakPath());
+        } catch (IllegalStateException e) {
+            throw new RepositoryException("Namespace exception " + e.getMessage());
+        }
     }
 }

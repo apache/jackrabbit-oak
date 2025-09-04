@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Ignore;
@@ -33,8 +34,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
+import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.AdditionalMatchers.geq;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -61,10 +65,11 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     public void indexWithAnalyzedProperty() throws Exception {
         reset(spyMetricHandler);
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").analyzed();
         String indexName = UUID.randomUUID().toString();
-        String indexNameWithPrefix = esConnection.getIndexPrefix() + "." + indexName;
         Tree index = setIndex(indexName, builder);
+        String indexAlias = getElasticIndexDefinition(index).getIndexAlias();
         root.commit();
 
         assertTrue(exists(index));
@@ -79,8 +84,8 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         content.addChild("not-indexed").setProperty("b", "foo");
         root.commit();
 
-        verify(spyMetricHandler).markSize(eq(indexNameWithPrefix), geq(0L), geq(0L));
-        verify(spyMetricHandler).markDocuments(eq(indexNameWithPrefix), geq(0L));
+        verify(spyMetricHandler).markSize(eq(indexAlias), geq(0L), geq(0L));
+        verify(spyMetricHandler).markDocuments(eq(indexAlias), geq(0L));
         assertEventually(() -> assertThat(countDocuments(index), equalTo(1L)));
 
         content.getChild("indexed").remove();
@@ -99,6 +104,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Ignore("this test fails because of a bug with nodeScopeIndex (every node gets indexed in an empty doc)")
     public void indexWithAnalyzedNodeScopeIndexProperty() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").analyzed().nodeScopeIndex();
         Tree index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
@@ -116,6 +122,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Test
     public void indexContentWithLongPath() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").analyzed();
         Tree index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
@@ -143,6 +150,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Test
     public void defineIndexTwice() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         String testId = UUID.randomUUID().toString();
         Tree index = setIndex(testId, builder);
         root.commit();
@@ -157,6 +165,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Test
     public void analyzedFieldWithLongValue() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").analyzed();
         Tree index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
@@ -172,8 +181,26 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    public void shardPreference() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] where [a] = 'text'";
+        String explain = explain(query);
+        assertThat(explain, containsString("preference=oak-"));
+
+        // preference session should be the same across the same query
+        String explain2 = explain(query);
+        assertThat(explain2, equalTo(explain));
+    }
+
+    @Test
     public void indexWithDefaultFetchSizes() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").propertyIndex();
         setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
@@ -197,6 +224,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     public void indexWithCustomFetchSizes() throws Exception {
         BiConsumer<String, Iterable<Long>> buildIndex = (p, fetchSizes) -> {
             IndexDefinitionBuilder builder = createIndex(p).noAsync();
+            builder.includedPaths("/content");
             builder.getBuilderTree().setProperty("queryFetchSizes", fetchSizes, Type.LONGS);
             builder.indexRule("nt:base").property(p).propertyIndex();
             setIndex(p + "_" + UUID.randomUUID(), builder);
@@ -236,6 +264,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     public void indexWithLowTrackTotalHits() throws Exception {
         BiConsumer<String, Iterable<Long>> buildIndex = (p, fetchSizes) -> {
             IndexDefinitionBuilder builder = createIndex(p).noAsync();
+            builder.includedPaths("/content");
             builder.getBuilderTree().setProperty("queryFetchSizes", fetchSizes, Type.LONGS);
             builder.getBuilderTree().setProperty("trackTotalHits", 10L, Type.LONG);
             builder.indexRule("nt:base").property(p).propertyIndex();
@@ -263,6 +292,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     @Test
     public void deduplicateFields() throws Exception {
         IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
         builder.indexRule("nt:base").property("a").propertyIndex();
         Tree index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
@@ -274,12 +304,29 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             ObjectNode indexed1 = getDocument(index, "/content/indexed1");
-            assertThat(indexed1.get("a").asText(), equalTo("foo"));
+            assertThat(indexed1.get(ElasticIndexUtils.fieldName("a")).asText(), equalTo("foo"));
 
             ObjectNode indexed2 = getDocument(index, "/content/indexed2");
-            assertThat(indexed2.get("a").size(), equalTo(2));
-            assertThat(indexed2.get("a").get(0).asText(), equalTo("foo"));
-            assertThat(indexed2.get("a").get(1).asText(), equalTo("bar"));
+            assertThat(indexed2.get(ElasticIndexUtils.fieldName("a")).size(), equalTo(2));
+            assertThat(indexed2.get(ElasticIndexUtils.fieldName("a")).get(0).asText(), equalTo("foo"));
+            assertThat(indexed2.get(ElasticIndexUtils.fieldName("a")).get(1).asText(), equalTo("bar"));
         });
+    }
+
+    @Test
+    public void indexAliasContainsMappingVersionWhenGreatestThanOne() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.includedPaths("/content");
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        Tree index = setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        ElasticIndexDefinition definition = getElasticIndexDefinition(index);
+        String indexAlias = definition.getIndexAlias();
+        if (ElasticIndexDefinition.MAPPING_VERSION.getMajor() > 1) {
+            assertThat(indexAlias, endsWith("_v" + ElasticIndexDefinition.MAPPING_VERSION));
+        } else {
+            assertThat(indexAlias, not(endsWith("_v" + ElasticIndexDefinition.MAPPING_VERSION)));
+        }
     }
 }

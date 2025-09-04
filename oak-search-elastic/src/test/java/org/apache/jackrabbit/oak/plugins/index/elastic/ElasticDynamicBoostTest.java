@@ -28,8 +28,7 @@ import java.util.List;
 public class ElasticDynamicBoostTest extends DynamicBoostCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticDynamicBoostTest() {
         this.indexOptions = new ElasticIndexOptions();
@@ -48,14 +47,13 @@ public class ElasticDynamicBoostTest extends DynamicBoostCommonTest {
 
     @Override
     protected String getTestQueryDynamicBoostBasicExplained() {
-        return "[dam:Asset] as [a] /* elasticsearch:test-index(/oak:index/test-index) {\"bool\":{\"must\":[{\"bool\":" +
-                "{\"must\":[{\"query_string\":{\"default_operator\":\"and\",\"fields\":[\"title^1.0\",\":dynamic-boost-ft^1.0E-4\",\":fulltext\"]," +
-                "\"query\":\"plant\",\"tie_breaker\":0.5,\"type\":\"cross_fields\"}}],\"should\":[{\"nested\":" +
-                "{\"path\":\"predictedTagsDynamicBoost\",\"query\":{\"function_score\":" +
-                "{\"boost\":9.999999747378752E-5,\"functions\":[{\"field_value_factor\":{\"field\":\"predictedTagsDynamicBoost.boost\"}}]," +
-                "\"query\":{\"match\":{\"predictedTagsDynamicBoost.value\":{\"query\":\"plant\"}}}}},\"score_mode\":\"avg\"}}]}}]}} " +
-                "ft:(\"plant\")\n" +
-                "  where contains([a].[*], 'plant') */";
+        return "{\"_source\":{\"includes\":[\":path\"]}," +
+                "\"query\":{\"bool\":{\"must\":[{\"bool\":{\"must\":[{\"query_string\":{\"default_operator\":\"and\"," +
+                "\"fields\":[\"title^1.0\",\":dynamic-boost-ft^1.0E-4\",\":fulltext\"],\"lenient\":true,\"query\":\"plant\",\"tie_breaker\":0.5,\"type\":\"cross_fields\"}}]," +
+                "\"should\":[{\"nested\":{\"path\":\"predictedTagsDynamicBoost\",\"query\":{\"function_score\":{\"boost\":9.999999747378752E-5," +
+                "\"functions\":[{\"field_value_factor\":{\"field\":\"predictedTagsDynamicBoost.boost\"}}]," +
+                "\"query\":{\"match\":{\"predictedTagsDynamicBoost.value\":{\"query\":\"plant\"}}}}},\"score_mode\":\"avg\"}}]}}]}}," +
+                "\"size\":10,\"sort\":[{\"_score\":{\"order\":\"desc\"}},{\":path\":{\"order\":\"asc\"}}],\"track_total_hits\":10000}";
     }
 
     /**
@@ -85,5 +83,40 @@ public class ElasticDynamicBoostTest extends DynamicBoostCommonTest {
             assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'blue-flower')",
                     List.of("/test/asset2", "/test/asset1"));
         });
+    }
+
+    @Test
+    public void dynamicBoostNotIncludedInFullText() throws Exception {
+        createAssetsIndexAndProperties(false, false, false);
+
+        Tree testParent = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
+
+        Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1", "flower with a lot of red and a bit of blue");
+        createPredictedTag(predicted1, "fooTag", 100.0);
+        createPredictedTag(predicted1, "barTag", 1.0);
+        createPredictedTag(predicted1, "red", 9.0);
+        createPredictedTag(predicted1, "blue", 1.0);
+
+        Tree predicted2 = createAssetNodeWithPredicted(testParent, "asset2", "flower with a lot of blue and a bit of red");
+        createPredictedTag(predicted2, "fooTag", 1.0);
+        createPredictedTag(predicted2, "barTag", 100.0);
+        createPredictedTag(predicted2, "red", 1.0);
+        createPredictedTag(predicted2, "blue", 9.0);
+
+        Tree predicted3 = createAssetNodeWithPredicted(testParent, "asset3", "this is a not matching asset");
+        createPredictedTag(predicted3, "fooTag", 1.0);
+        createPredictedTag(predicted3, "barTag", 1.0);
+
+        root.commit();
+
+        assertEventually(() -> {
+            // with this test we are checking that the dynamic boost is not included in the fulltext search
+            assertQuery("//element(*, dam:Asset)[jcr:contains(., 'fooTag')]", XPATH, List.of());
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower OR fooTag')",
+                    List.of("/test/asset1", "/test/asset2"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'flower OR barTag')",
+                    List.of("/test/asset2", "/test/asset1"));
+        });
+
     }
 }

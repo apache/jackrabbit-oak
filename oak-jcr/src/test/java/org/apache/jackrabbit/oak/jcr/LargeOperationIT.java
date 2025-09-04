@@ -70,8 +70,6 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 
@@ -121,7 +119,7 @@ public class LargeOperationIT {
      */
     private static List<Integer> createSequence(int from, int to, int count) {
         double slope = pow(to / (double) from, 1 / ((double) count - 1));
-        List<Integer> seq = Lists.newArrayList();
+        List<Integer> seq = new ArrayList<>();
         int c = 0;
         int v = from;
         do {
@@ -133,7 +131,7 @@ public class LargeOperationIT {
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() throws Exception {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         SegmentTarFixture segmentFixture = new SegmentTarFixture();
         if (segmentFixture.isAvailable()) {
             fixtures.add(new Object[] {segmentFixture, SEGMENT_SCALES});
@@ -241,7 +239,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-commit", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator();
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -271,7 +269,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-copy", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -303,7 +301,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-move", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -330,7 +328,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-remove", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -362,7 +360,7 @@ public class LargeOperationIT {
     public void manySiblings() throws RepositoryException, InterruptedException {
         final Node n = session.getRootNode().addNode("many-siblings", "oak:Unstructured");
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -401,7 +399,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("pending-events", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Double> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = new ArrayList<>();
         for (int scale : scales) {
             final Observer observer = new Observer(scale, 100);
             try {
@@ -436,7 +434,7 @@ public class LargeOperationIT {
         Future<Void> result = delayedEventHandling.start();
 
         try {
-            ArrayList<Double> executionTimes = Lists.newArrayList();
+            ArrayList<Double> executionTimes = new ArrayList<>();
             for (int scale : scales) {
                 ScalabilityTest test = new ScalabilityTest(scale) {
                     @Override
@@ -744,7 +742,7 @@ public class LargeOperationIT {
          * associated with a <a href="http://en.wikipedia.org/wiki/Binomial_test"> Binomial test</a>.
          * <p>
          * The number returned is the smallest significance level at which one can reject the null hypothesis.
-         * The form of the hypothesis depends on {@code alternativeHypothesis}.</p>
+         * The form of the hypothesis depends on {@code alternativeHypothesis}.
          * <p>
          * The p-Value represents the likelihood of getting a result at least as extreme as the sample,
          * given the provided {@code probability} of success on a single trial. For single-sided tests,
@@ -752,7 +750,7 @@ public class LargeOperationIT {
          * the implementation works as follows: we start by looking at the most extreme cases
          * (0 success and n success where n is the number of trials from the sample) and determine their likelihood.
          * The lower value is added to the p-Value (if both values are equal, both are added). Then we continue with
-         * the next extreme value, until we added the value for the actual observed sample.</p>
+         * the next extreme value, until we added the value for the actual observed sample.
          * <p>
          * <strong>Preconditions</strong>:
          * <ul>
@@ -760,7 +758,7 @@ public class LargeOperationIT {
          * <li>Number of successes must be &ge; 0.</li>
          * <li>Number of successes must be &le; number of trials.</li>
          * <li>Probability must be &ge; 0 and &le; 1.</li>
-         * </ul></p>
+         * </ul>
          *
          * @param numberOfTrials number of trials performed
          * @param numberOfSuccesses number of successes observed

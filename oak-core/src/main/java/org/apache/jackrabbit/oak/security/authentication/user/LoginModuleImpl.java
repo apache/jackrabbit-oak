@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.user;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
@@ -62,21 +62,21 @@ import java.util.stream.Stream;
  *
  * <ul>
  *     <li>{@code Credentials} as specified in {@link javax.jcr.Repository#login(javax.jcr.Credentials)}
- *     in which case they are retrieved from the {@code CallbackHandler}.</li>
+ *     in which case they are retrieved from the {@code CallbackHandler}.
  *     <li>A {@link #SHARED_KEY_CREDENTIALS} entry in the shared state. The
- *     expected value is a validated single {@code Credentials} object.</li>
+ *     expected value is a validated single {@code Credentials} object.
  *     <li>If neither of the above variants provides Credentials this module
  *     tries to obtain them from the subject. See also
- *     {@link javax.security.auth.Subject#getSubject(java.security.AccessControlContext)}</li>
+ *     {@link javax.security.auth.Subject#getSubject(java.security.AccessControlContext)}
  * </ul>
  *
  * This implementation of the {@code LoginModule} currently supports the following
  * types of JCR Credentials:
  *
  * <ul>
- *     <li>{@link SimpleCredentials}</li>
- *     <li>{@link GuestCredentials}</li>
- *     <li>{@link ImpersonationCredentials}</li>
+ *     <li>{@link SimpleCredentials}
+ *     <li>{@link GuestCredentials}
+ *     <li>{@link ImpersonationCredentials}
  * </ul>
  *
  * The {@link Credentials} obtained during the {@code #login()} are added to
@@ -282,6 +282,6 @@ public final class LoginModuleImpl extends AbstractLoginModule {
                 attributes.put(attrName, sc.getAttribute(attrName));
             }
         }
-        return new AuthInfoImpl(userId, attributes, Iterables.concat(principals, subject.getPrincipals()));
+        return new AuthInfoImpl(userId, attributes, IterableUtils.chainedIterable(principals, subject.getPrincipals()));
     }
 }

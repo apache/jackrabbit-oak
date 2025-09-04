@@ -21,23 +21,22 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
-
-import junit.framework.TestCase;
 
 import org.apache.catalina.startup.Tomcat;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.conn.HttpHostConnectException;
+import org.htmlunit.WebClient;
+import org.htmlunit.html.HtmlElement;
+import org.htmlunit.html.HtmlForm;
+import org.htmlunit.html.HtmlInput;
+import org.htmlunit.html.HtmlPage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlElement;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import org.apache.jackrabbit.guava.common.io.Files;
+import junit.framework.TestCase;
 
 public class TomcatIT extends TestCase {
 
@@ -46,7 +45,7 @@ public class TomcatIT extends TestCase {
     }
 
     private static Logger LOG = LoggerFactory.getLogger(TomcatIT.class);
-    
+
     private URL url;
 
     private Tomcat tomcat;
@@ -90,7 +89,7 @@ public class TomcatIT extends TestCase {
 
     public void testTomcat() throws Exception {
         HtmlPage page = null;
-        
+
         try {
             page = client.getPage(url);
         } catch (HttpHostConnectException e) {
@@ -99,7 +98,7 @@ public class TomcatIT extends TestCase {
             LOG.error("Failed connecting to tomcat", e);
             return;
         }
-        
+
         assertEquals("Content Repository Setup", page.getTitleText());
 
         page = submitNewRepositoryForm(page);
@@ -129,8 +128,8 @@ public class TomcatIT extends TestCase {
     private void rewriteWebXml(File war) throws IOException {
         File webXml = new File(war, new File("WEB-INF","web.xml").getPath());
         assertTrue(webXml.exists());
-        List<String> lines = Files.readLines(webXml, StandardCharsets.UTF_8);
-        BufferedWriter writer = Files.newWriter(webXml, StandardCharsets.UTF_8);
+        List<String> lines = Files.readAllLines(webXml.toPath(), StandardCharsets.UTF_8);
+        BufferedWriter writer = Files.newBufferedWriter(webXml.toPath(), StandardCharsets.UTF_8);
         try {
             for (String line : lines) {
                 line = line.replace("<param-value>oak/bootstrap.properties</param-value>",

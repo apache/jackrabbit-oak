@@ -180,6 +180,14 @@ public interface Filter {
     boolean isAlwaysFalse();
 
     /**
+     *
+     * @return true if inference is enabled.
+     */
+    default boolean isInferenceEnabled() {
+        return false;
+    }
+
+    /**
      * A restriction for a property.
      */
     class PropertyRestriction {
@@ -452,6 +460,11 @@ public interface Filter {
             @Override
             public boolean getFailTraversal() {
                 return false;
+            }
+
+            @Override
+            public boolean getImprovedIsNullCost() {
+                return true;
             }
 
         };

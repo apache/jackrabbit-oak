@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
@@ -33,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
@@ -58,7 +59,7 @@ public class PropertyIndexInfoProviderTest {
     public void emptyIndexEstimate() throws Exception{
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
+                true, false, Set.of("foo"), null);
         store.merge(builder, HOOK, CommitInfo.EMPTY);
 
         IndexInfo info = infoProvider.getInfo("/oak:index/foo");

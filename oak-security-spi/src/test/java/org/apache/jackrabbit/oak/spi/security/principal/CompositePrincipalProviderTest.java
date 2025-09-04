@@ -27,14 +27,11 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -54,25 +51,25 @@ public class CompositePrincipalProviderTest {
 
     private final TestPrincipalProvider pp1 = new TestPrincipalProvider();
     private final TestPrincipalProvider pp2 = new TestPrincipalProvider("p1", "p2");
-    private final PrincipalProvider cpp = CompositePrincipalProvider.of(ImmutableList.<PrincipalProvider>of(pp1, pp2));
+    private final PrincipalProvider cpp = CompositePrincipalProvider.of(List.<PrincipalProvider>of(pp1, pp2));
 
     private Iterable<Principal> testPrincipals() {
-        return Iterables.concat(pp1.getTestPrincipals(), pp2.getTestPrincipals());
+        return IterableUtils.chainedIterable(pp1.getTestPrincipals(), pp2.getTestPrincipals());
     }
 
     private static void assertIterator(@NotNull Iterable<? extends Principal> expected, @NotNull Iterator<? extends Principal> result) {
-        assertEquals(ImmutableSet.copyOf(expected), ImmutableSet.copyOf(result));
+        assertEquals(SetUtils.toSet(expected), SetUtils.toSet(result));
     }
 
     @Test
     public void testOfEmptyList() {
-        assertSame(EmptyPrincipalProvider.INSTANCE, CompositePrincipalProvider.of(ImmutableList.<PrincipalProvider>of()));
+        assertSame(EmptyPrincipalProvider.INSTANCE, CompositePrincipalProvider.of(List.<PrincipalProvider>of()));
     }
 
     @Test
     public void testOfSingletonList() {
         PrincipalProvider pp = new TestPrincipalProvider(true);
-        assertSame(pp, CompositePrincipalProvider.of(ImmutableList.of(pp)));
+        assertSame(pp, CompositePrincipalProvider.of(List.of(pp)));
     }
 
     @Test
@@ -108,7 +105,7 @@ public class CompositePrincipalProviderTest {
         ItemBasedPrincipal p = mock(ItemBasedPrincipal.class);
         PrincipalProvider pp = when(mock(PrincipalProvider.class).getItemBasedPrincipal(anyString())).thenReturn(p).getMock();
 
-        assertEquals(p, CompositePrincipalProvider.of(ImmutableList.of(pp, pp2)).getItemBasedPrincipal("/any/path"));
+        assertEquals(p, CompositePrincipalProvider.of(List.of(pp, pp2)).getItemBasedPrincipal("/any/path"));
     }
 
     @Test
@@ -138,12 +135,8 @@ public class CompositePrincipalProviderTest {
 
     @Test
     public void findPrincipalsByTypeGroup() {
-        Iterable<? extends Principal> expected = Iterables.concat(ImmutableSet.of(EveryonePrincipal.getInstance()), Iterables.filter(testPrincipals(), new Predicate<Principal>() {
-            @Override
-            public boolean apply(Principal input) {
-                return input instanceof GroupPrincipal;
-            }
-        }));
+        Iterable<? extends Principal> expected = IterableUtils.chainedIterable(Set.of(EveryonePrincipal.getInstance()), IterableUtils.filter(testPrincipals(),
+            input -> input instanceof GroupPrincipal));
 
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
         assertIterator(expected, result);
@@ -151,7 +144,7 @@ public class CompositePrincipalProviderTest {
 
     @Test
     public void findPrincipalsByTypeNotGroup() {
-        Iterable<? extends Principal> expected = Iterables.filter(testPrincipals(), input -> !(input instanceof GroupPrincipal));
+        Iterable<? extends Principal> expected = IterableUtils.filter(testPrincipals(), input -> !(input instanceof GroupPrincipal));
 
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertIterator(expected, result);
@@ -160,7 +153,7 @@ public class CompositePrincipalProviderTest {
     @Test
     public void findPrincipalsByTypeAll() {
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
-        assertIterator(Iterables.concat(ImmutableSet.of(EveryonePrincipal.getInstance()), testPrincipals()), result);
+        assertIterator(IterableUtils.chainedIterable(Set.of(EveryonePrincipal.getInstance()), testPrincipals()), result);
     }
 
     /**
@@ -170,7 +163,7 @@ public class CompositePrincipalProviderTest {
      */
     @Test
     public void testRangeDefault() {
-        List<? extends Principal> pps = ImmutableList.of(new PrincipalImpl("p0"), new PrincipalImpl("p1"),
+        List<? extends Principal> pps = List.of(new PrincipalImpl("p0"), new PrincipalImpl("p1"),
                 new PrincipalImpl("p2"));
 
         PrincipalProvider pp = new PrincipalProvider() {
@@ -276,7 +269,7 @@ public class CompositePrincipalProviderTest {
         // NOTE: CompositePrincipalProvider passes 0 offset to the aggregated provider!
         when(pp.findPrincipals("p", false, PrincipalManager.SEARCH_TYPE_ALL, 0, 3)).thenReturn(principals);
 
-        PrincipalProvider cpp = CompositePrincipalProvider.of(ImmutableList.of(pp, EmptyPrincipalProvider.INSTANCE));
+        PrincipalProvider cpp = CompositePrincipalProvider.of(List.of(pp, EmptyPrincipalProvider.INSTANCE));
 
         Iterator<? extends Principal> it = cpp.findPrincipals("p", false, PrincipalManager.SEARCH_TYPE_ALL, 2, 1);
         assertTrue(it.hasNext());

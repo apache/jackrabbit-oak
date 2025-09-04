@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -37,9 +38,8 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
@@ -160,7 +160,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                          @NotNull String versionablePath)
             throws UnsupportedRepositoryOperationException,
             InvalidItemStateException, RepositoryException {
-        checkState(!workspaceRoot.hasPendingChanges());
+        Validate.checkState(!workspaceRoot.hasPendingChanges());
         checkArgument(PathUtils.isAbsolute(versionablePath));
         Tree versionable = workspaceRoot.getTree(versionablePath);
         if (!isVersionable(versionable)) {
@@ -185,10 +185,10 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                                 @NotNull String versionIdentifier,
                                 @NotNull String oakVersionLabel,
                                 boolean moveLabel) throws RepositoryException {
-        Tree versionHistory = TreeUtil.getTree(checkNotNull(versionStorage.getTree()),
-                checkNotNull(versionHistoryOakRelPath));
-        Tree labels = checkNotNull(versionHistory).getChild(JCR_VERSIONLABELS);
-        PropertyState existing = labels.getProperty(checkNotNull(oakVersionLabel));
+        Tree versionHistory = TreeUtil.getTree(requireNonNull(versionStorage.getTree()),
+                requireNonNull(versionHistoryOakRelPath));
+        Tree labels = requireNonNull(versionHistory).getChild(JCR_VERSIONLABELS);
+        PropertyState existing = labels.getProperty(requireNonNull(oakVersionLabel));
         if (existing != null) {
             if (moveLabel) {
                 labels.removeProperty(existing.getName());
@@ -211,9 +211,9 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                                    @NotNull String versionHistoryOakRelPath,
                                    @NotNull String oakVersionLabel)
             throws RepositoryException {
-        Tree versionHistory = TreeUtil.getTree(checkNotNull(versionStorage.getTree()),
-                checkNotNull(versionHistoryOakRelPath));
-        Tree labels = checkNotNull(versionHistory).getChild(JCR_VERSIONLABELS);
+        Tree versionHistory = TreeUtil.getTree(requireNonNull(versionStorage.getTree()),
+                requireNonNull(versionHistoryOakRelPath));
+        Tree labels = requireNonNull(versionHistory).getChild(JCR_VERSIONLABELS);
         if (!labels.hasProperty(oakVersionLabel)) {
             throw new VersionException("Version label " + oakVersionLabel +
                     " does not exist on this version history");

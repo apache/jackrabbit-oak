@@ -22,9 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,16 +56,16 @@ public final class UpdateOp {
              boolean isDelete,
              @NotNull Map<Key, Operation> changes,
              @Nullable Map<Key, Condition> conditions) {
-        this.id = checkNotNull(id, "id must not be null");
+        this.id = requireNonNull(id, "id must not be null");
         this.isNew = isNew;
         this.isDelete = isDelete;
-        this.changes = checkNotNull(changes);
+        this.changes = requireNonNull(changes);
         this.conditions = conditions;
     }
 
     static UpdateOp combine(String id, Iterable<UpdateOp> ops) {
-        Map<Key, Operation> changes = Maps.newHashMap();
-        Map<Key, Condition> conditions = Maps.newHashMap();
+        Map<Key, Operation> changes = new HashMap<>();
+        Map<Key, Condition> conditions = new HashMap<>();
         for (UpdateOp op : ops) {
             changes.putAll(op.getChanges());
             if (op.conditions != null) {
@@ -158,7 +156,7 @@ public final class UpdateOp {
      */
     void setMapEntry(@NotNull String property, @NotNull Revision revision, String value) {
         Operation op = new Operation(Operation.Type.SET_MAP_ENTRY, value);
-        changes.put(new Key(property, checkNotNull(revision)), op);
+        changes.put(new Key(property, requireNonNull(revision)), op);
     }
 
     /**
@@ -183,7 +181,7 @@ public final class UpdateOp {
      */
     public void removeMapEntry(@NotNull String property, @NotNull Revision revision) {
         Operation op = new Operation(Operation.Type.REMOVE_MAP_ENTRY, null);
-        changes.put(new Key(property, checkNotNull(revision)), op);
+        changes.put(new Key(property, requireNonNull(revision)), op);
     }
 
     /**
@@ -245,7 +243,7 @@ public final class UpdateOp {
      * @param revision the revision
      */
     void unsetMapEntry(@NotNull String property, @NotNull Revision revision) {
-        changes.remove(new Key(property, checkNotNull(revision)));
+        changes.remove(new Key(property, requireNonNull(revision)));
     }
 
     /**
@@ -262,7 +260,7 @@ public final class UpdateOp {
             throw new IllegalStateException("Cannot use containsMapEntry() on new document");
         }
         Condition c = exists ? Condition.EXISTS : Condition.MISSING;
-        getOrCreateConditions().put(new Key(property, checkNotNull(revision)), c);
+        getOrCreateConditions().put(new Key(property, requireNonNull(revision)), c);
     }
 
     /**
@@ -369,7 +367,7 @@ public final class UpdateOp {
 
     private Map<Key, Condition> getOrCreateConditions() {
         if (conditions == null) {
-            conditions = Maps.newHashMap();
+            conditions = new HashMap<>();
         }
         return conditions;
     }
@@ -444,7 +442,7 @@ public final class UpdateOp {
         public final Object value;
 
         Operation(Type type, Object value) {
-            this.type = checkNotNull(type);
+            this.type = requireNonNull(type);
             this.value = value;
         }
 
@@ -574,7 +572,7 @@ public final class UpdateOp {
         private final Revision revision;
 
         public Key(@NotNull String name, @Nullable Revision revision) {
-            this.name = checkNotNull(name);
+            this.name = requireNonNull(name);
             this.revision = revision;
         }
 

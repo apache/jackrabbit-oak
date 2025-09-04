@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -26,7 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.NoSuchWorkspaceException;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -208,7 +208,7 @@ public class OakTest {
         CommitInfoCapturingStore store = new CommitInfoCapturingStore();
         Oak oak = new Oak(store);
 
-        ContentRepository repo = oak.with(new OpenSecurityProvider()).createContentRepository();
+        ContentRepository repo = oak.with(new OpenSecurityProvider()).with(new InitialContent()).createContentRepository();
         assertThat(store.infos, is(not(empty())));
         for (CommitInfo ci : store.infos){
             assertNotNull(ci.getInfo().get(CommitContext.NAME));
@@ -217,7 +217,7 @@ public class OakTest {
     }
 
     private static class CommitInfoCapturingStore extends MemoryNodeStore {
-        List<CommitInfo> infos = Lists.newArrayList();
+        List<CommitInfo> infos = new ArrayList<>();
 
         @Override
         public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook,

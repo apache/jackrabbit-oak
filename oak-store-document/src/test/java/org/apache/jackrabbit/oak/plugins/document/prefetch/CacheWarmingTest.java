@@ -22,6 +22,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeNoException;
+import static org.junit.Assume.assumeNotNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -30,8 +32,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.mongodb.MongoTimeoutException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.CountingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -54,8 +58,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CacheWarmingTest {
 
@@ -67,6 +71,8 @@ public class CacheWarmingTest {
 
     @Rule
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
+
+    private static Logger LOG = LoggerFactory.getLogger(CacheWarmingTest.class);
 
     private @Nullable MongoConnection mongoConnection;
 
@@ -104,9 +110,14 @@ public class CacheWarmingTest {
 
     private DocumentStore newMongoDocumentStore() throws InterruptedException {
         mongoConnection = connectionFactory.getConnection();
-        assertNotNull(mongoConnection);
+        assumeNotNull(mongoConnection);
         db = new CountingMongoDatabase(mongoConnection.getDatabase());
-        MongoUtils.dropCollections(db);
+        try {
+            MongoUtils.dropCollections(db);
+        } catch (MongoTimeoutException e) {
+            LOG.warn("Skipping the current test case, because the collection cleanup in the Mongo DB timed out.", e);
+            assumeNoException("Skipping the current test case, because the collection cleanup in the Mongo DB timed out.", e);
+        }
         DocumentMK.Builder builder = new DocumentMK.Builder()
                 .clock(getTestClock()).setAsyncDelay(0);
         MongoDocumentStore store = new MongoDocumentStore(mongoConnection.getMongoClient(), db, builder);
@@ -170,7 +181,7 @@ public class CacheWarmingTest {
 
     private void doSimple(boolean cleanCaches, boolean prefetch)
             throws InterruptedException, CommitFailedException {
-        System.out.println("=== doSimple( cleanCaches = " + cleanCaches + ", prefetch = " + prefetch + " )");
+        LOG.info("=== doSimple( cleanCaches = " + cleanCaches + ", prefetch = " + prefetch + " )");
         Stopwatch sw = Stopwatch.createStarted();
         DocumentStore ds = newMongoDocumentStore();
         final CountingDocumentStore cds = new CountingDocumentStore(ds);
@@ -233,7 +244,7 @@ public class CacheWarmingTest {
     private void logAndReset(String context,
                              CountingDocumentStore cds,
                              Stopwatch sw) {
-        System.out.println(context
+        LOG.info(context
                 + " -> createOrUpdateCalls = " + cds.getNumCreateOrUpdateCalls(Collection.NODES)
                 + ", findCalls = " + cds.getNumFindCalls(Collection.NODES)
                 + ", queryCalls = " + cds.getNumQueryCalls(Collection.NODES)

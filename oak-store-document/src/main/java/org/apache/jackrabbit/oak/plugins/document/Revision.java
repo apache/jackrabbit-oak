@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A revision.
@@ -73,7 +73,7 @@ public final class Revision implements CacheValue {
      * @param c - the clock
      */
     static void setClock(Clock c) {
-        checkNotNull(c);
+        requireNonNull(c);
         clock = c;
         lastTimestamp = clock.getTime();
         lastRevisionTimestamp = clock.getTime();

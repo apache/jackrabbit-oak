@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.HashSet;
@@ -40,10 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static java.util.Collections.emptySet;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_CREATED;
@@ -80,11 +76,11 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
             return;
         }
 
-        Set<String> beforeKeys = getValueKeys(before, pd.valuePattern);
-        Set<String> afterKeys = getValueKeys(after, pd.valuePattern);
+        HashSet<String> beforeKeys = getValueKeys(before, pd.valuePattern);
+        HashSet<String> afterKeys = getValueKeys(after, pd.valuePattern);
 
         //Remove duplicates
-        Set<String> sharedKeys = newHashSet(beforeKeys);
+        HashSet<String> sharedKeys = new HashSet<>(beforeKeys);
         sharedKeys.retainAll(afterKeys);
         beforeKeys.removeAll(sharedKeys);
         afterKeys.removeAll(sharedKeys);
@@ -95,7 +91,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
             if (pd.unique) {
                 UniqueEntryStoreStrategy s = new UniqueEntryStoreStrategy(INDEX_CONTENT_NODE_NAME,
                         (nb) -> nb.setProperty(PROP_CREATED, updateTime));
-                s.update(ofInstance(indexNode),
+                s.update(() -> indexNode,
                         nodePath,
                         null,
                         null,
@@ -104,11 +100,11 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
                 uniquenessConstraintValidator.add(propertyRelativePath, afterKeys);
             } else {
                 ContentMirrorStoreStrategy s = new ContentMirrorStoreStrategy();
-                s.update(ofInstance(indexNode),
+                s.update(() -> indexNode,
                         nodePath,
                         null,
                         null,
-                        emptySet(), //Disable pruning with empty before keys
+                        Set.of(), //Disable pruning with empty before keys
                         afterKeys);
             }
 
@@ -151,8 +147,7 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
         }
 
         String headBucketName = idx.getString(PROP_HEAD_BUCKET);
-        checkNotNull(headBucketName, "[%s] property not found in [%s] for index [%s]",
-                PROP_HEAD_BUCKET, idx, indexPath);
+        requireNonNull(headBucketName, "[" + PROP_HEAD_BUCKET + "] property not found in [" + idx + "] for index [" + indexPath + "]");
 
         return idx.child(headBucketName);
     }
@@ -165,8 +160,8 @@ public class PropertyIndexUpdateCallback implements PropertyUpdateCallback {
         return idx;
     }
 
-    private static Set<String> getValueKeys(PropertyState property, ValuePattern pattern) {
-        Set<String> keys = new HashSet<>();
+    private static HashSet<String> getValueKeys(PropertyState property, ValuePattern pattern) {
+        HashSet<String> keys = new HashSet<>();
         if (property != null
                 && property.getType().tag() != PropertyType.BINARY
                 && property.count() != 0) {

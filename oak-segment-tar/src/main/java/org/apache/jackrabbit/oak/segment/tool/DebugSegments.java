@@ -17,8 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.segment.RecordId.fromString;
 import static org.apache.jackrabbit.oak.segment.tool.Utils.openReadOnlyFileStore;
 
@@ -75,7 +75,7 @@ public class DebugSegments {
          * @return this builder.
          */
         public Builder withPath(File path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -103,7 +103,7 @@ public class DebugSegments {
          * @return this builder.
          */
         public Builder withSegment(String segment) {
-            this.segments.add(checkNotNull(segment));
+            this.segments.add(requireNonNull(segment));
             return this;
         }
 
@@ -113,7 +113,7 @@ public class DebugSegments {
          * @return an instance of {@link Runnable}.
          */
         public DebugSegments build() {
-            checkNotNull(path);
+            requireNonNull(path);
             checkArgument(!segments.isEmpty());
             return new DebugSegments(this);
         }

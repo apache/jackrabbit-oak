@@ -32,13 +32,13 @@ import org.jetbrains.annotations.Nullable;
  * <ol>
  *     <li>phase 1:
  *         <ul>
- *             <li>{@link #writeSegment(long, long, byte[], int, int, int, int, boolean)}</li>
- *             <li>{@link #flush()}</li>
+ *             <li>{@link #writeSegment(long, long, byte[], int, int, int, int, boolean)}
+ *             <li>{@link #flush()}
  *         </ul>
- *         repeated in an unspecified order</li>
- *     <li>{@link #writeBinaryReferences(byte[])}</li>
- *     <li>{@link #writeGraph(byte[])} (optionally)</li>
- *     <li>{@link #close()}</li>
+ *         repeated in an unspecified order
+ *     <li>{@link #writeBinaryReferences(byte[])}
+ *     <li>{@link #writeGraph(byte[])} (optionally)
+ *     <li>{@link #close()}
  * </ol>
  * All the calls above are synchronized by the caller.
  * In the first phase of the writer lifecycle, the
@@ -50,7 +50,6 @@ import org.jetbrains.annotations.Nullable;
  * any time. They <b>should be thread safe</b>.
  */
 public interface SegmentArchiveWriter {
-
     /**
      * Write the new segment to the archive.
      *
@@ -62,7 +61,7 @@ public interface SegmentArchiveWriter {
      * @param generation the segment generation, see {@link SegmentArchiveEntry#getGeneration()}
      * @param fullGeneration the segment full generation, see {@link SegmentArchiveEntry#getFullGeneration()}
      * @param isCompacted the segment compaction property, see {@link SegmentArchiveEntry#isCompacted()}
-     * @throws IOException
+     * @throws IOException error writing segment
      */
     @NotNull
     void writeSegment(long msb, long lsb, @NotNull byte[] data, int offset, int size, int generation, int fullGeneration, boolean isCompacted) throws IOException;
@@ -142,12 +141,20 @@ public interface SegmentArchiveWriter {
     String getName();
 
     /**
-     * This method returns {@code true} if the storage is accessed via a network protocol, not tight to the traditional storage technology,
+     * This method returns {@code true} if the storage is accessed via a network protocol, not tied to the traditional storage technology,
      * for example, HTTP. Based on that info, for instance, calling classes can decide to update archive metadata (graph, binary references, index) more frequently,
      * and not only when the archive is being closed. With that multiple Oak processes can access the storage simultaneously, with one process in read-write mode and
      * one or more processes in read-only mode.
      *
-     * @return
+     * @return true if the storage is accessed via a network protocol, false otherwise
      */
     boolean isRemote();
+
+    /**
+     * This method returns the maximum number of segments that can be supported by the underlying persistence
+     * implementation of the archive writer.
+     *
+     * @return maximum number of segments supported by the writer implementation
+     */
+    int getMaxEntryCount();
 }

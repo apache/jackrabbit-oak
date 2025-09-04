@@ -22,9 +22,6 @@ import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -35,14 +32,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 public class CompositeCredentialsSupportTest {
 
     private final TestCredentialsSupport tcs = new TestCredentialsSupport();
 
     private final CredentialsSupport credentialsSupport = CompositeCredentialsSupport
-            .newInstance(() -> newHashSet(SimpleCredentialsSupport.getInstance(), tcs));
+            .newInstance(() -> Set.of(SimpleCredentialsSupport.getInstance(), tcs));
 
     @Test
     public void testGetCredentialClasses() {
@@ -73,7 +69,7 @@ public class CompositeCredentialsSupportTest {
         assertNotNull(attributes);
         assertTrue(attributes.isEmpty());
 
-        Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expected = Map.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
         expected.forEach((key, value) -> sc.setAttribute(key, value));
 
         attributes = credentialsSupport.getAttributes(sc);
@@ -101,13 +97,13 @@ public class CompositeCredentialsSupportTest {
         assertNotNull(attributesD);
         assertTrue(attributesD.isEmpty());
 
-        Map<String, ?> expectedS = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
+        Map<String, ?> expectedS = Map.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
         assertTrue(credentialsSupport.setAttributes(sc, expectedS));
 
-        Map<String, ?> expectedT = ImmutableMap.of("test", "Test1CredentialsSupport");
+        Map<String, ?> expectedT = Map.of("test", "Test1CredentialsSupport");
         assertTrue(credentialsSupport.setAttributes(tc, expectedT));
 
-        assertFalse(credentialsSupport.setAttributes(dummy, ImmutableMap.of("none", "none")));
+        assertFalse(credentialsSupport.setAttributes(dummy, Map.of("none", "none")));
 
         attributesS = credentialsSupport.getAttributes(sc);
         for (Map.Entry<String, ?> entry : expectedS.entrySet()) {
@@ -124,7 +120,7 @@ public class CompositeCredentialsSupportTest {
 
     @Test
     public void testEmpty() {
-        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(() -> newHashSet());
+        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(Set::of);
 
         assertTrue(cs.getCredentialClasses().isEmpty());
         assertTrue(cs.getAttributes(new TestCredentials()).isEmpty());
@@ -132,7 +128,7 @@ public class CompositeCredentialsSupportTest {
 
     @Test
     public void testSingleValued() {
-        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(() -> newHashSet(SimpleCredentialsSupport.getInstance()));
+        CredentialsSupport cs = CompositeCredentialsSupport.newInstance(() -> Set.of(SimpleCredentialsSupport.getInstance()));
 
         assertEquals(SimpleCredentialsSupport.getInstance().getCredentialClasses(), cs.getCredentialClasses());
         assertTrue(cs.getAttributes(new TestCredentials()).isEmpty());
@@ -152,7 +148,7 @@ public class CompositeCredentialsSupportTest {
         @NotNull
         @Override
         public Set<Class> getCredentialClasses() {
-            return ImmutableSet.of(TestCredentials.class);
+            return Set.of(TestCredentials.class);
         }
 
         @Nullable
@@ -171,7 +167,7 @@ public class CompositeCredentialsSupportTest {
             if (credentials instanceof TestCredentials) {
                 return attributes;
             } else {
-                return ImmutableMap.of();
+                return Map.of();
             }
         }
 

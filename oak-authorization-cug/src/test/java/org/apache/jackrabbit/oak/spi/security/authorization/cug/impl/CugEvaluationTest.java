@@ -22,8 +22,6 @@ import java.util.Set;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -100,12 +98,12 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
     }
 
     private PermissionProvider createPermissionProvider(Principal... principals) {
-        return getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.copyOf(principals));
+        return getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), Set.of(principals));
     }
 
     @Test
     public void testRead() {
-        List<String> noAccess = ImmutableList.of(
+        List<String> noAccess = List.of(
                 "/", UNSUPPORTED_PATH, /* no access */
                 "/content/a", "/content/a/b", "/content/aa/bb", /* granted by ace, denied by cug */
                 "/content2"            /* granted by cug only */
@@ -114,7 +112,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
             assertFalse(p, testRoot.getTree(p).exists());
         }
 
-        List<String> readAccess = ImmutableList.of("/content", "/content/subtree", "/content/a/b/c", "/content/aa");
+        List<String> readAccess = List.of("/content", "/content/subtree", "/content/a/b/c", "/content/aa");
         for (String p : readAccess) {
             assertTrue(p, testRoot.getTree(p).exists());
         }
@@ -136,7 +134,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testReadCug() {
-        List<String> noAccess = ImmutableList.of(
+        List<String> noAccess = List.of(
                 "/content/a/rep:cugPolicy", "/content/aa/bb/rep:cugPolicy", "/content2/rep:cugPolicy"
         );
         for (String p : noAccess) {
@@ -156,7 +154,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testWrite() throws Exception {
-        List<String> readOnly = ImmutableList.of("/content", "/content/a/b/c");
+        List<String> readOnly = List.of("/content", "/content/a/b/c");
         for (String p : readOnly) {
             try {
                 Tree content = testRoot.getTree(p);
@@ -180,7 +178,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
             assertTrue(pp.isGranted(root.getTree("/content/writeTest"), null, Permissions.ADD_NODE));
             assertTrue(pp.isGranted(root.getTree("/content/a/b/c/writeTest"), null, Permissions.ADD_NODE));
 
-            List<String> paths = ImmutableList.of("/content", "/content/a/b/c");
+            List<String> paths = List.of("/content", "/content/a/b/c");
             for (String p : paths) {
                 Tree content = r.getTree(p);
                 TreeUtil.addChild(content, "writeTest", NT_OAK_UNSTRUCTURED);
@@ -198,7 +196,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         Root r = cs.getLatestRoot();
         try {
             Tree tree = r.getTree("/content/a/b/c");
-            tree.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_CUG_MIXIN, AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+            tree.setProperty(JCR_MIXINTYPES, List.of(MIX_REP_CUG_MIXIN, AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
             tree.addChild(AccessControlConstants.REP_POLICY).setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_ACL, Type.NAME);
             r.commit();
             fail();
@@ -216,7 +214,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         try {
             // modify the existing cug
             Tree tree = r.getTree("/content/a/rep:cugPolicy");
-            tree.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME, testGroupPrincipal.getName()), Type.STRINGS);
+            tree.setProperty(REP_PRINCIPAL_NAMES, List.of(EveryonePrincipal.NAME, testGroupPrincipal.getName()), Type.STRINGS);
             r.commit();
             fail();
         } catch (CommitFailedException e) {
@@ -380,8 +378,8 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testGetPrivilegesTestGroup() {
-        Set<String> w_rac = ImmutableSet.of(PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
-        Set<String> r_w_rac = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        Set<String> w_rac = Set.of(PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        Set<String> r_w_rac = Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
 
         // testGroup
         PermissionProvider pp = createPermissionProvider(testGroupPrincipal);
@@ -405,7 +403,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testGetPrivilegesTestGroupEveryone() {
-        Set<String> r_w_rac = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+        Set<String> r_w_rac = Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
 
         // testGroup + everyone
         PermissionProvider pp = createPermissionProvider(testGroupPrincipal, EveryonePrincipal.getInstance());
@@ -421,7 +419,7 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         // testUser + everyone
         PermissionProvider pp = createPermissionProvider(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
 
-        Set<String> r = ImmutableSet.of(PrivilegeConstants.JCR_READ);
+        Set<String> r = Set.of(PrivilegeConstants.JCR_READ);
         assertEquals(r, pp.getPrivileges(content));
         assertEquals(r, pp.getPrivileges(c));
 

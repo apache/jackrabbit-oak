@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -29,12 +28,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -162,14 +161,14 @@ class MutableRoot implements Root, PermissionAware {
                  QueryIndexProvider indexProvider,
                  Feature classicMove,
                  ContentSessionImpl session) {
-        this.store = checkNotNull(store);
-        this.hook = checkNotNull(hook);
-        this.workspaceName = checkNotNull(workspaceName);
-        this.subject = checkNotNull(subject);
-        this.securityProvider = checkNotNull(securityProvider);
+        this.store = requireNonNull(store);
+        this.hook = requireNonNull(hook);
+        this.workspaceName = requireNonNull(workspaceName);
+        this.subject = requireNonNull(subject);
+        this.securityProvider = requireNonNull(securityProvider);
         this.queryEngineSettings = queryEngineSettings;
         this.indexProvider = indexProvider;
-        this.session = checkNotNull(session);
+        this.session = requireNonNull(session);
         this.lastMove = createMove(classicMove);
 
         builder = store.getRoot().builder();
@@ -197,7 +196,7 @@ class MutableRoot implements Root, PermissionAware {
 
     @Override
     public boolean move(String sourcePath, String destPath) {
-        if (isAncestor(checkNotNull(sourcePath), checkNotNull(destPath))) {
+        if (isAncestor(requireNonNull(sourcePath), requireNonNull(destPath))) {
             return false;
         } else if (sourcePath.equals(destPath)) {
             return true;
@@ -281,7 +280,7 @@ class MutableRoot implements Root, PermissionAware {
      *         defined with the security modules and the padded {@code hooks}.
      */
     private CommitHook getCommitHook() {
-        List<CommitHook> hooks = newArrayList();
+        List<CommitHook> hooks = new ArrayList<>();
         hooks.add(ResetCommitAttributeHook.INSTANCE);
         hooks.add(hook);
 
@@ -343,7 +342,7 @@ class MutableRoot implements Root, PermissionAware {
     @Override @NotNull
     public Blob createBlob(@NotNull InputStream inputStream) throws IOException {
         checkLive();
-        return store.createBlob(checkNotNull(inputStream));
+        return store.createBlob(requireNonNull(inputStream));
     }
 
     @Override
@@ -387,10 +386,10 @@ class MutableRoot implements Root, PermissionAware {
     }
 
     private static Map<String, Object> newInfoWithCommitContext(Map<String, Object> info){
-        return ImmutableMap.<String, Object>builder()
-                .putAll(info)
-                .put(CommitContext.NAME, new SimpleCommitContext())
-                .build();
+        Map<String, Object> builder = new HashMap<>();
+        builder.putAll(info);
+        builder.put(CommitContext.NAME, new SimpleCommitContext());
+        return Collections.unmodifiableMap(builder);
     }
 
     //--------------------------------------------------------------------------------------------< PermissionAware >---

@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 class StateInBytesHolder implements NodeStateHolder {
@@ -32,8 +32,8 @@ class StateInBytesHolder implements NodeStateHolder {
     private final byte[] content;
 
     public StateInBytesHolder(String path, String line) {
-        this.pathElements = copyOf(elements(path));
-        this.content = line.getBytes(UTF_8);
+        this.pathElements = Collections.unmodifiableList(ListUtils.toList(elements(path)));
+        this.content = line.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
@@ -46,7 +46,7 @@ class StateInBytesHolder implements NodeStateHolder {
      */
     @Override
     public String getLine() {
-        return new String(content, UTF_8);
+        return new String(content, StandardCharsets.UTF_8);
     }
 
     @Override

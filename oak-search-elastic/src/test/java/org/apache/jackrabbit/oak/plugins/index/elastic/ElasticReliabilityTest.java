@@ -16,34 +16,56 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import eu.rekawek.toxiproxy.model.ToxicDirection;
-import eu.rekawek.toxiproxy.model.toxic.LimitData;
-import org.apache.jackrabbit.oak.api.Tree;
+import eu.rekawek.toxiproxy.Proxy;
+import eu.rekawek.toxiproxy.ToxiproxyClient;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler;
 import org.junit.After;
-import org.junit.Test;
+import org.junit.Rule;
+import org.junit.contrib.java.lang.system.ProvideSystemProperty;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
+/**
+ * Tests for reliability of async indexing with connection cuts and failures.
+ * This test uses Toxiproxy to simulate network issues.
+ */
+abstract public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
 
-public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
+    public static final String TOXIPROXY_IMAGE_NAME = "ghcr.io/shopify/toxiproxy:2.12.0";
 
-    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("shopify/toxiproxy:2.1.4");
+    // set cache expiration and refresh to low values to avoid cached results in tests
+    @Rule
+    public final ProvideSystemProperty updateSystemProperties
+            = new ProvideSystemProperty("oak.elastic.statsExpireSeconds", "5")
+            .and("oak.elastic.statsRefreshSeconds", "1");
 
-    private ToxiproxyContainer internalToxiProxy;
-    private ToxiproxyContainer.ContainerProxy toxiProxy;
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
+
+    private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse(TOXIPROXY_IMAGE_NAME);
+
+    protected ToxiproxyContainer toxiproxy;
+
+    protected Proxy proxy;
+
+    // Tests are hardcoded for these values
+    protected final static int BULK_ACTIONS_TEST = 2;
+    protected final static int BULK_SIZE_BYTES_TEST = 2 * 1024;
 
     @Override
     public void before() throws Exception {
-        internalToxiProxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(elasticRule.elastic.getNetwork());
-        internalToxiProxy.start();
-        toxiProxy = internalToxiProxy.getProxy(elasticRule.elastic, 9200);
+        // Use a low value for the tests
+        System.setProperty(ElasticBulkProcessorHandler.BULK_ACTIONS_PROP, Integer.toString(BULK_ACTIONS_TEST));
+        System.setProperty(ElasticBulkProcessorHandler.BULK_SIZE_BYTES_PROP, Integer.toString(BULK_SIZE_BYTES_TEST));
+        toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE)
+                .withStartupAttempts(3)
+                .withNetwork(elasticRule.elastic.getNetwork());
+        toxiproxy.start();
+        ToxiproxyClient toxiproxyClient = new ToxiproxyClient(toxiproxy.getHost(), toxiproxy.getControlPort());
+        proxy = toxiproxyClient.createProxy("elastic", "0.0.0.0:8666", "elasticsearch:9200");
         super.before();
     }
 
@@ -51,8 +73,8 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
     @Override
     public void tearDown() throws IOException {
         super.tearDown();
-        if (internalToxiProxy.isRunning()) {
-            internalToxiProxy.stop();
+        if (toxiproxy.isRunning()) {
+            toxiproxy.stop();
         }
     }
 
@@ -64,37 +86,7 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
     @Override
     protected ElasticConnection getElasticConnection() {
         return elasticRule.useDocker() ?
-                elasticRule.getElasticConnectionForDocker(toxiProxy.getContainerIpAddress(), toxiProxy.getProxyPort()) :
+                elasticRule.getElasticConnectionForDocker(toxiproxy.getHost(), toxiproxy.getMappedPort(8666)) :
                 elasticRule.getElasticConnectionFromString();
-    }
-
-    @Test
-    public void connectionCutOnQuery() throws Exception {
-        setIndex("test1", createIndex("propa", "propb"));
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", "a");
-        test.addChild("b").setProperty("propa", "c");
-        test.addChild("c").setProperty("propb", "e");
-        root.commit(Collections.singletonMap("sync-mode", "rt"));
-
-        String query = "select [jcr:path] from [nt:base] where propa is not null";
-
-        // simulate an upstream connection cut
-        LimitData cutConnectionUpstream = toxiProxy.toxics()
-                .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.UPSTREAM, 0L);
-
-        // elastic is down, query should not use it
-        assertThat(explain(query), not(containsString("elasticsearch:test1")));
-
-        // result set should be correct anyway since traversal is enabled
-        assertQuery(query, Arrays.asList("/test/a", "/test/b"));
-
-        // re-establish connection
-        cutConnectionUpstream.remove();
-
-        // result set should be the same as before but this time elastic should be used
-        assertThat(explain(query), containsString("elasticsearch:test1"));
-        assertQuery(query, Arrays.asList("/test/a", "/test/b"));
     }
 }

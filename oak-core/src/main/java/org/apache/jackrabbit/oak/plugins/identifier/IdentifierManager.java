@@ -20,12 +20,11 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Function;
+
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -38,6 +37,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
@@ -49,11 +50,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 
 /**
@@ -237,7 +234,7 @@ public class IdentifierManager {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                return Iterators.concat(transform(result.getRows().iterator(), new RowToPaths()));
+                return IteratorUtils.chainedIterator(IteratorUtils.transform(result.getRows().iterator(), new RowToPaths()::apply));
             }
 
             class RowToPaths implements Function<ResultRow, Iterator<String>> {
@@ -270,13 +267,13 @@ public class IdentifierManager {
                     // skip references from the version storage (OAK-1196)
                     if (!rowPath.startsWith(VersionConstants.VERSION_STORE_PATH)) {
                             if (propertyName == null) {
-                                return filter(
-                                        transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()),
-                                        notNull());
+                                return IteratorUtils.filter(
+                                        IteratorUtils.transform(root.getTree(rowPath).getProperties().iterator(), new PropertyToPath()::apply),
+                                        x -> x != null);
                             } else {
                                 // for a fixed property name, we don't need to look for it, but just assume that
                                 // the search found the correct one
-                                return singletonIterator(PathUtils.concat(rowPath, propertyName));
+                                return Collections.singleton(PathUtils.concat(rowPath, propertyName)).iterator();
                             }
                     }
                     return Collections.emptyIterator();
@@ -318,8 +315,8 @@ public class IdentifierManager {
                             QueryEngine.INTERNAL_SQL2_QUERY,
                     Query.JCR_SQL2, bindings, NO_MAPPINGS);
 
-            Iterable<Tree> resultTrees = Iterables.transform(result.getRows(), (Function<ResultRow, Tree>) row -> row.getTree(null));
-            return Iterables.filter(resultTrees, tree1 -> !tree1.getPath().startsWith(VersionConstants.VERSION_STORE_PATH)
+            Iterable<Tree> resultTrees = IterableUtils.transform(result.getRows(), row -> row.getTree(null));
+            return IterableUtils.filter(resultTrees, tree1 -> !tree1.getPath().startsWith(VersionConstants.VERSION_STORE_PATH)
             );
         } catch (ParseException e) {
             log.error("query failed", e);

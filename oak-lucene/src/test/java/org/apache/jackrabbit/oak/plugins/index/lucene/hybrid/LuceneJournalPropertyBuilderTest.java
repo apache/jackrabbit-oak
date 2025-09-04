@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import org.apache.jackrabbit.guava.common.collect.HashMultimap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -40,7 +40,7 @@ public class LuceneJournalPropertyBuilderTest {
     public void nullProperty() throws Exception{
         builder.addProperty(null);
         assertEquals("{}", builder.buildAsString());
-        assertTrue(Iterables.isEmpty(((IndexedPaths)builder.build())));
+        assertTrue(IterableUtils.isEmpty(((IndexedPaths)builder.build())));
     }
 
     @Test
@@ -51,7 +51,7 @@ public class LuceneJournalPropertyBuilderTest {
         builder2.addSerializedProperty(null);
         builder2.addSerializedProperty(builder.buildAsString());
 
-        assertTrue(Iterables.isEmpty(((IndexedPaths)builder2.build())));
+        assertTrue(IterableUtils.isEmpty(((IndexedPaths)builder2.build())));
     }
     @Test
     public void addJsonLessThanMaxBuilderSize() throws Exception {
@@ -84,7 +84,7 @@ public class LuceneJournalPropertyBuilderTest {
         builder.addProperty(h2);
 
         IndexedPaths indexedPaths = (IndexedPaths) builder.build();
-        Multimap<String, String> map = createdIndexPathMap(indexedPaths);
+        MultiValuedMap<String, String> map = createdIndexPathMap(indexedPaths);
         assertThat(map.keySet(), containsInAnyOrder("/oak:index/foo", "/oak:index/bar"));
         assertThat(map.get("/oak:index/foo"), containsInAnyOrder("/a", "/b"));
     }
@@ -105,7 +105,7 @@ public class LuceneJournalPropertyBuilderTest {
         builder2.addSerializedProperty(json);
 
         IndexedPaths indexedPaths = (IndexedPaths) builder2.build();
-        Multimap<String, String> map = createdIndexPathMap(indexedPaths);
+        MultiValuedMap<String, String> map = createdIndexPathMap(indexedPaths);
         assertThat(map.keySet(), containsInAnyOrder("/oak:index/foo", "/oak:index/bar"));
         assertThat(map.get("/oak:index/foo"), containsInAnyOrder("/a", "/b"));
     }
@@ -121,11 +121,11 @@ public class LuceneJournalPropertyBuilderTest {
         }
 
         IndexedPaths indexedPaths = (IndexedPaths) builder.build();
-        assertEquals(maxSize, Iterables.size(indexedPaths));
+        assertEquals(maxSize, IterableUtils.size(indexedPaths));
     }
 
-    private Multimap<String, String> createdIndexPathMap(Iterable<IndexedPathInfo> itr){
-        Multimap<String, String> map = HashMultimap.create();
+    private MultiValuedMap<String, String> createdIndexPathMap(Iterable<IndexedPathInfo> itr){
+        MultiValuedMap<String, String> map = new HashSetValuedHashMap<>();
         for (IndexedPathInfo i : itr){
             for (String indexPath : i.getIndexPaths()){
                 map.put(indexPath, i.getPath());

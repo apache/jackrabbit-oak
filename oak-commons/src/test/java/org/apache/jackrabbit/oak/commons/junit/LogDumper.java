@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
  * locally upon test failure. This simplifies determining failure
  * cause by providing all required data locally. This would be specially useful when running test
  * in CI server where server logs gets cluttered with all other test executions
- * <p/>
  * <pre>
  *     public class LoginTestIT {
  *

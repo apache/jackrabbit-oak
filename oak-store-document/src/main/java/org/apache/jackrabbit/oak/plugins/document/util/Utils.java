@@ -26,22 +26,25 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -53,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
@@ -60,8 +64,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isCommitRootEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isRevisionsEntry;
@@ -106,32 +110,18 @@ public class Utils {
     /**
      * A predicate for property and _deleted names.
      */
-    public static final Predicate<String> PROPERTY_OR_DELETED = new Predicate<String>() {
-        @Override
-        public boolean apply(@Nullable String input) {
-            return Utils.isPropertyName(input) || isDeletedEntry(input);
-        }
-    };
+    public static final Predicate<String> PROPERTY_OR_DELETED = input -> Utils.isPropertyName(input) || isDeletedEntry(input);
 
     /**
      * A predicate for property, _deleted, _commitRoot or _revisions names.
      */
-    public static final Predicate<String> PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS = new Predicate<String>() {
-        @Override
-        public boolean apply(@Nullable String input) {
-            return Utils.isPropertyName(input) || isDeletedEntry(input) || isCommitRootEntry(input) || isRevisionsEntry(input);
-        }
-    };
+    public static final Predicate<String> PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS = input -> Utils.isPropertyName(input)
+            || isDeletedEntry(input) || isCommitRootEntry(input) || isRevisionsEntry(input);
 
     /**
      * A predicate for _commitRoot and _revisions names.
      */
-    public static final Predicate<String> COMMITROOT_OR_REVISIONS = new Predicate<String>() {
-        @Override
-        public boolean apply(@Nullable String input) {
-            return isCommitRootEntry(input) || isRevisionsEntry(input);
-        }
-    };
+    public static final Predicate<String> COMMITROOT_OR_REVISIONS = input -> isCommitRootEntry(input) || isRevisionsEntry(input);
 
     public static int pathDepth(String path) {
         if (path.equals("/")) {
@@ -204,6 +194,88 @@ public class Utils {
             size = Integer.MAX_VALUE;
         }
         return (int) size;
+    }
+
+    private static class PropertyStats {
+        public int count;
+        public int size;
+    }
+
+    /**
+     * Generates diagnostics about the structure of the entries of the document
+     * by counting properties and their lengths.
+     */
+    public static String mapEntryDiagnostics(@NotNull Set<Entry<String, Object>> entries) {
+        Map<String, PropertyStats> stats = new TreeMap<>();
+
+        for (Map.Entry<String, Object> member : entries) {
+            String key = member.getKey();
+
+            PropertyStats stat = stats.get(key);
+            if (stat == null) {
+                stat = new PropertyStats();
+            }
+
+            Object o = member.getValue();
+            if (o instanceof String) {
+                stat.size += StringUtils.estimateMemoryUsage((String) o);
+                stat.count += 1;
+            } else if (o instanceof Long) {
+                stat.size += 16;
+                stat.count += 1;
+            } else if (o instanceof Boolean) {
+                stat.size += 8;
+                stat.count += 1;
+            } else if (o instanceof Integer) {
+                stat.size += 8;
+                stat.count += 1;
+            } else if (o instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<Object, Object> x = (Map<Object, Object>)o;
+                stat.size += 8 + Utils.estimateMemoryUsage(x);
+                stat.count += x.size();
+            } else if (o == null) {
+                // zero
+            } else {
+                throw new IllegalArgumentException("Can't estimate memory usage of " + o);
+            }
+
+            stats.put(key, stat);
+        }
+
+        // sort by estimated entry size, highest first
+        Comparator<Map.Entry<String, PropertyStats>> bySize = (Map.Entry<String, PropertyStats> o1,
+                Map.Entry<String, PropertyStats> o2) -> o2.getValue().size - o1.getValue().size;
+
+        return stats.entrySet().stream().sorted(bySize).map(e -> diagsForEntry(e)).collect(Collectors.joining(", "));
+    }
+
+    /**
+     * Stats for a single map entry.
+     */
+    private static String diagsForEntry(Map.Entry<String, PropertyStats> member) {
+        String name = member.getKey();
+        PropertyStats stat = member.getValue();
+        if (stat.count <= 1) {
+            return redactMemberName(name) + ": "+ stat.size + " bytes";
+        } else {
+            return redactMemberName(name) + ": "+ stat.size + " bytes in " + stat.count + " entries (" + stat.size / stat.count + " avg)";
+        }
+    }
+
+    /**
+     * List of property names that are system-defined by JCR and thus do not
+     * need to be redacted (to be expanded later)
+     */
+    private static final Set<String> POS_PROPERTY_LIST = Set.of("jcr:primaryType", "jcr:mixinTypes");
+
+    /**
+     * Redacts names for use in log entries. Attempts to hide all names that are
+     * not under system control.
+     */
+    private static String redactMemberName(String name) {
+        boolean redact = isPropertyName(name) && !name.startsWith(":") && !POS_PROPERTY_LIST.contains(name);
+        return redact ? "(name redacted)" : "'" + name + "'";
     }
 
     public static String escapePropertyName(String propertyName) {
@@ -289,7 +361,7 @@ public class Utils {
     }
 
     public static String getIdFromPath(@NotNull Path path) {
-        checkNotNull(path);
+        requireNonNull(path);
         int depth = getIdDepth(path);
         Path parent = path.getParent();
         if (parent != null && isLongPath(path)) {
@@ -553,7 +625,7 @@ public class Utils {
     @NotNull
     public static Revision resolveCommitRevision(@NotNull Revision rev,
                                                  @NotNull String tag) {
-        return checkNotNull(tag).startsWith("c-") ?
+        return requireNonNull(tag).startsWith("c-") ?
                 Revision.fromString(tag.substring(2)) : rev;
     }
 
@@ -668,7 +740,7 @@ public class Utils {
      * @return an {@link Iterable} over all documents in the store.
      */
     public static Iterable<NodeDocument> getAllDocuments(final DocumentStore store) {
-        return internalGetSelectedDocuments(store, null, 0, DEFAULT_BATCH_SIZE);
+        return internalGetSelectedDocuments(store, null, 0, MIN_ID_VALUE, DEFAULT_BATCH_SIZE);
     }
 
     /**
@@ -710,7 +782,7 @@ public class Utils {
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
             DocumentStore store, String indexedProperty, long startValue, int batchSize) {
-        return internalGetSelectedDocuments(store, indexedProperty, startValue, batchSize);
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, MIN_ID_VALUE, batchSize);
     }
 
     /**
@@ -719,26 +791,142 @@ public class Utils {
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
             DocumentStore store, String indexedProperty, long startValue) {
-        return internalGetSelectedDocuments(store, indexedProperty, startValue, DEFAULT_BATCH_SIZE);
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, MIN_ID_VALUE, DEFAULT_BATCH_SIZE);
+    }
+
+    /**
+     * Like {@link #getSelectedDocuments(DocumentStore, String, long, int)} with
+     * a default {@code batchSize}.
+     */
+    public static Iterable<NodeDocument> getSelectedDocuments(
+            DocumentStore store, String indexedProperty, long startValue,
+            @NotNull final Set<String> includePaths, @NotNull final Set<String> excludePaths) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue,
+                MIN_ID_VALUE, includePaths, excludePaths, DEFAULT_BATCH_SIZE);
+    }
+
+    /**
+     * Like {@link #getSelectedDocuments(DocumentStore, String, long, int)} with
+     * a default {@code batchSize}.
+     */
+    public static Iterable<NodeDocument> getSelectedDocuments(
+            DocumentStore store, String indexedProperty, long startValue, String fromId) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, fromId, DEFAULT_BATCH_SIZE);
+    }
+
+    /**
+     * Like {@link #getSelectedDocuments(DocumentStore, String, long, int)} with
+     * a default {@code batchSize}.
+     */
+    public static Iterable<NodeDocument> getSelectedDocuments(
+            DocumentStore store, String indexedProperty, long startValue, String fromId,
+            @NotNull final Set<String> includePaths, @NotNull final Set<String> excludePaths) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, fromId,
+                includePaths, excludePaths, DEFAULT_BATCH_SIZE);
+    }
+
+    /**
+     * Default implementation for applying include/exclude path prefixes
+     * client-side, meaning the query to the DocumentStore searches for all
+     * documents and include/excludes are then filtered after receiving that
+     * query.
+     * This variant is obviously not intended for production use, as client
+     * side filtering is slow. Hence this is only used for testing for
+     * any non-MongoDocumentStore. It should not be enabled in production,
+     * unless this performance hit here is understood and accepted.
+     * @param path the path for which to evaluate the include/excludes
+     * @param includes set of path prefixes which should only be considered
+     * @param excludes set of path prefixes which should be excluded.
+     * if these overlap with includes, then exclude has precedence.
+     * @return whether the provided path is included or not
+     */
+    public static boolean isIncluded(Path path, @NotNull Set<String> includes,
+            @NotNull Set<String> excludes) {
+        // check first if includes/excludes are empty
+        if (includes.isEmpty() && excludes.isEmpty()) {
+            return true;
+        }
+        String s = path.toString();
+        // then check excludes first
+        for (String anExclude : excludes) {
+            if (s.startsWith(anExclude)) {
+                // if there is an exclude matching the path
+                // we need to definitely exclude it,
+                // no matter whether there is even an include
+                // for it or not
+                return false;
+            }
+        }
+        if (includes.isEmpty()) {
+            // if we have no includes defined at all, and it
+            // was not excluded, then it is an include
+            return true;
+        }
+        // then the includes
+        for (String anInclude : includes) {
+            if (s.startsWith(anInclude)) {
+                // if we have a matching include, and given
+                // it was not excluded above, then this is
+                // an include
+                return true;
+            }
+        }
+        // if we have any includes defined, but none of
+        // them matched so far, then this is an exclude
+        return false;
     }
 
     private static Iterable<NodeDocument> internalGetSelectedDocuments(
             final DocumentStore store, final String indexedProperty,
-            final long startValue, final int batchSize) {
+            final long startValue, String fromId,
+            final int batchSize) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, fromId,
+                Collections.emptySet(), Collections.emptySet(), batchSize);
+    }
+
+    private static Iterable<NodeDocument> internalGetSelectedDocuments(
+            final DocumentStore store, final String indexedProperty,
+            final long startValue, String fromId,
+            @NotNull final Set<String> includePaths,
+            @NotNull final Set<String> excludePaths,
+            final int batchSize) {
         if (batchSize < 2) {
             throw new IllegalArgumentException("batchSize must be > 1");
+        }
+        if ((store instanceof MongoDocumentStore)
+                && (!includePaths.isEmpty() || !excludePaths.isEmpty())) {
+            throw new IllegalArgumentException("cannot use with MongoDocumentStore");
         }
         return new Iterable<NodeDocument>() {
             @Override
             public Iterator<NodeDocument> iterator() {
                 return new AbstractIterator<NodeDocument>() {
 
-                    private String startId = NodeDocument.MIN_ID_VALUE;
+                    private String startId = fromId;
 
                     private Iterator<NodeDocument> batch = nextBatch();
 
                     @Override
                     protected NodeDocument computeNext() {
+                        do {
+                            final NodeDocument n = doComputeNext();
+                            if (n == null) {
+                                return null;
+                            }
+                            if (isIncluded(n.getPath(), includePaths, excludePaths)) {
+                                return n;
+                            }
+                            // else repeat
+                            // note that this loop is potentially dangerous,
+                            // depending on the include/exclude definition.
+                            // that's why currently this variant is not supported
+                            // against MongoDocumentStore. I.e. it is only used
+                            // for unit testing. FullGC for RDBDocumentStore
+                            // is not supported at all.
+                        } while(true);
+                    }
+
+                    private NodeDocument doComputeNext() {
                         // read next batch if necessary
                         if (!batch.hasNext()) {
                             batch = nextBatch();
@@ -781,19 +969,14 @@ public class Utils {
      */
     public static Iterable<StringValue> asStringValueIterable(
             @NotNull Iterable<String> values) {
-        return transform(values, new Function<String, StringValue>() {
-            @Override
-            public StringValue apply(String input) {
-                return new StringValue(input);
-            }
-        });
+        return IterableUtils.transform(values, input -> new StringValue(input));
     }
 
     /**
      * Transforms the given paths into ids using {@link #getIdFromPath(String)}.
      */
     public static Iterable<String> pathToId(@NotNull Iterable<String> paths) {
-        return transform(paths, input -> getIdFromPath(input));
+        return IterableUtils.transform(paths, input -> getIdFromPath(input));
     }
 
     /**
@@ -884,6 +1067,36 @@ public class Utils {
     }
 
     /**
+     * Returns the minimum timestamp to use for a query for child documents that
+     * have been modified between {@code fromRev} and {@code toRev}.
+     * We use a different calculation method for for DocumentNodeStore#diffManyChildren(), see OAK-10812
+     *
+     * @param fromRev the from revision.
+     * @param toRev the to revision.
+     * @param minRevisions the minimum revisions of foreign cluster nodes. These
+     *                     are derived from the startTime of a cluster node.
+     * @return the minimum timestamp.
+     */
+    public static long getMinTimestampForDiffManyChildren(@NotNull RevisionVector fromRev,
+                                                          @NotNull RevisionVector toRev,
+                                                          @NotNull RevisionVector minRevisions) {
+        // make sure we have minimum revisions for all known cluster nodes
+        toRev = toRev.pmax(minRevisions);
+        // keep only revision entries that changed
+        RevisionVector from = fromRev.difference(toRev);
+        RevisionVector to = toRev.difference(fromRev);
+        // now calculate minimum timestamp
+        long min = Long.MAX_VALUE;
+        for (Revision r : from) {
+            min = Math.min(r.getTimestamp(), min);
+        }
+        for (Revision r : to) {
+            min = Math.min(r.getTimestamp(), min);
+        }
+        return min;
+    }
+
+    /**
      * Check whether throttling is enabled or not for document store.
      *
      * @param builder instance for DocumentNodeStoreBuilder
@@ -892,6 +1105,39 @@ public class Utils {
     public static boolean isThrottlingEnabled(final DocumentNodeStoreBuilder<?> builder) {
         final Feature docStoreThrottlingFeature = builder.getDocStoreThrottlingFeature();
         return builder.isThrottlingEnabled() || (docStoreThrottlingFeature != null && docStoreThrottlingFeature.isEnabled());
+    }
+
+    /**
+     * Check whether full GC is enabled or not for document store.
+     *
+     * @param builder instance for DocumentNodeStoreBuilder
+     * @return true if full GC is enabled else false
+     */
+    public static boolean isFullGCEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreFullGCFeature = builder.getDocStoreFullGCFeature();
+        return builder.isFullGCEnabled() || (docStoreFullGCFeature != null && docStoreFullGCFeature.isEnabled());
+    }
+
+    /**
+     * Check whether embedded verification for full GC mode is enabled or not for document store.
+     *
+     * @param builder instance for DocumentNodeStoreBuilder
+     * @return true if embedded verification is enabled else false
+     */
+    public static boolean isEmbeddedVerificationEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreEmbeddedVerificationFeature = builder.getDocStoreEmbeddedVerificationFeature();
+        return builder.isEmbeddedVerificationEnabled() || (docStoreEmbeddedVerificationFeature != null && docStoreEmbeddedVerificationFeature.isEnabled());
+    }
+
+    /**
+     * Check whether avoid exclusive merge lock is enabled or not for document store.
+     *
+     * @param builder instance for DocumentNodeStoreBuilder
+     * @return true if avoid exclusive merge lock is enabled else false
+     */
+    public static boolean isAvoidMergeLockEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreAvoidMergeLockFeature = builder.getDocStoreAvoidMergeLockFeature();
+        return builder.avoidMergeLock() || (docStoreAvoidMergeLockFeature != null && docStoreAvoidMergeLockFeature.isEnabled());
     }
 
     /**
@@ -939,8 +1185,8 @@ public class Utils {
      */
     public static <T> CloseableIterable<T> abortingIterable(Iterable<T> iterable,
                                                             Predicate<T> p) {
-        checkNotNull(iterable);
-        checkNotNull(p);
+        requireNonNull(iterable);
+        requireNonNull(p);
         return new CloseableIterable<T>(() -> {
             final Iterator<T> it = iterable.iterator();
             return new AbstractIterator<T>() {
@@ -948,7 +1194,7 @@ public class Utils {
                 protected T computeNext() {
                     if (it.hasNext()) {
                         T next = it.next();
-                        if (p.apply(next)) {
+                        if (p.test(next)) {
                             return next;
                         }
                     }
@@ -978,7 +1224,7 @@ public class Utils {
                                                   int clusterId,
                                                   long warnThresholdMillis)
             throws InterruptedException {
-        Map<Integer, Revision> lastRevMap = checkNotNull(rootDoc).getLastRev();
+        Map<Integer, Revision> lastRevMap = requireNonNull(rootDoc).getLastRev();
         long externalTime = Utils.getMaxExternalTimestamp(lastRevMap.values(), clusterId);
         long localTime = clock.getTime();
         if (externalTime > localTime) {

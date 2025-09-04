@@ -19,11 +19,12 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.codahale.metrics.MetricRegistry;
-import org.apache.jackrabbit.guava.common.base.Splitter;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.dropwizard.DropwizardExports;
 import io.prometheus.client.exporter.PushGateway;
@@ -88,7 +89,10 @@ public class MetricsExporterFixtureProvider {
         private final Map<String, String> pushMap;
 
         ExportMetricsArgs(String args) {
-            List<String> split = Splitter.on(";").limit(3).omitEmptyStrings().trimResults().splitToList(args);
+            List<String> split = Arrays.stream(args.split(";", 3))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
             this.exporterType = ExporterType.valueOf(split.get(0));
 
             if (split.size() < 2) {
@@ -98,7 +102,14 @@ public class MetricsExporterFixtureProvider {
             this.pushUri = split.get(1);
 
             if (split.size() > 2) {
-                this.pushMap = Splitter.on(",").omitEmptyStrings().trimResults().withKeyValueSeparator("=").split(split.get(2));
+                this.pushMap = Arrays.stream(split.get(2).split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .map(s -> s.split("=", 2))
+                        .filter(arr -> arr.length == 2)
+                        .collect(Collectors.toMap(
+                                arr -> arr[0],
+                                arr -> arr[1]));
             } else {
                 this.pushMap = emptyMap();
             }

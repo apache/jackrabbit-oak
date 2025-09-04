@@ -17,20 +17,21 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.ReadConcernLevel;
 import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.WriteConcern;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.util.MongoConnection.readConcernLevel;
 
 /**
@@ -51,31 +52,36 @@ final class MongoDBConnection {
                       @NotNull MongoDatabase database,
                       @NotNull MongoStatus status,
                       @NotNull MongoClock clock) {
-        this.client = checkNotNull(client);
-        this.db = checkNotNull(database);
-        this.status = checkNotNull(status);
-        this.clock = checkNotNull(clock);
+        this.client = requireNonNull(client);
+        this.db = requireNonNull(database);
+        this.status = requireNonNull(status);
+        this.clock = requireNonNull(clock);
         this.sessionFactory = new MongoSessionFactory(client, clock);
     }
 
     static MongoDBConnection newMongoDBConnection(@NotNull String uri,
                                                   @NotNull String name,
                                                   @NotNull MongoClock clock,
-                                                  int socketTimeout,
-                                                  boolean socketKeepAlive) {
+                                                  @NotNull MongoClientSettings settings) {
         CompositeServerMonitorListener serverMonitorListener = new CompositeServerMonitorListener();
-        MongoClientOptions.Builder options = MongoConnection.getDefaultBuilder();
-        options.addServerMonitorListener(serverMonitorListener);
-        options.socketKeepAlive(socketKeepAlive);
-        if (socketTimeout > 0) {
-            options.socketTimeout(socketTimeout);
-        }
-        MongoClient client = new MongoClient(new MongoClientURI(uri, options));
+
+        MongoClientSettings.Builder optionsBuilder = MongoClientSettings.builder(settings);
+        optionsBuilder.applyToServerSettings(settingsBuilder ->
+                settingsBuilder.addServerMonitorListener(serverMonitorListener)
+        );
+        
+        MongoClientSettings mongoClientSettings = optionsBuilder.build();
+        LOG.info("Mongo Connection details {}", MongoConnection.toString(mongoClientSettings));
+        MongoClient client = MongoClients.create(mongoClientSettings);
+
         MongoStatus status = new MongoStatus(client, name);
         serverMonitorListener.addListener(status);
         MongoDatabase db = client.getDatabase(name);
         if (!MongoConnection.hasWriteConcern(uri)) {
-            db = db.withWriteConcern(MongoConnection.getDefaultWriteConcern(client));
+            WriteConcern defaultWriteConcern = MongoConnection.getDefaultWriteConcern(client);
+            LOG.info("Setting default write concern: {} for cluster type: {}", 
+                    defaultWriteConcern, client.getClusterDescription().getType());
+            db = db.withWriteConcern(defaultWriteConcern);
         }
         if (status.isMajorityReadConcernSupported()
                 && status.isMajorityReadConcernEnabled()
@@ -84,6 +90,8 @@ final class MongoDBConnection {
         }
         return new MongoDBConnection(client, db, status, clock);
     }
+    
+
 
     @NotNull
     MongoClient getClient() {

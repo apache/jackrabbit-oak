@@ -16,14 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
-import com.beust.jcommander.internal.Maps;
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.guava.common.io.ByteSource;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
@@ -39,16 +34,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -73,7 +67,7 @@ public class TextPopulatorTest {
     }
 
     private void setupIndexData() throws Exception {
-        Map<String, String> dataMap = Maps.newHashMap();
+        Map<String, String> dataMap = new HashMap<>();
         dataMap.put("/sentence", "some sentence.");
         dataMap.put("/para", "some sentence.\nAnd more sentence after a new line");
         dataMap.put("/error", TextPopulator.ERROR_TEXT);
@@ -101,7 +95,7 @@ public class TextPopulatorTest {
     }
 
     private List<Field> createLuceneDocument(@NotNull String path, String ... values) {
-        List<Field> fields = Lists.newArrayList();
+        List<Field> fields = new ArrayList<>();
         for (String value : values) {
             if (value != null) {
                 fields.add(FieldFactory.newFulltextField(value, true));
@@ -243,8 +237,8 @@ public class TextPopulatorTest {
     }
 
     private static class FakeTextWriter implements TextWriter {
-        final Set<String> processed = Sets.newHashSet();
-        final Map<String, String> data = Maps.newHashMap();
+        final Set<String> processed = new HashSet<>();
+        final Map<String, String> data = new HashMap<>();
 
         @Override
         public void write(@NotNull String blobId, @NotNull String text) {
@@ -269,11 +263,11 @@ public class TextPopulatorTest {
     }
 
     private static class FakeBinaryResourceProvider implements BinaryResourceProvider {
-        private List<BinaryResource> binaries = Lists.newArrayList();
+        private List<BinaryResource> binaries = new ArrayList<>();
 
         FakeBinaryResourceProvider(String ... paths) {
             for (String path : paths) {
-                binaries.add(new BinaryResource(new StringByteSource(""), null, null, path, getBlobId(path)));
+                binaries.add(new BinaryResource(new TestDataSource(""), null, null, path, getBlobId(path)));
             }
         }
 
@@ -283,26 +277,7 @@ public class TextPopulatorTest {
 
         @Override
         public FluentIterable<BinaryResource> getBinaries(String path) {
-            return new FluentIterable<BinaryResource>() {
-                @NotNull
-                @Override
-                public Iterator<BinaryResource> iterator() {
-                    return binaries.iterator();
-                }
-            };
-        }
-    }
-
-    private static class StringByteSource extends ByteSource {
-        private final String data;
-
-        StringByteSource(String data) {
-            this.data = data;
-        }
-
-        @Override
-        public InputStream openStream() {
-            return new ByteArrayInputStream(data.getBytes(UTF_8));
+            return FluentIterable.of(binaries);
         }
     }
 }

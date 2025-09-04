@@ -19,20 +19,20 @@ package org.apache.jackrabbit.oak.segment.standby;
 
 import static org.mockito.Mockito.mock;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
+import org.apache.commons.codec.digest.MurmurHash3;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
-import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
+import org.apache.jackrabbit.oak.segment.standby.codec.HashUtils;
 
 public class StandbyTestUtils {
 
@@ -47,20 +47,15 @@ public class StandbyTestUtils {
     public static Segment mockSegment(UUID uuid, byte[] buffer) {
         SegmentStore store = mock(SegmentStore.class);
         SegmentIdProvider idProvider = mock(SegmentIdProvider.class);
-        SegmentReader reader = mock(SegmentReader.class);
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
         SegmentId id = new SegmentId(store, msb, lsb);
         Buffer data = Buffer.wrap(buffer);
-        return new Segment(idProvider, reader, id, data);
+        return new Segment(idProvider, id, data);
     }
 
     public static long hash(byte[] data) {
-        return Hashing.murmur3_32().newHasher().putBytes(data).hash().padToLong();
-    }
-    
-    public static long hash(byte mask, long blobLength, byte[] data) {
-        return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data).hash().padToLong();
+        return Integer.toUnsignedLong(MurmurHash3.hash32x86(data));
     }
     
     public static byte createMask(int currentChunk, int totalChunks) {
@@ -77,7 +72,7 @@ public class StandbyTestUtils {
     }
     
     public static ByteBuf createBlobChunkBuffer(byte header, long blobLength, String blobId, byte[] data, byte mask) {
-        byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
+        byte[] blobIdBytes = blobId.getBytes(StandardCharsets.UTF_8);
         
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(1 + 1 + 8 + 4 + blobIdBytes.length + 8 + data.length);
@@ -86,7 +81,7 @@ public class StandbyTestUtils {
         buf.writeLong(blobLength);
         buf.writeInt(blobIdBytes.length);
         buf.writeBytes(blobIdBytes);
-        buf.writeLong(hash(mask, blobLength, data));
+        buf.writeLong(HashUtils.hashMurmur32(mask, blobLength, data));
         buf.writeBytes(data);
         
         return buf;

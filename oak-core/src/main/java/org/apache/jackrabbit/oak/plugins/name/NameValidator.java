@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -48,7 +48,6 @@ class NameValidator extends DefaultValidator {
      * Flag controlling the strictness of the namespace checks. if {@code true}
      * namespaces existence will not be checked, otherwise referencing a
      * non-existent namespace will cause a {@link CommitFailedException}.
-     * 
      * Used only for the case where lucene index definitions are registered via
      * {@link RepositoryInitializer}s.
      */
@@ -58,7 +57,7 @@ class NameValidator extends DefaultValidator {
 
     NameValidator(NodeState namespaces, boolean initPhase) {
         this.namespaces = namespaces;
-        this.prefixes = newHashSet(namespaces.getChildNode(REP_NSDATA).getStrings(REP_PREFIXES));
+        this.prefixes = SetUtils.toSet(namespaces.getChildNode(REP_NSDATA).getStrings(REP_PREFIXES));
         this.initPhase = initPhase;
     }
 
@@ -117,7 +116,8 @@ class NameValidator extends DefaultValidator {
 
     private void checkPrefix(String prefix) throws CommitFailedException {
         if (prefix.isEmpty() || !contains(prefixes, namespaces, prefix)) {
-            String msg = "Invalid namespace prefix(" + prefixes + "): " + prefix;
+            String msg = "Invalid namespace prefix(" + prefixes + "): " + prefix +
+                    " in " + namespaces + " " + SetUtils.toSet(namespaces.getChildNodeNames());
             if (initPhase && !strictInitialNSChecks) {
                 LOG.warn(msg);
                 return;
@@ -138,7 +138,7 @@ class NameValidator extends DefaultValidator {
             }
         } else if (Type.PATH.equals(property.getType()) || Type.PATHS.equals(property.getType())) {
             for (String value : property.getValue(Type.PATHS)) {
-                for (String name: PathUtils.elements(value)) {
+                for (String name : PathUtils.elements(value)) {
                     checkValidValue(name);
                 }
             }
@@ -180,8 +180,7 @@ class NameValidator extends DefaultValidator {
     }
 
     @Override
-    public Validator childNodeChanged(
-            String name, NodeState before, NodeState after) {
+    public Validator childNodeChanged(String name, NodeState before, NodeState after) {
         return this;
     }
 

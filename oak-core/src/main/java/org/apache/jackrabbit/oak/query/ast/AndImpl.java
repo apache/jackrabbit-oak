@@ -18,15 +18,14 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,8 +35,6 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * An AND condition.
@@ -63,7 +60,7 @@ public class AndImpl extends ConstraintImpl {
     public ConstraintImpl simplify() {
         // Use LinkedHashSet to eliminate duplicate constraints while keeping
         // the ordering for test cases (and clients?) that depend on it
-        LinkedHashSet<ConstraintImpl> simplified = newLinkedHashSet();
+        LinkedHashSet<ConstraintImpl> simplified = new LinkedHashSet<>();
         boolean changed = false; // keep track of changes in simplification
 
         for (ConstraintImpl constraint : constraints) {
@@ -84,7 +81,7 @@ public class AndImpl extends ConstraintImpl {
         if (simplified.size() == 1) {
             return simplified.iterator().next();
         } else if (changed) {
-            return new AndImpl(newArrayList(simplified));
+            return new AndImpl(new ArrayList<>(simplified));
         } else {
             return this;
         }
@@ -93,7 +90,7 @@ public class AndImpl extends ConstraintImpl {
     @Override
     ConstraintImpl not() {
         // not (X and Y) == (not X) or (not Y)
-        List<ConstraintImpl> list = newArrayList();
+        List<ConstraintImpl> list = new ArrayList<>();
         for (ConstraintImpl constraint : constraints) {
             list.add(new NotImpl(constraint));
         }
@@ -102,7 +99,7 @@ public class AndImpl extends ConstraintImpl {
 
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
-        Set<PropertyExistenceImpl> result = newHashSet();
+        Set<PropertyExistenceImpl> result = new HashSet<>();
         for (ConstraintImpl constraint : constraints) {
             result.addAll(constraint.getPropertyExistenceConditions());
         }
@@ -111,7 +108,7 @@ public class AndImpl extends ConstraintImpl {
     
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
-        List<FullTextExpression> list = newArrayList();
+        List<FullTextExpression> list = new ArrayList<>();
         for (ConstraintImpl constraint : constraints) {
             FullTextExpression expression = constraint.getFullTextConstraint(s);
             if (expression != null) {
@@ -130,7 +127,7 @@ public class AndImpl extends ConstraintImpl {
     
     @Override
     public Set<SelectorImpl> getSelectors() {
-        Set<SelectorImpl> result = newHashSet();
+        Set<SelectorImpl> result = new HashSet<>();
         for (ConstraintImpl constraint : constraints) {
             result.addAll(constraint.getSelectors());
         }
@@ -286,9 +283,9 @@ public class AndImpl extends ConstraintImpl {
         // use linked hash sets where needed, so that the order of queries
         // within the UNION is always the same (independent of the JVM
         // implementation)
-        Set<ConstraintImpl> union = Sets.newLinkedHashSet();
-        Set<ConstraintImpl> result = Sets.newLinkedHashSet();
-        Set<ConstraintImpl> nonUnion = Sets.newHashSet();
+        Set<ConstraintImpl> union = new LinkedHashSet<>();
+        Set<ConstraintImpl> result = new LinkedHashSet<>();
+        Set<ConstraintImpl> nonUnion = new HashSet<>();
         
         for (ConstraintImpl c : constraints) {
             Set<ConstraintImpl> converted = c.convertToUnion();
@@ -313,7 +310,7 @@ public class AndImpl extends ConstraintImpl {
             // example: WHERE (a OR b) AND (c OR d).
             // This can be translated into a AND c, a AND d, b AND c, b AND d.
             if (QueryEngineSettings.SQL2_OPTIMIZATION_2) {
-                Set<ConstraintImpl> set = Sets.newLinkedHashSet();
+                Set<ConstraintImpl> set = new LinkedHashSet<>();
                 addToUnionList(set);
                 if (set.size() == 1) {
                     // not a union: same condition as before

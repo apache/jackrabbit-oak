@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.query;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -64,10 +62,10 @@ public class PropertyInexistenceTest extends AbstractQueryTest {
         root.commit();
 
         String query1 = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a') AND [z] IS NULL";
-        List<String> expected1 = ImmutableList.of("/a/x", "/a/x/y");
+        List<String> expected1 = List.of("/a/x", "/a/x/y");
 
         String query2 = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a/x') AND [z] IS NULL";
-        List<String> expected2 = ImmutableList.of("/a/x/y");
+        List<String> expected2 = List.of("/a/x/y");
 
         assertQuery(query1, expected1);
         assertQuery(query2, expected2);
@@ -88,12 +86,12 @@ public class PropertyInexistenceTest extends AbstractQueryTest {
         root.commit();
 
         String query1 = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a') AND [y/z] IS NULL";
-        List<String> expected1 = ImmutableList.of("/a/x", "/a/x/y", "/a/x1");
-        List<String> expectedOld1 = ImmutableList.of("/a/x");
+        List<String> expected1 = List.of("/a/x", "/a/x/y", "/a/x1");
+        List<String> expectedOld1 = List.of("/a/x");
 
         String query2 = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a/x') AND [y/z] IS NULL";
-        List<String> expected2 = ImmutableList.of("/a/x/y");
-        List<String> expectedOld2 = ImmutableList.of();
+        List<String> expected2 = List.of("/a/x/y");
+        List<String> expectedOld2 = List.of();
 
         assertQuery(query1, expected1);
         assertQuery(query2, expected2);
@@ -112,8 +110,8 @@ public class PropertyInexistenceTest extends AbstractQueryTest {
         System.setProperty("oak.useOldInexistenceCheck", "false");
 
         String query3 = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a/x2') AND [y/z] IS NULL";
-        List<String> expected3 = ImmutableList.of("/a/x2/z", "/a/x2/z1/y");
-        List<String> expectedOld3 = ImmutableList.of();
+        List<String> expected3 = List.of("/a/x2/z", "/a/x2/z1/y");
+        List<String> expectedOld3 = List.of();
 
         assertQuery(query3, expected3);
 
@@ -131,8 +129,8 @@ public class PropertyInexistenceTest extends AbstractQueryTest {
         root.commit();
 
         String query = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a') AND [w/y/z] IS NULL";
-        List<String> expected = ImmutableList.of("/a/x", "/a/x1", "/a/x1/w", "/a/x2", "/a/x2/w", "/a/x2/w/y");
-        List<String> expectedOld = ImmutableList.of("/a/x2");
+        List<String> expected = List.of("/a/x", "/a/x1", "/a/x1/w", "/a/x2", "/a/x2/w", "/a/x2/w/y");
+        List<String> expectedOld = List.of("/a/x2");
 
         assertQuery(query, expected);
 

@@ -23,8 +23,6 @@ import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.RestHighLevelClientBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +56,7 @@ public class ElasticConnection implements Closeable {
     protected static final int DEFAULT_PORT = 9200;
     protected static final String DEFAULT_API_KEY_ID = "";
     protected static final String DEFAULT_API_KEY_SECRET = "";
+    protected static final int DEFAULT_MAX_RETRY_TIME = 0;
     protected static final int ES_SOCKET_TIMEOUT = 120000;
 
     private final String indexPrefix;
@@ -123,14 +122,12 @@ public class ElasticConnection implements Closeable {
                             requestConfigBuilder -> requestConfigBuilder.setSocketTimeout(ES_SOCKET_TIMEOUT));
 
                     RestClient httpClient = builder.build();
-                    RestHighLevelClient hlClient = new RestHighLevelClientBuilder(httpClient)
-                            .setApiCompatibilityMode(true).build();
 
                     ElasticsearchTransport transport = new RestClientTransport(
                             httpClient, new JacksonJsonpMapper());
                     ElasticsearchClient esClient = new ElasticsearchClient(transport);
                     ElasticsearchAsyncClient esAsyncClient = new ElasticsearchAsyncClient(transport);
-                    clients = new Clients(esClient, esAsyncClient, hlClient);
+                    clients = new Clients(esClient, esAsyncClient);
                 }
             }
         }
@@ -151,14 +148,6 @@ public class ElasticConnection implements Closeable {
      */
     public ElasticsearchAsyncClient getAsyncClient() {
         return getClients().asyncClient;
-    }
-
-    /**
-     * @deprecated
-     * @return the old Elasticsearch client
-     */
-    public RestHighLevelClient getOldClient() {
-        return getClients().rhlClient;
     }
 
     public String getIndexPrefix() {
@@ -187,9 +176,6 @@ public class ElasticConnection implements Closeable {
                 // standard client
                 clients.client._transport().close();
             }
-            if (clients.rhlClient != null) {
-                clients.rhlClient.close();
-            }
         }
         isClosed.set(true);
     }
@@ -217,12 +203,10 @@ public class ElasticConnection implements Closeable {
     private static class Clients {
         public final ElasticsearchClient client;
         public final ElasticsearchAsyncClient asyncClient;
-        public final RestHighLevelClient rhlClient;
 
-        Clients(ElasticsearchClient client, ElasticsearchAsyncClient asyncClient, RestHighLevelClient rhlClient) {
+        Clients(ElasticsearchClient client, ElasticsearchAsyncClient asyncClient) {
             this.client = client;
             this.asyncClient = asyncClient;
-            this.rhlClient = rhlClient;
         }
     }
 
@@ -271,7 +255,7 @@ public class ElasticConnection implements Closeable {
         /**
          * This is the final step in charge of building the {@link ElasticConnection}.
          * Validation should be here.
-         *
+         * <p>
          * It adds support for {@link OptionalSteps}.
          */
         public interface BuildStep extends OptionalSteps {

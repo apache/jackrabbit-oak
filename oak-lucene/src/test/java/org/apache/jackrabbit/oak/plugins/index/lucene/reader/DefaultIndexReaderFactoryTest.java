@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterPool;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -41,25 +42,54 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.StringField;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.*;
 
+@RunWith(Parameterized.class)
 public class DefaultIndexReaderFactoryTest {
+    private final boolean parallelIndexing;
+    private IndexWriterPool indexWriterPool;
+
+    @Parameterized.Parameters(name = "Parallel Indexing: ({0})")
+    public static List<Boolean> parallelIndexingEnabled() {
+        return List.of(true, false);
+    }
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private NodeState root = INITIAL_CONTENT;
-    private NodeBuilder builder = EMPTY_NODE.builder();
+    private final NodeState root = INITIAL_CONTENT;
+    private final NodeBuilder builder = EMPTY_NODE.builder();
     private LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
-    private MountInfoProvider mip = Mounts.newBuilder()
+    private final MountInfoProvider mip = Mounts.newBuilder()
             .mount("foo", "/libs", "/apps").build();
-    private LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
+    private final LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
+
+    public DefaultIndexReaderFactoryTest(boolean parallelIndexing) {
+        this.parallelIndexing = parallelIndexing;
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        indexWriterPool = parallelIndexing ? new IndexWriterPool() : null;
+    }
+
+    @After
+    public void tearDown() {
+        if (indexWriterPool != null) {
+            indexWriterPool.close();
+        }
+    }
 
     @Test
     public void emptyDir() throws Exception{
@@ -196,6 +226,6 @@ public class DefaultIndexReaderFactoryTest {
 
     private LuceneIndexWriterFactory newDirectoryFactory(){
         DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, null);
-        return new DefaultIndexWriterFactory(mip, directoryFactory, writerConfig);
+        return new DefaultIndexWriterFactory(mip, directoryFactory, writerConfig, indexWriterPool);
     }
 }

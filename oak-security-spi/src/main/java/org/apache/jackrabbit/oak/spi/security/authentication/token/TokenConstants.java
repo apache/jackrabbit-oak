@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 public interface TokenConstants {
@@ -36,12 +35,12 @@ public interface TokenConstants {
 
     String TOKEN_NT_NAME = "rep:Token";
 
-    Set<String> RESERVED_ATTRIBUTES = ImmutableSet.of(
+    Set<String> RESERVED_ATTRIBUTES = Set.of(
             TOKEN_ATTRIBUTE,
             TOKEN_ATTRIBUTE_EXPIRY,
             TOKEN_ATTRIBUTE_KEY);
 
-    Set<String> TOKEN_PROPERTY_NAMES = ImmutableSet.of(TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY);
+    Set<String> TOKEN_PROPERTY_NAMES = Set.of(TOKEN_ATTRIBUTE_EXPIRY, TOKEN_ATTRIBUTE_KEY);
 
     /**
      * Flag set on the TokenCredentials to skip refreshing the token expiration time
@@ -52,5 +51,5 @@ public interface TokenConstants {
      * Value of the {@link #TOKEN_ATTRIBUTE} property to trigger the creation of a new token.
      */
     String TOKEN_ATTRIBUTE_DO_CREATE = "";
-    
+
 }

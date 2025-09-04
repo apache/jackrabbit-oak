@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -28,9 +26,11 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import javax.jcr.Value;
+
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
@@ -56,7 +56,7 @@ public class WhiteboardRestrictionProviderTest {
         when(registered.getPattern(PathUtils.ROOT_PATH, tree)).thenThrow(new RestrictionException());
 
         restrictionProvider.start(whiteboard);
-        whiteboard.register(RestrictionProvider.class, registered, ImmutableMap.of());
+        whiteboard.register(RestrictionProvider.class, registered, Map.of());
     }
 
     @After
@@ -85,9 +85,9 @@ public class WhiteboardRestrictionProviderTest {
     @Test
     public void testWriteRestrictions() throws Exception {
         Tree tree = mock(Tree.class);
-        restrictionProvider.writeRestrictions("/testPath", tree, ImmutableSet.of());
+        restrictionProvider.writeRestrictions("/testPath", tree, Set.of());
 
-        verify(registered, times(1)).writeRestrictions("/testPath", tree, ImmutableSet.of());
+        verify(registered, times(1)).writeRestrictions("/testPath", tree, Set.of());
     }
 
     @Test
@@ -119,8 +119,8 @@ public class WhiteboardRestrictionProviderTest {
     @Test
     public void testGetPatternFromRestrictions() {
         Restriction r = mock(Restriction.class);
-        restrictionProvider.getPattern("/testPath", ImmutableSet.of(r));
+        restrictionProvider.getPattern("/testPath", Set.of(r));
 
-        verify(registered, times(1)).getPattern("/testPath", ImmutableSet.of(r));
+        verify(registered, times(1)).getPattern("/testPath", Set.of(r));
     }
 }

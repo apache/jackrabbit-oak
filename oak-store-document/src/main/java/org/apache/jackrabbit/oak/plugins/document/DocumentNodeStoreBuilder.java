@@ -16,20 +16,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static java.util.Objects.isNull;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toUnmodifiableSet;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
@@ -41,6 +45,8 @@ import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.internal.function.Suppliers;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -67,9 +73,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 
 /**
@@ -82,7 +85,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStoreBuilder.class);
 
     public static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
-    public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 35;
+    public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 34;
+    public static final int DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE = 1;
     public static final int DEFAULT_PREV_DOC_CACHE_PERCENTAGE = 4;
     public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 15;
     public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 30;
@@ -113,22 +117,32 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     static final int UPDATE_LIMIT = Integer.getInteger("update.limit", DEFAULT_UPDATE_LIMIT);
 
-    protected Supplier<DocumentStore> documentStoreSupplier = ofInstance(new MemoryDocumentStore());
+    protected Supplier<DocumentStore> documentStoreSupplier = Suppliers.memoize(MemoryDocumentStore::new);
     protected Supplier<BlobStore> blobStoreSupplier;
     private DiffCache diffCache;
     private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
     private int asyncDelay = 1000;
+    private long clusterIdReuseDelayAfterRecovery = ClusterNodeInfo.DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS;
     private boolean timing;
     private boolean logging;
+    private long recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
+    private long perfloggerInfoMillis = DocumentNodeStoreService.DEFAULT_PERFLOGGER_INFO_MILLIS;
     private String loggingPrefix;
     private LeaseCheckMode leaseCheck = ClusterNodeInfo.DEFAULT_LEASE_CHECK_MODE; // OAK-2739 is enabled by default also for non-osgi
     private boolean isReadOnlyMode = false;
     private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
+    private Feature noChildOrderCleanupFeature;
+    private Feature cancelInvalidationFeature;
+    private Feature docStoreFullGCFeature;
+    private Feature docStoreEmbeddedVerificationFeature;
+    private Feature docStoreAvoidMergeLockFeature;
+    private Feature prevNoPropCacheFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
     private int prevDocCachePercentage = DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
+    private int prevNoPropCachePercentage = DEFAULT_PREV_NO_PROP_CACHE_PERCENTAGE;
     private int childrenCachePercentage = DEFAULT_CHILDREN_CACHE_PERCENTAGE;
     private int diffCachePercentage = DEFAULT_DIFF_CACHE_PERCENTAGE;
     private int cacheSegmentCount = DEFAULT_CACHE_SEGMENT_COUNT;
@@ -160,9 +174,23 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private long maxRevisionGCAgeMillis = TimeUnit.SECONDS.toMillis(DEFAULT_VER_GC_MAX_AGE);
     private GCMonitor gcMonitor = new LoggingGCMonitor(
             LoggerFactory.getLogger(VersionGarbageCollector.class));
-    private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
+    private Predicate<Path> nodeCachePredicate = x -> true;
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
+    private int throttlingTimeMillis = DocumentNodeStoreService.DEFAULT_THROTTLING_TIME_MILLIS;
+    private int throttlingJobSchedulePeriodSecs = DocumentNodeStoreService.DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS;
+    private boolean avoidMergeLock;
+    private boolean fullGCEnabled;
+    private Set<String> fullGCIncludePaths = Set.of();
+    private Set<String> fullGCExcludePaths = Set.of();
+    private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
+    private int fullGCMode = DocumentNodeStoreService.DEFAULT_FULL_GC_MODE;
+    private long fullGCGeneration = DocumentNodeStoreService.DEFAULT_FULL_GC_GENERATION;
+    private long fullGcMaxAgeMillis = TimeUnit.SECONDS.toMillis(DocumentNodeStoreService.DEFAULT_FULL_GC_MAX_AGE);
+    private int fullGCBatchSize = DocumentNodeStoreService.DEFAULT_FGC_BATCH_SIZE;
+    private int fullGCProgressSize = DocumentNodeStoreService.DEFAULT_FGC_PROGRESS_SIZE;
+    private double fullGCDelayFactor = DocumentNodeStoreService.DEFAULT_FGC_DELAY_FACTOR;
+    private boolean fullGCAuditLoggingEnabled;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
@@ -286,6 +314,151 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.throttlingEnabled;
     }
 
+    public T setThrottlingTimeMillis(int v) {
+        this.throttlingTimeMillis = v;
+        return thisBuilder();
+    }
+
+    public int getThrottlingTimeMillis() {
+        return this.throttlingTimeMillis;
+    }
+
+    public T setThrottlingJobSchedulePeriodSecs(int v) {
+        this.throttlingJobSchedulePeriodSecs = v;
+        return thisBuilder();
+    }
+
+    public int getThrottlingJobSchedulePeriodSecs() {
+        return this.throttlingJobSchedulePeriodSecs;
+    }
+
+    public T setAvoidMergeLock(boolean b) {
+        this.avoidMergeLock = b;
+        return thisBuilder();
+    }
+
+    public boolean avoidMergeLock() {
+        return this.avoidMergeLock;
+    }
+
+    public T setFullGCEnabled(boolean b) {
+        this.fullGCEnabled = b;
+        return thisBuilder();
+    }
+
+    public boolean isFullGCEnabled() {
+        return this.fullGCEnabled;
+    }
+
+    public T setFullGCAuditLoggingEnabled(boolean b) {
+        this.fullGCAuditLoggingEnabled = b;
+        return thisBuilder();
+    }
+
+    public boolean isFullGCAuditLoggingEnabled() {
+        return this.fullGCAuditLoggingEnabled;
+    }
+
+    public T setFullGCIncludePaths(@Nullable String[] includePaths) {
+        if (isNull(includePaths) || includePaths.length == 0 || Arrays.equals(includePaths, new String[]{"/"})) {
+            this.fullGCIncludePaths = Set.of();
+        } else {
+            this.fullGCIncludePaths = Arrays.stream(includePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+        }
+        return thisBuilder();
+    }
+
+    public Set<String> getFullGCIncludePaths() {
+        return fullGCIncludePaths;
+    }
+
+    public T setFullGCExcludePaths(@Nullable String[] excludePaths) {
+        if (isNull(excludePaths) || excludePaths.length == 0 || Arrays.equals(excludePaths, new String[]{""})) {
+            this.fullGCExcludePaths = Set.of();
+        } else {
+            this.fullGCExcludePaths = Arrays.stream(excludePaths).filter(Objects::nonNull).filter(PathUtils::isValid).collect(toUnmodifiableSet());;
+        }
+        return thisBuilder();
+    }
+
+    public Set<String> getFullGCExcludePaths() {
+        return fullGCExcludePaths;
+    }
+
+    public T setEmbeddedVerificationEnabled(boolean b) {
+        this.embeddedVerificationEnabled = b;
+        return thisBuilder();
+    }
+
+    public boolean isEmbeddedVerificationEnabled() {
+        return this.embeddedVerificationEnabled;
+    }
+
+    public T setFullGCMode(int v) {
+        this.fullGCMode = v;
+        return thisBuilder();
+    }
+
+    public int getFullGCMode() {
+        return this.fullGCMode;
+    }
+
+    public T setFullGCGeneration(long v) {
+        this.fullGCGeneration = v;
+        return thisBuilder();
+    }
+
+    public long getFullGCGeneration() {
+        return this.fullGCGeneration;
+    }
+
+    /**
+     * The maximum age for nodes in milliseconds. Older entries are candidates for full gc
+     * @param v max age in millis
+     * @return builder object
+     */
+    public T setFullGcMaxAgeMillis(long v) {
+        this.fullGcMaxAgeMillis = v;
+        return thisBuilder();
+    }
+
+    /**
+     * The maximum age for nodes in milliseconds. Older entries
+     * are candidates for Full GC.
+     *
+     * @return maximum age for nodes entries in milliseconds.
+     */
+    public long getFullGcMaxAgeMillis() {
+        return this.fullGcMaxAgeMillis;
+    }
+
+    public T setFullGCBatchSize(int v) {
+        this.fullGCBatchSize = v;
+        return thisBuilder();
+    }
+
+    public int getFullGCBatchSize() {
+        return this.fullGCBatchSize;
+    }
+
+    public T setFullGCProgressSize(int v) {
+        this.fullGCProgressSize = v;
+        return thisBuilder();
+    }
+
+    public int getFullGCProgressSize() {
+        return this.fullGCProgressSize;
+    }
+
+    public T setFullGCDelayFactor(double v) {
+        this.fullGCDelayFactor = v;
+        return thisBuilder();
+    }
+
+    public double getFullGCDelayFactor() {
+        return this.fullGCDelayFactor;
+    }
+
     public T setReadOnlyMode() {
         this.isReadOnlyMode = true;
         return thisBuilder();
@@ -315,6 +488,64 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return docStoreThrottlingFeature;
     }
 
+    public T setNoChildOrderCleanupFeature(@Nullable Feature noChildOrderCleanupFeature) {
+        this.noChildOrderCleanupFeature = noChildOrderCleanupFeature;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getNoChildOrderCleanupFeature() {
+        return noChildOrderCleanupFeature;
+    }
+
+    public T setCancelInvalidationFeature(@Nullable Feature cancelInvalidation) {
+        this.cancelInvalidationFeature = cancelInvalidation;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getCancelInvalidationFeature() {
+        return cancelInvalidationFeature;
+    }
+
+    public T setDocStoreFullGCFeature(@Nullable Feature docStoreFullGC) {
+        this.docStoreFullGCFeature = docStoreFullGC;
+        return thisBuilder();
+    }
+
+    public Feature getDocStoreFullGCFeature() {
+        return docStoreFullGCFeature;
+    }
+
+    public T setDocStoreEmbeddedVerificationFeature(@Nullable Feature getDocStoreEmbeddedVerification) {
+        this.docStoreEmbeddedVerificationFeature = getDocStoreEmbeddedVerification;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getDocStoreEmbeddedVerificationFeature() {
+        return docStoreEmbeddedVerificationFeature;
+    }
+
+    public Feature getDocStoreAvoidMergeLockFeature() {
+        return docStoreAvoidMergeLockFeature;
+    }
+
+    public T setDocStoreAvoidMergeLockFeature(@Nullable Feature docStoreAvoidMergeLock) {
+        this.docStoreAvoidMergeLockFeature = docStoreAvoidMergeLock;
+        return thisBuilder();
+    }
+
+    public T setPrevNoPropCacheFeature(@Nullable Feature prevNoPropCacheFeature) {
+        this.prevNoPropCacheFeature = prevNoPropCacheFeature;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getPrevNoPropCacheFeature() {
+        return prevNoPropCacheFeature;
+    }
+
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {
         this.leaseFailureHandler = leaseFailureHandler;
         return thisBuilder();
@@ -331,7 +562,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      * @return this
      */
     public T setDocumentStore(DocumentStore documentStore) {
-        this.documentStoreSupplier = ofInstance(documentStore);
+        this.documentStoreSupplier = () -> documentStore;
         return thisBuilder();
     }
 
@@ -353,13 +584,13 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      * @return this
      */
     public T setBlobStore(BlobStore blobStore) {
-        this.blobStoreSupplier = ofInstance(blobStore);
+        this.blobStoreSupplier = () -> blobStore;
         return thisBuilder();
     }
 
     public BlobStore getBlobStore() {
         if (blobStoreSupplier == null) {
-            blobStoreSupplier = ofInstance(new MemoryBlobStore());
+            blobStoreSupplier = () -> new MemoryBlobStore();
         }
         BlobStore blobStore = blobStoreSupplier.get();
         configureBlobStore(blobStore);
@@ -424,6 +655,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return asyncDelay;
     }
 
+    public T setClusterIdReuseDelayAfterRecovery(long clusterIdReuseDelayAfterRecovery) {
+        this.clusterIdReuseDelayAfterRecovery = clusterIdReuseDelayAfterRecovery;
+        return thisBuilder();
+    }
+
+    public long getClusterIdReuseDelayAfterRecovery() {
+        return clusterIdReuseDelayAfterRecovery;
+    }
+
     public Weigher<CacheValue, CacheValue> getWeigher() {
         return weigher;
     }
@@ -441,17 +681,20 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     public T memoryCacheDistribution(int nodeCachePercentage,
                                      int prevDocCachePercentage,
                                      int childrenCachePercentage,
-                                     int diffCachePercentage) {
+                                     int diffCachePercentage,
+                                     int prevNoPropCachePercentage) {
         checkArgument(nodeCachePercentage >= 0);
         checkArgument(prevDocCachePercentage >= 0);
         checkArgument(childrenCachePercentage>= 0);
         checkArgument(diffCachePercentage >= 0);
+        checkArgument(prevNoPropCachePercentage >= 0);
         checkArgument(nodeCachePercentage + prevDocCachePercentage + childrenCachePercentage +
-                diffCachePercentage < 100);
+                diffCachePercentage + prevNoPropCachePercentage < 100);
         this.nodeCachePercentage = nodeCachePercentage;
         this.prevDocCachePercentage = prevDocCachePercentage;
         this.childrenCachePercentage = childrenCachePercentage;
         this.diffCachePercentage = diffCachePercentage;
+        this.prevNoPropCachePercentage = prevNoPropCachePercentage;
         return thisBuilder();
     }
 
@@ -463,13 +706,21 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return memoryCacheSize * prevDocCachePercentage / 100;
     }
 
+    public long getPrevNoPropCacheSize() {
+        // feature toggle overrules the prevNoPropCachePercentage config
+        if (!isPrevNoPropCacheEnabled()) {
+            return 0;
+        }
+        return memoryCacheSize * prevNoPropCachePercentage / 100;
+    }
+
     public long getChildrenCacheSize() {
         return memoryCacheSize * childrenCachePercentage / 100;
     }
 
     public long getDocumentCacheSize() {
         return memoryCacheSize - getNodeCacheSize() - getPrevDocumentCacheSize() - getChildrenCacheSize()
-                - getDiffCacheSize();
+                - getDiffCacheSize() - getPrevNoPropCacheSize();
     }
 
     public long getDiffCacheSize() {
@@ -689,8 +940,26 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return suspendTimeoutMillis;
     }
 
+    public T setRecoveryDelayMillis(long recoveryDelayMillis) {
+        this.recoveryDelayMillis = recoveryDelayMillis;
+        return thisBuilder();
+    }
+
+    public long getRecoveryDelayMillis() {
+        return recoveryDelayMillis;
+    }
+
+    public T setPerfloggerInfoMillis(long perfloggerInfoMillis) {
+        this.perfloggerInfoMillis = perfloggerInfoMillis;
+        return thisBuilder();
+    }
+
+    public long getPerfloggerInfoMillis() {
+        return perfloggerInfoMillis;
+    }
+
     public T setGCMonitor(@NotNull GCMonitor gcMonitor) {
-        this.gcMonitor = checkNotNull(gcMonitor);
+        this.gcMonitor = requireNonNull(gcMonitor);
         return thisBuilder();
     }
 
@@ -745,11 +1014,35 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
+     * Checks the feature toggle for prevNoProp cache and returns true if that's enabled
+     * @return true if the prevNoProp feature toggle is enabled, false otherwise
+     */
+    private boolean isPrevNoPropCacheEnabled() {
+        final Feature prevNoPropFeature = getPrevNoPropCacheFeature();
+        return prevNoPropFeature != null && prevNoPropFeature.isEnabled();
+    }
+
+    /**
+     * Builds the prevNoProp cache, if the corresponding feature toggle is enabled.
+     * Returns null otherwise
+     * @return null if prevNoProp feature is disabled and size non-null, a newly built cache otherwise
+     */
+    @Nullable
+    public Cache<StringValue, StringValue> buildPrevNoPropCache() {
+        // if feature toggle is off or the config is explicitly set to 0, then no cache
+        if (!isPrevNoPropCacheEnabled() || getPrevNoPropCacheSize() == 0) {
+            return null;
+        }
+        // no persistent cache for now as this is only a tiny cache
+        return buildCache("PREV_NOPROP", getPrevNoPropCacheSize(), new CopyOnWriteArraySet<>());
+    }
+
+    /**
      * @deprecated Use {@link #setNodeCachePathPredicate(Predicate)} instead.
      */
     @Deprecated
     public T setNodeCachePredicate(Predicate<String> p){
-        this.nodeCachePredicate = input -> input != null && p.apply(input.toString());
+        this.nodeCachePredicate = input -> input != null && p.test(input.toString());
         return thisBuilder();
     }
 
@@ -758,7 +1051,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     @Deprecated
     public Predicate<String> getNodeCachePredicate() {
-        return input -> input != null && nodeCachePredicate.apply(Path.fromString(input));
+        return input -> input != null && nodeCachePredicate.test(Path.fromString(input));
     }
 
     public T setNodeCachePathPredicate(Predicate<Path> p){

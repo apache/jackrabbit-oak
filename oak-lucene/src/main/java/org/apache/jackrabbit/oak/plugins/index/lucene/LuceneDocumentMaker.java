@@ -20,6 +20,8 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.log.LogSilencer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetsConfigProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -55,18 +58,20 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPro
 public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     // Lucene doesn't support indexing data larger than 32766 (OAK-9707)
     public static final int STRING_PROPERTY_MAX_LENGTH = 32766;
-    private static final Logger log = LoggerFactory.getLogger(LuceneDocumentMaker.class);
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneDocumentMaker.class);
 
     private static final String DYNAMIC_BOOST_SPLIT_REGEX = "[:/]";
-    
-    // warn once every 10 seconds at most
-    private static final long DUPLICATE_WARNING_INTERVAL_MS = 10 * 1000;
 
     private final FacetsConfigProvider facetsConfigProvider;
     private final IndexAugmentorFactory augmentorFactory;
-    
-    // when did we warn (static, as we construct new objects quite often)
-    private static long lastDuplicateWarning;
+
+    private static final LogSilencer LOG_SILENCER = new LogSilencer(Duration.ofSeconds(10).toMillis(), 10);
+    private static final String LOG_KEY_DUPLICATE = "Duplicate value";
+    private static final String LOG_KEY_NOT_A_DATE_STRING = "Not a date string";
+    private static final String LOG_KEY_UNABLE_TO_PARSE = "Unable to parse the provided date field";
+    private static final String LOG_KEY_FOR_INPUT_STRING = "For input string";
+    private static final String LOG_KEY_IGNORING_FACET_PROPERTY = "Ignoring facet property";
+    private static final String LOG_KEY_UNKNOWN = "Unknown";
 
     public LuceneDocumentMaker(IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
@@ -144,7 +149,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     private String constructAnalyzedPropertyName(String pname) {
-        if (definition.getVersion().isAtLeast(IndexFormatVersion.V2)){
+        if (definition.getVersion().isAtLeast(IndexFormatVersion.V2)) {
             return FieldNames.createAnalyzedFieldName(pname);
         }
         return pname;
@@ -177,24 +182,26 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                 getFacetsConfig().setMultiValued(pname, true);
                 Iterable<String> values = property.getValue(Type.STRINGS);
                 for (String value : values) {
-                    if (value != null && value.length() > 0) {
+                    if (value != null && !value.isEmpty()) {
                         doc.add(new SortedSetDocValuesFacetField(pname, value));
                     }
                 }
                 fieldAdded = true;
             } else if (tag == Type.STRING.tag()) {
                 String value = property.getValue(Type.STRING);
-                if (value.length() > 0) {
+                if (!value.isEmpty()) {
                     doc.add(new SortedSetDocValuesFacetField(pname, value));
                     fieldAdded = true;
                 }
             }
 
         } catch (Throwable e) {
-            log.warn("[{}] Ignoring facet property. Could not convert property {} of type {} to type {} for path {}",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+            if (!LOG_SILENCER.silence(LOG_KEY_IGNORING_FACET_PROPERTY)) {
+                LOG.warn("[{}] Ignoring facet property. Could not convert property {} of type {} to type {} for path {}",
+                        getIndexName(), pname,
+                        Type.fromTag(property.getType().tag(), false),
+                        Type.fromTag(tag, false), path, e);
+            }
         }
         return fieldAdded;
     }
@@ -202,7 +209,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     @Override
     protected void indexAggregateValue(Document doc, Aggregate.NodeIncludeResult result, String value, PropertyDefinition pd) {
         Field field = result.isRelativeNode() ?
-                newFulltextField(result.rootIncludePath, value) : newFulltextField(value) ;
+                newFulltextField(result.rootIncludePath, value) : newFulltextField(value);
         if (pd != null) {
             field.setBoost(pd.boost);
         }
@@ -217,7 +224,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     @Override
-    protected  boolean augmentCustomFields(final String path, final Document doc, final NodeState document) {
+    protected boolean augmentCustomFields(final String path, final Document doc, final NodeState document) {
         boolean dirty = false;
 
         if (augmentorFactory != null) {
@@ -263,7 +270,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     @Override
-    protected boolean isFacetingEnabled(){
+    protected boolean isFacetingEnabled() {
         return facetsConfigProvider != null;
     }
 
@@ -287,11 +294,10 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                         new BytesRef(property.getValue(Type.BOOLEAN).toString()));
             } else if (tag == Type.STRING.tag()) {
                 String stringValue = property.getValue(Type.STRING);
-                if (stringValue.length() > STRING_PROPERTY_MAX_LENGTH){
-                    log.warn("Truncating property {} having length {} at path:[{}] as it is > {}", name, stringValue.length(), this.path, STRING_PROPERTY_MAX_LENGTH);
-                    stringValue = stringValue.substring(0, STRING_PROPERTY_MAX_LENGTH);
-                }
-                f = new SortedDocValuesField(name, new BytesRef(stringValue));
+                // Truncate the value as lucene limits the length of a SortedDocValueField string to 
+                // STRING_PROPERTY_MAX_LENGTH(32766 bytes) and throws exception if over the limit
+                f = new SortedDocValuesField(name, getTruncatedBytesRef(name, stringValue, this.path,
+                        STRING_PROPERTY_MAX_LENGTH));
             }
 
             if (f != null && includePropertyValue(property, 0, pd)) {
@@ -299,24 +305,107 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                     doc.add(f);
                     fieldAdded = true;
                 } else {
-                    long now = System.currentTimeMillis();
-                    if (now > lastDuplicateWarning + DUPLICATE_WARNING_INTERVAL_MS) {
-                        log.warn("Duplicate value for ordered field {}; ignoring. Possibly duplicate index definition.", f.name());
-                        lastDuplicateWarning = now;
+                    if (!LOG_SILENCER.silence(LOG_KEY_DUPLICATE)) {
+                        LOG.warn("Duplicate value for ordered field {}; ignoring. Possibly duplicate index definition.", f.name());
                     }
                 }
             }
         } catch (Exception e) {
-            log.warn(
-                    "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), false),
-                    Type.fromTag(tag, false), path, e);
+            String message = e.getMessage();
+            String key;
+            // This is a known warning, one of:
+            // - IllegalArgumentException: Not a date string
+            // - RuntimeException: Unable to parse the provided date field
+            // - NumberFormatException: For input string
+            // For these we do not log a stack trace, and we only log once every 10 seconds
+            // (the location of the code can be found if needed, as it's in Oak)
+            if (message.startsWith("Not a date string")) {
+                key = LOG_KEY_NOT_A_DATE_STRING;
+            } else if (message.startsWith("Unable to parse the provided date field")) {
+                key = LOG_KEY_UNABLE_TO_PARSE;
+            } else if (message.startsWith("For input string")) {
+                key = LOG_KEY_FOR_INPUT_STRING;
+            } else {
+                key = LOG_KEY_UNKNOWN;
+            }
+            if (!LOG_SILENCER.silence(key)) {
+                if (key.equals(LOG_KEY_UNKNOWN)) {
+                    // unknown error, log with stack trace
+                    LOG.warn(
+                            "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}",
+                            getIndexName(), pname,
+                            Type.fromTag(property.getType().tag(), false),
+                            Type.fromTag(tag, false), path, e);
+                } else {
+                    // log without stack trace (as it is known)
+                    LOG.warn(
+                            "[{}] Ignoring ordered property. Could not convert property {} of type {} to type {} for path {}, message {}",
+                            getIndexName(), pname,
+                            Type.fromTag(property.getType().tag(), false),
+                            Type.fromTag(tag, false), path, e.getMessage());
+
+
+                }
+            }
         }
         return fieldAdded;
     }
 
-    private FacetsConfig getFacetsConfig(){
+    /**
+     * Returns a {@code BytesRef} object constructed from the given {@code String} value and also truncates the length
+     * of the {@code BytesRef} object to the specified {@code maxLength}, ensuring that the multi-byte sequences are
+     * properly truncated.
+     *
+     * <p>The {@code BytesRef} object is created from the provided {@code String} value using UTF-8 encoding. As a result, its length
+     * can exceed that of the {@code String} value, since Java strings use UTF-16 encoding. This necessitates appropriate truncation.
+     *
+     * <p>Multi-byte sequences will be of the form {@code 11xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx}.
+     * The method first truncates continuation bytes, which start with {@code 10} in binary. It then truncates the head byte, which
+     * starts with {@code 11}. Both truncation operations use a binary mask of {@code 11000000}.
+     *
+     * @param prop      the name of the property
+     * @param value     the string property value to convert into a {@code BytesRef} object
+     * @param path      the path of the node
+     * @param maxLength the maximum length for the {@code BytesRef} object
+     * @return the truncated {@code BytesRef} object
+     */
+    protected static BytesRef getTruncatedBytesRef(String prop, String value, String path, int maxLength) {
+        BytesRef ref = new BytesRef(value);
+        if (ref.length <= maxLength) {
+            return ref;
+        }
+
+        LOG.trace("Property {} at path:[{}] has value {}", prop, path, value);
+        LOG.info("Truncating property {} at path:[{}] as length after encoding {} is > {} ",
+                prop, path, ref.length, maxLength);
+
+        int end = maxLength - 1;
+        // skip over tails of utf-8 multi-byte sequences (up to 3 bytes)
+        while ((ref.bytes[end] & 0b11000000) == 0b10000000) {
+            end--;
+        }
+        // remove one head of a utf-8 multi-byte sequence (at most 1)
+        if ((ref.bytes[end] & 0b11000000) == 0b11000000) {
+            end--;
+        }
+        byte[] truncatedBytes = Arrays.copyOf(ref.bytes, end + 1);
+        String truncated = new String(truncatedBytes, StandardCharsets.UTF_8);
+        ref = new BytesRef(truncated);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Truncated property {} at path:[{}] to {}", prop, path, ref.utf8ToString());
+        }
+
+        while (ref.length > maxLength) {
+            LOG.error("Truncation did not work: still {} bytes", ref.length);
+            // this may not properly work with unicode surrogates:
+            // it is an "emergency" procedure and should never happen
+            truncated = truncated.substring(0, truncated.length() - 10);
+            ref = new BytesRef(truncated);
+        }
+        return ref;
+    }
+
+    private FacetsConfig getFacetsConfig() {
         return facetsConfigProvider.getFacetsConfig();
     }
 
@@ -364,7 +453,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         }
         boolean added = false;
         for (String token : tokens) {
-            if (token.length() > 0) {
+            if (!token.isEmpty()) {
                 AugmentedField f = new AugmentedField(parent + "/" + token.toLowerCase(), confidence);
                 if (doc.getField(f.name()) == null) {
                     doc.add(f);
@@ -374,10 +463,12 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         }
 
         if (added) {
-            log.trace(
-                    "Added augmented fields: {}[{}], {}",
-                    parent + "/", String.join(", ", tokens), confidence
-            );
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(
+                        "Added augmented fields: {}[{}], {}",
+                        parent + "/", String.join(", ", tokens), confidence
+                );
+            }
         }
 
         return added;
@@ -393,6 +484,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
 
     private static class AugmentedField extends Field {
         private static final FieldType ft = new FieldType();
+
         static {
             ft.setIndexed(true);
             ft.setStored(false);

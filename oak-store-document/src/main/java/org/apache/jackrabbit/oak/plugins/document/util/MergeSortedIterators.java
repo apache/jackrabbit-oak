@@ -23,8 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.PeekingIterator;
+import org.apache.commons.collections4.iterators.PeekingIterator;
 
 /**
  * <code>MergeSortedIterators</code> is a specialized implementation of a
@@ -97,7 +96,7 @@ public abstract class MergeSortedIterators<T> implements Iterator<T> {
     private void fetchNextIterator() {
         Iterator<T> it = nextIterator();
         if (it != null && it.hasNext()) {
-            PeekingIterator<T> pIt = Iterators.peekingIterator(it);
+            PeekingIterator<T> pIt = PeekingIterator.peekingIterator(it);
             if (!iterators.isEmpty()
                     &&  comparator.compare(pIt.peek(), lastPeek) < 0) {
                 throw new IllegalStateException(description() + 

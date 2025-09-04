@@ -16,21 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
-
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -77,15 +73,15 @@ public class GlobbingPathFilter implements EventFilter {
         // OAK-5589 : for internal constructor case don't copy the pattern, refer to the same one
         // this will work fine given the public constructors make a copy and internally we're
         // never fiddling with the pattern list
-        this.pattern = checkNotNull(pattern);
-        this.patternMap = checkNotNull(patternMap);
+        this.pattern = requireNonNull(pattern);
+        this.patternMap = requireNonNull(patternMap);
     }
 
     public GlobbingPathFilter(@NotNull String pattern, Map<String, Pattern> patternMap) {
         // OAK-5589 : use the fastest way to create a List based on an unknown deep pattern
         this.pattern = new ArrayList<String>(10);
-        Iterators.addAll(this.pattern, elements(checkNotNull(pattern)).iterator());
-        this.patternMap = checkNotNull(patternMap);
+        elements(requireNonNull(pattern)).iterator().forEachRemaining(this.pattern::add);
+        this.patternMap = requireNonNull(patternMap);
     }
 
     /** for testing only - use variant which passes the patternMap for productive code **/
@@ -179,8 +175,8 @@ public class GlobbingPathFilter implements EventFilter {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
-                .add("path", Joiner.on('/').join(pattern))
+        return new StringJoiner(", ", GlobbingPathFilter.class.getSimpleName() + "[", "]")
+                .add("path=" + String.join("/", pattern))
                 .toString();
     }
 

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -39,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.Set;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -96,7 +96,7 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
     private static NodeState mockACE(@NotNull String principalName) {
         NodeState ace = mock(NodeState.class);
         when(ace.getName(JCR_PRIMARYTYPE)).thenReturn(NT_REP_DENY_ACE);
-        when(ace.getNames(REP_PRIVILEGES)).thenReturn(ImmutableSet.of(JCR_READ));
+        when(ace.getNames(REP_PRIVILEGES)).thenReturn(Set.of(JCR_READ));
         when(ace.getString(REP_PRINCIPAL_NAME)).thenReturn(principalName);
         return ace;
     }
@@ -104,9 +104,9 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
     @NotNull
     private static NodeState mockNodeState(@NotNull NodeState ace) {
         NodeState nodeState = mock(NodeState.class);
-        when(nodeState.getNames(OAK_CHILD_ORDER)).thenReturn(ImmutableSet.of("c1"));
+        when(nodeState.getNames(OAK_CHILD_ORDER)).thenReturn(Set.of("c1"));
         when(nodeState.getChildNodeCount(anyLong())).thenReturn(1L);
-        when(nodeState.getChildNodeNames()).thenReturn(ImmutableSet.of("c1"));
+        when(nodeState.getChildNodeNames()).thenReturn(Set.of("c1"));
         when(nodeState.getChildNode(anyString())).thenReturn(ace);
         return nodeState;
     }
@@ -129,7 +129,7 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
     @Test
     public void testCreateWithNonAceChildren() {
         NodeState nodeState = mock(NodeState.class);
-        when(nodeState.getNames(OAK_CHILD_ORDER)).thenReturn(ImmutableSet.of("c1", "c2", "c3"));
+        when(nodeState.getNames(OAK_CHILD_ORDER)).thenReturn(Set.of("c1", "c2", "c3"));
         when(nodeState.getName(JCR_PRIMARYTYPE)).thenReturn(NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         when(nodeState.getNames(JCR_MIXINTYPES)).thenReturn(Collections.emptySet());
         when(nodeState.getChildNode(anyString())).thenReturn(nodeState);
@@ -148,9 +148,9 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         NodeState ace = mockACE(PRINCIPAL_NAME);
 
         NodeState nodeState = mock(NodeState.class);
-        when(nodeState.getNames(OAK_CHILD_ORDER)).thenReturn(ImmutableSet.of("c1", "c2"));
+        when(nodeState.getNames(OAK_CHILD_ORDER)).thenReturn(Set.of("c1", "c2"));
         when(nodeState.getChildNodeCount(anyLong())).thenReturn(3L);
-        when(nodeState.getChildNodeNames()).thenReturn(ImmutableSet.of("c1", "c2", "c3"));
+        when(nodeState.getChildNodeNames()).thenReturn(Set.of("c1", "c2", "c3"));
         when(nodeState.getChildNode(anyString())).thenReturn(ace);
 
         createPermissionStoreEditor(nodeState, mock(NodeBuilder.class));
@@ -209,7 +209,7 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         PropertyState nonMatchingPathProp = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, "/noMatch");
         NodeBuilder parent = when(mock(NodeBuilder.class).exists()).thenReturn(true).getMock();
         when(parent.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(nonMatchingPathProp);
-        when(parent.getChildNodeNames()).thenReturn(ImmutableSet.of("collision"));
+        when(parent.getChildNodeNames()).thenReturn(Set.of("collision"));
         when(parent.getChildNode(anyString())).thenReturn(parent);
 
         NodeBuilder principalRoot = when(mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
@@ -303,7 +303,7 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         NodeBuilder parent = mock(NodeBuilder.class);
         when(parent.hasProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(true);
         when(parent.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, "/noMatch"));
-        when(parent.getChildNodeNames()).thenReturn(ImmutableSet.of("collision"));
+        when(parent.getChildNodeNames()).thenReturn(Set.of("collision"));
         when(parent.getChildNode(anyString())).thenReturn(collision);
         when(parent.child(anyString())).thenReturn(collision);
 
@@ -336,7 +336,7 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         when(child.setProperty(anyString(), any())).thenReturn(child);
         when(child.setProperty(anyString(), any(), any(Type.class))).thenReturn(child);
         NodeBuilder parent = mock(NodeBuilder.class);
-        when(parent.getChildNodeNames()).thenReturn(ImmutableSet.of("collision", "entry"));
+        when(parent.getChildNodeNames()).thenReturn(Set.of("collision", "entry"));
         when(parent.getChildNode(anyString())).thenReturn(child);
         when(parent.child(anyString())).thenReturn(child);
 

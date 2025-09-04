@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.Node;
@@ -77,7 +77,7 @@ public class NodeDefinitionTest extends AbstractJCRTest {
 
 
     private static NodeDefinition[] getAggregatedNodeDefinitions(Node node) throws RepositoryException {
-        Set<NodeDefinition> cDefs = newHashSet();
+        Set<NodeDefinition> cDefs = new HashSet<>();
         NodeDefinition[] nd = node.getPrimaryNodeType().getChildNodeDefinitions();
         cDefs.addAll(Arrays.asList(nd));
         NodeType[] mixins = node.getMixinNodeTypes();
@@ -89,7 +89,7 @@ public class NodeDefinitionTest extends AbstractJCRTest {
     }
 
     public static PropertyDefinition[] getAggregatedPropertyDefinitionss(Node node) throws RepositoryException {
-        Set<PropertyDefinition> pDefs = newHashSet();
+        Set<PropertyDefinition> pDefs = new HashSet<>();
         PropertyDefinition pd[] = node.getPrimaryNodeType().getPropertyDefinitions();
         pDefs.addAll(Arrays.asList(pd));
         NodeType[] mixins = node.getMixinNodeTypes();

@@ -15,13 +15,12 @@
  * limitations under the License.
  *
  */
-
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
+import java.util.Objects;
+
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,10 +44,10 @@ import org.jetbrains.annotations.NotNull;
  * {@code h} be the segment containing the current repository head and {@code n} be
  * the number of retained generations.
  * <ul>
- *     <li>{@code s} is old iff {@code h.generation - s.generation >= n}</li>
+ *     <li>{@code s} is old iff {@code h.generation - s.generation >= n}
  *     <li>{@code s} is in the same compaction tail than h iff
- *         {@code s.isCompacted && s.fullGeneration == h.fullGeneration}</li>
- *     <li>{@code s} is reclaimable iff {@code s} is old and {@code s} is not in the same compaction tail than {@code h}</li>
+ *         {@code s.isCompacted && s.fullGeneration == h.fullGeneration}
+ *     <li>{@code s} is reclaimable iff {@code s} is old and {@code s} is not in the same compaction tail than {@code h}
  * </ul>
  */
 public final class GCGeneration {
@@ -89,7 +88,7 @@ public final class GCGeneration {
 
     /**
      * Create a new instance with the generation and the full generation incremented by one
-     * and the compaction flag left unchanged.
+     * and the compaction flag set.
      */
     @NotNull
     public GCGeneration nextFull() {
@@ -97,12 +96,21 @@ public final class GCGeneration {
     }
 
     /**
-     * Create a new instance with the generation incremented by one and the full
-     * generation and the compaction flag left unchanged.
+     * Create a new instance with the generation incremented by one, the full
+     * generation left unchanged and the compaction flag set.
      */
     @NotNull
     public GCGeneration nextTail() {
         return new GCGeneration(generation + 1, fullGeneration, true);
+    }
+
+    /**
+     * Create a new instance with the compaction flag set and the generation and the
+     * full generation left unchanged.
+     */
+    @NotNull
+    public GCGeneration nextPartial() {
+        return new GCGeneration(generation, fullGeneration, true);
     }
 
     /**
@@ -120,7 +128,7 @@ public final class GCGeneration {
      * @return  Number of generations between this generation and {@code gcGeneration}
      */
     public int compareWith(@NotNull GCGeneration gcGeneration) {
-        return generation - checkNotNull(gcGeneration).generation;
+        return generation - requireNonNull(gcGeneration).generation;
     }
 
     /**
@@ -130,7 +138,7 @@ public final class GCGeneration {
      *          and {@code gcGeneration}
      */
     public int compareFullGenerationWith(@NotNull GCGeneration gcGeneration) {
-        return fullGeneration - checkNotNull(gcGeneration).fullGeneration;
+        return fullGeneration - requireNonNull(gcGeneration).fullGeneration;
     }
 
     @Override
@@ -149,14 +157,14 @@ public final class GCGeneration {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(generation, fullGeneration, isCompacted);
+        return Objects.hash(generation, fullGeneration, isCompacted);
     }
 
     @Override
     public String toString() {
         return "GCGeneration{" +
-                "generation=" + generation + ',' +
-                "fullGeneration=" + fullGeneration +  ',' +
+                "generation=" + generation + ", " +
+                "fullGeneration=" + fullGeneration +  ", " +
                 "isCompacted=" + isCompacted + '}';
     }
 

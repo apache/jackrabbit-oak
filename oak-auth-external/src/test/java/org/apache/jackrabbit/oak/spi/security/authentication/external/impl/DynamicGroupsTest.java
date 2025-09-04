@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -27,6 +23,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
@@ -64,7 +61,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
 
     @Parameterized.Parameters(name = "name={2}")
     public static Collection<Object[]> parameters() {
-        return Lists.newArrayList(
+        return List.of(
                 new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT, false, "Membership-Nesting-Depth=0" },
                 new Object[] { DefaultSyncConfigImpl.PARAM_USER_MEMBERSHIP_NESTING_DEPTH_DEFAULT+1, false, "Membership-Nesting-Depth=1" },
                 // NOTE: shortcut for PrincipalNameResolver is ignored if dynamic-groups are enabled
@@ -132,7 +129,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         
         // sync user with modified membership => must be reflected
         // 1. empty set of declared groups
-        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, ImmutableSet.of());
+        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, Set.of());
         syncContext.syncMembership(mod, a, membershipNestingDepth);
 
         assertSyncedMembership(userManager, a, mod, membershipNestingDepth);
@@ -147,7 +144,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
 
         // sync user with modified membership => must be reflected
         // 2. set with different groups that defined on IDP
-        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, ImmutableSet.of(
+        ExternalUser mod = new TestUserWithGroupRefs(previouslySyncedUser, Set.of(
                 idp.getGroup("a").getExternalId(),
                 idp.getGroup("aa").getExternalId(),
                 idp.getGroup("secondGroup").getExternalId()));
@@ -295,7 +292,7 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
         UserManager um = getUserManager(r);
         PrincipalManager pm = getPrincipalManager(r);
         
-        List<ExternalIdentityRef> declaredGroupRefs = ImmutableList.copyOf(previouslySyncedUser.getDeclaredGroups());
+        List<ExternalIdentityRef> declaredGroupRefs = ListUtils.toList(previouslySyncedUser.getDeclaredGroups());
         assertTrue(declaredGroupRefs.size() > 1);
         
         String groupId = declaredGroupRefs.get(0).getId();

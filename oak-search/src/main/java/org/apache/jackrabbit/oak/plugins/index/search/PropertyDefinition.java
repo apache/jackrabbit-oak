@@ -18,11 +18,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import javax.jcr.PropertyType;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_IS_REGEX;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_WEIGHT;
+import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.ValuePattern;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
@@ -32,16 +41,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_IS_REGEX;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_WEIGHT;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE;
-import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
-import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
+import javax.jcr.PropertyType;
 
 public class PropertyDefinition {
     private static final Logger log = LoggerFactory.getLogger(PropertyDefinition.class);
@@ -140,7 +140,7 @@ public class PropertyDefinition {
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.nodeName = nodeName;
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
-        this.name = getName(defn, nodeName);
+        this.name = getNamePropertyValue(defn, nodeName);
         this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
         this.weight = getOptionalValue(defn, PROP_WEIGHT, DEFAULT_PROPERTY_WEIGHT);
@@ -306,12 +306,11 @@ public class PropertyDefinition {
         if (FulltextIndexConstants.REGEX_ALL_PROPS.equals(path)) {
             return EMPTY_ANCESTORS;
         } else {
-            return toArray(copyOf(elements(PathUtils.getParentPath(path))), String.class);
+            return IterableUtils.toArray(ListUtils.toList(elements(PathUtils.getParentPath(path))), String.class);
         }
     }
 
-
-    private static String getName(NodeState definition, String defaultName) {
+    protected String getNamePropertyValue(NodeState definition, String defaultName) {
         PropertyState ps = definition.getProperty(FulltextIndexConstants.PROP_NAME);
         return ps == null ? defaultName : ps.getValue(Type.STRING);
     }

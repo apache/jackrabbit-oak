@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Objects;
+import java.util.StringJoiner;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
@@ -34,7 +33,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * TODO document
@@ -126,7 +124,7 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
     @Override
     public boolean equals(Object other) {
         if (other instanceof ReferenceBinary) {
-            return Objects.equal(getReference(), ((ReferenceBinary) other).getReference());
+            return Objects.equals(getReference(), ((ReferenceBinary) other).getReference());
         } else {
             return false;
         }
@@ -139,6 +137,8 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
 
     @Override
     public String toString() {
-        return toStringHelper(this).addValue(value).toString();
+        return new StringJoiner(", ", BinaryImpl.class.getSimpleName() + "[", "]")
+                .add("value=" + value)
+                .toString();
     }
 }

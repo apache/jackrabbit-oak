@@ -16,27 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.upgrade.blob;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
@@ -47,12 +46,12 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A DelegatingDataStore can avoid performing expensive file system access by making
@@ -89,7 +88,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     //this might consume lots of memory. For such case we would need to switch to
     //some off heap map
     private Map<String, Long> existingMappings = Collections.emptyMap();
-    private Map<String, Long> newMappings = Maps.newConcurrentMap();
+    private Map<String, Long> newMappings = new ConcurrentHashMap<>();
 
     private String mappingFilePath = "datastore-list.txt";
     private String delegateClass;
@@ -245,11 +244,11 @@ public class LengthCachingDataStore extends AbstractDataStore {
     //~---------------------------------< internal >
 
     private void checkIfReadOnly() {
-        checkState(!readOnly, "Read only DataStore in use");
+        Validate.checkState(!readOnly, "Read only DataStore in use");
     }
 
     private DataStore getDelegate() {
-        return checkNotNull(delegate, "Delegate DataStore not configured");
+        return requireNonNull(delegate, "Delegate DataStore not configured");
     }
 
     private void addNewMapping(DataRecord dr) throws DataStoreException {
@@ -263,7 +262,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
         if (mappingFile.exists()) {
             try {
                 existingMappings = loadMappingData(mappingFile);
-            } catch (FileNotFoundException e) {
+            } catch (IOException e) {
                 throw new RuntimeException("Failed to read mapping data from " + mappingFile, e);
             }
         } else {
@@ -272,7 +271,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     }
 
     private void initializeDelegate(String homeDir) throws RepositoryException {
-        checkNotNull(delegateClass, "No delegate DataStore class defined via 'delegateClass' property");
+        requireNonNull(delegateClass, "No delegate DataStore class defined via 'delegateClass' property");
         try {
             delegate = (DataStore) getClass().getClassLoader().loadClass(delegateClass).newInstance();
         } catch (InstantiationException e) {
@@ -288,17 +287,13 @@ public class LengthCachingDataStore extends AbstractDataStore {
             File configFile = new File(delegateConfigFilePath);
             checkArgument(configFile.exists(), "Delegate DataStore config file %s does not exist", configFile.getAbsolutePath());
 
-            InputStream is = null;
-            try {
+            try (InputStream is = new FileInputStream(configFile)) {
                 Properties props = new Properties();
-                is = Files.asByteSource(configFile).openStream();
                 props.load(is);
                 PropertiesUtil.populate(delegate, propsToMap(props), false);
                 log.info("Configured the delegating DataStore via {}", configFile.getAbsolutePath());
             } catch (IOException e) {
                 throw new RepositoryException("Error reading from config file " + configFile.getAbsolutePath(), e);
-            } finally {
-                IOUtils.closeQuietly(is);
             }
         }
 
@@ -310,7 +305,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
             BufferedWriter w = null;
             try {
                 w = new BufferedWriter(
-                        new OutputStreamWriter(new FileOutputStream(mappingFile, true), Charsets.UTF_8));
+                        new OutputStreamWriter(new FileOutputStream(mappingFile, true), StandardCharsets.UTF_8));
                 for (Map.Entry<String, Long> e : newMappings.entrySet()) {
                     w.write(String.valueOf(e.getValue()));
                     w.write(SEPARATOR);
@@ -327,15 +322,15 @@ public class LengthCachingDataStore extends AbstractDataStore {
         }
     }
 
-    private static Map<String, Long> loadMappingData(File mappingFile) throws FileNotFoundException {
+    private static Map<String, Long> loadMappingData(File mappingFile) throws IOException {
         Map<String, Long> mapping = new HashMap<String, Long>();
         log.info("Reading mapping data from {}", mappingFile.getAbsolutePath());
-        LineIterator itr = new LineIterator(Files.newReader(mappingFile, Charsets.UTF_8));
+        LineIterator itr = new LineIterator(Files.newBufferedReader(mappingFile.toPath()));
         try {
             while (itr.hasNext()) {
                 String line = itr.nextLine();
                 int indexOfBar = line.indexOf(SEPARATOR);
-                checkState(indexOfBar > 0, "Malformed entry found [%s]", line);
+                Validate.checkState(indexOfBar > 0, "Malformed entry found [%s]", line);
                 String length = line.substring(0, indexOfBar);
                 String id = line.substring(indexOfBar + 1);
                 mapping.put(id.trim(), Long.valueOf(length));
@@ -348,7 +343,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     }
 
     private static Map<String, Object> propsToMap(Properties p) {
-        Map<String, Object> result = Maps.newHashMap();
+        Map<String, Object> result = new HashMap<>();
         for (String keyName : p.stringPropertyNames()) {
             result.put(keyName, p.getProperty(keyName));
         }

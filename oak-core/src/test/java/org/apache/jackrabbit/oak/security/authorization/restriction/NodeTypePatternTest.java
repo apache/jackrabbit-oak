@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -36,7 +34,7 @@ import static org.junit.Assert.assertTrue;
 
 public class NodeTypePatternTest extends AbstractSecurityTest {
 
-    private final Set<String> ntNames = ImmutableSet.of(JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_FOLDER);
+    private final Set<String> ntNames = Set.of(JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_FOLDER);
 
     private final NodeTypePattern pattern = new NodeTypePattern(ntNames);
 
@@ -59,7 +57,7 @@ public class NodeTypePatternTest extends AbstractSecurityTest {
     public void testNotMatchesItem() throws Exception {
         Tree rootTree = root.getTree("/");
 
-        List<String> notMatching = ImmutableList.of(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, JcrConstants.NT_VERSION);
+        List<String> notMatching = List.of(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, JcrConstants.NT_VERSION);
         for (String ntName : notMatching) {
             Tree testTree = TreeUtil.addChild(rootTree, "name", ntName);
 
@@ -73,7 +71,7 @@ public class NodeTypePatternTest extends AbstractSecurityTest {
 
     @Test
     public void testMatchesPath() {
-        List<String> notMatching = ImmutableList.of("/", "/a", "/b", "/c", "/d/e/a", "/a/b/c/d/b", "/test/c", "/d", "/b/d", "/d/e/f", "/c/b/abc");
+        List<String> notMatching = List.of("/", "/a", "/b", "/c", "/d/e/a", "/a/b/c/d/b", "/test/c", "/d", "/b/d", "/d/e/f", "/c/b/abc");
         for (String p : notMatching) {
             assertFalse(pattern.matches(p));
         }
@@ -102,9 +100,9 @@ public class NodeTypePatternTest extends AbstractSecurityTest {
 
     @Test
     public void testNotEquals() {
-        assertNotEquals(pattern, new NodeTypePattern(ImmutableSet.of(JcrConstants.NT_UNSTRUCTURED)));
-        assertNotEquals(pattern, new NodeTypePattern(ImmutableSet.of(JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_FILE)));
-        assertNotEquals(pattern, new NodeTypePattern(ImmutableSet.of(JcrConstants.NT_VERSION)));
+        assertNotEquals(pattern, new NodeTypePattern(Set.of(JcrConstants.NT_UNSTRUCTURED)));
+        assertNotEquals(pattern, new NodeTypePattern(Set.of(JcrConstants.NT_UNSTRUCTURED, JcrConstants.NT_FILE)));
+        assertNotEquals(pattern, new NodeTypePattern(Set.of(JcrConstants.NT_VERSION)));
         assertNotEquals(pattern, new ItemNamePattern(ntNames));
     }
 

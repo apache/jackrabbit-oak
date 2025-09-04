@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -27,8 +28,6 @@ import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * A document corresponds to a node stored in the DocumentNodeStore. A document
@@ -57,7 +56,7 @@ public class Document implements CacheValue {
     /**
      * The data of this document.
      */
-    protected Map<String, Object> data = Maps.newHashMap();
+    protected Map<String, Object> data = new HashMap<>();
 
     /**
      * Whether this document is sealed (immutable data).
@@ -209,7 +208,7 @@ public class Document implements CacheValue {
             }
         }
         if (map instanceof NavigableMap) {
-            return Maps.unmodifiableNavigableMap((NavigableMap<Object, Object>) map);
+            return Collections.unmodifiableNavigableMap((NavigableMap<Object, Object>) map);
         } else {
             return Collections.unmodifiableMap(map);
         }

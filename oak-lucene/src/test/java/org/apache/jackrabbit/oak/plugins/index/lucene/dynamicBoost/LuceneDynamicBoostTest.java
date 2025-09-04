@@ -88,9 +88,8 @@ public class LuceneDynamicBoostTest extends DynamicBoostCommonTest {
 
     @Override
     protected String getTestQueryDynamicBoostBasicExplained() {
-        return "[dam:Asset] as [a] /* lucene:test-index(/oak:index/test-index) (full:title:plant :fulltext:plant) " +
-                "((jcr:content/metadata/predictedTags/plant:1 jcr:content/metadata/predictedTags/plant:1)^1.0E-4) ft:(\"plant\")\n" +
-                "  where contains([a].[*], 'plant') */";
+        return "(full:title:plant :fulltext:plant) " +
+                "((jcr:content/metadata/predictedTags/plant:1 jcr:content/metadata/predictedTags/plant:1)^1.0E-4)";
     }
 
     @Override

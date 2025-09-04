@@ -24,7 +24,6 @@ import java.nio.file.Paths;
 
 import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.sling.testing.paxexam.TestSupport;
-import org.junit.BeforeClass;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
 
@@ -91,11 +90,17 @@ public abstract class CompositeTestSupport extends TestSupport {
 
     public static Option jackrabbit() {
         return composite(
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-data").version("2.20.4"),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-jcr-commons").version("2.20.4"),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-data").versionAsInProject(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("jackrabbit-jcr-commons").versionAsInProject(),
             mavenBundle().groupId("javax.jcr").artifactId("jcr").versionAsInProject(),
             mavenBundle().groupId("commons-codec").artifactId("commons-codec").versionAsInProject(),
-            mavenBundle().groupId("commons-io").artifactId("commons-io").versionAsInProject()
+            mavenBundle().groupId("commons-io").artifactId("commons-io").versionAsInProject(),
+            mavenBundle().groupId("org.apache.commons").artifactId("commons-collections4").versionAsInProject(),
+            mavenBundle().groupId("org.apache.commons").artifactId("commons-lang3").versionAsInProject(),
+            mavenBundle().groupId("org.apache.commons").artifactId("commons-text").versionAsInProject(),
+            mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-core").versionAsInProject(),
+            mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-annotations").versionAsInProject(),
+            mavenBundle().groupId("com.fasterxml.jackson.core").artifactId("jackson-databind").versionAsInProject()
         );
     }
 

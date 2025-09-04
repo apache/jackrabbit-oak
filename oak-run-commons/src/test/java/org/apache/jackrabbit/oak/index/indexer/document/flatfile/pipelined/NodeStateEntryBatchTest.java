@@ -20,8 +20,8 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.junit.Test;
 
-import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -40,43 +40,52 @@ public class NodeStateEntryBatchTest {
         batch.addEntry("b", new byte[1]);
         assertEquals(2, batch.numberOfEntries());
         assertTrue(batch.isAtMaxEntries());
-        assertThrows(IllegalStateException.class, () -> batch.addEntry("c", new byte[1]));
+        assertThrows(NodeStateEntryBatch.BufferFullException.class, () -> batch.addEntry("c", new byte[1]));
     }
 
     @Test
     public void testMaximumBufferSize() {
         NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
-        assertTrue(batch.hasSpaceForEntry(new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE -4])); // Needs 4 bytes for the length
-        assertFalse(batch.hasSpaceForEntry(new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE]));
+        int keySize = "a".getBytes(StandardCharsets.UTF_8).length;
+        batch.addEntry("a", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE - 4 - 4 - keySize]); // Needs 4 bytes for the length of the path and of the entry data
+        assertThrows(NodeStateEntryBatch.BufferFullException.class, () -> batch.addEntry("b", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE]));
 
-        batch.addEntry("a", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE -4]);
-        assertEquals(NodeStateEntryBatch.MIN_BUFFER_SIZE, batch.sizeOfEntries());
+        assertEquals(NodeStateEntryBatch.MIN_BUFFER_SIZE, batch.sizeOfEntriesBytes());
         assertEquals(1, batch.numberOfEntries());
-        assertFalse(batch.hasSpaceForEntry(new byte[1]));
-        assertThrows(BufferOverflowException.class, () -> batch.addEntry("b", new byte[1]));
+        assertThrows(NodeStateEntryBatch.BufferFullException.class, () -> batch.addEntry("b", new byte[1]));
     }
 
     @Test
     public void flipAndResetBuffer() {
-        int sizeOfEntry = NodeStateEntryBatch.MIN_BUFFER_SIZE-4;
         NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
-        byte[] testArray = new byte[sizeOfEntry];
-        for (int i = 0; i < sizeOfEntry; i++) {
-            testArray[i] = (byte) (i % 127);
+        int expectedBytesWrittenToBuffer = NodeStateEntryBatch.MIN_BUFFER_SIZE;
+
+        String key = "a";
+        int keyLength = "a".getBytes(StandardCharsets.UTF_8).length;
+        byte[] jsonNodeBytes = new byte[batch.capacity()-4-4-keyLength];
+        for (int i = 0; i < jsonNodeBytes.length; i++) {
+            jsonNodeBytes[i] = (byte) (i % 127);
         }
-        batch.addEntry("a", testArray);
-        assertEquals(batch.getBuffer().position(), sizeOfEntry + 4);
+
+        int bytesWrittenToBuffer = batch.addEntry(key, jsonNodeBytes);
+        assertEquals(bytesWrittenToBuffer, expectedBytesWrittenToBuffer);
+        assertEquals(batch.getBuffer().position(), expectedBytesWrittenToBuffer);
 
         batch.flip();
 
         ByteBuffer buffer = batch.getBuffer();
         assertEquals(buffer.position(), 0);
-        assertEquals(buffer.remaining(), sizeOfEntry + 4);
-        assertEquals(sizeOfEntry, buffer.getInt());
-        byte[] entryData = new byte[sizeOfEntry];
-        buffer.get(entryData);
-        assertEquals(buffer.position(), sizeOfEntry + 4);
-        assertArrayEquals(testArray, entryData);
+        assertEquals(buffer.remaining(), expectedBytesWrittenToBuffer);
+        assertEquals(keyLength, buffer.getInt());
+        byte[] keyBytes = new byte[keyLength];
+        buffer.get(keyBytes);
+        assertEquals(key, new String(keyBytes, StandardCharsets.UTF_8));
+
+        int jsonLength = buffer.getInt();
+        byte[] jsonBytes = new byte[jsonLength];
+        buffer.get(jsonBytes);
+        assertEquals(buffer.position(), expectedBytesWrittenToBuffer);
+        assertArrayEquals(jsonNodeBytes, jsonBytes);
 
         batch.reset();
 

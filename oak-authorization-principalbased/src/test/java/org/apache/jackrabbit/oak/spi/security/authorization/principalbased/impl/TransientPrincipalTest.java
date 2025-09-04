@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -33,6 +32,7 @@ import org.junit.Test;
 
 import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LOCK_MANAGEMENT;
@@ -139,14 +139,14 @@ public class TransientPrincipalTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testGetEffectivePolicies() throws Exception {
-        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(principal));
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Set.of(principal));
         assertEffectivePolicies(effective, 1, -1, true);
 
         PrincipalPolicyImpl policy = getApplicable();
         policy.addEntry(testJcrPath, privilegesFromNames(JCR_WRITE));
         acMgr.setPolicy(policy.getPath(), policy);
 
-        effective = acMgr.getEffectivePolicies(ImmutableSet.of(principal));
+        effective = acMgr.getEffectivePolicies(Set.of(principal));
         assertEffectivePolicies(effective, 1, -1, true);
     }
 
@@ -168,26 +168,26 @@ public class TransientPrincipalTest extends AbstractPrincipalBasedTest {
     @Test
     public void testGetPrivileges() throws Exception {
         setupContentTrees(TEST_OAK_PATH);
-        assertEquals(0, acMgr.getPrivileges(testJcrPath, ImmutableSet.of(principal)).length);
+        assertEquals(0, acMgr.getPrivileges(testJcrPath, Set.of(principal)).length);
 
         // transient modifications => not respected by permission evaluation
         PrincipalPolicyImpl policy = getApplicable();
         policy.addEntry(testJcrPath, privilegesFromNames(JCR_LOCK_MANAGEMENT));
         acMgr.setPolicy(policy.getPath(), policy);
 
-        assertEquals(0, acMgr.getPrivileges(testJcrPath, ImmutableSet.of(principal)).length);
+        assertEquals(0, acMgr.getPrivileges(testJcrPath, Set.of(principal)).length);
     }
 
     @Test
     public void testGetPermissionProvider() throws Exception {
         PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
         // with remapped namespaces
-        PermissionProvider pp = pbac.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(principal));
+        PermissionProvider pp = pbac.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Set.of(principal));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
 
         // with default ns-mapping as used to create permission provider
         Principal transientWithDefaultNs = getConfig(UserConfiguration.class).getUserManager(root, NamePathMapper.DEFAULT).getAuthorizable(uid).getPrincipal();
-        pp = pbac.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(transientWithDefaultNs));
+        pp = pbac.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), Set.of(transientWithDefaultNs));
         // since permission provider is created with a read-only root the transient principal node does not exist and
         // no evaluation will take place
         assertSame(EmptyPermissionProvider.getInstance(), pp);

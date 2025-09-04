@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.run;
 
 import static java.util.Arrays.asList;
+import static java.util.Objects.isNull;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.populate;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
@@ -28,11 +30,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 import javax.jcr.RepositoryException;
@@ -45,6 +50,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureDataStore;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStore;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -62,11 +68,7 @@ import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.jackrabbit.guava.common.io.Files;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
+import com.mongodb.ConnectionString;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -178,7 +180,7 @@ class Utils {
             System.exit(1);
         }
 
-        if (src.startsWith(MongoURI.MONGODB_PREFIX) || src.startsWith("jdbc")) {
+        if (src.startsWith(MongoConnection.MONGODB_PREFIX) || src.startsWith("jdbc")) {
             DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
             if (builder != null) {
                 if (readOnlyMode) {
@@ -210,6 +212,15 @@ class Utils {
         return createDocumentMKBuilder(new NodeStoreOptions(h).parse(args), closer);
     }
 
+    static Optional<MongoConnection> getMongoConnection(final NodeStoreOptions options, final Closer closer) {
+        String src = options.getStoreArg();
+        if (isNull(src) || !src.startsWith(MongoConnection.MONGODB_PREFIX)) {
+            return empty();
+        }
+
+        return of(getMongoConnection(closer, src));
+    }
+
     @Nullable
     static DocumentNodeStoreBuilder<?> createDocumentMKBuilder(NodeStoreOptions options,
                                                                Closer closer)
@@ -220,17 +231,9 @@ class Utils {
             System.exit(1);
         }
         DocumentNodeStoreBuilder<?> builder;
-        if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
-            MongoClientURI uri = new MongoClientURI(src);
-            if (uri.getDatabase() == null) {
-                System.err.println("Database missing in MongoDB URI: "
-                        + uri.getURI());
-                System.exit(1);
-            }
-            MongoConnection mongo = new MongoConnection(uri.getURI());
-            closer.register(asCloseable(mongo));
-            builder = newMongoDocumentNodeStoreBuilder().setMongoDB(
-                    mongo.getMongoClient(), mongo.getDBName());
+        if (src.startsWith(MongoConnection.MONGODB_PREFIX)) {
+            MongoConnection mongo = getMongoConnection(closer, src);
+            builder = newMongoDocumentNodeStoreBuilder().setMongoDB(mongo.getMongoClient(), mongo.getDBName());
         } else if (src.startsWith("jdbc")) {
             RDBOptions opts = new RDBOptions();
             if (options.getRDBTablePrefix() != null) {
@@ -252,6 +255,17 @@ class Utils {
             builder.memoryCacheSize(cacheSize * MB);
         }
         return builder;
+    }
+
+    private static MongoConnection getMongoConnection(Closer closer, String src) {
+        ConnectionString uri = new ConnectionString(src);
+        if (uri.getDatabase() == null) {
+            System.err.println("Database missing in MongoDB URI: " + uri);
+            System.exit(1);
+        }
+        MongoConnection mongo = new MongoConnection(src);
+        closer.register(asCloseable(mongo));
+        return mongo;
     }
 
     @Nullable
@@ -281,7 +295,7 @@ class Utils {
             String cfgPath = s3dsConfig.value(options);
             Properties props = loadAndTransformProps(cfgPath);
             s3ds.setProperties(props);
-            File homeDir =  Files.createTempDir();
+            File homeDir = Files.createTempDirectory(Utils.class.getSimpleName() + "-").toFile();
             closer.register(asCloseable(homeDir));
             s3ds.init(homeDir.getAbsolutePath());
             delegate = s3ds;
@@ -290,13 +304,13 @@ class Utils {
             String cfgPath = azureBlobDSConfig.value(options);
             Properties props = loadAndTransformProps(cfgPath);
             azureds.setProperties(props);
-            File homeDir =  Files.createTempDir();
+            File homeDir = Files.createTempDirectory(Utils.class.getSimpleName() + "-").toFile();
             azureds.init(homeDir.getAbsolutePath());
             closer.register(asCloseable(homeDir));
             delegate = azureds;
         } else if (options.has(nods)){
             delegate = new DummyDataStore();
-            File homeDir =  Files.createTempDir();
+            File homeDir = Files.createTempDirectory(Utils.class.getSimpleName() + "-").toFile();
             delegate.init(homeDir.getAbsolutePath());
             closer.register(asCloseable(homeDir));
         }
@@ -383,7 +397,7 @@ class Utils {
     }
 
     private static Map<String, ?> asMap(Properties props) {
-        Map<String, Object> map = Maps.newHashMap();
+        Map<String, Object> map = new HashMap<>();
         for (Object key : props.keySet()) {
             map.put((String)key, props.get(key));
         }

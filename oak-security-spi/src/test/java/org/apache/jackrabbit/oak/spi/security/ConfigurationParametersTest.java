@@ -27,10 +27,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,7 +69,7 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testCreationFromMap() {
-        Map<String, String> m = ImmutableMap.of("a", "b");
+        Map<String, String> m = Map.of("a", "b");
         ConfigurationParameters cp = ConfigurationParameters.of(m);
         assertEquals(m.size(), cp.size());
 
@@ -93,8 +90,8 @@ public class ConfigurationParametersTest {
         properties.put("a", "b");
 
         ConfigurationParameters cp = ConfigurationParameters.of(properties);
-        assertEquals(ImmutableSet.copyOf(properties.keySet()), ImmutableSet.copyOf(cp.keySet()));
-        assertEquals(ImmutableSet.copyOf(properties.values()), ImmutableSet.copyOf(cp.values()));
+        assertEquals(Set.copyOf(properties.keySet()), Set.copyOf(cp.keySet()));
+        assertEquals(Set.copyOf(properties.values()), Set.copyOf(cp.values()));
 
     }
 
@@ -111,8 +108,8 @@ public class ConfigurationParametersTest {
         dict.put("a", "b");
 
         ConfigurationParameters cp = ConfigurationParameters.of(dict);
-        assertEquals(ImmutableSet.copyOf(Iterators.forEnumeration(dict.keys())), ImmutableSet.copyOf(cp.keySet()));
-        assertEquals(ImmutableSet.copyOf(Iterators.forEnumeration(dict.elements())), ImmutableSet.copyOf(cp.values()));
+        assertEquals(SetUtils.toSet(dict.keys().asIterator()), Set.copyOf(cp.keySet()));
+        assertEquals(SetUtils.toSet(dict.elements().asIterator()), Set.copyOf(cp.values()));
 
     }
 
@@ -323,26 +320,26 @@ public class ConfigurationParametersTest {
     @Test
     public void testConversionToSet() {
         String[] stringArray = new String[] {"a", "b"};
-        Set<String> stringSet = ImmutableSet.copyOf(stringArray);
+        Set<String> stringSet = Set.of(stringArray);
 
         TestObject[] testObjectArray = new TestObject[] {new TestObject("a"), new TestObject("b")};
-        Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
+        Set<TestObject> testObjectSet = Set.of(testObjectArray);
 
         // map of config value (key) and expected result set.
         Map<Object, Set<?>> configValues = new HashMap<>();
-        configValues.put("a", ImmutableSet.of("a"));
+        configValues.put("a", Set.of("a"));
         configValues.put(stringArray, stringSet);
         configValues.put(stringSet, stringSet);
         configValues.put(testObjectArray, testObjectSet);
         configValues.put(testObjectSet, testObjectSet);
         configValues.put(new String[0], Collections.<String>emptySet());
         configValues.put(new HashSet<>(), Collections.emptySet());
-        configValues.put(ImmutableSet.of(), Collections.emptySet());
+        configValues.put(Set.of(), Collections.emptySet());
         configValues.put(new ArrayList<>(), Collections.emptySet());
         configValues.put(ConfigurationParameters.EMPTY, Collections.<String>emptySet());
 
-        Set<String> defaultStrings = ImmutableSet.of("abc", "def", "ghi");
-        Set<TestObject> defaultObjects = ImmutableSet.of(new TestObject("abc"), new TestObject("def"));
+        Set<String> defaultStrings = Set.of("abc", "def", "ghi");
+        Set<TestObject> defaultObjects = Set.of(new TestObject("abc"), new TestObject("def"));
 
         configValues.forEach((value, expected) -> {
             ConfigurationParameters config;
@@ -354,11 +351,11 @@ public class ConfigurationParametersTest {
 
             assertEquals(expected, config.getConfigValue("key", Collections.emptySet()));
             assertEquals(expected, config.getConfigValue("key", Collections.<String>emptySet()));
-            assertEquals(expected, config.getConfigValue("key", ImmutableSet.of()));
+            assertEquals(expected, config.getConfigValue("key", Set.of()));
 
             assertEquals(expected, config.getConfigValue("key", Collections.emptySet(), Set.class));
             assertEquals(expected, config.getConfigValue("key", Collections.<String>emptySet(), Set.class));
-            assertEquals(expected, config.getConfigValue("key", ImmutableSet.of(), Set.class));
+            assertEquals(expected, config.getConfigValue("key", Set.of(), Set.class));
 
             // test with default values
             if (!config.containsKey("key")) {
@@ -465,10 +462,10 @@ public class ConfigurationParametersTest {
     @Test
     public void testConversionToStringArray() {
         String[] stringArray = new String[] {"a", "b"};
-        Set<String> stringSet = ImmutableSet.copyOf(stringArray);
+        Set<String> stringSet = SetUtils.toSet(stringArray);
 
         TestObject[] testObjectArray = new TestObject[] {new TestObject("a"), new TestObject("b")};
-        Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
+        Set<TestObject> testObjectSet = SetUtils.toSet(testObjectArray);
 
         String[] defaultStrings = new String[]{"abc", "def", "ghi"};
 
@@ -481,7 +478,7 @@ public class ConfigurationParametersTest {
         configValues.put(testObjectSet, stringArray);
         configValues.put(new String[0], new String[0]);
         configValues.put(new HashSet<>(), new String[0]);
-        configValues.put(ImmutableSet.of(), new String[0]);
+        configValues.put(Set.of(), new String[0]);
         configValues.put(new ArrayList<>(), new String[0]);
         configValues.put(ConfigurationParameters.EMPTY, new String[0]);
 
@@ -560,7 +557,7 @@ public class ConfigurationParametersTest {
     public void testKeySet() {
         TestObject value = new TestObject("name");
         ConfigurationParameters options = ConfigurationParameters.of("test", value);
-        assertEquals(Sets.newHashSet("test"), options.keySet());
+        assertEquals(Set.of("test"), options.keySet());
     }
 
     @Test
@@ -570,7 +567,7 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testEntrySet() {
-        Map m = ImmutableMap.of("test", new TestObject("name"));
+        Map m = Map.of("test", new TestObject("name"));
         ConfigurationParameters options = ConfigurationParameters.of(m);
         assertEquals(m.entrySet(), options.entrySet());
     }
@@ -589,7 +586,7 @@ public class ConfigurationParametersTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testPutAll() {
         ConfigurationParameters options = ConfigurationParameters.of();
-        options.putAll(ImmutableMap.of("test", "val", "test2", "val2"));
+        options.putAll(Map.of("test", "val", "test2", "val2"));
     }
 
     @Test(expected = UnsupportedOperationException.class)

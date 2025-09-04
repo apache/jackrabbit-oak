@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -84,10 +85,10 @@ public class RDBJSONSupport {
                 return Boolean.FALSE;
             case JsopReader.NUMBER:
                 String t = json.getToken();
-                try {
-                    return Long.parseLong(t);
-                }
-                catch (NumberFormatException ex) {
+                Long parsed = LongUtils.tryParse(t);
+                if (parsed != null) {
+                    return parsed;
+                } else {
                     return Double.parseDouble(t);
                 }
             case JsopReader.STRING:

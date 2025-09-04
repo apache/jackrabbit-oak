@@ -24,9 +24,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -57,7 +57,7 @@ public class MemoryNodeBuilderTest {
         builder.child("y");
         builder.child("z");
         NodeState base = builder.getNodeState();
-        return ImmutableList.of(
+        return List.of(
             new Object[] { base },
             new Object[] { ModifiedNodeState.squeeze(base) }
         );
@@ -567,7 +567,7 @@ public class MemoryNodeBuilderTest {
             @NotNull
             @Override
             public Iterable<? extends PropertyState> getProperties() {
-                return ImmutableSet.of();
+                return Set.of();
             }
 
             @Override
@@ -590,9 +590,9 @@ public class MemoryNodeBuilderTest {
             @Override
             public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
                 if (exists) {
-                    return ImmutableSet.of(new MemoryChildNodeEntry("c", C));
+                    return Set.of(new MemoryChildNodeEntry("c", C));
                 } else {
-                    return ImmutableSet.of();
+                    return Set.of();
                 }
             }
 

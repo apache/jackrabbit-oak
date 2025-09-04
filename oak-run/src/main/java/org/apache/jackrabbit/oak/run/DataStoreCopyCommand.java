@@ -34,8 +34,6 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
-
 /**
  * Command to concurrently download blobs from an azure datastore using sas token authentication.
  * <p>
@@ -116,13 +114,13 @@ public class DataStoreCopyCommand implements Command {
     protected String getDestinationFromId(String id) {
         // Rename the blob names to match expected datastore cache format (remove the "-" in the name)
         String blobName = id.replaceAll("-", "");
+
         if (id.length() < 6) {
             LOG.warn("Blob with name {} is less than 6 chars. Cannot create data folder structure. Storing in the root folder", blobName);
-            return outDir + FILE_SEPARATOR.value() + blobName;
+            return String.join(System.getProperty("file.separator"), outDir, blobName);
         } else {
-            return outDir + FILE_SEPARATOR.value()
-                    + blobName.substring(0, 2) + FILE_SEPARATOR.value() + blobName.substring(2, 4) + FILE_SEPARATOR.value()
-                    + blobName.substring(4, 6) + FILE_SEPARATOR.value() + blobName;
+            return String.join(System.getProperty("file.separator"), outDir, blobName.substring(0, 2), blobName.substring(2, 4),
+                    blobName.substring(4, 6), blobName);
         }
     }
 
@@ -146,7 +144,7 @@ public class DataStoreCopyCommand implements Command {
                 .withRequiredArg().ofType(String.class);
         OptionSpec<String> outDirOpt = parser.accepts("out-dir",
                         "Path where to store the blobs. Otherwise, blobs will be stored in the current directory.")
-                .withRequiredArg().ofType(String.class).defaultsTo(System.getProperty("user.dir") + FILE_SEPARATOR.value() + "blobs");
+                .withRequiredArg().ofType(String.class).defaultsTo(System.getProperty("user.dir") + System.getProperty("file.separator") + "blobs");
         OptionSpec<Integer> concurrencyOpt = parser.accepts("concurrency",
                         "Max number of concurrent requests that can occur (the default value is equal to 16 multiplied by the number of cores)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(16 * Runtime.getRuntime().availableProcessors());

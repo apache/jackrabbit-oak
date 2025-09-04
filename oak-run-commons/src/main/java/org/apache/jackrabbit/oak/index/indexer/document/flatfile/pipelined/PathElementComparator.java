@@ -18,21 +18,23 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import java.util.Comparator;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-class PathElementComparator implements Comparator<String[]> {
+public class PathElementComparator implements Comparator<String[]> {
     private final Set<String> preferred;
 
     public PathElementComparator(Set<String> preferredPathElements) {
-        this.preferred = ImmutableSet.copyOf(preferredPathElements);
+        // Many of the lookups in this set will be for interned Strings, so interning the elements will speed-up lookups
+        // for Strings that are present in the set, because the call to String::equals done by the Set implementation
+        // will likely be comparing the same String object, so it can return after the reference equality check, avoiding
+        // having to do a comparison of the contents.
+        this.preferred = preferredPathElements.stream().map(String::intern).collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
     public int compare(String[] p1, String[] p2) {
-
         int i1 = 0;
         int i2 = 0;
 

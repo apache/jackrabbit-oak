@@ -31,6 +31,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -53,8 +54,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 @RunWith(Parameterized.class)
 public class VersionGCSplitDocTest {
@@ -82,7 +81,7 @@ public class VersionGCSplitDocTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (getFixtures().contains(DOCUMENT_NS) && mongo.isAvailable()) {
             fixtures.add(new Object[] { mongo });
@@ -259,8 +258,21 @@ public class VersionGCSplitDocTest {
 
         ns.runBackgroundOperations();
 
-        // wait one hour
-        clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
+        // with OAK-10526 split doc maxRev is now set to now
+        // the split doc type 70 GC on mongo uses sweepRev
+        // so to get 70 GCed we need to advance sweepRev
+        // hence instead of a 1 HOUR wait, we now do :
+        // wait 1 min
+        clock.waitUntil(clock.getTime() + MINUTES.toMillis(1));
+
+        // to advance sweepRev : unrelated change + sweep
+        builder = ns.getRoot().builder();
+        builder.child("unrelated");
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ns.runBackgroundOperations();
+
+        // wait 59 min
+        clock.waitUntil(clock.getTime() + MINUTES.toMillis(59));
 
         int nodesBeforeGc = countNodeDocuments();
         assertEquals(0, countStalePrev());

@@ -16,18 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.function.Predicate;
 
 public final class EveryoneFilter {
-    
+
     private EveryoneFilter() {
     }
 
@@ -47,18 +48,18 @@ public final class EveryoneFilter {
     public static Iterator<Principal> filter(@NotNull Iterator<Principal> resultPrincipals, @Nullable String nameHint, int searchType, long offset, long limit) {
         boolean noRange = offset == 0 && limit == Long.MAX_VALUE;
         if (noRange && matchesEveryone(nameHint, searchType)) {
-            Iterator<Principal> principals = Iterators.concat(resultPrincipals, Iterators.singletonIterator(EveryonePrincipal.getInstance()));
-            return Iterators.filter(principals, new EveryonePredicate());
+            Iterator<Principal> principals = IteratorUtils.chainedIterator(resultPrincipals, Collections.singleton(EveryonePrincipal.getInstance()).iterator());
+            return IteratorUtils.filter(principals, new EveryonePredicate()::test);
         } else {
             return resultPrincipals;
         }
     }
-    
+
     private static boolean matchesEveryone(@Nullable String nameHint, int searchType) {
         return searchType != PrincipalManager.SEARCH_TYPE_NOT_GROUP &&
                 (nameHint == null || EveryonePrincipal.NAME.contains(nameHint));
     }
-    
+
     /**
      * Predicate to make sure the everyone principal is only included once in
      * the result set.
@@ -67,7 +68,7 @@ public final class EveryoneFilter {
         private boolean servedEveryone = false;
 
         @Override
-        public boolean apply(@Nullable Principal principal) {
+        public boolean test(@Nullable Principal principal) {
             if (principal != null && EveryonePrincipal.NAME.equals(principal.getName())) {
                 if (servedEveryone) {
                     return false;

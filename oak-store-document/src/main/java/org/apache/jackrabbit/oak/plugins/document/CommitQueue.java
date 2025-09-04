@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -30,8 +31,6 @@ import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -56,7 +55,7 @@ final class CommitQueue {
     /**
      * Map of currently suspended commits until a given Revision is visible.
      */
-    private final Map<Semaphore, SuspendedCommit> suspendedCommits = Maps.newIdentityHashMap();
+    private final Map<Semaphore, SuspendedCommit> suspendedCommits = new IdentityHashMap<>();
 
     private final RevisionContext context;
 
@@ -69,11 +68,11 @@ final class CommitQueue {
     private long suspendTimeout = getSuspendTimeout(DEFAULT_SUSPEND_TIMEOUT);
 
     CommitQueue(@NotNull RevisionContext context) {
-        this.context = checkNotNull(context);
+        this.context = requireNonNull(context);
     }
 
     void setStatisticsCollector(@NotNull DocumentNodeStoreStatsCollector collector) {
-        statsCollector = checkNotNull(collector);
+        statsCollector = requireNonNull(collector);
     }
 
     @NotNull
@@ -98,7 +97,7 @@ final class CommitQueue {
     }
 
     void done(@NotNull Revision revision, @NotNull Callback c) {
-        checkNotNull(revision);
+        requireNonNull(revision);
         waitUntilHeadOfQueue(revision, c);
     }
 
@@ -109,7 +108,7 @@ final class CommitQueue {
 
     boolean contains(@NotNull Revision revision) {
         synchronized (this) {
-            return commits.containsKey(checkNotNull(revision));
+            return commits.containsKey(requireNonNull(revision));
         }
     }
 
@@ -242,7 +241,7 @@ final class CommitQueue {
     }
 
     private void notifySuspendedCommits(@NotNull Revision revision) {
-        checkNotNull(revision);
+        requireNonNull(revision);
         synchronized (suspendedCommits) {
             if (suspendedCommits.isEmpty()) {
                 return;

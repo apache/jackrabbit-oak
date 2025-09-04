@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.lang.reflect.Field;
@@ -29,17 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.primitives.Ints;
 import joptsimple.BuiltinHelpFormatter;
 import joptsimple.HelpFormatter;
 import joptsimple.OptionDescriptor;
 import joptsimple.OptionSpec;
-import joptsimple.internal.Strings;
 
-import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
-
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.jetbrains.annotations.Nullable;
 
 public class OakHelpFormatter implements HelpFormatter {
@@ -51,7 +45,7 @@ public class OakHelpFormatter implements HelpFormatter {
 
     public OakHelpFormatter(Iterable<OptionsBean> optionBeans, @Nullable String commandName,
                             @Nullable String summary,@Nullable String connectionString) {
-        this.optionBeans = Lists.newArrayList(optionBeans);
+        this.optionBeans = ListUtils.toList(optionBeans);
         this.commandName = commandName;
         this.summary = summary;
         this.connectionString = connectionString;
@@ -59,15 +53,15 @@ public class OakHelpFormatter implements HelpFormatter {
 
     @Override
     public String format(Map<String, ? extends OptionDescriptor> options) {
-        Map<String, ? extends OptionDescriptor> clonedOptions = Maps.newHashMap(options);
+        Map<String, ? extends OptionDescriptor> clonedOptions = new HashMap<>(options);
         List<OptionCategory> optionCategories = categorise(clonedOptions);
         //TODO Take care of left over options
 
         StringBuilder builder = new StringBuilder();
-        builder.append(new MainSectionFormatter().format(options)).append(LINE_SEPARATOR.value());
+        builder.append(new MainSectionFormatter().format(options)).append(System.getProperty("line.separator"));
 
         for (OptionCategory c : optionCategories){
-            builder.append(c.format()).append(LINE_SEPARATOR.value());
+            builder.append(c.format()).append(System.getProperty("line.separator"));
         }
 
         return builder.toString();
@@ -132,7 +126,7 @@ public class OakHelpFormatter implements HelpFormatter {
             StringBuilder builder = new StringBuilder();
             builder.append(new CategoryFormatter(bean).format(options));
             if (!operations.isEmpty()) {
-                builder.append(LINE_SEPARATOR.value());
+                builder.append(System.getProperty("line.separator"));
                 builder.append(new OperationsFormatter().format(operations));
             }
             return builder.toString();
@@ -140,7 +134,7 @@ public class OakHelpFormatter implements HelpFormatter {
 
         @Override
         public int compareTo(OptionCategory that) {
-            return Ints.compare(this.bean.order(), that.bean.order());
+            return Integer.compare(this.bean.order(), that.bean.order());
         }
     }
 
@@ -167,7 +161,7 @@ public class OakHelpFormatter implements HelpFormatter {
             String title = bean.title();
             if (title != null) {
                 addNonOptionRow(title);
-                addNonOptionRow(Strings.repeat('=', title.length()));
+                addNonOptionRow("=".repeat(title.length()));
             }
 
             if (bean.description() != null) {
@@ -190,7 +184,7 @@ public class OakHelpFormatter implements HelpFormatter {
         @Override
         protected void addHeaders(Collection<? extends OptionDescriptor> options) {
             addOptionRow(OPERATIONS, message( "description.header" ) );
-            addOptionRow( Strings.repeat('-', OPERATIONS.length()), message( "description.divider" ) );
+            addOptionRow("-".repeat(OPERATIONS.length()), message( "description.divider" ) );
         }
 
         @Override

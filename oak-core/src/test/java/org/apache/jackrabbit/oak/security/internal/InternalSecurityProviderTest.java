@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
@@ -75,7 +75,7 @@ public class InternalSecurityProviderTest {
                 assertSame(pc, sc);
             }
         }
-        assertTrue(Iterables.contains(securityProvider.getConfigurations(), pc));
+        assertTrue(IterableUtils.contains(securityProvider.getConfigurations(), pc));
 
         assertEquals(PARAMS, securityProvider.getParameters(PrincipalConfiguration.NAME));
     }

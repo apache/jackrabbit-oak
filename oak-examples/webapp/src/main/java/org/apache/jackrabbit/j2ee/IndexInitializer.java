@@ -34,6 +34,7 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -119,7 +120,7 @@ public class IndexInitializer {
         Subject subject = new Subject(true, singleton(admin), singleton(authInfo), Collections.emptySet());
         Session adminSession;
         try {
-            adminSession = Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
+            adminSession = Java23Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
                 @Override
                 public Session run() throws Exception {
                     return repository.login();

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.commons;
 
 import static java.util.Arrays.asList;
@@ -27,25 +26,24 @@ import static org.junit.Assert.assertThat;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.LineIterator;
-import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 public class FileLineDifferenceIteratorTest {
-    
+
     @Test
     public void testRandomized() throws Exception {
         Random r = new Random(0);
@@ -110,7 +108,7 @@ public class FileLineDifferenceIteratorTest {
         remove(marked, 3, 2);
 
         // without escaping, the line breaks will be resolved
-        assertDiff(Joiner.on(",").join(marked), Joiner.on(",").join(all),
+        assertDiff(String.join(",", marked), String.join(",", all),
             asList("/a", "c", "/a/b"));
     }
 
@@ -121,7 +119,7 @@ public class FileLineDifferenceIteratorTest {
         List<String> marked = escape(getLineBreakStrings());
         List<String> diff = remove(marked, 3, 2);
 
-        assertDiff(Joiner.on(",").join(marked), Joiner.on(",").join(all), diff);
+        assertDiff(String.join(",", marked), String.join(",", all), diff);
     }
 
     @Test
@@ -137,12 +135,12 @@ public class FileLineDifferenceIteratorTest {
     }
 
     private static List<String> getLineBreakStrings() {
-        return Lists.newArrayList("ab\nc\r", "ab\\z", "a\\\\z\nc",
-            "/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c");
+        return new ArrayList<>(Arrays.asList("ab\nc\r", "ab\\z", "a\\\\z\nc",
+            "/a", "/a/b\nc", "/a/b\rd", "/a/b\r\ne", "/a/c"));
     }
 
     private static List<String> remove(List<String> list, int idx, int count) {
-        List<String> diff = Lists.newArrayList();
+        List<String> diff = new ArrayList<>();
         int i = 0;
         while (i < count) {
             diff.add(list.remove(idx));
@@ -152,7 +150,7 @@ public class FileLineDifferenceIteratorTest {
     }
 
     private static List<String> escape(List<String> list) {
-        List<String> escaped = Lists.newArrayList();
+        List<String> escaped = new ArrayList<>();
         for (String s : list) {
             escaped.add(escapeLineBreak(s));
         }
@@ -161,12 +159,12 @@ public class FileLineDifferenceIteratorTest {
 
     private static void assertReverseDiff(String marked, String all, List<String> diff) throws IOException {
         Iterator<String> itr = createItr(all, marked);
-        assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
+        assertThat("marked: " + marked + " all: " + all, ListUtils.toList(itr), is(diff));
     }
 
     private static void assertDiff(String marked, String all, List<String> diff) throws IOException {
         Iterator<String> itr = createItr(marked, all);
-        assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
+        assertThat("marked: " + marked + " all: " + all, ListUtils.toList(itr), is(diff));
     }
 
     private static Iterator<String> createItr(String marked, String all) throws IOException {
@@ -174,8 +172,8 @@ public class FileLineDifferenceIteratorTest {
     }
 
     private static LineIterator lineItr(String seq) {
-        Iterable<String> seqItr = Splitter.on(',').trimResults().split(seq);
-        String lines = Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).join(seqItr);
+        Iterable<String> seqItr = Arrays.stream(seq.split(",")).map(String::trim).collect(Collectors.toList());
+        String lines = String.join(System.getProperty("line.separator"), seqItr);
         return new LineIterator(new StringReader(lines));
     }
 
@@ -191,6 +189,6 @@ public class FileLineDifferenceIteratorTest {
                 }
             });
 
-        assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
+        assertThat("marked: " + marked + " all: " + all, ListUtils.toList(itr), is(diff));
     }
 }

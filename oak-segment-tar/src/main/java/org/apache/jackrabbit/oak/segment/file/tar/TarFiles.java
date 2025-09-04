@@ -14,20 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
+
 import static java.util.Collections.emptySet;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -36,20 +34,24 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
+import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.ForkJoinUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
@@ -136,12 +138,14 @@ public class TarFiles implements Closeable {
 
         private CounterStats segmentCountStats = NoopStats.INSTANCE;
 
+        private boolean initialiseReadersAndWriters = true;
+
         private Builder() {
             // Prevent external instantiation.
         }
 
         public Builder withDirectory(File directory) {
-            this.directory = checkNotNull(directory);
+            this.directory = requireNonNull(directory);
             return this;
         }
 
@@ -156,22 +160,22 @@ public class TarFiles implements Closeable {
         }
 
         public Builder withTarRecovery(TarRecovery tarRecovery) {
-            this.tarRecovery = checkNotNull(tarRecovery);
+            this.tarRecovery = requireNonNull(tarRecovery);
             return this;
         }
 
         public Builder withIOMonitor(IOMonitor ioMonitor) {
-            this.ioMonitor = checkNotNull(ioMonitor);
+            this.ioMonitor = requireNonNull(ioMonitor);
             return this;
         }
 
         public Builder withFileStoreMonitor(FileStoreMonitor fileStoreStats) {
-            this.fileStoreMonitor = checkNotNull(fileStoreStats);
+            this.fileStoreMonitor = requireNonNull(fileStoreStats);
             return this;
         }
 
         public Builder withRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-            this.remoteStoreMonitor = checkNotNull(remoteStoreMonitor);
+            this.remoteStoreMonitor = requireNonNull(remoteStoreMonitor);
             return this;
         }
 
@@ -201,13 +205,18 @@ public class TarFiles implements Closeable {
             return this;
         }
 
+        public Builder withInitialisedReadersAndWriters(boolean initialiseReadersAndWriters) {
+            this.initialiseReadersAndWriters = initialiseReadersAndWriters;
+            return this;
+        }
+
         public TarFiles build() throws IOException {
-            checkState(directory != null, "Directory not specified");
-            checkState(tarRecovery != null, "TAR recovery strategy not specified");
-            checkState(ioMonitor != null, "I/O monitor not specified");
-            checkState(readOnly || fileStoreMonitor != null, "File store statistics not specified");
-            checkState(remoteStoreMonitor != null, "Remote store statistics not specified");
-            checkState(readOnly || maxFileSize != 0, "Max file size not specified");
+            Validate.checkState(directory != null, "Directory not specified");
+            Validate.checkState(tarRecovery != null, "TAR recovery strategy not specified");
+            Validate.checkState(ioMonitor != null, "I/O monitor not specified");
+            Validate.checkState(readOnly || fileStoreMonitor != null, "File store statistics not specified");
+            Validate.checkState(remoteStoreMonitor != null, "Remote store statistics not specified");
+            Validate.checkState(readOnly || maxFileSize != 0, "Max file size not specified");
             if (persistence == null) {
                 persistence = new TarPersistence(directory);
             }
@@ -301,21 +310,21 @@ public class TarFiles implements Closeable {
     }
 
     private static Map<Integer, Map<Character, String>> collectFiles(SegmentArchiveManager archiveManager) throws IOException {
-        Map<Integer, Map<Character, String>> dataFiles = newHashMap();
+        Map<Integer, Map<Character, String>> dataFiles = new HashMap<>();
         for (String file : archiveManager.listArchives()) {
             Matcher matcher = FILE_NAME_PATTERN.matcher(file);
             if (matcher.matches()) {
                 Integer index = Integer.parseInt(matcher.group(2));
                 Map<Character, String> files = dataFiles.get(index);
                 if (files == null) {
-                    files = newHashMap();
+                    files = new HashMap<>();
                     dataFiles.put(index, files);
                 }
                 Character generation = 'a';
                 if (matcher.group(4) != null) {
                     generation = matcher.group(4).charAt(0);
                 }
-                checkState(files.put(generation, file) == null);
+                Validate.checkState(files.put(generation, file) == null);
             }
         }
         return dataFiles;
@@ -369,6 +378,15 @@ public class TarFiles implements Closeable {
      */
     private final CounterStats segmentCount;
 
+    private final boolean readOnly;
+
+    private final TarRecovery tarRecovery;
+
+    /**
+     * If {@code true}, the readers and writers are initialised.
+     */
+    private boolean initialised;
+
     private static int getSegmentCount(TarReader reader) {
         return reader.getEntries().length;
     }
@@ -378,7 +396,15 @@ public class TarFiles implements Closeable {
         archiveManager = builder.buildArchiveManager();
         readerCount = builder.readerCountStats;
         segmentCount = builder.segmentCountStats;
+        readOnly = builder.readOnly;
+        tarRecovery = builder.tarRecovery;
 
+        if (builder.initialiseReadersAndWriters) {
+            init();
+        }
+    }
+
+    public void init() throws IOException {
         Map<Integer, Map<Character, String>> map = collectFiles(archiveManager);
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
@@ -387,26 +413,51 @@ public class TarFiles implements Closeable {
         // iterates the indices in ascending order, but prepends - instead of
         // appending - the corresponding TAR readers to the linked list. This
         // results in a properly ordered linked list.
-
-        for (Integer index : indices) {
-            TarReader r;
-            if (builder.readOnly) {
-                r = TarReader.openRO(map.get(index), builder.tarRecovery, archiveManager);
-            } else {
-                r = TarReader.open(map.get(index), builder.tarRecovery, archiveManager);
-            }
-            segmentCount.inc(getSegmentCount(r));
-            readers = new Node(r, readers);
-            readerCount.inc();
-        }
-        if (builder.readOnly) {
-            return;
-        }
-        int writeNumber = 0;
         if (indices.length > 0) {
-            writeNumber = indices[indices.length - 1] + 1;
+            try {
+                ForkJoinUtils
+                        .invokeInCustomPool("segmentstore-init", Math.min(indices.length, 32), () -> Stream.of(indices)
+                                .parallel()
+                                .map(index -> {
+                                    try {
+                                        if (readOnly) {
+                                            return TarReader.openRO(map.get(index), tarRecovery, archiveManager);
+                                        } else {
+                                            return TarReader.open(map.get(index), tarRecovery, archiveManager);
+                                        }
+                                    } catch (IOException e) {
+                                        log.warn("Unable to open TAR file: {}", map.get(index), e);
+                                        throw new UncheckedIOException(e);
+                                    }
+                                })
+                                .collect(Collectors.toUnmodifiableList()))
+                        // keep the forEach outside the parallel execution, as the
+                        // datastructures are not necessarily thread-safe
+                        .forEach(reader -> {
+                            segmentCount.inc(getSegmentCount(reader));
+                            readers = new Node(reader, readers);
+                            readerCount.inc();
+                        });
+            } catch (UncheckedIOException e) {
+                throw e.getCause();
+            }
         }
-        writer = new TarWriter(archiveManager, writeNumber, segmentCount);
+
+        if (!readOnly) {
+            int writeNumber = 0;
+            if (indices.length > 0) {
+                writeNumber = indices[indices.length - 1] + 1;
+            }
+            writer = new TarWriter(archiveManager, writeNumber, segmentCount);
+        }
+
+        initialised = true;
+    }
+
+    private void checkInitialised() {
+        if (!initialised) {
+            throw new IllegalRepositoryStateException("TarFiles not initialised");
+        }
     }
 
     @Override
@@ -466,7 +517,7 @@ public class TarFiles implements Closeable {
             lock.readLock().unlock();
         }
 
-        return String.format("TarFiles{readers=%s,writer=%s}", newArrayList(iterable(head)), w);
+        return String.format("TarFiles{readers=%s,writer=%s}", ListUtils.toList(iterable(head)), w);
     }
 
     public long size() {
@@ -490,7 +541,7 @@ public class TarFiles implements Closeable {
     }
 
     private static int getSize(Node head) {
-        return Iterables.size(iterable(head));
+        return IterableUtils.size(iterable(head));
     }
 
     public int readerCount() {
@@ -530,6 +581,7 @@ public class TarFiles implements Closeable {
     }
 
     public void flush() throws IOException {
+        checkInitialised();
         lock.readLock().lock();
         try {
             writer.flush();
@@ -592,6 +644,7 @@ public class TarFiles implements Closeable {
     }
 
     public void writeSegment(UUID id, byte[] buffer, int offset, int length, GCGeneration generation, Set<UUID> references, Set<String> binaryReferences) throws IOException {
+        checkInitialised();
         lock.writeLock().lock();
         try {
             long size = writer.writeEntry(
@@ -612,7 +665,8 @@ public class TarFiles implements Closeable {
                     writer.addBinaryReference(generation, id, reference);
                 }
             }
-            if (size >= maxFileSize) {
+            int entryCount = writer.getEntryCount();
+            if (size >= maxFileSize || entryCount >= writer.getMaxEntryCount()) {
                 internalNewWriter();
             }
         } finally {
@@ -643,6 +697,7 @@ public class TarFiles implements Closeable {
     }
 
     void newWriter() throws IOException {
+        checkInitialised();
         lock.writeLock().lock();
         try {
             internalNewWriter();
@@ -652,6 +707,7 @@ public class TarFiles implements Closeable {
     }
 
     public CleanupResult cleanup(CleanupContext context) throws IOException {
+        checkInitialised();
         CleanupResult result = new CleanupResult();
         result.removableFiles = new ArrayList<>();
         result.reclaimedSegmentIds = new HashSet<>();
@@ -680,7 +736,7 @@ public class TarFiles implements Closeable {
             result.reclaimedSize += reader.size();
         }
 
-        Set<UUID> reclaim = newHashSet();
+        Set<UUID> reclaim = new HashSet<>();
 
         for (TarReader reader : cleaned.keySet()) {
             if (shutdown) {
@@ -803,6 +859,7 @@ public class TarFiles implements Closeable {
     }
 
     public void collectBlobReferences(Consumer<String> collector, Predicate<GCGeneration> reclaim) throws IOException {
+        checkInitialised();
         Node head;
         lock.writeLock().lock();
         try {
@@ -846,29 +903,15 @@ public class TarFiles implements Closeable {
             lock.readLock().unlock();
         }
 
-        Set<UUID> index = null;
-        Map<UUID, List<UUID>> graph = null;
-
         for (TarReader reader : iterable(head)) {
             if (fileName.equals(reader.getFileName())) {
-                index = reader.getUUIDs();
-                graph = reader.getGraph();
-                break;
+                Map<UUID, Set<UUID>> result = new HashMap<>();
+                reader.getUUIDs().forEach((uuid -> result.put(uuid, emptySet())));
+                result.putAll(reader.getGraph().getEdges());
+                return result;
             }
         }
-
-        Map<UUID, Set<UUID>> result = new HashMap<>();
-        if (index != null) {
-            for (UUID uuid : index) {
-                result.put(uuid, emptySet());
-            }
-        }
-        if (graph != null) {
-            for (Entry<UUID, List<UUID>> entry : graph.entrySet()) {
-                result.put(entry.getKey(), new HashSet<>(entry.getValue()));
-            }
-        }
-        return result;
+        return emptyMap();
     }
 
     public Map<String, Set<UUID>> getIndices() {
@@ -889,6 +932,7 @@ public class TarFiles implements Closeable {
     }
 
     public FileReaper createFileReaper() {
+        checkInitialised();
         return new FileReaper(archiveManager);
     }
 }

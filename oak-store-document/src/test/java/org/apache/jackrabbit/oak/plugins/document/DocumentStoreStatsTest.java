@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.lang.management.ManagementFactory;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +35,6 @@ import org.junit.After;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.JOURNAL_CREATE;
@@ -116,11 +115,11 @@ public class DocumentStoreStatsTest {
 
     @Test
     public void doneCreate_Journal() throws Exception{
-        stats.doneCreate(100, Collection.JOURNAL, of("a", "b"), true);
+        stats.doneCreate(100, Collection.JOURNAL, List.of("a", "b"), true);
         assertEquals(2, getMeter(DocumentStoreStats.JOURNAL_CREATE).getCount());
         assertEquals(100, getTimer(DocumentStoreStats.JOURNAL_CREATE_TIMER).getSnapshot().getMax());
 
-        stats.doneCreate(100, JOURNAL, of("c", "d"), false);
+        stats.doneCreate(100, JOURNAL, List.of("c", "d"), false);
         assertEquals(4, getMeter(JOURNAL_CREATE).getCount());
         assertEquals(100, getTimer(JOURNAL_CREATE_TIMER).getSnapshot().getMax());
     }
@@ -129,24 +128,24 @@ public class DocumentStoreStatsTest {
     public void doneCreate_Nodes() {
 
         // empty list of ids
-        stats.doneCreate(100, NODES, of(), true);
+        stats.doneCreate(100, NODES, List.of(), true);
         assertEquals(0, getMeter(NODES_CREATE).getCount());
         assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(0, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
 
-        stats.doneCreate(100, NODES, of("a", "b"), true);
+        stats.doneCreate(100, NODES, List.of("a", "b"), true);
         assertEquals(2, getMeter(NODES_CREATE).getCount());
         assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(50, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
 
         // adding an Id with previous doc
-        stats.doneCreate(200, NODES, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true);
+        stats.doneCreate(200, NODES, List.of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"), true);
         assertEquals(3, getMeter(NODES_CREATE).getCount());
         assertEquals(1, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(200, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
 
         // if insert is not successful
-        stats.doneCreate(200, NODES, of("c"), false);
+        stats.doneCreate(200, NODES, List.of("c"), false);
         assertEquals(3, getMeter(NODES_CREATE).getCount());
         assertEquals(1, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(200, getTimer(NODES_CREATE_TIMER).getSnapshot().getMax());
@@ -160,24 +159,24 @@ public class DocumentStoreStatsTest {
     public void doneCreateOrUpdate() {
 
         // empty list of ids
-        stats.doneCreateOrUpdate(100, NODES, of());
+        stats.doneCreateOrUpdate(100, NODES, List.of());
         assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
 
-        stats.doneCreateOrUpdate(100, NODES, of("a", "b"));
+        stats.doneCreateOrUpdate(100, NODES, List.of("a", "b"));
         assertEquals(2, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(0, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(50, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
 
         // adding an Id with previous Doc
-        stats.doneCreateOrUpdate(200, NODES, of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"));
+        stats.doneCreateOrUpdate(200, NODES, List.of("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/r182f83543dd-0-0/3"));
         assertEquals(3, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(1, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(200, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
 
         // insert is done for journal collection
-        stats.doneCreateOrUpdate(200, JOURNAL, of("c"));
+        stats.doneCreateOrUpdate(200, JOURNAL, List.of("c"));
         assertEquals(3, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(1, getMeter(NODES_CREATE_SPLIT).getCount());
         assertEquals(200, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
@@ -199,21 +198,21 @@ public class DocumentStoreStatsTest {
     public void doneBulkFindAndModify() {
 
         // no node had been updated i.e. empty list of Ids
-        stats.doneFindAndModify(100, NODES, of(), true, 0);
+        stats.doneFindAndModify(100, NODES, List.of(), true, 0);
         assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
         assertEquals(0, getMeter(NODES_UPDATE).getCount());
         assertEquals(0, getTimer(NODES_UPDATE_TIMER).getSnapshot().getMax());
 
         // 2 nodes had been updated
-        stats.doneFindAndModify(100, NODES, of("foo", "bar"), true, 0);
+        stats.doneFindAndModify(100, NODES, List.of("foo", "bar"), true, 0);
         assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
         assertEquals(2, getMeter(NODES_UPDATE).getCount());
         assertEquals(50, getTimer(NODES_UPDATE_TIMER).getSnapshot().getMax());
 
         // fails to update 2 nodes without retrying
-        stats.doneFindAndModify(100, NODES, of("foo", "bar"), false, 0);
+        stats.doneFindAndModify(100, NODES, List.of("foo", "bar"), false, 0);
         assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
         assertEquals(2, getMeter(NODES_UPDATE).getCount());
@@ -222,7 +221,7 @@ public class DocumentStoreStatsTest {
         assertEquals(1, getMeter(NODES_UPDATE_FAILURE).getCount());
 
         // update is done on Journal collection
-        stats.doneFindAndModify(100, JOURNAL, of("foo", "bar"), true, 0);
+        stats.doneFindAndModify(100, JOURNAL, List.of("foo", "bar"), true, 0);
         assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
         assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
         assertEquals(2, getMeter(NODES_UPDATE).getCount());

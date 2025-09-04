@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import co.elastic.clients.transport.Version;
+import static org.junit.Assume.assumeNotNull;
+
 import com.github.dockerjava.api.DockerClient;
-import org.apache.jackrabbit.oak.commons.IOUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
@@ -27,30 +28,14 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 import org.testcontainers.utility.MountableFile;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Map;
+import co.elastic.clients.transport.Version;
 
-import static org.junit.Assume.assumeNotNull;
+import java.io.IOException;
+import java.time.Duration;
 
 public class ElasticTestServer implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticTestServer.class);
-    private static final Map<String, String> PLUGIN_OFFICIAL_RELEASES_DIGEST_MAP = Map.of(
-            "7.17.3.0", "5e3b40bb72b2813f927be9bf6ecdf88668d89d2ef20c7ebafaa51ab8407fd179",
-            "7.17.6.0", "326893bb98ef1a0c569d9f4c4a9a073e53361924f990b17e87077985ce8a7478",
-            "7.17.7.0", "4252eb55cc7775f1b889d624ac335abfa2e357931c40d0accb4d520144246b8b",
-            "8.3.3.0", "14d3223456f4b9f00f86628ec8400cb46513935e618ae0f5d0d1088739ccc233",
-            "8.4.1.0", "56797a1bac6ceeaa36d2358f818b14633124d79c5e04630fa3544603d82eaa01",
-            "8.4.2.0", "5ce81ad043816900a496ad5b3cce7de1d99547ebf92aa1f9856343e48580c71c",
-            "8.4.3.0", "5c00d43cdd56c5c5d8e9032ad507acea482fb5ca9445861c5cc12ad63af66425",
-            "8.5.3.0", "d4c13f68650f9df5ff8c74ec83abc2e416de9c45f991d459326e0e2baf7b0e3f",
-            "8.7.0.0", "7aeac9b7ac4dea1ded3f8e477e26bcc7fe62e313edf6352f4bdf973c43d25819");
+    private static final String ELASTIC_DOCKER_IMAGE_VERSION = System.getProperty("elasticDockerImageVersion");
 
     private static final ElasticTestServer SERVER = new ElasticTestServer();
     private static volatile ElasticsearchContainer CONTAINER;
@@ -77,16 +62,10 @@ public class ElasticTestServer implements AutoCloseable {
         return CONTAINER;
     }
 
+    @SuppressWarnings("resource")
     private synchronized void setup() {
-        String esDockerImageVersion = ElasticTestUtils.ELASTIC_DOCKER_IMAGE_VERSION;
-        if (esDockerImageVersion == null) {
-            esDockerImageVersion = Version.VERSION.toString();
-        }
-        final String pluginVersion = esDockerImageVersion + ".0";
-        final String pluginFileName = "elastiknn-" + pluginVersion + ".zip";
-        final String localPluginPath = "target/" + pluginFileName;
+        String esDockerImageVersion = ELASTIC_DOCKER_IMAGE_VERSION != null ? ELASTIC_DOCKER_IMAGE_VERSION : Version.VERSION.toString();
         LOG.info("Elasticsearch test Docker image version: {}.", esDockerImageVersion);
-        downloadSimilaritySearchPluginIfNotExists(localPluginPath, pluginVersion);
         checkIfDockerClientAvailable();
         Network network = Network.newNetwork();
         CONTAINER = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + esDockerImageVersion)
@@ -94,14 +73,10 @@ public class ElasticTestServer implements AutoCloseable {
                 .withCopyFileToContainer(
                         MountableFile.forClasspathResource("elasticsearch.yml"),
                         "/usr/share/elasticsearch/config/elasticsearch.yml")
-                // https://www.elastic.co/guide/en/elasticsearch/plugins/8.4/manage-plugins-using-configuration-file.html
-                .withCopyFileToContainer(
-                        MountableFile.forClasspathResource("elasticsearch-plugins.yml"),
-                        "/usr/share/elasticsearch/config/elasticsearch-plugins.yml")
-                .withCopyFileToContainer(
-                        MountableFile.forHostPath(localPluginPath),
-                        "/tmp/plugins/elastiknn.zip")
                 .withNetwork(network)
+                .withNetworkAliases("elasticsearch")
+                // Default is 30 seconds, which might not be enough on environments with limited resources or network latency
+                .withStartupTimeout(Duration.ofMinutes(3))
                 .withStartupAttempts(3);
         CONTAINER.start();
 
@@ -120,55 +95,6 @@ public class ElasticTestServer implements AutoCloseable {
             CONTAINER.stop();
         }
         CONTAINER = null;
-    }
-
-    private void downloadSimilaritySearchPluginIfNotExists(String localPluginPath, String pluginVersion) {
-        File pluginFile = new File(localPluginPath);
-        if (!pluginFile.exists()) {
-            LOG.info("Plugin file {} doesn't exist. Trying to download.", localPluginPath);
-            String pluginUri;
-            String pluginDigest;
-            if (PLUGIN_OFFICIAL_RELEASES_DIGEST_MAP.containsKey(pluginVersion)) {
-                pluginDigest = PLUGIN_OFFICIAL_RELEASES_DIGEST_MAP.get(pluginVersion);
-                pluginUri = "https://github.com/alexklibisz/elastiknn/releases/download/" + pluginVersion
-                        + "/elastiknn-" + pluginVersion + ".zip";
-            } else {
-                pluginDigest = null; // Skip validation
-                pluginUri = ElasticTestUtils.ELASTIC_KNN_PLUGIN_URI;
-                if (pluginUri == null) {
-                    throw new RuntimeException("Elastiknn " + pluginVersion + " is not a known official release, so it cannot be downloaded from the official GitHub repo. Please provide the download URI in system property \"" + ElasticTestUtils.ELASTIC_KNN_PLUGIN_URI_KEY + "\".");
-                }
-            }
-            LOG.info("Downloading Elastiknn plugin from {}.", pluginUri);
-            try {
-                try (InputStream inputStream = new URL(pluginUri).openStream();
-                     FileOutputStream outputStream = new FileOutputStream(pluginFile)
-                ) {
-                    if (pluginDigest != null) {
-                        MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-                        DigestInputStream dis = new DigestInputStream(inputStream, messageDigest);
-                        IOUtils.copy(dis, outputStream);
-                        messageDigest = dis.getMessageDigest();
-                        // bytes to hex
-                        StringBuilder result = new StringBuilder();
-                        for (byte b : messageDigest.digest()) {
-                            result.append(String.format("%02x", b));
-                        }
-                        if (!pluginDigest.equals(result.toString())) {
-                            String deleteString = "Downloaded plugin file deleted.";
-                            if (!pluginFile.delete()) {
-                                deleteString = "Could not delete downloaded plugin file.";
-                            }
-                            throw new RuntimeException("Plugin digest unequal. Found " + result + ". Expected " + pluginDigest + ". " + deleteString);
-                        }
-                    } else {
-                        IOUtils.copy(inputStream, outputStream);
-                    }
-                }
-            } catch (IOException | NoSuchAlgorithmException e) {
-                throw new RuntimeException("Could not download similarity search plugin", e);
-            }
-        }
     }
 
     private void checkIfDockerClientAvailable() {

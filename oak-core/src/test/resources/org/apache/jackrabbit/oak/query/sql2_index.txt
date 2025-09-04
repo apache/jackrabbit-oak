@@ -25,38 +25,56 @@
 # * use ascii characters only
 
 explain select [jcr:path], [jcr:score], * from [nt:base] as a where lower([test]) <> 'lower'
-[nt:base] as [a] /* traverse "*"
-  where lower([a].[test]) <> 'lower' */
+[nt:base] as [a] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
 
 explain select * from [nt:base] where [jcr:uuid] <> '1'
-[nt:base] as [nt:base] /* property uuid IS NOT NULL
-  where [nt:base].[jcr:uuid] <> '1' */
+[nt:base] as [nt:base] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: all values in the index (warning: may be slow)
+    estimatedCost: 12.0
+ */
 
 explain select * from [nt:base] as a
     left outer join [nt:base] as b on a.x=b.y
     where a.y is null and b.z = 1
-[nt:base] as [a] /* traverse "*"
-  where [a].[y] is null */ left outer join [nt:base] as [b] /* traverse "*"
-  where [b].[z] = 1 */
+[nt:base] as [a] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */ left outer join [nt:base] as [b] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
   on [a].[x] = [b].[y]
 
 explain select * from [nt:base] as a
     right outer join [nt:base] as b on a.x=b.y
     where a.y is null and b.z = 1
-[nt:base] as [b] /* traverse "*"
-  where [b].[z] = 1 */ left outer join [nt:base] as [a] /* traverse "*" */
+[nt:base] as [b] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */ left outer join [nt:base] as [a] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
   on [a].[x] = [b].[y]
 
 explain select * from [nt:base] where (p=1 or p=2) and (p=3 or p=4)
-[nt:base] as [nt:base] /* traverse "*"
-  where ([nt:base].[p] in(1, 2))
-  and ([nt:base].[p] in(3, 4)) */
+[nt:base] as [nt:base] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] like '%'
-[nt:base] as [nt:base] /* property uuid IS NOT NULL
-  where [nt:base].[jcr:uuid] like '%' */
+[nt:base] as [nt:base] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: all values in the index (warning: may be slow)
+    estimatedCost: 12.0
+ */
 
 explain select e.[jcr:path]
   from [nt:base] as a
@@ -70,20 +88,30 @@ explain select e.[jcr:path]
   and name(c) = 'd'
   and name(d) = 'e'
   and (e.[jcr:uuid] = '1' or e.[jcr:uuid] = '2' or e.[jcr:uuid] = '3' or e.[jcr:uuid] = '4')
-[nt:base] as [e] /* property uuid IN (1, 2, 3, 4)
-  where [e].[jcr:uuid] in('1', '2', '3', '4') */
-  inner join [nt:base] as [d] /* traverse "* && //parent/of/join"
-  where name([d]) = 'e' */
+[nt:base] as [e] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: '1', '2', '3', '4'
+    estimatedCost: 6.0
+ */
+  inner join [nt:base] as [d] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
   on ischildnode([e], [d])
-  inner join [nt:base] as [c] /* traverse "* && //parent/of/join"
-  where name([c]) = 'd' */
+  inner join [nt:base] as [c] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
   on ischildnode([d], [c])
-  inner join [nt:base] as [b] /* traverse "* && //parent/of/join"
-  where name([b]) = 'c' */
+  inner join [nt:base] as [b] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
   on ischildnode([c], [b])
-  inner join [nt:base] as [a] /* traverse "//* && //parent/of/join"
-  where (name([a]) = 'a')
-  and (isdescendantnode([a], [/])) */
+  inner join [nt:base] as [a] /* traverse
+    allDescendents: /
+    estimatedEntries: 1.0E8
+ */
   on ischildnode([b], [a])
 
 explain select e.[jcr:path]
@@ -98,55 +126,78 @@ explain select e.[jcr:path]
   and name(c) = 'd'
   and name(d) = 'e'
   and (e.[jcr:uuid] = '1' or e.[jcr:uuid] = '2' or e.[jcr:uuid] = '3' or e.[jcr:uuid] = '4')
-[nt:base] as [e] /* property uuid IN (1, 2, 3, 4)
-  where [e].[jcr:uuid] in('1', '2', '3', '4') */
-  inner join [nt:base] as [d] /* traverse "* && //parent/of/join"
-  where name([d]) = 'e' */
+[nt:base] as [e] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: '1', '2', '3', '4'
+    estimatedCost: 6.0
+ */
+  inner join [nt:base] as [d] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
   on ischildnode([e], [d])
-  inner join [nt:base] as [c] /* traverse "* && //parent/of/join"
-  where name([c]) = 'd' */
+  inner join [nt:base] as [c] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
   on ischildnode([d], [c])
-  inner join [nt:base] as [b] /* traverse "* && //parent/of/join"
-  where name([b]) = 'c' */
+  inner join [nt:base] as [b] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
   on ischildnode([c], [b])
-  inner join [nt:base] as [a] /* traverse "//* && //parent/of/join"
-  where (name([a]) = 'a')
-  and (isdescendantnode([a], [/])) */
+  inner join [nt:base] as [a] /* traverse
+    allDescendents: /
+    estimatedEntries: 1.0E8
+ */
   on ischildnode([b], [a])
 
 explain select excerpt(.)
   from [nt:resource]
   where contains(*, 'jackrabbit')
-[nt:resource] as [nt:resource] /* traverse "*"
-  where contains([nt:resource].[*], 'jackrabbit') */
+[nt:resource] as [nt:resource] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: Infinity
+ */
 
 explain select excerpt(.)
   from [nt:resource]
   where contains(*, 'jackrabbit') or contains(*, 'jackrabbit')
-[nt:resource] as [nt:resource] /* traverse "*"
-  where contains([nt:resource].[*], 'jackrabbit') */
+[nt:resource] as [nt:resource] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: Infinity
+ */
 
 explain select excerpt(.)
   from [nt:resource]
   where (contains(*, 'jackrabbit') or contains(*, 'jackrabbit'))
   and x = '1'
-[nt:resource] as [nt:resource] /* traverse "*"
-  where (contains([nt:resource].[*], 'jackrabbit'))
-  and ([nt:resource].[x] = '1') */
+[nt:resource] as [nt:resource] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: Infinity
+ */
 
 explain select *
   from [nt:base]
   where [jcr:uuid]=1 or [b]=2
-[nt:base] as [nt:base] /* traverse "*"
-  where ([nt:base].[jcr:uuid] = 1) or ([nt:base].[b] = 2) */
+[nt:base] as [nt:base] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
 
 explain select b.[jcr:uuid]
   from [nt:base] as a
   inner join [nt:base] as b on isdescendantnode(b, a)
   where (a.[jcr:uuid] = '1' or a.[jcr:uuid] = '2')
-[nt:base] as [a] /* property uuid IN (1, 2)
-  where [a].[jcr:uuid] in('1', '2') */
-  inner join [nt:base] as [b] /* traverse "* && //path/from/join//*" */
+[nt:base] as [a] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: '1', '2'
+    estimatedCost: 4.0
+ */
+  inner join [nt:base] as [b] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
   on isdescendantnode([b], [a])
 
 explain select b.[jcr:uuid]
@@ -154,60 +205,88 @@ explain select b.[jcr:uuid]
   inner join [nt:base] as b on isdescendantnode(b, a)
   where (a.[jcr:uuid] = '1' or a.[jcr:uuid] = '2')
   and b.[jcr:uuid] is not null
-[nt:base] as [a] /* property uuid IN (1, 2)
-  where [a].[jcr:uuid] in('1', '2') */
-  inner join [nt:base] as [b] /* property uuid IS NOT NULL
-  where [b].[jcr:uuid] is not null */
+[nt:base] as [a] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: '1', '2'
+    estimatedCost: 4.0
+ */
+  inner join [nt:base] as [b] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: all values in the index (warning: may be slow)
+    estimatedCost: 12.0
+ */
   on isdescendantnode([b], [a])
 
 explain select *
   from [nt:base]
   where length([jcr:uuid])=1 or upper([jcr:uuid])='1' or lower([jcr:uuid])='3'
-[nt:base] as [nt:base] /* property uuid IS NOT NULL
-  where ([nt:base].[jcr:uuid] is not null)
-  and ((length([nt:base].[jcr:uuid]) = 1) or (upper([nt:base].[jcr:uuid]) = '1') or (lower([nt:base].[jcr:uuid]) = '3')) */
+[nt:base] as [nt:base] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: all values in the index (warning: may be slow)
+    estimatedCost: 12.0
+ */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] = '1' or ([jcr:uuid] = '2'
   and [b] = '3')
-[nt:base] as [nt:base] /* property uuid IN (1, 2)
-  where ([nt:base].[jcr:uuid] is not null)
-  and ([nt:base].[jcr:uuid] in('1', '2')) */
+[nt:base] as [nt:base] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: '1', '2'
+    estimatedCost: 4.0
+ */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] in('1', '2')
-[nt:base] as [nt:base] /* property uuid IN (1, 2)
-  where [nt:base].[jcr:uuid] in('1', '2') */
+[nt:base] as [nt:base] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: '1', '2'
+    estimatedCost: 4.0
+ */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] = '1' or [jcr:uuid] = '2'
-[nt:base] as [nt:base] /* property uuid IN (1, 2)
-  where [nt:base].[jcr:uuid] in('1', '2') */
+[nt:base] as [nt:base] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: '1', '2'
+    estimatedCost: 4.0
+ */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] = '123'
-[nt:base] as [nt:base] /* property uuid = 123
-  where [nt:base].[jcr:uuid] = '123' */
+[nt:base] as [nt:base] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: '123'
+    estimatedCost: 2.0
+ */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] is not null
-[nt:base] as [nt:base] /* property uuid IS NOT NULL
-  where [nt:base].[jcr:uuid] is not null */
+[nt:base] as [nt:base] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: all values in the index (warning: may be slow)
+    estimatedCost: 12.0
+ */
 
 explain select *
   from [nt:base] as a
   inner join [nt:base] as b on isdescendantnode(b, a)
   where a.[jcr:uuid] is not null
   and b.[jcr:uuid] is not null
-[nt:base] as [a] /* property uuid IS NOT NULL
-  where [a].[jcr:uuid] is not null */
-  inner join [nt:base] as [b] /* property uuid IS NOT NULL
-  where [b].[jcr:uuid] is not null */
+[nt:base] as [a] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: all values in the index (warning: may be slow)
+    estimatedCost: 12.0
+ */
+  inner join [nt:base] as [b] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: all values in the index (warning: may be slow)
+    estimatedCost: 12.0
+ */
   on isdescendantnode([b], [a])
 
 explain select *
@@ -215,10 +294,16 @@ explain select *
   inner join [nt:base] as b on isdescendantnode(b, a)
   where (a.[jcr:uuid]=1 or a.[jcr:uuid]=2)
   and (b.[jcr:uuid]=3 or b.[jcr:uuid]=4)
-[nt:base] as [a] /* property uuid IN (1, 2)
-  where [a].[jcr:uuid] in(1, 2) */
-  inner join [nt:base] as [b] /* property uuid IN (3, 4)
-  where [b].[jcr:uuid] in(3, 4) */
+[nt:base] as [a] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: '1', '2'
+    estimatedCost: 4.0
+ */
+  inner join [nt:base] as [b] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: '3', '4'
+    estimatedCost: 4.0
+ */
   on isdescendantnode([b], [a])
 
 explain select *
@@ -226,17 +311,25 @@ explain select *
   inner join [nt:base] as b on isdescendantnode(b, a)
   where a.[jcr:uuid] is not null
   and b.[x] is not null
-[nt:base] as [a] /* property uuid IS NOT NULL
-  where [a].[jcr:uuid] is not null */
-  inner join [nt:base] as [b] /* traverse "* && //path/from/join//*"
-  where [b].[x] is not null */
+[nt:base] as [a] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: all values in the index (warning: may be slow)
+    estimatedCost: 12.0
+ */
+  inner join [nt:base] as [b] /* traverse
+    allNodes (warning: slow)
+    estimatedEntries: 1.0E8
+ */
   on isdescendantnode([b], [a])
 
 explain select [rep:excerpt]
   from [nt:base]
   where [jcr:uuid] is not null
-[nt:base] as [nt:base] /* property uuid IS NOT NULL
-  where [nt:base].[jcr:uuid] is not null */
+[nt:base] as [nt:base] /* property uuid
+    indexDefinition: /oak:index/uuid
+    values: all values in the index (warning: may be slow)
+    estimatedCost: 12.0
+ */
 
 commit / + "test": { "jcr:uuid": "xyz", "a": { "jcr:uuid": "123" } }
 

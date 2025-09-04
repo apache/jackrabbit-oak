@@ -22,6 +22,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -42,8 +43,6 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 
 import static org.osgi.service.component.annotations.ReferenceCardinality.OPTIONAL;
 import static org.osgi.service.component.annotations.ReferencePolicy.DYNAMIC;
@@ -105,13 +104,11 @@ public class AtomicCounterEditorProvider implements EditorProvider {
      * Plain Java oriented constructor. Refer to
      * {@link AtomicCounterEditor#AtomicCounterEditor(NodeBuilder, String, ScheduledExecutorService, NodeStore, Whiteboard)}
      * for constructions details of the actual editor.
-     * </p>
-     * 
+     *
      * <p>
      * Based on the use case this may need an already set of the constructor parameters during the
      * repository construction. Please ensure they're registered before this provider is registered.
-     * </p>
-     * 
+     *
      * @param clusterInfo cluster node information
      * @param executor the executor for running asynchronously.
      * @param store reference to the NodeStore.
@@ -171,7 +168,7 @@ public class AtomicCounterEditorProvider implements EditorProvider {
     @Activate
     public void activate(BundleContext context) {
         whiteboard.set(new OsgiWhiteboard(context));
-        ThreadFactory tf = new ThreadFactoryBuilder().setNameFormat("atomic-counter-%d").build();
+        ThreadFactory tf = BasicThreadFactory.builder().namingPattern("atomic-counter-%d").build();
         scheduler.set(Executors.newScheduledThreadPool(10, tf));
     }
     

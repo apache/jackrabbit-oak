@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.jcr.Node;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.BeforeClass;
@@ -57,8 +56,8 @@ public class ConcurrentIndexUpdateIT extends AbstractRepositoryTest {
         getAdminSession().save();
 
         final List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
-        List<AtomicLong> counters = Lists.newArrayList();
-        List<Thread> writers = Lists.newArrayList();
+        List<AtomicLong> counters = new ArrayList<>();
+        List<Thread> writers = new ArrayList<>();
         for (int i = 0; i < NUM_WRITERS; i++) {
             final int id = i;
             final AtomicLong counter = new AtomicLong();
@@ -96,7 +95,7 @@ public class ConcurrentIndexUpdateIT extends AbstractRepositoryTest {
     }
 
     private List<Long> diff(List<Long> after, List<Long> before) {
-        List<Long> diff = Lists.newArrayListWithCapacity(after.size());
+        List<Long> diff = new ArrayList<>(after.size());
         for (int i = 0; i < after.size(); i++) {
             diff.add(after.get(i) - before.get(i));
         }
@@ -104,7 +103,7 @@ public class ConcurrentIndexUpdateIT extends AbstractRepositoryTest {
     }
 
     private List<Long> currentValues(List<AtomicLong> counters) {
-        List<Long> values = Lists.newArrayListWithCapacity(counters.size());
+        List<Long> values = new ArrayList<>(counters.size());
         for (AtomicLong v : counters) {
             values.add(v.get());
         }

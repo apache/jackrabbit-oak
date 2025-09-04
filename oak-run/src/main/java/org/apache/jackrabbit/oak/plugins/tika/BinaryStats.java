@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
@@ -25,13 +24,13 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
+import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
@@ -69,7 +68,7 @@ class BinaryStats {
     }
 
     private List<MimeTypeStats> collectStats(BinaryResourceProvider provider) throws IOException {
-        Map<String, MimeTypeStats> stats = Maps.newHashMap();
+        Map<String, MimeTypeStats> stats = new HashMap<>();
         for (BinaryResource binary : provider.getBinaries("/")) {
             String mimeType = binary.getMimeType();
             if (mimeType != null) {
@@ -120,7 +119,7 @@ class BinaryStats {
                 center("Size", 10);
 
         pw.println(header);
-        pw.println(Strings.repeat("_", header.length() + 5));
+        pw.println("_".repeat(header.length() + 5));
 
         for (MimeTypeStats s : stats) {
             pw.printf("%-" + maxWidth + "s|%10s|%10s|  %-8d|%10s%n",
@@ -133,7 +132,7 @@ class BinaryStats {
         return sw.toString();
     }
 
-    private MimeTypeStats createStat(String mimeType) {
+    MimeTypeStats createStat(String mimeType) {
         MimeTypeStats stats = new MimeTypeStats(mimeType);
         stats.setIndexed(tika.isIndexed(mimeType));
         stats.setSupported(tika.isSupportedMediaType(mimeType));
@@ -144,7 +143,7 @@ class BinaryStats {
         return StringGroovyMethods.center(s, width);
     }
 
-    private static class MimeTypeStats implements Comparable<MimeTypeStats> {
+    static class MimeTypeStats implements Comparable<MimeTypeStats> {
         private final String mimeType;
         private int count;
         private long totalSize;
@@ -189,11 +188,11 @@ class BinaryStats {
         }
 
         @Override
-        public int compareTo(MimeTypeStats o) {
-            return ComparisonChain.start()
-                    .compareFalseFirst(indexed, o.indexed)
-                    .compare(totalSize, o.totalSize)
-                    .result();
+        public int compareTo(@NotNull MimeTypeStats o) {
+            return Comparator
+                    .comparing(MimeTypeStats::isIndexed)  // false comes before true by default
+                    .thenComparingLong(MimeTypeStats::getTotalSize)        // then compare by totalSize
+                    .compare(this, o);
         }
     }
 }

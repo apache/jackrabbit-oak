@@ -16,33 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
@@ -51,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,10 +84,10 @@ public class TarReader implements Closeable {
      * @return An instance of {@link TarReader}.
      */
     static TarReader open(Map<Character, String> files, TarRecovery recovery, SegmentArchiveManager archiveManager) throws IOException {
-        SortedMap<Character, String> sorted = newTreeMap();
+        SortedMap<Character, String> sorted = new TreeMap<>();
         sorted.putAll(files);
 
-        List<String> list = newArrayList(sorted.values());
+        List<String> list = new ArrayList<>(sorted.values());
         Collections.reverse(list);
 
         TarReader reader = openFirstFileWithValidIndex(list, archiveManager);
@@ -95,7 +97,7 @@ public class TarReader implements Closeable {
 
         // no generation has a valid index, so recover as much as we can
         log.warn("Could not find a valid tar index in {}, recovering...", list);
-        LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
+        LinkedHashMap<UUID, byte[]> entries = new LinkedHashMap<>();
         for (String file : sorted.values()) {
             collectFileEntries(file, entries, true, archiveManager);
         }
@@ -126,7 +128,7 @@ public class TarReader implements Closeable {
             log.info("Could not find a valid tar index in {}, recovering read-only", archiveName);
             // collecting the entries (without touching the original file) and
             // writing them into an artificial tar file '.ro.bak'
-            LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
+            LinkedHashMap<UUID, byte[]> entries = new LinkedHashMap<>();
             collectFileEntries(archiveName, entries, false, segmentArchiveManager);
             String bakFile = findAvailGen(archiveName, ".ro.bak", segmentArchiveManager);
             generateTarFile(entries, bakFile, recovery, segmentArchiveManager);
@@ -177,10 +179,11 @@ public class TarReader implements Closeable {
         log.info("Regenerating tar file {}", file);
 
         try (TarWriter writer = new TarWriter(archiveManager, file)) {
+            Map<SegmentId, Segment> segmentMap = new HashMap<>(entries.size());
+
             for (Entry<UUID, byte[]> entry : entries.entrySet()) {
                 try {
                     recovery.recoverEntry(entry.getKey(), entry.getValue(), new EntryRecovery() {
-
                         @Override
                         public void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
                             writer.writeEntry(msb, lsb, data, offset, size, generation);
@@ -196,6 +199,18 @@ public class TarReader implements Closeable {
                             writer.addBinaryReference(generation, segmentId, reference);
                         }
 
+                        public Segment getSegment(SegmentId id) {
+                            return segmentMap.get(id);
+                        }
+
+                        public void addSegment(Segment segment) {
+                            segmentMap.put(segment.getSegmentId(), segment);
+                        }
+
+                        @Override
+                        public Map<SegmentId, Segment> getRecoveredSegments() {
+                            return segmentMap;
+                        }
                     });
                 } catch (IOException e) {
                     throw new IOException(String.format("Unable to recover entry %s for file %s", entry.getKey(), file), e);
@@ -244,7 +259,7 @@ public class TarReader implements Closeable {
                 SegmentArchiveReader reader = openStrategy.open(archiveManager, name);
                 if (reader != null) {
                     for (String other : archives) {
-                        if (other != name) {
+                        if (!Objects.equals(other, name)) {
                             log.info("Removing unused tar file {}", other);
                             archiveManager.delete(other);
                         }
@@ -264,8 +279,6 @@ public class TarReader implements Closeable {
     private final SegmentArchiveReader archive;
 
     private final Set<UUID> segmentUUIDs;
-
-    private volatile boolean hasGraph;
 
     private TarReader(SegmentArchiveManager archiveManager, SegmentArchiveReader archive) {
         this.archiveManager = archiveManager;
@@ -329,24 +342,6 @@ public class TarReader implements Closeable {
     }
 
     /**
-     * Read the references of an entry in this TAR file.
-     *
-     * @param id    The identifier of the entry.
-     * @param graph The content of the graph of this TAR file.
-     * @return The references of the provided TAR entry.
-     */
-    @NotNull
-    private static List<UUID> getReferences(UUID id, Map<UUID, List<UUID>> graph) {
-        List<UUID> references = graph.get(id);
-
-        if (references == null) {
-            return Collections.emptyList();
-        }
-
-        return references;
-    }
-
-    /**
      * Collect the references of those BLOBs that are reachable from the entries
      * in this TAR file.
      * <p>
@@ -365,13 +360,12 @@ public class TarReader implements Closeable {
      */
     void collectBlobReferences(@NotNull Consumer<String> collector, Predicate<GCGeneration> skipGeneration) {
         BinaryReferencesIndex references = getBinaryReferences();
-
         if (references == null) {
             return;
         }
 
         references.forEach((generation, full, compacted, segment, reference) -> {
-            if (skipGeneration.apply(newGCGeneration(generation, full, compacted))) {
+            if (skipGeneration.test(newGCGeneration(generation, full, compacted))) {
                 return;
             }
             collector.accept(reference);
@@ -412,12 +406,16 @@ public class TarReader implements Closeable {
      * @param context     An instance of {@link CleanupContext}.
      */
     void mark(Set<UUID> references, Set<UUID> reclaimable, CleanupContext context) throws IOException {
-        Map<UUID, List<UUID>> graph = getGraph();
+        if (archiveManager.isReadOnly(this.getFileName())) {
+            return;
+        }
+
+        SegmentGraph graph = getGraph();
         SegmentArchiveEntry[] entries = getEntries();
         for (int i = entries.length - 1; i >= 0; i--) {
             // A bulk segments is *always* written before any data segment referencing it.
             // Backward iteration ensures we see all references to bulk segments before
-            // we see the bulk segment itself. Therefore we can remove a bulk reference
+            // we see the bulk segment itself. Therefore, we can remove a bulk reference
             // from the bulkRefs set once we encounter it, which save us some memory and
             // CPU on subsequent look-ups.
             SegmentArchiveEntry entry = entries[i];
@@ -426,7 +424,7 @@ public class TarReader implements Closeable {
             if (context.shouldReclaim(id, generation, references.remove(id))) {
                 reclaimable.add(id);
             } else {
-                for (UUID refId : getReferences(id, graph)) {
+                for (UUID refId : graph.getEdges(id)) {
                     if (context.shouldFollow(id, refId)) {
                         references.add(refId);
                     }
@@ -471,10 +469,14 @@ public class TarReader implements Closeable {
      * TarReader}, or {@code null}.
      */
     TarReader sweep(@NotNull Set<UUID> reclaim, @NotNull Set<UUID> reclaimed) throws IOException {
+        if (archiveManager.isReadOnly(this.getFileName())) {
+            return this;
+        }
+
         String name = archive.getName();
         log.debug("Cleaning up {}", name);
 
-        Set<UUID> cleaned = newHashSet();
+        Set<UUID> cleaned = new HashSet<>();
         int afterSize = 0;
         int beforeSize = 0;
         int afterCount = 0;
@@ -497,17 +499,11 @@ public class TarReader implements Closeable {
             log.debug("None of the entries of {} are referenceable.", name);
             return null;
         }
-        if (afterSize >= beforeSize * 3 / 4 && hasGraph()) {
-            // the space savings are not worth it at less than 25%,
-            // unless this tar file lacks a pre-compiled segment graph
-            // in which case we'll always generate a new tar file with
-            // the graph to speed up future garbage collection runs.
+        if (afterSize >= beforeSize * 3 / 4) {
+            // the space savings are not worth it at less than 25%
             log.debug("Not enough space savings. ({}/{}). Skipping clean up of {}",
                     archive.length() - afterSize, archive.length(), name);
             return this;
-        }
-        if (!hasGraph()) {
-            log.warn("Recovering {}, which is missing its graph.", name);
         }
 
         int pos = name.length() - "a.tar".length();
@@ -534,33 +530,20 @@ public class TarReader implements Closeable {
         }
 
         // Reconstruct the graph index for non-cleaned segments.
-
-        Map<UUID, List<UUID>> graph = getGraph();
-
-        for (Entry<UUID, List<UUID>> e : graph.entrySet()) {
-            if (cleaned.contains(e.getKey())) {
-                continue;
-            }
-
-            Set<UUID> vertices = newHashSet();
-
-            for (UUID vertex : e.getValue()) {
-                if (cleaned.contains(vertex)) {
-                    continue;
+        SegmentGraph graph = getGraph();
+        for (Entry<UUID, Set<UUID>> e : graph.getEdges().entrySet()) {
+            UUID from = e.getKey();
+            if (!cleaned.contains(from)) {
+                for (UUID to : e.getValue()) {
+                    if (!cleaned.contains(to)) {
+                        writer.addGraphEdge(from, to);
+                    }
                 }
-
-                vertices.add(vertex);
-            }
-
-            for (UUID vertex : vertices) {
-                writer.addGraphEdge(e.getKey(), vertex);
             }
         }
 
         // Reconstruct the binary reference index for non-cleaned segments.
-
         BinaryReferencesIndex references = getBinaryReferences();
-
         if (references != null) {
             references.forEach((gen, full, compacted, id, reference) -> {
                 if (cleaned.contains(id)) {
@@ -588,22 +571,12 @@ public class TarReader implements Closeable {
     }
 
     /**
-     * Loads and parses the optional pre-compiled graph entry from the given tar
-     * file.
+     * Loads and parses the pre-compiled graph entry from the tar file if it exists, computes it otherwise.
      *
-     * @return The parsed graph, or {@code null} if one was not found.
+     * @return A {@link SegmentGraph} instance
      */
-    Map<UUID, List<UUID>> getGraph() throws IOException {
-        Buffer buffer = archive.getGraph();
-        if (buffer == null) {
-            return null;
-        } else {
-            return GraphLoader.parseGraph(buffer);
-        }
-    }
-
-    private boolean hasGraph() {
-        return archive.hasGraph();
+    @NotNull SegmentGraph getGraph() throws IOException {
+        return archive.getGraph();
     }
 
     /**
@@ -617,23 +590,20 @@ public class TarReader implements Closeable {
      *
      * @return An instance of {@link Map}.
      */
-    BinaryReferencesIndex getBinaryReferences() {
-        BinaryReferencesIndex index = null;
+    @Nullable BinaryReferencesIndex getBinaryReferences() {
         try {
-
             Buffer binaryReferences = archive.getBinaryReferences();
-            if (binaryReferences == null && archive.isRemote()) {
-
+            if (binaryReferences == null) {
                 // This can happen because segment files and binary references files are flushed one after another in
                 // {@link TarWriter#flush}
-                log.info("The remote archive directory {} still does not have file with binary references written.", archive.getName());
+                log.info("The archive directory {} still does not have file with binary references written.", archive.getName());
                 return null;
             }
-            index = BinaryReferencesIndexLoader.parseBinaryReferencesIndex(binaryReferences);
+            return BinaryReferencesIndexLoader.parseBinaryReferencesIndex(binaryReferences);
         } catch (InvalidBinaryReferencesIndexException | IOException e) {
             log.warn("Exception while loading binary reference", e);
+            return null;
         }
-        return index;
     }
 
     /**

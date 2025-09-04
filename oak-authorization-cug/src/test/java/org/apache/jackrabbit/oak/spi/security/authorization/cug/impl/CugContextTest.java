@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.util.List;
+import java.util.Set;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -41,7 +40,7 @@ import static org.junit.Assert.assertTrue;
 public class CugContextTest extends AbstractCugTest implements NodeTypeConstants {
 
     private static String CUG_PATH = "/content/a/rep:cugPolicy";
-    private static List<String> NO_CUG_PATH = ImmutableList.of(
+    private static List<String> NO_CUG_PATH = List.of(
             "/content",
             "/content/a",
             "/content/rep:policy",
@@ -116,7 +115,7 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
         assertTrue(CugContext.INSTANCE.definesLocation(TreeLocation.create(root, CUG_PATH)));
         assertTrue(CugContext.INSTANCE.definesLocation(TreeLocation.create(root, CUG_PATH + "/" + CugConstants.REP_PRINCIPAL_NAMES)));
 
-        List<String> existingNoCug = ImmutableList.of(
+        List<String> existingNoCug = List.of(
                 "/content",
                 "/content/a",
                 "/content/rep:policy"
@@ -126,7 +125,7 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
             assertFalse(path, CugContext.INSTANCE.definesLocation(TreeLocation.create(root, path + "/" + CugConstants.REP_PRINCIPAL_NAMES)));
         }
 
-        List<String> nonExistingCug = ImmutableList.of(
+        List<String> nonExistingCug = List.of(
                 "/content/rep:cugPolicy",
                 UNSUPPORTED_PATH + "/rep:cugPolicy");
         for (String path : nonExistingCug) {
@@ -138,7 +137,7 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
 
     @Test
     public void testInvalidCug() throws Exception {
-        PropertyState ps = PropertyStates.createProperty(CugConstants.REP_PRINCIPAL_NAMES, ImmutableSet.of(getTestUser().getPrincipal().getName()), Type.STRINGS);
+        PropertyState ps = PropertyStates.createProperty(CugConstants.REP_PRINCIPAL_NAMES, Set.of(getTestUser().getPrincipal().getName()), Type.STRINGS);
 
         // cug at unsupported path -> context doesn't take supported paths into account.
         Tree invalidCug = TreeUtil.addChild(root.getTree(UNSUPPORTED_PATH), CugConstants.REP_CUG_POLICY, CugConstants.NT_REP_CUG_POLICY);

@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -34,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits.BUILT_IN;
 import static org.junit.Assert.assertEquals;
@@ -339,7 +338,7 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testAddModifiableToUnmodifiable() {
-        PrivilegeBits pb = PrivilegeBits.getInstance(PropertyStates.createProperty("any", Longs.asList(1, 16, 512), Type.LONGS));
+        PrivilegeBits pb = PrivilegeBits.getInstance(PropertyStates.createProperty("any", List.of(1L, 16L, 512L), Type.LONGS));
         pb.unmodifiable().add(READ_NODES_PRIVILEGE_BITS.modifiable());
     }
 
@@ -709,7 +708,7 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
 
     @Test
     public void testGetInstanceFromMvPropertyState() {
-        PropertyState property = PropertyStates.createProperty("name", ImmutableSet.of(Long.MAX_VALUE, Long.MIN_VALUE / 2), Type.LONGS);
+        PropertyState property = PropertyStates.createProperty("name", Set.of(Long.MAX_VALUE, Long.MIN_VALUE / 2), Type.LONGS);
 
         PrivilegeBits pb = PrivilegeBits.getInstance(property);
 

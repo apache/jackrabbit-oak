@@ -43,11 +43,11 @@ public class IndexWriterUtils {
     private static final int INDEX_WRITER_MAX_MERGE = Integer.getInteger("oak.indexer.writerMaxMerges", 1);
     private static final int INDEX_WRITER_MAX_THREAD = Integer.getInteger("oak.indexer.writerMaxThreads", 1);
 
-    public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition, boolean remoteDir){
-        return getIndexWriterConfig(definition, remoteDir, new LuceneIndexWriterConfig());
+    public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition, boolean serialScheduler) {
+        return getIndexWriterConfig(definition, serialScheduler, new LuceneIndexWriterConfig());
     }
 
-    public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition, boolean remoteDir,
+    public static IndexWriterConfig getIndexWriterConfig(LuceneIndexDefinition definition, boolean serialScheduler,
                                                          LuceneIndexWriterConfig writerConfig) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
         Thread thread = Thread.currentThread();
@@ -71,7 +71,7 @@ public class IndexWriterUtils {
             }
             Analyzer analyzer = new PerFieldAnalyzerWrapper(definitionAnalyzer, analyzers);
             IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
-            if (remoteDir) {
+            if (serialScheduler) {
                 config.setMergeScheduler(new SerialMergeScheduler());
             } else {
                 ConcurrentMergeScheduler concurrentMergeScheduler = new ConcurrentMergeScheduler();

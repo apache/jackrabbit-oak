@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 final class PrivilegeContext implements Context, PrivilegeConstants {
 
     private static final Context INSTANCE = new PrivilegeContext();
@@ -49,7 +51,7 @@ final class PrivilegeContext implements Context, PrivilegeConstants {
 
     @Override
     public boolean definesTree(@NotNull Tree tree) {
-        return PRIVILEGE_NODETYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(tree));
+        return Objects.nonNull(TreeUtil.getPrimaryTypeName(tree)) && PRIVILEGE_NODETYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Override

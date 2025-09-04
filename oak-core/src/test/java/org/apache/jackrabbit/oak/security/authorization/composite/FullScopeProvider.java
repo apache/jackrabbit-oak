@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.Set;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -62,9 +61,9 @@ class FullScopeProvider extends AbstractAggrProvider implements PrivilegeConstan
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         if (tree == null) {
-            return ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT);
+            return Set.of(JCR_NAMESPACE_MANAGEMENT);
         } else {
-            return ImmutableSet.of(REP_READ_NODES);
+            return Set.of(REP_READ_NODES);
         }
     }
 

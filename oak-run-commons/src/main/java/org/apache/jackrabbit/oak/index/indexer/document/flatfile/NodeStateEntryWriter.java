@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -28,21 +26,17 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import java.io.IOException;
-import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class NodeStateEntryWriter {
+    private static final boolean SORTED_PROPERTIES = Boolean.getBoolean("oak.NodeStateEntryWriter.sort");
     private static final String OAK_CHILD_ORDER = ":childOrder";
-    private static final String DELIMITER = "|";
+    public static final String DELIMITER = "|";
+    public static final char DELIMITER_CHAR = '|';
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
-    private final Joiner pathJoiner = Joiner.on('/');
     private final boolean includeChildOrder;
 
     //TODO Possible optimizations
@@ -63,41 +57,36 @@ public class NodeStateEntryWriter {
     }
 
     public String toString(String path, String nodeStateAsJson) {
-        return path + DELIMITER + nodeStateAsJson;
-    }
-
-    public void writeTo(Writer writer, NodeStateEntry nse) throws IOException {
-        writeTo(writer, nse.getPath(), asJson(nse.getNodeState()));
-    }
-
-    public void writeTo(Writer writer, String path, String value) throws IOException {
-        writer.write(path);
-        writer.write(DELIMITER);
-        writer.write(value);
+        return path + DELIMITER_CHAR + nodeStateAsJson;
     }
 
     public String toString(List<String> pathElements, String nodeStateAsJson) {
         int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
         StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + pathStringSize + pathElements.size() + 1);
         sb.append('/');
-        pathJoiner.appendTo(sb, pathElements);
-        sb.append(DELIMITER).append(nodeStateAsJson);
+        sb.append(String.join("/", pathElements));
+        sb.append(DELIMITER_CHAR).append(nodeStateAsJson);
         return sb.toString();
     }
 
     public String asJson(NodeState nodeState) {
-        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false));
+        if (SORTED_PROPERTIES) {
+            return asSortedJson(nodeState);
+        }
+        return asJson(nodeState.getProperties());
     }
 
     String asSortedJson(NodeState nodeState) {
-        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false)
-                .sorted(Comparator.comparing(PropertyState::getName)));
+        List<PropertyState> properties = new ArrayList<>();
+        nodeState.getProperties().forEach(properties::add);
+        properties.sort(Comparator.comparing(PropertyState::getName));
+        return asJson(properties);
     }
 
-    private String asJson(Stream<? extends PropertyState> stream) {
+    private String asJson(Iterable<? extends PropertyState> properties) {
         jw.resetWriter();
         jw.object();
-        stream.forEach(ps -> {
+        properties.forEach(ps -> {
             String name = ps.getName();
             if (include(name)) {
                 jw.key(name);
@@ -124,8 +113,10 @@ public class NodeStateEntryWriter {
     }
 
     private static int getDelimiterPosition(String entryLine) {
-        int indexOfPipe = entryLine.indexOf(NodeStateEntryWriter.DELIMITER);
-        checkState(indexOfPipe > 0, "Invalid path entry [%s]", entryLine);
+        int indexOfPipe = entryLine.indexOf(NodeStateEntryWriter.DELIMITER_CHAR);
+        if (indexOfPipe <= 0) {
+            throw new IllegalStateException("Invalid path entry " + entryLine);
+        }
         return indexOfPipe;
     }
 }

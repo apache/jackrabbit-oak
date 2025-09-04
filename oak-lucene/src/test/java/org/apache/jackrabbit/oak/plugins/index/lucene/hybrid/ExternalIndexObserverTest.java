@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import org.apache.jackrabbit.guava.common.collect.HashMultimap;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
@@ -46,6 +44,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.Map;
 
 public class ExternalIndexObserverTest {
 
@@ -87,7 +87,7 @@ public class ExternalIndexObserverTest {
 
     @Test
     public void nonExistingIndexDefn() throws Exception {
-        Multimap<String, String> indexedPaths = HashMultimap.create();
+        MultiValuedMap<String, String> indexedPaths = new HashSetValuedHashMap<>();
         indexedPaths.put("/a", "/oak:index/foo");
 
         commitContext.set(LuceneDocumentHolder.NAME, new IndexedPaths(indexedPaths));
@@ -100,7 +100,7 @@ public class ExternalIndexObserverTest {
 
     @Test
     public void nonExistingPath() throws Exception {
-        Multimap<String, String> indexedPaths = HashMultimap.create();
+        MultiValuedMap<String, String> indexedPaths = new HashSetValuedHashMap<>();
         indexedPaths.put("/a", "/oak:index/foo");
 
         commitContext.set(LuceneDocumentHolder.NAME, new IndexedPaths(indexedPaths));
@@ -113,7 +113,7 @@ public class ExternalIndexObserverTest {
 
     @Test
     public void nonApplicableRule() throws Exception {
-        Multimap<String, String> indexedPaths = HashMultimap.create();
+        MultiValuedMap<String, String> indexedPaths = new HashSetValuedHashMap<>();
         indexedPaths.put("/a", "/oak:index/foo");
 
         commitContext.set(LuceneDocumentHolder.NAME, new IndexedPaths(indexedPaths));
@@ -131,7 +131,7 @@ public class ExternalIndexObserverTest {
 
     @Test
     public void ruleNotResultingInDoc() throws Exception {
-        Multimap<String, String> indexedPaths = HashMultimap.create();
+        MultiValuedMap<String, String> indexedPaths = new HashSetValuedHashMap<>();
         indexedPaths.put("/a", "/oak:index/foo");
 
         commitContext.set(LuceneDocumentHolder.NAME, new IndexedPaths(indexedPaths));
@@ -153,7 +153,7 @@ public class ExternalIndexObserverTest {
     }
 
     private void assertIndexing(Observer observer){
-        Multimap<String, String> indexedPaths = HashMultimap.create();
+        MultiValuedMap<String, String> indexedPaths = new HashSetValuedHashMap<>();
         indexedPaths.put("/a", "/oak:index/foo");
 
         commitContext.set(LuceneDocumentHolder.NAME, new IndexedPaths(indexedPaths));
@@ -190,7 +190,7 @@ public class ExternalIndexObserverTest {
 
     private CommitInfo newCommitInfo() {
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN,
-                ImmutableMap.<String, Object>of(CommitContext.NAME, commitContext), true);
+                Map.of(CommitContext.NAME, commitContext), true);
     }
 
     private static LuceneIndexDefinition createNRTIndex(String ruleName) {

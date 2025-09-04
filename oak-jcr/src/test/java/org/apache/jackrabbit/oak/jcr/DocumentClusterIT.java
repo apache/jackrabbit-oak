@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -80,7 +80,7 @@ public abstract class DocumentClusterIT {
     }
 
     protected void dispose(@NotNull Repository repo) {
-        AbstractRepositoryTest.dispose(checkNotNull(repo));
+        AbstractRepositoryTest.dispose(requireNonNull(repo));
     }
     
     @After
@@ -116,7 +116,6 @@ public abstract class DocumentClusterIT {
     /**
      * <p> 
      * ensures that the cluster is aligned by running all the background operations
-     * </p>
      *
      * @param mks the list of {@link DocumentMK} composing the cluster. Cannot be null.
      */
@@ -172,11 +171,11 @@ public abstract class DocumentClusterIT {
 
     static MongoConnection createConnection(@NotNull final Class<?> clazz) throws Exception {
         return OakMongoNSRepositoryStub.createConnection(
-                checkNotNull(clazz).getSimpleName());
+                requireNonNull(clazz).getSimpleName());
     }
 
     static void dropDB(@NotNull final Class<?> clazz) throws Exception {
-        MongoConnection con = createConnection(checkNotNull(clazz));
+        MongoConnection con = createConnection(requireNonNull(clazz));
         try {
             con.getDatabase().drop();
         } finally {
@@ -200,7 +199,7 @@ public abstract class DocumentClusterIT {
                                   final int clusterId,
                                   final int asyncDelay) throws Exception {
         DocumentMK.Builder builder = new DocumentMK.Builder();
-        MongoConnection c = createConnection(checkNotNull(clazz));
+        MongoConnection c = createConnection(requireNonNull(clazz));
         builder.setMongoDB(c.getMongoClient(), c.getDBName());
         if (asyncDelay != NOT_PROVIDED) {
             builder.setAsyncDelay(asyncDelay);
@@ -223,12 +222,12 @@ public abstract class DocumentClusterIT {
         
         Repository repository = j.createRepository();
         
-        checkNotNull(repos).add(repository);
-        checkNotNull(mks).add(mk);
+        requireNonNull(repos).add(repository);
+        requireNonNull(mks).add(mk);
     }
     
     protected Jcr getJcr(@NotNull NodeStore store) {
-        Jcr j = new Jcr(checkNotNull(store));
+        Jcr j = new Jcr(requireNonNull(store));
         if (store instanceof Clusterable) {
             j.with((Clusterable) store);
         }
@@ -240,11 +239,9 @@ public abstract class DocumentClusterIT {
      * the default {@link #initRepository(Class, List, List, int, int)} uses this for registering
      * any additional {@link IndexEditorProvider}. Override and return all the provider you'd like
      * to have running other than the OOTB one.
-     * </p>
-     * 
+     *
      * <p>
      * the default implementation returns {@code null}
-     * </p>
      * @return
      */
     protected Set<IndexEditorProvider> additionalIndexEditorProviders() {

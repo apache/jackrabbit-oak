@@ -24,13 +24,12 @@ import static org.junit.Assert.fail;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Tests the filtering iterators.
@@ -195,7 +194,7 @@ public class IteratorsTest {
 }
 
     private static <K> Iterator<K> it(K... x) {
-        return Collections.unmodifiableCollection(Lists.newArrayList(x)).iterator();
+        return Collections.unmodifiableCollection(List.of(x)).iterator();
     }
     
     private static <K> String toString(Iterator<K> it) {

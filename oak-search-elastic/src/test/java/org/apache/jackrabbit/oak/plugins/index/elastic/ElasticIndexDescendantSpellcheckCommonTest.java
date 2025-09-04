@@ -20,14 +20,15 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexDescendantSpellcheckCommonTest;
 import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import javax.jcr.Repository;
 
 public class ElasticIndexDescendantSpellcheckCommonTest extends IndexDescendantSpellcheckCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     @Override
     protected Repository createJcrRepository() {
@@ -38,4 +39,10 @@ public class ElasticIndexDescendantSpellcheckCommonTest extends IndexDescendantS
         return jcr.createRepository();
     }
 
+    @Override
+    @Test
+    @Ignore("OAK-10617: path restrictions are always applied. This test is not applicable for Elastic")
+    public void descendantSuggestionRequirePathRestrictionIndex() throws Exception {
+        super.descendantSuggestionRequirePathRestrictionIndex();
+    }
 }

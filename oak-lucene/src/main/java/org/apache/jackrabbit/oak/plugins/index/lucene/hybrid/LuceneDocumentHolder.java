@@ -16,31 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 public class LuceneDocumentHolder implements JournalProperty {
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentHolder.class);
     public static final String NAME = "luceneDocs";
 
-    private final ListMultimap<String, LuceneDoc> nrtIndexedList = ArrayListMultimap.create();
-    private final ListMultimap<String, LuceneDoc> syncIndexedList = ArrayListMultimap.create();
-    private final ListMultimap<String, String> queuedNrtIndexedPath = ArrayListMultimap.create();
-    private final ListMultimap<String, LuceneDoc> queuedSyncIndexedPath = ArrayListMultimap.create();
+    private final ListValuedMap<String, LuceneDoc> nrtIndexedList = new ArrayListValuedHashMap<>();
+    private final ListValuedMap<String, LuceneDoc> syncIndexedList = new ArrayListValuedHashMap<>();
+    private final ListValuedMap<String, String> queuedNrtIndexedPath = new ArrayListValuedHashMap<>();
+    private final ListValuedMap<String, LuceneDoc> queuedSyncIndexedPath = new ArrayListValuedHashMap<>();
     private final int inMemoryDocsLimit;
     private final IndexingQueue documentQueue;
     private boolean limitWarningLogged;
@@ -48,7 +46,7 @@ public class LuceneDocumentHolder implements JournalProperty {
     private boolean schedulingDone;
 
     public LuceneDocumentHolder(@NotNull IndexingQueue documentQueue, int inMemoryDocsLimit) {
-        this.documentQueue = checkNotNull(documentQueue);
+        this.documentQueue = requireNonNull(documentQueue);
         this.inMemoryDocsLimit = inMemoryDocsLimit;
     }
 
@@ -66,7 +64,7 @@ public class LuceneDocumentHolder implements JournalProperty {
     }
 
     public void add(boolean sync, LuceneDoc doc) {
-        doc = checkNotNull(doc);
+        doc = requireNonNull(doc);
         //First try adding to queue in non blocking manner
         if (documentQueue.addIfNotFullWithoutWait(doc)){
             if (sync){
@@ -100,7 +98,7 @@ public class LuceneDocumentHolder implements JournalProperty {
      * may be directly forwarded to the queue or held in memory for later processing
      */
     Iterable<? extends LuceneDocInfo> getAllLuceneDocInfo(){
-        return Iterables.concat(nrtIndexedList.values(), syncIndexedList.values(),
+        return IterableUtils.chainedIterable(nrtIndexedList.values(), syncIndexedList.values(),
                 asLuceneDocInfo(queuedNrtIndexedPath), queuedSyncIndexedPath.values());
     }
 
@@ -116,10 +114,8 @@ public class LuceneDocumentHolder implements JournalProperty {
         return true;
     }
 
-    private static Iterable<? extends LuceneDocInfo> asLuceneDocInfo(ListMultimap<String, String> docs) {
-        return Iterables.transform(docs.entries(), new Function<Map.Entry<String, String>, LuceneDocInfo>() {
-            @Override
-            public LuceneDocInfo apply(final Map.Entry<String, String> input) {
+    private static Iterable<? extends LuceneDocInfo> asLuceneDocInfo(ListValuedMap<String, String> docs) {
+        return IterableUtils.transform(docs.entries(), input -> {
                 return new LuceneDocInfo() {
                     @Override
                     public String getIndexPath() {
@@ -131,7 +127,6 @@ public class LuceneDocumentHolder implements JournalProperty {
                         return input.getValue();
                     }
                 };
-            }
-        });
+            });
     }
 }

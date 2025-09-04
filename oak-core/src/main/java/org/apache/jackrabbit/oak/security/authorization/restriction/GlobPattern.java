@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
+import java.util.Objects;
+
 import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -27,7 +28,7 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * {@code GlobPattern} defines a simplistic pattern matching. It consists
@@ -45,7 +46,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
  * /foo         |   null          |   matches /foo and all descendants of /foo
  * /foo         |   ""            |   matches /foo only (no descendants, not even properties)
  * </pre>
- * </p>
  *
  * <p>
  * Examples without wildcard char:
@@ -58,7 +58,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
  * cat           |   '/foocat' and all it's descendants
  * cat/          |   all descendants of '/foocat'
  * </pre>
- * </p>
  *
  * <p>
  * Examples including wildcard char:
@@ -77,7 +76,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
  * &#42;cat/&#42;    |   all siblings and descendants of foo that have an intermediate segment ending with 'cat'
  * /&#42;cat/&#42;   |   all descendants of /foo that have an intermediate segment ending with 'cat'
  * </pre>
- * </p>
  */
 final class GlobPattern implements RestrictionPattern {
 
@@ -90,7 +88,7 @@ final class GlobPattern implements RestrictionPattern {
     private final Pattern pattern;
 
     private GlobPattern(@NotNull String path, @NotNull String restriction)  {
-        this.path = checkNotNull(path);
+        this.path = requireNonNull(path);
         this.restriction = restriction;
 
         if (!restriction.isEmpty()) {
@@ -151,7 +149,7 @@ final class GlobPattern implements RestrictionPattern {
     //-------------------------------------------------------------< Object >---
     @Override
     public int hashCode() {
-        return Objects.hashCode(path, restriction);
+        return Objects.hash(path, restriction);
     }
 
     @Override

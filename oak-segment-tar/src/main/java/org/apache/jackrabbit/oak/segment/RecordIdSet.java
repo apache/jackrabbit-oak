@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static java.lang.System.arraycopy;
 import static java.util.Arrays.binarySearch;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -32,7 +31,7 @@ import java.util.Map;
  * it contains.
  */
 public class RecordIdSet {
-    private final Map<String, IntSet> seenIds = newHashMap();
+    private final Map<String, IntSet> seenIds = new HashMap<>();
 
     /**
      * Add {@code id} to this set if not already present

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -38,8 +38,8 @@ abstract class AbstractTypeDefinition {
     protected final NamePathMapper mapper;
 
     protected AbstractTypeDefinition(Tree definition, NamePathMapper mapper) {
-        this.definition = checkNotNull(definition);
-        this.mapper = checkNotNull(mapper);
+        this.definition = requireNonNull(definition);
+        this.mapper = requireNonNull(mapper);
     }
 
     /**
@@ -49,7 +49,7 @@ abstract class AbstractTypeDefinition {
      * @return property value, or {@code false} if the property does not exist
      */
     protected boolean getBoolean(@NotNull String name) {
-        PropertyState property = definition.getProperty(checkNotNull(name));
+        PropertyState property = definition.getProperty(requireNonNull(name));
         return property != null && property.getValue(Type.BOOLEAN);
     }
 
@@ -97,7 +97,7 @@ abstract class AbstractTypeDefinition {
     }
 
     private String getValue(String oakName, Type<String> type) {
-        PropertyState property = definition.getProperty(checkNotNull(oakName));
+        PropertyState property = definition.getProperty(requireNonNull(oakName));
         if (property != null) {
             return property.getValue(type);
         } else {
@@ -108,7 +108,7 @@ abstract class AbstractTypeDefinition {
     private String[] getValues(String oakName, Type<String> type) {
         String[] values = null;
 
-        PropertyState property = definition.getProperty(checkNotNull(oakName));
+        PropertyState property = definition.getProperty(requireNonNull(oakName));
         if (property != null) {
             int n = property.count();
             if (n > 0) {

@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.ByteArrayInputStream;
@@ -29,24 +28,32 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -88,18 +95,12 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
-import com.amazonaws.util.StringUtils;
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Strings;
+
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.lang.Thread.currentThread;
 
 /**
@@ -173,13 +174,13 @@ public class S3Backend extends AbstractSharedBackend {
             if (bucket == null || "".equals(bucket.trim())) {
                 bucket = properties.getProperty(S3Constants.S3_BUCKET);
                 // Alternately check if the 'container' property is set
-                if (Strings.isNullOrEmpty(bucket)) {
+                if (StringUtils.isEmpty(bucket)) {
                     bucket = properties.getProperty(S3Constants.S3_CONTAINER);
                 }
             }
             String region = properties.getProperty(S3Constants.S3_REGION);
             
-            if (StringUtils.isNullOrEmpty(region)) {
+            if (StringUtils.isEmpty(region)) {
                 com.amazonaws.regions.Region ec2Region = Regions.getCurrentRegion();
                 if (ec2Region != null) {
                     region = ec2Region.getName();
@@ -239,22 +240,18 @@ public class S3Backend extends AbstractSharedBackend {
 
             presignedDownloadURIVerifyExists =
                     PropertiesUtil.toBoolean(properties.get(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), true);
-            
+
             // Initialize reference key secret
             getOrCreateReferenceKey();
-            
+
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
             LOG.error("Error ", e);
-            Map<String, Object> filteredMap = Maps.newHashMap();
+            Map<String, Object> filteredMap = new HashMap<>();
             if (properties != null) {
-                filteredMap = Maps.filterKeys(Utils.asMap(properties), new Predicate<String>() {
-                    @Override public boolean apply(String input) {
-                        return !input.equals(S3Constants.ACCESS_KEY) &&
-                            !input.equals(S3Constants.SECRET_KEY);
-                    }
-                });
+                filteredMap = MapUtils.filterKeys(Utils.asMap(properties),
+                        input -> !input.equals(S3Constants.ACCESS_KEY) &&!input.equals(S3Constants.SECRET_KEY));
             }
             throw new DataStoreException("Could not initialize S3 from " + filteredMap, e);
         } finally {
@@ -346,7 +343,10 @@ public class S3Backend extends AbstractSharedBackend {
                     objectMetaData.getLastModified().getTime());
                 CopyObjectRequest copReq = new CopyObjectRequest(bucket, key,
                     bucket, key);
-                copReq.setNewObjectMetadata(objectMetaData);
+                LOG.warn("Object MetaData before copy: {}", objectMetaData.getRawMetadata());
+                if (Objects.equals(RemoteStorageMode.S3, properties.get(S3Constants.MODE))) {
+                    copReq.setNewObjectMetadata(objectMetaData);
+                }
                 Copy copy = tmx.copy(s3ReqDecorator.decorate(copReq));
                 try {
                     copy.waitForCopyResult();
@@ -441,13 +441,7 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers()
             throws DataStoreException {
-        return new RecordsIterator<DataIdentifier>(
-            new Function<S3ObjectSummary, DataIdentifier>() {
-                @Override
-                public DataIdentifier apply(S3ObjectSummary input) {
-                    return new DataIdentifier(getIdentifierName(input.getKey()));
-                }
-        });
+        return new RecordsIterator<DataIdentifier>(input -> new DataIdentifier(getIdentifierName(input.getKey())));
     }
 
     @Override
@@ -499,12 +493,26 @@ public class S3Backend extends AbstractSharedBackend {
      */
     public void setProperties(Properties properties) {
         this.properties = properties;
+        setRemoteStorageMode();
+    }
+
+    private void setRemoteStorageMode() {
+        String s3EndPoint = properties.getProperty(S3Constants.S3_END_POINT, "");
+        if (s3EndPoint.contains("googleapis")) {
+            if (properties.get(S3Constants.MODE) == RemoteStorageMode.S3) {
+                LOG.warn("Mismatch between remote storage mode and s3EndPoint, overriding mode to GCP");
+            }
+            properties.put(S3Constants.MODE, RemoteStorageMode.GCP);
+            return;
+        }
+        // default mode is S3
+        properties.put(S3Constants.MODE, RemoteStorageMode.S3);
     }
 
     @Override
     public void addMetadataRecord(final InputStream input, final String name) throws DataStoreException {
         checkArgument(input != null, "input should not be null");
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
@@ -527,7 +535,7 @@ public class S3Backend extends AbstractSharedBackend {
     @Override
     public void addMetadataRecord(File input, String name) throws DataStoreException {
         checkArgument(input != null, "input should not be null");
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -548,7 +556,7 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public DataRecord getMetadataRecord(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -595,7 +603,7 @@ public class S3Backend extends AbstractSharedBackend {
 
     @Override
     public boolean deleteMetadataRecord(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
@@ -623,13 +631,21 @@ public class S3Backend extends AbstractSharedBackend {
                 new ListObjectsRequest().withBucketName(bucket).withPrefix(addMetaKeyPrefix(prefix));
             ObjectListing metaList = s3service.listObjects(listObjectsRequest);
             List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+            List<String> keysToDelete = new ArrayList<>();
             for (S3ObjectSummary s3ObjSumm : metaList.getObjectSummaries()) {
                 deleteList.add(new DeleteObjectsRequest.KeyVersion(s3ObjSumm.getKey()));
+                keysToDelete.add(s3ObjSumm.getKey());
             }
-            if (deleteList.size() > 0) {
-                DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
-                delObjsReq.setKeys(deleteList);
-                s3service.deleteObjects(delObjsReq);
+            if (!deleteList.isEmpty()) {
+                RemoteStorageMode mode = (RemoteStorageMode) properties.getOrDefault(S3Constants.MODE, RemoteStorageMode.S3);
+                if (mode == RemoteStorageMode.S3) {
+                    DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(bucket);
+                    delObjsReq.setKeys(deleteList);
+                    s3service.deleteObjects(delObjsReq);
+                } else {
+                    // GCP does not support bulk delete operations, hence we need to delete each object individually
+                    keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
+                }
             }
         } finally {
             if (contextClassLoader != null) {
@@ -642,14 +658,8 @@ public class S3Backend extends AbstractSharedBackend {
     public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
         return new RecordsIterator<DataRecord>(
-            new Function<S3ObjectSummary, DataRecord>() {
-                @Override
-                public DataRecord apply(S3ObjectSummary input) {
-                    return new S3DataRecord(backend, s3service, bucket,
-                        new DataIdentifier(getIdentifierName(input.getKey())),
-                        input.getLastModified().getTime(), input.getSize(), s3ReqDecorator);
-                }
-            });
+                input -> new S3DataRecord(backend, s3service, bucket, new DataIdentifier(getIdentifierName(input.getKey())),
+                        input.getLastModified().getTime(), input.getSize(), s3ReqDecorator));
     }
 
     @Override
@@ -800,20 +810,20 @@ public class S3Backend extends AbstractSharedBackend {
                 }
             }
 
-            Map<String, String> requestParams = Maps.newHashMap();
+            Map<String, String> requestParams = new HashMap<>();
             requestParams.put("response-cache-control",
                     String.format("private, max-age=%d, immutable",
                             httpDownloadURIExpirySeconds)
             );
 
             String contentType = downloadOptions.getContentTypeHeader();
-            if (! Strings.isNullOrEmpty(contentType)) {
+            if (! StringUtils.isEmpty(contentType)) {
                 requestParams.put("response-content-type", contentType);
             }
             String contentDisposition =
                     downloadOptions.getContentDispositionHeader();
 
-            if (! Strings.isNullOrEmpty(contentDisposition)) {
+            if (! StringUtils.isEmpty(contentDisposition)) {
                 requestParams.put("response-content-disposition",
                         contentDisposition);
             }
@@ -830,7 +840,7 @@ public class S3Backend extends AbstractSharedBackend {
     }
 
     DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) {
-        List<URI> uploadPartURIs = Lists.newArrayList();
+        List<URI> uploadPartURIs = new ArrayList<>();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
 
@@ -897,7 +907,7 @@ public class S3Backend extends AbstractSharedBackend {
                     numParts = Math.min(maximalNumParts, MAX_ALLOWABLE_UPLOAD_URIS);
                 }
 
-                Map<String, String> presignedURIRequestParams = Maps.newHashMap();
+                Map<String, String> presignedURIRequestParams = new HashMap<>();
                 for (long blockId = 1; blockId <= numParts; ++blockId) {
                     presignedURIRequestParams.put("partNumber", String.valueOf(blockId));
                     presignedURIRequestParams.put("uploadId", uploadId);
@@ -946,7 +956,7 @@ public class S3Backend extends AbstractSharedBackend {
     DataRecord completeHttpUpload(@NotNull String uploadTokenStr)
             throws DataRecordUploadException, DataStoreException {
 
-        if (Strings.isNullOrEmpty(uploadTokenStr)) {
+        if (StringUtils.isEmpty(uploadTokenStr)) {
             throw new IllegalArgumentException("uploadToken required");
         }
 
@@ -968,7 +978,7 @@ public class S3Backend extends AbstractSharedBackend {
                 String uploadId = uploadToken.getUploadId().get();
                 ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, key, uploadId);
                 PartListing listing = s3service.listParts(listPartsRequest);
-                List<PartETag> eTags = Lists.newArrayList();
+                List<PartETag> eTags = new ArrayList<>();
                 long size = 0L;
                 Date lastModified = null;
                 for (PartSummary partSummary : listing.getParts()) {
@@ -1015,7 +1025,7 @@ public class S3Backend extends AbstractSharedBackend {
     private URI createPresignedURI(DataIdentifier identifier,
                                    HttpMethod method,
                                    int expirySeconds) {
-        return createPresignedURI(identifier, method, expirySeconds, Maps.newHashMap());
+        return createPresignedURI(identifier, method, expirySeconds, new HashMap<>());
     }
 
     private URI createPresignedURI(DataIdentifier identifier,
@@ -1072,7 +1082,7 @@ public class S3Backend extends AbstractSharedBackend {
         Function<S3ObjectSummary, T> transformer;
 
         public RecordsIterator (Function<S3ObjectSummary, T> transformer) {
-            queue = Lists.newLinkedList();
+            queue = new LinkedList<>();
             this.transformer = transformer;
         }
 
@@ -1115,14 +1125,9 @@ public class S3Backend extends AbstractSharedBackend {
                     return false;
                 }
 
-                List<S3ObjectSummary> listing = Lists.newArrayList(
-                    filter(prevObjectListing.getObjectSummaries(),
-                        new Predicate<S3ObjectSummary>() {
-                            @Override
-                            public boolean apply(S3ObjectSummary input) {
-                                return !input.getKey().startsWith(META_KEY_PREFIX);
-                            }
-                        }));
+                List<S3ObjectSummary> listing = ListUtils.toList(
+                        IterableUtils.filter(prevObjectListing.getObjectSummaries(),
+                            input -> !input.getKey().startsWith(META_KEY_PREFIX)));
 
                 // After filtering no elements
                 if (listing.isEmpty()) {
@@ -1238,6 +1243,7 @@ public class S3Backend extends AbstractSharedBackend {
                 getClass().getClassLoader());
             ObjectListing prevObjectListing = s3service.listObjects(bucket);
             List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
+            List<String> keysToDelete = new ArrayList<>();
             int nThreads = Integer.parseInt(properties.getProperty("maxConnections"));
             ExecutorService executor = Executors.newFixedThreadPool(nThreads,
                 new NamedThreadFactory("s3-object-rename-worker"));
@@ -1251,6 +1257,7 @@ public class S3Backend extends AbstractSharedBackend {
                     if( s3ObjSumm.getKey().startsWith(KEY_PREFIX)) {
                         deleteList.add(new DeleteObjectsRequest.KeyVersion(
                             s3ObjSumm.getKey()));
+                        keysToDelete.add(s3ObjSumm.getKey());
                     }
                 }
                 if (!prevObjectListing.isTruncated()) break;
@@ -1272,25 +1279,30 @@ public class S3Backend extends AbstractSharedBackend {
             LOG.info("Renamed [{}] keys, time taken [{}]sec", count,
                 ((System.currentTimeMillis() - startTime) / 1000));
             // Delete older keys.
-            if (deleteList.size() > 0) {
-                DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(
-                    bucket);
-                int batchSize = 500, startIndex = 0, size = deleteList.size();
-                int endIndex = batchSize < size ? batchSize : size;
-                while (endIndex <= size) {
-                    delObjsReq.setKeys(Collections.unmodifiableList(deleteList.subList(
-                        startIndex, endIndex)));
-                    DeleteObjectsResult dobjs = s3service.deleteObjects(delObjsReq);
-                    LOG.info("Records[{}] deleted in datastore from index [{}] to [{}]",
-                        dobjs.getDeletedObjects().size(), startIndex, (endIndex - 1));
-                    if (endIndex == size) {
-                        break;
-                    } else {
-                        startIndex = endIndex;
-                        endIndex = (startIndex + batchSize) < size
-                                ? (startIndex + batchSize)
-                                : size;
+            if (!deleteList.isEmpty()) {
+                RemoteStorageMode mode = (RemoteStorageMode) properties.getOrDefault(S3Constants.MODE, RemoteStorageMode.S3);
+                if (mode == RemoteStorageMode.S3) {
+                    DeleteObjectsRequest delObjsReq = new DeleteObjectsRequest(
+                            bucket);
+                    int batchSize = 500, startIndex = 0, size = deleteList.size();
+                    int endIndex = Math.min(batchSize, size);
+                    while (endIndex <= size) {
+                        delObjsReq.setKeys(Collections.unmodifiableList(deleteList.subList(
+                                startIndex, endIndex)));
+                        DeleteObjectsResult dobjs = s3service.deleteObjects(delObjsReq);
+                        LOG.info("Records[{}] deleted in datastore from index [{}] to [{}]",
+                                dobjs.getDeletedObjects().size(), startIndex, (endIndex - 1));
+                        if (endIndex == size) {
+                            break;
+                        } else {
+                            startIndex = endIndex;
+                            endIndex = Math.min((startIndex + batchSize), size);
+                        }
                     }
+                } else {
+                    long keysDeleteStartTime = System.currentTimeMillis();
+                    keysToDelete.forEach(key -> s3service.deleteObject(bucket, key));
+                    LOG.debug("Delete operation for rename keys from gcp took: {} seconds", ((System.currentTimeMillis() - keysDeleteStartTime) / 1000));
                 }
             }
         } finally {
@@ -1369,5 +1381,13 @@ public class S3Backend extends AbstractSharedBackend {
         public KeyRenameThread(String oldKey) {
             this.oldKey = oldKey;
         }
+    }
+
+    /**
+     * Enum to indicate remote storage mode
+     */
+    enum RemoteStorageMode {
+        S3,
+        GCP
     }
 }

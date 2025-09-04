@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
@@ -144,16 +142,15 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * The following steps are required to install this authorization model in an OSGi based Oak setup.
  *
  * <ul>
- *     <li>Upload the oak-exercise bundle</li>
- *     <li>Edit configuration of 'ReadOnlyAuthorizationConfiguration' specifying the mandatory ranking property</li>
+ *     <li>Upload the oak-exercise bundle
+ *     <li>Edit configuration of 'ReadOnlyAuthorizationConfiguration' specifying the mandatory ranking property
  *     <li>Edit configuration of {@link org.apache.jackrabbit.oak.security.internal.SecurityProviderRegistration}
  *     <ul>
  *         <li>add {@code org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly.ReadOnlyAuthorizationConfiguration}
- *             to the list of required service IDs</li>
- *         <li>make sure the 'Authorization Composition Type' is set to AND</li>
+ *             to the list of required service IDs
+ *         <li>make sure the 'Authorization Composition Type' is set to AND
  *     </ul>
- *     </li>
- *     <li>Wait for the {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider} to be successfully registered again.</li>
+ *     <li>Wait for the {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider} to be successfully registered again.
  * </ul>
  *
  */
@@ -172,7 +169,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
     }
 
     private static final long READ_PERMISSIONS = Permissions.READ | Permissions.READ_ACCESS_CONTROL;
-    private static final Set<String> READ_PRIVILEGE_NAMES = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
+    private static final Set<String> READ_PRIVILEGE_NAMES = Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
 
     @NotNull
     @Override
@@ -283,7 +280,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
                 @Override
                 public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-                    Set<String> privs = Sets.newHashSet(privilegeNames);
+                    Set<String> privs = SetUtils.toSet(privilegeNames);
                     privs.removeAll(READ_PRIVILEGE_NAMES);
 
                     return privs.isEmpty();
@@ -345,25 +342,25 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
     @NotNull
     @Override
     public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
-        return ImmutableList.of();
+        return List.of();
     }
 
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of();
+        return List.of();
     }
 
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
-        return ImmutableList.of();
+        return List.of();
     }
 
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return ImmutableList.of();
+        return List.of();
     }
 
     @NotNull

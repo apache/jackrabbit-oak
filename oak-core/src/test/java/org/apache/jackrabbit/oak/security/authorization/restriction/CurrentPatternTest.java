@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -32,6 +30,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 import static org.junit.Assert.assertEquals;
@@ -148,7 +147,7 @@ public class CurrentPatternTest {
 
     @Test
     public void testMatchesPath() {
-        List<String[]> propNames = ImmutableList.of(new String[0], new String[]{RESIDUAL_NAME}, new String[] {PROP_NAME});
+        List<String[]> propNames = List.of(new String[0], new String[]{RESIDUAL_NAME}, new String[] {PROP_NAME});
         for (String[] pn : propNames) {
             RestrictionPattern rp = createPattern(pn);
             assertTrue(rp.matches(TEST_PATH));
@@ -172,7 +171,7 @@ public class CurrentPatternTest {
         }
         
         // pattern with * or all propnames will match
-        List<String[]> propNames = ImmutableList.of(new String[]{RESIDUAL_NAME}, knownPropertyNames);
+        List<String[]> propNames = List.of(new String[]{RESIDUAL_NAME}, knownPropertyNames);
         for (String[] names : propNames) {
             rp = createPattern(names);
             for (String pn : knownPropertyNames) {
@@ -205,7 +204,7 @@ public class CurrentPatternTest {
         }
 
         // pattern with * or all node-names will NOT match because they point to items that are known to be nodes
-        List<String[]> propNames = ImmutableList.of(new String[]{RESIDUAL_NAME}, knownNodeNames);
+        List<String[]> propNames = List.of(new String[]{RESIDUAL_NAME}, knownNodeNames);
         for (String[] names : propNames) {
             rp = createPattern(names);
             for (String pn : knownNodeNames) {
@@ -290,7 +289,7 @@ public class CurrentPatternTest {
         assertNotEquals(rp, createPattern());
         assertNotEquals(rp, createPattern(PROP_NAME));
         // different restrictions
-        assertNotEquals(rp, new ItemNamePattern(ImmutableSet.of("a", "b")));
-        assertNotEquals(rp, new PrefixPattern(ImmutableSet.of("a", "b", "c")));
+        assertNotEquals(rp, new ItemNamePattern(Set.of("a", "b")));
+        assertNotEquals(rp, new PrefixPattern(Set.of("a", "b", "c")));
     }
 }

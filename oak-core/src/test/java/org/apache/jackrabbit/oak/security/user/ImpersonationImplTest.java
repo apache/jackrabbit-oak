@@ -18,21 +18,21 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
@@ -74,7 +74,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
     public void testGetImpersonators() throws Exception {
         PrincipalIterator it = impersonation.getImpersonators();
         assertTrue(it.hasNext());
-        assertTrue(Iterators.contains(it, impersonator.getPrincipal()));
+        assertTrue(IteratorUtils.contains(it, impersonator.getPrincipal()));
     }
 
     @Test
@@ -84,7 +84,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
 
         PrincipalIterator it = impersonation.getImpersonators();
         assertTrue(it.hasNext());
-        assertTrue(Iterators.contains(it, p));
+        assertTrue(IteratorUtils.contains(it, p));
     }
 
     @Test
@@ -93,7 +93,7 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
 
         PropertyState property = tree.getProperty(UserConstants.REP_IMPERSONATORS);
         assertNotNull(property);
-        assertEquals(ImmutableList.of(impersonator.getPrincipal().getName()), property.getValue(Type.STRINGS));
+        assertEquals(List.of(impersonator.getPrincipal().getName()), property.getValue(Type.STRINGS));
     }
 
     @Test
@@ -171,16 +171,16 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
         PropertyState property = tree.getProperty(UserConstants.REP_IMPERSONATORS);
         assertNotNull(property);
 
-        Set<String> expected = ImmutableSet.of(impersonator.getPrincipal().getName(), principal2.getName());
-        assertEquals(expected, ImmutableSet.copyOf(property.getValue(Type.STRINGS)));
+        Set<String> expected = Set.of(impersonator.getPrincipal().getName(), principal2.getName());
+        assertEquals(expected, SetUtils.toSet(property.getValue(Type.STRINGS)));
 
         impersonation.revokeImpersonation(impersonator.getPrincipal());
 
         property = tree.getProperty(UserConstants.REP_IMPERSONATORS);
         assertNotNull(property);
 
-        expected = ImmutableSet.of(principal2.getName());
-        assertEquals(expected, ImmutableSet.copyOf(property.getValue(Type.STRINGS)));
+        expected = Set.of(principal2.getName());
+        assertEquals(expected, SetUtils.toSet(property.getValue(Type.STRINGS)));
 
         impersonation.revokeImpersonation(principal2);
         assertNull(tree.getProperty(UserConstants.REP_IMPERSONATORS));

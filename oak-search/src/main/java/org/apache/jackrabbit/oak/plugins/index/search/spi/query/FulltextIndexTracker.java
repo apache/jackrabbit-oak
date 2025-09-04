@@ -17,16 +17,18 @@
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -43,12 +45,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Predicates.in;
-import static org.apache.jackrabbit.guava.common.base.Predicates.not;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
-import static org.apache.jackrabbit.guava.common.collect.Maps.filterKeys;
-import static org.apache.jackrabbit.guava.common.collect.Maps.filterValues;
+import static java.util.Objects.requireNonNull;
+
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
@@ -142,17 +140,17 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
                         badIndexTracker.markBadPersistedIndex(path, e);
                     }
                 }
-            }, Iterables.toArray(PathUtils.elements(path), String.class)));
+            }, IterableUtils.toArray(PathUtils.elements(path), String.class)));
         }
 
         EditorDiff.process(CompositeEditor.compose(editors), this.root, root);
         this.root = root;
 
         if (!updates.isEmpty()) {
-            indices = ImmutableMap.<String, I>builder()
-                    .putAll(filterKeys(original, not(in(updates.keySet()))))
-                    .putAll(filterValues(updates, notNull()))
-                    .build();
+            Map<String, I> builder = new HashMap<>();
+            builder.putAll(MapUtils.filterKeys(original, x -> !updates.containsKey(x)));
+            builder.putAll(MapUtils.filterValues(updates, Objects::nonNull));
+            indices = Collections.unmodifiableMap(builder);
 
             badIndexTracker.markGoodIndexes(updates.keySet());
 
@@ -214,7 +212,7 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
         I index = indices.get(path);
         if (index != null) {
             N indexNode = index.acquire();
-            return checkNotNull(indexNode);
+            return requireNonNull(indexNode);
         }
 
         if (badIndexTracker.isIgnoredBadIndex(path)){
@@ -231,11 +229,11 @@ public abstract class FulltextIndexTracker<I extends IndexNodeManager<N>, N exte
                 index = openIndex(path, root, node);
                 if (index != null) {
                     N indexNode = index.acquire();
-                    checkNotNull(indexNode);
-                    indices = ImmutableMap.<String, I>builder()
-                            .putAll(indices)
-                            .put(path, index)
-                            .build();
+                    requireNonNull(indexNode);
+                    Map<String, I> builder = new HashMap<>();
+                    builder.putAll(indices);
+                    builder.put(path, index);
+                    indices = Collections.unmodifiableMap(builder);
                     badIndexTracker.markGoodIndex(path);
                     return indexNode;
                 }

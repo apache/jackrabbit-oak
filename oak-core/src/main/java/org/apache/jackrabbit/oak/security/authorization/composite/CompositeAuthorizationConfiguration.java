@@ -21,9 +21,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
@@ -47,10 +47,10 @@ import org.slf4j.LoggerFactory;
  * <h2>AccessControlManager</h2>
  * <ul>
  *     <li>This method will return an aggregation of {@code AccessControlManager}s in case
- *     multiple {@code AuthorizationConfiguration}s are present (see {@code CompositeAccessControlManager}).</li>
+ *     multiple {@code AuthorizationConfiguration}s are present (see {@code CompositeAccessControlManager}).
  *     <li>If the composite only contains a single entry the {@code AccessControlManager}
- *     of this implementation is return without extra wrapping.</li>
- *     <li>If the list of configurations is empty an {@code IllegalStateException} is thrown.</li>
+ *     of this implementation is return without extra wrapping.
+ *     <li>If the list of configurations is empty an {@code IllegalStateException} is thrown.
  * </ul>
  *
  * <h2>PermissionProvider</h2>
@@ -59,10 +59,10 @@ import org.slf4j.LoggerFactory;
  *     multiple {@code AuthorizationConfiguration}s exposing an {@link AggregatedPermissionProvider}
  *     are present (see {@link CompositePermissionProvider}. Note however, that
  *     providers not implementing the {@code AggregatedPermissionProvider} extension
- *     will be ignored.</li>
+ *     will be ignored.
  *     <li>If the composite only contains a single entry the {@code PermissionProvider}
- *     of this implementation is return without extra wrapping.</li>
- *     <li>If the list of configurations is empty an {@code IllegalStateException} is thrown.</li>
+ *     of this implementation is return without extra wrapping.
+ *     <li>If the list of configurations is empty an {@code IllegalStateException} is thrown.
  * </ul>
  *
  * <h2>RestrictionProvider</h2>
@@ -140,7 +140,9 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
             case 0: throw new IllegalStateException();
             case 1: return configurations.get(0).getAccessControlManager(root, namePathMapper);
             default:
-                List<AccessControlManager> mgrs = Lists.transform(configurations, authorizationConfiguration -> authorizationConfiguration.getAccessControlManager(root, namePathMapper));
+                List<AccessControlManager> mgrs = configurations.stream()
+                        .map(authorizationConfiguration -> authorizationConfiguration.getAccessControlManager(root, namePathMapper))
+                        .collect(Collectors.toList());
                 return new CompositeAccessControlManager(root, namePathMapper, getSecurityProvider(), mgrs, aggregationFilter);
         }
     }

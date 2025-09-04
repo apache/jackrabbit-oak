@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +30,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static java.util.stream.Collectors.toList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 
@@ -532,7 +532,7 @@ public interface DocumentStore {
             return list;
         }
 
-        final Set<String> projectedSet = newHashSet(projection);
+        final Set<String> projectedSet = new HashSet<>(projection);
         projectedSet.add(ID);
 
         return list.stream().map(t -> {

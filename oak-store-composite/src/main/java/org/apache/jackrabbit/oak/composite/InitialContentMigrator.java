@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
@@ -44,6 +42,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.CLUSTER_CONFIG_NODE;
 
@@ -53,7 +53,7 @@ public class InitialContentMigrator {
 
     private static final String CLUSTER_ID = System.getProperty("oak.composite.seed.clusterId", "1");
 
-    private static final Set<String> DEFAULT_IGNORED_PATHS = ImmutableSet.of("/" + CLUSTER_CONFIG_NODE);
+    private static final Set<String> DEFAULT_IGNORED_PATHS = Set.of("/" + CLUSTER_CONFIG_NODE);
 
     private static final Logger LOG = LoggerFactory.getLogger(InitialContentMigrator.class);
 
@@ -80,10 +80,11 @@ public class InitialContentMigrator {
         this.seedMount = seedMount;
 
         this.includePaths = FilteringNodeState.ALL;
-        this.excludeFragments = ImmutableSet.of(seedMount.getPathFragmentName());
+        this.excludeFragments = Set.of(seedMount.getPathFragmentName());
 
         if (seedMount instanceof MountInfo) {
-            this.excludePaths = Sets.union(((MountInfo) seedMount).getIncludedPaths(), DEFAULT_IGNORED_PATHS);
+            this.excludePaths = Stream.concat(((MountInfo) seedMount).getIncludedPaths().stream(), DEFAULT_IGNORED_PATHS.stream())
+                    .collect(Collectors.toUnmodifiableSet());
             this.fragmentPaths = new HashSet<>();
             for (String p : ((MountInfo) seedMount).getPathsSupportingFragments()) {
                 fragmentPaths.add(stripPatternCharacters(p));
@@ -180,7 +181,7 @@ public class InitialContentMigrator {
             if (temp == null) {
                 continue;
             }
-            List<String> tempValues = Lists.newArrayList(temp.getValue(Type.STRINGS));
+            List<String> tempValues = ListUtils.toList(temp.getValue(Type.STRINGS));
             for (Map.Entry<String, String> sToD : checkpointSegmentToDoc.entrySet()) {
                 if (tempValues.contains(sToD.getKey())) {
                     tempValues.set(tempValues.indexOf(sToD.getKey()), sToD.getValue());

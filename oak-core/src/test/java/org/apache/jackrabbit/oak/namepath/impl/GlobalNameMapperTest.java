@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.namepath.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -30,11 +32,9 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.junit.Test;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-
 public class GlobalNameMapperTest {
 
-    private static final Map<String, String> NAMESPACES = ImmutableMap.of(
+    private static final Map<String, String> NAMESPACES = Map.of(
             "jcr", "http://www.jcp.org/jcr/1.0",
             "nt", "http://www.jcp.org/jcr/nt/1.0",
             "mix", "http://www.jcp.org/jcr/mix/1.0",
@@ -48,6 +48,7 @@ public class GlobalNameMapperTest {
         assertEquals("", mapper.getJcrName(""));
         assertEquals("", mapper.getOakNameOrNull(""));
         assertEquals("", mapper.getOakName(""));
+        assertEquals("{}", mapper.getExpandedJcrName(""));
     }
 
 
@@ -84,6 +85,11 @@ public class GlobalNameMapperTest {
         for (String jcrName : jcrToOak.keySet()) {
             assertEquals(jcrToOak.get(jcrName), mapper.getOakNameOrNull(jcrName));
             assertEquals(jcrToOak.get(jcrName), mapper.getOakName(jcrName));
+            if (GlobalNameMapper.isExpandedName(jcrName)) {
+                assertEquals(jcrName, mapper.getExpandedJcrName(jcrToOak.get(jcrName)));
+            } else {
+                assertEquals("{}"+jcrName, mapper.getExpandedJcrName(jcrToOak.get(jcrName)));
+            }
         }
 
         assertNull(mapper.getOakNameOrNull("{http://www.example.com/bar}bar"));
@@ -97,17 +103,38 @@ public class GlobalNameMapperTest {
 
     @Test
     public void testPrefixedNames() throws RepositoryException {
-        List<String> prefixed = new ArrayList<String>();
-        prefixed.add("nt:base");
-        prefixed.add("foo: bar");
-        prefixed.add("quu:bar ");
-        // unknown prefixes are only captured by the NameValidator
-        prefixed.add("unknown:bar");
+        Map<String, String> prefixedToExpanded = new HashMap<>();
+        prefixedToExpanded.put("nt:base", "{http://www.jcp.org/jcr/nt/1.0}base");
+        prefixedToExpanded.put("foo: bar", "{http://www.example.com/foo} bar");
+        prefixedToExpanded.put("quu:bar ", "{http://www.example.com/quu}bar ");
 
-        for (String name : prefixed) {
+        for (String name : prefixedToExpanded.keySet()) {
             assertEquals(name, mapper.getOakNameOrNull(name));
             assertEquals(name, mapper.getOakName(name));
             assertEquals(name, mapper.getJcrName(name));
+            assertEquals(prefixedToExpanded.get(name), mapper.getExpandedJcrName(name));
         }
+
+        // unknown prefixes are only captured by the NameValidator
+        String unknownPrefix = "unknown:bar";
+        assertEquals(unknownPrefix, mapper.getOakNameOrNull(unknownPrefix));
+        assertEquals(unknownPrefix, mapper.getOakName(unknownPrefix));
+        assertEquals(unknownPrefix, mapper.getJcrName(unknownPrefix));
+        try {
+            mapper.getExpandedJcrName(unknownPrefix);
+            fail("IllegalStateException expected");
+        } catch (IllegalStateException e) {
+            // successs
+        }
+    }
+
+    @Test
+    public void testIsExpandedName() {
+        assertTrue(GlobalNameMapper.isExpandedName("{}something"));
+        assertTrue(GlobalNameMapper.isExpandedName("{internal}something"));
+        assertTrue(GlobalNameMapper.isExpandedName("{http://www.jcp.org/jcr/nt/1.0}something"));
+        assertFalse(GlobalNameMapper.isExpandedName("{something not a namespace}something"));
+        assertFalse(GlobalNameMapper.isExpandedName("rep:something"));
+        assertFalse(GlobalNameMapper.isExpandedName("something"));
     }
 }

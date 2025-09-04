@@ -152,6 +152,8 @@ Not used in Oak 1.0:
 
 #### Mapping of JCR Actions to Oak Permissions
 
+See also section ['Mapping Privileges to JCR/Jackrabbit Actions'](privilege/mappingprivilegestoactions.html).
+
 `ACTION_READ`:
 
 - access control content: `Permissions.READ_ACCESS_CONTROL`

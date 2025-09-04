@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -212,7 +211,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testCanHandleCombination() throws Exception {
-        assertFalse(filter.canHandle(ImmutableSet.of(getTestSystemUser().getPrincipal(), getTestUser().getPrincipal())));
+        assertFalse(filter.canHandle(Set.of(getTestSystemUser().getPrincipal(), getTestUser().getPrincipal())));
     }
 
     @Test

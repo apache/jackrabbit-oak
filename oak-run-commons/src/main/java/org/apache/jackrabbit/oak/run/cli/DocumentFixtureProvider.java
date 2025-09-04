@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.IOException;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.io.Closer;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
@@ -38,8 +38,8 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.getService;
@@ -61,7 +61,7 @@ class DocumentFixtureProvider {
             throw new IllegalStateException("Unknown DocumentStore");
         }
 
-        StatisticsProvider statisticsProvider = checkNotNull(getService(wb, StatisticsProvider.class));
+        StatisticsProvider statisticsProvider = requireNonNull(getService(wb, StatisticsProvider.class));
 
         DocumentBuilderCustomizer customizer = getService(wb, DocumentBuilderCustomizer.class);
         if (customizer != null) {
@@ -95,20 +95,23 @@ class DocumentFixtureProvider {
                     docStoreOpts.getNodeCachePercentage(),
                     docStoreOpts.getPrevDocCachePercentage(),
                     docStoreOpts.getChildrenCachePercentage(),
-                    docStoreOpts.getDiffCachePercentage()
+                    docStoreOpts.getDiffCachePercentage(),
+                    docStoreOpts.getPrevNoPropCachePercentage()
             );
         }
 
         DocumentNodeStore dns;
         if (commonOpts.isMongo()) {
-            MongoClientURI uri = new MongoClientURI(commonOpts.getStoreArg());
+            ConnectionString uri = new ConnectionString(commonOpts.getStoreArg());
             if (uri.getDatabase() == null) {
                 System.err.println("Database missing in MongoDB URI: "
-                        + uri.getURI());
+                        + uri);
                 System.exit(1);
             }
-            MongoConnection mongo = new MongoConnection(uri.getURI());
+            MongoConnection mongo = new MongoConnection(uri.getConnectionString());
+            wb.register(ConnectionString.class, uri, emptyMap());
             wb.register(MongoConnection.class, mongo, emptyMap());
+            wb.register(MongoDatabase.class, mongo.getDatabase(), emptyMap());
             closer.register(mongo::close);
             ((MongoDocumentNodeStoreBuilder) builder).setMongoDB(mongo.getMongoClient(), mongo.getDBName());
             dns = builder.build();

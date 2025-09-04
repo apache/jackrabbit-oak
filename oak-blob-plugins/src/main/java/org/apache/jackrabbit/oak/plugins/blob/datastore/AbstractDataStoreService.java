@@ -16,22 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.PROP_SPLIT_BLOBSTORE;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -46,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -53,7 +52,6 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(componentAbstract = true)
 public abstract class AbstractDataStoreService {
     private static final String PROP_HOME = "repository.home";
     private static final String PATH = "path";
@@ -67,20 +65,17 @@ public abstract class AbstractDataStoreService {
 
     private Logger log = LoggerFactory.getLogger(getClass());
 
-    @Reference
-    private StatisticsProvider statisticsProvider;
-
     private DataStoreBlobStore dataStore;
 
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
         // change to mutable map. may be modified in createDS call
-        config = Maps.newHashMap(config);
+        config = new HashMap<>(config);
         DataStore ds = createDataStore(context, config);
         boolean encodeLengthInId = PropertiesUtil.toBoolean(config.get(PROP_ENCODE_LENGTH), true);
         int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_CACHE_SIZE), DataStoreBlobStore.DEFAULT_CACHE_SIZE);
 
         String homeDir = lookup(context, PROP_HOME);
-        if (config.containsKey(PATH) && !Strings.isNullOrEmpty((String) config.get(PATH))) {
+        if (config.containsKey(PATH) && !StringUtils.isEmpty((String) config.get(PATH))) {
             log.info("Initializing the DataStore with path [{}]", config.get(PATH));
         }
         else if (homeDir != null) {
@@ -89,7 +84,8 @@ public abstract class AbstractDataStoreService {
         PropertiesUtil.populate(ds, config, false);
         ds.init(homeDir);
 
-        BlobStoreStats stats = new BlobStoreStats(getStatisticsProvider());
+        BlobStoreStats stats = new BlobStoreStats(
+                Objects.requireNonNull(getStatisticsProvider(), "statisticsProvider must be non-null"));
         this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
         this.dataStore.setBlobStatsCollector(stats);
         PropertiesUtil.populate(dataStore, config, false);
@@ -124,16 +120,12 @@ public abstract class AbstractDataStoreService {
 
     protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
 
-    protected StatisticsProvider getStatisticsProvider(){
-        return statisticsProvider;
-    }
+    @NotNull protected abstract StatisticsProvider getStatisticsProvider();
+
+    protected abstract void setStatisticsProvider(StatisticsProvider statisticsProvider);
 
     protected String[] getDescription(){
         return new String[] {"type=unknown"};
-    }
-
-    void setStatisticsProvider(StatisticsProvider statisticsProvider) {
-        this.statisticsProvider = statisticsProvider;
     }
 
     protected static String lookup(ComponentContext context, String property) {

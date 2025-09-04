@@ -19,26 +19,28 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.TestRepository;
 import org.apache.jackrabbit.oak.plugins.index.TestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 
 public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
 
-    private ResultCountingIndexProvider resultCountingIndexProvider;
-    private TestUtil.OptionalEditorProvider optionalEditorProvider;
+    private final ResultCountingIndexProvider resultCountingIndexProvider;
+    private final TestUtil.OptionalEditorProvider optionalEditorProvider;
 
     public LuceneTestRepositoryBuilder(ExecutorService executorService, TemporaryFolder temporaryFolder) {
         IndexCopier copier = null;
@@ -49,13 +51,15 @@ public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
         }
         this.editorProvider = new LuceneIndexEditorProvider(copier, new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         this.indexProvider = new LuceneIndexProvider(copier);
-        this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(
                 editorProvider,
                 new NodeCounterEditorProvider()
-        )));
+        ));
 
         resultCountingIndexProvider = new ResultCountingIndexProvider(indexProvider);
         queryEngineSettings = new QueryEngineSettings();
+        // enabling inference to check impact on all tests.
+        queryEngineSettings.setInferenceEnabled(true);
         optionalEditorProvider = new TestUtil.OptionalEditorProvider();
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }
@@ -75,5 +79,10 @@ public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
             oak.withAsyncIndexing("async", defaultAsyncIndexingTimeInSeconds);
         }
         return new TestRepository(oak).with(isAsync).with(asyncIndexUpdate);
+    }
+
+    @Override
+    protected NodeStore createNodeStore(TestRepository.NodeStoreType memoryNodeStore) {
+        return new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT);
     }
 }

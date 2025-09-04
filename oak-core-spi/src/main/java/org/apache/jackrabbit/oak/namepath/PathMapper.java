@@ -24,8 +24,8 @@ import org.osgi.annotation.versioning.ProviderType;
  * {@code PathMapper} instances provide methods for mapping paths from their JCR
  * string representation to their Oak representation and vice versa.
  *
- * The Oak representation of a path consists of a forward slash followed by the
- * names of the respective items in the {@link org.apache.jackrabbit.oak.api.Tree}
+ * The Oak representation of a path consists of an optional forward slash followed by
+ * the names of the respective items in the {@link org.apache.jackrabbit.oak.api.Tree}
  * separated by forward slashes.
  */
 @ProviderType
@@ -56,4 +56,20 @@ public interface PathMapper {
     @NotNull
     String getJcrPath(String oakPath);
 
+    /**
+     * Returns the JCR path in expanded form for the given Oak path. The given path is
+     * expected to have come from a valid Oak repository that contains
+     * only valid names with proper namespace mappings. If that's not
+     * the case, either a programming error or a repository corruption
+     * has occurred and an appropriate unchecked exception gets thrown.
+     *
+     * @param oakPath Oak path
+     * @return JCR path in expanded form
+     * @since Oak 1.78.0
+     * @throws IllegalStateException in case the namespace URI for the given Oak name cannot be resolved
+     * 
+     * @see <a href="https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5.1%20Expanded%20Form">JCR 2.0, 3.2.5.1 Expanded Form</a>
+     */
+    @NotNull
+    String getExpandedJcrPath(@NotNull String oakPath);
 }

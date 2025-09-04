@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A cache value wrapping a simple string.
@@ -32,10 +32,12 @@ public final class StringValue implements CacheValue {
 
     private static final Logger log = LoggerFactory.getLogger(StringValue.class);
 
+    public static final StringValue EMPTY = new StringValue("");
+
     private final String value;
 
     public StringValue(@NotNull String value) {
-        this.value = checkNotNull(value);
+        this.value = requireNonNull(value);
     }
 
     @Override

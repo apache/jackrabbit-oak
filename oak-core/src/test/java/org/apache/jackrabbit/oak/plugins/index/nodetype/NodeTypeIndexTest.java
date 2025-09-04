@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -45,8 +46,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
-
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * {@code NodeTypeIndexTest} performs tests on {@link NodeTypeIndex}.
@@ -104,9 +103,9 @@ public class NodeTypeIndexTest {
         // and does not traverse
         assertEquals(PathCursor.class.getName(),
                 cursor.getClass().getName());
-        Set<String> expected = Sets.newHashSet();
+        Set<String> expected = new HashSet<>();
         expected.addAll(Arrays.asList(matches));
-        Set<String> actual = Sets.newHashSet();
+        Set<String> actual = new HashSet<>();
         while (cursor.hasNext()) {
             actual.add(cursor.next().getPath());
         }

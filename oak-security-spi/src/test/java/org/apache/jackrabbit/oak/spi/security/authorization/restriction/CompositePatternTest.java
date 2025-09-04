@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.List;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -32,24 +32,24 @@ import static org.junit.Assert.assertTrue;
 
 public class CompositePatternTest {
 
-    private final RestrictionPattern alwaysMatching = CompositePattern.create(ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE, TestRestrictionPatter.INSTANCE_TRUE));
-    private final RestrictionPattern neverMatching = CompositePattern.create(ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE, TestRestrictionPatter.INSTANCE_FALSE));
+    private final RestrictionPattern alwaysMatching = CompositePattern.create(List.of(TestRestrictionPatter.INSTANCE_TRUE, TestRestrictionPatter.INSTANCE_TRUE));
+    private final RestrictionPattern neverMatching = CompositePattern.create(List.of(TestRestrictionPatter.INSTANCE_TRUE, TestRestrictionPatter.INSTANCE_FALSE));
 
     @Test
     public void testCreateFromEmptyList() {
-        RestrictionPattern rp = CompositePattern.create(ImmutableList.of());
+        RestrictionPattern rp = CompositePattern.create(List.of());
         assertSame(RestrictionPattern.EMPTY, rp);
     }
 
     @Test
     public void testCreateFromSingletonList() {
-        RestrictionPattern rp = CompositePattern.create(ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE));
+        RestrictionPattern rp = CompositePattern.create(List.of(TestRestrictionPatter.INSTANCE_TRUE));
         assertSame(TestRestrictionPatter.INSTANCE_TRUE, rp);
     }
 
     @Test
     public void testCreateFromList() {
-        RestrictionPattern rp = CompositePattern.create(ImmutableList.of(TestRestrictionPatter.INSTANCE_TRUE, TestRestrictionPatter.INSTANCE_FALSE));
+        RestrictionPattern rp = CompositePattern.create(List.of(TestRestrictionPatter.INSTANCE_TRUE, TestRestrictionPatter.INSTANCE_FALSE));
         assertTrue(rp instanceof CompositePattern);
     }
 
@@ -61,7 +61,7 @@ public class CompositePatternTest {
 
     @Test
     public void testMatchesPath() {
-        List<String> paths = ImmutableList.of("/", "/a", "/a/b/c", "");
+        List<String> paths = List.of("/", "/a", "/a/b/c", "");
 
         for (String path : paths) {
             assertTrue(alwaysMatching.matches(path));
@@ -71,7 +71,7 @@ public class CompositePatternTest {
 
     @Test
     public void testMatchesPathIsProperty() {
-        List<String> paths = ImmutableList.of("/", "/a", "/a/b/c", "");
+        List<String> paths = List.of("/", "/a", "/a/b/c", "");
 
         for (String path : paths) {
             assertTrue(alwaysMatching.matches(path, true));

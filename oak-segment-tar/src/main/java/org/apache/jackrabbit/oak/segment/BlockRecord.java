@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkElementIndex;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static java.util.Objects.checkFromToIndex;
+import static java.util.Objects.checkIndex;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A record of type "BLOCK".
@@ -46,9 +46,9 @@ class BlockRecord extends Record {
      * @return number of bytes that could be read
      */
     public int read(int position, byte[] buffer, int offset, int length) {
-        checkElementIndex(position, size);
-        checkNotNull(buffer);
-        checkPositionIndexes(offset, offset + length, buffer.length);
+        checkIndex(position, size);
+        requireNonNull(buffer);
+        checkFromToIndex(offset, offset + length, buffer.length);
 
         if (position + length > size) {
             length = size - position;

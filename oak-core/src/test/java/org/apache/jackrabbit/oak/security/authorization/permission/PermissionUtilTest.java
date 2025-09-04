@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -99,23 +98,23 @@ public class PermissionUtilTest {
 
     @Test
     public void testIsAdminOrSystem() {
-        ConfigurationParameters params = ConfigurationParameters.of(PARAM_ADMINISTRATIVE_PRINCIPALS, ImmutableSet.of("administrative"));
+        ConfigurationParameters params = ConfigurationParameters.of(PARAM_ADMINISTRATIVE_PRINCIPALS, Set.of("administrative"));
 
-        Set<Principal> principals = ImmutableSet.of(new PrincipalImpl("name"), new PrincipalImpl("administrative"));
+        Set<Principal> principals = Set.of(new PrincipalImpl("name"), new PrincipalImpl("administrative"));
         assertTrue(PermissionUtil.isAdminOrSystem(principals, params));
         assertFalse(PermissionUtil.isAdminOrSystem(principals, ConfigurationParameters.EMPTY));
     }
 
     @Test
     public void testIsAdminOrSystemForAdminPrincipal() {
-        assertTrue(PermissionUtil.isAdminOrSystem(ImmutableSet.of(mock(AdminPrincipal.class)), ConfigurationParameters.EMPTY));
-        assertTrue(PermissionUtil.isAdminOrSystem(ImmutableSet.of(new PrincipalImpl("name"), mock(AdminPrincipal.class)), ConfigurationParameters.EMPTY));
+        assertTrue(PermissionUtil.isAdminOrSystem(Set.of(mock(AdminPrincipal.class)), ConfigurationParameters.EMPTY));
+        assertTrue(PermissionUtil.isAdminOrSystem(Set.of(new PrincipalImpl("name"), mock(AdminPrincipal.class)), ConfigurationParameters.EMPTY));
     }
 
     @Test
     public void testIsAdminOrSystemForSystemPrincial() {
-        assertTrue(PermissionUtil.isAdminOrSystem(ImmutableSet.of(SystemPrincipal.INSTANCE), ConfigurationParameters.EMPTY));
-        assertTrue(PermissionUtil.isAdminOrSystem(ImmutableSet.of(new PrincipalImpl("name"), SystemPrincipal.INSTANCE), ConfigurationParameters.EMPTY));
+        assertTrue(PermissionUtil.isAdminOrSystem(Set.of(SystemPrincipal.INSTANCE), ConfigurationParameters.EMPTY));
+        assertTrue(PermissionUtil.isAdminOrSystem(Set.of(new PrincipalImpl("name"), SystemPrincipal.INSTANCE), ConfigurationParameters.EMPTY));
     }
 
     @Test

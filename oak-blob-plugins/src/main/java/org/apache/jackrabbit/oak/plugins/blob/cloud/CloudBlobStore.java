@@ -18,14 +18,13 @@ package org.apache.jackrabbit.oak.plugins.blob.cloud;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
-import org.apache.jackrabbit.guava.common.base.Preconditions;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.jclouds.ContextBuilder;
@@ -119,7 +118,7 @@ public class CloudBlobStore extends CachingBlobStore {
      */
     @Override
     protected void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
-        Preconditions.checkNotNull(context);
+        Objects.requireNonNull(context);
 
         String id = StringUtils.convertBytesToHex(digest);
         cache.put(id, data);
@@ -127,7 +126,7 @@ public class CloudBlobStore extends CachingBlobStore {
         org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
 
         if (!blobStore.blobExists(cloudContainer, id)) {
-            Map<String, String> metadata = Maps.newHashMap();
+            Map<String, String> metadata = new HashMap<>();
             metadata.put("level", String.valueOf(level));
 
             Blob blob = blobStore.blobBuilder(id)
@@ -146,7 +145,7 @@ public class CloudBlobStore extends CachingBlobStore {
      */
     @Override
     protected byte[] readBlockFromBackend(BlockId blockId) throws Exception {
-        Preconditions.checkNotNull(context);
+        Objects.requireNonNull(context);
 
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
         byte[] data = cache.get(id);
@@ -160,7 +159,7 @@ public class CloudBlobStore extends CachingBlobStore {
     
             Payload payload = cloudBlob.getPayload();
             try {
-                data = ByteStreams.toByteArray(payload.getInput());
+                data = payload.getInput().readAllBytes();
                 cache.put(id, data);        
             } finally {
                 payload.close();
@@ -183,7 +182,7 @@ public class CloudBlobStore extends CachingBlobStore {
      * 
      */
     public void deleteBucket() {
-        Preconditions.checkNotNull(context);
+        Objects.requireNonNull(context);
 
         if (context.getBlobStore().containerExists(cloudContainer)) {
             context.getBlobStore().deleteContainer(cloudContainer);
@@ -214,7 +213,7 @@ public class CloudBlobStore extends CachingBlobStore {
     @Override
     public Iterator<String> getAllChunkIds(
             long maxLastModifiedTime) throws Exception {
-        Preconditions.checkNotNull(context);
+        Objects.requireNonNull(context);
 
         final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
         return new CloudStoreIterator(blobStore, maxLastModifiedTime);
@@ -222,7 +221,7 @@ public class CloudBlobStore extends CachingBlobStore {
 
     @Override
     public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
-        Preconditions.checkNotNull(context);
+        Objects.requireNonNull(context);
         long count = 0;
         for (String chunkId : chunkIds) {
             final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();

@@ -30,11 +30,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.jetbrains.annotations.Nullable;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Represents the index metadata file content as present in index-details.txt
@@ -62,9 +60,10 @@ final class IndexMeta implements Comparable<IndexMeta> {
 
     public IndexMeta(File file) throws IOException {
         Properties p = loadFromFile(file);
-        this.indexPath = checkNotNull(p.getProperty("indexPath"));
-        this.creationTime = Long.valueOf(checkNotNull(p.getProperty("creationTime")));
-        this.properties = new HashMap<>(Maps.fromProperties(p));
+        // the file might be empty - in which case we ignore it
+        this.indexPath = p.getProperty("indexPath", "");
+        this.creationTime = Long.valueOf(p.getProperty("creationTime", "0"));
+        this.properties = new HashMap<>(MapUtils.fromProperties(p));
     }
 
     public void addDirectoryMapping(String jcrDirName, String fsDirName){

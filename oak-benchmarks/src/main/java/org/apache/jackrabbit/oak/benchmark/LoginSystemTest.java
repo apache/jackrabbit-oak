@@ -19,12 +19,13 @@ package org.apache.jackrabbit.oak.benchmark;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
+import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.core.security.SystemPrincipal;
+import org.apache.jackrabbit.oak.commons.jdkcompat.Java23Subject;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 
@@ -38,7 +39,7 @@ public class LoginSystemTest extends AbstractLoginTest {
         if (getRepository() instanceof RepositoryImpl) {
             subject = SystemSubject.INSTANCE;
         } else {
-            subject = new Subject(true, ImmutableSet.of(new SystemPrincipal()), Collections.emptySet(), Collections.emptySet());
+            subject = new Subject(true, Set.of(new SystemPrincipal()), Collections.emptySet(), Collections.emptySet());
         }
     }
 
@@ -46,7 +47,7 @@ public class LoginSystemTest extends AbstractLoginTest {
     public void runTest() throws RepositoryException {
         for (int i = 0; i < COUNT; i++) {
             try {
-                Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
+                Java23Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
                     @Override
                     public Session run() throws Exception {
                         return getRepository().login(null, null);

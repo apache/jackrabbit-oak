@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.MalformedObjectNameException;
@@ -39,18 +41,12 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.primitives.Longs;
-
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.References;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
 import org.apache.jackrabbit.oak.jcr.observation.jmx.ConsolidatedListenerMBean;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -62,49 +58,51 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.osgi.framework.BundleContext;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
-@Component
-@References({
-        @Reference(name = "observer",
+@Component(reference = {
+        @Reference(
+                name = "observer",
                 bind = "bindObserver",
                 unbind = "unbindObserver",
-                referenceInterface = Observer.class,
+                service = Observer.class,
                 policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
+                cardinality = ReferenceCardinality.MULTIPLE),
         @Reference(name = "listenerMBean",
                 bind = "bindListenerMBean",
                 unbind = "unbindListenerMBean",
-                referenceInterface = EventListenerMBean.class,
+                service = EventListenerMBean.class,
                 policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
-        @Reference(name = "backgroundObserverMBean",
+                cardinality = ReferenceCardinality.MULTIPLE),
+        @Reference(
+                name = "backgroundObserverMBean",
                 bind = "bindBackgroundObserverMBean",
                 unbind = "unbindBackgroundObserverMBean",
-                referenceInterface = BackgroundObserverMBean.class,
+                service = BackgroundObserverMBean.class,
                 policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
-        @Reference(name = "changeProcessorMBean",
+                cardinality = ReferenceCardinality.MULTIPLE),
+        @Reference(
+                name = "changeProcessorMBean",
                 bind = "bindChangeProcessorMBean",
                 unbind = "unbindChangeProcessorMBean",
-                referenceInterface = ChangeProcessorMBean.class,
+                service = ChangeProcessorMBean.class,
                 policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE),
-        @Reference(name = "filterConfigMBean",
+                cardinality = ReferenceCardinality.MULTIPLE),
+        @Reference(
+                name = "filterConfigMBean",
                 bind = "bindFilterConfigMBean",
                 unbind = "unbindFilterConfigMBean",
-                referenceInterface = FilterConfigMBean.class,
+                service = FilterConfigMBean.class,
                 policy = ReferencePolicy.DYNAMIC,
-                cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
-
-})
+                cardinality = ReferenceCardinality.MULTIPLE)
+}, service = {})
 public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean {
     private final AtomicInteger observerCount = new AtomicInteger();
-    private final Map<ObjectName, EventListenerMBean> eventListeners = Maps.newConcurrentMap();
-    private final Map<ObjectName, BackgroundObserverMBean> bgObservers = Maps.newConcurrentMap();
-    private final Map<ObjectName, ChangeProcessorMBean> changeProcessors = Maps.newConcurrentMap();
-    private final Map<ObjectName, FilterConfigMBean> filterConfigs = Maps.newConcurrentMap();
+    private final Map<ObjectName, EventListenerMBean> eventListeners = new ConcurrentHashMap<>();
+    private final Map<ObjectName, BackgroundObserverMBean> bgObservers = new ConcurrentHashMap<>();
+    private final Map<ObjectName, ChangeProcessorMBean> changeProcessors = new ConcurrentHashMap<>();
+    private final Map<ObjectName, FilterConfigMBean> filterConfigs = new ConcurrentHashMap<>();
 
     private Registration mbeanReg;
 
@@ -150,13 +148,13 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
             TabularType tt = new TabularType(LeaderBoardData.class.getName(),
                     "Leaderboard", LeaderBoardData.TYPE, new String[]{"index"});
             tds = new TabularDataSupport(tt);
-            List<LeaderBoardData> leaderBoard = Lists.newArrayList();
+            List<LeaderBoardData> leaderBoard = new ArrayList<>();
             for (Map.Entry<ObjectName, EventListenerMBean> e : eventListeners.entrySet()){
                 String listenerId = getListenerId(e.getKey());
                 EventListenerMBean mbean = e.getValue();
                 FilterConfigMBean filterConfigMBean = null;
                 for (Map.Entry<ObjectName, FilterConfigMBean> ef : filterConfigs.entrySet()){
-                    if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                    if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                         filterConfigMBean = ef.getValue();
                         break;
                     }
@@ -184,7 +182,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
     }
 
     private Collection<BackgroundObserverMBean> collectNonJcrObservers() {
-        List<BackgroundObserverMBean> observers = Lists.newArrayList();
+        List<BackgroundObserverMBean> observers = new ArrayList<>();
 
         for (Map.Entry<ObjectName, BackgroundObserverMBean> o : bgObservers.entrySet()){
             String listenerId = getListenerId(o.getKey());
@@ -203,23 +201,23 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
      * @return map of EventListenerMBean and corresponding Observer
      */
     private List<ListenerMBeans> getListenerMBeans() {
-        List<ListenerMBeans> mbeans = Lists.newArrayListWithCapacity(eventListeners.size());
+        List<ListenerMBeans> mbeans = new ArrayList<>(eventListeners.size());
         for (Map.Entry<ObjectName, EventListenerMBean> e : eventListeners.entrySet()){
             String listenerId = getListenerId(e.getKey());
             ListenerMBeans m = new ListenerMBeans();
             m.eventListenerMBean = e.getValue();
             for (Map.Entry<ObjectName, FilterConfigMBean> ef : filterConfigs.entrySet()){
-                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                     m.filterConfigMBean = ef.getValue();
                 }
             }
             for (Map.Entry<ObjectName, BackgroundObserverMBean> ef : bgObservers.entrySet()){
-                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                     m.observerMBean = ef.getValue();
                 }
             }
             for (Map.Entry<ObjectName, ChangeProcessorMBean> ef : changeProcessors.entrySet()){
-                if (Objects.equal(getListenerId(ef.getKey()), listenerId)){
+                if (Objects.equals(getListenerId(ef.getKey()), listenerId)){
                     m.changeProcessorMBean = ef.getValue();
                 }
             }
@@ -312,7 +310,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         } else if (value instanceof ObjectName) {
             name = (ObjectName) value;
         }
-        return checkNotNull(name, "No 'jmx.objectname' property defined for MBean %s", config);
+        return requireNonNull(name, String.format("No 'jmx.objectname' property defined for MBean %s", config));
     }
 
     private static String getListenerId(ObjectName name){
@@ -614,7 +612,7 @@ public class ConsolidatedListenerMBeanImpl implements ConsolidatedListenerMBean 
         Collections.sort(leaderBoard, new Comparator<LeaderBoardData>() {
             @Override
             public int compare(LeaderBoardData o1, LeaderBoardData o2) {
-                return Longs.compare(o1.getProcessingTime(), o2.getProcessingTime());
+                return Long.compare(o1.getProcessingTime(), o2.getProcessingTime());
             }
         });
         // assign new index value according to sort order

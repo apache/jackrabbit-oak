@@ -20,8 +20,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-
-import org.apache.jackrabbit.guava.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -47,7 +46,7 @@ public class StringBasedBlob extends AbstractBlob {
     @NotNull
     @Override
     public InputStream getNewStream() {
-        return new ByteArrayInputStream(value.getBytes(Charsets.UTF_8));
+        return new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -56,6 +55,6 @@ public class StringBasedBlob extends AbstractBlob {
      */
     @Override
     public long length() {
-        return value.getBytes(Charsets.UTF_8).length;
+        return value.getBytes(StandardCharsets.UTF_8).length;
     }
 }

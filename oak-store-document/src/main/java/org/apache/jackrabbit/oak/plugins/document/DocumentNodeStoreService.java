@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
@@ -43,18 +42,17 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
@@ -63,6 +61,7 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.api.jmx.PersistentCacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -81,7 +80,6 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
@@ -131,14 +129,34 @@ import org.slf4j.LoggerFactory;
         configurationPid = {Configuration.PID})
 public class DocumentNodeStoreService {
 
+    public static final boolean DEFAULT_INVISIBLE_FOR_DISCOVERY = false;
     private static final long MB = 1024 * 1024;
     static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     static final int DEFAULT_CACHE = (int) (DEFAULT_MEMORY_CACHE_SIZE / MB);
     static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     static final String DEFAULT_DB = "oak";
+    @Deprecated
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
-    static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
+    static final int DEFAULT_THROTTLING_TIME_MILLIS = 10;
+    static final int DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS = 20;
+    static final boolean DEFAULT_FULL_GC_ENABLED = false;
+    static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
+    static final int DEFAULT_FULL_GC_MODE = 0;
+    static final int DEFAULT_FULL_GC_GENERATION = 0;
+    public static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
+    // MongoDB Connection Pool Settings
+    public static final int DEFAULT_MONGO_MAX_POOL_SIZE = 100;
+    public static final int DEFAULT_MONGO_MIN_POOL_SIZE = 0;
+    public static final int DEFAULT_MONGO_MAX_CONNECTING = 2;
+    public static final int DEFAULT_MONGO_MAX_IDLE_TIME_MILLIS = 0;
+    public static final int DEFAULT_MONGO_MAX_LIFE_TIME_MILLIS = 0;
+    public static final int DEFAULT_MONGO_CONNECT_TIMEOUT_MILLIS = 10000;
+    public static final int DEFAULT_MONGO_HEARTBEAT_FREQUENCY_MILLIS = 5000;
+    public static final int DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS = 30000;
+    public static final int DEFAULT_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS = 60000;
+    public static final int DEFAULT_MONGO_READ_TIMEOUT_MILLIS = 0;
+    public static final int DEFAULT_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS = 500;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
     static final boolean DEFAULT_CUSTOM_BLOB_STORE = false;
@@ -146,10 +164,14 @@ public class DocumentNodeStoreService {
     public static final String CLASSIC_RGC_EXPR = "0 0 2 * * ?";
     public static final long DEFAULT_RGC_TIME_LIMIT_SECS = 3*60*60; // default is 3 hours
     public static final double DEFAULT_RGC_DELAY_FACTOR = 0;
+    public static final double DEFAULT_FGC_DELAY_FACTOR = 2;
+    public static final int DEFAULT_FGC_BATCH_SIZE = 1000;
+    public static final int DEFAULT_FGC_PROGRESS_SIZE = 10000;
     private static final String DESCRIPTION = "oak.nodestore.description";
     static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
     static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
     static final boolean DEFAULT_PREFETCH_EXTERNAL_CHANGES = false;
+    static final boolean DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK = false;
     private static final String DEFAULT_PROP_HOME = "./repository";
     static final long DEFAULT_MAX_REPLICATION_LAG = 6 * 60 * 60;
     static final boolean DEFAULT_BUNDLING_DISABLED = false;
@@ -159,6 +181,11 @@ public class DocumentNodeStoreService {
      * Revisions older than this time would be garbage collected
      */
     static final long DEFAULT_VER_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
+
+    /**
+     * Nodes older than this time would be garbage collected by Full GC
+     */
+    static final long DEFAULT_FULL_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
 
 
     /**
@@ -180,6 +207,36 @@ public class DocumentNodeStoreService {
      * Feature toggle name to enable document store throttling for Mongo Document Store
      */
     private static final String FT_NAME_DOC_STORE_THROTTLING = "FT_THROTTLING_OAK-9909";
+
+    private static final String FT_NAME_DOC_STORE_NOCOCLEANUP = "FT_NOCOCLEANUP_OAK-10660";
+
+    /**
+     * Feature toggle name to enable invalidation on cancel (due to a merge collision)
+     */
+    private static final String FT_NAME_CANCEL_INVALIDATION = "FT_CANCELINVALIDATION_OAK-10595";
+    /**
+     * Feature toggle name to enable full GC for Mongo Document Store
+     */
+    private static final String FT_NAME_FULL_GC = "FT_FULL_GC_OAK-10199";
+
+    /**
+     * Feature toggle name to avoid exclusive merge lock for merging changes in repository in case of a conflict
+     */
+    private static final String FT_NAME_AVOID_MERGE_LOCK = "FT_AVOID_MERGE_LOCK_OAK-11720";
+
+    /**
+     * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
+     */
+    private static final String FT_NAME_EMBEDDED_VERIFICATION = "FT_EMBEDDED_VERIFICATION_OAK-10633";
+
+    /** OAK-11246 : default millis for perflogger info */
+    static final long DEFAULT_PERFLOGGER_INFO_MILLIS = Long.MAX_VALUE;
+  
+    /**
+     * Feature toggle name to enable the prev-no-prop cache.
+     * prev-no-prop refers to previous document not containing a particular property key.
+     */
+    private static final String FT_NAME_PREV_NO_PROP_CACHE = "FT_PREV_NO_PROP_OAK-11184";
 
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
@@ -216,6 +273,12 @@ public class DocumentNodeStoreService {
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
     private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
+    private Feature noChildOrderCleanupFeature;
+    private Feature cancelInvalidationFeature;
+    private Feature docStoreFullGCFeature;
+    private Feature docStoreEmbeddedVerificationFeature;
+    private Feature docStoreAvoidMergeLockFeature;
+    private Feature prevNoPropCacheFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -250,6 +313,12 @@ public class DocumentNodeStoreService {
         documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
         prefetchFeature = Feature.newFeature(FT_NAME_PREFETCH, whiteboard);
         docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
+        noChildOrderCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_NOCOCLEANUP, whiteboard);
+        cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
+        docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
+        docStoreEmbeddedVerificationFeature = Feature.newFeature(FT_NAME_EMBEDDED_VERIFICATION, whiteboard);
+        docStoreAvoidMergeLockFeature = Feature.newFeature(FT_NAME_AVOID_MERGE_LOCK, whiteboard);
+        prevNoPropCacheFeature = Feature.newFeature(FT_NAME_PREV_NO_PROP_CACHE, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -276,9 +345,9 @@ public class DocumentNodeStoreService {
         if (documentStoreType == DocumentStoreType.RDB) {
             RDBDocumentNodeStoreBuilder builder = newRDBDocumentNodeStoreBuilder();
             configureBuilder(builder);
-            checkNotNull(dataSource, "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
+            requireNonNull(dataSource, String.format("DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE));
             if (!customBlobStore) {
-                checkNotNull(blobDataSource, "DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE);
+                requireNonNull(blobDataSource, String.format("DataStore type set [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE));
                 builder.setRDBConnection(dataSource, blobDataSource);
                 log.info("Connected to datasources {} {}", dataSource, blobDataSource);
             } else {
@@ -292,27 +361,37 @@ public class DocumentNodeStoreService {
         } else {
             String uri = config.mongouri();
             String db = config.db();
-            boolean soKeepAlive = config.socketKeepAlive();
 
-            MongoClientURI mongoURI = new MongoClientURI(uri);
             String persistentCache = resolvePath(config.persistentCache(), DEFAULT_PERSISTENT_CACHE);
             String journalCache = resolvePath(config.journalCache(), DEFAULT_JOURNAL_CACHE);
 
             if (log.isInfoEnabled()) {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
+                ConnectionString mongoURI = new ConnectionString(uri);
                 log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
-                                "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
+                                "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}, " +
+                                "clusterIdReuseDelayAfterRecoveryMillis={}, recoveryDelayMillis={}",
                         mongoURI.getHosts(), db, config.cache(), persistentCache,
-                        journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs());
-                log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
+                        journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs(),
+                        config.clusterIdReuseDelayAfterRecoveryMillis(), config.recoveryDelayMillis());
             }
 
             MongoDocumentNodeStoreBuilder builder = newMongoDocumentNodeStoreBuilder();
             configureBuilder(builder);
             builder.setMaxReplicationLag(config.maxReplicationLagInSecs(), TimeUnit.SECONDS);
-            builder.setSocketKeepAlive(soKeepAlive);
             builder.setLeaseSocketTimeout(config.mongoLeaseSocketTimeout());
+            builder.setMongoMaxPoolSize(config.mongoMaxPoolSize());
+            builder.setMongoMinPoolSize(config.mongoMinPoolSize());
+            builder.setMongoMaxConnecting(config.mongoMaxConnecting());
+            builder.setMongoMaxIdleTimeMillis(config.mongoMaxIdleTimeMillis());
+            builder.setMongoMaxLifeTimeMillis(config.mongoMaxLifeTimeMillis());
+            builder.setMongoConnectTimeoutMillis(config.mongoConnectTimeoutMillis());
+            builder.setMongoHeartbeatFrequencyMillis(config.mongoHeartbeatFrequencyMillis());
+            builder.setMongoServerSelectionTimeoutMillis(config.mongoServerSelectionTimeoutMillis());
+            builder.setMongoWaitQueueTimeoutMillis(config.mongoWaitQueueTimeoutMillis());
+            builder.setMongoReadTimeoutMillis(config.mongoReadTimeoutMillis());
+            builder.setMongoMinHeartbeatFrequencyMillis(config.mongoMinHeartbeatFrequencyMillis());
             builder.setMongoDB(uri, db, config.blobCacheSize());
             builder.setCollectionCompressionType(config.collectionCompressionType());
             mkBuilder = builder;
@@ -346,8 +425,12 @@ public class DocumentNodeStoreService {
             loggingGCMonitor = new LoggingGCMonitor(vgcLogger);
         }
         mkBuilder.setGCMonitor(new DelegatingGCMonitor(
-                newArrayList(gcMonitor, loggingGCMonitor)));
+                List.of(gcMonitor, loggingGCMonitor)));
         mkBuilder.setRevisionGCMaxAge(TimeUnit.SECONDS.toMillis(config.versionGcMaxAgeInSecs()));
+
+        DocumentNodeStore.configurePerfLogger(config.perfLoggerInfoMillis());
+        DocumentNodeStoreBranch.configurePerfLogger(config.perfLoggerInfoMillis());
+        AbstractDocumentNodeState.configurePerfLogger(config.perfLoggerInfoMillis());
 
         nodeStore = mkBuilder.build();
 
@@ -457,7 +540,9 @@ public class DocumentNodeStoreService {
                         config.nodeCachePercentage(),
                         config.prevDocCachePercentage(),
                         config.childrenCachePercentage(),
-                        config.diffCachePercentage()).
+                        config.diffCachePercentage(),
+                        config.prevNoPropCachePercentage()).
+                setClusterInvisible(config.invisibleForDiscovery()).
                 setCacheSegmentCount(config.cacheSegmentCount()).
                 setCacheStackMoveDistance(config.cacheStackMoveDistance()).
                 setBundlingDisabled(config.bundlingDisabled()).
@@ -465,8 +550,31 @@ public class DocumentNodeStoreService {
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
                 setPrefetchFeature(prefetchFeature).
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
+                setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
+                setCancelInvalidationFeature(cancelInvalidationFeature).
+                setDocStoreFullGCFeature(docStoreFullGCFeature).
+                setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
+                setDocStoreAvoidMergeLockFeature(docStoreAvoidMergeLockFeature).
+                setPrevNoPropCacheFeature(prevNoPropCacheFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
+                setThrottlingTimeMillis(config.throttlingTimeMillis()).
+                setThrottlingJobSchedulePeriodSecs(config.throttlingJobSchedulePeriodSecs()).
+                setAvoidMergeLock(config.avoidExclusiveMergeLock()).
+                setFullGCEnabled(config.fullGCEnabled()).
+                setFullGCIncludePaths(config.fullGCIncludePaths()).
+                setFullGCExcludePaths(config.fullGCExcludePaths()).
+                setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
+                setFullGCMode(config.fullGCMode()).
+                setFullGCGeneration(config.fullGCGeneration()).
+                setFullGcMaxAgeMillis(TimeUnit.SECONDS.toMillis(config.fullGcMaxAgeInSecs())).
+                setFullGCBatchSize(config.fullGCBatchSize()).
+                setFullGCProgressSize(config.fullGCProgressSize()).
+                setFullGCDelayFactor(config.fullGCDelayFactor()).
+                setFullGCAuditLoggingEnabled(config.fullGCAuditLoggingEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
+                setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
+                setRecoveryDelayMillis(config.recoveryDelayMillis()).
+                setPerfloggerInfoMillis(config.perfLoggerInfoMillis()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 
                     private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
@@ -502,17 +610,17 @@ public class DocumentNodeStoreService {
                 setJournalGCMaxAge(config.journalGCMaxAge()).
                 setNodeCachePathPredicate(createCachePredicate());
 
-        if (!Strings.isNullOrEmpty(persistentCache)) {
+        if (!StringUtils.isEmpty(persistentCache)) {
             builder.setPersistentCache(persistentCache);
         }
-        if (!Strings.isNullOrEmpty(journalCache)) {
+        if (!StringUtils.isEmpty(journalCache)) {
             builder.setJournalCache(journalCache);
         }
 
         //Set blobstore before setting the document store
         if (customBlobStore && !isWrappingCustomBlobStore()) {
-            checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
-                    "initialized", CUSTOM_BLOB_STORE);
+            requireNonNull(blobStore, String.format("Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
+                    "initialized", CUSTOM_BLOB_STORE));
             builder.setBlobStore(blobStore);
         }
 
@@ -520,6 +628,9 @@ public class DocumentNodeStoreService {
         if (isThrottlingEnabled(builder)) {
             builder.setThrottlingStatsCollector(new ThrottlingStatsCollectorImpl(statisticsProvider));
         }
+
+        // initialize the (global) recoveryDelayMillis
+        ClusterNodeInfo.setRecoveryDelayMillis(builder.getRecoveryDelayMillis());
     }
 
     private boolean isWrappingCustomBlobStore() {
@@ -528,15 +639,15 @@ public class DocumentNodeStoreService {
 
     private Predicate<Path> createCachePredicate() {
         if (config.persistentCacheIncludes().length == 0) {
-            return Predicates.alwaysTrue();
+            return x -> true;
         }
         if (Arrays.equals(config.persistentCacheIncludes(), new String[]{"/"})) {
-            return Predicates.alwaysTrue();
+            return x -> true;
         }
 
         Set<Path> paths = new HashSet<>();
         for (String p : config.persistentCacheIncludes()) {
-            p = p != null ? Strings.emptyToNull(p.trim()) : null;
+            p = p != null ? org.apache.jackrabbit.oak.commons.StringUtils.emptyToNull(p.trim()) : null;
             if (p != null) {
                 paths.add(Path.fromString(p));
             }
@@ -555,7 +666,7 @@ public class DocumentNodeStoreService {
     }
 
     private boolean isNodeStoreProvider() {
-        return !Strings.isNullOrEmpty(config.role());
+        return !StringUtils.isEmpty(config.role());
     }
 
     private boolean isContinuousRevisionGC() {
@@ -568,7 +679,7 @@ public class DocumentNodeStoreService {
     private String getVersionGCExpression() {
         String defaultExpr = CONTINUOUS_RGC_EXPR;
         String expr = config.versionGCExpression();
-        if (Strings.isNullOrEmpty(expr)) {
+        if (StringUtils.isEmpty(expr)) {
             expr = defaultExpr;
         }
         // validate expression
@@ -603,13 +714,8 @@ public class DocumentNodeStoreService {
             journalPropertyHandlerFactory.stop();
         }
 
-        if (prefetchFeature != null) {
-            prefetchFeature.close();
-        }
-
-        if (docStoreThrottlingFeature != null) {
-            docStoreThrottlingFeature.close();
-        }
+        closeFeatures(prefetchFeature, docStoreThrottlingFeature, cancelInvalidationFeature, docStoreFullGCFeature,
+                docStoreEmbeddedVerificationFeature, prevNoPropCacheFeature, docStoreAvoidMergeLockFeature);
 
         unregisterNodeStore();
     }
@@ -713,6 +819,18 @@ public class DocumentNodeStoreService {
         if (nodeStore != null){
             nodeStore.setNodeStateCache(DocumentNodeStateCache.NOOP);
         }
+    }
+
+    /**
+     * Closes the given varargs of features.
+     * <p>
+     * This method iterates over the provided varargs of features and closes each one
+     * that is not null.
+     *
+     * @param features a varargs of {@link Feature} objects to be closed.
+     */
+    private void closeFeatures(@NotNull final Feature... features) {
+        Arrays.stream(features).filter(Objects::nonNull).forEach(Feature::close);
     }
 
     private void unregisterNodeStore() {
@@ -892,7 +1010,7 @@ public class DocumentNodeStoreService {
 
     private String resolvePath(String value, String defaultValue) {
         String path = value;
-        if (Strings.isNullOrEmpty(value)) {
+        if (StringUtils.isEmpty(value)) {
             path = defaultValue;
         }
         if ("-".equals(path)) {
@@ -905,7 +1023,7 @@ public class DocumentNodeStoreService {
 
     private String getRepositoryHome() {
         String repoHome = config.repository_home();
-        if (Strings.isNullOrEmpty(repoHome)) {
+        if (StringUtils.isEmpty(repoHome)) {
             repoHome = DEFAULT_PROP_HOME;
         }
         return repoHome;
@@ -927,7 +1045,7 @@ public class DocumentNodeStoreService {
     }
 
     private static Closeable asCloseable(@NotNull final Registration reg) {
-        checkNotNull(reg);
+        requireNonNull(reg);
         return new Closeable() {
             @Override
             public void close() throws IOException {
@@ -937,7 +1055,7 @@ public class DocumentNodeStoreService {
     }
 
     private static Closeable asCloseable(@NotNull final AbstractServiceTracker t) {
-        checkNotNull(t);
+        requireNonNull(t);
         return new Closeable() {
             @Override
             public void close() throws IOException {
@@ -981,6 +1099,10 @@ public class DocumentNodeStoreService {
                 VersionGCStats s = gc.gc(versionGCMaxAgeInSecs, TimeUnit.SECONDS);
                 stats.addRun(s);
                 lastResult = s.toString();
+                if (s.skippedFullGCDocsCount > 0) {
+                    LOGGER.warn("Version Garbage Collector's FullGC skipped {} documents due to error,"
+                            + " see logs for more details", s.skippedFullGCDocsCount);
+                }
             } catch (Exception e) {
                 lastResult = e;
                 LOGGER.warn("Error occurred while executing the Version Garbage Collector", e);

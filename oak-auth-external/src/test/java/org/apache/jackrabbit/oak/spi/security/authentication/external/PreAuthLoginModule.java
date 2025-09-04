@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
 import org.jetbrains.annotations.NotNull;
@@ -33,7 +32,7 @@ public final class PreAuthLoginModule extends AbstractLoginModule {
     @NotNull
     @Override
     protected Set<Class> getSupportedCredentials() {
-        return ImmutableSet.of(PreAuthCredentials.class);
+        return Set.of(PreAuthCredentials.class);
     }
 
     @Override

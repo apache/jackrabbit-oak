@@ -24,13 +24,15 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.IOException;
+
 public class TemporaryBlobStore extends ExternalResource {
 
     private final TemporaryFolder folder;
 
     private final String name;
 
-    private DataStoreBlobStore store;
+    private volatile DataStoreBlobStore store;
 
     public TemporaryBlobStore(TemporaryFolder folder) {
         this(folder, null);
@@ -41,12 +43,16 @@ public class TemporaryBlobStore extends ExternalResource {
         this.name = name;
     }
 
-    @Override
-    protected void before() throws Throwable {
+    protected void init() throws IOException {
         FileDataStore fds = new FileDataStore();
         configureDataStore(fds);
         fds.init((name == null ? folder.newFolder() : folder.newFolder(name)).getAbsolutePath());
         store = new DataStoreBlobStore(fds);
+    }
+
+    @Override
+    protected void before() throws Throwable {
+        // delay initialisation until the store is accessed
     }
 
     protected void configureDataStore(FileDataStore dataStore) {
@@ -56,14 +62,31 @@ public class TemporaryBlobStore extends ExternalResource {
     @Override
     protected void after() {
         try {
-            store.close();
+            if (store != null) {
+                store.close();
+            }
         } catch (DataStoreException e) {
             throw new IllegalStateException(e);
         }
     }
 
     public BlobStore blobStore() {
-        return store;
+        // We use the local variable so we access the volatile {this.store} only once.
+        // see: https://stackoverflow.com/a/3580658
+        DataStoreBlobStore store = this.store;
+        if (store != null) {
+            return store;
+        }
+        synchronized (this) {
+            if (this.store == null) {
+                try {
+                    init();
+                } catch (IOException e) {
+                    throw new IllegalStateException("Initialisation failed", e);
+                }
+            }
+            return this.store;
+        }
     }
 
 }

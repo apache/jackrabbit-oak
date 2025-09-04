@@ -26,7 +26,6 @@ import javax.jcr.NodeIterator;
 import javax.jcr.query.Query;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -54,7 +53,7 @@ public class UserManagementTest extends AbstractEvaluationTest {
     private final String userId = "testUser2";
     private final String groupId = "testGroup2";
 
-    private List<String> authorizablesToRemove = Lists.newArrayList(userId, groupId);
+    private List<String> authorizablesToRemove = List.of(userId, groupId);
 
     @Override
     protected void setUp() throws Exception {

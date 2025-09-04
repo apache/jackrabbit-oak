@@ -26,7 +26,7 @@ import java.security.spec.KeySpec;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
@@ -35,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Utility to generate and compare password hashes.
@@ -94,7 +94,7 @@ public final class PasswordUtil {
     public static String buildPasswordHash(@NotNull String password,
                                            @Nullable String algorithm,
                                            int saltSize, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        checkNotNull(password);
+        requireNonNull(password);
         if (iterations < NO_ITERATIONS) {
             iterations = DEFAULT_ITERATIONS;
         }
@@ -118,7 +118,7 @@ public final class PasswordUtil {
      */
     public static String buildPasswordHash(@NotNull String password,
                                            @NotNull ConfigurationParameters config) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-        checkNotNull(config);
+        requireNonNull(config);
         String algorithm = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, DEFAULT_ALGORITHM);
         int iterations = config.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, DEFAULT_ITERATIONS);
         int saltSize = config.getConfigValue(UserConstants.PARAM_PASSWORD_SALT_SIZE, DEFAULT_SALT_SIZE);
@@ -216,7 +216,7 @@ public final class PasswordUtil {
                                        @Nullable String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         StringBuilder passwordHash = new StringBuilder();
         passwordHash.append('{').append(algorithm).append('}');
-        if (!Strings.isNullOrEmpty(salt)) {
+        if (!StringUtils.isEmpty(salt)) {
             StringBuilder data = new StringBuilder();
             data.append(salt).append(pwd);
 
@@ -325,7 +325,7 @@ public final class PasswordUtil {
      */
     @Nullable
     private static String extractAlgorithm(@Nullable String hashedPwd) {
-        if (!Strings.isNullOrEmpty(hashedPwd)) {
+        if (!StringUtils.isEmpty(hashedPwd)) {
             int end = hashedPwd.indexOf('}');
             if (hashedPwd.charAt(0) == '{' && end > 0 && end < hashedPwd.length()-1) {
                 String algorithm = hashedPwd.substring(1, end);

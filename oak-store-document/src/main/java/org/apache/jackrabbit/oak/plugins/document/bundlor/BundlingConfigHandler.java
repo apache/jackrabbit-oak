@@ -23,9 +23,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -41,7 +41,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public class BundlingConfigHandler implements Observer, Closeable {
@@ -62,7 +62,7 @@ public class BundlingConfigHandler implements Observer, Closeable {
         public void leave(NodeState before, NodeState after) throws CommitFailedException {
             recreateRegistry(after);
         }
-    }, Iterables.toArray(PathUtils.elements(CONFIG_PATH), String.class));
+    }, IterableUtils.toArray(PathUtils.elements(CONFIG_PATH), String.class));
 
     @Override
     public synchronized void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
@@ -89,7 +89,7 @@ public class BundlingConfigHandler implements Observer, Closeable {
     }
 
     public BackgroundObserverMBean getMBean(){
-        return checkNotNull(backgroundObserver).getMBean();
+        return requireNonNull(backgroundObserver).getMBean();
     }
 
     public boolean isEnabled() {

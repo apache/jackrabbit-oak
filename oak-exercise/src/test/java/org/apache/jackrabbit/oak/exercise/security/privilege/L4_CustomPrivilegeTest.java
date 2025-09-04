@@ -17,19 +17,17 @@
 package org.apache.jackrabbit.oak.exercise.security.privilege;
 
 import java.security.Principal;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -118,15 +116,9 @@ public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
             fail();
         }
 
-        Iterable<String> resultNames = Iterables.transform(Sets.newHashSet(result), new Function<Privilege, String>() {
-            @Nullable
-            @Override
-            public String apply(Privilege input) {
-                return input.toString();
-            }
-        });
+        Set<String> resultNames = Arrays.stream(result).map(Object::toString).collect(Collectors.toCollection(LinkedHashSet::new));
 
-        Iterables.removeAll(resultNames, expectedNames);
+        resultNames.removeAll(expectedNames);
         assertFalse(resultNames.iterator().hasNext());
     }
 
@@ -153,7 +145,7 @@ public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
             // EXERCISE : fix the test case such that the test principals have the specified privileges granted at "/"
 
             Privilege[] testPrivileges = new Privilege[] {customAbstractPriv, customAggrPriv};
-            Set<Principal> testPrincipals = ImmutableSet.of(EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
+            Set<Principal> testPrincipals = Set.of(EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
             boolean hasPrivilege = getAccessControlManager(root).hasPrivileges("/", testPrincipals, testPrivileges);
 
             assertTrue(hasPrivilege);

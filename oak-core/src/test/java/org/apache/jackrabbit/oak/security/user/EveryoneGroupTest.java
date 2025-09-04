@@ -20,13 +20,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 
@@ -105,7 +104,7 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
 
     @Test
     public void testGetMembers() throws Exception {
-        Set<Authorizable> members = ImmutableSet.copyOf(everyoneGroup.getMembers());
+        Set<Authorizable> members = SetUtils.toSet(everyoneGroup.getMembers());
 
         assertFalse(members.contains(everyoneGroup));
         for (Authorizable a : authorizables) {
@@ -115,7 +114,7 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
 
     @Test
     public void testGetDeclaredMembers() throws Exception {
-        Set<Authorizable> members = ImmutableSet.copyOf(everyoneGroup.getDeclaredMembers());
+        Set<Authorizable> members = SetUtils.toSet(everyoneGroup.getDeclaredMembers());
 
         assertFalse(members.contains(everyoneGroup));
         for (Authorizable a : authorizables) {
@@ -137,7 +136,7 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
 
     @Test
     public void testAddMembers() throws Exception {
-        assertEquals(Sets.newHashSet(getTestUser().getID()), everyoneGroup.addMembers(getTestUser().getID()));
+        assertEquals(Set.of(getTestUser().getID()), everyoneGroup.addMembers(getTestUser().getID()));
     }
 
     @Test
@@ -159,7 +158,7 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
 
     @Test
     public void testRemoveMembers() throws Exception {
-        assertEquals(Sets.newHashSet(getTestUser().getID()), everyoneGroup.removeMembers(getTestUser().getID()));
+        assertEquals(Set.of(getTestUser().getID()), everyoneGroup.removeMembers(getTestUser().getID()));
     }
 
     @Test
@@ -177,7 +176,7 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
     @Test
     public void testMemberOfIncludesEveryone() throws Exception {
         for (Authorizable a : authorizables) {
-            Set<Group> groups = ImmutableSet.copyOf(a.memberOf());
+            Set<Group> groups = SetUtils.toSet(a.memberOf());
             assertTrue(groups.contains(everyoneGroup));
         }
     }
@@ -185,7 +184,7 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
     @Test
     public void testDeclaredMemberOfIncludesEveryone() throws Exception {
         for (Authorizable a : authorizables) {
-            Set<Group> groups = ImmutableSet.copyOf(a.declaredMemberOf());
+            Set<Group> groups = SetUtils.toSet(a.declaredMemberOf());
             assertTrue(groups.contains(everyoneGroup));
         }
     }

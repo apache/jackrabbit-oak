@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -32,13 +34,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import ch.qos.logback.classic.Level;
-import org.apache.jackrabbit.guava.common.base.Splitter;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.guava.common.io.Closeables;
+import org.apache.commons.lang3.StringUtils;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
@@ -46,7 +42,10 @@ import com.mongodb.client.MongoCollection;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.GarbageCollectorFileState;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -105,7 +104,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         int number = count;
         int maxDeleted = 5;
         // track the number of the assets to be deleted
-        List<Integer> processed = Lists.newArrayList();
+        List<Integer> processed = new ArrayList<>();
         Random rand = new Random(47);
         for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(number);
@@ -158,8 +157,8 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     }
 
     private class DataStoreState {
-        Set<String> blobsAdded = Sets.newHashSet();
-        Set<String> blobsPresent = Sets.newHashSet();
+        Set<String> blobsAdded = new HashSet<>();
+        Set<String> blobsPresent = new HashSet<>();
     }
     
     private HashSet<String> addInlined() throws Exception {
@@ -177,7 +176,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
     private HashSet<String> addNodeSpecialChars() throws Exception {
         List<String> specialCharSets =
-            Lists.newArrayList("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
+            List.of("q\\%22afdg\\%22", "a\nbcd", "a\n\rabcd", "012\\efg" );
         DocumentNodeStore ds = mk.getNodeStore();
         HashSet<String> set = new HashSet<String>();
         NodeBuilder a = ds.getRoot().builder();
@@ -188,7 +187,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             Iterator<String> idIter =
                 ((GarbageCollectableBlobStore) ds.getBlobStore())
                     .resolveChunks(b.toString());
-            set.addAll(Lists.newArrayList(idIter));
+            set.addAll(ListUtils.toList(idIter));
         }
         ds.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return set;
@@ -206,7 +205,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void gcDirectMongoDelete() throws Exception {
         DataStoreState state = setUp(true);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
 
@@ -237,7 +236,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         state.blobsAdded.addAll(specialCharNodeBlobs);
         state.blobsPresent.addAll(specialCharNodeBlobs);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
     
@@ -245,14 +244,14 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void noGc() throws Exception {
         DataStoreState state = setUp(true);
         Set<String> existingAfterGC = gc(86400);
-        assertTrue(Sets.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsAdded, existingAfterGC).isEmpty());
     }    
 
     @Test
     public void gcVersionDelete() throws Exception {
         DataStoreState state = setUp(false);
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
 
     @Test
@@ -260,7 +259,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         DataStoreState state = setUp(true);
         addInlined();
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
     
     @Test
@@ -268,7 +267,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         DataStoreState state = setUp(false);
         addInlined();
         Set<String> existingAfterGC = gc(0);
-        assertTrue(Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertTrue(SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
     }
     
     @Test
@@ -299,7 +298,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         assertTrue("blobsAdded: " + state.blobsAdded +
                         ", blobsPresent: " + state.blobsPresent +
                         ", existingAfterGC: " + existingAfterGC,
-                Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+                SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
         
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gcObj = init(86400, executor);
@@ -314,12 +313,12 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         
         // Simulate faulty state by deleting some blobs directly
         Random rand = new Random(87);
-        List<String> existing = Lists.newArrayList(state.blobsPresent);
+        List<String> existing = new ArrayList<>(state.blobsPresent);
 
         GarbageCollectableBlobStore store = (GarbageCollectableBlobStore)
                                                 mk.getNodeStore().getBlobStore();
-        long count = store.countDeleteChunks(ImmutableList.of(existing.get(rand.nextInt(existing.size()))), 0);
-    
+        long count = store.countDeleteChunks(List.of(existing.get(rand.nextInt(existing.size()))), 0);
+
         ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
         MarkSweepGarbageCollector gcObj = init(86400, executor);
         long candidates = gcObj.checkConsistency();
@@ -355,8 +354,8 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         Set<String> existingAfterGC = iterate();
         log.info("{} Blobs existing after gc {}", existingAfterGC.size(), existingAfterGC);
     
-        assertTrue(Sets.difference(state.blobsPresent, existingAfterGC).isEmpty());
-        assertEquals(gc.additionalBlobs, Sets.symmetricDifference(state.blobsPresent, existingAfterGC));
+        assertTrue(SetUtils.difference(state.blobsPresent, existingAfterGC).isEmpty());
+        assertEquals(gc.additionalBlobs, SetUtils.symmetricDifference(state.blobsPresent, existingAfterGC));
     }
 
     @Test
@@ -398,26 +397,20 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     }
 
     private static void assertBlobReferences(Set<String> expected, String rootFolder) throws IOException {
-        InputStream is = null;
-        try {
-            is = new FileInputStream(getMarkedFile(rootFolder));
+        try (InputStream is = new FileInputStream(getMarkedFile(rootFolder))) {
             Set<String> records = FileIOUtils.readStringsAsSet(is, true);
             assertEquals(expected, records);
-        } finally {
-            Closeables.close(is, false);
         }
     }
 
     private static void assertBlobReferenceRecords(int expected, String rootFolder) throws IOException {
-        InputStream is = null;
-        try {
-            is = new FileInputStream(getMarkedFile(rootFolder));
+        try (InputStream is = new FileInputStream(getMarkedFile(rootFolder))) {
             Set<String> records = FileIOUtils.readStringsAsSet(is, true);
             for (String rec : records) {
-                assertEquals(expected, Splitter.on(",").omitEmptyStrings().splitToList(rec).size());
+                assertEquals(expected, Arrays.stream(rec.split(","))
+                        .filter(s -> !s.isEmpty())
+                        .count());
             }
-        } finally {
-            Closeables.close(is, false);
         }
     }
 
@@ -454,7 +447,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             repoId = ClusterRepositoryInfo.getOrCreateId(store);
             ((SharedDataStore) store.getBlobStore()).setRepositoryId(repoId);
         }
-        if (Strings.isNullOrEmpty(root)) {
+        if (StringUtils.isEmpty(root)) {
             root = folder.newFolder().getAbsolutePath();
         }
 
@@ -469,7 +462,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 mk.getNodeStore().getBlobStore();
         Iterator<String> cur = store.getAllChunkIds(0);
 
-        Set<String> existing = Sets.newHashSet();
+        Set<String> existing = new HashSet<>();
         while (cur.hasNext()) {
             existing.add(cur.next());
         }
@@ -507,44 +500,38 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
             this.root = root;
             this.blobStore = blobStore;
             this.maxLastModifiedInterval = maxLastModifiedInterval;
-            this.additionalBlobs = Sets.newHashSet();
+            this.additionalBlobs = new HashSet<>();
         }
-        
+
         @Override
         protected void markAndSweep(boolean markOnly, boolean forceBlobRetrieve) throws Exception {
-            boolean threw = true;
-            GarbageCollectorFileState fs = new GarbageCollectorFileState(root);
-            try {
+
+            try (GarbageCollectorFileState fs = new GarbageCollectorFileState(root)) {
                 Stopwatch sw = Stopwatch.createStarted();
                 LOG.info("Starting Test Blob garbage collection");
-                
+
                 // Sleep a little more than the max interval to get over the interval for valid blobs
                 Thread.sleep(maxLastModifiedInterval + 1000);
                 LOG.info("Slept {} to make blobs old", maxLastModifiedInterval + 1000);
-                
+
                 long markStart = System.currentTimeMillis();
                 mark(fs);
                 LOG.info("Mark finished");
-                
+
                 additionalBlobs = createAdditional();
-    
+
                 if (!markOnly) {
                     Thread.sleep(maxLastModifiedInterval + 100);
                     LOG.info("Slept {} to make additional blobs old", maxLastModifiedInterval + 100);
-    
+
                     long deleteCount = sweep(fs, markStart, forceBlobRetrieve);
-                    threw = false;
-            
+
                     LOG.info("Blob garbage collection completed in {}. Number of blobs deleted [{}]", sw.toString(),
                         deleteCount, maxLastModifiedInterval);
                 }
-            } finally {
-                if (!LOG.isTraceEnabled()) {
-                    Closeables.close(fs, threw);
-                }
             }
         }
-    
+
         public HashSet<String> createAdditional() throws Exception {
             HashSet<String> blobSet = new HashSet<String>();
             DocumentNodeStore s = mk.getNodeStore();

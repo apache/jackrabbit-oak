@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -34,9 +32,9 @@ import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.commons.iterator.FrozenNodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.VersionIteratorAdapter;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
@@ -87,13 +85,8 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             @NotNull
             @Override
             public VersionIterator perform() throws RepositoryException {
-                Iterator<Version> versions = transform(dlg.getAllLinearVersions(),
-                        new Function<VersionDelegate, Version>() {
-                            @Override
-                            public Version apply(VersionDelegate input) {
-                                return new VersionImpl(input, sessionContext);
-                            }
-                        });
+                Iterator<Version> versions = IteratorUtils.transform(dlg.getAllLinearVersions(),
+                        input -> new VersionImpl(input, sessionContext));
                 return new VersionIteratorAdapter(sessionDelegate.sync(versions));
             }
         });
@@ -105,13 +98,8 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             @NotNull
             @Override
             public VersionIterator perform() throws RepositoryException {
-                Iterator<Version> versions = transform(dlg.getAllVersions(),
-                        new Function<VersionDelegate, Version>() {
-                    @Override
-                    public Version apply(VersionDelegate input) {
-                        return new VersionImpl(input, sessionContext);
-                    }
-                });
+                Iterator<Version> versions = IteratorUtils.transform(dlg.getAllVersions(),
+                        input -> new VersionImpl(input, sessionContext));
                 return new VersionIteratorAdapter(sessionDelegate.sync(versions));
             }
         });

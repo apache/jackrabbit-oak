@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
 
 public final class MongoDocumentStoreTestHelper {

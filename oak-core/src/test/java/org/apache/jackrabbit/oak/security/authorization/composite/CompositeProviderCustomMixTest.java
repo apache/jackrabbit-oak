@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
@@ -58,15 +58,15 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
     @Test
     public void hasPrivilegesTest() throws Exception {
-        Set<String> supp1 = ImmutableSet.of(JCR_READ, JCR_NAMESPACE_MANAGEMENT);
-        Set<String> supp2 = ImmutableSet.of(JCR_READ, JCR_WRITE);
-        Set<String> all = Sets.union(supp1, supp2);
+        Set<String> supp1 = Set.of(JCR_READ, JCR_NAMESPACE_MANAGEMENT);
+        Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
+        Set<String> all = SetUtils.union(supp1, supp2);
 
         // tests all possible 256 shuffles
         for (CompositionType type : CompositionType.values()) {
-            for (Set<String> granted1 : Sets.powerSet(supp1)) {
-                for (Set<String> granted2 : Sets.powerSet(supp2)) {
-                    for (Set<String> ps : Sets.powerSet(all)) {
+            for (Set<String> granted1 : powerSet(supp1)) {
+                for (Set<String> granted2 : powerSet(supp2)) {
+                    for (Set<String> ps : powerSet(all)) {
                         CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, null);
 
                         boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, true);
@@ -83,16 +83,16 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
     @Test
     public void isGrantedTest() throws Exception {
-        Set<String> supp1 = ImmutableSet.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
-        Set<String> supp2 = ImmutableSet.of(JCR_READ, JCR_WRITE);
-        Set<String> all = Sets.union(supp1, supp2);
+        Set<String> supp1 = Set.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
+        Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
+        Set<String> all = SetUtils.union(supp1, supp2);
 
-        Map<String, Long> grantMap = Maps.newHashMap();
+        Map<String, Long> grantMap = new HashMap<>();
         grantMap.put(JCR_READ, Permissions.READ);
         grantMap.put(JCR_NODE_TYPE_MANAGEMENT, Permissions.NODE_TYPE_MANAGEMENT);
         grantMap.put(JCR_WRITE, Permissions.WRITE);
 
-        Map<String, String> actionMap = Maps.newHashMap();
+        Map<String, String> actionMap = new HashMap<>();
         actionMap.put(JCR_READ, JackrabbitSession.ACTION_READ);
         actionMap.put(JCR_NODE_TYPE_MANAGEMENT, JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT);
         actionMap.put(JCR_WRITE, JackrabbitSession.ACTION_ADD_NODE);
@@ -100,9 +100,9 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         Tree tree = mock(Tree.class, withSettings().extraInterfaces(ReadOnly.class));
         // tests all possible 256 shuffles
         for (CompositionType type : CompositionType.values()) {
-            for (Set<String> granted1 : Sets.powerSet(supp1)) {
-                for (Set<String> granted2 : Sets.powerSet(supp2)) {
-                    for (Set<String> ps : Sets.powerSet(all)) {
+            for (Set<String> granted1 : powerSet(supp1)) {
+                for (Set<String> granted2 : powerSet(supp2)) {
+                    for (Set<String> ps : powerSet(all)) {
                         CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
                         boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
 
@@ -130,20 +130,20 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
     @Test
     public void getRepositoryPermissionTest() throws Exception {
-        Set<String> supp1 = ImmutableSet.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
-        Set<String> supp2 = ImmutableSet.of(JCR_READ, JCR_WRITE);
-        Set<String> all = Sets.union(supp1, supp2);
+        Set<String> supp1 = Set.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
+        Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
+        Set<String> all = SetUtils.union(supp1, supp2);
 
-        Map<String, Long> grantMap = Maps.newHashMap();
+        Map<String, Long> grantMap = new HashMap<>();
         grantMap.put(JCR_READ, Permissions.READ);
         grantMap.put(JCR_NODE_TYPE_MANAGEMENT, Permissions.NODE_TYPE_MANAGEMENT);
         grantMap.put(JCR_WRITE, Permissions.WRITE);
 
         // tests all possible 256 shuffles
         for (CompositionType type : CompositionType.values()) {
-            for (Set<String> granted1 : Sets.powerSet(supp1)) {
-                for (Set<String> granted2 : Sets.powerSet(supp2)) {
-                    for (Set<String> ps : Sets.powerSet(all)) {
+            for (Set<String> granted1 : powerSet(supp1)) {
+                for (Set<String> granted2 : powerSet(supp2)) {
+                    for (Set<String> ps : powerSet(all)) {
                         CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
 
                         boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
@@ -160,20 +160,20 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
     @Test
     public void getTreePermissionTest() throws Exception {
-        Set<String> supp1 = ImmutableSet.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
-        Set<String> supp2 = ImmutableSet.of(JCR_READ, JCR_WRITE);
-        Set<String> all = Sets.union(supp1, supp2);
+        Set<String> supp1 = Set.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
+        Set<String> supp2 = Set.of(JCR_READ, JCR_WRITE);
+        Set<String> all = SetUtils.union(supp1, supp2);
 
-        Map<String, Long> grantMap = Maps.newHashMap();
+        Map<String, Long> grantMap = new HashMap<>();
         grantMap.put(JCR_READ, Permissions.READ);
         grantMap.put(JCR_NODE_TYPE_MANAGEMENT, Permissions.NODE_TYPE_MANAGEMENT);
         grantMap.put(JCR_WRITE, Permissions.WRITE);
 
         // tests all possible 256 shuffles
         for (CompositionType type : CompositionType.values()) {
-            for (Set<String> granted1 : Sets.powerSet(supp1)) {
-                for (Set<String> granted2 : Sets.powerSet(supp2)) {
-                    for (Set<String> ps : Sets.powerSet(all)) {
+            for (Set<String> granted1 : powerSet(supp1)) {
+                for (Set<String> granted2 : powerSet(supp2)) {
+                    for (Set<String> ps : powerSet(all)) {
                         CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
 
                         boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
@@ -217,11 +217,11 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         if (type == CompositionType.OR) {
-            return Sets.difference(Sets.difference(check, granted1), granted2).isEmpty();
+            return SetUtils.difference(SetUtils.difference(check, granted1), granted2).isEmpty();
         } else {
-            Set<String> f1 = Sets.intersection(supported1, check);
+            Set<String> f1 = SetUtils.intersection(supported1, check);
             boolean hasf1 = granted1.containsAll(f1);
-            Set<String> f2 = Sets.intersection(supported2, check);
+            Set<String> f2 = SetUtils.intersection(supported2, check);
             boolean hasf2 = granted2.containsAll(f2);
             return hasf1 && hasf2;
         }
@@ -233,7 +233,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         AggregatedPermissionProvider a2 = new CustomProvider(root, supported2, granted2, grantMap);
 
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
-        List<AggregatedPermissionProvider> composite = ImmutableList.of(a1, a2);
+        List<AggregatedPermissionProvider> composite = List.of(a1, a2);
         return CompositePermissionProvider.create(root, composite, config.getContext(), type, getRootProvider(), getTreeProvider());
     }
 
@@ -270,7 +270,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         @Override
         public boolean hasPrivileges(Tree tree, @NotNull String... privilegeNames) {
-            Set<String> in = Sets.newHashSet(privilegeNames);
+            Set<String> in = SetUtils.toSet(privilegeNames);
             return granted.containsAll(in);
         }
 
@@ -410,5 +410,14 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
             return false;
         }
 
+    }
+
+    private <T> Set<Set<T>> powerSet(final Set<T> s) {
+        final T[] arr = s.toArray((T[]) new Object[0]);
+        return IntStream
+                .range(0, (int) Math.pow(2, arr.length))
+                .parallel() //performance improvement
+                .mapToObj(e -> IntStream.range(0, arr.length).filter(i -> (e & (0b1 << i)) != 0).mapToObj(i -> arr[i]).collect(Collectors.toSet()))
+                .collect(Collectors.toSet());
     }
 }

@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -25,7 +24,9 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -42,13 +43,13 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
@@ -155,7 +156,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Override
     public NodeTypeIterator getAllNodeTypes() throws RepositoryException {
-        List<NodeType> list = Lists.newArrayList();
+        List<NodeType> list = new ArrayList<>();
         Tree types = getTypes();
         NamePathMapper mapper = getNamePathMapper();
         for (Tree type : types.getChildren()) {
@@ -166,7 +167,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Override
     public NodeTypeIterator getPrimaryNodeTypes() throws RepositoryException {
-        List<NodeType> list = Lists.newArrayList();
+        List<NodeType> list = new ArrayList<>();
         NodeTypeIterator iterator = getAllNodeTypes();
         while (iterator.hasNext()) {
             NodeType type = iterator.nextNodeType();
@@ -179,7 +180,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Override
     public NodeTypeIterator getMixinNodeTypes() throws RepositoryException {
-        List<NodeType> list = Lists.newArrayList();
+        List<NodeType> list = new ArrayList<>();
         NodeTypeIterator iterator = getAllNodeTypes();
         while (iterator.hasNext()) {
             NodeType type = iterator.nextNodeType();
@@ -284,7 +285,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     @Override
-    public boolean isNodeType(@Nullable String primaryTypeName, @NotNull Iterable<String> mixinTypes, @NotNull String nodeTypeName) {
+    public boolean isNodeType(@Nullable String primaryTypeName, @NotNull Supplier<Iterable<String>> mixinTypes, @NotNull String nodeTypeName) {
         // shortcut
         if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
             return true;
@@ -293,7 +294,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         if (primaryTypeName != null && isa(types, primaryTypeName, nodeTypeName)) {
             return true;
         }
-        for (String mixin : mixinTypes) {
+        for (String mixin : mixinTypes.get()) {
             if (isa(types, mixin, nodeTypeName)) {
                 return true;
             }
@@ -313,7 +314,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
         PropertyState supertypes = type.getProperty(REP_SUPERTYPES);
         return supertypes != null
-                && contains(supertypes.getValue(Type.NAMES), superName);
+                && IterableUtils.contains(supertypes.getValue(Type.NAMES), superName);
     }
 
     @Override
@@ -378,8 +379,8 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     @Override
     public NodeDefinition getDefinition(@NotNull Tree parent, @NotNull String nodeName)
             throws RepositoryException {
-        checkNotNull(parent);
-        checkNotNull(nodeName);
+        requireNonNull(parent);
+        requireNonNull(nodeName);
         EffectiveNodeType effective = getEffectiveNodeType(parent);
         return effective.getNodeDefinition(nodeName, null);
     }
@@ -388,8 +389,8 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     @Override
     public NodeDefinition getDefinition(@NotNull Tree parent, @NotNull Tree targetNode)
             throws RepositoryException {
-        checkNotNull(parent);
-        checkNotNull(targetNode);
+        requireNonNull(parent);
+        requireNonNull(targetNode);
 
         String name = dropIndexFromName(targetNode.getName());
         EffectiveNodeType eff = getEffectiveNodeType(parent);

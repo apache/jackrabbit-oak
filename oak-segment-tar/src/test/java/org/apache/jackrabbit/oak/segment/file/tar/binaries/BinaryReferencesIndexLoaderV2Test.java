@@ -24,9 +24,9 @@ import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferenc
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.nio.charset.StandardCharsets;
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.junit.Test;
@@ -38,7 +38,7 @@ public class BinaryReferencesIndexLoaderV2Test {
     }
 
     private static byte[] bytes(String s) {
-        return s.getBytes(Charsets.UTF_8);
+        return s.getBytes(StandardCharsets.UTF_8);
     }
 
     private static BinaryReferencesIndex loadIndex(Buffer buffer) throws Exception {

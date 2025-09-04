@@ -20,6 +20,7 @@ import static org.junit.Assume.assumeTrue;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -34,7 +35,7 @@ import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.util.ComponentHolder;
-import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
+import org.apache.jackrabbit.oak.plugins.document.init.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -45,8 +46,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * Abstract base class for repository tests providing methods for accessing
@@ -78,7 +77,7 @@ public abstract class AbstractRepositoryTest {
      * If reuseNodeStore is on, this caches the NodeStore returned by each fixture
      * and they'll be disposed only in @AfterClass instead of @After.
      */
-    private static final Map<NodeStoreFixture, NodeStore> NODE_STORES = Maps.newConcurrentMap();
+    private static final Map<NodeStoreFixture, NodeStore> NODE_STORES = new ConcurrentHashMap<>();
 
     /**
      * Default fixtures based on a list in the system property `nsfixtures`.

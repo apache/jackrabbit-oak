@@ -24,15 +24,14 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
 import org.jetbrains.annotations.NotNull;
-
-import org.apache.jackrabbit.guava.common.base.Objects;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 /**
  * A value map contains the versioned values of a property. The key into this
@@ -65,9 +64,9 @@ class ValueMap {
                     // merge sort local map into maps of previous documents
                     List<Iterator<NodeDocument>> iterators = 
                             new ArrayList<Iterator<NodeDocument>>(2);
-                    iterators.add(Iterators.singletonIterator(doc));
-                    iterators.add(doc.getPreviousDocs(property, null).iterator());                            
-                    docs = Iterators.mergeSorted(iterators, new Comparator<NodeDocument>() {
+                    iterators.add(Collections.singleton(doc).iterator());
+                    iterators.add(doc.getPreviousDocs(property, null).iterator());
+                    docs = IteratorUtils.mergeSorted(iterators, new Comparator<NodeDocument>() {
                                 @Override
                                 public int compare(NodeDocument o1,
                                                    NodeDocument o2) {
@@ -75,10 +74,10 @@ class ValueMap {
                                     Revision r2 = getFirstRevision(o2);
                                     return c.compare(r1, r2);
                                 }
-                            
+
                                 private Revision getFirstRevision(NodeDocument d) {
                                     Map<Revision, String> values;
-                                    if (Objects.equal(d.getId(), doc.getId())) {
+                                    if (Objects.equals(d.getId(), doc.getId())) {
                                         // return local map for main document
                                         values = d.getLocalMap(property);
                                     } else {
@@ -86,7 +85,7 @@ class ValueMap {
                                     }
                                     return values.keySet().iterator().next();
                                 }
-                        
+
                             });
                 }
 
@@ -106,7 +105,7 @@ class ValueMap {
                             return null;
                         }
                         Map<Revision, String> values;
-                        if (Objects.equal(d.getId(), doc.getId())) {
+                        if (Objects.equals(d.getId(), doc.getId())) {
                             // return local map for main document
                             values = d.getLocalMap(property);
                         } else {

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -168,7 +167,7 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(new ValidatorProvider() {
+        return List.of(new ValidatorProvider() {
             @Override
             protected Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
                 // EXERCISE: write a validator that meets the following requirements:
@@ -188,7 +187,7 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         // EXERCISE
-        return ImmutableList.of();
+        return List.of();
     }
 
     @NotNull

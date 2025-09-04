@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copyInputStreamToFile;
 import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRONOUS;
 
@@ -39,6 +39,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.core.data.AbstractDataStore;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -56,11 +58,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 
 /**
@@ -251,7 +248,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             if (blobOptions.getUpload() == SYNCHRONOUS
                 || !cache.stage(identifier.toString(), tmpFile)) {
                 backend.write(identifier, tmpFile);
-                LOG.info("Added blob [{}] to backend", identifier);
+                LOG.debug("Added blob [{}] to backend", identifier);
                 // offer to download cache
                 cache.getDownloadCache().put(identifier.toString(), tmpFile);
 
@@ -276,12 +273,8 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
      */
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-        return Iterators.concat(Iterators.transform(cache.getStagingCache().getAllIdentifiers(),
-            new Function<String, DataIdentifier>() {
-                @Nullable @Override public DataIdentifier apply(@Nullable String id) {
-                    return new DataIdentifier(id);
-                }
-            }), backend.getAllIdentifiers());
+        return IteratorUtils.chainedIterator(IteratorUtils.transform(cache.getStagingCache().getAllIdentifiers(),
+            id -> new DataIdentifier(id)), backend.getAllIdentifiers());
     }
 
     @Override
@@ -333,15 +326,11 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             try {
                 // If cache configured to 0 will return null
                 if (cached == null || !cached.exists()) {
-                    InputStream in = null;
-                    try {
-                        TransientFileFactory fileFactory = TransientFileFactory.getInstance();
-                        File tmpFile = fileFactory.createTransientFile("temp0cache", null, temp);
-                        in = backend.getRecord(getIdentifier()).getStream();
+                    TransientFileFactory fileFactory = TransientFileFactory.getInstance();
+                    File tmpFile = fileFactory.createTransientFile("temp0cache", null, temp);
+                    try (InputStream in = backend.getRecord(getIdentifier()).getStream()) {
                         copyInputStreamToFile(in, tmpFile);
                         return new LazyFileInputStream(tmpFile);
-                    } finally {
-                        Closeables.close(in, false);
                     }
                 } else {
                     return new FileInputStream(cached);
@@ -379,7 +368,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     }
 
     public List<DataStoreCacheStatsMBean> getStats() {
-        return ImmutableList.of(cache.getCacheStats(), cache.getStagingCacheStats());
+        return List.of(cache.getCacheStats(), cache.getStagingCacheStats());
     }
 
     protected CompositeDataStoreCache getCache() {

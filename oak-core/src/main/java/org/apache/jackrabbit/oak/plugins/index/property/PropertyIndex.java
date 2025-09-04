@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
@@ -24,6 +23,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexSelectionPolicy;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -36,8 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-
 /**
  * Provides a QueryIndex that does lookups against a property index
  *
@@ -46,25 +45,22 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
  * <br>
  * Next (as a child node) follows the index definition node that:
  * <ul>
- * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
- * <li>must have the <code>type</code> property set to <b><code>property</code></b></li>
- * <li>contains the <code>propertyNames</code> property that indicates what property will be stored in the index</li>
+ * <li>must be of type <code>oak:QueryIndexDefinition</code>
+ * <li>must have the <code>type</code> property set to <b><code>property</code></b>
+ * <li>contains the <code>propertyNames</code> property that indicates what property will be stored in the index
  * </ul>
- * </p>
  * <p>
  * Optionally you can specify
  * <ul> 
- * <li> a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code></li>
- * <li> that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property</li>
+ * <li> a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code>
+ * <li> that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property
  * </ul>
- * </p>
  * <p>
  * Notes:
  * <ul>
- * <li> <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value</li>
- * <li> <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.</li>
+ * <li> <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
+ * <li> <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.
  * </ul>
- * </p>
  * 
  * <pre>
  * <code>
@@ -216,7 +212,7 @@ class PropertyIndex implements QueryIndex {
     private static String[] getOptionalStrings(NodeState defn, String propertyName) {
         PropertyState ps = defn.getProperty(propertyName);
         if (ps != null) {
-            return Iterables.toArray(ps.getValue(Type.STRINGS), String.class);
+            return IterableUtils.toArray(ps.getValue(Type.STRINGS), String.class);
         }
         return null;
     }
@@ -264,7 +260,7 @@ class PropertyIndex implements QueryIndex {
     @Override
     public Cursor query(Filter filter, NodeState root) {
         PropertyIndexPlan plan = getPlan(root, filter);
-        checkState(plan != null,
+        Validate.checkState(plan != null,
                 "Property index is used even when no index"
                 + " is available for filter " + filter);
         return plan.execute();

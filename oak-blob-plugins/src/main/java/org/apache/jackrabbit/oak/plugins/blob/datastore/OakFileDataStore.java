@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.File;
@@ -24,20 +23,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.io.BaseEncoding;
-import org.apache.jackrabbit.guava.common.io.Closeables;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -51,7 +46,7 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
 
 /**
@@ -95,7 +90,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
      * Set Base64 encoded signing key
      */
     public void setReferenceKeyEncoded(String encodedKey) {
-        this.referenceKey = BaseEncoding.base64().decode(encodedKey);
+        this.referenceKey = Base64.getDecoder().decode(encodedKey);
     }
 
     /**
@@ -111,7 +106,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
      * @see org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)
      */
     public void setReferenceKeyPlainText(String textKey) {
-        this.referenceKey = textKey.getBytes(Charsets.UTF_8);
+        this.referenceKey = textKey.getBytes(StandardCharsets.UTF_8);
     }
 
     public void setReferenceKey(byte[] referenceKey) {
@@ -139,16 +134,12 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     public void addMetadataRecord(InputStream input, String name)
             throws DataStoreException {
         checkArgument(input != null, "input should not be null");
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         try {
             File file = new File(getPath(), name);
-            FileOutputStream os = new FileOutputStream(file);
-            try {
+            try (input; FileOutputStream os = new FileOutputStream(file)) {
                 IOUtils.copyLarge(input, os);
-            } finally {
-                Closeables.close(os, true);
-                Closeables.close(input, true);
             }
         } catch (IOException e) {
             LOG.error("Exception while adding metadata record with name {}, {}",
@@ -160,7 +151,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     @Override
     public void addMetadataRecord(File input, String name) throws DataStoreException {
         checkArgument(input != null, "input should not be null");
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         try {
             File file = new File(getPath(), name);
@@ -174,7 +165,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public DataRecord getMetadataRecord(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         File root = new File(getPath());
         for (File file : FileFilterUtils.filter(FileFilterUtils.nameFileFilter(name), root.listFiles())) {
@@ -187,7 +178,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public boolean metadataRecordExists(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         File root = new File(getPath());
 
@@ -225,7 +216,7 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
 
     @Override
     public boolean deleteMetadataRecord(String name) {
-        checkArgument(!Strings.isNullOrEmpty(name), "name should not be empty");
+        checkArgument(!StringUtils.isEmpty(name), "name should not be empty");
 
         File root = new File(getPath());
 

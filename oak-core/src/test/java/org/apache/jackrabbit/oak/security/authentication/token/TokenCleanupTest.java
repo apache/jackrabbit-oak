@@ -18,7 +18,8 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import java.util.Map;
+
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
@@ -50,7 +51,7 @@ public class TokenCleanupTest extends AbstractTokenTest {
 
     private void createExpiredTokens(int numberOfTokens) {
         for (int i = 0; i < numberOfTokens; i++) {
-            TokenInfo tokenInfo = tokenProvider.createToken(userId, ImmutableMap.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 2));
+            TokenInfo tokenInfo = tokenProvider.createToken(userId, Map.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 2));
             // wait until the info created has expired
             if (tokenInfo != null) {
                 waitUntilExpired(tokenInfo);
@@ -86,7 +87,7 @@ public class TokenCleanupTest extends AbstractTokenTest {
     @Test
     public void testNotExpiredReachingThreshold() throws Exception {
         for (int i = 0; i < 10; i++) {
-            tokenProvider.createToken(userId, ImmutableMap.of());
+            tokenProvider.createToken(userId, Map.of());
         }
         assertTokenNodes(10);
     }

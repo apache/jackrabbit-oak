@@ -30,9 +30,9 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
+import java.util.HashSet;
 import java.util.Set;
 
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -138,7 +138,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
         QueryResult result = queryManager.createQuery(query, Query.JCR_SQL2).execute();
         RowIterator rows = result.getRows();
 
-        Set<String> suggestions = newHashSet();
+        Set<String> suggestions = new HashSet<>();
         while (rows.hasNext()) {
             suggestions.add(rows.nextRow().getValue("suggestion").getString());
         }
@@ -163,7 +163,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
     public void noDescendantSuggestsAll() {
         validateSuggestions(
                 createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", null),
-                newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
+                Set.of("test1", "test2", "test3", "test4", "test5", "test6"));
     }
 
     //OAK-3994
@@ -171,7 +171,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
     public void rootIndexWithDescendantConstraint() {
         validateSuggestions(
                 createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1"),
-                newHashSet("test2", "test3"));
+                Set.of("test2", "test3"));
     }
 
     @Ignore("OAK-3992")
@@ -187,7 +187,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
         String explanation = rows.nextRow().toString();
         assertTrue("Subtree index should get picked", explanation.contains("lucene:sugg-idx(/content2/oak:index/sugg-idx)"));
 
-        validateSuggestions(query, newHashSet("test4"));
+        validateSuggestions(query, Set.of("test4"));
     }
 
     //OAK-3994
@@ -195,7 +195,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
     public void unambiguousSubtreeIndexWithDescendantConstraint() {
         validateSuggestions(
                 createSuggestQuery(NT_BASE, "te", "/content3"),
-                newHashSet("test5", "test6"));
+                Set.of("test5", "test6"));
     }
 
     //OAK-3994
@@ -203,7 +203,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
     public void unambiguousSubtreeIndexWithSubDescendantConstraint() {
         validateSuggestions(
                 createSuggestQuery(NT_BASE, "te", "/content3/sC"),
-                newHashSet("test6"));
+                Set.of("test6"));
     }
 
     @Ignore("OAK-3993")
@@ -213,7 +213,7 @@ public abstract class IndexDescendantSuggestionCommonTest extends AbstractJcrTes
                 createSuggestQuery(NT_OAK_UNSTRUCTURED, "te", "/content1") +
                         " UNION " +
                         createSuggestQuery(NT_BASE, "te", "/content3"),
-                newHashSet("test2", "test3", "test5"));
+                Set.of("test2", "test3", "test5"));
     }
 
     private static void assertEventually(Runnable r) {

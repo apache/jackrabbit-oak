@@ -23,10 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -35,6 +31,7 @@ import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -79,7 +76,7 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
             root.commit();
 
             Principal ep = principalProvider.getPrincipal(EveryonePrincipal.NAME);
-            Set<? extends Principal> everyoneMembers = ImmutableSet.copyOf(Collections.list(((GroupPrincipal) ep).members()));
+            Set<? extends Principal> everyoneMembers = Set.copyOf(Collections.list(((GroupPrincipal) ep).members()));
 
             Iterator<? extends Principal> all = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
             while (all.hasNext()) {
@@ -103,11 +100,11 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
     public void testGetGroupMembershipNonGroupPrincipal() throws Exception {
         // Group.getPrincipal doesn't return a GroupPrincipal
         Group gr = when(mock(Group.class).getPrincipal()).thenReturn(new PrincipalImpl("group")).getMock();
-        Authorizable mockAuthorizable = when(mock(User.class).memberOf()).thenReturn(Iterators.singletonIterator(gr)).getMock();
+        Authorizable mockAuthorizable = when(mock(User.class).memberOf()).thenReturn(Collections.singleton(gr).iterator()).getMock();
         UserManager umMock = when(mock(UserManager.class).getAuthorizable(any(Principal.class))).thenReturn(mockAuthorizable).getMock();
 
         Set<Principal> membership = createPrincipalProvider(umMock).getMembershipPrincipals(new PrincipalImpl("userPrincipal"));
-        assertEquals(ImmutableSet.of(EveryonePrincipal.getInstance()), membership);
+        assertEquals(Set.of(EveryonePrincipal.getInstance()), membership);
     }
 
     @Test
@@ -131,19 +128,19 @@ public class PrincipalProviderImplTest extends AbstractPrincipalProviderTest {
         assertFalse(result.hasNext());
 
         result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(EveryonePrincipal.getInstance()), result));
+        assertTrue(IteratorUtils.elementsEqual(Collections.singleton(EveryonePrincipal.getInstance()).iterator(), result));
     }
 
     @Test
     public void testFindWithUnexpectedNullPrincipal() throws Exception {
         Authorizable userMock = when(mock(Authorizable.class).getPrincipal()).thenReturn(null).getMock();
         UserManager umMock = mock(UserManager.class);
-        when(umMock.findAuthorizables(any(Query.class))).thenReturn(Iterators.singletonIterator(userMock));
+        when(umMock.findAuthorizables(any(Query.class))).thenReturn(Collections.singleton(userMock).iterator());
 
         Iterator<? extends Principal> result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertFalse(result.hasNext());
 
         result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
-        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(EveryonePrincipal.getInstance()), result));
+        assertTrue(IteratorUtils.elementsEqual(Collections.singleton(EveryonePrincipal.getInstance()).iterator(), result));
     }
 }

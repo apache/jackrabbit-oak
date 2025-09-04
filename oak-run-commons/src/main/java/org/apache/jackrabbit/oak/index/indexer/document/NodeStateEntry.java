@@ -30,7 +30,7 @@ public class NodeStateEntry {
     private final long lastModified;
     private final String id;
 
-    private NodeStateEntry(NodeState nodeState, String path, long memUsage, long lastModified, String id) {
+    public NodeStateEntry(NodeState nodeState, String path, long memUsage, long lastModified, String id) {
         this.nodeState = nodeState;
         this.path = path;
         this.memUsage = memUsage;

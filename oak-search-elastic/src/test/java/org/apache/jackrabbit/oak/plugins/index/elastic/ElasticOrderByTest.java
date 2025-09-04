@@ -23,8 +23,7 @@ import org.junit.ClassRule;
 public class ElasticOrderByTest extends OrderByCommonTest {
 
     @ClassRule
-    public static final ElasticConnectionRule elasticRule =
-            new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule();
 
     public ElasticOrderByTest() {
         indexOptions = new ElasticIndexOptions();

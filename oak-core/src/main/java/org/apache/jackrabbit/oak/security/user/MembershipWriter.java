@@ -16,22 +16,21 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.jetbrains.annotations.NotNull;
-
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 
@@ -59,7 +58,7 @@ public class MembershipWriter {
      * @return {@code true} if the member was added
      */
     boolean addMember(@NotNull Tree groupTree, @NotNull String memberContentId) {
-        Map<String, String> m = Maps.newHashMapWithExpectedSize(1);
+        Map<String, String> m = new HashMap<>(1);
         m.put(memberContentId, "-");
         return addMembers(groupTree, m).isEmpty();
     }
@@ -75,8 +74,8 @@ public class MembershipWriter {
     Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         // check all possible rep:members properties for the new member and also find the one with the least values
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
-        Iterator<Tree> trees = Iterators.concat(
-                Iterators.singletonIterator(groupTree),
+        Iterator<Tree> trees = IteratorUtils.chainedIterator(
+                Collections.singleton(groupTree).iterator(),
                 membersList.getChildren().iterator()
         );
 
@@ -189,7 +188,7 @@ public class MembershipWriter {
      * @return {@code true} if the member was removed.
      */
     boolean removeMember(@NotNull Tree groupTree, @NotNull String memberContentId) {
-        Map<String, String> m = Maps.newHashMapWithExpectedSize(1);
+        Map<String, String> m = new HashMap<>(1);
         m.put(memberContentId, "-");
         return removeMembers(groupTree, m).isEmpty();
     }
@@ -204,8 +203,8 @@ public class MembershipWriter {
     @NotNull
     Set<String> removeMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
-        Iterator<Tree> trees = Iterators.concat(
-                Iterators.singletonIterator(groupTree),
+        Iterator<Tree> trees = IteratorUtils.chainedIterator(
+                Collections.singleton(groupTree).iterator(),
                 membersList.getChildren().iterator()
         );
         while (trees.hasNext() && !memberIds.isEmpty()) {
@@ -232,6 +231,6 @@ public class MembershipWriter {
                 }
             }
         }
-        return Sets.newHashSet(memberIds.values());
+        return new HashSet<>(memberIds.values());
     }
 }

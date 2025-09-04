@@ -207,7 +207,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)";
-        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), true));
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), false));
     }
 
     // Check if this is a valid behaviour or not ?
@@ -216,7 +216,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     @Test
     public void descendantTestWithIndexTagExplainWithNoData() {
         String query = "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)";
-        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), true));
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), false));
     }
 
     @Test
@@ -403,12 +403,14 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         test.addChild("c").setProperty("text", "He said Hi.");
         root.commit();
         assertEventually(() -> {
-            Iterator<String> result = executeQuery(nativeQueryString, Query.JCR_SQL2).iterator();
+            Iterator<String> result = executeQuery(nativeQueryString, Query.JCR_SQL2, false, true).iterator();
             assertTrue(result.hasNext());
             assertEquals("/test/a", result.next());
             assertTrue(result.hasNext());
             assertEquals("/test/b", result.next());
-            assertFalse(result.hasNext());
+            while (result.hasNext()) {
+                assertNotEquals("/test/c", result.next());
+            }
         });
         assertNotEquals(0, logCustomizer.getLogs().size());
         assertTrue("native query WARN message is not present, message in Logger is "
@@ -823,7 +825,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             }
             ResultRow row = result.getRows().iterator().next();
             if (matchComplete) {
-                assertEquals(row.getValue("plan").toString(), expected);
+                assertEquals(expected, row.getValue("plan").toString());
             } else {
                 assertTrue(row.getValue("plan").toString().contains(expected));
             }

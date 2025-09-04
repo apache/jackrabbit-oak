@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static java.lang.Double.POSITIVE_INFINITY;
 import static javax.jcr.PropertyType.REFERENCE;
 import static javax.jcr.PropertyType.WEAKREFERENCE;
@@ -34,8 +32,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -44,11 +44,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Provides a QueryIndex that does lookups for node references based on a custom
@@ -99,7 +94,7 @@ class ReferenceIndex implements QueryIndex {
         // not an appropriate index
         return POSITIVE_INFINITY;
     }
-    
+
     private static boolean isEqualityRestrictionOnType(PropertyRestriction pr, int propertyType) {
         if (pr.propertyType != propertyType) {
             return false;
@@ -131,27 +126,17 @@ class ReferenceIndex implements QueryIndex {
         if (!indexRoot.exists()) {
             return newPathCursor(new ArrayList<String>(), filter.getQueryLimits());
         }
-        List<Iterable<String>> iterables = Lists.newArrayList();
+        List<Iterable<String>> iterables = new ArrayList<>();
         for (IndexStoreStrategy s : getStrategies(indexRoot, mountInfoProvider, index)) {
             iterables.add(s.query(filter, index + "("
-                    + uuid + ")", indexRoot, ImmutableSet.of(uuid)));
+                    + uuid + ")", indexRoot, Set.of(uuid)));
         }
-        Iterable<String> paths = Iterables.concat(iterables);
+        Iterable<String> paths = IterableUtils.chainedIterable(iterables);
 
         if (!"*".equals(name)) {
-            paths = filter(paths, new Predicate<String>() {
-                @Override
-                public boolean apply(String path) {
-                    return name.equals(getName(path));
-                }
-            });
+            paths = IterableUtils.filter(paths, path -> name.equals(getName(path)));
         }
-        paths = transform(paths, new Function<String, String>() {
-            @Override
-            public String apply(String path) {
-                return getParentPath(path);
-            }
-        });
+        paths = IterableUtils.transform(paths, path -> getParentPath(path));
         return newPathCursor(paths, filter.getQueryLimits());
     }
 
@@ -163,23 +148,25 @@ class ReferenceIndex implements QueryIndex {
 
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        StringBuilder buff = new StringBuilder("reference");
+        StringBuilder buff = new StringBuilder();
+        buff.append("reference\n");
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             if (pr.propertyType == REFERENCE) {
-                buff.append(" PROPERTY([");
+                buff.append("    on: property([");
                 buff.append(pr.propertyName);
                 buff.append("], 'Reference') = ");
-                buff.append(pr.first.getValue(STRING));
-                return buff.toString();
+                buff.append(SQL2Parser.escapeStringLiteral(pr.first.getValue(STRING)));
+                break;
             }
             if (pr.propertyType == WEAKREFERENCE) {
-                buff.append(" PROPERTY([");
+                buff.append("    on: property([");
                 buff.append(pr.propertyName);
                 buff.append("], 'WeakReference') = ");
-                buff.append(pr.first.getValue(STRING));
-                return buff.toString();
+                buff.append(SQL2Parser.escapeStringLiteral(pr.first.getValue(STRING)));
+                break;
             }
         }
+        buff.append("\n");
         return buff.toString();
     }
 

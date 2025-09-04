@@ -30,7 +30,6 @@ import java.util.List;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -60,7 +59,7 @@ public class OrderedPropertyIndexEditorProviderTest {
     private NodeBuilder createIndexDef(NodeBuilder root) throws RepositoryException {
         return IndexUtils.createIndexDefinition(
             root.child(IndexConstants.INDEX_DEFINITIONS_NAME), indexName, false,
-            ImmutableList.of(indexedProperty), null, OrderedIndex.TYPE, null);
+            List.of(indexedProperty), null, OrderedIndex.TYPE, null);
     }
     
     @Test

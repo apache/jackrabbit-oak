@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
@@ -168,7 +167,7 @@ public class UserManagerImplActionsTest extends AbstractUserTest {
         gr1.removeMembers("memberId1");
 
         verify(((GroupAction) action)).onMemberAdded(gr1, testUser, root, getNamePathMapper());
-        verify(((GroupAction) action)).onMembersAdded(gr1, ImmutableSet.of("memberId1", "memberId2"), Collections.singleton(gr1.getID()), root, getNamePathMapper());
+        verify(((GroupAction) action)).onMembersAdded(gr1, Set.of("memberId1", "memberId2"), Collections.singleton(gr1.getID()), root, getNamePathMapper());
         verify(((GroupAction) action), never()).onMembersAddedContentId(any(Group.class), any(Iterable.class), any(Iterable.class), any(Root.class), any(NamePathMapper.class));
 
         verify(((GroupAction) action)).onMemberRemoved(gr1, testUser, root, getNamePathMapper());
@@ -178,7 +177,7 @@ public class UserManagerImplActionsTest extends AbstractUserTest {
     @Test
     public void testOnMembersAddedByContentId() throws Exception {
         Group testGroup = mock(Group.class);
-        Set<String> membersIds = ImmutableSet.of(UUIDUtils.generateUUID());
+        Set<String> membersIds = Set.of(UUIDUtils.generateUUID());
 
         userMgr.onGroupUpdate(testGroup, false, true, membersIds, Collections.emptySet());
         verify(((GroupAction) action), times(1)).onMembersAddedContentId(testGroup, membersIds, Collections.emptySet(), root, getNamePathMapper());

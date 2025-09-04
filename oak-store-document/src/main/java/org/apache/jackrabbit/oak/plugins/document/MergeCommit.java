@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedSet;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -30,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
 class MergeCommit extends Commit {
 
     private final SortedSet<Revision> mergeRevs;
-    private final Set<Revision> branchCommits = Sets.newHashSet();
+    private final Set<Revision> branchCommits = new HashSet<>();
 
     MergeCommit(DocumentNodeStore nodeStore,
                 RevisionVector baseRevision,

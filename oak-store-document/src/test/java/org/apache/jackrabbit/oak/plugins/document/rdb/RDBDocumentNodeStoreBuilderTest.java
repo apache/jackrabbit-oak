@@ -16,13 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.junit.Test;
 
 public class RDBDocumentNodeStoreBuilderTest {
@@ -53,5 +60,95 @@ public class RDBDocumentNodeStoreBuilderTest {
             fail("should not get here");
         } catch (DocumentStoreException expected) {
         }
+    }
+
+    @Test
+    public void fullGCDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCEnabled(true);
+        assertFalse(builder.isFullGCEnabled());
+    }
+
+    @Test
+    public void avoidMergeLockDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setAvoidMergeLock(true);
+        assertFalse(builder.avoidMergeLock());
+    }
+
+    @Test
+    public void fullGCIncludePathsEmpty() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCIncludePaths(new String[] {"/foo"});
+        assertTrue(builder.getFullGCIncludePaths().isEmpty());
+    }
+
+    @Test
+    public void fullGCExcludePathsEmpty() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCExcludePaths(new String[] {"/foo"});
+        assertTrue(builder.getFullGCExcludePaths().isEmpty());
+    }
+
+    @Test
+    public void fullFGCFeatureToggleDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        Feature docStoreFullGCFeature = mock(Feature.class);
+        when(docStoreFullGCFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
+        assertNull(builder.getDocStoreFullGCFeature());
+    }
+
+    @Test
+    public void embeddedVerificationDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setEmbeddedVerificationEnabled(true);
+        assertFalse(builder.isEmbeddedVerificationEnabled());
+    }
+
+    @Test
+    public void embeddedVerificationFeatureToggleDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        Feature embeddedVerificationFeature = mock(Feature.class);
+        when(embeddedVerificationFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreEmbeddedVerificationFeature(embeddedVerificationFeature);
+        assertNull(builder.getDocStoreEmbeddedVerificationFeature());
+    }
+
+    @Test
+    public void avoidMergeLockFeatureToggleDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        Feature avoidMergeLockFeature = mock(Feature.class);
+        when(avoidMergeLockFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreAvoidMergeLockFeature(avoidMergeLockFeature);
+        assertNull(builder.getDocStoreAvoidMergeLockFeature());
+    }
+
+    @Test
+    public void fullGCModeHasDefaultValue() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCMode(3);
+        assertEquals(0, builder.getFullGCMode());
+    }
+
+    @Test
+    public void fullGCGenerationHasDefaultValue() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCGeneration(3);
+        assertEquals(0, builder.getFullGCGeneration());
+    }
+
+    @Test
+    public void fullGcMaxAgeInSecsHasDefaultValue() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGcMaxAgeMillis(30 * 24 * 60 * 60 * 1000L);
+        assertEquals(0, builder.getFullGcMaxAgeMillis());
+    }
+
+    @Test
+    public void fullGcAuditLoggingEnabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setFullGCAuditLoggingEnabled(true);
+        assertFalse(builder.isFullGCAuditLoggingEnabled());
     }
 }

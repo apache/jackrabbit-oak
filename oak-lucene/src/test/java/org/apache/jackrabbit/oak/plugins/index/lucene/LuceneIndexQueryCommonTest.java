@@ -34,7 +34,7 @@ import java.util.concurrent.Executors;
  */
 public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
 
-    private ExecutorService executorService = Executors.newFixedThreadPool(2);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -79,7 +79,6 @@ public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
 
     @Override
     public String getExplainValueForDescendantTestWithIndexTagExplain() {
-        return "[nt:base] as [nt:base] /* lucene:test-index(/oak:index/test-index) :ancestors:/test" +
-                " where isdescendantnode([nt:base], [/test]) */";
+        return ":ancestors:/test";
     }
 }

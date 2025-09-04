@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -46,9 +44,9 @@ import java.util.Set;
  * The implementation delegates to the decorated node-state instance and
  * filters out hidden node-states in the following methods:
  * <ul>
- *     <li>{@link #exists()}</li>
- *     <li>{@link #hasChildNode(String)}</li>
- *     <li>{@link #getChildNodeEntries()}</li>
+ *     <li>{@link #exists()}
+ *     <li>{@link #hasChildNode(String)}
+ *     <li>{@link #getChildNodeEntries()}
  * </ul>
  * When <b>referenceableFrozenNodes</b> is set to {@code false}, then the
  * implementation will hide the {@code jcr:uuid} property on
@@ -57,15 +55,15 @@ import java.util.Set;
  * Additionally, hidden node-state names are removed from the property
  * {@code :childOrder} in the following two methods:
  * <ul>
- *     <li>{@link #getProperties()}</li>
- *     <li>{@link #getProperty(String)}</li>
+ *     <li>{@link #getProperties()}
+ *     <li>{@link #getProperty(String)}
  * </ul>
  */
 public class FilteringNodeState extends AbstractDecoratedNodeState {
 
-    public static final Set<String> ALL = ImmutableSet.of("/");
+    public static final Set<String> ALL = Set.of("/");
 
-    public static final Set<String> NONE = ImmutableSet.of();
+    public static final Set<String> NONE = Set.of();
 
     private final String path;
 

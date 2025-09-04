@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Set;
 
@@ -35,8 +35,8 @@ class FailedWithConflictException extends CommitFailedException {
     FailedWithConflictException(@NotNull Set<Revision> conflictRevisions,
                                 @NotNull String message,
                                 @NotNull Throwable cause) {
-        super(OAK, MERGE, 4, checkNotNull(message), checkNotNull(cause));
-        this.conflictRevisions = checkNotNull(conflictRevisions);
+        super(OAK, MERGE, 4, requireNonNull(message), requireNonNull(cause));
+        this.conflictRevisions = requireNonNull(conflictRevisions);
     }
 
     /**

@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -40,8 +41,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -230,7 +229,7 @@ public class CommitQueueTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                queue.suspendUntilAll(union(of(newHeadRev), revisions));
+                queue.suspendUntilAll(SetUtils.union(Set.of(newHeadRev), revisions));
             }
         });
         t.start();
@@ -278,7 +277,7 @@ public class CommitQueueTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                queue.suspendUntilAll(of(r));
+                queue.suspendUntilAll(Set.of(r));
             }
         });
         t.start();

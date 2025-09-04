@@ -17,10 +17,8 @@
 
 package org.apache.jackrabbit.oak.segment.tool;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.Sets.difference;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
+import static java.util.Objects.requireNonNull;
 import static java.util.Collections.emptySet;
 import static org.apache.commons.io.FileUtils.sizeOfDirectory;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -32,11 +30,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
@@ -78,7 +79,11 @@ public class Compact {
 
         private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
 
-        private CompactorType compactorType = CompactorType.CHECKPOINT_COMPACTOR;
+        private GCType gcType = GCType.FULL;
+
+        private CompactorType compactorType = CompactorType.PARALLEL_COMPACTOR;
+
+        private int concurrency = 1;
 
         private Builder() {
             // Prevent external instantiation.
@@ -91,7 +96,7 @@ public class Compact {
          * @return this builder.
          */
         public Builder withPath(File path) {
-            this.path = checkNotNull(path);
+            this.path = requireNonNull(path);
             return this;
         }
 
@@ -117,7 +122,7 @@ public class Compact {
          * @return this builder.
          */
         public Builder withOs(String os) {
-            this.os = checkNotNull(os);
+            this.os = requireNonNull(os);
             return this;
         }
 
@@ -163,8 +168,18 @@ public class Compact {
         }
 
         /**
+         * The garbage collection type used. If not specified it defaults to full compaction
+         * @param gcType the GC type
+         * @return this builder
+         */
+        public Builder withGCType(GCType gcType) {
+            this.gcType = gcType;
+            return this;
+        }
+
+        /**
          * The compactor type to be used by compaction. If not specified it defaults to
-         * "diff" compactor
+         * "parallel" compactor
          * @param compactorType the compactor type
          * @return this builder
          */
@@ -174,12 +189,22 @@ public class Compact {
         }
 
         /**
+         * The number of threads to be used for compaction. This only applies to the "parallel" compactor
+         * @param concurrency the number of threads
+         * @return this builder
+         */
+        public Builder withConcurrency(int concurrency) {
+            this.concurrency = concurrency;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Compact} command.
          *
          * @return an instance of {@link Runnable}.
          */
         public Compact build() {
-            checkNotNull(path);
+            requireNonNull(path);
             return new Compact(this);
         }
 
@@ -224,7 +249,7 @@ public class Compact {
         if (files == null) {
             return emptySet();
         }
-        return newHashSet(files);
+        return SetUtils.toSet(files);
     }
 
     private static void printFiles(PrintStream s, Set<File> files) {
@@ -238,7 +263,7 @@ public class Compact {
     }
 
     private static Set<String> fileNames(Set<File> files) {
-        Set<String> names = newHashSet();
+        Set<String> names = new HashSet<>();
         for (File f : files) {
             names.add(f.getName());
         }
@@ -265,7 +290,11 @@ public class Compact {
 
     private final long gcLogInterval;
 
+    private final GCType gcType;
+
     private final CompactorType compactorType;
+
+    private final int concurrency;
 
     private Compact(Builder builder) {
         this.path = builder.path;
@@ -274,7 +303,9 @@ public class Compact {
         this.segmentCacheSize = builder.segmentCacheSize;
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
+        this.gcType = builder.gcType;
         this.compactorType = builder.compactorType;
+        this.concurrency = builder.concurrency;
     }
 
     public int run() {
@@ -288,7 +319,17 @@ public class Compact {
         Stopwatch watch = Stopwatch.createStarted();
 
         try (FileStore store = newFileStore()) {
-            if (!store.compactFull()) {
+            boolean success = false;
+            switch (gcType) {
+                case FULL:
+                    success = store.compactFull();
+                    break;
+                case TAIL:
+                    success = store.compactTail();
+                    break;
+            }
+
+            if (!success) {
                 System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
                 return 1;
             }
@@ -317,8 +358,8 @@ public class Compact {
         Set<File> afterFiles = listFiles(path);
         printFiles(System.out, afterFiles);
         System.out.printf("    size %s\n", printableSize(sizeOfDirectory(path)));
-        System.out.printf("    removed files %s\n", fileNames(difference(beforeFiles, afterFiles)));
-        System.out.printf("    added files %s\n", fileNames(difference(afterFiles, beforeFiles)));
+        System.out.printf("    removed files %s\n", fileNames(SetUtils.difference(beforeFiles, afterFiles)));
+        System.out.printf("    added files %s\n", fileNames(SetUtils.difference(afterFiles, beforeFiles)));
         System.out.printf("Compaction succeeded in %s.\n", printableStopwatch(watch));
         return 0;
     }
@@ -330,7 +371,8 @@ public class Compact {
             .withGCOptions(defaultGCOptions()
                 .setOffline()
                 .setGCLogInterval(gcLogInterval)
-                .setCompactorType(compactorType));
+                .setCompactorType(compactorType)
+                .setConcurrency(concurrency));
         if (fileAccessMode.memoryMapped != null) {
             builder.withMemoryMapping(fileAccessMode.memoryMapped);
         }

@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -116,7 +116,7 @@ public class VisibleChangesTest {
 
     private static final class TestStore extends MemoryDocumentStore {
 
-        private final Set<String> paths = Sets.newHashSet();
+        private final Set<String> paths = new HashSet<>();
 
         @NotNull
         @Override

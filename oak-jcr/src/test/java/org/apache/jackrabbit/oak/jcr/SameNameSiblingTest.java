@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.asList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -28,7 +26,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -37,12 +38,14 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class SameNameSiblingTest extends AbstractRepositoryTest {
@@ -86,7 +89,7 @@ public class SameNameSiblingTest extends AbstractRepositoryTest {
 
     @Test
     public void iterateSiblings() throws RepositoryException {
-        Set<String> expected = newHashSet(SIBLINGS);
+        Set<String> expected = SetUtils.toSet(SIBLINGS);
         expected.add(SIBLING);
         expected.remove(SIBLINGS[0]);
 
@@ -105,6 +108,18 @@ public class SameNameSiblingTest extends AbstractRepositoryTest {
             assertTrue(sns.hasNode(name));
             Node sib = sns.getNode(name);
             session.getNode(sns.getPath() + '/' + name);
+        }
+    }
+
+    @Test
+    @Ignore("OAK-10523")
+    public void getSiblingNames() throws RepositoryException {
+        for (String name : SIBLINGS) {
+            Node sib = sns.getNode(name);
+            String n = sib.getName();
+            int i = sib.getIndex();
+            assertTrue("Node.getName() must return valid JCR name (index stripped), but got: " + n, !n.contains("["));
+            assertEquals(name, n + "[" + i + "]");
         }
     }
 
@@ -156,5 +171,10 @@ public class SameNameSiblingTest extends AbstractRepositoryTest {
             assertFalse(sns.hasNode(name));
             assertTrue(sns.hasNode(rename(name)));
         }
+    }
+
+    // helper methods
+    private List<String> asList(final String s1, final String[] sArr) {
+        return Stream.concat(Stream.of(s1), Stream.of(sArr)).collect(Collectors.toList());
     }
 }

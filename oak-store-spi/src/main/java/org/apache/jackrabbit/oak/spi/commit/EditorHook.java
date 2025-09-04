@@ -21,7 +21,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * This commit hook implementation processes changes to be committed
@@ -37,16 +37,16 @@ public class EditorHook implements CommitHook {
     private final EditorProvider provider;
 
     public EditorHook(@NotNull EditorProvider provider) {
-        this.provider = checkNotNull(provider);
+        this.provider = requireNonNull(provider);
     }
 
     @Override @NotNull
     public NodeState processCommit(
             @NotNull NodeState before, @NotNull NodeState after,
             @NotNull CommitInfo info) throws CommitFailedException {
-        checkNotNull(before);
-        checkNotNull(after);
-        checkNotNull(info);
+        requireNonNull(before);
+        requireNonNull(after);
+        requireNonNull(info);
 
         NodeBuilder builder = after.builder();
         Editor editor = provider.getRootEditor(before, after, builder, info);

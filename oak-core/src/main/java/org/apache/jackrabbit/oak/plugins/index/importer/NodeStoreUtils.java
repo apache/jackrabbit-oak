@@ -16,13 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.importer;
-
 
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
@@ -32,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
@@ -40,8 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 
 final class NodeStoreUtils {
 
@@ -49,7 +44,7 @@ final class NodeStoreUtils {
         CompositeHook hooks = new CompositeHook(
                 ResetCommitAttributeHook.INSTANCE,
                 new ConflictHook(new AnnotatingConflictHandler()),
-                new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
+                new EditorHook(new ConflictValidatorProvider())
         );
         nodeStore.merge(builder, hooks, createCommitInfo());
     }
@@ -60,20 +55,20 @@ final class NodeStoreUtils {
                 ResetCommitAttributeHook.INSTANCE,
                 new EditorHook(new IndexUpdateProvider(indexEditorProvider, null, true)),
                 new ConflictHook(new AnnotatingConflictHandler()),
-                new EditorHook(CompositeEditorProvider.compose(singletonList(new ConflictValidatorProvider())))
+                new EditorHook(new ConflictValidatorProvider())
         );
         nodeStore.merge(builder, hooks, createCommitInfo());
     }
 
     static NodeBuilder childBuilder(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
+        for (String name : PathUtils.elements(requireNonNull(path))) {
             nb = nb.child(name);
         }
         return nb;
     }
 
     private static CommitInfo createCommitInfo() {
-        Map<String, Object> info = ImmutableMap.<String, Object>of(CommitContext.NAME, new SimpleCommitContext());
+        Map<String, Object> info = Map.of(CommitContext.NAME, new SimpleCommitContext());
         return new CommitInfo(CommitInfo.OAK_UNKNOWN, CommitInfo.OAK_UNKNOWN, info);
     }
 }

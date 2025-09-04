@@ -17,16 +17,16 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.guava.common.collect.Sets;
-
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
@@ -51,7 +51,7 @@ public class JournalEntryTest {
     @Test
     public void applyTo() throws Exception {
         DiffCache cache = new MemoryDiffCache(new DocumentMK.Builder());
-        List<Path> paths = Lists.newArrayList();
+        List<Path> paths = new ArrayList<>();
         addRandomPaths(paths);
         StringSort sort = JournalEntry.newSorter();
         add(sort, paths);
@@ -119,7 +119,7 @@ public class JournalEntryTest {
         validateCacheUsage(cache, from, to, "/c", false);//there is no cache entry for the whole hierarchy
 
         //Fill cache using journal
-        List<Path> paths = Lists.newArrayList(
+        List<Path> paths = List.of(
                 p("/content/changed"),
                 p("/content/changed1/child1")
         );
@@ -140,7 +140,7 @@ public class JournalEntryTest {
     public void fillExternalChanges() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         JournalEntry entry = JOURNAL.newDocument(store);
-        Set<Path> paths = Sets.newHashSet();
+        Set<Path> paths = new HashSet<>();
         addRandomPaths(paths);
         entry.modified(paths);
         Revision r1 = new Revision(1, 0, 1);
@@ -172,7 +172,7 @@ public class JournalEntryTest {
     public void invalidateOnly() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
         JournalEntry invalidateEntry = JOURNAL.newDocument(store);
-        Set<Path> paths = Sets.newHashSet();
+        Set<Path> paths = new HashSet<>();
         addRandomPaths(paths);
         invalidateEntry.modified(paths);
         Revision r1 = new Revision(1, 0, 1);
@@ -231,15 +231,15 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r1, r2, store);
-        assertEquals(Sets.newHashSet("/", "/foo"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/foo"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r1, r3, store);
-        assertEquals(Sets.newHashSet("/", "/foo", "/bar"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/foo", "/bar"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r1, r4, store);
-        assertEquals(Sets.newHashSet("/", "/foo", "/bar"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/foo", "/bar"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r2, r2, store);
@@ -247,11 +247,11 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r2, r3, store);
-        assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/bar"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r2, r4, store);
-        assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/bar"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r3, r3, store);
@@ -259,7 +259,7 @@ public class JournalEntryTest {
         sort.close();
 
         sort = externalChanges(r3, r4, store);
-        assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+        assertEquals(Set.of("/", "/bar"), SetUtils.toSet(sort));
         sort.close();
 
         sort = externalChanges(r4, r4, store);
@@ -443,7 +443,7 @@ public class JournalEntryTest {
     }
 
     private static List<String> getChildren(String diff) {
-        List<String> children = Lists.newArrayList();
+        List<String> children = new ArrayList<>();
         JsopTokenizer t = new JsopTokenizer(diff);
         for (;;) {
             int r = t.read();

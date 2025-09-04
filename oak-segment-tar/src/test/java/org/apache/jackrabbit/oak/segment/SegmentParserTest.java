@@ -16,13 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -44,13 +39,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
@@ -77,9 +72,9 @@ public class SegmentParserTest {
         when(shortIdBlobStore.writeBlob(any())).thenReturn("shortId");
 
         BlobStore longIdBlobStore = mock(BlobStore.class);
-        when(longIdBlobStore.writeBlob(any())).thenReturn(Strings.repeat("shortId", 1000));
+        when(longIdBlobStore.writeBlob(any())).thenReturn("shortId".repeat(1000));
 
-        return newArrayList(
+        return List.of(
                 new Object[]{null, "No BlobStore"},
                 new Object[]{shortIdBlobStore, "Short Id BlobStore"},
                 new Object[]{longIdBlobStore, "Long Id BlobStore"});
@@ -233,7 +228,7 @@ public class SegmentParserTest {
         builder.setChildNode("n");
         builder.setProperty("p", 1);
         builder.setProperty("jcr:primaryType", "type", NAME);
-        builder.setProperty("jcr:mixinTypes", ImmutableList.of("type1", "type2"), NAMES);
+        builder.setProperty("jcr:mixinTypes", List.of("type1", "type2"), NAMES);
         SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo nodeInfo = new TestParser(store.getReader(), "template") {
             @Override
@@ -256,7 +251,7 @@ public class SegmentParserTest {
 
     @Test
     public void emptyMap() throws IOException {
-        Map<String, RecordId> empty = newHashMap();
+        Map<String, RecordId> empty = new HashMap<>();
         MapRecord map = new MapRecord(store.getReader(), writer.writeMap(null, empty));
         MapInfo mapInfo = new TestParser(store.getReader(), "emptyMap") {
             @Override protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) { }
@@ -296,7 +291,7 @@ public class SegmentParserTest {
     }
 
     private Map<String, RecordId> createMap(int size, Random rnd) throws IOException {
-        Map<String, RecordId> map = newHashMap();
+        Map<String, RecordId> map = new HashMap<>();
         for (int k = 0; k < size; k++) {
             map.put("k" + k, writer.writeString("string" + rnd.nextLong()));
         }
@@ -324,7 +319,7 @@ public class SegmentParserTest {
     @Test
     public void multiValueProperty() throws IOException {
         NodeBuilder builder = EMPTY_NODE.builder();
-        builder.setProperty("p", ImmutableList.of(1L, 2L, 3L, 4L), LONGS);
+        builder.setProperty("p", List.of(1L, 2L, 3L, 4L), LONGS);
         SegmentNodeState node = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
         NodeInfo nodeInfo = new TestParser(store.getReader(), "multiValueProperty") {
             @Override
@@ -401,7 +396,7 @@ public class SegmentParserTest {
 
     @Test
     public void mediumString() throws IOException {
-        RecordId stringId = writer.writeString(repeat("s", SMALL_LIMIT));
+        RecordId stringId = writer.writeString("s".repeat(SMALL_LIMIT));
         BlobInfo blobInfo = new TestParser(store.getReader(), "mediumString").parseString(stringId);
         assertEquals(stringId, blobInfo.blobId);
         assertEquals(MEDIUM, blobInfo.blobType);
@@ -409,7 +404,7 @@ public class SegmentParserTest {
 
     @Test
     public void longString() throws IOException {
-        RecordId stringId = writer.writeString(repeat("s", MEDIUM_LIMIT));
+        RecordId stringId = writer.writeString("s".repeat(MEDIUM_LIMIT));
         BlobInfo blobInfo = new TestParser(store.getReader(), "longString"){
             @Override protected void onList(RecordId parentId, RecordId listId, int count) { }
         }.parseString(stringId);
@@ -429,7 +424,7 @@ public class SegmentParserTest {
     public void nonEmptyList() throws IOException {
         int count = 100000;
         Random rnd = new Random();
-        List<RecordId> list = newArrayListWithCapacity(count);
+        List<RecordId> list = new ArrayList<>(count);
         for (int k = 0; k < count; k++) {
             list.add(writer.writeString("string " + rnd.nextLong()));
         }

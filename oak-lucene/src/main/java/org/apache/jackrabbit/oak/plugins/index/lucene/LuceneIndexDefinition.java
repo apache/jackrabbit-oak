@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.CompressingCodec;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
@@ -47,7 +46,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_ORIGINAL_TERM;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
@@ -79,17 +77,17 @@ public class LuceneIndexDefinition extends IndexDefinition {
         this.codec = createCodec();
     }
 
-    public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
-        return (Builder)new Builder()
+    public static Builder newLuceneBuilder(NodeState root, NodeState defn, String indexPath){
+        return (Builder) new Builder()
                 .root(root)
                 .defn(defn)
                 .indexPath(indexPath);
     }
 
-    public static class Builder extends IndexDefinition.Builder {
+    public static class Builder extends IndexDefinition.Builder<LuceneIndexDefinition> {
         @Override
         public LuceneIndexDefinition build() {
-            return (LuceneIndexDefinition)super.build();
+            return super.build();
         }
 
         @Override
@@ -99,7 +97,7 @@ public class LuceneIndexDefinition extends IndexDefinition {
         }
 
         @Override
-        protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
+        protected LuceneIndexDefinition createInstance(NodeState indexDefnStateToUse) {
             return new LuceneIndexDefinition(root, indexDefnStateToUse, version, uid, indexPath);
         }
     }
@@ -146,10 +144,8 @@ public class LuceneIndexDefinition extends IndexDefinition {
         if (!evaluatePathRestrictions()){
             result = defaultAnalyzer;
         } else {
-            Map<String, Analyzer> analyzerMap = ImmutableMap.<String, Analyzer>builder()
-                    .put(FieldNames.ANCESTORS,
-                            new TokenizerChain(new PathHierarchyTokenizerFactory(Collections.emptyMap())))
-                    .build();
+            Map<String, Analyzer> analyzerMap = Map.of(
+                    FieldNames.ANCESTORS, new TokenizerChain(new PathHierarchyTokenizerFactory(Collections.emptyMap())));
             result = new PerFieldAnalyzerWrapper(defaultAnalyzer, analyzerMap);
         }
 
@@ -161,7 +157,7 @@ public class LuceneIndexDefinition extends IndexDefinition {
     }
 
     private static Map<String, Analyzer> collectAnalyzers(NodeState defn) {
-        Map<String, Analyzer> analyzerMap = newHashMap();
+        Map<String, Analyzer> analyzerMap = new HashMap<>();
         NodeStateAnalyzerFactory factory = new NodeStateAnalyzerFactory(VERSION);
         NodeState analyzersTree = defn.getChildNode(FulltextIndexConstants.ANALYZERS);
         for (ChildNodeEntry cne : analyzersTree.getChildNodeEntries()) {
@@ -173,7 +169,7 @@ public class LuceneIndexDefinition extends IndexDefinition {
             analyzerMap.put(ANL_DEFAULT, new OakAnalyzer(VERSION, true));
         }
 
-        return ImmutableMap.copyOf(analyzerMap);
+        return Collections.unmodifiableMap(analyzerMap);
     }
 
 

@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -27,6 +24,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -43,8 +41,6 @@ import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.PropertyType;
@@ -59,6 +55,7 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
@@ -73,9 +70,9 @@ import static org.mockito.Mockito.withSettings;
 
 public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTest implements AccessControlConstants {
 
-    final NodeInfo aceGrantInfo = new NodeInfo("grantAceName", NT_REP_GRANT_ACE, ImmutableList.of(), null);
-    private final NodeInfo aceDenyInfo = new NodeInfo("denyAceName", NT_REP_DENY_ACE, ImmutableList.of(), null);
-    private final NodeInfo restrInfo = new NodeInfo("anyRestrName", NT_REP_RESTRICTIONS, ImmutableList.of(), null);
+    final NodeInfo aceGrantInfo = new NodeInfo("grantAceName", NT_REP_GRANT_ACE, List.of(), null);
+    private final NodeInfo aceDenyInfo = new NodeInfo("denyAceName", NT_REP_DENY_ACE, List.of(), null);
+    private final NodeInfo restrInfo = new NodeInfo("anyRestrName", NT_REP_RESTRICTIONS, List.of(), null);
     final PropInfo unknownPrincipalInfo = new PropInfo(REP_PRINCIPAL_NAME, PropertyType.STRING, createTextValue("unknownPrincipal"));
 
     private Tree accessControlledTree;
@@ -329,38 +326,38 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
     @Test(expected = IllegalStateException.class)
     public void testStartChildInfoNotInitialized() throws Exception {
-        importer.startChildInfo(mock(NodeInfo.class), ImmutableList.of());
+        importer.startChildInfo(mock(NodeInfo.class), List.of());
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testStartChildInfoUnknownType() throws Exception {
-        NodeInfo invalidChildInfo = new NodeInfo("anyName", NT_OAK_UNSTRUCTURED, ImmutableList.of(), null);
+        NodeInfo invalidChildInfo = new NodeInfo("anyName", NT_OAK_UNSTRUCTURED, List.of(), null);
         init();
         importer.start(aclTree);
-        importer.startChildInfo(invalidChildInfo, ImmutableList.of());
+        importer.startChildInfo(invalidChildInfo, List.of());
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testStartNestedAceChildInfo() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of());
-        importer.startChildInfo(aceDenyInfo, ImmutableList.of());
+        importer.startChildInfo(aceGrantInfo, List.of());
+        importer.startChildInfo(aceDenyInfo, List.of());
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testStartRestrictionChildInfoWithoutAce() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(restrInfo, ImmutableList.of());
+        importer.startChildInfo(restrInfo, List.of());
     }
 
     @Test
     public void testStartAceAndRestrictionChildInfo() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of());
-        importer.startChildInfo(restrInfo, ImmutableList.of());
+        importer.startChildInfo(aceGrantInfo, List.of());
+        importer.startChildInfo(restrInfo, List.of());
     }
 
     @Test(expected = AccessControlException.class)
@@ -368,7 +365,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         init();
         importer.start(aclTree);
         PropInfo invalidPrivInfo = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues("jcr:invalidPrivilege"), PropInfo.MultipleStatus.MULTIPLE);
-        importer.startChildInfo(aceDenyInfo, ImmutableList.of(invalidPrivInfo));
+        importer.startChildInfo(aceDenyInfo, List.of(invalidPrivInfo));
     }
 
     //-------------------------------------------------------< endChildInfo >---
@@ -389,7 +386,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     public void testEndChildInfoIncompleteAce() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of());
+        importer.startChildInfo(aceGrantInfo, List.of());
         importer.endChildInfo();
     }
 
@@ -420,10 +417,10 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     public void testInvalidRestriction() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of(principalInfo, privInfo));
+        importer.startChildInfo(aceGrantInfo, List.of(principalInfo, privInfo));
 
         PropInfo invalidRestrProp = new PropInfo(REP_GLOB, PropertyType.NAME, createTextValues("glob1", "glob2"), PropInfo.MultipleStatus.MULTIPLE);
-        importer.startChildInfo(restrInfo, ImmutableList.of(invalidRestrProp));
+        importer.startChildInfo(restrInfo, List.of(invalidRestrProp));
         importer.endChildInfo();
         importer.endChildInfo();
         importer.end(aclTree);
@@ -433,10 +430,10 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     public void testUnknownRestriction() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of(principalInfo, privInfo));
+        importer.startChildInfo(aceGrantInfo, List.of(principalInfo, privInfo));
 
         PropInfo invalidRestrProp = new PropInfo("unknown", PropertyType.STRING, createTextValue("val"));
-        importer.startChildInfo(restrInfo, ImmutableList.of(invalidRestrProp));
+        importer.startChildInfo(restrInfo, List.of(invalidRestrProp));
         importer.endChildInfo();
         importer.endChildInfo();
         importer.end(aclTree);
@@ -446,7 +443,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     public void testImportSimple() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of(principalInfo, privInfo));
+        importer.startChildInfo(aceGrantInfo, List.of(principalInfo, privInfo));
         importer.endChildInfo();
         importer.end(aclTree);
 
@@ -455,8 +452,8 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
         assertEquals(principalName, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
         assertEquals(
-                ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
-                ImmutableSet.copyOf(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
+                Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
+                SetUtils.toSet(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
         assertFalse(aceTree.hasChild(REP_RESTRICTIONS));
     }
 
@@ -471,7 +468,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of(principalInfo, privInfo, globInfo, ntNamesInfo, itemNamesInfo));
+        importer.startChildInfo(aceGrantInfo, List.of(principalInfo, privInfo, globInfo, ntNamesInfo, itemNamesInfo));
         importer.endChildInfo();
         importer.end(aclTree);
 
@@ -489,8 +486,8 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceGrantInfo, ImmutableList.of(principalInfo, privInfo));
-        importer.startChildInfo(restrInfo, ImmutableList.of(globInfo, ntNamesInfo, itemNamesInfo));
+        importer.startChildInfo(aceGrantInfo, List.of(principalInfo, privInfo));
+        importer.startChildInfo(restrInfo, List.of(globInfo, ntNamesInfo, itemNamesInfo));
         importer.endChildInfo();
         importer.endChildInfo();
         importer.end(aclTree);
@@ -504,14 +501,14 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
         assertEquals(principalName, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
         assertEquals(
-                ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
-                ImmutableSet.copyOf(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
+                Set.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES),
+                SetUtils.toSet(TreeUtil.getNames(aceTree, REP_PRIVILEGES)));
 
         assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
 
         Tree restrTree = aceTree.getChild(REP_RESTRICTIONS);
         assertEquals("/*", TreeUtil.getString(restrTree, REP_GLOB));
-        assertEquals(Lists.newArrayList(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_RESOURCE), restrTree.getProperty(REP_NT_NAMES).getValue(Type.NAMES));
-        assertEquals(Lists.newArrayList("itemName"), restrTree.getProperty(REP_ITEM_NAMES).getValue(Type.NAMES));
+        assertEquals(List.of(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_RESOURCE), restrTree.getProperty(REP_NT_NAMES).getValue(Type.NAMES));
+        assertEquals(List.of("itemName"), restrTree.getProperty(REP_ITEM_NAMES).getValue(Type.NAMES));
     }
 }

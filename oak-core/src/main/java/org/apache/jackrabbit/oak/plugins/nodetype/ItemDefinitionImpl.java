@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
@@ -49,7 +49,7 @@ class ItemDefinitionImpl extends AbstractTypeDefinition
     protected ItemDefinitionImpl(
             Tree definition, NodeType type, NamePathMapper mapper) {
         super(definition, mapper);
-        this.type = checkNotNull(type);
+        this.type = requireNonNull(type);
     }
 
     //-----------------------------------------------------< ItemDefinition >---

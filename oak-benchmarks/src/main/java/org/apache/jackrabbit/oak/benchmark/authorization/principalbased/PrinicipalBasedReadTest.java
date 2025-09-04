@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization.principalbased;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -32,6 +27,8 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -54,12 +51,13 @@ import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 import javax.security.auth.Subject;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static javax.jcr.security.Privilege.JCR_ALL;
 
 public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
@@ -111,7 +109,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
         }
 
         // create additional ACEs according to benchmark configuration
-        List<Privilege> allPrivileges = Lists.newArrayList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
+        List<Privilege> allPrivileges = Arrays.asList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
         if (!entriesForEachPrincipal) {
             createForRotatingPrincipal(acMgr, allPrivileges);
         } else {
@@ -122,7 +120,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
     }
 
     private void createForRotatingPrincipal(@NotNull JackrabbitAccessControlManager acMgr, @NotNull List<Privilege> allPrivileges) throws RepositoryException {
-        Iterator<Principal> principalIterator = Iterators.cycle(subject.getPrincipals());
+        Iterator<Principal> principalIterator = IteratorUtils.cycle(subject.getPrincipals());
         int cnt = 0;
         while (cnt < numberOfACEs) {
             if (!principalIterator.hasNext()) {
@@ -161,7 +159,8 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
             }
             added = acl.addAccessControlEntry(principal, privileges);
         } else {
-            for (JackrabbitAccessControlPolicy policy : Iterables.concat(ImmutableList.copyOf(acMgr.getApplicablePolicies(principal)), ImmutableList.copyOf(acMgr.getPolicies(principal)))) {
+            for (JackrabbitAccessControlPolicy policy : IterableUtils.chainedIterable(Arrays.asList(acMgr.getApplicablePolicies(principal)),
+                    Arrays.asList(acMgr.getPolicies(principal)))) {
                 if (policy instanceof PrincipalAccessControlList) {
                     acl = (PrincipalAccessControlList) policy;
                     break;
@@ -220,7 +219,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
         CompositeAuthorizationConfiguration authorizationConfiguration = (CompositeAuthorizationConfiguration) delegate
                 .getConfiguration((AuthorizationConfiguration.class));
         authorizationConfiguration.withCompositionType(compositionType);
-        AuthorizationConfiguration defaultAuthorization = checkNotNull(authorizationConfiguration.getDefaultConfig());
+        AuthorizationConfiguration defaultAuthorization = requireNonNull(authorizationConfiguration.getDefaultConfig());
         if (testDefault) {
             authorizationConfiguration.addConfiguration(defaultAuthorization);
         } else {
@@ -231,7 +230,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
 
             OsgiContextImpl context = new OsgiContextImpl();
             // register the filter provider to get it's activate method invoked
-            Map<String, Object> props = ImmutableMap.of("path", PathUtils.concat(UserConstants.DEFAULT_USER_PATH, UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH));
+            Map<String, Object> props = Map.of("path", PathUtils.concat(UserConstants.DEFAULT_USER_PATH, UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH));
             context.registerInjectActivateService(new FilterProviderImpl(), props);
 
             // register mountinfo-provider

@@ -158,7 +158,30 @@ public class TraversingIndex implements QueryIndex {
 
     @Override
     public String getPlan(Filter filter, NodeState rootState) {
-        return "traverse \"" + filter.getPathPlan() + '"';
+        StringBuilder buff = new StringBuilder();
+        buff.append("traverse\n");
+        PathRestriction restriction = filter.getPathRestriction();
+        String path = filter.getPath();
+        switch (restriction) {
+        case EXACT:
+            buff.append("    oneNode: ").append(path);
+            break;
+        case PARENT:
+            buff.append("    parent: ").append(path);
+            break;
+        case NO_RESTRICTION:
+            buff.append("    allNodes (warning: slow)");
+            break;
+        case ALL_CHILDREN:
+            buff.append("    allDescendents: ").append(path);
+            break;
+        case DIRECT_CHILDREN:
+            buff.append("    onlyDirectChildren: ").append(path);
+            break;
+        }
+        buff.append("\n").append("    estimatedEntries: ").append(getCost(filter, rootState));
+        buff.append("\n");
+        return buff.toString();
     }
 
     @Override

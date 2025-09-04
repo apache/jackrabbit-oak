@@ -16,46 +16,77 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.commons.codec.digest.MurmurHash3;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.xcontent.XContentBuilder;
-import org.elasticsearch.xcontent.XContentFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.LinkedHashSet;
 
-import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toFloats;
 
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ElasticDocument {
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticDocument.class);
 
-    private final String path;
-    private final Set<String> fulltext;
-    private final Set<String> suggest;
-    private final Set<String> spellcheck;
-    private final Map<String, Set<Object>> properties;
-    private final Map<String, Object> similarityFields;
-    private final Map<String, Map<String, Double>> dynamicBoostFields;
-    private final Set<String> similarityTags;
+    @JsonProperty(FieldNames.PATH)
+    public final String path;
+    @JsonProperty(ElasticIndexDefinition.PATH_RANDOM_VALUE)
+    public final int pathRandomValue;
+    @JsonProperty(FieldNames.FULLTEXT)
+    public final Set<String> fulltext;
+    @JsonProperty(FieldNames.SUGGEST)
+    public final Set<Map<String, String>> suggest;
+    @JsonProperty(FieldNames.SPELLCHECK)
+    public final Set<String> spellcheck;
+    @JsonProperty(FieldNames.NULL_PROPS)
+    public final Set<String> nullProperties;
+    @JsonProperty(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT)
+    public final Set<String> dbFullText;
+    @JsonProperty(ElasticIndexDefinition.SIMILARITY_TAGS)
+    public final Set<String> similarityTags;
+    // these are dynamic properties that need to be added to the document unwrapped. See the use of @JsonAnyGetter in the getter
+    // TODO: to support strict mapping, these properties should be part of dynamicProperties
+    private final Map<String, Object> properties;
+    @JsonProperty(ElasticIndexDefinition.DYNAMIC_PROPERTIES)
+    private final List<Map<String, Object>> dynamicProperties;
+    @JsonProperty(ElasticIndexDefinition.LAST_UPDATED)
+    private long lastUpdated;
+
+    // Internal set with properties that need to be removed from the document on update operations
+    @JsonIgnore
+    private final Set<String> propertiesToRemove;
 
     ElasticDocument(String path) {
+        this(path, 0);
+    }
+
+    ElasticDocument(String path, int seed) {
         this.path = path;
+        byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
+        this.pathRandomValue = MurmurHash3.hash32x86(pathBytes, 0, pathBytes.length, seed);
         this.fulltext = new LinkedHashSet<>();
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();
+        this.nullProperties = new LinkedHashSet<>();
         this.properties = new HashMap<>();
-        this.similarityFields = new HashMap<>();
-        this.dynamicBoostFields = new HashMap<>();
+        this.dynamicProperties = new ArrayList<>();
+        this.dbFullText = new LinkedHashSet<>();
         this.similarityTags = new LinkedHashSet<>();
+        this.propertiesToRemove = new HashSet<>();
     }
 
     void addFulltext(String value) {
@@ -63,28 +94,71 @@ public class ElasticDocument {
     }
 
     void addFulltextRelative(String path, String value) {
-        addProperty(FieldNames.createFulltextFieldName(path), value);
+        dynamicProperties.stream().filter(map -> map.get(ElasticIndexHelper.DYNAMIC_PROPERTY_NAME).equals(path))
+                .findFirst()
+                .ifPresentOrElse(
+                        map -> {
+                            Object existingValue = map.get(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE);
+                            if (existingValue instanceof Set) {
+                                @SuppressWarnings("unchecked")
+                                Set<Object> existingSet = (Set<Object>) existingValue;
+                                existingSet.add(value);
+                            } else {
+                                Set<Object> set = new LinkedHashSet<>();
+                                set.add(existingValue);
+                                set.add(value);
+                                map.put(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE, set);
+                            }
+                        },
+                        () -> {
+                            Map<String, Object> newMap = new HashMap<>();
+                            newMap.put(ElasticIndexHelper.DYNAMIC_PROPERTY_NAME, path);
+                            newMap.put(ElasticIndexHelper.DYNAMIC_PROPERTY_VALUE, value);
+                            dynamicProperties.add(newMap);
+                        }
+                );
     }
 
     void addSuggest(String value) {
-        suggest.add(value);
+        suggest.add(Map.of(ElasticIndexHelper.SUGGEST_NESTED_VALUE, value));
     }
 
     void addSpellcheck(String value) {
         spellcheck.add(value);
     }
 
-    // ES for String values (that are not interpreted as date or numbers etc) would analyze in the same
-    // field and would index a sub-field "keyword" for non-analyzed value.
-    // ref: https://www.elastic.co/blog/strings-are-dead-long-live-strings
-    // (interpretation of date etc: https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-field-mapping.html)
-    void addProperty(String fieldName, Object value) {
-        properties.computeIfAbsent(fieldName, s -> new LinkedHashSet<>()).add(value);
+    void addNullProperty(String fieldName) {
+        nullProperties.add(fieldName);
     }
 
-    void addSimilarityField(String name, Blob value) throws IOException {
-        byte[] bytes = new BlobByteSource(value).read();
-        similarityFields.put(FieldNames.createSimilarityFieldName(name), toDoubles(bytes));
+    // ES for String values (that are not interpreted as date or numbers etc.) would analyze in the same
+    // field and would index a sub-field "keyword" for non-analyzed value.
+    // ref: https://www.elastic.co/blog/strings-are-dead-long-live-strings
+    // (interpretation of date etc.: https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-field-mapping.html)
+    void addProperty(String fieldName, Object value) {
+        Object existingValue = properties.get(fieldName);
+        Object finalValue;
+
+        if (existingValue == null) {
+            finalValue = value;
+        } else if (existingValue instanceof Set) {
+            @SuppressWarnings("unchecked")
+            Set<Object> existingSet = (Set<Object>) existingValue;
+            existingSet.add(value);
+            finalValue = existingSet;
+        } else {
+            Set<Object> set = new LinkedHashSet<>();
+            set.add(existingValue);
+            set.add(value);
+            finalValue = set.size() == 1 ? set.iterator().next() : set;
+        }
+
+        properties.put(fieldName, finalValue);
+    }
+
+    void addSimilarityField(String fieldName, Blob value) throws IOException {
+        byte[] bytes = value.getNewStream().readAllBytes();
+        addProperty(FieldNames.createSimilarityFieldName(fieldName), toFloats(bytes));
     }
 
     void indexAncestors(String path) {
@@ -95,77 +169,55 @@ public class ElasticDocument {
         addProperty(FieldNames.PATH_DEPTH, depth);
     }
 
-    void addDynamicBoostField(String propName, String value, double boost) {
-        dynamicBoostFields.computeIfAbsent(propName, s -> new HashMap<>())
-                .putIfAbsent(value, boost);
+    void addDynamicBoostField(String fieldName, String value, double boost) {
+        addProperty(fieldName,
+                Map.of(
+                        ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE, value,
+                        ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
+                )
+        );
+
+        // add value into the dynamic boost specific fulltext field. We cannot add this in the standard
+        // field since dynamic boosted terms require lower weight compared to standard terms
+        dbFullText.add(value);
     }
 
     void addSimilarityTag(String value) {
         similarityTags.add(value);
     }
 
-    public String build() {
-        String ret;
-        try {
-            XContentBuilder builder = XContentFactory.jsonBuilder();
-            builder.startObject();
-            {
-                builder.field(FieldNames.PATH, path);
-                Set<String> dbFullText = new LinkedHashSet<>();
-                for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
-                    builder.startArray(f.getKey());
-                    for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
-                        builder.startObject();
-                        builder.field("value", v.getKey());
-                        builder.field("boost", v.getValue());
-                        builder.endObject();
-                        // add value into the dynamic boost specific fulltext field. We cannot add this in the standard
-                        // field since dynamic boosted terms require lower weight compared to standard terms
-                        dbFullText.add(v.getKey());
-                    }
-                    builder.endArray();
-                }
-                if (dbFullText.size() > 0) {
-                    builder.field(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT, dbFullText);
-                }
-                if (fulltext.size() > 0) {
-                    builder.field(FieldNames.FULLTEXT, fulltext);
-                }
-                if (suggest.size() > 0) {
-                    builder.startArray(FieldNames.SUGGEST);
-                    for (String val : suggest) {
-                        builder.startObject().field("value", val).endObject();
-                    }
-                    builder.endArray();
-                }
-                if (spellcheck.size() > 0) {
-                    builder.field(FieldNames.SPELLCHECK, spellcheck);
-                }
-                for (Map.Entry<String, Object> simProp: similarityFields.entrySet()) {
-                    builder.field(simProp.getKey(), simProp.getValue());
-                }
-                for (Map.Entry<String, Set<Object>> prop : properties.entrySet()) {
-                    builder.field(prop.getKey(), prop.getValue().size() == 1 ? prop.getValue().iterator().next() : prop.getValue());
-                }
-                if (!similarityTags.isEmpty()) {
-                    builder.field(ElasticIndexDefinition.SIMILARITY_TAGS, similarityTags);
-                }
-            }
-            builder.endObject();
+    void setLastUpdated(long lastUpdated) {
+        this.lastUpdated = lastUpdated;
+    }
 
-            ret = Strings.toString(builder);
-        } catch (IOException e) {
-            LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}",
-                    path, properties, fulltext, suggest, e);
-            ret = null;
-        }
+    @JsonAnyGetter
+    public Map<String, Object> getProperties() {
+        return properties;
+    }
 
-        return ret;
+    public void removeProperty(String fieldName) {
+        propertiesToRemove.add(fieldName);
+    }
+
+    @NotNull
+    public Set<String> getPropertiesToRemove() {
+        return propertiesToRemove;
     }
 
     @Override
     public String toString() {
-        return build();
+        StringBuilder buff = new StringBuilder();
+        buff.append("path:").append(path).append('\n');
+        if (!fulltext.isEmpty()) {
+            buff.append("fulltext:").append(fulltext).append('\n');
+        }
+        if (!properties.isEmpty()) {
+            buff.append("properties:").append(properties).append('\n');
+        }
+        if (!dynamicProperties.isEmpty()) {
+            buff.append("dynamicProperties:").append(dynamicProperties).append('\n');
+        }
+        return buff.toString();
     }
 
 }

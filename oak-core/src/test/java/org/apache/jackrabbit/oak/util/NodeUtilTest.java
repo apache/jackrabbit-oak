@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.util;
 
 import java.util.Map;
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.jetbrains.annotations.NotNull;
@@ -61,7 +61,7 @@ public class NodeUtilTest extends AbstractSecurityTest {
         NodeUtil parent = child.getOrAddTree("..", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         assertEqualNodeUtil(node, parent);
 
-        Map<String, String> map = ImmutableMap.of(
+        Map<String, String> map = Map.of(
                 "a/b/c", "/a/b/c",
                 "a/../b/c", "/b/c",
                 "a/b/c/../..", "/a",

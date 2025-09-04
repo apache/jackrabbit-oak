@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.cursor;
 
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_FACET;
 
+import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 
@@ -36,9 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
-import org.apache.jackrabbit.guava.common.collect.Queues;
-
 /**
  * A cursor that reads all nodes in a given subtree.
  */
@@ -48,8 +47,7 @@ class TraversingCursor extends AbstractCursor {
 
     private final Filter filter;
 
-    private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
-            Queues.newArrayDeque();
+    private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators = new ArrayDeque<>();
 
     private String parentPath;
 
@@ -72,7 +70,7 @@ class TraversingCursor extends AbstractCursor {
         currentPath = "/";
         NodeState parent = null;
         NodeState node = rootState;
-        
+
         if (filter.containsNativeConstraint()) {
             // OAK-4313: if no other index was found,
             // then, for native queries, we won't match anything
@@ -108,14 +106,12 @@ class TraversingCursor extends AbstractCursor {
         case NO_RESTRICTION:
         case EXACT:
         case ALL_CHILDREN:
-            nodeIterators.add(Iterators.singletonIterator(
-                    new MemoryChildNodeEntry(currentPath, node)));
+            nodeIterators.add(Collections.singleton(new MemoryChildNodeEntry(currentPath, node)).iterator());
             parentPath = "";
             break;
         case PARENT:
             if (parent != null) {
-                nodeIterators.add(Iterators.singletonIterator(
-                        new MemoryChildNodeEntry(parentPath, parent)));
+                nodeIterators.add(Collections.singleton(new MemoryChildNodeEntry(parentPath, parent)).iterator());
                 parentPath = "";
             }
             break;
@@ -141,7 +137,7 @@ class TraversingCursor extends AbstractCursor {
         fetchNext();
         return result;
     }
-    
+
     @Override 
     public boolean hasNext() {
         if (!closed && !init) {

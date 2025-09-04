@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
@@ -28,10 +26,11 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.io.PrintWriter;
+import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
@@ -127,7 +126,7 @@ final class PrintingDiff implements NodeStateDiff {
             String v = BLOB_LENGTH.apply(ps.getValue(BINARY));
             val.append(" = {").append(v).append("}");
         } else if (ps.getType() == BINARIES) {
-            String v = transform(ps.getValue(BINARIES), BLOB_LENGTH).toString();
+            String v = IterableUtils.transform(ps.getValue(BINARIES), BLOB_LENGTH::apply).toString();
             val.append("[").append(ps.count()).append("] = ").append(v);
         } else if (ps.isArray()) {
             val.append("[").append(ps.count()).append("] = ").append(ps.getValue(STRINGS));

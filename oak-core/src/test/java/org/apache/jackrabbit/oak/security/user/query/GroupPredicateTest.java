@@ -18,13 +18,14 @@ package org.apache.jackrabbit.oak.security.user.query;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -81,51 +82,51 @@ public class GroupPredicateTest extends AbstractSecurityTest {
         assertNull(userManager.getAuthorizable(id));
 
         GroupPredicate gp = new GroupPredicate(userManager, id, false);
-        assertFalse(gp.apply(testUser));
-        assertFalse(gp.apply(testGroup));
-        assertFalse(gp.apply(null));
+        assertFalse(gp.test(testUser));
+        assertFalse(gp.test(testGroup));
+        assertFalse(gp.test(null));
     }
 
     @Test
     public void testUserId() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testUser.getID(), false);
-        assertFalse(gp.apply(testUser));
-        assertFalse(gp.apply(testGroup));
-        assertFalse(gp.apply(null));
+        assertFalse(gp.test(testUser));
+        assertFalse(gp.test(testGroup));
+        assertFalse(gp.test(null));
     }
 
     @Test
     public void testDeclaredMembersOnly() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testGroup.getID(), true);
-        assertTrue(gp.apply(testMember));
+        assertTrue(gp.test(testMember));
 
-        assertFalse(gp.apply(testUser));
-        assertFalse(gp.apply(testGroup));
-        assertFalse(gp.apply(null));
+        assertFalse(gp.test(testUser));
+        assertFalse(gp.test(testGroup));
+        assertFalse(gp.test(null));
     }
 
     @Test
     public void testInheritedMembers() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testGroup.getID(), false);
-        assertTrue(gp.apply(testMember));
-        assertTrue(gp.apply(testUser));
+        assertTrue(gp.test(testMember));
+        assertTrue(gp.test(testUser));
 
-        assertFalse(gp.apply(testGroup));
-        assertFalse(gp.apply(null));
+        assertFalse(gp.test(testGroup));
+        assertFalse(gp.test(null));
     }
 
     @Test
     public void testApplyTwice() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testGroup.getID(), true);
-        gp.apply(testMember);
-        assertTrue(gp.apply(testMember));
+        gp.test(testMember);
+        assertTrue(gp.test(testMember));
     }
 
     @Test
     public void testApplyTwiceNotMember() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testGroup.getID(), true);
-        gp.apply(testUser);
-        assertFalse(gp.apply(testUser));
+        gp.test(testUser);
+        assertFalse(gp.test(testUser));
     }
 
     @Test
@@ -134,18 +135,18 @@ public class GroupPredicateTest extends AbstractSecurityTest {
 
         Authorizable a = mock(Authorizable.class);
         when(a.getID()).thenThrow(new RepositoryException());
-        assertFalse(gp.apply(a));
+        assertFalse(gp.test(a));
     }
 
     @Test
     public void testGetMemberIdFails() throws Exception {
         Authorizable member = when(mock(Authorizable.class).getID()).thenThrow(new RepositoryException()).getMock();
-        Group g = when(mock(Group.class).getDeclaredMembers()).thenReturn(Iterators.singletonIterator(member)).getMock();
+        Group g = when(mock(Group.class).getDeclaredMembers()).thenReturn(Collections.singleton(member).iterator()).getMock();
         when(g.isGroup()).thenReturn(true);
         UserManager uMgr = when(mock(UserManager.class).getAuthorizable("g")).thenReturn(g).getMock();
         Authorizable a = when(mock(Authorizable.class).getID()).thenReturn("a").getMock();
 
         GroupPredicate gp = new GroupPredicate(uMgr, "g", true);
-        assertFalse(gp.apply(a));
+        assertFalse(gp.test(a));
     }
 }

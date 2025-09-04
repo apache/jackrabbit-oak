@@ -39,7 +39,7 @@ import java.util.stream.Stream;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
+import org.apache.jackrabbit.oak.plugins.index.IndexName;
 
 /**
  * The index diff tools allows to compare and merge indexes
@@ -73,7 +73,7 @@ public class IndexDiff {
 
     private static void writeFile(Path p, JsonObject json) {
         try {
-            Files.write(p, json.toString().getBytes());
+            Files.writeString(p, json.toString());
         } catch (IOException e) {
             throw new IllegalStateException("Error writing file: " + p, e);
         }

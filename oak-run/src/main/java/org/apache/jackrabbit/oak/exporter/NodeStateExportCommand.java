@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.exporter;
 
 import java.io.File;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import joptsimple.OptionParser;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.NodeStoreFixture;

@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static java.util.Arrays.sort;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.segment.MapRecord.SIZE_BITS;
@@ -36,6 +35,7 @@ import static org.apache.jackrabbit.oak.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.segment.Segment.SMALL_LIMIT;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -164,7 +164,7 @@ final class RecordWriters {
         }
 
         private static List<RecordId> extractIds(Collection<MapEntry> entries) {
-            List<RecordId> ids = newArrayListWithCapacity(2 * entries.size());
+            List<RecordId> ids = new ArrayList<>(2 * entries.size());
             for (MapEntry entry : entries) {
                 ids.add(entry.getKey());
                 ids.add(entry.getValue());

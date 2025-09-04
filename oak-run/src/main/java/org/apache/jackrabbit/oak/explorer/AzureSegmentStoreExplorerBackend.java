@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 
 import java.io.IOException;
+import java.nio.file.Files;
 
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
@@ -48,13 +48,18 @@ public class AzureSegmentStoreExplorerBackend extends AbstractSegmentTarExplorer
         this.persistence = newSegmentNodeStorePersistence(ToolUtils.SegmentStoreType.AZURE, path);
 
         try {
-            this.store = fileStoreBuilder(Files.createTempDir())
+            this.store = fileStoreBuilder(Files.createTempDirectory(getClass().getSimpleName() + "-").toFile())
                     .withCustomPersistence(persistence)
                     .buildReadOnly();
         } catch (InvalidFileStoreVersionException e) {
             throw new IllegalStateException(e);
         }
         this.index = store.getTarReaderIndex();
+    }
+
+    @Override
+    public void close() {
+        super.close();
     }
 
     @Override

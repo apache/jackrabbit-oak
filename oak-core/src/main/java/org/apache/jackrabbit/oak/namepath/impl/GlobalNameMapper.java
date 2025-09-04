@@ -16,30 +16,32 @@
  */
 package org.apache.jackrabbit.oak.namepath.impl;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getString;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getStrings;
+import static org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory.createReadOnlyRoot;
+import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.NAMESPACES_PATH;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_NSDATA;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_PREFIXES;
 import static org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants.REP_URIS;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
-import static org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory.createReadOnlyRoot;
-import static org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory.createReadOnlyTree;
-import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getString;
-import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.getStrings;
 
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -64,13 +66,20 @@ public class GlobalNameMapper implements NameMapper {
         return name.startsWith(":");
     }
 
+    private static boolean isValidNamespaceName(String namespace) {
+        // the empty namespace and "internal" are valid as well, otherwise it always contains a colon (as it is a URI)
+        // compare with RFC 3986, Section 3 (https://datatracker.ietf.org/doc/html/rfc3986#section-3)
+        return namespace.isEmpty() || namespace.equals(NamespaceConstants.NAMESPACE_REP) || namespace.contains(":");
+    }
+
     protected static boolean isExpandedName(String name) {
         if (name.startsWith("{")) {
             int brace = name.indexOf('}', 1);
-            return brace != -1 && name.substring(1, brace).indexOf(':') != -1;
-        } else {
-            return false;
+            if (brace != -1) {
+                return isValidNamespaceName(name.substring(1, brace));
+            }
         }
+        return false;
     }
 
     private final Root root;
@@ -116,11 +125,48 @@ public class GlobalNameMapper implements NameMapper {
     @Override @NotNull
     public String getJcrName(@NotNull String oakName) {
         // Sanity checks, can be turned to assertions if needed for performance
-        checkNotNull(oakName);
+        requireNonNull(oakName);
         checkArgument(!isHiddenName(oakName), oakName);
         checkArgument(!isExpandedName(oakName), oakName);
 
         return oakName;
+    }
+
+    @Override
+    @NotNull
+    public String getExpandedJcrName(@NotNull String oakName) {
+        // Sanity checks, can be turned to assertions if needed for performance
+        requireNonNull(oakName);
+        checkArgument(!isHiddenName(oakName), oakName);
+        checkArgument(!isExpandedName(oakName), oakName);
+
+        String uri;
+        final String localName;
+        int colon = oakName.indexOf(':');
+        if (colon > 0) {
+            String oakPrefix = oakName.substring(0, colon);
+            uri = getNamespacesProperty(oakPrefix);
+            // global mapping must take precedence...
+            if (uri == null) {
+                // ...over local mappings
+                uri = getSessionLocalMappings().get(oakPrefix);
+            }
+            if (uri == null) {
+                throw new IllegalStateException(
+                    new NamespaceException("No namespace mapping found for " + oakName));
+            }
+            localName = oakName.substring(colon + 1);
+            // check namespace name for validity in Oak
+            if (!isValidNamespaceName(uri)) {
+                throw new IllegalStateException(
+                    new NamespaceException("Cannot determine expanded name for '" + oakName +
+                        "' as registered namespace name '" + uri + "' is invalid"));
+            }
+        } else {
+            uri = "";
+            localName = oakName;
+        }
+        return "{" + uri + "}" + localName;
     }
 
     @Override @Nullable
@@ -156,6 +202,9 @@ public class GlobalNameMapper implements NameMapper {
             String uri = expandedName.substring(1, brace);
             if (uri.isEmpty()) {
                 return expandedName.substring(2); // special case: {}name
+            } else if (uri.equals(NamespaceConstants.NAMESPACE_REP)) {
+                // special case: {internal}name -> no proper URI
+                return NamespaceConstants.PREFIX_REP + ':' + expandedName.substring(brace + 1);
             } else if (uri.indexOf(':') != -1) {
                 // It's an expanded name, look up the namespace prefix
                 String oakPrefix = getOakPrefixOrNull(uri);

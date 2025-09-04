@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.run.cli.OptionsBean;
 import org.apache.jackrabbit.oak.run.cli.OptionsBeanFactory;
 
@@ -119,7 +116,7 @@ public class IndexOptions implements OptionsBean {
                 .withRequiredArg().ofType(File.class);
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, importIndex);
+        actionOpts = Set.of(stats, definitions, consistencyCheck, dumpIndex, reindex, importIndex);
         operationNames = collectionOperationNames(actionOpts);
         existingDataDumpDirOpt = parser.accepts("existing-data-dump-dir", "Directory containing document store dumps" +
                 " from previous incomplete run")
@@ -255,9 +252,9 @@ public class IndexOptions implements OptionsBean {
     }
 
     private static List<String> trim(List<String> values) {
-        Set<String> paths = Sets.newHashSet();
+        Set<String> paths = new HashSet<>();
         for (String v : values) {
-            v = Strings.emptyToNull(v);
+            v = StringUtils.emptyToNull(v);
             if (v != null) {
                 paths.add(v.trim());
             }
