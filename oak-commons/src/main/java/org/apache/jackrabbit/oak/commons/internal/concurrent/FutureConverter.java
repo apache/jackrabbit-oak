@@ -59,6 +59,10 @@ public class FutureConverter {
         listenableFuture.addListener(() -> {
             try {
                 completable.complete(listenableFuture.get());
+            } catch (InterruptedException ex) {
+                // fix for sonar : https://sonarcloud.io/organizations/apache/rules?open=java%3AS2142&rule_key=java%3AS2142
+                Thread.currentThread().interrupt();
+                completable.completeExceptionally(ex);
             } catch (Exception ex) {
                 completable.completeExceptionally(ex.getCause() != null ? ex.getCause() : ex);
             }
