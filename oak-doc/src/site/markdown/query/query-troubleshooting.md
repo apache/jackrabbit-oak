@@ -170,8 +170,7 @@ The last plan is possibly the best solution for this case.
 #### Index Definition Generator
 
 In case you need to modify or create a Lucene property index,
-you can use the [Oak Index Definition Generator](http://oakutils.appspot.com/generate/index) tool.
-
+you can use the [Oak Tools](https://thomasmueller.github.io/oakTools/indexDefGenerator.html) tool.
 As the tool doesn't know your index configuration, it will always suggest
 to create a new index; it might be better to extend an existing index.
 However, note that:
