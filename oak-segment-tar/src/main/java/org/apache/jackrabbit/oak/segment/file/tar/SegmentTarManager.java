@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,43 +88,43 @@ public class SegmentTarManager implements SegmentArchiveManager {
     public SegmentArchiveReader open(String name) throws IOException {
         File file = new File(segmentstoreDir, name);
         RandomAccessFile access = new RandomAccessFile(file, "r");
+        log.info("Opened segment archive file {}: {}", name, access);
+        SegmentTarReader segmentTarReader = null;
         try {
-            Index index = SegmentTarReader.loadAndValidateIndex(access, name);
-            if (index == null) {
-                log.info("No index found in tar file {}, skipping...", name);
-                return null;
-            } else {
-                if (memoryMapping) {
-                    try {
-                        FileAccess mapped = new FileAccess.Mapped(access);
-                        return new SegmentTarReader(file, mapped, index, ioMonitor);
-                    } catch (IOException e) {
-                        log.warn("Failed to mmap tar file {}. Falling back to normal file " +
-                                        "IO, which will negatively impact repository performance. " +
-                                        "This problem may have been caused by restrictions on the " +
-                                        "amount of virtual memory available to the JVM. Please make " +
-                                        "sure that a 64-bit JVM is being used and that the process " +
-                                        "has access to unlimited virtual memory (ulimit option -v).",
-                                name, e);
-                    }
-                }
-
-                FileAccess random = null;
-                if (offHeapAccess) {
-                    random = new FileAccess.RandomOffHeap(access);
-                } else {
-                    random = new FileAccess.Random(access);
-                }
-
-                // prevent the finally block from closing the file
-                // as the returned TarReader will take care of that
-                access = null;
-                return new SegmentTarReader(file, random, index, ioMonitor);
-            }
+            segmentTarReader = doOpen(name, file, access);
         } finally {
-            if (access != null) {
+            if (segmentTarReader == null) {
                 access.close();
             }
+        }
+        return segmentTarReader;
+    }
+
+    private @Nullable SegmentTarReader doOpen(String name, File file, RandomAccessFile access) throws IOException {
+        Index index = SegmentTarReader.loadAndValidateIndex(access, name);
+        if (index == null) {
+            log.info("No index found in tar file {}, skipping...", name);
+            return null;
+        } else {
+            FileAccess fileAccess = null;
+            if (memoryMapping) {
+                try {
+                    fileAccess = new FileAccess.Mapped(access);
+                } catch (IOException e) {
+                    log.warn("Failed to mmap tar file {}. Falling back to normal file " +
+                                    "IO, which will negatively impact repository performance. " +
+                                    "This problem may have been caused by restrictions on the " +
+                                    "amount of virtual memory available to the JVM. Please make " +
+                                    "sure that a 64-bit JVM is being used and that the process " +
+                                    "has access to unlimited virtual memory (ulimit option -v).",
+                            name, e);
+                }
+            }
+
+            if (fileAccess == null) {
+                fileAccess = offHeapAccess ? new FileAccess.RandomOffHeap(access) : new FileAccess.Random(access);
+            }
+            return new SegmentTarReader(file, fileAccess, index, ioMonitor);
         }
     }
 
@@ -172,10 +173,12 @@ public class SegmentTarManager implements SegmentArchiveManager {
     public void recoverEntries(String archiveName, LinkedHashMap<UUID, byte[]> entries) throws IOException {
         File file = new File(segmentstoreDir, archiveName);
         RandomAccessFile access = new RandomAccessFile(file, "r");
+        log.info("Opened segment archive file {}: {}", archiveName, access);
         try {
             recoverEntries(file, access, entries);
         } finally {
             access.close();
+            log.info("Closed segment archive file {}: {}", archiveName, access);
         }
     }
 

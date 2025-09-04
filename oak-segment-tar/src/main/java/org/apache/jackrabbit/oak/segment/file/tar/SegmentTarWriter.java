@@ -104,6 +104,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         if (access == null) {
             access = new RandomAccessFile(file, "rw");
             channel = access.getChannel();
+            log.info("Opened file and channel for {} from writer {}", file, this);
         }
 
         int padding = getPaddingSize(size);
@@ -221,6 +222,7 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
         access.write(ZERO_BYTES);
         access.write(ZERO_BYTES);
         access.close();
+        log.info("Closed file and channel for {} from writer {}", file, this);
 
         monitor.written(BLOCK_SIZE * 2);
     }

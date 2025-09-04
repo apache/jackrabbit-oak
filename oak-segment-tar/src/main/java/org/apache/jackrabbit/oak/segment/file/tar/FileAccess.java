@@ -27,12 +27,16 @@ import java.nio.channels.FileChannel;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A wrapper around either memory mapped files or random access files, to allow
  * reading from a file.
  */
 abstract class FileAccess {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Mapped.class);
 
     abstract boolean isMemoryMapped();
 
@@ -80,6 +84,7 @@ abstract class FileAccess {
         public void close() throws IOException {
             buffer = null;
             file.close();
+            LOG.info("Closed segment archive file ?: {}", file);
         }
 
     }
@@ -122,6 +127,7 @@ abstract class FileAccess {
         @Override
         public synchronized void close() throws IOException {
             file.close();
+            LOG.info("Closed segment archive file ?: {}", file);
         }
 
     }
