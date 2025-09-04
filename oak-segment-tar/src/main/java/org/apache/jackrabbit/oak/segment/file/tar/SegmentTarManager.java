@@ -109,7 +109,8 @@ public class SegmentTarManager implements SegmentArchiveManager {
             FileAccess fileAccess = null;
             if (memoryMapping) {
                 try {
-                    fileAccess = new FileAccess.Mapped(access);
+                    fileAccess = new FileAccess.Mapped(access.getChannel());
+                    return new SegmentTarReader(file, fileAccess, index, ioMonitor);
                 } catch (IOException e) {
                     log.warn("Failed to mmap tar file {}. Falling back to normal file " +
                                     "IO, which will negatively impact repository performance. " +

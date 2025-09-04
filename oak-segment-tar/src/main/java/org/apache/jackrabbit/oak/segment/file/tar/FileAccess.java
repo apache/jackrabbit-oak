@@ -53,13 +53,13 @@ abstract class FileAccess {
      */
     static class Mapped extends FileAccess {
 
-        private final RandomAccessFile file;
+        private final FileChannel channel;
 
         private Buffer buffer;
 
-        Mapped(RandomAccessFile file) throws IOException {
-            this.file = file;
-            this.buffer = Buffer.map(file.getChannel(), READ_ONLY, 0, file.length());
+        Mapped(FileChannel channel) throws IOException {
+            this.channel = channel;
+            this.buffer = Buffer.map(channel, READ_ONLY, 0, channel.size());
         }
 
         @Override
@@ -83,8 +83,8 @@ abstract class FileAccess {
         @Override
         public void close() throws IOException {
             buffer = null;
-            file.close();
-            LOG.info("Closed segment archive file ?: {}", file);
+            channel.close();
+            LOG.info("Closed segment archive file ?: {}", channel);
         }
 
     }
