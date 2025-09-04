@@ -37,7 +37,7 @@ public class FutureConverter {
     private static final Executor DIRECT_EXECUTOR = Runnable::run;
 
 
-    public static <T> List<CompletableFuture<T>> toCompletableFuture(final List<ListenableFuture<T>> listenableFutures) {
+    public static <T> List<CompletableFuture<T>> toCompletableFuture(final List<? extends ListenableFuture<T>> listenableFutures) {
         return listenableFutures.stream()
                 .map(FutureConverter::toCompletableFuture)
                 .collect(Collectors.toList());

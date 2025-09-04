@@ -35,11 +35,12 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.jetbrains.annotations.NotNull;
 import org.junit.BeforeClass;
@@ -83,7 +84,7 @@ public class AtomicCounterIT extends AbstractRepositoryTest {
             for (int t = 0; t < 100; t++) {
                 tasks.add(updateCounter(counterPath, rnd.nextInt(10) + 1, expected));
             }
-            Futures.allAsList(tasks).get();
+            FutureUtils.allAsList(FutureConverter.toCompletableFuture(tasks)).get();
 
             session.refresh(false);
             assertEquals(expected.get(), 

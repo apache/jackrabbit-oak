@@ -49,6 +49,8 @@ import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.BeforeClass;
@@ -56,7 +58,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
 
 public class AtomicCounterClusterIT  extends DocumentClusterIT {
@@ -173,7 +174,7 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
             }
         }
         LOG_PERF.end(start, -1, "Firing threads completed", "");
-        Futures.allAsList(tasks).get();
+        FutureUtils.allAsList(FutureConverter.toCompletableFuture(tasks)).get();
         LOG_PERF.end(start, -1, "Futures completed", "");
 
         waitForTaskCompletion();

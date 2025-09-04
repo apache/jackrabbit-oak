@@ -31,11 +31,12 @@ import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
@@ -62,7 +63,7 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
                     Executors.newCachedThreadPool());
 
-            List<ListenableFuture<?>> futures = new ArrayList<>();
+            List<ListenableFuture<Void>> futures = new ArrayList<>();
             for (int k = 0; k < 20; k ++) {
                 futures.add(executorService.submit(new Callable<Void>() {
                     @Override
@@ -78,7 +79,7 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             }
 
             // Throws ExecutionException if any of the submitted task failed
-            Futures.allAsList(futures).get();
+            FutureUtils.allAsList(FutureConverter.toCompletableFuture(futures)).get();
             executorService.shutdown();
             executorService.awaitTermination(1, TimeUnit.DAYS);
         } finally {
@@ -100,7 +101,7 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
                     Executors.newCachedThreadPool());
 
-            List<ListenableFuture<?>> futures = new ArrayList<>();
+            List<ListenableFuture<Void>> futures = new ArrayList<>();
             for (int k = 0; k < 20; k ++) {
                 futures.add(executorService.submit(new Callable<Void>() {
                     @Override
@@ -116,7 +117,7 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             }
 
             // Throws ExecutionException if any of the submitted task failed
-            Futures.allAsList(futures).get();
+            FutureUtils.allAsList(FutureConverter.toCompletableFuture(futures)).get();
             executorService.shutdown();
             executorService.awaitTermination(1, TimeUnit.DAYS);
         } finally {

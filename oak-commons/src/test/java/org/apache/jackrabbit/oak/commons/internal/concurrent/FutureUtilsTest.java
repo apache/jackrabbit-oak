@@ -18,12 +18,16 @@
  */
 package org.apache.jackrabbit.oak.commons.internal.concurrent;
 
+import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
+import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Unit cases for {@link FutureUtils}
@@ -31,58 +35,181 @@ import java.util.concurrent.CompletableFuture;
 public class FutureUtilsTest {
 
     @Test
-    public void testAllSuccessful() throws Exception {
-        CompletableFuture<String> f1 = CompletableFuture.completedFuture("a");
-        CompletableFuture<String> f2 = CompletableFuture.completedFuture("b");
+    public void successfulAsListAllSuccessful() throws Exception {
+        CompletableFuture<String> cf1 = CompletableFuture.completedFuture("a");
+        CompletableFuture<String> cf2 = CompletableFuture.completedFuture("b");
+        List<CompletableFuture<String>> jdkFutures = Arrays.asList(cf1, cf2);
 
-        List<CompletableFuture<String>> futures = Arrays.asList(f1, f2);
-        CompletableFuture<List<String>> combined = FutureUtils.successfulAsList(futures);
+        SettableFuture<String> lf1 = SettableFuture.create();
+        SettableFuture<String> lf2 = SettableFuture.create();
+        lf1.set("a");
+        lf2.set("b");
+        List<ListenableFuture<String>> guavaFutures = Arrays.asList(lf1, lf2);
 
-        List<String> results = combined.get();
-        Assert.assertEquals(2, results.size());
-        Assert.assertEquals("a", results.get(0));
-        Assert.assertEquals("b", results.get(1));
+        // Native JDK method
+        List<String> jdkResults = FutureUtils.successfulAsList(jdkFutures).get();
+
+        // Guava method (blocking)
+        List<String> guavaResults = Futures.successfulAsList(guavaFutures).get();
+
+        Assert.assertEquals(guavaResults, jdkResults);
     }
 
     @Test
-    public void testPartialFailure() throws Exception {
-        CompletableFuture<String> f1 = CompletableFuture.completedFuture("a");
-        CompletableFuture<String> f2 = new CompletableFuture<>();
-        f2.completeExceptionally(new RuntimeException("fail"));
+    public void successfulAsListPartialFailure() throws Exception {
+        CompletableFuture<String> cf1 = CompletableFuture.completedFuture("a");
+        CompletableFuture<String> cf2 = new CompletableFuture<>();
+        cf2.completeExceptionally(new RuntimeException("fail"));
+        List<CompletableFuture<String>> jdkFutures = Arrays.asList(cf1, cf2);
 
-        List<CompletableFuture<String>> futures = Arrays.asList(f1, f2);
-        CompletableFuture<List<String>> combined = FutureUtils.successfulAsList(futures);
+        SettableFuture<String> lf1 = SettableFuture.create();
+        SettableFuture<String> lf2 = SettableFuture.create();
+        lf1.set("a");
+        lf2.setException(new RuntimeException("fail"));
+        List<ListenableFuture<String>> guavaFutures = Arrays.asList(lf1, lf2);
 
-        List<String> results = combined.get();
-        Assert.assertEquals(2, results.size());
-        Assert.assertEquals("a", results.get(0));
-        Assert.assertNull(results.get(1));  // Failure replaced by null
+        // Native JDK method
+        List<String> jdkResults = FutureUtils.successfulAsList(jdkFutures).get();
+
+        // Guava method (blocking)
+        List<String> guavaResults = Futures.successfulAsList(guavaFutures).get();
+
+        Assert.assertEquals(guavaResults, jdkResults);
     }
 
     @Test
-    public void testAllFailures() throws Exception {
-        CompletableFuture<String> f1 = new CompletableFuture<>();
-        f1.completeExceptionally(new RuntimeException("fail A"));
+    public void successfulAsListAllFailures() throws Exception {
+        CompletableFuture<String> cf1 = new CompletableFuture<>();
+        cf1.completeExceptionally(new RuntimeException("fail A"));
+        CompletableFuture<String> cf2 = new CompletableFuture<>();
+        cf2.completeExceptionally(new RuntimeException("fail B"));
+        List<CompletableFuture<String>> jdkFutures = Arrays.asList(cf1, cf2);
 
-        CompletableFuture<String> f2 = new CompletableFuture<>();
-        f2.completeExceptionally(new RuntimeException("fail B"));
+        SettableFuture<String> lf1 = SettableFuture.create();
+        SettableFuture<String> lf2 = SettableFuture.create();
+        lf1.setException(new RuntimeException("fail A"));
+        lf2.setException(new RuntimeException("fail B"));
+        List<ListenableFuture<String>> guavaFutures = Arrays.asList(lf1, lf2);
 
-        List<CompletableFuture<String>> futures = Arrays.asList(f1, f2);
-        CompletableFuture<List<String>> combined = FutureUtils.successfulAsList(futures);
+        // Native JDK method
+        List<String> jdkResults = FutureUtils.successfulAsList(jdkFutures).get();
 
-        List<String> results = combined.get();
-        Assert.assertEquals(2, results.size());
-        Assert.assertNull(results.get(0));
-        Assert.assertNull(results.get(1));
+        // Guava method (blocking)
+        List<String> guavaResults = Futures.successfulAsList(guavaFutures).get();
+
+        Assert.assertEquals(guavaResults, jdkResults);
     }
 
     @Test
-    public void testEmptyList() throws Exception {
-        List<CompletableFuture<String>> futures = List.of();
-        CompletableFuture<List<String>> combined = FutureUtils.successfulAsList(futures);
+    public void successfulAsListEmptyList() throws Exception {
+        List<CompletableFuture<String>> jdkFutures = List.of();
+        List<ListenableFuture<String>> guavaFutures = List.of();
 
-        List<String> results = combined.get();
-        Assert.assertTrue(results.isEmpty());
+        List<String> jdkResult = FutureUtils.successfulAsList(jdkFutures).get();
+        List<String> guavaResult = Futures.successfulAsList(guavaFutures).get();
+
+        Assert.assertEquals(guavaResult, jdkResult);
+        Assert.assertTrue(jdkResult.isEmpty());
+    }
+
+    @Test
+    public void allAsListAllSuccessful() throws Exception {
+        CompletableFuture<String> cf1 = CompletableFuture.completedFuture("foo");
+        CompletableFuture<String> cf2 = CompletableFuture.completedFuture("bar");
+        List<CompletableFuture<String>> jdkFutures = Arrays.asList(cf1, cf2);
+
+        SettableFuture<String> lf1 = SettableFuture.create();
+        SettableFuture<String> lf2 = SettableFuture.create();
+        lf1.set("foo");
+        lf2.set("bar");
+        List<ListenableFuture<String>> guavaFutures = Arrays.asList(lf1, lf2);
+
+        // Native JDK method
+        List<String> jdkResults = FutureUtils.allAsList(jdkFutures).get();
+
+        // Guava method (blocking)
+        List<String> guavaResults = Futures.allAsList(guavaFutures).get();
+
+        Assert.assertEquals(guavaResults, jdkResults);
+    }
+
+    @Test
+    public void allAsListPartialFailure() throws Exception {
+        CompletableFuture<String> cf1 = CompletableFuture.completedFuture("ok");
+        CompletableFuture<String> cf2 = new CompletableFuture<>();
+        cf2.completeExceptionally(new IllegalStateException("fail"));
+        List<CompletableFuture<String>> jdkFutures = Arrays.asList(cf1, cf2);
+
+        SettableFuture<String> lf1 = SettableFuture.create();
+        SettableFuture<String> lf2 = SettableFuture.create();
+        lf1.set("ok");
+        lf2.setException(new IllegalStateException("fail"));
+        List<ListenableFuture<String>> guavaFutures = Arrays.asList(lf1, lf2);
+
+        boolean jdkFailed;
+        try {
+            FutureUtils.allAsList(jdkFutures).get();
+            jdkFailed = false;
+        } catch (ExecutionException e) {
+            jdkFailed = true;
+        }
+
+        boolean guavaFailed;
+        try {
+            Futures.allAsList(guavaFutures).get();
+            guavaFailed = false;
+        } catch (ExecutionException e) {
+            guavaFailed = true;
+        }
+
+        Assert.assertTrue(jdkFailed);
+        Assert.assertTrue(guavaFailed);
+    }
+
+    @Test
+    public void allAsListAllFailures() throws Exception {
+        CompletableFuture<String> cf1 = new CompletableFuture<>();
+        cf1.completeExceptionally(new RuntimeException("f1 failed"));
+        CompletableFuture<String> cf2 = new CompletableFuture<>();
+        cf2.completeExceptionally(new RuntimeException("f2 failed"));
+        List<CompletableFuture<String>> jdkFutures = Arrays.asList(cf1, cf2);
+
+        SettableFuture<String> lf1 = SettableFuture.create();
+        SettableFuture<String> lf2 = SettableFuture.create();
+        lf1.setException(new RuntimeException("f1 failed"));
+        lf2.setException(new RuntimeException("f2 failed"));
+        List<ListenableFuture<String>> guavaFutures = Arrays.asList(lf1, lf2);
+
+        boolean jdkFailed;
+        try {
+            FutureUtils.allAsList(jdkFutures).get();
+            jdkFailed = false;
+        } catch (ExecutionException e) {
+            jdkFailed = true;
+        }
+
+        boolean guavaFailed;
+        try {
+            Futures.allAsList(guavaFutures).get();
+            guavaFailed = false;
+        } catch (ExecutionException e) {
+            guavaFailed = true;
+        }
+
+        Assert.assertTrue(jdkFailed);
+        Assert.assertTrue(guavaFailed);
+    }
+
+    @Test
+    public void allAsListEmptyList() throws Exception {
+        List<CompletableFuture<String>> jdkFutures = List.of();
+        List<ListenableFuture<String>> guavaFutures = List.of();
+
+        List<String> jdkResult = FutureUtils.allAsList(jdkFutures).get();
+        List<String> guavaResult = Futures.allAsList(guavaFutures).get();
+
+        Assert.assertTrue(jdkResult.isEmpty());
+        Assert.assertTrue(guavaResult.isEmpty());
     }
 
 }
