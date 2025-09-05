@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
-import org.apache.jackrabbit.oak.commons.function.Suppliers;
+import org.apache.jackrabbit.oak.commons.internal.function.Suppliers;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
