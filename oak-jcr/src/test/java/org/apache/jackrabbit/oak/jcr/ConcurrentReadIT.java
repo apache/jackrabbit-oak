@@ -20,8 +20,10 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -31,11 +33,6 @@ import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
-
-import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
@@ -60,26 +57,26 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             }
             session.save();
 
-            ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
-                    Executors.newCachedThreadPool());
+            ExecutorService executorService = Executors.newCachedThreadPool();
 
-            List<ListenableFuture<Void>> futures = new ArrayList<>();
+            List<CompletableFuture<?>> futures = new ArrayList<>();
             for (int k = 0; k < 20; k ++) {
-                futures.add(executorService.submit(new Callable<Void>() {
-                    @Override
-                    public Void call() throws Exception {
-                        for (int k = 0; k < 10000; k++) {
+                futures.add(CompletableFuture.supplyAsync(() -> {
+                    for (int i = 0; i < 10000; i++) {
+                        try {
                             session.refresh(false);
                             NodeIterator children = testRoot.getNodes();
                             children.hasNext();
+                        } catch (Exception e) {
+                            throw new CompletionException(e);
                         }
-                        return null;
                     }
-                }));
+                    return null;
+                }, executorService));
             }
 
             // Throws ExecutionException if any of the submitted task failed
-            FutureUtils.allAsList(FutureConverter.toCompletableFuture(futures)).get();
+            FutureUtils.allAsList(futures).get();
             executorService.shutdown();
             executorService.awaitTermination(1, TimeUnit.DAYS);
         } finally {
@@ -98,26 +95,26 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
             }
             session.save();
 
-            ListeningExecutorService executorService = MoreExecutors.listeningDecorator(
-                    Executors.newCachedThreadPool());
+            ExecutorService executorService = Executors.newCachedThreadPool();
 
-            List<ListenableFuture<Void>> futures = new ArrayList<>();
+            List<CompletableFuture<?>> futures = new ArrayList<>();
             for (int k = 0; k < 20; k ++) {
-                futures.add(executorService.submit(new Callable<Void>() {
-                    @Override
-                    public Void call() throws Exception {
-                        for (int k = 0; k < 100000; k++) {
-                            session.refresh(false);
-                            PropertyIterator properties = testRoot.getProperties();
-                            properties.hasNext();
+                futures.add(CompletableFuture.supplyAsync(() -> {
+                        for (int i = 0; i < 100000; i++) {
+                            try {
+                                session.refresh(false);
+                                PropertyIterator properties = testRoot.getProperties();
+                                properties.hasNext();
+                            } catch (Exception e) {
+                                throw new CompletionException(e);
+                            }
                         }
                         return null;
-                    }
                 }));
             }
 
             // Throws ExecutionException if any of the submitted task failed
-            FutureUtils.allAsList(FutureConverter.toCompletableFuture(futures)).get();
+            FutureUtils.allAsList(futures).get();
             executorService.shutdown();
             executorService.awaitTermination(1, TimeUnit.DAYS);
         } finally {

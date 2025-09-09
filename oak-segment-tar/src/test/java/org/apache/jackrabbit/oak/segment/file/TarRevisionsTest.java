@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.listeningDecorator;
-import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -30,15 +28,16 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 import org.apache.jackrabbit.guava.common.base.Functions;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
@@ -159,32 +158,34 @@ public class TarRevisionsTest {
     @Test
     public void concurrentSetHeadFromFunction()
     throws InterruptedException, ExecutionException, TimeoutException {
-        ListeningExecutorService executor = listeningDecorator(newFixedThreadPool(2));
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
-            ListenableFuture<Boolean> t1 = executor.submit(new Callable<Boolean>() {
-                @Override
-                public Boolean call() throws Exception {
-                    return null != revisions.setHead(new Function<RecordId, RecordId>() {
+            CompletableFuture<Boolean> t1 = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return null != revisions.setHead(new Function<>() {
                         @Nullable
                         @Override
                         public RecordId apply(RecordId headId) {
                             return addChild(reader.readNode(headId), "a").getRecordId();
                         }
                     });
+                } catch (Exception e) {
+                    throw new CompletionException(e);
                 }
-            });
-            ListenableFuture<Boolean> t2 = executor.submit(new Callable<Boolean>() {
-                @Override
-                public Boolean call() throws Exception {
-                    return null != revisions.setHead(new Function<RecordId, RecordId>() {
+            }, executor);
+            CompletableFuture<Boolean> t2 = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return null != revisions.setHead(new Function<>() {
                         @Nullable
                         @Override
                         public RecordId apply(RecordId headId) {
                             return addChild(reader.readNode(headId), "b").getRecordId();
                         }
                     });
+                } catch (Exception e) {
+                    throw new CompletionException(e);
                 }
-            });
+            }, executor);
 
             assertTrue(t1.get(500, MILLISECONDS));
             assertTrue(t2.get(500, MILLISECONDS));
@@ -200,30 +201,32 @@ public class TarRevisionsTest {
     @Test
     public void setFromFunctionBlocks()
     throws ExecutionException, InterruptedException, TimeoutException {
-        ListeningExecutorService executor = listeningDecorator(newFixedThreadPool(2));
+        final ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             final CountDownLatch latch = new CountDownLatch(1);
 
-            ListenableFuture<Boolean> t1 = executor.submit(new Callable<Boolean>() {
-                @Override
-                public Boolean call() throws Exception {
+            CompletableFuture<Boolean> t1 = CompletableFuture.supplyAsync(() -> {
+                try {
                     latch.await();
                     return null != revisions.setHead(Functions.<RecordId>identity());
+                } catch (Exception e) {
+                    throw new CompletionException(e);
                 }
-            });
+            }, executor);
 
             try {
                 t1.get(500, MILLISECONDS);
                 fail("SetHead from function should block");
             } catch (TimeoutException expected) {}
 
-            ListenableFuture<Boolean> t2 = executor.submit(new Callable<Boolean>() {
-                @Override
-                public Boolean call() throws Exception {
+            CompletableFuture<Boolean> t2 = CompletableFuture.supplyAsync(() -> {
+                try {
                     latch.countDown();
                     return null != revisions.setHead(Functions.<RecordId>identity());
+                } catch (Exception e) {
+                    throw new CompletionException(e);
                 }
-            });
+            }, executor);
 
             assertTrue(t2.get(500, MILLISECONDS));
             assertTrue(t1.get(500, MILLISECONDS));

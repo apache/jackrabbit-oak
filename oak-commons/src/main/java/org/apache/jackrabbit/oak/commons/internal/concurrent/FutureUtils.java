@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.commons.internal.concurrent;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 
