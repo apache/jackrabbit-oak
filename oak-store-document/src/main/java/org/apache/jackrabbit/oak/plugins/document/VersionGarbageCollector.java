@@ -1491,6 +1491,8 @@ public class VersionGarbageCollector {
                             AUDIT_LOG.info("<Skipping> empty props deletion in [{}] due to presence of deleted Split Properties [{}].",
                                     doc.getId(), SetUtils.intersection(splitProps, propsToBeDeleted));
                         }
+                        // added to stats that it is skipped to presence of empty split props
+                        fullGCStats.documentSkippedDueToEmptySplitProp();
                         phases.stop(GCPhase.FULL_GC_COLLECT_PROPS);
                         return;
                     }

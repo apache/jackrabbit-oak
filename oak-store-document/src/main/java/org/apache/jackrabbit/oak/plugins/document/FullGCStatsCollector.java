@@ -92,6 +92,11 @@ public interface FullGCStatsCollector {
     void documentsUpdateSkipped(long numDocs);
 
     /**
+     * Total No. of documents that were skipped because of empty Split Props
+     */
+    void documentSkippedDueToEmptySplitProp();
+
+    /**
      * No. of times the FullGC has started
      */
     void started();

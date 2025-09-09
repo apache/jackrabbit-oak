@@ -49,6 +49,7 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     static final String DELETED_REVISION = "DELETED_REVISION";
     static final String UPDATED_DOC = "UPDATED_DOC";
     static final String SKIPPED_DOC = "SKIPPED_DOC";
+    static final String SKIPPED_DOC_EMPTY_SPLIT_PROP = "SKIPPED_DOC_EMPTY_SPLIT_PROP";
     static final String FULL_GC_ACTIVE_TIMER = "FULL_GC_ACTIVE_TIMER";
     static final String FULL_GC_TIMER = "FULL_GC_TIMER";
     static final String COLLECT_FULL_GC_TIMER = "COLLECT_FULL_GC_TIMER";
@@ -78,6 +79,7 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     private final MeterStats deletedUnmergedBC;
     private final MeterStats updatedDoc;
     private final MeterStats skippedDoc;
+    private final MeterStats skippedDocEmptySplitProp;
 
     private final Map<GCPhase, MeterStats> candidateRevisions;
     private final Map<GCPhase, MeterStats> candidateInternalRevisions;
@@ -121,6 +123,7 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
         deletedUnmergedBC = meter(provider, DELETED_UNMERGED_BC);
         updatedDoc = meter(provider, UPDATED_DOC);
         skippedDoc = meter(provider, SKIPPED_DOC);
+        skippedDocEmptySplitProp = meter(provider, SKIPPED_DOC_EMPTY_SPLIT_PROP);
 
         candidateRevisions = new EnumMap<>(GCPhase.class);
         candidateInternalRevisions = new EnumMap<>(GCPhase.class);
@@ -190,6 +193,11 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
     @Override
     public void documentsUpdateSkipped(long numDocs) {
         skippedDoc.mark(numDocs);
+    }
+
+    @Override
+    public void documentSkippedDueToEmptySplitProp() {
+        skippedDocEmptySplitProp.mark();
     }
 
     @Override
@@ -273,6 +281,7 @@ class FullGCStatsCollectorImpl implements FullGCStatsCollector {
                 ", deletedUnmergedBC=" + deletedUnmergedBC.getCount() +
                 ", updatedDoc=" + updatedDoc.getCount() +
                 ", skippedDoc=" + skippedDoc.getCount() +
+                ", skippedDocDueToEmptySplitProps=" + skippedDocEmptySplitProp.getCount() +
                 '}';
     }
 
