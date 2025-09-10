@@ -67,9 +67,6 @@
                         </Import-Package>
                         <Export-Package>
                             !org.apache.jackrabbit.oak.segment.azure.*,
-                            com.microsoft.azure.storage,
-                            com.microsoft.azure.storage.core,
-                            com.microsoft.azure.storage.blob,
                         </Export-Package>
                         <Embed-Dependency>
                             azure-storage,
