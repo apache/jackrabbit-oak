@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.apache.jackrabbit.oak.segment.file.CompactedNodeState;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -26,10 +27,63 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+/**
+ * A compactor compacts the differences between two {@link NodeState}s
+ * ({@code before} and {@code after}) on top of a third {@link NodeState}
+ * ({@code onto}).
+ * <p>
+ * The compaction can be done in two ways:
+ * <ul>
+ *     <li>Compacting down, where the differences between {@code before} and
+ *     {@code after} are compacted on top of the {@code after} state. This is
+ *     useful, because it allows for partial compactions. I.e. compactions that
+ *     are "soft-cancelled" before the full compaction process completes.
+ *     <p>
+ *     During "down compaction", parts of the tree are compacted and the respective
+ *     node states are substituted with their compacted counterparts. This results
+ *     in an {@link #equals(Object)| equal} node state at any moment in the process,
+ *     which means that if the compaction is cancelled, a valid, albeit only
+ *     partially compacted state can be returned.
+ *     <p>
+ *     After a partially completed "down compaction", the segments referenced by the
+ *     root record can be of different generations. However, the stable identifier
+ *     of the compacted records remain unchanged.
+ *     </li>
+ *     <li>Compacting up, where the differences between {@code before} and
+ *     {@code after} are compacted on top of {@code before}. This is useful to
+ *     create a new {@link NodeState} that contains the changes from
+ *     {@code after} but is based on {@code before}, often on an empty node-state.
+ *     <p>
+*      "Up compaction" results in a fully compacted state, but it can only be "hard-canceller",
+ *     i.e. either the full compaction is done, or nothing at all ({@code null} is returned
+ *     if cancelled).
+ *     <p>
+ *     Generally, "up compaction" is more thorough than "down compaction", because
+ *     the entire content tree is rewritten. Furthermore, it guarantees that after
+ *     compaction all reachable segments are of the same, new generation.
+ *     </li>
+ * </ul>
+ * <p>
+ * The compaction process can be cancelled through a {@link Canceller}. If
+ * cancellation is requested, the compaction will either abort completely or,
+ * in case of compacting down, return a partially compacted state.
+ */
 public abstract class Compactor {
+
+    /**
+     * Convenience method to run {@link #compactDown(NodeState, NodeState, Canceller, Canceller)},
+     * where the {@code before} state is the empty node state.
+     *
+     * @param state         the (after) node state to compact
+     * @param hardCanceller the trigger for hard cancellation, will abandon compaction if cancelled
+     * @param softCanceller the trigger for soft cancellation, will return partially compacted state if cancelled
+     * @return              the fully or partially compacted node state, or {@code null} if hard-cancelled
+     * @throws IOException
+     */
     public final @Nullable CompactedNodeState compactDown(
             @NotNull NodeState state,
             @NotNull Canceller hardCanceller,
@@ -47,13 +101,24 @@ public abstract class Compactor {
      * @return              the compacted node state or {@code null} if hard-cancelled
      * @throws IOException  will throw exception if any errors occur during compaction
      */
-    public abstract @Nullable CompactedNodeState compactDown(
+    public @Nullable CompactedNodeState compactDown(
             @NotNull NodeState before,
             @NotNull NodeState after,
             @NotNull Canceller hardCanceller,
             @NotNull Canceller softCanceller
-    ) throws IOException;
+    ) throws IOException {
+        return compact(before, after, after, hardCanceller, softCanceller);
+    }
 
+    /**
+     * Convenience method to run {@link #compactUp(NodeState, NodeState, Canceller)},
+     * where the {@code before} state is the empty node state.
+     *
+     * @param state         the (after) node state to compact
+     * @param canceller the trigger for hard cancellation, will abandon compaction if cancelled
+     * @return              the fully compacted node state, or {@code null} if hard-cancelled
+     * @throws IOException
+     */
     public final @Nullable CompactedNodeState compactUp(
             @NotNull NodeState state,
             @NotNull Canceller canceller
@@ -81,10 +146,56 @@ public abstract class Compactor {
      * @return              the compacted node state or {@code null} if hard-cancelled
      * @throws IOException  will throw exception if any errors occur during compaction
      */
-    public abstract @Nullable CompactedNodeState compact(
+    public @Nullable CompactedNodeState compact(
             @NotNull NodeState before,
             @NotNull NodeState after,
             @NotNull NodeState onto,
             @NotNull Canceller canceller
-    ) throws IOException;
+    ) throws IOException {
+        return compact(before, after, onto, canceller, null);
+    }
+
+    /**
+     * compact the differences between {@code after} and {@code before} on top of {@code onto}.
+     * @param before        the node state to diff against from {@code after}
+     * @param after         the node state diffed against {@code before}
+     * @param onto          the node state to compact to apply the diff to
+     * @param hardCanceller the trigger for hard cancellation, will abandon compaction if cancelled
+     * @param softCanceller the trigger for soft cancellation, will return partially compacted state if cancelled; may only be set if {@code after.equals(onto)}, implementations should validate the arguments
+     * @return              the compacted node state or {@code null} if hard-cancelled
+     * @throws IOException  will throw exception if any errors occur during compaction
+     */
+    protected final @Nullable CompactedNodeState compact(
+            @NotNull NodeState before,
+            @NotNull NodeState after,
+            @NotNull NodeState onto,
+            @NotNull Canceller hardCanceller,
+            @Nullable Canceller softCanceller
+    ) throws IOException {
+        Validate.checkArgument(softCanceller == null || Objects.equals(after, onto),
+                "softCanceller is only supported for compactDown, i.e. when Objects.equals(after, onto)");
+        return doCompact(before, after, onto, hardCanceller, softCanceller);
+    }
+
+    /**
+     * Method to allow subclasses to implement both "up compaction" and "down compaction". Implementations should not call
+     * this method directly, but should rather call {@link #compact(NodeState, NodeState, NodeState, Canceller, Canceller)},
+     * which validates the arguments before delegating to this method.
+     * <p>
+     * Implementations must ensure that soft cancellation can only happen if {@code after.equals(onto)}.
+     *
+     * @param before        the node state to diff against from {@code after}
+     * @param after         the node state diffed against {@code before}
+     * @param onto          the node state to compact to apply the diff to
+     * @param hardCanceller the trigger for hard cancellation, will abandon compaction if cancelled
+     * @param softCanceller the trigger for soft cancellation, will return partially compacted state if cancelled; may only be set if {@code after.equals(onto)}, implementations should validate the arguments
+     * @return              the compacted node state or {@code null} if hard-cancelled
+     * @throws IOException  will throw exception if any errors occur during compaction
+     */
+    protected abstract @Nullable CompactedNodeState doCompact(
+            @NotNull NodeState before,
+            @NotNull NodeState after,
+            @NotNull NodeState onto,
+            @NotNull Canceller hardCanceller,
+            @Nullable Canceller softCanceller) throws IOException;
 }

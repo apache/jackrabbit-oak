@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -296,13 +297,7 @@ public class ParallelCompactor extends CheckpointCompactor {
         private final @NotNull Canceller hardCanceller;
         private final @Nullable Canceller softCanceller;
 
-        CompactionHandler(@NotNull NodeState base, @NotNull Canceller hardCanceller) {
-            this.base = base;
-            this.hardCanceller = hardCanceller;
-            this.softCanceller = null;
-        }
-
-        CompactionHandler(@NotNull NodeState base, @NotNull Canceller hardCanceller, @NotNull Canceller softCanceller) {
+        CompactionHandler(@NotNull NodeState base, @NotNull Canceller hardCanceller, @Nullable Canceller softCanceller) {
             this.base = base;
             this.hardCanceller = hardCanceller;
             this.softCanceller = softCanceller;
@@ -385,30 +380,18 @@ public class ParallelCompactor extends CheckpointCompactor {
     }
 
     @Override
-    protected @Nullable CompactedNodeState compactDownWithDelegate(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull Canceller hardCanceller,
-            @NotNull Canceller softCanceller
-    ) throws IOException {
-        if (initializeExecutor()) {
-            return new CompactionHandler(after, hardCanceller, softCanceller).diff(before, after);
-        } else {
-            return super.compactDownWithDelegate(before, after, hardCanceller, softCanceller);
-        }
-    }
-
-    @Override
     protected @Nullable CompactedNodeState compactWithDelegate(
             @NotNull NodeState before,
             @NotNull NodeState after,
             @NotNull NodeState onto,
-            @NotNull Canceller canceller
+            @NotNull Canceller hardCanceller,
+            @Nullable Canceller softCanceller
     ) throws IOException {
+        Canceller softCancellerOrNull = Objects.equals(after, onto) ? softCanceller : null;
         if (initializeExecutor()) {
-            return new CompactionHandler(onto, canceller).diff(before, after);
+            return new CompactionHandler(onto, hardCanceller, softCancellerOrNull).diff(before, after);
         } else {
-            return super.compactWithDelegate(before, after, onto, canceller);
+            return super.compactWithDelegate(before, after, onto, hardCanceller, softCancellerOrNull);
         }
     }
 }

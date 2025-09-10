@@ -32,8 +32,8 @@ import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompact
 
 @RunWith(Parameterized.class)
 public class CheckpointCompactorTest extends AbstractCompactorTest {
-    public CheckpointCompactorTest(@NotNull SimpleCompactorFactory compactorFactory) {
-        super(compactorFactory);
+    public CheckpointCompactorTest(String name, @NotNull SimpleCompactorFactory compactorFactory) {
+        super(name, compactorFactory);
     }
 
     @Override

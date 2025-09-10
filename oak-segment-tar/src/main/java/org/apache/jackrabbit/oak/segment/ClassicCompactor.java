@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Objects.requireNonNullElseGet;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
@@ -28,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -80,41 +82,22 @@ public class ClassicCompactor extends Compactor {
         this.compactionMonitor = requireNonNull(compactionMonitor);
     }
 
-    @Override
-    public @Nullable CompactedNodeState compactDown(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull Canceller hardCanceller,
-            @NotNull Canceller softCanceller
-    ) throws IOException {
-        return compact(before, after, after, hardCanceller, softCanceller);
-    }
-
-    @Override
-    public @Nullable CompactedNodeState compact(
+    @Nullable
+    protected CompactedNodeState doCompact(
             @NotNull NodeState before,
             @NotNull NodeState after,
             @NotNull NodeState onto,
-            @NotNull Canceller canceller
-    ) throws IOException {
-        return compact(before, after, onto, canceller, Canceller.newCanceller());
-    }
-
-    private @Nullable CompactedNodeState compact(
-        @NotNull NodeState before,
-        @NotNull NodeState after,
-        @NotNull NodeState onto,
-        @NotNull Canceller hardCanceller,
-        @NotNull Canceller softCanceller
+            @NotNull Canceller hardCanceller,
+            @Nullable Canceller softCanceller
     ) throws IOException {
         CompactedNodeState compactedState = getPreviouslyCompactedState(after);
         if (compactedState == null) {
-            compactedState = new CompactDiff(onto, hardCanceller, softCanceller).diff(before, after);
+            compactedState = new CompactDiff(onto, hardCanceller, requireNonNullElseGet(softCanceller, Canceller::newCanceller)).diff(before, after);
         }
         return compactedState;
     }
 
-    protected @Nullable CompactedNodeState writeNodeState(
+    protected final @Nullable CompactedNodeState writeNodeState(
             @NotNull NodeState nodeState,
             @Nullable Buffer stableIdBytes,
             boolean complete
@@ -200,7 +183,7 @@ public class ClassicCompactor extends Compactor {
             try {
                 NodeState child = base.getChildNode(name);
                 NodeState onto = child.exists() ? child : EMPTY_NODE;
-                CompactedNodeState compacted = compact(before, after, onto, hardCanceller, softCanceller);
+                CompactedNodeState compacted = compact(before, after, onto, hardCanceller, Objects.equals(after, onto) ? softCanceller : null);
                 if (compacted == null) {
                     return false;
                 }
