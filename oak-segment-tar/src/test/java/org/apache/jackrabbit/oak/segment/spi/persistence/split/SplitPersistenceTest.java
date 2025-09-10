@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.testutils.NodeStoreTest
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -66,6 +67,12 @@ public class SplitPersistenceTest {
     private TarPersistence rwPersistence;
 
     private @NotNull List<String> roArchives;
+
+    private static void assumeNotOnWindows() {
+        Assume.assumeFalse("Test skipped on Windows, see OAK-11900",
+            System.getProperty("os.name", "").startsWith("Windows "));
+    }
+
 
     @Before
     public void setUp() throws IOException, InvalidFileStoreVersionException, CommitFailedException {
@@ -150,12 +157,14 @@ public class SplitPersistenceTest {
 
     @Test
     public void archiveManager_delete() throws IOException {
+        assumeNotOnWindows();
         assertFalse(splitArchiveManager.delete("data00000a.tar"));
         assertTrue(splitArchiveManager.delete("data00003a.tar"));
     }
 
     @Test
     public void archiveManager_renameTo() throws IOException {
+        assumeNotOnWindows();
         assertFalse(splitArchiveManager.renameTo("data00000a.tar", "data00000a.tar.bak"));
         assertTrue(splitArchiveManager.renameTo("data00003a.tar", "data00003a.tar.bak"));
     }
@@ -171,6 +180,7 @@ public class SplitPersistenceTest {
 
     @Test
     public void archiveManager_recover_and_backup() throws IOException {
+        assumeNotOnWindows();
         LinkedHashMap<UUID, byte[]> entries = new LinkedHashMap<>();
         splitArchiveManager.recoverEntries("data00000a.tar", entries);
         assertEquals(2, entries.size());
