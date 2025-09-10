@@ -75,6 +75,37 @@ public class FutureConverterTest {
     }
 
     @Test
+    public void toCompletableFutureCancelFromListenable() {
+        SettableFuture<String> listenable = SettableFuture.create();
+        CompletableFuture<String> completable = FutureConverter.toCompletableFuture(listenable);
+
+        listenable.cancel(true);
+
+        try {
+            completable.get(1, TimeUnit.SECONDS);
+            Assert.fail("Expected CancellationException");
+        } catch (CancellationException e) {
+            // expected
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception: " + e);
+        }
+
+        Assert.assertTrue(completable.isCancelled());
+    }
+
+    @Test
+    public void toCompletableFutureCancelFromCompletable() {
+        SettableFuture<String> listenable = SettableFuture.create();
+        CompletableFuture<String> completable = FutureConverter.toCompletableFuture(listenable);
+
+        boolean cancelled = completable.cancel(true);
+
+        Assert.assertTrue(cancelled);
+        Assert.assertTrue(completable.isCancelled());
+        Assert.assertTrue(listenable.isCancelled());
+    }
+
+    @Test
     public void testConvertListSuccessful() throws Exception {
         SettableFuture<String> f1 = SettableFuture.create();
         SettableFuture<String> f2 = SettableFuture.create();
@@ -118,6 +149,58 @@ public class FutureConverterTest {
         List<ListenableFuture<String>> emptyList = List.of();
         List<CompletableFuture<String>> completableList = FutureConverter.toCompletableFuture(emptyList);
         Assert.assertTrue(completableList.isEmpty());
+    }
+
+    @Test
+    public void toListenableFutureSuccessfulCompletion() throws Exception {
+        CompletableFuture<String> completable = new CompletableFuture<>();
+        ListenableFuture<String> listenable = FutureConverter.toListenableFuture(completable);
+
+        completable.complete("hello");
+        Assert.assertEquals("hello", listenable.get(1, TimeUnit.SECONDS));
+        Assert.assertTrue(listenable.isDone());
+    }
+
+    @Test
+    public void toListenableFutureExceptionalCompletion() {
+        CompletableFuture<String> completable = new CompletableFuture<>();
+        ListenableFuture<String> listenable = FutureConverter.toListenableFuture(completable);
+
+        completable.completeExceptionally(new IllegalStateException("bad!"));
+        try {
+            listenable.get(1, TimeUnit.SECONDS);
+            Assert.fail("Expected ExecutionException");
+        } catch (ExecutionException e) {
+            Assert.assertTrue(e.getCause() instanceof IllegalStateException);
+            Assert.assertEquals("bad!", e.getCause().getMessage());
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception: " + e);
+        }
+    }
+
+    @Test
+    public void toListenableFutureCancelCompletableFuture() {
+        CompletableFuture<String> completable = new CompletableFuture<>();
+        ListenableFuture<String> listenable = FutureConverter.toListenableFuture(completable);
+
+        completable.cancel(true);
+        try {
+            listenable.get(1, TimeUnit.SECONDS);
+            Assert.fail("Expected CancellationException");
+        } catch (CancellationException e) {
+            // expected
+        } catch (Exception e) {
+            Assert.fail("Unexpected exception: " + e);
+        }
+    }
+
+    @Test
+    public void toListenableFutureListenableCancelDoesNotAffectCompletable() {
+        CompletableFuture<String> completable = new CompletableFuture<>();
+        ListenableFuture<String> listenable = FutureConverter.toListenableFuture(completable);
+
+        listenable.cancel(true);
+        Assert.assertTrue(completable.isCancelled());
     }
 
 }
