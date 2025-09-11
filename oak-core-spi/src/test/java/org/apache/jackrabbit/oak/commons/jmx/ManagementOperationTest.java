@@ -23,7 +23,6 @@ import static java.lang.Thread.currentThread;
 import static java.lang.Thread.sleep;
 import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.directExecutor;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode.FAILED;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode.RUNNING;
@@ -41,6 +40,7 @@ import java.util.concurrent.TimeoutException;
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
 import org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status;
 import org.junit.After;
 import org.junit.Before;
@@ -64,7 +64,7 @@ public class ManagementOperationTest {
         ManagementOperation<Integer> op = ManagementOperation.done("test", 42);
         assertTrue(op.isDone());
         assertEquals(42, (int) op.get());
-        directExecutor().execute(op);
+        DirectExecutor.INSTANCE.execute(op);
     }
 
     @Test
