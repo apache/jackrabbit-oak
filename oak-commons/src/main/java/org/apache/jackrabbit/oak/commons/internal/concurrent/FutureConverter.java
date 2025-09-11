@@ -92,23 +92,13 @@ public class FutureConverter {
             }
         };
 
-        listenableFuture.addListener(() -> {
-            try {
-                if (listenableFuture.isCancelled()) {
-                    // If source future was cancelled, cancel this CompletableFuture too
-                    completable.cancel(false);
-                } else {
-                    // Complete normally with the result
-                    completable.complete(listenableFuture.get());
-                }
-            } catch (InterruptedException ex) {
-                // fix for sonar : https://sonarcloud.io/organizations/apache/rules?open=java%3AS2142&rule_key=java%3AS2142
-                Thread.currentThread().interrupt();
-                completable.completeExceptionally(ex);
-            } catch (Exception ex) {
-                completable.completeExceptionally(ex.getCause() != null ? ex.getCause() : ex);
-            }
-        }, DIRECT_EXECUTOR);
+        // Check if the ListenableFuture is already done to avoid unnecessary async overhead
+        if (listenableFuture.isDone()) {
+            handleConversion(listenableFuture, completable);
+        } else {
+            // Future is not done yet, add listener for completion
+            listenableFuture.addListener(() -> handleConversion(listenableFuture, completable), DIRECT_EXECUTOR);
+        }
 
         return completable;
     }
@@ -168,5 +158,22 @@ public class FutureConverter {
                 }
             }
         };
+    }
+
+    // helper methods
+
+    private static <T> void handleConversion(final ListenableFuture<T> listenableFuture, final CompletableFuture<T> completable) {
+        try {
+            if (listenableFuture.isCancelled()) {
+                completable.cancel(false);
+            } else {
+                completable.complete(listenableFuture.get());
+            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            completable.completeExceptionally(ex);
+        } catch (Exception ex) {
+            completable.completeExceptionally(ex.getCause() != null ? ex.getCause() : ex);
+        }
     }
 }

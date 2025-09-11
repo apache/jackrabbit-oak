@@ -28,8 +28,6 @@ import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
-
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
@@ -150,11 +148,11 @@ final class BatchCommit {
     void executeIndividually() {
         DocumentStore store = queue.getStore();
         for (UpdateOp op : ops) {
-            SettableFuture<NodeDocument> result = SettableFuture.create();
+            CompletableFuture<NodeDocument> result = new CompletableFuture<>();
             try {
-                result.set(store.findAndUpdate(NODES, op));
+                result.complete(store.findAndUpdate(NODES, op));
             } catch (Throwable t) {
-                result.setException(t);
+                result.completeExceptionally(t);
             }
             results.add(result);
         }
