@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RunnableScheduledFuture;
@@ -49,7 +50,6 @@ import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
-import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.apache.jackrabbit.oak.plugins.atomic.AtomicCounterEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -57,8 +57,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
 
 public class AtomicCounterClusterIT  extends DocumentClusterIT {
 
@@ -144,37 +142,31 @@ public class AtomicCounterClusterIT  extends DocumentClusterIT {
 
         // for each cluster node, `numIncrements` sessions pushing random increments
         long start = LOG_PERF.start("Firing the threads");
-        List<ListenableFutureTask<Void>> tasks = new ArrayList<>();
+        List<CompletableFuture<Void>> tasks = new ArrayList<>();
         for (Repository rep : repos) {
             final Repository r = rep;
             for (int i = 0; i < numIncrements; i++) {
-                ListenableFutureTask<Void> task = ListenableFutureTask.create(new Callable<Void>() {
-
-                        @Override
-                        public Void call() throws Exception {
-                            Session s = r.login(ADMIN);
-                            try {
-                                try {
-                                    Node n = s.getNode(counterPath);
-                                    int increment = rnd.nextInt(10) + 1;
-                                    n.setProperty(PROP_INCREMENT, increment);
-                                    expected.addAndGet(increment);
-                                    s.save();
-                                } finally {
-                                    s.logout();
-                                }                                
-                            } catch (Exception e) {
-                                exceptions.put(Thread.currentThread().getName(), e);
-                            }
-                            return null;
+                CompletableFuture<Void> task = CompletableFuture.runAsync(() -> {
+                    try {
+                        Session s = r.login(ADMIN);
+                        try {
+                            Node n = s.getNode(counterPath);
+                            int increment = rnd.nextInt(10) + 1;
+                            n.setProperty(PROP_INCREMENT, increment);
+                            expected.addAndGet(increment);
+                            s.save();
+                        } finally {
+                            s.logout();
                         }
+                    } catch (Exception e) {
+                        exceptions.put(Thread.currentThread().getName(), e);
+                    }
                 });
-                new Thread(task).start();
                 tasks.add(task);
             }
         }
         LOG_PERF.end(start, -1, "Firing threads completed", "");
-        FutureUtils.allAsList(FutureConverter.toCompletableFuture(tasks)).get();
+        FutureUtils.allAsList(tasks).get();
         LOG_PERF.end(start, -1, "Futures completed", "");
 
         waitForTaskCompletion();
