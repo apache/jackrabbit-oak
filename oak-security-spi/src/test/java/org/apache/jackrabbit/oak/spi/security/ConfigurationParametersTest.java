@@ -39,7 +39,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class ConfigurationParametersTest {
 
@@ -157,6 +156,21 @@ public class ConfigurationParametersTest {
         assertNull(options.getConfigValue("missing", null, null));
         assertNull(options.getConfigValue("missing", null, TestObject.class));
 
+    }
+
+    @Test
+    public void testDefaultForStringEmptyConfigValue() {
+        Map<String, String> map = new HashMap<>();
+        map.put("o1", "");
+        ConfigurationParameters options = ConfigurationParameters.of(map);
+        Integer intDefaultValue = 1000;
+        Long longDefaultValue = 1000L;
+
+
+        assertEquals(longDefaultValue, options.getConfigValue("o1", longDefaultValue, Long.class));
+        assertEquals(longDefaultValue, options.getConfigValue("o1", longDefaultValue));
+        assertEquals(intDefaultValue, options.getConfigValue("o1", intDefaultValue, Integer.class));
+        assertEquals(intDefaultValue, options.getConfigValue("o1", intDefaultValue));
     }
 
     @Test
@@ -292,7 +306,7 @@ public class ConfigurationParametersTest {
     }
 
     @Test
-    public void testImpossibleConversion() {
+    public void testImpossibleConversionReturnsDefaultValue() {
         Map<String, Object> map = new HashMap<>();
         map.put("string", "v");
         map.put("obj", new TestObject("test"));
@@ -308,12 +322,8 @@ public class ConfigurationParametersTest {
         impossible.put("int", Calendar.class);
 
         impossible.forEach((key, value) -> {
-            try {
-                options.getConfigValue(key, null, value);
-                fail("Impossible conversion for " + key + " to " + value);
-            } catch (IllegalArgumentException e) {
-                // success
-            }
+            Object returnValue = options.getConfigValue(key, null, value);
+            assertNull(returnValue);
         });
     }
 
@@ -380,14 +390,14 @@ public class ConfigurationParametersTest {
         });
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testInvalidConversionToSet() {
+    @Test
+    public void testInvalidConversionToSetReturnsDefault() {
         ConfigurationParameters params = ConfigurationParameters.of("long", 23);
-        params.getConfigValue("long", null, Set.class);
+        assertNull(params.getConfigValue("long", null, Set.class));
     }
 
     @Test
-    public void testInvalidConversionToMilliseconds() {
+    public void testInvalidConversionToMillisecondsReturnsDefault() {
         ConfigurationParameters options = ConfigurationParameters.of("str", "abc");
         assertNull(options.getConfigValue("str", null, ConfigurationParameters.Milliseconds.class));
     }
@@ -407,10 +417,10 @@ public class ConfigurationParametersTest {
         assertEquals(2, params.getConfigValue("l2", null, long.class).longValue());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testInvalidConversionToLong() {
         ConfigurationParameters params = ConfigurationParameters.of("str", "abc");
-        params.getConfigValue("str", null, Long.class);
+        assertNull(params.getConfigValue("str", null, Long.class));
     }
 
     @Test
@@ -422,10 +432,12 @@ public class ConfigurationParametersTest {
         assertEquals(2.2, params.getConfigValue("f2", null, float.class), 0.01);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testInvalidConversionToFloat() {
+    @Test
+    public void testInvalidConversionToFloatReturnsDefault() {
         ConfigurationParameters params = ConfigurationParameters.of("str", "abc");
-        params.getConfigValue("str", null, Float.class);
+        Float floatValue = 8.0F;
+        assertNull(params.getConfigValue("str", null, Float.class));
+        assertEquals(floatValue, params.getConfigValue("str", floatValue, Float.class));
     }
 
     @Test
@@ -437,10 +449,12 @@ public class ConfigurationParametersTest {
         assertEquals(2.2, params.getConfigValue("d2", null, double.class), 0.01);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testInvalidConversionToDouble() {
+    @Test
+    public void testInvalidConversionToDoubleReturnsDefault() {
         ConfigurationParameters params = ConfigurationParameters.of("str", "abc");
-        params.getConfigValue("str", null, Double.class);
+        Double doubleValue = 8.0;
+        assertNull(params.getConfigValue("str", null, Double.class));
+        assertEquals(doubleValue, params.getConfigValue("str", doubleValue, Double.class));
     }
 
     @Test
@@ -454,9 +468,9 @@ public class ConfigurationParametersTest {
     }
 
     @Test
-    public void testInvalidConversionToBoolean() {
+    public void testInvalidConversionToBooleanReturnsDefault() {
         ConfigurationParameters params = ConfigurationParameters.of("str", "abc");
-        assertFalse(params.getConfigValue("str", null, Boolean.class));
+        assertFalse(params.getConfigValue("str", false, Boolean.class));
     }
 
     @Test

@@ -210,12 +210,15 @@ public final class ConfigurationParameters implements Map<String, Object> {
     @Nullable
     public <T> T getConfigValue(@NotNull String key, @Nullable T defaultValue,
                                 @Nullable Class<T> targetClass) {
-        if (options.containsKey(key)) {
-            Object property = options.get(key);
-            return (property == null) ? null : convert(property, getTargetClass(property, defaultValue, targetClass));
-        } else {
-            return defaultValue;
+        try {
+            if (options.containsKey(key)) {
+                Object property = options.get(key);
+                return (property == null) ? null : convert(property, getTargetClass(property, defaultValue, targetClass));
+            }
+        } catch (IllegalArgumentException e){
+            log.info("Invalid value for key '{}'. Returning default value {}", key, defaultValue);
         }
+        return defaultValue;
     }
 
     /**
@@ -240,8 +243,13 @@ public final class ConfigurationParameters implements Map<String, Object> {
         if (property == null) {
             return defaultValue;
         } else {
-            T value = convert(property, getTargetClass(property, defaultValue, null));
-            return (value == null) ? defaultValue : value;
+            try {
+                T value = convert(property, getTargetClass(property, defaultValue, null));
+                return (value == null) ? defaultValue : value;
+            } catch (IllegalArgumentException e) {
+                log.info("Invalid value for key '{}': {}. Returning default value {}", key, property, defaultValue);
+                return defaultValue;
+            }
         }
     }
 
