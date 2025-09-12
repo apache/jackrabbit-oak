@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static java.util.Arrays.asList;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
@@ -69,6 +68,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -670,7 +670,7 @@ public class LuceneIndexTest {
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
         File indexRootDir = new File(getIndexDir());
-        tracker = new IndexTracker(new IndexCopier(newDirectExecutorService(), indexRootDir));
+        tracker = new IndexTracker(new IndexCopier(DirectExecutor.INSTANCE, indexRootDir));
         tracker.update(indexed);
 
         assertQuery(tracker, indexed, "foo", "bar");
@@ -696,7 +696,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, builder.getNodeState(),CommitInfo.EMPTY);
 
-        IndexCopier copier = new IndexCopier(newDirectExecutorService(), new File(getIndexDir()));
+        IndexCopier copier = new IndexCopier(DirectExecutor.INSTANCE, new File(getIndexDir()));
         tracker = new IndexTracker(copier);
         tracker.update(indexed);
 

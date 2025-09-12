@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
@@ -41,7 +42,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.*;
@@ -59,7 +59,7 @@ public class LocalIndexWriterFactoryTest {
     @Before
     public void setUp() throws IOException {
         tracker = new IndexTracker();
-        DocumentQueue queue = new DocumentQueue(100, tracker, newDirectExecutorService());
+        DocumentQueue queue = new DocumentQueue(100, tracker, DirectExecutor.INSTANCE);
         editorProvider = new LuceneIndexEditorProvider(
                 null,
                 null,
@@ -147,7 +147,7 @@ public class LocalIndexWriterFactoryTest {
     public void inMemoryDocLimit() throws Exception{
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         editorProvider.setInMemoryDocsLimit(5);
-        editorProvider.setIndexingQueue(new DocumentQueue(1, tracker, newDirectExecutorService()));
+        editorProvider.setIndexingQueue(new DocumentQueue(1, tracker, DirectExecutor.INSTANCE));
         builder = indexed.builder();
         for (int i = 0; i < 10; i++) {
             builder.child("b" + i).setProperty("foo", "bar");
