@@ -392,6 +392,7 @@ public class DocumentNodeStoreService {
             builder.setMongoWaitQueueTimeoutMillis(config.mongoWaitQueueTimeoutMillis());
             builder.setMongoReadTimeoutMillis(config.mongoReadTimeoutMillis());
             builder.setMongoMinHeartbeatFrequencyMillis(config.mongoMinHeartbeatFrequencyMillis());
+            builder.setDocumentSizeLoggingThreshold(config.documentSizeLoggingThreshold());
             builder.setMongoDB(uri, db, config.blobCacheSize());
             builder.setCollectionCompressionType(config.collectionCompressionType());
             mkBuilder = builder;

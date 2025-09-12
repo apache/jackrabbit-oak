@@ -99,6 +99,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(of(), of(config.fullGCExcludePaths()));
         assertEquals("STRICT", config.leaseCheckMode());
         assertEquals(DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK, config.avoidExclusiveMergeLock());
+        assertEquals(0, config.documentSizeLoggingThreshold());
         assertEquals(DEFAULT_THROTTLING_ENABLED, config.throttlingEnabled());
         assertEquals(DEFAULT_THROTTLING_TIME_MILLIS, config.throttlingTimeMillis());
         assertEquals(DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS, config.throttlingJobSchedulePeriodSecs());
@@ -145,6 +146,26 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "throttlingJobSchedulePeriodSecs", throttlingJobSchedulePeriodSecs);
         Configuration config = createConfiguration();
         assertEquals(throttlingJobSchedulePeriodSecs, config.throttlingJobSchedulePeriodSecs());
+    }
+
+    @Test
+    public void documentSizeLoggingThreshold() throws Exception {
+        int threshold = 1048576; // 1MB
+        addConfigurationEntry(preset, "documentSizeLoggingThreshold", threshold);
+        Configuration config = createConfiguration();
+        assertEquals(threshold, config.documentSizeLoggingThreshold());
+    }
+
+    @Test
+    public void documentSizeLoggingThresholdViaFrameworkProperty() throws Exception {
+        int threshold = 2097152; // 2MB
+        System.setProperty("oak.documentstore.documentSizeLoggingThreshold", String.valueOf(threshold));
+        try {
+            Configuration config = createConfiguration();
+            assertEquals(threshold, config.documentSizeLoggingThreshold());
+        } finally {
+            System.clearProperty("oak.documentstore.documentSizeLoggingThreshold");
+        }
     }
 
     @Test

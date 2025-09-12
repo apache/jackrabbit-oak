@@ -515,4 +515,12 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "merging the changes in case of a conflict. The Default value is " + DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK +
                     " Note that this value can be overridden via framework property 'oak.documentstore.avoidExclusiveMergeLock'")
     boolean avoidExclusiveMergeLock() default DEFAULT_AVOID_EXCLUSIVE_MERGE_LOCK;
+
+    @AttributeDefinition(
+            name = "Document Size Logging Threshold",
+            description = "Threshold in bytes for logging large documents. When a document is read or written " +
+                    "and its size exceeds this threshold, a warning will be logged. Set to 0 to disable logging. " +
+                    "Default value is 0 (disabled). Note that this value can be overridden via framework property " +
+                    "'oak.documentstore.documentSizeLoggingThreshold'")
+    int documentSizeLoggingThreshold() default 0;
 }

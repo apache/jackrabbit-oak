@@ -66,6 +66,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private Integer waitQueueTimeoutMillis;
     private Integer readTimeoutMillis;
     private Integer minHeartbeatFrequencyMillis;
+    private Integer documentSizeLoggingThreshold;
 
     /**
      * Uses the given information to connect to to MongoDB as backend
@@ -224,6 +225,11 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return thisBuilder();
     }
 
+    public T setDocumentSizeLoggingThreshold(int documentSizeLoggingThreshold) {
+        this.documentSizeLoggingThreshold = documentSizeLoggingThreshold;
+        return thisBuilder();
+    }
+
     /**
      * @return the lease socket timeout in milliseconds. If none is set, then
      *      zero is returned.
@@ -367,6 +373,10 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
      */
     public MongoClient getMongoClient() {
         return mongoClient;
+    }
+
+    public Integer getDocumentSizeLoggingThreshold() {
+        return documentSizeLoggingThreshold;
     }
 
     long getMaxReplicationLagMillis() {

@@ -56,6 +56,8 @@ import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.DocumentSizeLogger;
+import org.apache.jackrabbit.oak.plugins.document.DocumentSizeLogger.DocumentOperation;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
@@ -171,6 +173,11 @@ public class MongoDocumentStore implements DocumentStore {
      * throttler for mongo document store
      */
     private Throttler throttler = NO_THROTTLING;
+
+    /**
+     * logger for large documents
+     */
+    private final DocumentSizeLogger documentSizeLogger;
 
     enum DocumentReadPreference {
         PRIMARY,
@@ -351,6 +358,10 @@ public class MongoDocumentStore implements DocumentStore {
 
         this.nodeLocks = new StripedNodeDocumentLocks();
         this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
+        
+        // Initialize document size logger
+        Integer threshold = builder.getDocumentSizeLoggingThreshold();
+        this.documentSizeLogger = new DocumentSizeLogger(threshold != null ? threshold : 0);
 
         // if throttling is enabled
         final boolean throttlingEnabled = isThrottlingEnabled(builder);
@@ -715,6 +726,7 @@ public class MongoDocumentStore implements DocumentStore {
             T doc = convertFromDBObject(collection, result.get(0));
             if (doc != null) {
                 doc.seal();
+                documentSizeLogger.logIfLarge(doc, DocumentOperation.READ, collection);
             }
             return doc;
         } finally {
@@ -874,6 +886,9 @@ public class MongoDocumentStore implements DocumentStore {
                     for (int i = 0; i < limit && cursor.hasNext(); i++) {
                         BasicDBObject o = cursor.next();
                         T doc = convertFromDBObject(collection, o);
+                        if (doc != null && documentSizeLogger.isEnabled()) {
+                            documentSizeLogger.logIfLarge(doc, DocumentOperation.QUERY, collection);
+                        }
                         list.add(doc);
                     }
                 }
@@ -1136,6 +1151,9 @@ public class MongoDocumentStore implements DocumentStore {
                 if (collection == Collection.NODES) {
                     NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, updateOp);
                     nodesCache.put(newDoc);
+                    if (documentSizeLogger.isEnabled()) {
+                        documentSizeLogger.logIfLarge(newDoc, DocumentOperation.UPDATE, collection);
+                    }
                 }
                 oldDoc.seal();
             } else if (upsert) {
@@ -1143,6 +1161,9 @@ public class MongoDocumentStore implements DocumentStore {
                     NodeDocument doc = (NodeDocument) collection.newDocument(this);
                     UpdateUtils.applyChanges(doc, updateOp);
                     nodesCache.putIfAbsent(doc);
+                    if (documentSizeLogger.isEnabled()) {
+                        documentSizeLogger.logIfLarge(doc, DocumentOperation.UPSERT, collection);
+                    }
                 }
             } else {
                 // updateOp without conditions and not an upsert
@@ -1509,6 +1530,13 @@ public class MongoDocumentStore implements DocumentStore {
                 }
 
                 nodesCache.putNonConflictingDocs(tracker, docsToCache);
+                
+                // Log large documents after successful bulk update
+                if (documentSizeLogger.isEnabled()) {
+                    for (NodeDocument doc : docsToCache) {
+                        documentSizeLogger.logIfLarge(doc, DocumentOperation.BULK_UPDATE, collection);
+                    }
+                }
             }
             oldDocs.keySet().removeAll(bulkResult.failedUpdates);
 
@@ -1558,6 +1586,9 @@ public class MongoDocumentStore implements DocumentStore {
                     }
                     for (BasicDBObject doc : cursor) {
                         T foundDoc = convertFromDBObject(collection, doc);
+                        if (foundDoc != null && documentSizeLogger.isEnabled()) {
+                            documentSizeLogger.logIfLarge(foundDoc, DocumentOperation.FIND_DOCUMENTS, collection);
+                        }
                         docs.put(foundDoc.getId(), foundDoc);
                     }
                     return null;
@@ -1593,6 +1624,9 @@ public class MongoDocumentStore implements DocumentStore {
                 }
                 for (BasicDBObject doc : cursor) {
                     T foundDoc = convertFromDBObject(collection, doc);
+                    if (foundDoc != null && documentSizeLogger.isEnabled()) {
+                        documentSizeLogger.logIfLarge(foundDoc, DocumentOperation.FIND_DOCUMENTS_ONE_BY_ONE, collection);
+                    }
                     docs.put(foundDoc.getId(), foundDoc);
                 }
                 return null;
@@ -1729,6 +1763,11 @@ public class MongoDocumentStore implements DocumentStore {
                         nodesCache.putIfAbsent((NodeDocument) doc);
                     }
                 }
+                if (documentSizeLogger.isEnabled()) {
+                    for (T doc : docs) {
+                        documentSizeLogger.logIfLarge(doc, DocumentOperation.CREATE, collection);
+                    }
+                }
                 insertSuccess = true;
                 return true;
             } catch (BsonMaximumSizeExceededException e) {
@@ -1800,6 +1839,9 @@ public class MongoDocumentStore implements DocumentStore {
                     continue;
                 }
                 d.seal();
+                if (documentSizeLogger.isEnabled()) {
+                    documentSizeLogger.logIfLarge(d, DocumentOperation.PREFETCH, collection);
+                }
                 String key = String.valueOf(d.get(Document.ID));
                 resultKeys.add(key);
                 keys.remove(key);

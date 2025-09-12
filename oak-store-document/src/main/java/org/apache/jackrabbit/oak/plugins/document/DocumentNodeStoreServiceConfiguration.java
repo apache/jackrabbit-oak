@@ -137,12 +137,18 @@ final class DocumentNodeStoreServiceConfiguration {
      */
     private static final String FWK_PROP_UPDATE_LIMIT = "update.limit";
 
+    /**
+     * Name of framework property to configure document size logging threshold
+     */
+    private static final String FWK_PROP_DOCUMENT_SIZE_LOGGING_THRESHOLD = "oak.documentstore.documentSizeLoggingThreshold";
+
     private static final String PROP_DB = "db";
     private static final String PROP_URI = "mongouri";
     private static final String PROP_HOME = "repository.home";
     static final String PROP_SO_KEEP_ALIVE = "socketKeepAlive";
     static final String PROP_LEASE_SO_TIMEOUT = "leaseSocketTimeout";
     static final String PROP_UPDATE_LIMIT = "updateLimit";
+    static final String PROP_DOCUMENT_SIZE_LOGGING_THRESHOLD = "documentSizeLoggingThreshold";
     static final String PROP_MONGO_MAX_POOL_SIZE = "mongoMaxPoolSize";
     static final String PROP_MONGO_MIN_POOL_SIZE = "mongoMinPoolSize";
     static final String PROP_MONGO_MAX_CONNECTING = "mongoMaxConnecting";
@@ -167,6 +173,7 @@ final class DocumentNodeStoreServiceConfiguration {
             Map.entry(PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE),
             Map.entry(PROP_LEASE_SO_TIMEOUT, FWK_PROP_MONGO_LEASE_SO_TIMEOUT),
             Map.entry(PROP_UPDATE_LIMIT, FWK_PROP_UPDATE_LIMIT),
+            Map.entry(PROP_DOCUMENT_SIZE_LOGGING_THRESHOLD, FWK_PROP_DOCUMENT_SIZE_LOGGING_THRESHOLD),
             Map.entry(PROP_MONGO_MAX_POOL_SIZE, FWK_PROP_MONGO_MAX_POOL_SIZE),
             Map.entry(PROP_MONGO_MIN_POOL_SIZE, FWK_PROP_MONGO_MIN_POOL_SIZE),
             Map.entry(PROP_MONGO_MAX_CONNECTING, FWK_PROP_MONGO_MAX_CONNECTING),

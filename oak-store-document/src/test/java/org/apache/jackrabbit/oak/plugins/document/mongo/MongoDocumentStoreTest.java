@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.Map;
+import java.util.List;
 
 import com.mongodb.client.MongoCollection;
 
@@ -28,7 +29,15 @@ import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.core.read.ListAppender;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
@@ -113,6 +122,175 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
                 mongoConnection.getDBName()).setReadOnlyMode().open();
         // must still not exist when started in read-only mode
         assertFalse(hasIndex(mc, NodeDocument.HAS_BINARY_FLAG));
+    }
+
+    @Test
+    public void documentSizeLoggingOnCreate() throws Exception {
+        // Setup logging capture
+        Logger logger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.plugins.document.DocumentSizeLogger");
+        ch.qos.logback.classic.Logger logbackLogger = (ch.qos.logback.classic.Logger) logger;
+        LoggerContext context = logbackLogger.getLoggerContext();
+        ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> listAppender = new ListAppender<>();
+        listAppender.setContext(context);
+        listAppender.start();
+        logbackLogger.addAppender(listAppender);
+        logbackLogger.setLevel(Level.WARN);
+
+        try {
+            // Create a store with document size logging threshold
+            DocumentMK.Builder builder = new DocumentMK.Builder();
+            builder.setDocumentSizeLoggingThreshold(1000); // 1KB threshold
+            builder.setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName());
+            DocumentMK testMk = builder.open();
+
+            // Create a large document using the common Oak approach
+            NodeBuilder rootBuilder = testMk.getNodeStore().getRoot().builder();
+            NodeBuilder testNode = rootBuilder.child("test").child("large-node");
+            testNode.setProperty("largeProperty", createLargeString(2000)); // 2KB string
+            
+            // Merge the changes
+            testMk.getNodeStore().merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            // Verify warning was logged
+            List<ch.qos.logback.classic.spi.ILoggingEvent> logEvents = listAppender.list;
+            boolean foundWarning = false;
+            for (ch.qos.logback.classic.spi.ILoggingEvent event : logEvents) {
+                if (event.getLevel() == Level.WARN && 
+                    event.getMessage().contains("Large document detected during create operation")) {
+                    foundWarning = true;
+                    assertTrue("Log message should contain document ID", 
+                              event.getMessage().contains("/test/large-node"));
+                    assertTrue("Log message should contain collection name", 
+                              event.getMessage().contains("NODES"));
+                    break;
+                }
+            }
+            assertTrue("Warning about large document should be logged", foundWarning);
+            
+            testMk.dispose();
+        } finally {
+            logbackLogger.detachAppender(listAppender);
+        }
+    }
+
+    @Test
+    public void documentSizeLoggingOnRead() throws Exception {
+        // Setup logging capture
+        Logger logger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.plugins.document.DocumentSizeLogger");
+        ch.qos.logback.classic.Logger logbackLogger = (ch.qos.logback.classic.Logger) logger;
+        LoggerContext context = logbackLogger.getLoggerContext();
+        ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> listAppender = new ListAppender<>();
+        listAppender.setContext(context);
+        listAppender.start();
+        logbackLogger.addAppender(listAppender);
+        logbackLogger.setLevel(Level.WARN);
+
+        try {
+            // Create a store with document size logging threshold
+            DocumentMK.Builder builder = new DocumentMK.Builder();
+            builder.setDocumentSizeLoggingThreshold(1000); // 1KB threshold
+            builder.setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName());
+            DocumentMK testMk = builder.open();
+
+            // Create a large document first using the common Oak approach
+            NodeBuilder rootBuilder = testMk.getNodeStore().getRoot().builder();
+            NodeBuilder testNode = rootBuilder.child("test").child("large-read-node");
+            testNode.setProperty("largeProperty", createLargeString(2000)); // 2KB string
+            
+            // Merge the changes
+            testMk.getNodeStore().merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            // Clear previous log events
+            listAppender.list.clear();
+
+            // Read the document using the document store
+            NodeDocument doc = testMk.getNodeStore().getDocumentStore().find(NODES, "/test/large-read-node");
+            assertNotNull("Document should be found", doc);
+
+            // Verify warning was logged
+            List<ch.qos.logback.classic.spi.ILoggingEvent> logEvents = listAppender.list;
+            boolean foundWarning = false;
+            for (ch.qos.logback.classic.spi.ILoggingEvent event : logEvents) {
+                if (event.getLevel() == Level.WARN && 
+                    event.getMessage().contains("Large document detected during read operation")) {
+                    foundWarning = true;
+                    assertTrue("Log message should contain document ID", 
+                              event.getMessage().contains("/test/large-read-node"));
+                    assertTrue("Log message should contain collection name", 
+                              event.getMessage().contains("NODES"));
+                    break;
+                }
+            }
+            assertTrue("Warning about large document should be logged", foundWarning);
+            
+            testMk.dispose();
+        } finally {
+            logbackLogger.detachAppender(listAppender);
+        }
+    }
+
+    @Test
+    public void documentSizeLoggingDisabled() throws Exception {
+        // Setup logging capture
+        Logger logger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.plugins.document.DocumentSizeLogger");
+        ch.qos.logback.classic.Logger logbackLogger = (ch.qos.logback.classic.Logger) logger;
+        LoggerContext context = logbackLogger.getLoggerContext();
+        ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> listAppender = new ListAppender<>();
+        listAppender.setContext(context);
+        listAppender.start();
+        logbackLogger.addAppender(listAppender);
+        logbackLogger.setLevel(Level.WARN);
+
+        try {
+            // Create a store with document size logging disabled (threshold = 0)
+            DocumentMK.Builder builder = new DocumentMK.Builder();
+            builder.setDocumentSizeLoggingThreshold(0); // Disabled
+            builder.setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName());
+            DocumentMK testMk = builder.open();
+
+            // Create a large document using the common Oak approach
+            NodeBuilder rootBuilder = testMk.getNodeStore().getRoot().builder();
+            NodeBuilder testNode = rootBuilder.child("test").child("disabled-logging-node");
+            testNode.setProperty("largeProperty", createLargeString(2000)); // 2KB string
+            
+            // Merge the changes
+            testMk.getNodeStore().merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            // Read the document using the document store
+            NodeDocument doc = testMk.getNodeStore().getDocumentStore().find(NODES, "/test/disabled-logging-node");
+            assertNotNull("Document should be found", doc);
+
+            // Verify no warning was logged
+            List<ch.qos.logback.classic.spi.ILoggingEvent> logEvents = listAppender.list;
+            boolean foundWarning = false;
+            for (ch.qos.logback.classic.spi.ILoggingEvent event : logEvents) {
+                if (event.getLevel() == Level.WARN && 
+                    event.getMessage().contains("Large document detected")) {
+                    foundWarning = true;
+                    break;
+                }
+            }
+            assertFalse("No warning should be logged when threshold is 0", foundWarning);
+            
+            testMk.dispose();
+        } finally {
+            logbackLogger.detachAppender(listAppender);
+        }
+    }
+
+    private String createLargeString(int sizeInBytes) {
+        StringBuilder sb = new StringBuilder();
+        String base = "0123456789"; // 10 characters
+        int repetitions = sizeInBytes / 10;
+        for (int i = 0; i < repetitions; i++) {
+            sb.append(base);
+        }
+        // Add remaining characters to reach exact size
+        int remaining = sizeInBytes % 10;
+        if (remaining > 0) {
+            sb.append(base.substring(0, remaining));
+        }
+        return sb.toString();
     }
 
     static final class TestStore extends MongoDocumentStore {
