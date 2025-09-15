@@ -35,6 +35,7 @@ import javax.jcr.observation.Event;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
@@ -101,6 +102,17 @@ public class EventFactory {
                 builder.put("afterValue", createValue(after));
                 return Collections.unmodifiableMap(builder);
             }
+            @Override
+            public Map<?,?> getInfo_ToString() {
+                if (!after.getType().equals(Type.BINARY)) {
+                    return getInfo();
+                }
+                // for binary values just the binary information is logged
+                Map<Object, Object> builder = new HashMap<>();
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                builder.put("afterValue", "<binary>");
+                return Collections.unmodifiableMap(builder);
+            }
         };
     }
 
@@ -121,6 +133,18 @@ public class EventFactory {
                 builder.put("afterValue", createValue(after));
                 return Collections.unmodifiableMap(builder);
             }
+            @Override
+            public Map<?,?> getInfo_ToString() {
+                if (!before.getType().equals(Type.BINARY)) {
+                    return getInfo();
+                }
+                // for binary values just the binary information is logged
+                Map<Object, Object> builder = new HashMap<>();
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                builder.put("beforeValue", "<binary>");
+                builder.put("afterValue", "<binary>");
+                return Collections.unmodifiableMap(builder);
+            }
         };
     }
 
@@ -137,6 +161,17 @@ public class EventFactory {
                 Map<Object, Object> builder = new HashMap<>();
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
                 builder.put("beforeValue", createValue(before));
+                return Collections.unmodifiableMap(builder);
+            }
+            @Override
+            public Map<?,?> getInfo_ToString() {
+                if (!before.getType().equals(Type.BINARY)) {
+                    return getInfo();
+                }
+                // for binary values just the binary information is logged
+                Map<Object, Object> builder = new HashMap<>();
+                builder.putAll(createInfoMap(primaryType, mixinTypes));
+                builder.put("beforeValue", "<binary>");
                 return Collections.unmodifiableMap(builder);
             }
         };
@@ -298,6 +333,17 @@ public class EventFactory {
 
         //--------------------------------------------------------< Object >--
 
+        /** A custom version of getInfo(), which is only used
+         * for the toString() implementation; the goal is to limit the amount
+         * of data, which is returned, no binary data should be logged
+         * This is not included in hash calculation and equality checks.
+         * 
+         * @return
+         */
+        public Map<?,?> getInfo_ToString() {
+            return getInfo();
+        }
+        
         @Override
         public boolean equals(Object object) {
             if (this == object) {
@@ -330,7 +376,7 @@ public class EventFactory {
                     .add("type=" + getType())
                     .add("path=" + getPath())
                     .add("identifier=" + getIdentifier())
-                    .add("info=" + getInfo())
+                    .add("info=" + getInfo_ToString())
                     .add("userID=" + getUserID())
                     .add("userData=" + getUserData())
                     .add("date=" + getDate())
