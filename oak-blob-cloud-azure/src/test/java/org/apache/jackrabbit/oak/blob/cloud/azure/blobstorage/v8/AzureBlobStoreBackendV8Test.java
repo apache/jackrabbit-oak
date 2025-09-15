@@ -31,12 +31,14 @@ import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -49,8 +51,11 @@ import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BlOB_META_DIR_NAME;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNotNull;
@@ -307,5 +312,403 @@ public class AzureBlobStoreBackendV8Test {
         DataRecord refRec = azureBlobStoreBackend.getMetadataRecord("reference.key");
         assertNotNull("Reference data record null", refRec);
         assertTrue("reference key is empty", refRec.getLength() > 0);
+    }
+
+    @Test
+    public void testMetadataOperationsWithRenamedConstantsV8() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
+        azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
+        azureBlobStoreBackend.init();
+
+        // Test that metadata operations work correctly with the renamed constants in V8
+        String testMetadataName = "test-metadata-record-v8";
+        String testContent = "test metadata content for v8";
+
+        // Add a metadata record
+        azureBlobStoreBackend.addMetadataRecord(new ByteArrayInputStream(testContent.getBytes()), testMetadataName);
+
+        // Verify the record exists
+        assertTrue("Metadata record should exist", azureBlobStoreBackend.metadataRecordExists(testMetadataName));
+
+        // Retrieve the record
+        DataRecord retrievedRecord = azureBlobStoreBackend.getMetadataRecord(testMetadataName);
+        assertNotNull("Retrieved metadata record should not be null", retrievedRecord);
+        assertEquals("Retrieved record should have correct length", testContent.length(), retrievedRecord.getLength());
+
+        // Verify the record appears in getAllMetadataRecords
+        List<DataRecord> allRecords = azureBlobStoreBackend.getAllMetadataRecords("");
+        boolean foundTestRecord = allRecords.stream()
+                .anyMatch(record -> record.getIdentifier().toString().equals(testMetadataName));
+        assertTrue("Test metadata record should be found in getAllMetadataRecords", foundTestRecord);
+
+        // Clean up - delete the test record
+        azureBlobStoreBackend.deleteMetadataRecord(testMetadataName);
+        assertFalse("Metadata record should be deleted", azureBlobStoreBackend.metadataRecordExists(testMetadataName));
+    }
+
+    @Test
+    public void testMetadataDirectoryStructureV8() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
+        azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
+        azureBlobStoreBackend.init();
+
+        // Test that metadata records are stored in the correct directory structure in V8
+        String testMetadataName = "directory-test-record-v8";
+        String testContent = "directory test content for v8";
+
+        // Add a metadata record
+        azureBlobStoreBackend.addMetadataRecord(new ByteArrayInputStream(testContent.getBytes()), testMetadataName);
+
+        try {
+            // Verify the record is stored with the correct path prefix using V8 API
+            CloudBlobContainer azureContainer = azureBlobStoreBackend.getAzureContainer();
+
+            // In V8, metadata is stored in a directory structure
+            com.microsoft.azure.storage.blob.CloudBlobDirectory metaDir =
+                azureContainer.getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
+            com.microsoft.azure.storage.blob.CloudBlockBlob blob = metaDir.getBlockBlobReference(testMetadataName);
+
+            assertTrue("Blob should exist at expected path in V8", blob.exists());
+
+            // Verify the blob is in the META directory by listing
+            boolean foundBlob = false;
+            for (com.microsoft.azure.storage.blob.ListBlobItem item : metaDir.listBlobs()) {
+                if (item instanceof com.microsoft.azure.storage.blob.CloudBlob) {
+                    com.microsoft.azure.storage.blob.CloudBlob cloudBlob = (com.microsoft.azure.storage.blob.CloudBlob) item;
+                    if (cloudBlob.getName().endsWith(testMetadataName)) {
+                        foundBlob = true;
+                        break;
+                    }
+                }
+            }
+            assertTrue("Blob should be found in META directory listing in V8", foundBlob);
+
+        } finally {
+            // Clean up
+            azureBlobStoreBackend.deleteMetadataRecord(testMetadataName);
+        }
+    }
+
+    @Test
+    public void testInitWithNullProperties() throws Exception {
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        // Should not throw exception when properties is null - should use default config
+        try {
+            backend.init();
+            fail("Expected DataStoreException when no properties and no default config file");
+        } catch (DataStoreException e) {
+            // Expected - no default config file exists
+            assertTrue("Should contain config file error", e.getMessage().contains("Unable to initialize Azure Data Store"));
+        }
+    }
+
+    @Test
+    public void testInitWithInvalidConnectionString() throws Exception {
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        Properties props = new Properties();
+        props.setProperty(AzureConstants.AZURE_CONNECTION_STRING, "invalid-connection-string");
+        props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "test-container");
+        backend.setProperties(props);
+
+        try {
+            backend.init();
+            fail("Expected exception with invalid connection string");
+        } catch (Exception e) {
+            // Expected - can be DataStoreException or IllegalArgumentException
+            assertNotNull("Exception should not be null", e);
+            assertTrue("Should be DataStoreException or IllegalArgumentException",
+                    e instanceof DataStoreException || e instanceof IllegalArgumentException);
+        }
+    }
+
+    @Test
+    public void testConcurrentRequestCountValidation() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        // Test with too low concurrent request count
+        AzureBlobStoreBackendV8 backend1 = new AzureBlobStoreBackendV8();
+        Properties props1 = getConfigurationWithConnectionString();
+        props1.setProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "1"); // Too low
+        backend1.setProperties(props1);
+        backend1.init();
+        // Should reset to default minimum
+
+        // Test with too high concurrent request count
+        AzureBlobStoreBackendV8 backend2 = new AzureBlobStoreBackendV8();
+        Properties props2 = getConfigurationWithConnectionString();
+        props2.setProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "100"); // Too high
+        backend2.setProperties(props2);
+        backend2.init();
+        // Should reset to default maximum
+    }
+
+    @Test
+    public void testReadNonExistentBlob() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        try {
+            backend.read(new org.apache.jackrabbit.core.data.DataIdentifier("nonexistent"));
+            fail("Expected DataStoreException when reading non-existent blob");
+        } catch (DataStoreException e) {
+            assertTrue("Should contain missing blob error", e.getMessage().contains("Trying to read missing blob"));
+        }
+    }
+
+    @Test
+    public void testGetRecordNonExistent() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        try {
+            backend.getRecord(new org.apache.jackrabbit.core.data.DataIdentifier("nonexistent"));
+            fail("Expected DataStoreException when getting non-existent record");
+        } catch (DataStoreException e) {
+            assertTrue("Should contain retrieve blob error", e.getMessage().contains("Cannot retrieve blob"));
+        }
+    }
+
+    @Test
+    public void testDeleteNonExistentRecord() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        // Should not throw exception when deleting non-existent record
+        backend.deleteRecord(new org.apache.jackrabbit.core.data.DataIdentifier("nonexistent"));
+        // No exception expected
+    }
+
+    @Test
+    public void testNullParameterValidation() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        // Test null identifier in read
+        try {
+            backend.read(null);
+            fail("Expected NullPointerException for null identifier in read");
+        } catch (NullPointerException e) {
+            assertEquals("identifier", e.getMessage());
+        }
+
+        // Test null identifier in getRecord
+        try {
+            backend.getRecord(null);
+            fail("Expected NullPointerException for null identifier in getRecord");
+        } catch (NullPointerException e) {
+            assertEquals("identifier", e.getMessage());
+        }
+
+        // Test null identifier in deleteRecord
+        try {
+            backend.deleteRecord(null);
+            fail("Expected NullPointerException for null identifier in deleteRecord");
+        } catch (NullPointerException e) {
+            assertEquals("identifier", e.getMessage());
+        }
+
+        // Test null input in addMetadataRecord
+        try {
+            backend.addMetadataRecord((java.io.InputStream) null, "test");
+            fail("Expected NullPointerException for null input in addMetadataRecord");
+        } catch (NullPointerException e) {
+            assertEquals("input", e.getMessage());
+        }
+
+        // Test null name in addMetadataRecord
+        try {
+            backend.addMetadataRecord(new ByteArrayInputStream("test".getBytes()), null);
+            fail("Expected IllegalArgumentException for null name in addMetadataRecord");
+        } catch (IllegalArgumentException e) {
+            assertEquals("name", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetMetadataRecordNonExistent() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        DataRecord record = backend.getMetadataRecord("nonexistent");
+        assertNull(record);
+    }
+
+    @Test
+    public void testDeleteAllMetadataRecords() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        // Add multiple metadata records
+        String prefix = "test-prefix-";
+        for (int i = 0; i < 3; i++) {
+            backend.addMetadataRecord(
+                new ByteArrayInputStream(("content" + i).getBytes()),
+                prefix + i
+            );
+        }
+
+        // Verify records exist
+        for (int i = 0; i < 3; i++) {
+            assertTrue("Record should exist", backend.metadataRecordExists(prefix + i));
+        }
+
+        // Delete all records with prefix
+        backend.deleteAllMetadataRecords(prefix);
+
+        // Verify records are deleted
+        for (int i = 0; i < 3; i++) {
+            assertFalse("Record should be deleted", backend.metadataRecordExists(prefix + i));
+        }
+    }
+
+    @Test
+    public void testDeleteAllMetadataRecordsWithNullPrefix() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        try {
+            backend.deleteAllMetadataRecords(null);
+            fail("Expected NullPointerException for null prefix");
+        } catch (NullPointerException e) {
+            assertEquals("prefix", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testGetAllMetadataRecordsWithNullPrefix() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        try {
+            backend.getAllMetadataRecords(null);
+            fail("Expected NullPointerException for null prefix");
+        } catch (NullPointerException e) {
+            assertEquals("prefix", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCloseBackend() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        // Should not throw exception
+        backend.close();
+    }
+
+    @Test
+    public void testWriteWithNullFile() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        try {
+            backend.write(new org.apache.jackrabbit.core.data.DataIdentifier("test"), null);
+            fail("Expected NullPointerException for null file");
+        } catch (NullPointerException e) {
+            assertEquals("file", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testWriteWithNullIdentifier() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        java.io.File tempFile = java.io.File.createTempFile("test", ".tmp");
+        try {
+            backend.write(null, tempFile);
+            fail("Expected NullPointerException for null identifier");
+        } catch (NullPointerException e) {
+            assertEquals("identifier", e.getMessage());
+        } finally {
+            tempFile.delete();
+        }
+    }
+
+    @Test
+    public void testAddMetadataRecordWithFile() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        // Create temporary file
+        java.io.File tempFile = java.io.File.createTempFile("metadata", ".txt");
+        try (java.io.FileWriter writer = new java.io.FileWriter(tempFile)) {
+            writer.write("test metadata content from file");
+        }
+
+        String metadataName = "file-metadata-test";
+
+        try {
+            // Add metadata record from file
+            backend.addMetadataRecord(tempFile, metadataName);
+
+            // Verify record exists
+            assertTrue("Metadata record should exist", backend.metadataRecordExists(metadataName));
+
+            // Verify content
+            DataRecord record = backend.getMetadataRecord(metadataName);
+            assertNotNull("Record should not be null", record);
+            assertEquals("Record should have correct length", tempFile.length(), record.getLength());
+
+        } finally {
+            backend.deleteMetadataRecord(metadataName);
+            tempFile.delete();
+        }
+    }
+
+    @Test
+    public void testAddMetadataRecordWithNullFile() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
+
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
+        backend.setProperties(getConfigurationWithConnectionString());
+        backend.init();
+
+        try {
+            backend.addMetadataRecord((java.io.File) null, "test");
+            fail("Expected NullPointerException for null file");
+        } catch (NullPointerException e) {
+            assertEquals("input", e.getMessage());
+        }
     }
 }

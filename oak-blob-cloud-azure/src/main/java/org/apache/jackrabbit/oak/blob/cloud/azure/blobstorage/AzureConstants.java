@@ -152,12 +152,12 @@ public final class AzureConstants {
     /**
      * Directory name for storing metadata files in the blob storage
      */
-    public static final String AZUre_BlOB_META_DIR_NAME = "META";
+    public static final String AZURE_BlOB_META_DIR_NAME = "META";
 
     /**
      * Key prefix for metadata entries, includes trailing slash for directory structure
      */
-    public static final String AZURE_BLOB_META_KEY_PREFIX = AZUre_BlOB_META_DIR_NAME + "/";
+    public static final String AZURE_BLOB_META_KEY_PREFIX = AZURE_BlOB_META_DIR_NAME + "/";
 
     /**
      * Key name for storing blob reference information

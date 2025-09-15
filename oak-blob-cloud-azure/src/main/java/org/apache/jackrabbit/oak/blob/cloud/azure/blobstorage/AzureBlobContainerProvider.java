@@ -203,9 +203,12 @@ public class AzureBlobContainerProvider implements Closeable {
                                                      BlobServiceSasSignatureValues serviceSasSignatureValues,
                                                      OffsetDateTime expiryTime) {
 
+        AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
+
         BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
                 .endpoint(String.format(String.format("https://%s.%s", accountName, DEFAULT_ENDPOINT_SUFFIX)))
                 .credential(getClientSecretCredential())
+                .addPolicy(loggingPolicy)
                 .buildClient();
         OffsetDateTime startTime = OffsetDateTime.now(ZoneOffset.UTC);
         UserDelegationKey userDelegationKey = blobServiceClient.getUserDelegationKey(startTime, expiryTime);
@@ -228,10 +231,13 @@ public class AzureBlobContainerProvider implements Closeable {
     @NotNull
     private BlobContainerClient getBlobContainerFromServicePrincipals(String accountName, RequestRetryOptions retryOptions) {
         ClientSecretCredential clientSecretCredential = getClientSecretCredential();
+        AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
+
         return new BlobContainerClientBuilder()
                 .endpoint(String.format(String.format("https://%s.%s", accountName, DEFAULT_ENDPOINT_SUFFIX)))
                 .credential(clientSecretCredential)
                 .retryOptions(retryOptions)
+                .addPolicy(loggingPolicy)
                 .buildClient();
     }
 

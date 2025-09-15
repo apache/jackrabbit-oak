@@ -52,9 +52,12 @@ public final class Utils {
                                                        @Nullable final RequestRetryOptions retryOptions,
                                                        final Properties properties) throws DataStoreException {
         try {
+            AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
+
             BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
                     .connectionString(connectionString)
-                    .retryOptions(retryOptions);
+                    .retryOptions(retryOptions)
+                    .addPolicy(loggingPolicy);
 
                 HttpClient httpClient = new NettyAsyncHttpClientBuilder()
                         .proxy(computeProxyOptions(properties))
@@ -137,9 +140,12 @@ public final class Utils {
     }
 
     public static BlobContainerClient getBlobContainerFromConnectionString(final String azureConnectionString, final String containerName) {
+        AzureHttpRequestLoggingPolicy loggingPolicy = new AzureHttpRequestLoggingPolicy();
+
         return new BlobContainerClientBuilder()
                 .connectionString(azureConnectionString)
                 .containerName(containerName)
+                .addPolicy(loggingPolicy)
                 .buildClient();
     }
 

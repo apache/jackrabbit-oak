@@ -27,7 +27,7 @@ import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConsta
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_CONCURRENT_REQUEST_COUNT;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_MULTIPART_UPLOAD_PART_SIZE;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MAX_SINGLE_PUT_UPLOAD_SIZE;
-import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZUre_BlOB_META_DIR_NAME;
+import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BlOB_META_DIR_NAME;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_META_KEY_PREFIX;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_MIN_MULTIPART_UPLOAD_PART_SIZE;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_REF_KEY;
@@ -329,17 +329,14 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
                 BlobRequestOptions options = new BlobRequestOptions();
                 options.setConcurrentRequestCount(concurrentRequestCount);
                 boolean useBufferedStream = len < AZURE_BLOB_BUFFERED_STREAM_THRESHOLD;
-                final InputStream in = useBufferedStream  ? new BufferedInputStream(new FileInputStream(file)) : new FileInputStream(file);
-                try {
-                    blob.upload(in, len, null, options, null);
-                    LOG.debug("Blob created. identifier={} length={} duration={} buffered={}", key, len, (System.currentTimeMillis() - start), useBufferedStream);
-                    if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {
-                        // Log message, with exception so we can get a trace to see where the call came from
-                        LOG_STREAMS_UPLOAD.debug("Binary uploaded to Azure Blob Storage - identifier={}", key, new Exception());
-                    }
-                } finally {
-                    in.close();
+              try (InputStream in = useBufferedStream ? new BufferedInputStream(new FileInputStream(file)) : new FileInputStream(file)) {
+                blob.upload(in, len, null, options, null);
+                LOG.debug("Blob created. identifier={} length={} duration={} buffered={}", key, len, (System.currentTimeMillis() - start), useBufferedStream);
+                if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {
+                  // Log message, with exception so we can get a trace to see where the call came from
+                  LOG_STREAMS_UPLOAD.debug("Binary uploaded to Azure Blob Storage - identifier={}", key, new Exception());
                 }
+              }
                 return;
             }
 
@@ -554,7 +551,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
 
     private void addMetadataRecordImpl(final InputStream input, String name, long recordLength) throws DataStoreException {
         try {
-            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZUre_BlOB_META_DIR_NAME);
+            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
             CloudBlockBlob blob = metaDir.getBlockBlobReference(name);
             addLastModified(blob);
             blob.upload(input, recordLength);
@@ -575,7 +572,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZUre_BlOB_META_DIR_NAME);
+            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
             CloudBlockBlob blob = metaDir.getBlockBlobReference(name);
             if (!blob.exists()) {
                 LOG.warn("Trying to read missing metadata. metadataName={}", name);
@@ -617,7 +614,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZUre_BlOB_META_DIR_NAME);
+            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
             for (ListBlobItem item : metaDir.listBlobs(prefix)) {
                 if (item instanceof CloudBlob) {
                     CloudBlob blob = (CloudBlob) item;
@@ -686,7 +683,7 @@ public class AzureBlobStoreBackendV8 extends AbstractAzureBlobStoreBackend {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZUre_BlOB_META_DIR_NAME);
+            CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
             int total = 0;
             for (ListBlobItem item : metaDir.listBlobs(prefix)) {
                 if (item instanceof CloudBlob) {

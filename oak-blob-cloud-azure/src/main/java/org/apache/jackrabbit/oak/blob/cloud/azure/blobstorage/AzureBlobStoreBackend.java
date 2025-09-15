@@ -495,7 +495,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     }
 
     private BlockBlobClient getMetaBlobClient(String name) throws DataStoreException {
-        return getAzureContainer().getBlobClient(AzureConstants.AZUre_BlOB_META_DIR_NAME + "/" + name).getBlockBlobClient();
+        return getAzureContainer().getBlobClient(AzureConstants.AZURE_BlOB_META_DIR_NAME + "/" + name).getBlockBlobClient();
     }
 
     private void addMetadataRecordImpl(final InputStream input, String name, long recordLength) throws DataStoreException {
@@ -559,7 +559,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
             ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-            listBlobsOptions.setPrefix(AzureConstants.AZUre_BlOB_META_DIR_NAME);
+            listBlobsOptions.setPrefix(AzureConstants.AZURE_BlOB_META_DIR_NAME);
 
             for (BlobItem blobItem : getAzureContainer().listBlobs(listBlobsOptions, null)) {
                 BlobClient blobClient = getAzureContainer().getBlobClient(blobItem.getName());
@@ -623,7 +623,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             int total = 0;
 
             ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-            listBlobsOptions.setPrefix(AzureConstants.AZUre_BlOB_META_DIR_NAME);
+            listBlobsOptions.setPrefix(AzureConstants.AZURE_BlOB_META_DIR_NAME);
 
             for (BlobItem blobItem : getAzureContainer().listBlobs(listBlobsOptions, null)) {
                 BlobClient blobClient = getAzureContainer().getBlobClient(blobItem.getName());
