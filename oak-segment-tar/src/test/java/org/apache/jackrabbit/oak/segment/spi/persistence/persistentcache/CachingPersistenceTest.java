@@ -131,7 +131,7 @@ public class CachingPersistenceTest {
 
     @Test
     public void prefetchOnCacheHitLoadsReferences() throws Exception {
-        File dir = getFileStoreFolder();
+        File dir = folder.newFolder();
         FileStore fs = fileStoreBuilder(dir).build();
         SegmentArchiveReader archiveReader = null;
         try {
@@ -217,7 +217,7 @@ public class CachingPersistenceTest {
 
     @Test
     public void alreadyCachedReferencesAreNotPrefetched() throws Exception {
-        File dir = getFileStoreFolder();
+        File dir = folder.newFolder();
         FileStore fs = fileStoreBuilder(dir).build();
         try {
             SegmentWriter writer = DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder("t").build(fs);
@@ -308,7 +308,7 @@ public class CachingPersistenceTest {
     public void prefetchDisabledDoesNotScheduleOrWrite() throws Exception {
         System.setProperty("oak.segment.cache.prefetch.enabled", "false");
 
-        File dir = getFileStoreFolder();
+        File dir = folder.newFolder();
         FileStore fs = fileStoreBuilder(dir).build();
         SegmentArchiveReader archiveReader = null;
         try {
@@ -390,7 +390,7 @@ public class CachingPersistenceTest {
 
     @Test
     public void concurrentCacheHitsDeduplicatePrefetchTasks() throws Exception {
-        File dir = getFileStoreFolder();
+        File dir = folder.newFolder();
         FileStore fs = fileStoreBuilder(dir).build();
         SegmentArchiveReader archiveReader = null;
         try {
@@ -486,7 +486,7 @@ public class CachingPersistenceTest {
     @Test
     public void inFlightDedupIsReleasedAfterDelegateFailure() throws Exception {
         // Build segments: root references a1 only
-        File dir = getFileStoreFolder();
+        File dir = folder.newFolder();
         FileStore fs = fileStoreBuilder(dir).build();
         SegmentArchiveReader archiveReader = null;
         try {
