@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.reference;
 
-import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
-
 import static java.util.Collections.emptySet;
 import static javax.jcr.PropertyType.REFERENCE;
 import static javax.jcr.PropertyType.WEAKREFERENCE;
@@ -27,6 +25,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+import static org.apache.jackrabbit.oak.commons.internal.function.Suppliers.memoize;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.REF_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants.WEAK_REF_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;

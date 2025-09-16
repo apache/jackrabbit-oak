@@ -247,7 +247,8 @@ name siblings as mandated by JCR is dwarfed by the additional implementation com
 there are ideas to implement a feature for automatic [disambiguation of node names](https://issues.apache.org/jira/browse/OAK-129).
 
 In the meanwhile we have [basic support](https://issues.apache.org/jira/browse/OAK-203) for same
-name siblings but that might not cover all cases.
+name siblings but that might not cover all cases. On JCR API level this is read only. Creating
+SNS items is only possible with Oak API.
 
 ### XML Import
 
@@ -263,8 +264,6 @@ collisions never occur.*
 * Oak uses a MVCC model where a session operates on a snapshot of the repository. It is therefore
 very difficult to ensure new UUIDs only in case of a conflict. Based on the snapshot view of a
 session, an existing node with a conflicting UUID may not be visible until commit.
-
-In contrast to Jackrabbit 2 [expanded names][5] are not supported in System View documents for neither nodes nor properties ([OAK-9586](https://issues.apache.org/jira/browse/OAK-9586)).
 
 ### Identifiers
 

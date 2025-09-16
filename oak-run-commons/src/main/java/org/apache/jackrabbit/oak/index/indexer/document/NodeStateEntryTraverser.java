@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -94,9 +94,8 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
 
     @SuppressWarnings("Guava")
     private Iterable<NodeStateEntry> getIncludedDocs() {
-        return FluentIterable.from(getDocsFilteredByPath())
-                .filter(doc -> includeDoc(doc))
-                .transformAndConcat(doc -> getEntries(doc));
+        return IterableUtils.chainedIterable(
+                FluentIterable.of(getDocsFilteredByPath()).filter(this::includeDoc).transform(this::getEntries));
     }
 
     private boolean includeDoc(NodeDocument doc) {

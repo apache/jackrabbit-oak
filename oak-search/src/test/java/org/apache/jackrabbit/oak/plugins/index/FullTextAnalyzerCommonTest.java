@@ -1261,6 +1261,30 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         });
     }
 
+    @Test
+    public void fulltextSearchWithSnowball() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree snowball = addFilter(filters, "SnowballPorter");
+            snowball.setProperty("language", "Italian");
+        });
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("bar").setProperty("foo", "mangio la mela");
+        content.addChild("baz").setProperty("foo", "altro testo");
+        content.addChild("bat").setProperty("foo", "nuovo testo");
+        root.commit();
+
+        assertEventually(() -> {
+                    assertQuery("select * from [nt:base] where CONTAINS(*, 'mangiare')", List.of("/content/bar"));
+                    assertQuery("select * from [nt:base] where CONTAINS(*, 'nuova testa')", List.of("/content/bat"));
+                }
+        );
+    }
+
     protected Tree addFilter(Tree analyzer, String filterName) {
         Tree filter = analyzer.addChild(filterName);
         // mimics nodes api

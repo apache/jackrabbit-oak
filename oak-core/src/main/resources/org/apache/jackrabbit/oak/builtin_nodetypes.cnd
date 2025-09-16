@@ -578,7 +578,7 @@
 /**
  * Only nodes with mixin node type mix:lifecycle may participate in a lifecycle.
  *
- * @peop jcr:lifecyclePolicy
+ * @prop jcr:lifecyclePolicy
  *              This property is a reference to another node that contains
  *              lifecycle policy information. The definition of the referenced
  *              node is not specified.

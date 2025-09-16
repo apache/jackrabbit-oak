@@ -23,21 +23,32 @@ import java.util.Map;
 
 import com.mongodb.WriteConcern;
 
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.bson.BsonDocument;
+import org.bson.BsonInt32;
+import org.bson.Document;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNoException;
+import static org.junit.Assume.assumeTrue;
 
 public class ReplicaSetDefaultWriteConcernIT {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ReplicaSetDefaultWriteConcernIT.class);
 
     @Rule
     public MongodProcessFactory mongodProcessFactory = new MongodProcessFactory();
@@ -51,6 +62,21 @@ public class ReplicaSetDefaultWriteConcernIT {
     public void before() {
         try {
             executables.putAll(mongodProcessFactory.startReplicaSet("rs", 3));
+            // New Mongo Driver seems stricter about the replica set status. We need to ensure
+            // that the primary is ready (writable) before running the test.
+            String uri = "mongodb://" + MongodProcessFactory.localhost(executables.keySet());
+            try (MongoClient client = MongoClients.create(uri)) {
+                MongoDatabase db = client.getDatabase("admin");
+                boolean primaryReady = false;
+                LOG.info("Waiting for primary to be ready...");
+                // Use the hello command: https://www.mongodb.com/docs/v6.0/reference/command/hello/
+                Document hello = db.runCommand(new BsonDocument("hello", new BsonInt32(1)));
+                if (hello.getBoolean("isWritablePrimary", false)) {
+                    LOG.info("Primary is ready");
+                } else {
+                    assumeTrue(primaryReady);
+                }
+            }
         } catch (Exception e) {
             assumeNoException(e);
         }

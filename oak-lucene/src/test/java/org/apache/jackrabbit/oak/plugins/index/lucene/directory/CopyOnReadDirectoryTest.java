@@ -23,6 +23,7 @@ import java.io.File;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
@@ -30,7 +31,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.junit.Assert.assertEquals;
 
 public class CopyOnReadDirectoryTest {
@@ -41,7 +41,7 @@ public class CopyOnReadDirectoryTest {
     public void multipleCloseCalls() throws Exception{
         AtomicInteger executionCount = new AtomicInteger();
         Executor e = r -> {executionCount.incrementAndGet(); r.run();};
-        IndexCopier c = new IndexCopier(newDirectExecutorService(), temporaryFolder.newFolder(), true);
+        IndexCopier c = new IndexCopier(DirectExecutor.INSTANCE, temporaryFolder.newFolder(), true);
         Directory dir = new CopyOnReadDirectory(c, new RAMDirectory(), new RAMDirectory(), false, "foo", e);
 
         dir.close();

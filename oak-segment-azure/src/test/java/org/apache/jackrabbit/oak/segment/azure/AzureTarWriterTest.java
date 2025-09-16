@@ -25,10 +25,14 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 public class AzureTarWriterTest extends TarWriterTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AzureTarWriterTest.class);
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
@@ -40,6 +44,10 @@ public class AzureTarWriterTest extends TarWriterTest {
     public void setUp() throws Exception {
         readBlobContainerClient = azurite.getReadBlobContainerClient("oak-test");
         writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
+        readBlobContainerClient.listBlobs().forEach(blobItem -> {
+            LOG.warn("Deleting blob {}", blobItem.getName());
+            writeBlobContainerClient.getBlobClient(blobItem.getName()).delete();
+        });
     }
 
     @NotNull

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,25 +62,17 @@ public interface SegmentArchiveReader extends Closeable {
     /**
      * Load the segment graph.
      *
-     * @return byte buffer representing the graph or null if the graph hasn't been
-     * persisted.
+     * @return segment graph instance
      */
-    @Nullable
-    Buffer getGraph() throws IOException;
-
-    /**
-     * Check if the segment graph has been persisted for this archive.
-     *
-     * @return {@code true} if the graph exists, false otherwise
-     */
-    boolean hasGraph();
+    @NotNull
+    SegmentGraph getGraph() throws IOException;
 
     /**
      * Load binary references.
      *
      * @return byte buffer representing the binary references structure.
      */
-    @NotNull
+    @Nullable
     Buffer getBinaryReferences() throws IOException;
 
     /**

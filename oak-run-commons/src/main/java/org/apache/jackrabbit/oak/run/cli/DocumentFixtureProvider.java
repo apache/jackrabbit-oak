@@ -22,8 +22,8 @@ import java.io.IOException;
 
 import javax.sql.DataSource;
 
+import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.MongoClientURI;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -102,14 +102,14 @@ class DocumentFixtureProvider {
 
         DocumentNodeStore dns;
         if (commonOpts.isMongo()) {
-            MongoClientURI uri = new MongoClientURI(commonOpts.getStoreArg());
+            ConnectionString uri = new ConnectionString(commonOpts.getStoreArg());
             if (uri.getDatabase() == null) {
                 System.err.println("Database missing in MongoDB URI: "
-                        + uri.getURI());
+                        + uri);
                 System.exit(1);
             }
-            MongoConnection mongo = new MongoConnection(uri.getURI());
-            wb.register(MongoClientURI.class, uri, emptyMap());
+            MongoConnection mongo = new MongoConnection(uri.getConnectionString());
+            wb.register(ConnectionString.class, uri, emptyMap());
             wb.register(MongoConnection.class, mongo, emptyMap());
             wb.register(MongoDatabase.class, mongo.getDatabase(), emptyMap());
             closer.register(mongo::close);

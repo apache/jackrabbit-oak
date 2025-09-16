@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import com.codahale.metrics.MetricRegistry;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -474,8 +474,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return requireNonNull(indexHelper.getService(MongoDocumentStore.class));
     }
 
-    private MongoClientURI getMongoClientURI() {
-        return requireNonNull(indexHelper.getService(MongoClientURI.class));
+    private ConnectionString getMongoClientURI() {
+        return requireNonNull(indexHelper.getService(ConnectionString.class));
     }
 
     private void configureEstimators(IndexingProgressReporter progressReporter) {
@@ -495,7 +495,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     private long getEstimatedDocumentCount() {
         MongoConnection mongoConnection = indexHelper.getService(MongoConnection.class);
         if (mongoConnection != null) {
-            return mongoConnection.getDatabase().getCollection("nodes").count();
+            return mongoConnection.getDatabase().getCollection("nodes").estimatedDocumentCount();
         }
         return 0;
     }

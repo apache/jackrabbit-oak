@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.index.ConfigHelper;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
@@ -262,13 +262,8 @@ public class IndexWriterPool {
      * WARN: This is not thread safe.
      */
     public IndexWriterPool() {
-        this.writersPool = Executors.newFixedThreadPool(numberOfThreads, new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .build());
-        this.monitorTaskExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat("index-writer-monitor")
-                .build());
+        this.writersPool = Executors.newFixedThreadPool(numberOfThreads, BasicThreadFactory.builder().daemon().build());
+        this.monitorTaskExecutor = Executors.newSingleThreadScheduledExecutor(BasicThreadFactory.builder().daemon().namingPattern("index-writer-monitor").build());
         this.workers = IntStream.range(0, numberOfThreads)
                 .mapToObj(Worker::new)
                 .collect(Collectors.toList());

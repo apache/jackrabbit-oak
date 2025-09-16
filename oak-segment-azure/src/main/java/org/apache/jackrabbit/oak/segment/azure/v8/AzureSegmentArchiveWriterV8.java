@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
@@ -52,11 +53,20 @@ public class AzureSegmentArchiveWriterV8 extends AbstractRemoteSegmentArchiveWri
 
     private final BlobRequestOptions writeOptimisedBlobRequestOptions;
 
-    public AzureSegmentArchiveWriterV8(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) {
+    public AzureSegmentArchiveWriterV8(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) throws IOException {
         super(ioMonitor, monitor);
         this.archiveDirectory = archiveDirectory;
         this.writeAccessController = writeAccessController;
         this.writeOptimisedBlobRequestOptions = AzureRequestOptionsV8.optimiseForWriteOperations(archiveDirectory.getServiceClient().getDefaultRequestOptions());
+        this.created = hasBlobs();
+    }
+
+    private boolean hasBlobs() throws IOException {
+        try {
+            return this.archiveDirectory.listBlobs().iterator().hasNext();
+        } catch (StorageException | URISyntaxException | NoSuchElementException e) {
+            throw new IOException(e);
+        }
     }
 
     @Override

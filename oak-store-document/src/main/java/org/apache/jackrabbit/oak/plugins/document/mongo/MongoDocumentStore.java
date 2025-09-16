@@ -38,24 +38,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.apache.commons.io.IOUtils;
-import com.mongodb.client.model.IndexOptions;
-import com.mongodb.Block;
-import com.mongodb.DBObject;
-import com.mongodb.MongoBulkWriteException;
-import com.mongodb.MongoWriteException;
-import com.mongodb.MongoCommandException;
-import com.mongodb.WriteError;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.ReadPreference;
-
-import com.mongodb.client.model.CreateCollectionOptions;
-
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -99,19 +87,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.ConnectionString;
+import com.mongodb.DBObject;
+import com.mongodb.MongoBulkWriteException;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
+import com.mongodb.MongoWriteException;
+import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
+import com.mongodb.WriteError;
 import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
@@ -134,7 +133,6 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition.newEqualsCondition;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoThrottlerFactory.exponentialThrottler;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.createPartialIndex;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.getDocumentStoreExceptionTypeFor;
@@ -162,11 +160,6 @@ public class MongoDocumentStore implements DocumentStore {
      * For mongo based document store this value is threshold for the oplog replication window.
      */
     public static final int DEFAULT_THROTTLING_THRESHOLD = Integer.getInteger("oak.mongo.throttlingThreshold", 2);
-    /**
-     * The default throttling time (in millis) when throttling is enabled. This is the time for
-     * which we block any data modification operation when system has been throttled.
-     */
-    public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
 
     private static final @NotNull String BIN_COLLECTION = "bin";
     /**
@@ -298,7 +291,7 @@ public class MongoDocumentStore implements DocumentStore {
     /**
      * An updater instance to periodically updates mongo oplog window
      */
-    private MongoDocumentStoreThrottlingMetricsUpdater throttlingMetricsUpdater;
+    private MongoDocumentStoreThrottlingFactorUpdater throttlingFactorUpdater;
 
     private boolean hasModifiedIdCompoundIndex = true;
 
@@ -368,12 +361,12 @@ public class MongoDocumentStore implements DocumentStore {
 
             if (ol.isPresent()) {
                 // oplog window based on current oplog filling rate
-                final AtomicReference<Double> oplogWindow = new AtomicReference<>((double) MAX_VALUE);
-                throttler = exponentialThrottler(DEFAULT_THROTTLING_THRESHOLD, oplogWindow, DEFAULT_THROTTLING_TIME_MS);
-                throttlingMetricsUpdater = new MongoDocumentStoreThrottlingMetricsUpdater(localDb, oplogWindow);
-                throttlingMetricsUpdater.scheduleUpdateMetrics();
-                LOG.info("Started MongoDB throttling metrics with threshold {}, throttling time {}",
-                        DEFAULT_THROTTLING_THRESHOLD, DEFAULT_THROTTLING_TIME_MS);
+                final AtomicReference<Integer> factor = new AtomicReference<>(0);
+                throttler = MongoThrottlerFactory.extFactorThrottler(factor, builder.getThrottlingTimeMillis());
+                throttlingFactorUpdater = new MongoDocumentStoreThrottlingFactorUpdater(localDb, factor, builder.getThrottlingJobSchedulePeriodSecs());
+                throttlingFactorUpdater.scheduleFactorUpdates();
+                LOG.info("Started MongoDB throttling with factor {}, throttling time {}, schedule period {}",
+                        factor.get(), builder.getThrottlingTimeMillis(), builder.getThrottlingJobSchedulePeriodSecs());
             } else {
                 LOG.warn("Connected to MongoDB with replication not detected and hence oplog based throttling is not supported");
             }
@@ -400,9 +393,9 @@ public class MongoDocumentStore implements DocumentStore {
     @NotNull
     private MongoDBConnection getOrCreateClusterNodesConnection(@NotNull MongoDocumentNodeStoreBuilderBase<?> builder) {
         MongoDBConnection mc;
-        int leaseSocketTimeout = builder.getLeaseSocketTimeout();
-        if (leaseSocketTimeout > 0) {
-            mc = builder.createMongoDBClient(leaseSocketTimeout);
+        // Only create separate lease connection if timeout was explicitly set
+        if (builder.hasLeaseSocketTimeout()) {
+            mc = builder.createMongoDBClient(true);
         } else {
             // use same connection
             mc = connection;
@@ -700,7 +693,7 @@ public class MongoDocumentStore implements DocumentStore {
             ReadPreference readPreference = getMongoReadPreference(collection, null, docReadPref);
             MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection, readPreference);
 
-            if(readPreference.isSlaveOk()){
+            if (readPreference.isSecondaryOk()) {
                 LOG.trace("Routing call to secondary for fetching [{}]", key);
                 isSlaveOk = true;
             }
@@ -846,7 +839,7 @@ public class MongoDocumentStore implements DocumentStore {
             ReadPreference readPreference =
                     getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
 
-            if(readPreference.isSlaveOk()){
+            if (readPreference.isSecondaryOk()) {
                 isSlaveOk = true;
                 LOG.trace("Routing call to secondary for fetching children from [{}] to [{}]", fromKey, toKey);
             }
@@ -1785,7 +1778,7 @@ public class MongoDocumentStore implements DocumentStore {
             ReadPreference readPreference = getMongoReadPreference(collection, null, getDefaultReadPreference(collection));
             MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection, readPreference);
 
-            if (readPreference.isSlaveOk()) {
+            if (readPreference.isSecondaryOk()) {
                 LOG.trace("Routing call to secondary for prefetching [{}]", keys);
             }
 
@@ -1867,7 +1860,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         nodes.withReadPreference(ReadPreference.primary())
                 .find(Filters.in(Document.ID, keys)).projection(fields)
-                .forEach((Block<BasicDBObject>) obj -> {
+                .forEach((Consumer<? super BasicDBObject>) obj -> {
                     String id = (String) obj.get(Document.ID);
                     Long modCount = Utils.asLong((Number) obj.get(Document.MOD_COUNT));
                     if (modCount == null) {
@@ -2047,7 +2040,7 @@ public class MongoDocumentStore implements DocumentStore {
             clusterNodesConnection.close();
         }
         try {
-            IOUtils.close(throttlingMetricsUpdater);
+            IOUtils.close(throttlingFactorUpdater);
         } catch (IOException e) {
             LOG.warn("Error occurred while closing throttlingMetricsUpdater", e);
         }
@@ -2228,15 +2221,19 @@ public class MongoDocumentStore implements DocumentStore {
             if(!readWriteMode.startsWith("mongodb://")){
                 rwModeUri = String.format("mongodb://localhost/?%s", readWriteMode);
             }
-            MongoClientURI uri = new MongoClientURI(rwModeUri);
-            ReadPreference readPref = uri.getOptions().getReadPreference();
+            ConnectionString connectionString = new ConnectionString(rwModeUri);
 
+            // Build MongoClientSettings from ConnectionString
+            MongoClientSettings settings = MongoClientSettings.builder()
+                 .applyConnectionString(connectionString)
+                 .build();
+            ReadPreference readPref = settings.getReadPreference();
             if (!readPref.equals(nodes.getReadPreference())) {
                 nodes = nodes.withReadPreference(readPref);
                 LOG.info("Using ReadPreference {} ", readPref);
             }
 
-            WriteConcern writeConcern = uri.getOptions().getWriteConcern();
+            WriteConcern writeConcern = settings.getWriteConcern();
             if (!writeConcern.equals(nodes.getWriteConcern())) {
                 nodes = nodes.withWriteConcern(writeConcern);
                 LOG.info("Using WriteConcern " + writeConcern);
@@ -2361,8 +2358,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private boolean secondariesWithinAcceptableLag() {
-        return getClient().getReplicaSetStatus() == null
-                || connection.getStatus().getReplicaSetLagEstimate() < acceptableLagMillis;
+        return connection.getStatus().getReplicaSetLagEstimate() < acceptableLagMillis;
     }
 
     private void lagTooHigh() {

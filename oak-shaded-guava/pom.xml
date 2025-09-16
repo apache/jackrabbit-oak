@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.83-SNAPSHOT</version>
+    <version>1.85-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -102,9 +102,7 @@
               ${pref}.common.collect;version="34.0.0";uses:="${pref}.common.base",
               ${pref}.common.graph;version="33.4.1";uses:="${pref}.common.collect",
               ${pref}.common.hash;version="33.5.0";uses:="${pref}.common.base",
-              ${pref}.common.math;version="33.4.1",
-              ${pref}.common.primitives;version="33.4.1";uses:="${pref}.common.base",
-              ${pref}.common.util.concurrent;version="33.4.1";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent.internal",
+              ${pref}.common.util.concurrent;version="33.4.1";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent.internal,${pref}.common.primitives",
             </Export-Package>
             <Import-Package>
               javax.crypto;resolution:=optional,

@@ -16,16 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
-import org.apache.jackrabbit.guava.common.collect.Maps;
-
-import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -64,8 +63,11 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
     @NotNull
     public Map<String, ?> getAttributes(@NotNull Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
-            final SimpleCredentials sc = (SimpleCredentials) credentials;
-            return Maps.asMap(Collections.unmodifiableSet(SetUtils.toLinkedSet(sc.getAttributeNames())), sc::getAttribute);
+            SimpleCredentials sc = (SimpleCredentials) credentials;
+            Map<String, Object> result = new LinkedHashMap<>();
+            Arrays.asList(sc.getAttributeNames()).forEach(
+                    attributeName -> result.put(attributeName, sc.getAttribute(attributeName)));
+            return Collections.unmodifiableMap(result);
         } else {
             return Collections.emptyMap();
         }

@@ -21,9 +21,12 @@ import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
+import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,8 +41,6 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
     protected final IOMonitor ioMonitor;
 
     protected final Map<UUID, RemoteSegmentArchiveEntry> index = new LinkedHashMap<>();
-
-    protected Boolean hasGraph;
 
     public AbstractRemoteSegmentArchiveReader(IOMonitor ioMonitor) throws IOException {
         this.ioMonitor = ioMonitor;
@@ -78,24 +79,16 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
     }
 
     @Override
-    public Buffer getGraph() throws IOException {
-        Buffer graph = doReadDataFile(".gph");
-        hasGraph = graph != null;
-        return graph;
-    }
-
-    @Override
-    public boolean hasGraph() {
-        if (hasGraph == null) {
-            try {
-                getGraph();
-            } catch (IOException ignore) { }
+    public @NotNull SegmentGraph getGraph() throws IOException {
+        Buffer buffer = doReadDataFile(".gph");
+        if (buffer != null) {
+            return SegmentGraph.parse(buffer);
         }
-        return hasGraph != null ? hasGraph : false;
+        return SegmentGraph.compute(this);
     }
 
     @Override
-    public Buffer getBinaryReferences() throws IOException {
+    public @Nullable Buffer getBinaryReferences() throws IOException {
         return doReadDataFile(".brf");
     }
 

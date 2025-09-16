@@ -38,10 +38,14 @@ import org.slf4j.LoggerFactory;
  */
 public class ClusterNodeStoreLock implements AsyncIndexerLock<ClusteredLockToken> {
     /**
-     * Use a looong lease time to ensure that async indexer does not start
-     * in between the import process which can take some time
+     * Use a long lease time to ensure that async indexer does not start
+     * in between the import process which can take some time.
+     * For a very large repository (about 2 billion nodes) the longest
+     * index import can take 2.5 hours. 6 hours has then a safety margin of 100%
+     * above that. A diff of 6 hours is typically OK with the document node store,
+     * but beyond that it gets harder.
      */
-    private static final long LOCK_TIMEOUT = TimeUnit.DAYS.toMillis(100);
+    private static final long LOCK_TIMEOUT = TimeUnit.HOURS.toMillis(6);
     // retry for at most 2 minutes
     private static final long MAX_RETRY_TIME = 2 * 60 * 1000;
     private final Logger log = LoggerFactory.getLogger(getClass());

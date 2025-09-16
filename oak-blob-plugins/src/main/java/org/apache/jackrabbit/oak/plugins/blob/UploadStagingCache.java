@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
@@ -47,7 +48,6 @@ import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
-import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -205,7 +205,7 @@ public class UploadStagingCache implements Closeable {
                 statisticsProvider, executor, scheduledExecutor, purgeInterval, retryInterval);
         }
         return new UploadStagingCache() {
-            @Override public Optional<SettableFuture<Integer>> put(String id, File input) {
+            @Override public Optional<CompletableFuture<Integer>> put(String id, File input) {
                 return Optional.empty();
             }
 
@@ -251,7 +251,7 @@ public class UploadStagingCache implements Closeable {
 
         int count = 0;
         for (File toBeSyncedFile : files) {
-            Optional<SettableFuture<Integer>> scheduled =
+            Optional<CompletableFuture<Integer>> scheduled =
                 putOptionalDisregardingSize(toBeSyncedFile.getName(), toBeSyncedFile, true);
             if (scheduled.isPresent()) {
                 count++;
@@ -273,7 +273,7 @@ public class UploadStagingCache implements Closeable {
      *              1 if upload was successful,
      *              0 if an existing id is already pending for upload
      */
-    public Optional<SettableFuture<Integer>> put(String id, File input) {
+    public Optional<CompletableFuture<Integer>> put(String id, File input) {
         return putOptionalDisregardingSize(id, input, false);
     }
 
@@ -286,7 +286,7 @@ public class UploadStagingCache implements Closeable {
      * @param ignoreSize
      * @return
      */
-    private Optional<SettableFuture<Integer>> putOptionalDisregardingSize(String id, File input,
+    private Optional<CompletableFuture<Integer>> putOptionalDisregardingSize(String id, File input,
         boolean ignoreSize) {
         cacheStats.markRequest();
 
@@ -320,8 +320,7 @@ public class UploadStagingCache implements Closeable {
 
             // if file is still pending upload, count it as present
             if (map.containsKey(id) || attic.containsKey(id)) {
-                SettableFuture<Integer> result = SettableFuture.create();
-                result.set(0);
+                CompletableFuture<Integer> result = CompletableFuture.completedFuture(0);
                 return Optional.of(result);
             }
         }
@@ -355,8 +354,8 @@ public class UploadStagingCache implements Closeable {
      * @param upload the file to be staged
      * @return a SettableFuture instance
      */
-    private SettableFuture<Integer> stage(final String id, final File upload) {
-        final SettableFuture<Integer> result = SettableFuture.create();
+    private CompletableFuture<Integer> stage(final String id, final File upload) {
+        final CompletableFuture<Integer> result = new CompletableFuture<>();
 
         try {
             // create an async job
@@ -395,12 +394,12 @@ public class UploadStagingCache implements Closeable {
                     } catch (IOException e) {
                         LOG.warn("Error in cleaning up [{}] from staging", upload);
                     }
-                    result.set(r);
+                    result.complete(r);
                 }
 
                 @Override public void onFailure(Throwable t) {
                     LOG.error("Error adding [{}] with file [{}] to backend", id, upload, t);
-                    result.setException(t);
+                    result.completeExceptionally(t);
                     retryQueue.add(id);
                 }
             }, new SameThreadExecutorService());

@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 import com.mongodb.ServerAddress;
 import com.mongodb.event.ServerHeartbeatSucceededEvent;
-import com.mongodb.event.ServerMonitorListenerAdapter;
+import com.mongodb.event.ServerMonitorListener;
 
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  * operations shouldn't be sent to a secondary when it lags too much behind,
  * otherwise the read operation will block until it was able to catch up.
  */
-public class ReplicaSetStatus extends ServerMonitorListenerAdapter {
+public class ReplicaSetStatus implements ServerMonitorListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReplicaSetStatus.class);
 

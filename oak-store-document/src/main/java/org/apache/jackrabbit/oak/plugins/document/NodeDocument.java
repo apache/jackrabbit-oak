@@ -50,7 +50,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.DequeUtils;
@@ -1847,6 +1847,31 @@ public final class NodeDocument extends Document {
                 .keySet()
                 .stream()
                 .filter(Utils::isPropertyName)
+                .collect(toSet());
+    }
+
+    /**
+     * Returns names of all the properties that exist in previous/split documents.
+     * <p>
+     * Note: property names returned are escaped
+     *
+     * @return Set of property names (escaped) that exist in split documents
+     * @see Utils#unescapePropertyName(String)
+     * @see Utils#escapePropertyName(String)
+     */
+    @NotNull
+    Set<String> getSplitPropertyNames() {
+        // If there are no previous documents, no properties are in split documents
+        if (getPreviousRanges().isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        return getPropertyNames().stream()
+                .filter(property -> {
+                    // Check if this property exists in any previous document
+                    Iterator<NodeDocument> prevDocs = getPreviousDocs(property, null).iterator();
+                    return prevDocs.hasNext(); // True if at least one previous doc has this property
+                })
                 .collect(toSet());
     }
 

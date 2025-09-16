@@ -101,7 +101,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.Queues;
 import com.mongodb.ReadPreference;
 
@@ -109,6 +109,7 @@ import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
@@ -128,6 +129,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -488,6 +490,7 @@ public class VersionGarbageCollectorIT {
         assertFalse(stats.canceled);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 gapOrphProp(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
                 allOrphProp(0, (int)batchSize, 0, 0, 0, 0, (int)batchSize),
@@ -567,6 +570,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, delta, MILLISECONDS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -674,6 +678,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
                 gapOrphProp(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
                 allOrphProp(0, deletedPropsCount, 0, 0, 0, 0, updatedDocsCount),
@@ -763,6 +768,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -789,6 +795,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 2, 0, 0, 1),
                 keepOneUser(0, 0, 0, 2, 0, 0, 1),
@@ -833,6 +840,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 50_000, 0, 0, 0, 0, 5_000),
                 gapOrphProp(0, 50_000, 0, 0, 0, 0, 5_000),
                 allOrphProp(0, 50_000, 0, 0, 0, 0, 5_000),
@@ -884,6 +892,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 50_000, 0, 0, 0, 0, 5_000),
                 gapOrphProp(0, 50_000, 0, 0, 0, 0, 5_000),
                 allOrphProp(0, 50_000, 0, 0, 0, 0, 5_000),
@@ -970,6 +979,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 10),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 10),
                 allOrphProp(0, 10, 0, 0, 0, 0, 10),
@@ -1003,6 +1013,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 10),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 10),
                 allOrphProp(0, 10, 0, 0, 0, 0, 10),
@@ -1099,6 +1110,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 10),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 10),
                 allOrphProp(0, 10, 0, 0, 0, 0, 10),
@@ -1151,6 +1163,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 1),
                 allOrphProp(0, 10, 0, 0, 0, 0, 1),
@@ -1171,6 +1184,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
                 allOrphProp(),
@@ -1224,6 +1238,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 1),
                 allOrphProp(0, 10, 0, 0, 0, 0, 1),
@@ -1244,6 +1259,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
                 allOrphProp(),
@@ -1306,6 +1322,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 1),
                 allOrphProp(0, 10, 0, 0, 0, 0, 1),
@@ -1396,6 +1413,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 10, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 10, 0, 0, 0, 0, 1),
                 allOrphProp(0, 10, 0, 0, 0, 0, 1),
@@ -1473,6 +1491,7 @@ public class VersionGarbageCollectorIT {
                 empPropOnly(),
                 gapOrphOnly(2, 0, 0, 0, 0, 0, 2),
                 gapOrphProp(2, 0, 0, 0, 0, 0, 2),
+                allOrphOnly(2, 0, 0, 0, 0, 0, 2),
                 allOrphProp(2, 0, 0, 0, 0, 0, 2),
                 keepOneFull(2, 0, 0, 0, 0, 0, 2),
                 keepOneUser(2, 0, 0, 0, 0, 0, 2),
@@ -1540,6 +1559,7 @@ public class VersionGarbageCollectorIT {
                 new GCCounts(FullGCMode.NONE, 2, 0,0,0,0,0,0),
                 empPropOnly(2, 13, 0, 0, 0, 0, 1),
                 gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
+                allOrphOnly(2, 0, 0, 0, 0, 0, 0),
                 gapOrphProp(2, 13, 0, 0, 0, 0, 1),
                 allOrphProp(2, 13, 0, 0, 0, 0, 1),
                 keepOneFull(2, 13, 0, 0, 0, 0, 1),
@@ -1875,6 +1895,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 3, 0, 0, 2),
                 keepOneUser(0, 0, 0, 3, 0, 0, 2),
@@ -1915,6 +1936,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
@@ -2031,6 +2053,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 1, 0, 1, 0, 1),
                 keepOneUser(),
@@ -2078,6 +2101,7 @@ public class VersionGarbageCollectorIT {
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 3, 0, 0, 0, 0, 2),
                 gapOrphProp(0, 3, 0, 0, 0, 0, 2),
                 allOrphProp(0, 3, 0, 0, 0, 0, 2),
@@ -2128,6 +2152,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, 1, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 3, 0, 0,  0, 0, 2),
                 gapOrphProp(0, 3, 0, 0,  0, 0, 2),
                 allOrphProp(0, 3, 0, 0,  0, 0, 2),
@@ -2164,6 +2189,7 @@ public class VersionGarbageCollectorIT {
             gapOrphOnly(),
             empPropOnly(),
             gapOrphProp(),
+            allOrphOnly(1, 0, 0, 0, 0, 0, 1),
             allOrphProp(1, 0, 0, 0, 0, 0, 1),
             keepOneFull(1, 0, 0, 0, 0, 0, 1),
             keepOneUser(1, 0, 0, 0, 0, 0, 1),
@@ -2182,6 +2208,7 @@ public class VersionGarbageCollectorIT {
             gapOrphOnly(),
             empPropOnly(),
             gapOrphProp(),
+            allOrphOnly(3, 0, 0, 0, 0, 0, 3),
             allOrphProp(3, 0, 0, 0, 0, 0, 3),
             keepOneFull(3, 0, 0, 0, 0, 0, 3),
             keepOneUser(3, 0, 0, 0, 0, 0, 3),
@@ -2202,6 +2229,7 @@ public class VersionGarbageCollectorIT {
               gapOrphOnly(),
               empPropOnly(),
               gapOrphProp(),
+              allOrphOnly(2, 0, 0, 0, 0, 0, 2),
               allOrphProp(2, 0, 0, 0, 0, 0, 2),
               keepOneFull(2, 0, 0, 0, 0, 0, 2),
               keepOneUser(2, 0, 0, 0, 0, 0, 2),
@@ -2233,6 +2261,7 @@ public class VersionGarbageCollectorIT {
               gapOrphOnly(),
               empPropOnly(),
               gapOrphProp(),
+              allOrphOnly(expectedNumOrphanedDocs, 0, 0, 0, 0, 0, expectedNumOrphanedDocs),
               allOrphProp(expectedNumOrphanedDocs, 0, 0, 0, 0, 0, expectedNumOrphanedDocs),
               keepOneFull(expectedNumOrphanedDocs, 0, 0, 0, 0, 0, expectedNumOrphanedDocs),
               keepOneUser(expectedNumOrphanedDocs, 0, 0, 0, 0, 0, expectedNumOrphanedDocs),
@@ -2264,6 +2293,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 3, 3, 0, 3),
                 keepOneUser(0, 0, 0, 3, 0, 0, 3),
@@ -2336,6 +2366,7 @@ public class VersionGarbageCollectorIT {
                 empPropOnly(),
                 gapOrphOnly(2, 0, 0, 0, 0, 0, 2),
                 gapOrphProp(2, 0, 0, 0, 0, 0, 2),
+                allOrphOnly(2, 0, 0, 0, 0, 0, 2),
                 allOrphProp(2, 0, 0, 0, 0, 0, 2),
                 keepOneFull(2, 0, 0, 0, 0, 0, 2),
                 keepOneUser(2, 0, 0, 0, 0, 0, 2),
@@ -2406,6 +2437,7 @@ public class VersionGarbageCollectorIT {
         // this might help us narrow down differences in the modes
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 2, 0, 0,  0, 0, 1),
                 gapOrphProp(0, 2, 0, 0,  0, 0, 1),
                 allOrphProp(0, 2, 0, 0,  0, 0, 1),
@@ -2465,6 +2497,24 @@ public class VersionGarbageCollectorIT {
         assertEquals(0, deletedInternalPropRevsCount);
         assertEquals(0, deletedUnmergedBCCount);
         return new GCCounts(FullGCMode.GAP_ORPHANS_EMPTYPROPS, deletedDocGCCount,
+                deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
+                deletedInternalPropRevsCount, deletedUnmergedBCCount,
+                updatedFullGCDocsCount);
+    }
+
+    static GCCounts allOrphOnly() {
+        return new GCCounts(FullGCMode.ALL_ORPHANS);
+    }
+
+    static GCCounts allOrphOnly(int deletedDocGCCount, int deletedPropsCount,
+                                int deletedInternalPropsCount, int deletedPropRevsCount,
+                                int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
+                                int updatedFullGCDocsCount) {
+        assertEquals(0, deletedInternalPropsCount);
+        assertEquals(0, deletedPropRevsCount);
+        assertEquals(0, deletedInternalPropRevsCount);
+        assertEquals(0, deletedUnmergedBCCount);
+        return new GCCounts(FullGCMode.ALL_ORPHANS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
                 updatedFullGCDocsCount);
@@ -2607,6 +2657,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 11, 0, 0, 1),
                 keepOneUser(0, 0, 0, 11, 0, 0, 1),
@@ -2626,7 +2677,9 @@ public class VersionGarbageCollectorIT {
         NodeDocument doc = store1.getDocumentStore().find(NODES, "1:/x", -1);
         assertNotNull(doc);
         if (VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC
-                || VersionGarbageCollector.getFullGcMode() == FullGCMode.NONE || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.NONE
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.ALL_ORPHANS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS_EMPTYPROPS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.ALL_ORPHANS_EMPTYPROPS
                 || VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC
@@ -2673,6 +2726,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -2708,6 +2762,7 @@ public class VersionGarbageCollectorIT {
 
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -2765,6 +2820,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, 1, HOURS);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 3, 0, 0, 0, 0, 2),
                 gapOrphProp(0, 3, 0, 0, 0, 0, 2),
                 allOrphProp(0, 3, 0, 0, 0, 0, 2),
@@ -2816,6 +2872,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(stats);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -2862,6 +2919,7 @@ public class VersionGarbageCollectorIT {
         // thus it will be collected.
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -2912,6 +2970,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 2, 0, 0, 1),
                 keepOneUser(0, 0, 0, 2, 0, 0, 1),
@@ -2949,6 +3008,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
@@ -2988,6 +3048,7 @@ public class VersionGarbageCollectorIT {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
@@ -3049,6 +3110,7 @@ public class VersionGarbageCollectorIT {
         // of common ancestor and this would make late write visible
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -4243,6 +4305,253 @@ public class VersionGarbageCollectorIT {
         if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.EMPTYPROPS)) {
             assertDocumentsDontExist(orphans);
         }
+    }
+
+    /**
+     * Test for the bug where FullGC EmptyProps mode incorrectly allows
+     * checkpoint reads to return old values from split documents after
+     * properties are deleted by FullGC.
+     * <p>
+     * Reproduction scenario:
+     * 1. Create document with split documents containing test property
+     * 2. Delete the property (set to null)
+     * 3. Wait 24h, then FullGC removes the property
+     * 4. Create checkpoint
+     * 5. 1ms later, write same property again (newer than checkpoint)
+     * 6. Read checkpoint -> should return null but incorrectly returns old value from split doc
+     */
+    @Test
+    public void testFullGCEmptyPropsSplitDocumentInconsistency() throws Exception {
+
+        assumeTrue(fixture.hasSinglePersistence());
+        assumeTrue("Test only applicable for MongoDocumentStore", fixture instanceof DocumentStoreFixture.MongoFixture);
+        assumeTrue("Test only applicable for EMPTY_PROPERTIES mode", isModeOneOf(FullGCMode.EMPTYPROPS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.ALL_ORPHANS_EMPTYPROPS));
+        // Enable FullGC
+        VersionGarbageCollector gc = store1.getVersionGarbageCollector();
+        enableFullGC(gc);
+        final String testPath = "/test";
+        final String testProperty = "testProp";
+        final String newValue = "newValue";
+        String testValue = "splitValue0";
+        // Step 1: Create document with many revisions to trigger split
+        NodeBuilder builder = store1.getRoot().builder();
+        builder.child("test").setProperty(testProperty, testValue);
+        // Create child nodes so split documents don't get deleted
+        builder.child("test").child("child1").setProperty("prop", "value");
+        builder.child("test").child("child2").setProperty("prop", "value");
+        merge(store1, builder);
+        // Force many commits to force the creation of a split document
+        for (int i = 1; i <= NodeDocument.NUM_REVS_THRESHOLD + 10; i++) {
+            builder = store1.getRoot().builder();
+            testValue = "splitValue" + i;
+            builder.child("test").setProperty(testProperty, testValue);
+            merge(store1, builder);
+        }
+        // Trigger RevisionGC with split documents
+        store1.runBackgroundOperations();
+        // Verify split document was created
+        NodeDocument doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        assertNotNull("Main document should exist", doc);
+        assertFalse("Document should have split documents. " + "LocalRevs=" + doc.getLocalRevisions().size() +
+                ", CommitRoot=" + doc.getLocalCommitRoot().size() +
+                ", Total=" + (doc.getLocalRevisions().size() + doc.getLocalCommitRoot().size()) +
+                ", Threshold=" + NUM_REVS_THRESHOLD, doc.getPreviousRanges().isEmpty()); // Should have split documents due to many revisions
+
+        // Verify testProperty exists in split documents
+        DocumentNodeState nodeState = doc.getNodeAtRevision(store1, store1.getHeadRevision(), null);
+        assertNotNull("Node should exist", nodeState);
+        PropertyState prop = nodeState.getProperty(testProperty);
+        assertNotNull("Test property should exist", prop);
+        assertEquals("Test property should have correct value", testValue, prop.getValue(Type.STRING));
+
+        // Phase 2: Delete the property (set to null)
+        builder = store1.getRoot().builder();
+        builder.child("test").removeProperty(testProperty);
+        merge(store1, builder);
+
+        // Verify property is now null on head state
+        NodeState currentState = store1.getRoot().getChildNode("test");
+        assertFalse("Property should be deleted", currentState.hasProperty(testProperty));
+
+        // Phase 3: Wait 24h and run FullGC to remove the property
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(25));
+        VersionGCStats stats = gc(gc, 24, TimeUnit.HOURS);
+        assertEquals("FullGC shouldn't have deleted anything", 0, stats.deletedPropsCount);
+
+        // Verify property wasn't removed by FullGC
+        doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        assertNotNull("Document should still exist", doc);
+        // Property should exist in main document
+        assertTrue("Property should be removed from main document", doc.getPropertyNames().contains(testProperty));
+
+        // Phase 4: Create checkpoint AFTER FullGC
+        String checkpoint = store1.checkpoint(TimeUnit.HOURS.toMillis(1));
+        assertNotNull("Checkpoint should be created", checkpoint);
+
+        // Phase 5: 1ms later, write the same property again (newer than checkpoint)
+        clock.waitUntil(clock.getTime() + 1);
+        builder = store1.getRoot().builder();
+        System.out.println(newValue);
+        builder.child("test").setProperty(testProperty, newValue);
+        merge(store1, builder);
+
+        // Verify new property exists in current head
+        currentState = store1.getRoot().getChildNode("test");
+        assertTrue("New property should exist in head", currentState.hasProperty(testProperty));
+        assertEquals("New property should have new value", newValue, currentState.getProperty(testProperty).getValue(Type.STRING));
+
+        // Phase 6a: Read using checkpoint
+        store1.invalidateNodeChildrenCache();
+        store1.getNodeCache().invalidateAll();
+        NodeState checkpointState = store1.retrieve(checkpoint);
+        assertNotNull("Checkpoint state should exist", checkpointState);
+        NodeState checkpointTestNode = checkpointState.getChildNode("test");
+        assertTrue("Test node should exist in checkpoint", checkpointTestNode.exists());
+        PropertyState checkpointProp = checkpointTestNode.getProperty(testProperty);
+
+        // Expected behavior: property should be null since it was deleted before checkpoint
+        assertNull("Property should be null in checkpoint (was deleted by FullGC before checkpoint)", checkpointProp);
+
+        // Phase 6b: Use getNodeAtRevision directly on the document
+        RevisionVector checkpointRevisionVector = RevisionVector.fromString(checkpoint);
+        NodeDocument testDoc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        final DocumentNodeState nodeAtCheckpoint = testDoc.getNodeAtRevision(store1, checkpointRevisionVector, null);
+        PropertyState nodeAtRevisionProperty = null;
+        if (nodeAtCheckpoint != null) {
+            nodeAtRevisionProperty = nodeAtCheckpoint.getProperty(testProperty);
+        }
+
+        // Verify that the direct read also returns null
+        assertNull("Property should be null when read at checkpoint revision", nodeAtRevisionProperty);
+
+        final DocumentNodeState nodeAtHeadRevision = testDoc.getNodeAtRevision(store1, store1.getHeadRevision(), null);
+        PropertyState nodeAtHeadProperty = null;
+        if (nodeAtHeadRevision != null) {
+            nodeAtHeadProperty = nodeAtHeadRevision.getProperty(testProperty);
+        }
+
+        // Verify that the direct read also returns null
+        assertNotNull("Property should be present read at head revision", nodeAtHeadProperty);
+        assertEquals(newValue, nodeAtHeadProperty.getValue(Type.STRING));
+    }
+
+    /**
+     * Test FullGC EmptyProps mode behavior when checkpoint directly references a revision in a split document.
+     * <p>
+     * Reproduction scenario:
+     * 1. Create document with property and modify it many times to cause document splitting
+     * 2. Create checkpoint when the property is at a specific value (revision in split document)
+     * 3. Delete the property (set to null)
+     * 4. Wait 24h, then FullGC removes the property
+     * 5. Verify checkpoint reads return correct value from split document
+     * 6. Write same property again with new value (newer than checkpoint) to force another split document
+     * 7. Verify checkpoint reads still return the original value, not null or newer value
+     */
+    @Test
+    public void testFullGCEmptyPropsSplitDocumentInconsistencyWhenCheckpointIsInSplitDocument() throws Exception {
+
+        assumeTrue(fixture.hasSinglePersistence());
+        assumeTrue("Test only applicable for MongoDocumentStore", fixture instanceof DocumentStoreFixture.MongoFixture);
+        assumeTrue("Test only applicable for EMPTY_PROPERTIES mode", isModeOneOf(FullGCMode.EMPTYPROPS, FullGCMode.GAP_ORPHANS_EMPTYPROPS, FullGCMode.ALL_ORPHANS_EMPTYPROPS));
+        // Enable FullGC
+        VersionGarbageCollector gc = store1.getVersionGarbageCollector();
+        enableFullGC(gc);
+        final String testPath = "/test";
+        final String testProperty = "testProp";
+        final String newValue = "newValue";
+        String testValue = "splitValue0";
+        // Step 1: Create document with many revisions to trigger split
+        NodeBuilder builder = store1.getRoot().builder();
+        builder.child("test").setProperty(testProperty, testValue);
+        // Create child nodes so split documents don't get deleted
+        builder.child("test").child("child1").setProperty("prop", "value");
+        builder.child("test").child("child2").setProperty("prop", "value");
+        merge(store1, builder);
+        // Force many commits to force the creation of a split document
+        for (int i = 1; i <= NodeDocument.NUM_REVS_THRESHOLD + 10; i++) {
+            builder = store1.getRoot().builder();
+            testValue = "splitValue" + i;
+            builder.child("test").setProperty(testProperty, testValue);
+            merge(store1, builder);
+        }
+        // Trigger RevisionGC with split documents
+        store1.runBackgroundOperations();
+        // Verify split document was created
+        NodeDocument doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        assertNotNull("Main document should exist", doc);
+
+        // Phase 2: Delete the property (set to null)
+        builder = store1.getRoot().builder();
+        builder.child("test").removeProperty(testProperty);
+        merge(store1, builder);
+
+        // Verify property is now null on head state
+        NodeState currentState = store1.getRoot().getChildNode("test");
+        assertFalse("Property should be deleted", currentState.hasProperty(testProperty));
+
+        // Phase 3: Wait 24h and run FullGC to remove the property
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(25));
+        VersionGCStats stats = gc(gc, 24, TimeUnit.HOURS);
+        assertEquals("FullGC shouldn't have deleted anything", 0, stats.deletedPropsCount);
+
+        // Verify property was removed by FullGC
+        doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        assertNotNull("Document should still exist", doc);
+        // Property should exist in main document
+        assertTrue("Property shouldn't be removed from main document", doc.getPropertyNames().contains(testProperty));
+
+        // Phase 4: Create checkpoint AFTER FullGC
+        String checkpoint = store1.checkpoint(TimeUnit.HOURS.toMillis(1));
+        assertNotNull("Checkpoint should be created", checkpoint);
+
+        // Phase 5: 1ms later, write the same property again (newer than checkpoint)
+        clock.waitUntil(clock.getTime() + 1);
+        builder = store1.getRoot().builder();
+        builder.child("test").setProperty(testProperty, newValue);
+        merge(store1, builder);
+
+        // Verify new property exists in current head
+        currentState = store1.getRoot().getChildNode("test");
+        assertTrue("New property should exist in head", currentState.hasProperty(testProperty));
+        assertEquals("New property should have new value", newValue, currentState.getProperty(testProperty).getValue(Type.STRING));
+
+        // Phase 6a: Read using checkpoint
+        store1.invalidateNodeChildrenCache();
+        store1.getNodeCache().invalidateAll();
+        NodeState checkpointState = store1.retrieve(checkpoint);
+        assertNotNull("Checkpoint state should exist", checkpointState);
+        NodeState checkpointTestNode = checkpointState.getChildNode("test");
+        assertTrue("Test node should exist in checkpoint", checkpointTestNode.exists());
+        PropertyState checkpointProp = checkpointTestNode.getProperty(testProperty);
+
+        // Expected behavior: property should be null since it was deleted before checkpoint
+        assertNull("Property should be null in checkpoint (was deleted by FullGC before checkpoint)", checkpointProp);
+
+        // Create many more revisions to force more splits, pushing checkpoint into split documents
+        for (int i = 0; i < NUM_REVS_THRESHOLD * 2; i++) {
+            builder = store1.getRoot().builder();
+            builder.child("test").setProperty("otherProp", "split" + i);
+            merge(store1, builder);
+            // increase the clock to create new revision for next batch
+            clock.waitUntil(getCurrentTimestamp() + (i * 5));
+        }
+
+        // Force additional document splits
+        store1.runBackgroundOperations();
+
+        // invalidate all caches
+        store1.invalidateNodeChildrenCache();
+        store1.getNodeCache().invalidateAll();
+
+        // Verify split documents exist
+        doc = store1.getDocumentStore().find(NODES, Utils.getIdFromPath(testPath));
+        List<NodeDocument> prevDocs = ListUtils.toList(doc.getAllPreviousDocs());
+        assertFalse("Document should be split", prevDocs.isEmpty());
+
+        // Read property from checkpoint - should be null (property was deleted)
+        final NodeState nodeAtCheckpoint2 = store1.retrieve(checkpoint).getChildNode("test");
+        assertTrue("Node should exist at checkpoint", nodeAtCheckpoint2.exists());
+        assertNull("Property should be null at checkpoint", nodeAtCheckpoint2.getProperty(testProperty));
     }
 
     private void assertNodesDontExist(Collection<String> existingNodes,

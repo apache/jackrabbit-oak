@@ -256,7 +256,7 @@ Some points to note about this json file
 * If this option is used with online indexing then do ensure that oak-run version matches with the Oak version 
   used by target repository
 
-You can also use the json file generated from [Oakutils](http://oakutils.appspot.com/generate/index). It needs to be 
+You can also use the json file generated from [Oak Tools](https://thomasmueller.github.io/oakTools/indexDefGenerator.html). It needs to be 
 modified to confirm to above structure i.e. enclose the whole definition under the intended index path key.
 
 In general the index definitions does not need any special encoding of values as Index definitions in Oak use

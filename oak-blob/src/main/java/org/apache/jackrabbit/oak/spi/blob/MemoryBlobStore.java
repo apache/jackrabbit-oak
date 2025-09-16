@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 

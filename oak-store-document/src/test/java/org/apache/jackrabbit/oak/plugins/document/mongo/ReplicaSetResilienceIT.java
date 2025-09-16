@@ -32,9 +32,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ServerDescription;
+import com.mongodb.connection.ServerType;
 
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -215,11 +219,25 @@ public class ReplicaSetResilienceIT {
             for (MongodProcess p : executables.values()) {
                 seeds.add(p.getAddress());
             }
-            try (MongoClient c = new MongoClient(seeds,
-                    new MongoClientOptions.Builder().requiredReplicaSetName("rs").build())) {
+            
+            String replicaSetName = "rs";
+            MongoClientSettings settings = MongoClientSettings.builder()
+                    .applyToClusterSettings(builder -> 
+                        builder.hosts(seeds).requiredReplicaSetName(replicaSetName)
+                    )
+                    .build();
+            
+            try (MongoClient c = MongoClients.create(settings)) {
                 ServerAddress address = null;
                 for (int i = 0; i < 5; i++) {
-                    address = c.getReplicaSetStatus().getMaster();
+                    ClusterDescription clusterDescription = c.getClusterDescription();
+                    for (ServerDescription sd : clusterDescription.getServerDescriptions()) {
+                        if (ServerType.REPLICA_SET_PRIMARY.equals(sd.getType())) {
+                            address = sd.getAddress();
+                            break;
+                        }
+                    }
+                    
                     if (address == null) {
                         LOG.info("Primary unavailable. Waiting one second...");
                         try {

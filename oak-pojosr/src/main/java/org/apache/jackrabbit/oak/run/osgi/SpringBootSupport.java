@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 import org.apache.felix.connect.Revision;
 import org.apache.felix.connect.launch.BundleDescriptor;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;

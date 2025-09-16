@@ -75,6 +75,8 @@ public class ElasticIndexProviderService {
     protected static final String PROP_ELASTIC_API_KEY_ID = "elasticsearch.apiKeyId";
     protected static final String PROP_ELASTIC_API_KEY_SECRET = "elasticsearch.apiKeySecret";
     protected static final String PROP_ELASTIC_MAX_RETRY_TIME = "elasticsearch.maxRetryTime";
+    protected static final String PROP_ELASTIC_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS = "elasticsearch.asyncIteratorEnqueueTimeoutMs";
+    protected static final String PROP_ELASTIC_FACETS_EVALUATION_TIMEOUT_MS = "elasticsearch.facetsEvaluationTimeoutMs";
     protected static final String PROP_LOCAL_TEXT_EXTRACTION_DIR = "localTextExtractionDir";
     private static final boolean DEFAULT_IS_INFERENCE_ENABLED = false;
     private static final String ENV_VAR_OAK_INFERENCE_STATISTICS_DISABLED = "OAK_INFERENCE_STATISTICS_DISABLED";
@@ -123,6 +125,19 @@ public class ElasticIndexProviderService {
                 name = "Elasticsearch Max Retry time",
                 description = "Time in seconds that Elasticsearch should retry failed operations. 0 means disabled, no retries. Default is 0 seconds (disabled).")
         int elasticsearch_maxRetryTime() default ElasticConnection.DEFAULT_MAX_RETRY_TIME;
+
+        @AttributeDefinition(
+                name = "Elasticsearch Async Result Iterator Enqueue Timeout (ms)",
+                description = "Time in milliseconds that the async result iterator will wait for enqueueing results. " +
+                        "If the timeout is reached, the iterator will stop processing and return the results collected so far. " +
+                        "Default is 60000 ms (60 seconds).")
+        long elasticsearch_asyncIteratorEnqueueTimeoutMs() default ElasticIndexProvider.DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS;
+
+        @AttributeDefinition(
+                name = "Elasticsearch Facets Evaluation Timeout (ms)",
+                description = "Time in milliseconds to wait for facets to be evaluated before timing out the client query. " +
+                        "Default is 15000 ms (15 seconds).")
+        long elasticsearch_facetsEvaluationTimeoutMs() default ElasticIndexProvider.DEFAULT_FACETS_EVALUATION_TIMEOUT_MS;
 
         @AttributeDefinition(name = "Local text extraction cache path",
                 description = "Local file system path where text extraction cache stores/load entries to recover from timed out operation")
@@ -233,8 +248,9 @@ public class ElasticIndexProviderService {
 
         LOG.info("Registering Index and Editor providers with connection {}", elasticConnection);
 
-        registerIndexProvider(bundleContext);
-        ElasticRetryPolicy retryPolicy = new ElasticRetryPolicy(100, config.elasticsearch_maxRetryTime() * 1000L, 5, 100);
+        registerIndexProvider(bundleContext, config);
+        final int maxRetryTime = Integer.getInteger(PROP_ELASTIC_MAX_RETRY_TIME, config.elasticsearch_maxRetryTime());
+        ElasticRetryPolicy retryPolicy = new ElasticRetryPolicy(100, maxRetryTime * 1000L, 5, 100);
         this.elasticIndexEditorProvider = new ElasticIndexEditorProvider(indexTracker, elasticConnection, extractedTextCache, retryPolicy);
         registerIndexEditor(bundleContext, elasticIndexEditorProvider);
         if (isElasticAvailable) {
@@ -275,8 +291,12 @@ public class ElasticIndexProviderService {
         oakRegs.add(scheduleWithFixedDelay(whiteboard, task, contextConfig.remoteIndexCleanupFrequency()));
     }
 
-    private void registerIndexProvider(BundleContext bundleContext) {
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
+    private void registerIndexProvider(BundleContext bundleContext, Config config) {
+        long asyncIteratorEnqueueTimeoutMs = Long.getLong(PROP_ELASTIC_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS,
+                config.elasticsearch_asyncIteratorEnqueueTimeoutMs());
+        long facetsEvaluationTimeoutMs = Long.getLong(PROP_ELASTIC_FACETS_EVALUATION_TIMEOUT_MS,
+                config.elasticsearch_facetsEvaluationTimeoutMs());
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker, asyncIteratorEnqueueTimeoutMs, facetsEvaluationTimeoutMs);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);

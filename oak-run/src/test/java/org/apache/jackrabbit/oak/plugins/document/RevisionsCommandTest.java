@@ -203,6 +203,7 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("FullGcProgressSize is : 10000\n"));
         assertTrue(output.contains("FullGcMaxAgeInSecs is : 86400\n"));
         assertTrue(output.contains("FullGcMaxAgeMillis is : 86400000\n"));
+        assertTrue(output.contains("FullGCGeneration is : 0\n"));
     }
 
     @Test
@@ -334,6 +335,24 @@ public class RevisionsCommandTest {
 
         String output = captureSystemOut(new RevisionsCmd("fullGC", "--resetFullGC", "true", "--entireRepo"));
         assertTrue(output.contains("ResetFullGC is enabled : true"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void fullGCWithoutFullGCGeneration() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo"));
+        assertTrue(output.contains("FullGCGeneration is : 0"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void fullGCWithFullGCGeneration() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo", "--fullGcGeneration", "2"));
+        assertTrue(output.contains("FullGCGeneration is : 2"));
         assertTrue(output.contains("starting gc collect"));
     }
 

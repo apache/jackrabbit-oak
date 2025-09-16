@@ -17,9 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import eu.rekawek.toxiproxy.model.ToxicDirection;
+import eu.rekawek.toxiproxy.model.toxic.Latency;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.junit.Test;
 
 import java.util.List;
@@ -29,13 +31,9 @@ import java.util.UUID;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
 public class ElasticReliabilitySyncIndexingTest extends ElasticReliabilityTest {
-
-    @Override
-    public boolean useAsyncIndexing() {
-        return false;
-    }
 
     @Test
     public void connectionCutOnQuery() throws Exception {
@@ -75,6 +73,44 @@ public class ElasticReliabilitySyncIndexingTest extends ElasticReliabilityTest {
             assertThat(explain(query), containsString("elasticsearch:" + indexName));
             assertQuery(query, List.of("/test/a", "/test/b"));
         });
+    }
+
+    @Test
+    public void elasticQueryTimeout() throws Exception {
+        String query = "select [jcr:path] from [nt:base] where propa is not null";
+
+        // Simulate a timeout of a query to the Elasticsearch cluster by setting a very low Oak Query timeout (10 ms)
+        // and a high latency on the connection to Elastic. This way, the ElasticResultRowAsyncIterator will timeout
+        // waiting for the response from Elastic.
+        // Index with very low query timeout, 100ms
+        IndexDefinitionBuilder builderPropAIndex = createIndex("propa");
+        builderPropAIndex.getBuilderTree().setProperty(ElasticIndexDefinition.QUERY_TIMEOUT_MS, 500L);
+        setIndex(UUID.randomUUID().toString(), builderPropAIndex);
+
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("propa", "a");
+        root.commit();
+
+        // Wait for the index to be updated
+        assertEventually(() -> assertQuery(query, List.of("/test/a")));
+
+        // simulate Elastic taking a long time to respond
+        Latency slowQueryToxic = proxy.toxics()
+                .latency("slow_query", ToxicDirection.DOWNSTREAM, 1000L);
+        try {
+            // This Oak query should timeout after 100ms,
+            executeQuery(query, SQL2);
+            fail("Expected a timeout exception");
+        } catch (IllegalStateException e) {
+            LOG.info("Expected timeout exception.", e);
+            assertThat(e.getMessage(), containsString("Timeout"));
+        }
+        slowQueryToxic.remove();
+
+        // After removing the latency toxic, the query should succeed
+        assertEventually(() -> assertQuery(query, List.of("/test/a")));
     }
 
     @Test

@@ -387,7 +387,7 @@ public class SegmentCopy {
 
             } catch (Exception e) {
                 watch.stop();
-                printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ", source,
+                printMessage(errWriter, "A problem occurred while copying archives from {0} to {1} ", source,
                         destination);
                 e.printStackTrace(errWriter);
                 return 1;

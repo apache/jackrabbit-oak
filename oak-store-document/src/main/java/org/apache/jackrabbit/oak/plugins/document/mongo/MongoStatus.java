@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.ClientSessionOptions;
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 import com.mongodb.MongoClientException;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoQueryException;

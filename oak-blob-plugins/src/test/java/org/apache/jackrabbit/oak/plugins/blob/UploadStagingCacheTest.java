@@ -31,8 +31,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -41,17 +42,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.qos.logback.classic.Level;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
-import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -141,7 +138,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         closer.register(stagingCache);
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
-        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
+        Optional<CompletableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
         assertFalse(future.isPresent());
 
         assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
@@ -157,7 +154,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
 
         // add load
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
-        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
+        Optional<CompletableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
         assertTrue(future.isPresent());
 
         assertNotNull(stagingCache.getIfPresent(ID_PREFIX + 0));
@@ -172,7 +169,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void testAdd() throws Exception {
         // add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
 
         //start
         taskLatch.countDown();
@@ -203,7 +200,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         init(2, secondTimeUploader, null);
 
         // Add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
 
         //start
         taskLatch.countDown();
@@ -274,7 +271,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     public void testPutMoveFileError() throws Exception {
         File empty = new File(folder.getRoot(), String.valueOf(System.currentTimeMillis()));
         assertFalse(empty.exists());
-        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, empty);
+        Optional<CompletableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, empty);
         // assert no file
         assertFalse(future.isPresent());
         assertEquals(1, stagingCache.getStats().getMissCount());
@@ -288,13 +285,13 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void testGetAddDifferent() throws Exception {
         //add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
 
         // Create an async retrieve task
-        final SettableFuture<File> retFuture = SettableFuture.create();
+        final CompletableFuture<File> retFuture = new CompletableFuture<>();
         Thread t = new Thread(new Runnable() {
             @Override public void run() {
-                retFuture.set(stagingCache.getIfPresent(ID_PREFIX + 1));
+                retFuture.complete(stagingCache.getIfPresent(ID_PREFIX + 1));
             }
         });
 
@@ -324,11 +321,11 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         closer.register(stagingCache);
 
         // add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
 
         // Add another load
         File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
-        Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 1, f2);
+        Optional<CompletableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 1, f2);
         assertFalse(future2.isPresent());
 
         //start
@@ -337,7 +334,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertFuture(futures, 0);
 
         // Try 2nd upload again
-        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 1, f2);
+        Optional<CompletableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 1, f2);
         futures = new ArrayList<>();
         if (future.isPresent()) {
             futures.add(future.get());
@@ -354,7 +351,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void testGetAllIdentifiers() throws Exception {
         // add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
 
         // Check getAllIdentifiers
         Iterator<String> idsIter = stagingCache.getAllIdentifiers();
@@ -381,7 +378,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void testInvalidate() throws Exception {
         // add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
 
         // Check invalidate
         stagingCache.invalidate(ID_PREFIX + 0);
@@ -409,10 +406,10 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         LOG.info("Starting testConcurrentSameAdd");
 
         // Add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
 
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
-        Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 0, f);
+        Optional<CompletableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 0, f);
         assertTrue(future2.isPresent());
         assertEquals(future2.get().get().intValue(), 0);
 
@@ -435,19 +432,18 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         LOG.info("Starting testConcurrentSameAddRequest");
 
         closer.close();
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-        List<ListenableFuture<Integer>> futures = new ArrayList<>();
+        List<CompletableFuture<Integer>> futures = new ArrayList<>();
         CountDownLatch moveLatch = new CountDownLatch(1);
         init(1, new TestStagingUploader(folder.newFolder(), moveLatch), null);
 
         //1st request
-        ListenableFuture<Boolean> resultReq1 = putThread(folder, executorService, futures);
+        CompletableFuture<Boolean> resultReq1 = putThread(folder, executorService, futures);
         Thread.sleep(100);
 
         //2nd Request
-        ListenableFuture<Boolean> resultReq2 = putThread(folder, executorService, futures);
+        CompletableFuture<Boolean> resultReq2 = putThread(folder, executorService, futures);
         Thread.sleep(200);
 
         // Allow any thread to start moving
@@ -472,11 +468,11 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void testConcurrentDifferentAdd() throws Exception {
         // Add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
 
         // Add diff load
         File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
-        Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 1, f2);
+        Optional<CompletableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 1, f2);
         if (future2.isPresent()) {
             futures.add(future2.get());
         }
@@ -495,12 +491,11 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
      */
     @Test
     public void testConcurrentGetDelete() throws Exception {
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         closer.register(new ExecutorCloser(executorService));
 
         // Add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
 
         // Get a handle to the file and open stream
         File file = stagingCache.getIfPresent(ID_PREFIX + 0);
@@ -509,7 +504,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         // task to copy the steam to a file simulating read from the stream
         File temp = folder.newFile();
         CountDownLatch copyThreadLatch = new CountDownLatch(1);
-        SettableFuture<File> future1 =
+        CompletableFuture<File> future1 =
             copyStreamThread(executorService, fStream, temp, copyThreadLatch);
 
         //start
@@ -544,20 +539,19 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     }
 
     private void testConcurrentPutDelete(int diff) throws Exception {
-        ListeningExecutorService executorService =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         closer.register(new ExecutorCloser(executorService));
         //start immediately
         taskLatch.countDown();
 
         // Add immediately
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
 
         // New task to put another file
         File f2 = copyToFile(randomStream(diff, 4 * 1024), folder.newFile());
         CountDownLatch putThreadLatch = new CountDownLatch(1);
         CountDownLatch triggerLatch = new CountDownLatch(1);
-        SettableFuture<Optional<SettableFuture<Integer>>> future1 =
+        CompletableFuture<Optional<CompletableFuture<Integer>>> future1 =
             putThread(executorService, diff, f2, stagingCache, putThreadLatch, triggerLatch);
         putThreadLatch.countDown();
 
@@ -570,9 +564,9 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
             futures.add(future1.get().get());
         }
 
-        ListenableFuture<List<Integer>> listListenableFuture = Futures.successfulAsList(futures);
+        CompletableFuture<List<Integer>> listCompletableFuture = FutureUtils.successfulAsList(futures);
         try {
-            listListenableFuture.get();
+            listCompletableFuture.get();
             scheduledFuture.get();
         } catch (Exception e) {
             e.printStackTrace();
@@ -591,7 +585,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void testBuild() throws Exception {
         // Add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
         // Close before uploading finished
         closer.close();
 
@@ -629,7 +623,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         // Start staging cache
         init(3);
 
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
         // Not staged as already full
         assertTrue(futures.isEmpty());
 
@@ -660,7 +654,7 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     @Test
     public void testUpgrade() throws Exception {
         // Add load
-        List<ListenableFuture<Integer>> futures = put(folder);
+        List<CompletableFuture<Integer>> futures = put(folder);
         // Close before uploading finished
         closer.close();
 
@@ -732,30 +726,28 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         assertFalse(pendingUploadFile.exists());
     }
 
-    private static SettableFuture<File> copyStreamThread(ListeningExecutorService executor,
+    private static CompletableFuture<File> copyStreamThread(ExecutorService executor,
         final InputStream fStream, final File temp, final CountDownLatch start) {
-        final SettableFuture<File> future = SettableFuture.create();
-        executor.submit(new Runnable() {
-            @Override public void run() {
-                try {
-                    LOG.info("Waiting for start of copying");
-                    start.await();
-                    LOG.info("Starting copy of [{}]", temp);
-                    FileUtils.copyInputStreamToFile(fStream, temp);
-                    LOG.info("Finished retrieve");
-                    future.set(temp);
-                } catch (Exception e) {
-                    LOG.info("Exception in get", e);
-                }
+        final CompletableFuture<File> future = new CompletableFuture<>();
+        executor.submit(() -> {
+            try {
+                LOG.info("Waiting for start of copying");
+                start.await();
+                LOG.info("Starting copy of [{}]", temp);
+                FileUtils.copyInputStreamToFile(fStream, temp);
+                LOG.info("Finished retrieve");
+                future.complete(temp);
+            } catch (Exception e) {
+                LOG.info("Exception in get", e);
             }
         });
         return future;
     }
 
-    private static SettableFuture<Optional<SettableFuture<Integer>>> putThread(
-        ListeningExecutorService executor, final int seed, final File f, final UploadStagingCache cache,
+    private static CompletableFuture<Optional<CompletableFuture<Integer>>> putThread(
+        ExecutorService executor, final int seed, final File f, final UploadStagingCache cache,
         final CountDownLatch start, final CountDownLatch trigger) {
-        final SettableFuture<Optional<SettableFuture<Integer>>> future = SettableFuture.create();
+        final CompletableFuture<Optional<CompletableFuture<Integer>>> future = new CompletableFuture<>();
         executor.submit(new Runnable() {
             @Override public void run() {
                 try {
@@ -763,9 +755,9 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
                     start.await();
                     LOG.info("Starting put");
                     trigger.countDown();
-                    Optional<SettableFuture<Integer>> opt = cache.put(ID_PREFIX + seed, f);
+                    Optional<CompletableFuture<Integer>> opt = cache.put(ID_PREFIX + seed, f);
                     LOG.info("Finished put");
-                    future.set(opt);
+                    future.complete(opt);
                 } catch (Exception e) {
                     LOG.info("Exception in get", e);
                 }
@@ -774,10 +766,10 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
         return future;
     }
 
-    private void waitFinish(List<ListenableFuture<Integer>> futures) {
-        ListenableFuture<List<Integer>> listListenableFuture = Futures.successfulAsList(futures);
+    private void waitFinish(List<CompletableFuture<Integer>> futures) {
+        CompletableFuture<List<Integer>> listCompletableFuture = FutureUtils.successfulAsList(futures);
         try {
-            listListenableFuture.get();
+            listCompletableFuture.get();
             ScheduledFuture<?> scheduledFuture =
                 removeExecutor.schedule(stagingCache.new RemoveJob(), 0, TimeUnit.MILLISECONDS);
             scheduledFuture.get();
@@ -787,11 +779,10 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
     }
 
 
-    private ListenableFuture<Boolean> putThread(TemporaryFolder folder, ListeningExecutorService executorService, List<ListenableFuture<Integer>> futures) {
+    private CompletableFuture<Boolean> putThread(TemporaryFolder folder, ExecutorService executorService, List<CompletableFuture<Integer>> futures) {
         closer.register(new ExecutorCloser(executorService));
 
-        ListenableFuture<Boolean> result = executorService.submit(new Callable<Boolean>() {
-            @Override public Boolean call() {
+        CompletableFuture<Boolean> result = CompletableFuture.supplyAsync(() -> {
                 try {
                     LOG.info("Starting put");
                     futures.addAll(put(folder));
@@ -803,24 +794,23 @@ public class UploadStagingCacheTest extends AbstractDataStoreCacheTest {
                     LOG.info("Exception in get", e);
                 }
                 return false;
-            }
-        });
+        }, executorService);
 
         return result;
     }
 
-    private List<ListenableFuture<Integer>> put(TemporaryFolder folder)
+    private List<CompletableFuture<Integer>> put(TemporaryFolder folder)
         throws IOException {
         File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
-        Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
-        List<ListenableFuture<Integer>> futures = new ArrayList<>();
+        Optional<CompletableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
+        List<CompletableFuture<Integer>> futures = new ArrayList<>();
         if (future.isPresent()) {
             futures.add(future.get());
         }
         return futures;
     }
 
-    private void assertFuture(List<ListenableFuture<Integer>> futures, int... seeds)
+    private void assertFuture(List<CompletableFuture<Integer>> futures, int... seeds)
         throws Exception {
         waitFinish(futures);
 

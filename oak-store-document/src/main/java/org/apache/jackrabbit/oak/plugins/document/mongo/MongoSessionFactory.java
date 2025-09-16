@@ -17,11 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.ClientSessionOptions;
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 import com.mongodb.ServerAddress;
 import com.mongodb.TransactionOptions;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.TransactionBody;
+import com.mongodb.internal.TimeoutContext;
 import com.mongodb.session.ServerSession;
 
 import org.bson.BsonDocument;
@@ -146,11 +147,6 @@ class MongoSessionFactory {
             return session.getPinnedServerAddress();
         }
 
-        @Override
-        public void setPinnedServerAddress(ServerAddress address) {
-            session.setPinnedServerAddress(address);
-        }
-
         @NotNull
         @Override
         public <T> T withTransaction(@NotNull TransactionBody<T> transactionBody) {
@@ -178,6 +174,44 @@ class MongoSessionFactory {
         public void close() {
             clock.advanceSessionAndClock(session);
             session.close();
+        }
+
+        @Override
+        public Object getTransactionContext() {
+            return session.getTransactionContext();
+        }
+
+        @Override
+        public void setTransactionContext(ServerAddress address, Object transactionContext) {
+            session.setTransactionContext(address, transactionContext);
+
+        }
+
+        @Override
+        public void clearTransactionContext() {
+            session.clearTransactionContext();
+
+        }
+
+        @Override
+        public void setSnapshotTimestamp(BsonTimestamp snapshotTimestamp) {
+            session.setSnapshotTimestamp(snapshotTimestamp);
+
+        }
+
+        @Override
+        public BsonTimestamp getSnapshotTimestamp() {
+            return session.getSnapshotTimestamp();
+        }
+
+        @Override
+        public TimeoutContext getTimeoutContext() {
+            return session.getTimeoutContext();
+        }
+
+        @Override
+        public void notifyOperationInitiated(Object operation) {
+            session.notifyOperationInitiated(operation);
         }
     }
 }

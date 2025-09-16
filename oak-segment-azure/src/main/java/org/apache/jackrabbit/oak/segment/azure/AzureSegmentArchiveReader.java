@@ -41,13 +41,13 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
 
     private final String archiveName;
 
-    private final String archivePath;
+    private final String archivePathPrefix;
 
     AzureSegmentArchiveReader(BlobContainerClient blobContainerClient, String rootPrefix, String archiveName, IOMonitor ioMonitor) throws IOException {
         super(ioMonitor);
         this.blobContainerClient = blobContainerClient;
-        this.archiveName = archiveName;
-        this.archivePath = String.format("%s/%s", rootPrefix, archiveName);
+        this.archiveName = AzureUtilities.ensureNoTrailingSlash(archiveName);
+        this.archivePathPrefix = AzureUtilities.asAzurePrefix(rootPrefix, archiveName);
         this.length = computeArchiveIndexAndLength();
     }
 
@@ -65,7 +65,7 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
     protected long computeArchiveIndexAndLength() throws IOException {
         long length = 0;
         ListBlobsOptions listBlobsOptions = new ListBlobsOptions();
-        listBlobsOptions.setPrefix(archivePath + "/");
+        listBlobsOptions.setPrefix(archivePathPrefix);
         for (BlobItem blob : AzureUtilities.getBlobs(blobContainerClient, listBlobsOptions)) {
             Map<String, String> metadata = blob.getMetadata();
             if (AzureBlobMetadata.isSegment(metadata)) {
@@ -90,12 +90,12 @@ public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReade
 
     @Override
     protected File archivePathAsFile() {
-        return new File(archivePath);
+        return new File(archivePathPrefix);
     }
 
     private BlockBlobClient getBlobClient(String name) throws IOException {
         try {
-            String fullName = String.format("%s/%s", archivePath, name);
+            String fullName = archivePathPrefix + name;
             return blobContainerClient.getBlobClient(fullName).getBlockBlobClient();
         } catch (BlobStorageException e) {
             throw new IOException(e);

@@ -78,6 +78,61 @@ final class DocumentNodeStoreServiceConfiguration {
     private static final String FWK_PROP_MONGO_LEASE_SO_TIMEOUT = "oak.mongo.leaseSocketTimeout";
 
     /**
+     * Name of framework property to configure MongoDB connection pool max size.
+     */
+    private static final String FWK_PROP_MONGO_MAX_POOL_SIZE = "oak.mongo.maxPoolSize";
+
+    /**
+     * Name of framework property to configure MongoDB connection pool min size.
+     */
+    private static final String FWK_PROP_MONGO_MIN_POOL_SIZE = "oak.mongo.minPoolSize";
+
+    /**
+     * Name of framework property to configure MongoDB max connecting.
+     */
+    private static final String FWK_PROP_MONGO_MAX_CONNECTING = "oak.mongo.maxConnecting";
+
+    /**
+     * Name of framework property to configure MongoDB max idle time.
+     */
+    private static final String FWK_PROP_MONGO_MAX_IDLE_TIME_MILLIS = "oak.mongo.maxIdleTimeMillis";
+
+    /**
+     * Name of framework property to configure MongoDB max life time.
+     */
+    private static final String FWK_PROP_MONGO_MAX_LIFE_TIME_MILLIS = "oak.mongo.maxLifeTimeMillis";
+
+    /**
+     * Name of framework property to configure MongoDB connect timeout.
+     */
+    private static final String FWK_PROP_MONGO_CONNECT_TIMEOUT_MILLIS = "oak.mongo.connectTimeoutMillis";
+
+    /**
+     * Name of framework property to configure MongoDB heartbeat frequency.
+     */
+    private static final String FWK_PROP_MONGO_HEARTBEAT_FREQUENCY_MILLIS = "oak.mongo.heartbeatFrequencyMillis";
+
+    /**
+     * Name of framework property to configure MongoDB server selection timeout.
+     */
+    private static final String FWK_PROP_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS = "oak.mongo.serverSelectionTimeoutMillis";
+
+    /**
+     * Name of framework property to configure MongoDB wait queue timeout.
+     */
+    private static final String FWK_PROP_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS = "oak.mongo.waitQueueTimeoutMillis";
+
+    /**
+     * Name of framework property to configure MongoDB socket read timeout.
+     */
+    private static final String FWK_PROP_MONGO_READ_TIMEOUT_MILLIS = "oak.mongo.readTimeoutMillis";
+
+    /**
+     * Name of framework property to configure MongoDB min heartbeat frequency.
+     */
+    private static final String FWK_PROP_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS = "oak.mongo.minHeartbeatFrequencyMillis";
+
+    /**
      * Name of the framework property to configure the update limit.
      */
     private static final String FWK_PROP_UPDATE_LIMIT = "update.limit";
@@ -88,19 +143,42 @@ final class DocumentNodeStoreServiceConfiguration {
     static final String PROP_SO_KEEP_ALIVE = "socketKeepAlive";
     static final String PROP_LEASE_SO_TIMEOUT = "leaseSocketTimeout";
     static final String PROP_UPDATE_LIMIT = "updateLimit";
+    static final String PROP_MONGO_MAX_POOL_SIZE = "mongoMaxPoolSize";
+    static final String PROP_MONGO_MIN_POOL_SIZE = "mongoMinPoolSize";
+    static final String PROP_MONGO_MAX_CONNECTING = "mongoMaxConnecting";
+    static final String PROP_MONGO_MAX_IDLE_TIME_MILLIS = "mongoMaxIdleTimeMillis";
+    static final String PROP_MONGO_MAX_LIFE_TIME_MILLIS = "mongoMaxLifeTimeMillis";
+    static final String PROP_MONGO_CONNECT_TIMEOUT_MILLIS = "mongoConnectTimeoutMillis";
+    static final String PROP_MONGO_HEARTBEAT_FREQUENCY_MILLIS = "mongoHeartbeatFrequencyMillis";
+    static final String PROP_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS = "mongoServerSelectionTimeoutMillis";
+    static final String PROP_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS = "mongoWaitQueueTimeoutMillis";
+    static final String PROP_MONGO_READ_TIMEOUT_MILLIS = "mongoReadTimeoutMillis";
+    static final String PROP_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS = "mongoMinHeartbeatFrequencyMillis";
 
     /**
      * Special mapping of property names to framework properties. All other
      * property names are mapped to framework properties by prefixing them with
      * {@link #DEFAULT_FWK_PREFIX}.
      */
-    private static final Map<String, String> FWK_PROP_MAPPING = Map.of(
-            PROP_DB, FWK_PROP_DB,
-            PROP_URI, FWK_PROP_URI,
-            PROP_HOME, PROP_HOME,
-            PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE,
-            PROP_LEASE_SO_TIMEOUT, FWK_PROP_MONGO_LEASE_SO_TIMEOUT,
-            PROP_UPDATE_LIMIT, FWK_PROP_UPDATE_LIMIT);
+    private static final Map<String, String> FWK_PROP_MAPPING = Map.ofEntries(
+            Map.entry(PROP_DB, FWK_PROP_DB),
+            Map.entry(PROP_URI, FWK_PROP_URI),
+            Map.entry(PROP_HOME, PROP_HOME),
+            Map.entry(PROP_SO_KEEP_ALIVE, FWK_PROP_SO_KEEP_ALIVE),
+            Map.entry(PROP_LEASE_SO_TIMEOUT, FWK_PROP_MONGO_LEASE_SO_TIMEOUT),
+            Map.entry(PROP_UPDATE_LIMIT, FWK_PROP_UPDATE_LIMIT),
+            Map.entry(PROP_MONGO_MAX_POOL_SIZE, FWK_PROP_MONGO_MAX_POOL_SIZE),
+            Map.entry(PROP_MONGO_MIN_POOL_SIZE, FWK_PROP_MONGO_MIN_POOL_SIZE),
+            Map.entry(PROP_MONGO_MAX_CONNECTING, FWK_PROP_MONGO_MAX_CONNECTING),
+            Map.entry(PROP_MONGO_MAX_IDLE_TIME_MILLIS, FWK_PROP_MONGO_MAX_IDLE_TIME_MILLIS),
+            Map.entry(PROP_MONGO_MAX_LIFE_TIME_MILLIS, FWK_PROP_MONGO_MAX_LIFE_TIME_MILLIS),
+            Map.entry(PROP_MONGO_CONNECT_TIMEOUT_MILLIS, FWK_PROP_MONGO_CONNECT_TIMEOUT_MILLIS),
+            Map.entry(PROP_MONGO_HEARTBEAT_FREQUENCY_MILLIS, FWK_PROP_MONGO_HEARTBEAT_FREQUENCY_MILLIS),
+            Map.entry(PROP_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS, FWK_PROP_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS),
+            Map.entry(PROP_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS, FWK_PROP_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS),
+            Map.entry(PROP_MONGO_READ_TIMEOUT_MILLIS, FWK_PROP_MONGO_READ_TIMEOUT_MILLIS),
+            Map.entry(PROP_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS, FWK_PROP_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS)
+    );
 
     private DocumentNodeStoreServiceConfiguration() {
     }

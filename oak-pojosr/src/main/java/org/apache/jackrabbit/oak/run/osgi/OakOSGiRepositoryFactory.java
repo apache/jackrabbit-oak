@@ -31,6 +31,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +46,6 @@ import javax.management.AttributeList;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.connect.launch.BundleDescriptor;
 import org.apache.felix.connect.launch.ClasspathScanner;
@@ -177,7 +177,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
         //Future which would be used to notify when repository is ready
         // to be used
-        SettableFuture<Repository> repoFuture = SettableFuture.create();
+        CompletableFuture<Repository> repoFuture = new CompletableFuture<>();
 
         new RunnableJobTracker(registry.getBundleContext());
 
@@ -387,14 +387,14 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     }
 
     private static class RepositoryTracker extends ServiceTracker<Repository, Repository> {
-        private final SettableFuture<Repository> repoFuture;
+        private final CompletableFuture<Repository> repoFuture;
         private final PojoServiceRegistry registry;
         private final BundleActivator activator;
         private RepositoryProxy proxy;
         private final int timeoutInSecs;
 
         public RepositoryTracker(PojoServiceRegistry registry, BundleActivator activator,
-                                 SettableFuture<Repository> repoFuture, int timeoutInSecs) {
+                                 CompletableFuture<Repository> repoFuture, int timeoutInSecs) {
             super(registry.getBundleContext(), Repository.class.getName(), null);
             this.repoFuture = repoFuture;
             this.registry = registry;
@@ -410,7 +410,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
                 //As its possible that future is accessed before the service
                 //get registered with tracker. We also capture the initial reference
                 //and use that for the first access case
-                repoFuture.set(createProxy(service));
+                repoFuture.complete(createProxy(service));
             }
             return service;
         }

@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.guava.common.base.Suppliers.memoize;
 import static java.lang.Integer.getInteger;
+import static org.apache.jackrabbit.oak.commons.internal.function.Suppliers.memoize;
 import static org.apache.jackrabbit.oak.segment.RecordCache.newRecordCache;
 
 import java.util.Iterator;

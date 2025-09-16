@@ -161,6 +161,22 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void throttlingTimeMillisSetValue() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        final int throttlingTimeMillis = 30;
+        builder.setThrottlingTimeMillis(throttlingTimeMillis);
+        assertEquals(throttlingTimeMillis, builder.getThrottlingTimeMillis());
+    }
+
+    @Test
+    public void throttlingJobSchedulePeriodSecs() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        final int throttlingJobSchedulePeriodSecs = 30;
+        builder.setThrottlingJobSchedulePeriodSecs(throttlingJobSchedulePeriodSecs);
+        assertEquals(throttlingJobSchedulePeriodSecs, builder.getThrottlingJobSchedulePeriodSecs());
+    }
+
+    @Test
     public void isFullGCAuditLoggingEnabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertFalse(builder.isFullGCAuditLoggingEnabled());

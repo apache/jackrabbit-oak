@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -92,6 +93,7 @@ public class AzureArchiveManagerTest {
     private BlobContainerClient noRetryBlobContainerClient;
 
     private AzurePersistence azurePersistence;
+    private WriteAccessController writeAccessController;
 
     @Before
     public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
@@ -99,7 +101,7 @@ public class AzureArchiveManagerTest {
         writeBlobContainerClient = azurite.getWriteBlobContainerClient("oak-test");
         noRetryBlobContainerClient = azurite.getNoRetryBlobContainerClient("oak-test");
 
-        WriteAccessController writeAccessController = new WriteAccessController();
+        writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
         azurePersistence = new AzurePersistence(readBlobContainerClient, writeBlobContainerClient, noRetryBlobContainerClient, "oak");
         azurePersistence.setWriteAccessController(writeAccessController);
@@ -523,7 +525,6 @@ public class AzureArchiveManagerTest {
                 .when(blobLeaseMocked).renewLease();
 
         AzurePersistence mockedRwPersistence = Mockito.spy(rwPersistence);
-        WriteAccessController writeAccessController = new WriteAccessController();
         AzureRepositoryLock azureRepositoryLock = new AzureRepositoryLock(blobMocked, blobLeaseMocked, () -> {
         }, writeAccessController);
         AzureArchiveManager azureArchiveManager = new AzureArchiveManager(oakDirectory, writeOakDirectory, "", new IOMonitorAdapter(), new FileStoreMonitorAdapter(), writeAccessController);
@@ -581,6 +582,65 @@ public class AzureArchiveManagerTest {
         assertNull(builder2.getProperty("foo"));
 
         rwFileStore2.close();
+    }
+
+    @Test
+    public void testListArchivesDoesNotReturnDeletedArchive() throws IOException, BlobStorageException {
+        // The archive manager should not return the archive which has "deleted" marker
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+
+        // Create an archive
+        createArchive(manager, "data00000a.tar");
+
+        // Verify the archive is listed
+        List<String> archives = manager.listArchives();
+        assertTrue("Archive should be listed before deletion", archives.contains("data00000a.tar"));
+
+        // Upload deleted marker for the archive
+        writeBlobContainerClient.getBlobClient("oak/data00000a.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
+
+        // Verify the archive is no longer listed after adding deleted marker
+        archives = manager.listArchives();
+        assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
+    }
+
+    @Test
+    public void testListArchiveWithDeleteMarkerPresentWithWriteAccess() throws Exception{
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+
+        createArchive(manager, "data00000a.tar");
+
+        writeBlobContainerClient.getBlobClient("oak/data00000a.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
+
+        List<String> archives = manager.listArchives();
+        assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
+
+        assertFalse("Archive should be deleted", readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix("oak/data00000a.tar"), null).iterator().hasNext());
+    }
+
+    @Test
+    public void testListArchiveWithDeleteMarkerPresentAndNoWriteAccess() throws Exception{
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+
+        createArchive(manager, "data00000a.tar");
+
+        writeBlobContainerClient.getBlobClient("oak/data00000a.tar/deleted").getBlockBlobClient().upload(BinaryData.fromBytes(new byte[0]));
+
+        // disable writing
+        writeAccessController.disableWriting();
+
+        List<String> archives = manager.listArchives();
+        assertFalse("Archive should not be listed after deleted marker is uploaded", archives.contains("data00000a.tar"));
+
+        assertTrue("Archive should not be deleted", readBlobContainerClient.listBlobs(new ListBlobsOptions().setPrefix("oak/data00000a.tar"), null).iterator().hasNext());
+    }
+
+    private void createArchive(SegmentArchiveManager manager, String archiveName) throws IOException {
+        SegmentArchiveWriter writer = manager.create(archiveName);
+        UUID u = UUID.randomUUID();
+        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.flush();
+        writer.close();
     }
 
     private PersistentCache createPersistenceCache() {

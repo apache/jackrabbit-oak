@@ -19,13 +19,15 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
+import org.apache.jackrabbit.oak.commons.collections.StreamUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
@@ -63,10 +65,24 @@ public class SharedDataStoreUtils {
      */
     public static Set<String> refsNotAvailableFromRepos(List<DataRecord> repos,
             List<DataRecord> refs) {
-        return SetUtils.difference(FluentIterable.from(repos)
-                .uniqueIndex(input -> SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString())).keySet(),
-                FluentIterable.from(refs)
-                        .index(input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString())).keySet());
+        return SetUtils.difference(
+                StreamUtils.toStream(
+                        FluentIterable.of(repos)).collect(
+                                Collectors.toMap(
+                                        input -> SharedStoreRecordType.REPOSITORY.getIdFromName(input.getIdentifier().toString()),
+                                        e -> e,
+                                        (oldValue, newValue) -> {
+                                            throw new IllegalArgumentException("Duplicate key found: " + SharedStoreRecordType.REPOSITORY.getIdFromName(newValue.getIdentifier().toString()));
+                                            },
+                                        LinkedHashMap::new))
+                        .keySet(),
+                StreamUtils.toStream(
+                        FluentIterable.of(refs)).collect(
+                                Collectors.groupingBy(
+                                        input -> SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString()),
+                                        LinkedHashMap::new,
+                                        Collectors.toList()))
+                        .keySet());
     }
 
     /**

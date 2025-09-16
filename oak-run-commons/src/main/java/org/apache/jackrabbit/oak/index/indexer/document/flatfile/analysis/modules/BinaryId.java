@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 
 import java.util.Objects;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.Hash;
+import org.apache.jackrabbit.oak.commons.collections.HashUtils;
 
 /**
  * A binary id.
@@ -39,8 +39,14 @@ public class BinaryId {
         // <hex digits or '-'>#<length>
         // the '-' is ignored
         int hashIndex = identifier.lastIndexOf('#');
-        String length = identifier.substring(hashIndex + 1);
-        this.length = Long.parseLong(length);
+        if (hashIndex >= 0) {
+            String lengthString = identifier.substring(hashIndex + 1);
+            this.length = Long.parseLong(lengthString);
+        } else {
+            // we do not know the length
+            this.length = 0;
+            hashIndex = identifier.length();
+        }
         StringBuilder buff = new StringBuilder(48);
         for (int i = 0; i < hashIndex; i++) {
             char c = identifier.charAt(i);
@@ -51,9 +57,9 @@ public class BinaryId {
         // we need to hash again because some of the bits are fixed
         // in case of UUIDs: always a "4" here: xxxxxxxx-xxxx-4xxx
         // (the hash64 is a reversible mapping, so there is no risk of conflicts)
-        this.v0 = Hash.hash64(Long.parseUnsignedLong(buff.substring(0, 16), 16));
-        this.v1 = Hash.hash64(Long.parseUnsignedLong(buff.substring(16, 32), 16));
-        this.v2 = Hash.hash64(Long.parseUnsignedLong(buff.substring(32, Math.min(48, buff.length())), 16));
+        this.v0 = HashUtils.hash64(Long.parseUnsignedLong(buff.substring(0, 16), 16));
+        this.v1 = HashUtils.hash64(Long.parseUnsignedLong(buff.substring(16, 32), 16));
+        this.v2 = HashUtils.hash64(Long.parseUnsignedLong(buff.substring(32, Math.min(48, buff.length())), 16));
     }
 
     @Override

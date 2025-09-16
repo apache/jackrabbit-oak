@@ -27,7 +27,7 @@ import com.mongodb.connection.ServerConnectionState;
 import com.mongodb.connection.ServerDescription;
 import com.mongodb.connection.ServerType;
 import com.mongodb.event.ClusterDescriptionChangedEvent;
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,9 +73,9 @@ public class PipelinedMongoServerSelectorTest {
 
     @Before
     public void setUp() {
-        threadAscending = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-ascending").setDaemon(true).build());
-        threadDescending = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-descending").setDaemon(true).build());
-        threadOther = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("mongo-server-selector-test-thread").setDaemon(true).build());
+        threadAscending = Executors.newSingleThreadExecutor(BasicThreadFactory.builder().namingPattern(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-ascending").daemon().build());
+        threadDescending = Executors.newSingleThreadExecutor(BasicThreadFactory.builder().namingPattern(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-descending").daemon().build());
+        threadOther = Executors.newSingleThreadExecutor(BasicThreadFactory.builder().namingPattern("mongo-server-selector-test-thread").daemon().build());
     }
 
     @After

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -26,9 +27,6 @@ import java.util.concurrent.Future;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
-import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 
 import static org.apache.jackrabbit.oak.commons.conditions.Validate.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -141,7 +139,7 @@ final class BatchCommit {
                 finished.await();
             } catch (InterruptedException e) {
                 String msg = "Interrupted while waiting for batch commit to finish";
-                return Futures.immediateFailedFuture(new DocumentStoreException(msg));
+                return CompletableFuture.failedFuture(new DocumentStoreException(msg));
             }
         }
         return results.get(idx);
@@ -150,11 +148,11 @@ final class BatchCommit {
     void executeIndividually() {
         DocumentStore store = queue.getStore();
         for (UpdateOp op : ops) {
-            SettableFuture<NodeDocument> result = SettableFuture.create();
+            CompletableFuture<NodeDocument> result = new CompletableFuture<>();
             try {
-                result.set(store.findAndUpdate(NODES, op));
+                result.complete(store.findAndUpdate(NODES, op));
             } catch (Throwable t) {
-                result.setException(t);
+                result.completeExceptionally(t);
             }
             results.add(result);
         }
@@ -163,7 +161,7 @@ final class BatchCommit {
     void populateResults(NodeDocument before) {
         DocumentStore store = queue.getStore();
         for (UpdateOp op : ops) {
-            results.add(Futures.immediateFuture(before));
+            results.add(CompletableFuture.completedFuture(before));
             NodeDocument after = new NodeDocument(store);
             before.deepCopy(after);
             UpdateUtils.applyChanges(after, op);

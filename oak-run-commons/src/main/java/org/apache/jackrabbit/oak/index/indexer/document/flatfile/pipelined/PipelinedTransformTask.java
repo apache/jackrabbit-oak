@@ -121,7 +121,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
     @Override
     public Result call() throws Exception {
-        String originalName = Thread.currentThread().getName();
         String threadName = THREAD_NAME_PREFIX + threadId;
         Thread.currentThread().setName(threadName);
         Stopwatch taskStartWatch = Stopwatch.createStarted();
@@ -249,8 +248,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     threadName.toUpperCase(Locale.ROOT), MetricsFormatter.createMetricsWithDurationOnly(taskStartWatch), t.toString());
             LOG.warn("Thread terminating with exception", t);
             throw t;
-        } finally {
-            Thread.currentThread().setName(originalName);
         }
     }
 

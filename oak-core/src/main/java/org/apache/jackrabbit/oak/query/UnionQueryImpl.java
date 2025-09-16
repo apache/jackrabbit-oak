@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
 
 /**
  * Represents a union query.

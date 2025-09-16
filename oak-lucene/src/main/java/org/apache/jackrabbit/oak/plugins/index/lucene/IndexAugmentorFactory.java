@@ -23,8 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.LinkedListMultimap;
-import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.commons.collections4.multimap.ArrayListValuedLinkedHashMap;
 import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -121,8 +120,8 @@ public class IndexAugmentorFactory {
     }
 
     private void refreshIndexFieldProviders() {
-        ListMultimap<String, IndexFieldProvider> providerMultimap =
-                LinkedListMultimap.create();
+        ArrayListValuedLinkedHashMap<String, IndexFieldProvider> providerMultimap =
+                new ArrayListValuedLinkedHashMap<>();
         for (IndexFieldProvider provider : indexFieldProviders) {
             Set<String> supportedNodeTypes = provider.getSupportedTypes();
             for (String nodeType : supportedNodeTypes) {
@@ -142,8 +141,8 @@ public class IndexAugmentorFactory {
     }
 
     private void refreshFulltextQueryTermsProviders() {
-        ListMultimap<String, FulltextQueryTermsProvider> providerMultimap =
-                LinkedListMultimap.create();
+        ArrayListValuedLinkedHashMap<String, FulltextQueryTermsProvider> providerMultimap =
+                new ArrayListValuedLinkedHashMap<>();
         for (FulltextQueryTermsProvider provider : fulltextQueryTermsProviders) {
             Set<String> supportedNodeTypes = provider.getSupportedTypes();
             for (String nodeType : supportedNodeTypes) {

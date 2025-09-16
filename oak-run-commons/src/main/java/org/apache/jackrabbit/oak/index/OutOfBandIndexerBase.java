@@ -22,7 +22,15 @@ import com.codahale.metrics.MetricRegistry;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
-import org.apache.jackrabbit.oak.plugins.index.*;
+import org.apache.jackrabbit.oak.plugins.index.CorruptIndexHandler;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
+import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
 import org.apache.jackrabbit.oak.plugins.index.progress.NodeCounterMBeanEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -36,6 +44,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
@@ -46,12 +56,14 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_INDEX_DATA_SIZE;
-import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_PUBLISH_DURATION_SECONDS;
-import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_PUBLISH_NODES_INDEXED;
-import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_PUBLISH_NODES_TRAVERSED;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_REINDEX_DURATION_SECONDS;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_REINDEX_NODES_INDEXED;
+import static org.apache.jackrabbit.oak.index.IndexerMetrics.METRIC_INDEXING_REINDEX_NODES_TRAVERSED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.INDEXING_PHASE_LOGGER;
 
 public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCallback, NodeTraversalCallback {
+
+    private final static Logger LOG = LoggerFactory.getLogger(OutOfBandIndexerBase.class);
 
     protected final Closer closer = Closer.create();
     private final IndexHelper indexHelper;
@@ -100,9 +112,9 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
             long indexingDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);
             long totalSize = indexerSupport.computeSizeOfGeneratedIndexData();
             INDEXING_PHASE_LOGGER.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.createMetricsWithDurationOnly(indexingDurationSeconds));
-            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_PUBLISH_DURATION_SECONDS, indexingDurationSeconds);
-            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_PUBLISH_NODES_TRAVERSED, nodesTraversed);
-            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_PUBLISH_NODES_INDEXED, nodesIndexed);
+            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_REINDEX_DURATION_SECONDS, indexingDurationSeconds);
+            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_REINDEX_NODES_TRAVERSED, nodesTraversed);
+            MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_REINDEX_NODES_INDEXED, nodesIndexed);
             MetricsUtils.addMetricByteSize(statisticsProvider, indexingReporter, METRIC_INDEXING_INDEX_DATA_SIZE, totalSize);
             indexingReporter.addTiming("Build Lucene Index", FormattingUtils.formatToSeconds(indexingDurationSeconds));
         } catch (Throwable t) {
@@ -137,6 +149,9 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
 
         try (IndexEditorProvider provider = createIndexEditorProvider()) {
+            ThreadMonitor threadMonitor = ThreadMonitor.newInstance();
+            threadMonitor.registerThread(Thread.currentThread());
+            threadMonitor.start();
             IndexUpdate indexUpdate = new IndexUpdate(
                     provider,
                     REINDEX_LANE,
@@ -165,6 +180,7 @@ public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCall
             }
 
             copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            LOG.info(threadMonitor.printStatistics());
         }
     }
 

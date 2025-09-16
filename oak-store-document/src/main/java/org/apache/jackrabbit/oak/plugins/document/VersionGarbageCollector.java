@@ -44,6 +44,7 @@ import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.commons.collections.IteratorUtils;
+import org.apache.jackrabbit.oak.commons.collections.SetUtils;
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -210,6 +211,10 @@ public class VersionGarbageCollector {
 
     public Set<String> getFullGCExcludePaths() {
         return fullGCExcludePaths;
+    }
+
+    public long getFullGcGeneration() {
+        return fullGcGen;
     }
 
     /**
@@ -1280,7 +1285,8 @@ public class VersionGarbageCollector {
                         // shouldn't be reached
                         return;
                     }
-                    case GAP_ORPHANS : {
+                    case GAP_ORPHANS :
+                    case ALL_ORPHANS: {
                         // this mode does neither unusedproprev, nor unmergedBC
                         break;
                     }
@@ -1471,6 +1477,27 @@ public class VersionGarbageCollector {
                         .map(Map::keySet)
                         .map(p -> p.stream().map(Utils::escapePropertyName).collect(toSet()))
                         .orElse(emptySet());
+
+                // OAK-11875
+                final Set<String> splitProps = doc.getSplitPropertyNames();
+                // Skip optimization if there are no split properties
+                if (!splitProps.isEmpty()) {
+                    // Only calculate difference if we have split properties
+                    Set<String> propsToBeDeleted = SetUtils.difference(properties, retainPropSet);
+
+                    // Check for intersection between sets directly
+                    if (!Collections.disjoint(splitProps, propsToBeDeleted)) {
+                        if (AUDIT_LOG.isInfoEnabled()) {
+                            AUDIT_LOG.info("<Skipping> empty props deletion in [{}] due to presence of deleted Split Properties [{}].",
+                                    doc.getId(), SetUtils.intersection(splitProps, propsToBeDeleted));
+                        }
+                        // added to stats that it is skipped to presence of empty split props
+                        fullGCStats.documentSkippedDueToEmptySplitProp();
+                        phases.stop(GCPhase.FULL_GC_COLLECT_PROPS);
+                        return;
+                    }
+                }
+
 
                 final int deletedPropsCount = properties.stream()
                         .filter(p -> !retainPropSet.contains(p))

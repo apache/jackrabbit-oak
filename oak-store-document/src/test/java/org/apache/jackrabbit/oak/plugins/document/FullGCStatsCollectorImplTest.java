@@ -60,6 +60,7 @@ import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImp
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.PROGRESS_SIZE;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.READ_DOC;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.SKIPPED_DOC;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.SKIPPED_DOC_EMPTY_SPLIT_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCStatsCollectorImpl.UPDATED_DOC;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -95,6 +96,15 @@ public class FullGCStatsCollectorImplTest {
         stats.documentsUpdateSkipped(17);
         assertEquals(count + 17, m.getCount());
         assertEquals(count + 17, ((MeterStats) readField(stats, "skippedDoc", true)).getCount());
+    }
+
+    @Test
+    public void getDocumentsSkippedDueToEmptySplitPropsCount() throws IllegalAccessException {
+        Meter m = getMeter(SKIPPED_DOC_EMPTY_SPLIT_PROP);
+        long count = m.getCount();
+        stats.documentSkippedDueToEmptySplitProp();
+        assertEquals(count + 1, m.getCount());
+        assertEquals(count + 1, ((MeterStats) readField(stats, "skippedDocEmptySplitProp", true)).getCount());
     }
 
     @Test

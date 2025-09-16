@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
@@ -52,13 +53,8 @@ class UnclosedSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     @Override
-    public @Nullable Buffer getGraph() throws IOException {
+    public @NotNull SegmentGraph getGraph() throws IOException {
         return delegate.getGraph();
-    }
-
-    @Override
-    public boolean hasGraph() {
-        return delegate.hasGraph();
     }
 
     @Override

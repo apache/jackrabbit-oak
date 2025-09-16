@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.stats.Clock;

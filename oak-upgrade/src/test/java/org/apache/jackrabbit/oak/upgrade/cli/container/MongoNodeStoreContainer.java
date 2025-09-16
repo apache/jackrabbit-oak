@@ -22,13 +22,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.MongoFactory;
+import org.bson.Document;
 import org.junit.Assume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.Mongo;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 public class MongoNodeStoreContainer implements NodeStoreContainer {
 
@@ -71,18 +72,13 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
     }
 
     private static boolean testMongoAvailability() {
-        Mongo mongo = null;
-        try {
-            MongoClientURI uri = new MongoClientURI(MONGO_URI + "?connectTimeoutMS=3000");
-            mongo = new MongoClient(uri);
-            mongo.getDatabaseNames();
+        try (MongoClient mongo = MongoClients.create(
+                new ConnectionString(MONGO_URI + "?connectTimeoutMS=3000"))) {
+            // Use the ping command: https://www.mongodb.com/docs/v6.0/reference/command/ping/
+            mongo.getDatabase("admin").runCommand(new Document("ping", 1));
             return true;
         } catch (Exception e) {
             return false;
-        } finally {
-            if (mongo != null) {
-                mongo.close();
-            }
         }
     }
 
@@ -103,9 +99,9 @@ public class MongoNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void clean() throws IOException {
-        MongoClientURI uri = new MongoClientURI(mongoUri);
-        MongoClient client = new MongoClient(uri);
-        client.dropDatabase(uri.getDatabase());
+        ConnectionString uri = new ConnectionString(mongoUri);
+        MongoClient client = MongoClients.create(uri);
+        client.getDatabase(uri.getDatabase()).drop();
         blob.clean();
     }
 

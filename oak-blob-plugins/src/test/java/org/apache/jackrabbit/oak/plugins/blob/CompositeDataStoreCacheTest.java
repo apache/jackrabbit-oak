@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
-import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.pio.Closer;
@@ -447,11 +447,11 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertTrue(f2.exists());
 
         CountDownLatch thread1Start = new CountDownLatch(1);
-        SettableFuture<File> future1 =
+        CompletableFuture<File> future1 =
             retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
 
         CountDownLatch thread2Start = new CountDownLatch(1);
-        SettableFuture<File> future2 =
+        CompletableFuture<File> future2 =
             retrieveThread(executorService, ID_PREFIX + 1, cache, thread2Start);
 
         thread1Start.countDown();
@@ -505,12 +505,12 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         // Would hit the staging cache
         CountDownLatch thread1Start = new CountDownLatch(1);
-        SettableFuture<File> future1 =
+        CompletableFuture<File> future1 =
             retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
 
         // Would hit the download cache and load
         CountDownLatch thread2Start = new CountDownLatch(1);
-        SettableFuture<File> future2 =
+        CompletableFuture<File> future2 =
             retrieveThread(executorService, ID_PREFIX + 1, cache, thread2Start);
 
         thread1Start.countDown();
@@ -565,7 +565,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
         // Would hit the staging cache
         CountDownLatch thread1Start = new CountDownLatch(1);
-        SettableFuture<File> future1 =
+        CompletableFuture<File> future1 =
             retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
         // Get a handle to the file and open stream
         File fileOnUpload = cache.getIfPresent(ID_PREFIX + 0);
@@ -595,9 +595,9 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
 
     /**--------------------------- Helper Methods -----------------------------------------------**/
 
-    private static SettableFuture<File> retrieveThread(ListeningExecutorService executor,
+    private static CompletableFuture<File> retrieveThread(ListeningExecutorService executor,
         final String id, final CompositeDataStoreCache cache, final CountDownLatch start) {
-        final SettableFuture<File> future = SettableFuture.create();
+        final CompletableFuture<File> future = new CompletableFuture<>();
         executor.submit(new Runnable() {
             @Override public void run() {
                 try {
@@ -606,10 +606,10 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
                     LOG.info("Starting retrieve [{}]", id);
                     File cached = cache.get(id);
                     LOG.info("Finished retrieve");
-                    future.set(cached);
+                    future.complete(cached);
                 } catch (Exception e) {
                     LOG.info("Exception in get", e);
-                    future.setException(e);
+                    future.completeExceptionally(e);
                 }
             }
         });

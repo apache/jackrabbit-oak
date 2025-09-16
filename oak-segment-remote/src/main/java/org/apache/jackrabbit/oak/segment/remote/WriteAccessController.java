@@ -33,6 +33,9 @@ public class WriteAccessController {
         }
     }
 
+    /**
+     * Blocks the current thread until writing is allowed.
+     */
     public void checkWritingAllowed() {
         while (!isWritingAllowed) {
             synchronized (lock) {
@@ -47,5 +50,12 @@ public class WriteAccessController {
                 }
             }
         }
+    }
+
+    /**
+     * @return true if writing is allowed, false otherwise
+     */
+    public boolean isWritingAllowed() {
+        return isWritingAllowed;
     }
 }

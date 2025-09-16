@@ -25,14 +25,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.mongodb.MongoClient;
-
 import org.bson.Document;
 import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import de.flapdoodle.embed.mongo.Command;
 import de.flapdoodle.embed.mongo.MongodStarter;
 import de.flapdoodle.embed.mongo.config.Defaults;
@@ -144,7 +143,7 @@ public class MongodProcessFactory extends ExternalResource {
         }
         Document config = new Document("_id", rs);
         config.append("members", members);
-        try (MongoClient c = new MongoClient(localhost(), ports[0])) {
+        try (MongoClient c = MongoClients.create("mongodb://" + localhost() + ":" + ports[0])) {
             c.getDatabase("admin").runCommand(
                     new Document("replSetInitiate", config));
         }

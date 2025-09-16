@@ -96,18 +96,18 @@ public final class MongoDocumentStoreMetrics implements Runnable {
             throws MongoException {
         CollectionStats stats = new CollectionStats();
         BasicDBObject result = new BasicDBObject(store.getDatabase().runCommand(new org.bson.Document("collStats", c.toString())));
-        stats.count = result.getLong("count", 0);
-        stats.size = result.getLong("size", 0);
-        stats.storageSize = result.getLong("storageSize", 0);
-        stats.totalIndexSize = result.getLong("totalIndexSize", 0);
+        stats.count = result.get("count") != null ? ((Number) result.get("count")).longValue() : 0;
+        stats.size = result.get("size") != null ? ((Number) result.get("size")).longValue() : 0;
+        stats.storageSize = result.get("storageSize") != null ? ((Number) result.get("storageSize")).longValue() : 0;
+        stats.totalIndexSize = result.get("totalIndexSize") != null ? ((Number) result.get("totalIndexSize")).longValue() : 0;
         return stats;
     }
 
     private DatabaseStats getDBStats() throws MongoException {
         DatabaseStats stats = new DatabaseStats();
         BasicDBObject result = new BasicDBObject(store.getDatabase().runCommand(new org.bson.Document("dbStats", 1)));
-        stats.fsUsedSize = result.getLong("fsUsedSize", 0);
-        stats.fsTotalSize = result.getLong("fsTotalSize", 0);
+        stats.fsUsedSize = result.get("fsUsedSize") != null ? ((Number) result.get("fsUsedSize")).longValue() : 0;
+        stats.fsTotalSize = result.get("fsTotalSize") != null ? ((Number) result.get("fsTotalSize")).longValue() : 0;
         return stats;
     }
 

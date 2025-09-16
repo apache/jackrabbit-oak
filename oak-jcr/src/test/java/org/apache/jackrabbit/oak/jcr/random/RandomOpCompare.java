@@ -38,8 +38,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import com.mongodb.DB;
-
 /**
  * A randomized test that writes to two repositories (using different storage
  * backends), and compares the results. The test uses low cache sizes, and low

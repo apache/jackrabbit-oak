@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -72,7 +72,7 @@ class CSVFileBinaryResourceProvider implements BinaryResourceProvider, Closeable
     public FluentIterable<BinaryResource> getBinaries(final String path) throws IOException {
         CSVParser parser = CSVParser.parse(dataFile, StandardCharsets.UTF_8, FORMAT);
         closer.register(parser);
-        return FluentIterable.from(parser)
+        return FluentIterable.of(parser)
                 .transform(new RecordTransformer()::apply)
                 .filter(input -> input != null && PathUtils.isAncestor(path, input.getPath()));
     }

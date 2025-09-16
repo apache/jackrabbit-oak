@@ -48,6 +48,18 @@ public final class MongoThrottlerFactory {
     }
 
     /**
+     * Returns an instance of @{@link Throttler} which throttles the system based on throttling factor set externally
+     *
+     * @param factor         current oplog window for mongo
+     * @param time time duration for throttling
+     * @return an external factor throttler to throttle the system if required
+     */
+    public static Throttler extFactorThrottler(final AtomicReference<Integer> factor, final long time) {
+        requireNonNull(factor);
+        return new ExtFactorThrottler(factor, time);
+    }
+
+    /**
      * A {@link Throttler} which doesn't do any throttling, no matter how much system is under load
      * @return No throttler
      */
@@ -91,6 +103,33 @@ public final class MongoThrottlerFactory {
                 throttleTime = 0;
             }
             return throttleTime;
+        }
+    }
+
+    private static class ExtFactorThrottler implements Throttler {
+
+        @NotNull
+        private final AtomicReference<Integer> factor;
+        private final long time;
+
+        public ExtFactorThrottler(final @NotNull AtomicReference<Integer> factor, final long time) {
+            this.factor = factor;
+            this.time = time;
+        }
+
+        /**
+         * The time duration (in Millis) for which we need to throttle the system.
+         *
+         * @return the throttling time duration (in Millis)
+         */
+        @Override
+        public long throttlingTime() {
+
+            if (factor.get() <= 0) {
+                return 0;
+            }
+
+            return time * factor.get();
         }
     }
 }

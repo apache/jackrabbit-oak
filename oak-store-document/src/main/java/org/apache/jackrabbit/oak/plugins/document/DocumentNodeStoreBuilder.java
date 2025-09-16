@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.guava.common.base.Suppliers;
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
@@ -47,6 +46,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.internal.function.Suppliers;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -117,7 +117,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     static final int UPDATE_LIMIT = Integer.getInteger("update.limit", DEFAULT_UPDATE_LIMIT);
 
-    protected Supplier<DocumentStore> documentStoreSupplier = Suppliers.memoize(() -> new MemoryDocumentStore());
+    protected Supplier<DocumentStore> documentStoreSupplier = Suppliers.memoize(MemoryDocumentStore::new);
     protected Supplier<BlobStore> blobStoreSupplier;
     private DiffCache diffCache;
     private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
@@ -177,6 +177,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Predicate<Path> nodeCachePredicate = x -> true;
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
+    private int throttlingTimeMillis = DocumentNodeStoreService.DEFAULT_THROTTLING_TIME_MILLIS;
+    private int throttlingJobSchedulePeriodSecs = DocumentNodeStoreService.DEFAULT_THROTTLING_JOB_SCHEDULE_PERIOD_SECS;
     private boolean avoidMergeLock;
     private boolean fullGCEnabled;
     private Set<String> fullGCIncludePaths = Set.of();
@@ -310,6 +312,24 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean isThrottlingEnabled() {
         return this.throttlingEnabled;
+    }
+
+    public T setThrottlingTimeMillis(int v) {
+        this.throttlingTimeMillis = v;
+        return thisBuilder();
+    }
+
+    public int getThrottlingTimeMillis() {
+        return this.throttlingTimeMillis;
+    }
+
+    public T setThrottlingJobSchedulePeriodSecs(int v) {
+        this.throttlingJobSchedulePeriodSecs = v;
+        return thisBuilder();
+    }
+
+    public int getThrottlingJobSchedulePeriodSecs() {
+        return this.throttlingJobSchedulePeriodSecs;
     }
 
     public T setAvoidMergeLock(boolean b) {

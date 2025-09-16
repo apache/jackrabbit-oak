@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 @Internal(since = "1.0.0")
-@Version("1.0.0")
+@Version("1.1.0")
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
 import org.apache.jackrabbit.oak.commons.annotations.Internal;

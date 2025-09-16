@@ -157,12 +157,16 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         nodeStore = getNodeStore();
         QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
         queryEngineSettings.setInferenceEnabled(isInferenceEnabled());
+        queryEngineSettings.setLimitReads(limitReads());
         InferenceConfig.reInitialize(nodeStore, INFERENCE_CONFIG_PATH, isInferenceEnabled());
         indexTracker = new ElasticIndexTracker(esConnection, getMetricHandler());
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(indexTracker, esConnection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100),
                 getElasticRetryPolicy());
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(indexTracker);
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(
+                indexTracker,
+                getAsyncIteratorEnqueueTimeoutMs(),
+                getFacetsEvaluationTimeoutMs());
 
 
         asyncIndexUpdate = getAsyncIndexUpdate("async", nodeStore, CompositeIndexEditorProvider.compose(
@@ -187,6 +191,18 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
             oak = addAsyncIndexingLanesToOak(oak);
         }
         return oak.createContentRepository();
+    }
+
+    protected long getAsyncIteratorEnqueueTimeoutMs() {
+        return ElasticIndexProvider.DEFAULT_ASYNC_ITERATOR_ENQUEUE_TIMEOUT_MS;
+    }
+
+    protected long getFacetsEvaluationTimeoutMs() {
+        return ElasticIndexProvider.DEFAULT_FACETS_EVALUATION_TIMEOUT_MS;
+    }
+
+    protected long limitReads() {
+        return QueryEngineSettings.DEFAULT_QUERY_LIMIT_READS;
     }
 
     protected boolean isInferenceEnabled() {

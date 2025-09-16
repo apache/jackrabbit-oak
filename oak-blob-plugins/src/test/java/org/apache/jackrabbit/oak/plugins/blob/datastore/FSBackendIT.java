@@ -26,13 +26,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -43,6 +41,7 @@ import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.collections.MapUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -67,7 +66,7 @@ public class FSBackendIT {
     private FSBackend backend;
     private String dataStoreDir;
     private DataStore ds;
-    private ListeningExecutorService executor;
+    private ExecutorService executor;
     private Random rand = new Random(0);
 
     @Before
@@ -78,8 +77,7 @@ public class FSBackendIT {
         props.setProperty("fsBackendPath", dataStoreDir);
         ds = createDataStore();
         backend = (FSBackend) ((CachingFileDataStore) ds).getBackend();
-        this.executor = MoreExecutors.listeningDecorator(Executors
-            .newFixedThreadPool(25, new NamedThreadFactory("oak-backend-test-write-thread")));
+        this.executor = Executors.newFixedThreadPool(25, new NamedThreadFactory("oak-backend-test-write-thread"));
     }
 
     protected DataStore createDataStore() {
@@ -197,7 +195,7 @@ public class FSBackendIT {
      * Method to assert record while writing and deleting record from FSBackend
      */
     void doTest(DataStore ds, int concurrency, boolean same) throws Exception {
-        List<ListenableFuture<Integer>> futures = new ArrayList<>();
+        List<CompletableFuture<Integer>> futures = new ArrayList<>();
         CountDownLatch latch = new CountDownLatch(concurrency);
 
         int seed = 0;
@@ -215,13 +213,13 @@ public class FSBackendIT {
         assertFuture(futures);
     }
 
-    private List<ListenableFuture<Integer>> put(TemporaryFolder folder, List<ListenableFuture<Integer>> futures,
+    private List<CompletableFuture<Integer>> put(TemporaryFolder folder, List<CompletableFuture<Integer>> futures,
         int seed, CountDownLatch writeLatch)
         throws IOException {
 
         File f = copyToFile(randomStream(seed, 4 * 1024 * 1024), folder.newFile());
 
-        ListenableFuture<Integer> future = executor.submit(() -> {
+        CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> {
             try {
                 writeLatch.await();
                 backend.write(new DataIdentifier("0000ID" + seed), f);
@@ -236,19 +234,19 @@ public class FSBackendIT {
         return futures;
     }
 
-    private void waitFinish(List<ListenableFuture<Integer>> futures) {
-        ListenableFuture<List<Integer>> listenableFutures = Futures.successfulAsList(futures);
+    private void waitFinish(List<CompletableFuture<Integer>> futures) {
+        CompletableFuture<List<Integer>> completableFutures = FutureUtils.successfulAsList(futures);
         try {
-            listenableFutures.get();
+            completableFutures.get();
         } catch (Exception e) {
             LOG.error("Error in finishing threads", e);
         }
     }
 
-    private void assertFuture(List<ListenableFuture<Integer>> futures) throws Exception {
+    private void assertFuture(List<CompletableFuture<Integer>> futures) throws Exception {
         waitFinish(futures);
 
-        for (ListenableFuture future : futures) {
+        for (CompletableFuture future : futures) {
             assertFile((Integer) future.get(), folder);
         }
     }

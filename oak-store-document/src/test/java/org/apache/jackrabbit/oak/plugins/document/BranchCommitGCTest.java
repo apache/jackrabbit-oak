@@ -22,6 +22,7 @@ import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.build;
 import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.gc;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.allOrphOnly;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.allOrphProp;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsEqual;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsZero;
@@ -42,7 +43,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -78,7 +78,7 @@ public class BranchCommitGCTest {
     private VersionGarbageCollector.VersionGCStats stats;
 
     @Parameterized.Parameters(name="{index}: {0} with {1}")
-    public static java.util.Collection<Object[]> params() throws IOException {
+    public static java.util.Collection<Object[]> params() {
         java.util.Collection<Object[]> params = new LinkedList<>();
         for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
             DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
@@ -151,6 +151,7 @@ public class BranchCommitGCTest {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(2, 0, 0, 0, 0, 0, 2),
                 allOrphProp(2, 0, 0, 0, 0, 0, 2),
                 keepOneFull(2, 0, 1, 0, 1, 0, 3),
                 keepOneUser(2, 0, 0, 0, 0, 0, 2),
@@ -215,6 +216,7 @@ public class BranchCommitGCTest {
                     gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
                     empPropOnly(2, 0, 0, 0, 0, 0, 0),
                     gapOrphProp(2, 0, 0, 0, 0, 0, 0),
+                    allOrphOnly(2, 0, 0, 0, 0, 0, 0),
                     allOrphProp(2, 0, 0, 0, 0, 0, 0),
                     keepOneFull(2, 0, 1, 0, 2, 0, 1),
                     keepOneUser(2, 0, 0, 0, 0, 0, 0),
@@ -229,6 +231,7 @@ public class BranchCommitGCTest {
                     gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
                     empPropOnly(2, 0, 0, 0, 0, 0, 0),
                     gapOrphProp(2, 0, 0, 0, 0, 0, 0),
+                    allOrphOnly(2, 0, 0, 0, 0, 0, 0),
                     allOrphProp(2, 0, 0, 0, 0, 0, 0),
                     keepOneFull(2, 1, 0, 0, 0, 0, 0),
                     keepOneUser(2, 1, 0, 0, 0, 0, 0),
@@ -293,6 +296,7 @@ public class BranchCommitGCTest {
         // 6 deleted props: 0:/[_collisions], 1:/foo[p, a], 1:/bar[_bc,prop,_revisions]
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 3, 0, 0, 0, 0, 2),
                 gapOrphProp(0, 3, 0, 0, 0, 0, 2),
                 allOrphProp(0, 3, 0, 0, 0, 0, 2),
@@ -337,6 +341,7 @@ public class BranchCommitGCTest {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(2, 0, 0, 0, 0, 0, 2),
                 allOrphProp(2, 0, 0, 0, 0, 0, 2),
                 keepOneFull(2, 0, 2, 0, 2, 0, 3),
                 keepOneUser(2, 0, 0, 0, 0, 0, 2),
@@ -394,6 +399,7 @@ public class BranchCommitGCTest {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 1, 4,12, 0, 3),
                 keepOneUser(0, 0, 0, 4, 0, 0, 2),
@@ -457,10 +463,11 @@ public class BranchCommitGCTest {
         VersionGarbageCollector.VersionGCStats stats = gc(gc, 1, HOURS);
 
         assertStatsCountsEqual(stats,
-                empPropOnly(0, 0, 0, 0, 0, 0, 0),
-                gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
-                gapOrphProp(0, 0, 0, 0, 0, 0, 0),
-                allOrphProp(0, 0, 0, 0, 0, 0, 0),
+                empPropOnly(),
+                gapOrphOnly(),
+                gapOrphProp(),
+                allOrphOnly(),
+                allOrphProp(),
                 keepOneFull(0, 0, 1, 8,24, 0, 3),
                 keepOneUser(0, 0, 0, 8, 0, 0, 2),
                 betweenChkp(),
@@ -503,6 +510,7 @@ public class BranchCommitGCTest {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(1, 0, 0, 0, 0, 0, 1),
                 allOrphProp(1, 0, 0, 0, 0, 0, 1),
                 keepOneFull(1, 0, 0, 1, 6, 0, 4),
                 keepOneUser(1, 0, 0, 1, 0, 0, 2),
@@ -542,6 +550,7 @@ public class BranchCommitGCTest {
                 gapOrphOnly(),
                 empPropOnly(),
                 gapOrphProp(),
+                allOrphOnly(),
                 allOrphProp(),
                 keepOneFull(0, 0, 0, 1, 4, 0, 2),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
@@ -567,6 +576,7 @@ public class BranchCommitGCTest {
         // 1 deleted prop: 1:/foo[a]
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 1, 0, 0, 0, 0, 1),
                 gapOrphProp(0, 1, 0, 0, 0, 0, 1),
                 allOrphProp(0, 1, 0, 0, 0, 0, 1),
@@ -610,10 +620,11 @@ public class BranchCommitGCTest {
         stats = gc(gc, 1, HOURS);
 
         assertStatsCountsEqual(stats,
-                gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
-                empPropOnly(0, 0, 0, 0, 0, 0, 0),
-                gapOrphProp(0, 0, 0, 0, 0, 0, 0),
-                allOrphProp(0, 0, 0, 0, 0, 0, 0),
+                gapOrphOnly(),
+                empPropOnly(),
+                gapOrphProp(),
+                allOrphOnly(),
+                allOrphProp(),
                 keepOneFull(0, 0, 1,10,40, 0, 2),
                 keepOneUser(0, 0, 0,10, 0, 0, 1),
                 betweenChkp(),
@@ -660,10 +671,11 @@ public class BranchCommitGCTest {
         stats = gc(gc, 1, HOURS);
 
         assertStatsCountsEqual(stats,
-                gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
-                empPropOnly(0, 0, 0, 0, 0, 0, 0),
-                gapOrphProp(0, 0, 0, 0, 0, 0, 0),
-                allOrphProp(0, 0, 0, 0, 0, 0, 0),
+                gapOrphOnly(),
+                empPropOnly(),
+                gapOrphProp(),
+                allOrphOnly(),
+                allOrphProp(),
                 keepOneFull(0, 0, 2,10,30, 0, 2),
                 keepOneUser(0, 0, 0,10, 0, 0, 1),
                 betweenChkp(),
@@ -721,6 +733,7 @@ public class BranchCommitGCTest {
         // deleted properties are 0:/ -> rootProp, _collisions & 1:/foo -> a
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
+                allOrphOnly(),
                 empPropOnly(0, 2, 0, 0, 0, 0, 2),
                 gapOrphProp(0, 2, 0, 0, 0, 0, 2),
                 allOrphProp(0, 2, 0, 0, 0, 0, 2),

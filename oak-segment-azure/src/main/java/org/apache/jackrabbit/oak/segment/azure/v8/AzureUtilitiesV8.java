@@ -29,6 +29,7 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.LeaseStatus;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -39,7 +40,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -59,11 +59,11 @@ public final class AzureUtilitiesV8 {
     }
 
     public static String getName(CloudBlob blob) {
-        return Paths.get(blob.getName()).getFileName().toString();
+        return AzureUtilities.getName(blob.getName());
     }
 
     public static String getName(CloudBlobDirectory directory) {
-        return Paths.get(directory.getUri().getPath()).getFileName().toString();
+        return AzureUtilities.getName(directory.getPrefix());
     }
 
     public static List<CloudBlob> getBlobs(CloudBlobDirectory directory) throws IOException {

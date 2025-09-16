@@ -41,10 +41,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.apache.jackrabbit.guava.common.collect.ContiguousSet;
-import org.apache.jackrabbit.guava.common.collect.DiscreteDomain;
-import org.apache.jackrabbit.guava.common.collect.Range;
-
 public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(BasicDocumentStoreTest.class);
@@ -419,8 +415,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     public void testRangeRemove() {
         String idPrefix = this.getClass().getName() + ".testRangeRemove";
 
-        org.apache.jackrabbit.guava.common.collect.Range<Long> modTimes = Range.closed(1L, 30L);
-        for (Long modTime : ContiguousSet.create(modTimes, DiscreteDomain.longs())) {
+        for (long modTime = 1; modTime <= 30; modTime += 1) {
             String id = idPrefix + modTime;
             // remove if present
             Document d = super.ds.find(Collection.JOURNAL, id);

@@ -22,6 +22,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -42,8 +43,6 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 
 import static org.osgi.service.component.annotations.ReferenceCardinality.OPTIONAL;
 import static org.osgi.service.component.annotations.ReferencePolicy.DYNAMIC;
@@ -169,7 +168,7 @@ public class AtomicCounterEditorProvider implements EditorProvider {
     @Activate
     public void activate(BundleContext context) {
         whiteboard.set(new OsgiWhiteboard(context));
-        ThreadFactory tf = new ThreadFactoryBuilder().setNameFormat("atomic-counter-%d").build();
+        ThreadFactory tf = BasicThreadFactory.builder().namingPattern("atomic-counter-%d").build();
         scheduler.set(Executors.newScheduledThreadPool(10, tf));
     }
     

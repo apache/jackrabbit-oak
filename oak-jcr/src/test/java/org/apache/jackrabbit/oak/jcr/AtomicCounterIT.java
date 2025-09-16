@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -35,11 +35,10 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
-import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.commons.FixturesHelper;
 import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.jetbrains.annotations.NotNull;
 import org.junit.BeforeClass;
@@ -79,11 +78,11 @@ public class AtomicCounterIT extends AbstractRepositoryTest {
             // ensuring initial state
             assertEquals(expected.get(), counter.getProperty(PROP_COUNTER).getLong());
 
-            List<ListenableFutureTask<Void>> tasks = new ArrayList<>();
+            List<CompletableFuture<Void>> tasks = new ArrayList<>();
             for (int t = 0; t < 100; t++) {
                 tasks.add(updateCounter(counterPath, rnd.nextInt(10) + 1, expected));
             }
-            Futures.allAsList(tasks).get();
+            FutureUtils.allAsList(tasks).get();
 
             session.refresh(false);
             assertEquals(expected.get(), 
@@ -93,31 +92,28 @@ public class AtomicCounterIT extends AbstractRepositoryTest {
         }
     }
 
-    private ListenableFutureTask<Void> updateCounter(@NotNull final String counterPath,
+    private CompletableFuture<Void> updateCounter(@NotNull final String counterPath,
                                                      final long delta,
                                                      @NotNull final AtomicLong expected) {
         requireNonNull(counterPath);
         requireNonNull(expected);
 
-        ListenableFutureTask<Void> task = ListenableFutureTask.create(new Callable<Void>() {
-
-            @Override
-            public Void call() throws Exception {
-                Session session = createAdminSession();
-                try {
-                    Node c = session.getNode(counterPath);
-                    c.setProperty(PROP_INCREMENT, delta);
-                    expected.addAndGet(delta);
-                    session.save();
-                } finally {
+        return CompletableFuture.runAsync(() -> {
+            Session session = null;
+            try {
+                session = createAdminSession();
+                Node c = session.getNode(counterPath);
+                c.setProperty(PROP_INCREMENT, delta);
+                expected.addAndGet(delta);
+                session.save();
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (session != null) {
                     session.logout();
                 }
-                return null;
             }
         });
-
-        new Thread(task).start();
-        return task;
     }
 
     @Override

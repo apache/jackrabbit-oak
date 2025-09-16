@@ -34,17 +34,18 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.FutureConverter;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.cache.RemovalCause;
 import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 
 /**
  * Tests the LIRS cache.
@@ -683,9 +684,8 @@ public class CacheTest {
                     @Override
                     public ListenableFuture<String> reload(Integer key, String oldValue) {
                         assertTrue(oldValue != null);
-                        SettableFuture<String> f = SettableFuture.create();
-                        f.set(oldValue);
-                        return f;
+                        CompletableFuture<String> f = CompletableFuture.completedFuture(oldValue);
+                        return FutureConverter.toListenableFuture(f);
                     }
 
                 });

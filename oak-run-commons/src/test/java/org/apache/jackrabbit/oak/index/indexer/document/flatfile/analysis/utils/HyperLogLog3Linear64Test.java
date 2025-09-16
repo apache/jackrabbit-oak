@@ -18,37 +18,13 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.commons.collections.HashUtils;
+import org.apache.jackrabbit.oak.commons.collections.HyperLogLog;
 import org.junit.Test;
 
-public class HyperLogLogTest {
-
-    @Test(expected = IllegalArgumentException.class)
-    public void illegalHyperLogLogTooSmall() {
-        new HyperLogLog(8, 0);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void illegalHyperLogLogNotPowerOfTwo() {
-        new HyperLogLog(30, 0);
-    }
-
-    @Test
-    public void smallSet() {
-        HyperLogLog hll100 = new HyperLogLog(16, 100);
-        assertEquals(0, hll100.estimate());
-        HyperLogLog hll0 = new HyperLogLog(16, 0);
-        assertEquals(0, hll0.estimate());
-        for (int i = 0; i < 10_000; i++) {
-            hll100.add(i % 100);
-            hll0.add(i % 100);
-        }
-        assertEquals(100, hll100.estimate());
-        assertNotEquals(100, hll0.estimate());
-    }
+public class HyperLogLog3Linear64Test {
 
     @Test
     public void test() {
@@ -82,7 +58,6 @@ public class HyperLogLogTest {
                 max = 0;
                 break;
             }
-            // System.out.println(type + " expected " + min + ".." + max + " got " + avg);
             assertTrue("m " + m + " expected " + min + ".." + max + " got " + avg, min < avg && avg < max);
         }
     }
@@ -123,7 +98,7 @@ public class HyperLogLogTest {
             }
             long baseX = x;
             for (int i = 0; i < size; i++) {
-                hll.add(Hash.hash64(x));
+                hll.add(HashUtils.hash64(x));
                 x++;
             }
             long e = hll.estimate();
@@ -136,7 +111,7 @@ public class HyperLogLogTest {
             for (int add = 0; add < repeat; add++) {
                 long x2 = baseX;
                 for (int i = 0; i < size; i++) {
-                    hll.add(Hash.hash64(x2));
+                    hll.add(HashUtils.hash64(x2));
                     x2++;
                 }
             }
@@ -175,14 +150,16 @@ public class HyperLogLogTest {
             super(m, maxSmallSetSize);
         }
 
+        @Override
         public void add(long hash) {
             value = HyperLogLog3Linear64.add(value, hash);
         }
 
+        @Override
         public long estimate() {
             return HyperLogLog3Linear64.estimate(value);
         }
 
     }
 
-}
+} 

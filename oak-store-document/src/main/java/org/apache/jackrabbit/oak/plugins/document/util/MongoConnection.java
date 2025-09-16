@@ -21,30 +21,49 @@ import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoClientSettings.Builder;
 import com.mongodb.MongoException;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadConcernLevel;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.connection.ClusterSettings;
+import com.mongodb.connection.ClusterDescription;
+import com.mongodb.connection.ClusterType;
+import com.mongodb.connection.ConnectionPoolSettings;
+import com.mongodb.connection.ServerSettings;
+import com.mongodb.connection.SocketSettings;
 
 import static java.util.Objects.requireNonNull;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService;
+
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@code MongoConnection} abstracts connection to the {@code MongoDB}.
  */
 public class MongoConnection {
 
-    private static final int DEFAULT_MAX_WAIT_TIME = (int) TimeUnit.MINUTES.toMillis(1);
-    private static final int DEFAULT_HEARTBEAT_FREQUENCY_MS = (int) TimeUnit.SECONDS.toMillis(5);
-    private static final WriteConcern WC_UNKNOWN = new WriteConcern("unknown");
+    private static final Logger LOG = LoggerFactory.getLogger(MongoConnection.class);
+
+    public static final String MONGODB_PREFIX = "mongodb://";
+
     private static final Set<ReadConcernLevel> REPLICA_RC = Set.of(ReadConcernLevel.MAJORITY, ReadConcernLevel.LINEARIZABLE);
-    private final MongoClientURI mongoURI;
+    private final ConnectionString mongoURI;
     private final MongoClient mongo;
+
+    // MongoDB cluster description timeout configuration
+    private static final String PROP_CLUSTER_DESCRIPTION_TIMEOUT_MS = "oak.mongo.clusterDescriptionTimeoutMs";
+    private static final String PROP_CLUSTER_DESCRIPTION_INTERVAL_MS = "oak.mongo.clusterDescriptionIntervalMs";
+    private static final long DEFAULT_CLUSTER_DESCRIPTION_TIMEOUT_MS = 5000L;
+    private static final long DEFAULT_CLUSTER_DESCRIPTION_INTERVAL_MS = 100L;
 
     /**
      * Constructs a new connection using the specified MongoDB connection string.
@@ -65,10 +84,12 @@ public class MongoConnection {
      * @param builder the client option defaults.
      * @throws MongoException if there are failures
      */
-    public MongoConnection(String uri, MongoClientOptions.Builder builder)
+    public MongoConnection(String uri, MongoClientSettings.Builder builder)
             throws MongoException {
-        mongoURI = new MongoClientURI(uri, builder);
-        mongo = new MongoClient(mongoURI);
+        mongoURI = new ConnectionString(uri);
+        builder.applyConnectionString(mongoURI);
+        MongoClientSettings settings = builder.build();
+        mongo = MongoClients.create(settings);
     }
 
     /**
@@ -91,15 +112,18 @@ public class MongoConnection {
      * @param client the already connected client.
      */
     public MongoConnection(String uri, MongoClient client) {
-        mongoURI = new MongoClientURI(uri, MongoConnection.getDefaultBuilder());
-        mongo = client;
+        Builder defaultBuilder = MongoConnection.getDefaultBuilder();
+        mongoURI = new ConnectionString(uri);
+        defaultBuilder.applyConnectionString(mongoURI);
+        MongoClientSettings settings = defaultBuilder.build();
+        mongo = MongoClients.create(settings);
     }
 
     /**
      *
-     * @return the {@link MongoClientURI} for this connection
+     * @return the {@link ConnectionString} for this connection
      */
-    public MongoClientURI getMongoURI() {
+    public ConnectionString getMongoURI() {
         return mongoURI;
     }
 
@@ -150,25 +174,55 @@ public class MongoConnection {
      *
      * @return builder with default options set
      */
-    public static MongoClientOptions.Builder getDefaultBuilder() {
-        return new MongoClientOptions.Builder()
-                .description("MongoConnection for Oak DocumentMK")
-                .maxWaitTime(DEFAULT_MAX_WAIT_TIME)
-                .heartbeatFrequency(DEFAULT_HEARTBEAT_FREQUENCY_MS)
-                .threadsAllowedToBlockForConnectionMultiplier(100);
+    public static MongoClientSettings.Builder getDefaultBuilder() {
+        return MongoClientSettings.builder()
+                .applicationName("MongoConnection for Oak DocumentMK")
+                // Apply default connection pool settings
+                .applyToConnectionPoolSettings(poolBuilder -> poolBuilder
+                        .maxSize(DocumentNodeStoreService.DEFAULT_MONGO_MAX_POOL_SIZE)
+                        .minSize(DocumentNodeStoreService.DEFAULT_MONGO_MIN_POOL_SIZE)
+                        .maxConnecting(DocumentNodeStoreService.DEFAULT_MONGO_MAX_CONNECTING)
+                        .maxConnectionIdleTime(DocumentNodeStoreService.DEFAULT_MONGO_MAX_IDLE_TIME_MILLIS, TimeUnit.MILLISECONDS)
+                        .maxConnectionLifeTime(DocumentNodeStoreService.DEFAULT_MONGO_MAX_LIFE_TIME_MILLIS, TimeUnit.MILLISECONDS)
+                        .maxWaitTime(DocumentNodeStoreService.DEFAULT_MONGO_WAIT_QUEUE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+                // Apply default socket settings
+                .applyToSocketSettings(socketBuilder -> socketBuilder
+                        .connectTimeout(DocumentNodeStoreService.DEFAULT_MONGO_CONNECT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                        .readTimeout(DocumentNodeStoreService.DEFAULT_MONGO_READ_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+                // Apply default server settings
+                .applyToServerSettings(serverBuilder -> serverBuilder
+                        .heartbeatFrequency(DocumentNodeStoreService.DEFAULT_MONGO_HEARTBEAT_FREQUENCY_MILLIS, TimeUnit.MILLISECONDS)
+                        .minHeartbeatFrequency(DocumentNodeStoreService.DEFAULT_MONGO_MIN_HEARTBEAT_FREQUENCY_MILLIS, TimeUnit.MILLISECONDS))
+                // Apply default cluster settings
+                .applyToClusterSettings(clusterBuilder -> clusterBuilder
+                        .serverSelectionTimeout(DocumentNodeStoreService.DEFAULT_MONGO_SERVER_SELECTION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS));
     }
 
-    public static String toString(MongoClientOptions opts) {
-        return new StringJoiner(", ", opts.getClass().getSimpleName() + "[", "]")
-                .add("connectionsPerHost=" + opts.getConnectionsPerHost())
-                .add("connectTimeout=" + opts.getConnectTimeout())
-                .add("socketTimeout=" + opts.getSocketTimeout())
-                .add("socketKeepAlive=" + opts.isSocketKeepAlive())
-                .add("maxWaitTime=" + opts.getMaxWaitTime())
-                .add("heartbeatFrequency=" + opts.getHeartbeatFrequency())
-                .add("threadsAllowedToBlockForConnectionMultiplier=" + opts.getThreadsAllowedToBlockForConnectionMultiplier())
-                .add("readPreference=" + opts.getReadPreference().getName())
-                .add("writeConcern=" + opts.getWriteConcern())
+    public static String toString(MongoClientSettings settings) {
+        ConnectionPoolSettings poolSettings = settings.getConnectionPoolSettings();
+        SocketSettings socketSettings = settings.getSocketSettings();
+        ServerSettings serverSettings = settings.getServerSettings();
+        ClusterSettings clusterSettings = settings.getClusterSettings();
+
+        return new StringJoiner(", ", MongoClientSettings.class.getSimpleName() + "[", "]")
+                // Connection Pool Settings
+                .add("pool.maxSize=" + poolSettings.getMaxSize())
+                .add("pool.minSize=" + poolSettings.getMinSize())
+                .add("pool.maxConnecting=" + poolSettings.getMaxConnecting())
+                .add("pool.maxIdleTime=" + poolSettings.getMaxConnectionIdleTime(TimeUnit.MILLISECONDS))
+                .add("pool.maxLifeTime=" + poolSettings.getMaxConnectionLifeTime(TimeUnit.MILLISECONDS))
+                .add("pool.maxWaitTime=" + poolSettings.getMaxWaitTime(TimeUnit.MILLISECONDS))
+                // Socket Settings
+                .add("socket.connectTimeout=" + socketSettings.getConnectTimeout(TimeUnit.MILLISECONDS))
+                .add("socket.readTimeout=" + socketSettings.getReadTimeout(TimeUnit.MILLISECONDS))
+                // Server Settings
+                .add("server.heartbeatFreq=" + serverSettings.getHeartbeatFrequency(TimeUnit.MILLISECONDS))
+                .add("server.minHeartbeatFreq=" + serverSettings.getMinHeartbeatFrequency(TimeUnit.MILLISECONDS))
+                // Cluster Settings
+                .add("cluster.serverSelectionTimeout=" + clusterSettings.getServerSelectionTimeout(TimeUnit.MILLISECONDS))
+                // Connection Settings
+                .add("readPreference=" + settings.getReadPreference().getName())
+                .add("writeConcern=" + settings.getWriteConcern())
                 .toString();
     }
 
@@ -179,11 +233,8 @@ public class MongoConnection {
      *      otherwise.
      */
     public static boolean hasWriteConcern(@NotNull String uri) {
-        MongoClientOptions.Builder builder = MongoClientOptions.builder();
-        builder.writeConcern(WC_UNKNOWN);
-        WriteConcern wc = new MongoClientURI(requireNonNull(uri), builder)
-                .getOptions().getWriteConcern();
-        return !WC_UNKNOWN.equals(wc);
+        ConnectionString connectionString = new ConnectionString(requireNonNull(uri));
+        return connectionString.getWriteConcern() != null;
     }
 
     /**
@@ -193,9 +244,11 @@ public class MongoConnection {
      *      otherwise.
      */
     public static boolean hasReadConcern(@NotNull String uri) {
-        ReadConcern rc = new MongoClientURI(requireNonNull(uri))
-                .getOptions().getReadConcern();
-        return readConcernLevel(rc) != null;
+        ConnectionString connectionString = new ConnectionString(requireNonNull(uri));
+        MongoClientSettings.Builder builder = MongoClientSettings.builder()
+                .applyConnectionString(connectionString);
+        MongoClientSettings settings = builder.build();
+        return readConcernLevel(settings.getReadConcern()) != null;
     }
 
     /**
@@ -209,13 +262,45 @@ public class MongoConnection {
      * @return the default write concern to use for Oak.
      */
     public static WriteConcern getDefaultWriteConcern(@NotNull MongoClient client) {
-        WriteConcern w;
-        if (client.getReplicaSetStatus() != null) {
-            w = WriteConcern.MAJORITY;
-        } else {
-            w = WriteConcern.ACKNOWLEDGED;
+        long timeoutMs = Long.getLong(PROP_CLUSTER_DESCRIPTION_TIMEOUT_MS, DEFAULT_CLUSTER_DESCRIPTION_TIMEOUT_MS);
+        long intervalMs = Long.getLong(PROP_CLUSTER_DESCRIPTION_INTERVAL_MS, DEFAULT_CLUSTER_DESCRIPTION_INTERVAL_MS);
+        
+        // If timeout is 0, disable the retry functionality and use immediate detection
+        if (timeoutMs == 0) {
+            WriteConcern w;
+            ClusterDescription clusterDescription = client.getClusterDescription();
+            if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
+                w = WriteConcern.MAJORITY;
+            } else {
+                w = WriteConcern.ACKNOWLEDGED;
+            }
+            return w;
         }
-        return w;
+        
+        long startTime = System.currentTimeMillis();
+        long endTime = startTime + timeoutMs;
+        int attempts = 0;
+        
+        while (System.currentTimeMillis() < endTime) {
+            attempts++;
+            ClusterDescription clusterDescription = client.getClusterDescription();
+            
+            if (clusterDescription.getType() == ClusterType.REPLICA_SET || 
+                clusterDescription.getType() == ClusterType.SHARDED) {
+                return WriteConcern.MAJORITY;
+            } else if (clusterDescription.getType() == ClusterType.STANDALONE) {
+                return WriteConcern.ACKNOWLEDGED;
+            }
+            
+            try {
+                Thread.sleep(intervalMs);
+            } catch (InterruptedException e) {}
+        }
+        
+        // In case of timeout, default to ACKNOWLEDGED
+        LOG.warn("Cluster description timeout after {}ms ({} attempts). Defaulting to ACKNOWLEDGED write concern.", 
+                timeoutMs, attempts);
+        return WriteConcern.ACKNOWLEDGED;
     }
 
     /**
@@ -231,7 +316,8 @@ public class MongoConnection {
     public static ReadConcern getDefaultReadConcern(@NotNull MongoClient client,
                                                     @NotNull MongoDatabase db) {
         ReadConcern r;
-        if (requireNonNull(client).getReplicaSetStatus() != null && isMajorityWriteConcern(db)) {
+        ClusterDescription clusterDescription = requireNonNull(client).getClusterDescription();
+        if (clusterDescription.getType() == ClusterType.REPLICA_SET && isMajorityWriteConcern(db)) {
             r = ReadConcern.MAJORITY;
         } else {
             r = ReadConcern.LOCAL;
@@ -274,7 +360,8 @@ public class MongoConnection {
             throw new IllegalArgumentException(
                     "Unknown write concern: " + wc);
         }
-        if (client.getReplicaSetStatus() != null) {
+        ClusterDescription clusterDescription = client.getClusterDescription();
+        if (clusterDescription.getType() == ClusterType.REPLICA_SET) {
             return w >= 2;
         } else {
             return w >= 1;
@@ -293,7 +380,8 @@ public class MongoConnection {
     public static boolean isSufficientReadConcern(@NotNull MongoClient client,
                                                   @NotNull ReadConcern rc) {
         ReadConcernLevel r = readConcernLevel(requireNonNull(rc));
-        if (client.getReplicaSetStatus() == null) {
+        ClusterDescription clusterDescription = client.getClusterDescription();
+        if (clusterDescription.getType() != ClusterType.REPLICA_SET) {
             return true;
         } else {
             return Objects.nonNull(r) && REPLICA_RC.contains(r);

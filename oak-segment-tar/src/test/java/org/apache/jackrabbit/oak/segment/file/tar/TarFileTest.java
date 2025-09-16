@@ -255,12 +255,10 @@ public class TarFileTest {
         Set<UUID> sweep = newSet(new UUID(1, 2), new UUID(2, 3));
 
         try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
-            try (TarReader swept = reader.sweep(sweep, new HashSet<UUID>())) {
+            try (TarReader swept = reader.sweep(sweep, new HashSet<>())) {
                 assertNotNull(swept);
-
-                Map<UUID, List<UUID>> graph = new HashMap<>();
-                graph.put(new UUID(2, 1), List.of(new UUID(2, 2)));
-
+                SegmentGraph graph = new SegmentGraph();
+                graph.addEdge(new UUID(2, 1), new UUID(2, 2));
                 assertEquals(graph, swept.getGraph());
             }
         }

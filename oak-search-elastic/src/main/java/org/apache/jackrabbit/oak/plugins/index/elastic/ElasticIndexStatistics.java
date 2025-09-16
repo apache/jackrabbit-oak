@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.jackrabbit.guava.common.base.Ticker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
@@ -39,7 +40,6 @@ import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.cache.LoadingCache;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFutureTask;
-import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 
 import co.elastic.clients.elasticsearch._types.Bytes;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
@@ -70,10 +70,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
     private static final ExecutorService REFRESH_EXECUTOR = new ThreadPoolExecutor(
             0, 4, 60L, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(),
-            new ThreadFactoryBuilder()
-                    .setNameFormat("elastic-statistics-cache-refresh-thread-%d")
-                    .setDaemon(true)
-                    .build()
+            BasicThreadFactory.builder().namingPattern("elastic-statistics-cache-refresh-thread-%d").daemon().build()
     );
 
     private final ElasticConnection elasticConnection;

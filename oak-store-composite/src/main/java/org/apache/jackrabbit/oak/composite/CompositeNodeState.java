@@ -18,9 +18,10 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.commons.collections4.FluentIterable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -123,15 +124,15 @@ class CompositeNodeState extends AbstractNodeState {
             return getWrappedNodeState().getChildNodeCount(max);
         } else {
             // Count the children in each contributing store.
-            return accumulateChildSizes(FluentIterable.from(contributingStores)
-                    .transformAndConcat(mns -> {
+            return accumulateChildSizes(IterableUtils.chainedIterable(
+                    FluentIterable.of(contributingStores).transform(mns -> {
                         NodeState node = nodeStates.get(mns);
                         if (node.getChildNodeCount(max) == MAX_VALUE) {
                             return singleton(STOP_COUNTING_CHILDREN);
                         } else {
-                            return FluentIterable.from(node.getChildNodeNames()).filter(e -> belongsToStore(mns, e));
+                            return FluentIterable.of(node.getChildNodeNames()).filter(e -> belongsToStore(mns, e));
                         }
-                    }), max);
+                    })), max);
         }
     }
 
@@ -148,11 +149,11 @@ class CompositeNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return FluentIterable.from(ctx.getContributingStoresForNodes(path, nodeStates))
-                .transformAndConcat(mns -> FluentIterable
-                        .from(nodeStates.get(mns).getChildNodeNames())
-                        .filter(n -> belongsToStore(mns, n)))
-                .transform(n -> new MemoryChildNodeEntry(n, getChildNode(n)));
+        return IterableUtils.chainedIterable(
+                FluentIterable.of(ctx.getContributingStoresForNodes(path, nodeStates)).
+                        transform(mns -> FluentIterable.of(nodeStates.get(mns).getChildNodeNames()).
+                                filter(n -> belongsToStore(mns, n)).
+                                transform(n -> new MemoryChildNodeEntry(n, getChildNode(n)))));
     }
 
     @Override

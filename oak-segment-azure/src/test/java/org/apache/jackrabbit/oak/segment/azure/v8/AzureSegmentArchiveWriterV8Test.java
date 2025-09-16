@@ -182,6 +182,9 @@ public class AzureSegmentArchiveWriterV8Test {
 
     @NotNull
     private SegmentArchiveWriter createSegmentArchiveWriter() throws URISyntaxException, IOException {
+        // Mock the list blobs operation that's called during AzureSegmentArchiveWriterV8 initialization
+        expectListBlobsRequest();
+
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
         AzurePersistenceV8 azurePersistenceV8 = new AzurePersistenceV8(container.getDirectoryReference("oak"));/**/
@@ -221,6 +224,23 @@ public class AzureSegmentArchiveWriterV8Test {
                 .withMethod("PUT")
                 .withPath(BASE_PATH + "/oak/data00000a.tar/.*")
                 .withBody(new BinaryBody(new byte[10]));
+    }
+
+    private void expectListBlobsRequest() {
+        mockServerClient
+                .when(request()
+                        .withMethod("GET")
+                        .withPath(BASE_PATH)
+                        .withQueryStringParameter("comp", "list")
+                        .withQueryStringParameter("prefix", "oak/data00000a.tar/"), Times.once())
+                .respond(response()
+                        .withStatusCode(200)
+                        .withHeader("Content-Type", "application/xml")
+                        .withBody("<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+                                "<EnumerationResults ServiceEndpoint=\"http://127.0.0.1:10000/devstoreaccount1\" ContainerName=\"oak-test\">" +
+                                "<Prefix></Prefix>" +
+                                "<Blobs></Blobs>" +
+                                "</EnumerationResults>"));
     }
 
     @NotNull

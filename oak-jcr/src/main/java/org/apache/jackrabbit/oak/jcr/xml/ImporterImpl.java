@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
@@ -44,6 +45,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
+import org.apache.jackrabbit.oak.commons.internal.function.Suppliers;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.security.AccessManager;
@@ -578,7 +580,7 @@ public class ImporterImpl implements Importer {
          *    no modifications are performed
          */
         private final IdentifierManager currentStateIdManager;
-        private final IdentifierManager baseStateIdManager;
+        private final Supplier<IdentifierManager> baseStateIdManager;
 
         /**
          * Set of newly created uuid from nodes which are
@@ -590,7 +592,7 @@ public class ImporterImpl implements Importer {
 
         private IdResolver(@NotNull Root root, @NotNull ContentSession contentSession) {
             currentStateIdManager = new IdentifierManager(root);
-            baseStateIdManager = new IdentifierManager(contentSession.getLatestRoot());
+            baseStateIdManager = Suppliers.memoize(() -> new IdentifierManager(contentSession.getLatestRoot()));
 
             if (!root.hasPendingChanges()) {
                 importedUUIDs = new HashSet<String>();
@@ -604,7 +606,7 @@ public class ImporterImpl implements Importer {
         private Tree getConflictingTree(@NotNull String id) {
             //1. First check from base state that tree corresponding to
             //this id exist
-            Tree conflicting = baseStateIdManager.getTree(id);
+            Tree conflicting = baseStateIdManager.get().getTree(id);
             if (conflicting == null && importedUUIDs != null) {
                 //1.a. Check if id is found in newly created nodes
                 if (importedUUIDs.contains(id)) {

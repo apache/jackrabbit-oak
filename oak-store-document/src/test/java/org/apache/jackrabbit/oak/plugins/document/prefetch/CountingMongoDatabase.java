@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.prefetch;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.bson.Document;
@@ -31,10 +32,10 @@ import com.mongodb.WriteConcern;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.ChangeStreamIterable;
 import com.mongodb.client.ClientSession;
+import com.mongodb.client.ListCollectionNamesIterable;
 import com.mongodb.client.ListCollectionsIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoIterable;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.CreateViewOptions;
 
@@ -180,7 +181,7 @@ public class CountingMongoDatabase implements MongoDatabase {
     }
 
     @Override
-    public MongoIterable<String> listCollectionNames() {
+    public ListCollectionNamesIterable listCollectionNames() {
         return delegate.listCollectionNames();
 
     }
@@ -199,7 +200,7 @@ public class CountingMongoDatabase implements MongoDatabase {
     }
 
     @Override
-    public MongoIterable<String> listCollectionNames(ClientSession clientSession) {
+    public ListCollectionNamesIterable listCollectionNames(ClientSession clientSession) {
         return delegate.listCollectionNames(clientSession);
 
     }
@@ -349,6 +350,16 @@ public class CountingMongoDatabase implements MongoDatabase {
             List<? extends Bson> pipeline, Class<TResult> resultClass) {
         return delegate.aggregate(clientSession, pipeline, resultClass);
 
+    }
+
+    @Override
+    public Long getTimeout(TimeUnit timeUnit) {
+        return delegate.getTimeout(timeUnit);
+    }
+
+    @Override
+    public MongoDatabase withTimeout(long timeout, TimeUnit timeUnit) {
+        return delegate.withTimeout(timeout, timeUnit);
     }
 
 }

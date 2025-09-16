@@ -46,11 +46,12 @@ import co.elastic.clients.elasticsearch.core.search.TotalHitsRelation;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -73,7 +74,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
     private static final Logger LOG = LoggerFactory.getLogger(ElasticResultRowAsyncIterator.class);
     // this is an internal special message to notify the consumer the result set has been completely returned
     private static final FulltextResultRow POISON_PILL =
-            new FulltextResultRow("___OAK_POISON_PILL___", 0d, Collections.emptyMap(), null, null);
+            new FulltextResultRow("___OAK_POISON_PILL___", 0d, Map.of(), null, null);
 
     private final BlockingQueue<FulltextResultRow> queue;
 
@@ -81,11 +82,19 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
     private final IndexPlan indexPlan;
     private final Predicate<String> rowInclusionPredicate;
     private final ElasticMetricHandler metricHandler;
+    private final long enqueueTimeoutMs;
     private final ElasticQueryScanner elasticQueryScanner;
     private final ElasticRequestHandler elasticRequestHandler;
     private final ElasticResponseHandler elasticResponseHandler;
     private final ElasticFacetProvider elasticFacetProvider;
-    private final AtomicReference<Throwable> errorRef = new AtomicReference<>();
+    // Errors reported by Elastic. These errors are logged but not propagated to the caller. They cause end of stream.
+    // This is done to keep compatibility with the Lucene implementation of the iterator.
+    // See for instance FullTextAnalyzerCommonTest#testFullTextTermWithUnescapedBraces for an example of a test where
+    // a parsing error in a query is swallowed by the iterator and the iterator returns no results.
+    private final AtomicReference<Throwable> queryErrorRef = new AtomicReference<>();
+    // System errors (e.g. timeout, interrupted). These errors are propagated to the caller.
+    private final AtomicReference<Throwable> systemErrorRef = new AtomicReference<>();
+    private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
     private FulltextResultRow nextRow;
 
@@ -94,30 +103,40 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                                          @NotNull ElasticResponseHandler elasticResponseHandler,
                                          @NotNull QueryIndex.IndexPlan indexPlan,
                                          Predicate<String> rowInclusionPredicate,
-                                         ElasticMetricHandler metricHandler) {
+                                         ElasticMetricHandler metricHandler,
+                                         long enqueueTimeoutMs) {
         this.indexNode = indexNode;
         this.elasticRequestHandler = elasticRequestHandler;
         this.elasticResponseHandler = elasticResponseHandler;
         this.indexPlan = indexPlan;
         this.rowInclusionPredicate = rowInclusionPredicate;
         this.metricHandler = metricHandler;
+        this.enqueueTimeoutMs = enqueueTimeoutMs;
         this.elasticFacetProvider = elasticRequestHandler.getAsyncFacetProvider(indexNode.getConnection(), elasticResponseHandler);
         // set the queue size to the limit of the query. This is to avoid to load too many results in memory in case the
         // consumer is slow to process them
-        this.queue = new LinkedBlockingQueue<>((int) indexPlan.getFilter().getQueryLimits().getLimitReads());
+        int limitReads = (int) indexPlan.getFilter().getQueryLimits().getLimitReads();
+        LOG.debug("Creating ElasticResultRowAsyncIterator with limitReads={}", limitReads);
+        this.queue = new LinkedBlockingQueue<>(limitReads);
         this.elasticQueryScanner = initScanner();
     }
 
     @Override
     public boolean hasNext() {
         // if nextRow is not null it means the caller invoked hasNext() before without calling next()
-        if (nextRow == null) {
+        if (nextRow == null && !isClosed.get()) {
             if (queue.isEmpty()) {
                 // this triggers, when needed, the scan of the next results chunk
                 elasticQueryScanner.scan();
             }
             try {
-                nextRow = queue.poll(indexNode.getDefinition().queryTimeoutMs, TimeUnit.MILLISECONDS);
+                long timeoutMs = indexNode.getDefinition().queryTimeoutMs;
+                nextRow = queue.poll(timeoutMs, TimeUnit.MILLISECONDS);
+                if (nextRow == null) {
+                    LOG.warn("Timeout waiting for next result from Elastic, waited {} ms. Closing scanner.", timeoutMs);
+                    close();
+                    throw new IllegalStateException("Timeout waiting for next result from Elastic");
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();  // restore interrupt status
                 throw new IllegalStateException("Error reading next result from Elastic", e);
@@ -128,13 +147,25 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         // Any exception (such as ParseException) during the prefetch (init scanner) via the async call to ES would be available here
         // when the cursor is actually being traversed.
         // This is being done so that we can log the caller stack trace in case of any exception from ES and not just the trace of the async query thread.
-
-        Throwable error = errorRef.getAndSet(null);
+        Throwable error = queryErrorRef.get();
         if (error != null) {
             error.fillInStackTrace();
             LOG.error("Error while fetching results from Elastic for [{}]", indexPlan.getFilter(), error);
+            return false;
         }
-        return !POISON_PILL.path.equals(nextRow.path);
+
+        if (nextRow != POISON_PILL) {
+            // there is a valid next row
+            return true;
+        }
+
+        // Received the POISON_PILL. Did the elastic query terminate gracefully?
+        Throwable systemError = systemErrorRef.get();
+        if (systemError == null) {
+            return false; // No more results, graceful termination
+        } else {
+            throw new IllegalStateException("Error while fetching results from Elastic for [" + indexPlan.getFilter() + "]", error);
+        }
     }
 
     @Override
@@ -145,7 +176,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             }
         }
         FulltextResultRow row = null;
-        if (nextRow != null && !POISON_PILL.path.equals(nextRow.path)) {
+        if (nextRow != null &&  nextRow != POISON_PILL) {
             row = nextRow;
             nextRow = null;
         }
@@ -162,8 +193,15 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             }
             LOG.trace("Path {} satisfies hierarchy inclusion rules", path);
             try {
-                queue.put(new FulltextResultRow(path, searchHit.score() != null ? searchHit.score() : 0.0,
-                        elasticResponseHandler.excerpts(searchHit), elasticFacetProvider, null));
+                FulltextResultRow resultRow = new FulltextResultRow(path, searchHit.score() != null ? searchHit.score() : 0.0,
+                        elasticResponseHandler.excerpts(searchHit), elasticFacetProvider, null);
+                long startNs = System.nanoTime();
+                boolean successful = queue.offer(resultRow, enqueueTimeoutMs, TimeUnit.MILLISECONDS);
+                if (!successful) {
+                    // if we cannot insert the result into the queue, we close the scanner to avoid further processing
+                    throw new IllegalStateException("Timeout waiting to insert result into the iterator queue for path: " + path +
+                            ". Waited " + (System.nanoTime() - startNs) / 1_000_000 + " ms");
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();  // restore interrupt status
                 throw new IllegalStateException("Error producing results into the iterator queue", e);
@@ -176,7 +214,10 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
     @Override
     public void endData() {
         try {
-            queue.put(POISON_PILL);
+            boolean success = queue.offer(POISON_PILL, enqueueTimeoutMs, TimeUnit.MILLISECONDS);
+            if (!success) {
+                LOG.warn("Timeout waiting to insert poison pill into the iterator queue. The iterator might not be closed properly.");
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();  // restore interrupt status
             throw new IllegalStateException("Error inserting poison pill into the iterator queue", e);
@@ -207,7 +248,12 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
     @Override
     public void close() {
-        elasticQueryScanner.close();
+        if (isClosed.compareAndSet(false, true)) {
+            LOG.debug("Closing ElasticResultRowAsyncIterator for index {}", indexNode.getDefinition().getIndexPath());
+            elasticQueryScanner.close();
+        } else {
+            LOG.warn("ElasticResultRowAsyncIterator for index {} is already closed", indexNode.getDefinition().getIndexPath());
+        }
     }
 
     /**
@@ -230,6 +276,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
         // concurrent data structures to coordinate chunks loading
         private final AtomicBoolean anyDataLeft = new AtomicBoolean(false);
+        private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
         private int scannedRows;
         private int requests;
@@ -241,6 +288,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
         // Semaphore to guarantee only one in-flight request to Elastic
         private final Semaphore semaphore = new Semaphore(1);
+        volatile private CompletableFuture<SearchResponse<ObjectNode>> ongoingRequest;
 
         ElasticQueryScanner(List<ElasticResponseListener> listeners) {
             this.query = elasticRequestHandler.baseQuery();
@@ -290,18 +338,18 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             );
 
             LOG.trace("Kicking initial search for query {}", searchRequest);
-            semaphore.tryAcquire();
+            boolean permitAcquired = semaphore.tryAcquire();
+            if (!permitAcquired) {
+                LOG.warn("Semaphore not acquired for initial search, scanner is closing or still processing data from the previous scan");
+                throw new IllegalStateException("Scanner is closing or still processing data from the previous scan");
+            }
 
             searchStartTime = System.currentTimeMillis();
             requests++;
 
-            indexNode.getConnection().getAsyncClient()
+            ongoingRequest = indexNode.getConnection().getAsyncClient()
                     .search(searchRequest, ObjectNode.class)
-                    .whenComplete(((searchResponse, throwable) -> {
-                        if (throwable != null) {
-                            onFailure(throwable);
-                        } else onSuccess(searchResponse);
-                    }));
+                    .whenComplete((this::handleResponse));
             metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), true);
         }
 
@@ -312,16 +360,15 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
          * Some code in this method relies on structure that are not thread safe. We need to make sure
          * these data structures are modified before releasing the semaphore.
          */
-        public void onSuccess(SearchResponse<ObjectNode> searchResponse) {
+        private void onSuccess(@NotNull SearchResponse<ObjectNode> searchResponse) {
             long searchTotalTime = System.currentTimeMillis() - searchStartTime;
-
             List<Hit<ObjectNode>> searchHits = searchResponse.hits().hits();
             int hitsSize = searchHits != null ? searchHits.size() : 0;
             metricHandler.measureQuery(indexNode.getDefinition().getIndexPath(), hitsSize, searchResponse.took(),
                     searchTotalTime, searchResponse.timedOut());
             if (hitsSize > 0) {
                 long totalHits = searchResponse.hits().total().value();
-                LOG.debug("Processing search response that took {} to read {}/{} docs", searchResponse.took(), hitsSize, totalHits);
+                LOG.debug("Processing search response that took {} ms to read {}/{} docs", searchResponse.took(), hitsSize, totalHits);
                 lastHitSortValues = searchHits.get(hitsSize - 1).sort();
                 scannedRows += hitsSize;
                 if (searchResponse.hits().total().relation() == TotalHitsRelation.Eq) {
@@ -374,12 +421,12 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             }
         }
 
-        public void onFailure(Throwable t) {
+        private void onFailure(@NotNull Throwable t) {
             metricHandler.measureFailedQuery(indexNode.getDefinition().getIndexPath(),
                     System.currentTimeMillis() - searchStartTime);
             // Check in case errorRef is already set - this seems unlikely since we close the scanner once we hit failure.
             // But still, in case this do happen, we will log a warning.
-            Throwable error = errorRef.getAndSet(t);
+            Throwable error = queryErrorRef.getAndSet(t);
             if (error != null) {
                 LOG.warn("Error reference for async iterator was previously set to {}. It has now been reset to new error {}", error.getMessage(), t.getMessage());
             }
@@ -399,6 +446,10 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
          * Triggers a scan of a new chunk of the result set, if needed.
          */
         private void scan() {
+            if (isClosed.get()) {
+                LOG.debug("Scanner is closed, ignoring scan request");
+                return;
+            }
             if (semaphore.tryAcquire() && anyDataLeft.get()) {
                 final SearchRequest searchReq = SearchRequest.of(s -> s
                         .index(indexNode.getDefinition().getIndexAlias())
@@ -415,16 +466,42 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 LOG.trace("Kicking new search after query {}", searchReq);
 
                 searchStartTime = System.currentTimeMillis();
-                indexNode.getConnection().getAsyncClient()
+                ongoingRequest = indexNode.getConnection().getAsyncClient()
                         .search(searchReq, ObjectNode.class)
-                        .whenComplete(((searchResponse, throwable) -> {
-                            if (throwable != null) {
-                                onFailure(throwable);
-                            } else onSuccess(searchResponse);
-                        }));
+                        .whenComplete(this::handleResponse);
                 metricHandler.markQuery(indexNode.getDefinition().getIndexPath(), false);
             } else {
                 LOG.trace("Scanner is closing or still processing data from the previous scan");
+            }
+        }
+
+        private void handleResponse(SearchResponse<ObjectNode> searchResponse, Throwable throwable) {
+            ongoingRequest = null;
+            if (isClosed.get()) {
+                LOG.info("Scanner is closed, not processing search response");
+                return;
+            }
+            try {
+                if (throwable == null) {
+                    onSuccess(searchResponse);
+                } else {
+                    onFailure(throwable);
+                }
+            } catch (Throwable t) {
+                LOG.warn("Error processing search response", t);
+                Throwable prevValue = systemErrorRef.getAndSet(t);
+                if (prevValue != null) {
+                    LOG.warn("System error reference was previously set to {}. It has now been reset to new error {}", prevValue.getMessage(), t.getMessage());
+                }
+                try {
+                    if (!queue.offer(POISON_PILL, enqueueTimeoutMs, TimeUnit.MILLISECONDS)) {
+                        LOG.warn("Timeout waiting to enqueue poison pill after error processing search response. The iterator might not be closed properly.");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();  // restore interrupt status
+                    LOG.warn("Interrupted while trying to enqueue poison pill after error processing search response", e);
+                }
+                // This method should not throw exceptions, see the whenComplete() contract.
             }
         }
 
@@ -435,11 +512,26 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                     queryFetchSizes[requestId] : queryFetchSizes[queryFetchSizes.length - 1];
         }
 
-        // close all listeners
         private void close() {
-            semaphore.release();
-            for (ElasticResponseListener l : allListeners) {
-                l.endData();
+            if (isClosed.compareAndSet(false, true)) {
+                LOG.debug("Closing ElasticQueryScanner for index {}", indexNode.getDefinition().getIndexPath());
+                // Close listeners and release the semaphore
+                semaphore.release();
+                for (ElasticResponseListener l : allListeners) {
+                    try {
+                        l.endData();
+                    } catch (Exception ex) {
+                        LOG.warn("Error while closing listener {}", l.getClass().getName(), ex);
+                    }
+                }
+                allListeners.clear();
+
+                if (ongoingRequest != null) {
+                    ongoingRequest.cancel(true);
+                    ongoingRequest = null;
+                }
+            } else {
+                LOG.info("ElasticQueryScanner for index {} is already closed", indexNode.getDefinition().getIndexPath());
             }
         }
     }

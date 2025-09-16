@@ -55,8 +55,8 @@ import org.apache.jackrabbit.guava.common.util.concurrent.AbstractListeningExecu
 import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
-import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
+import org.apache.jackrabbit.oak.commons.internal.concurrent.DirectExecutor;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.jetbrains.annotations.NotNull;
@@ -241,7 +241,7 @@ public class AbstractDataStoreCacheTest {
             LOG.trace("After submitting to super....");
 
             futures.add(submit);
-            Futures.addCallback(submit, new TestFutureCallback<Integer>(afterLatch), MoreExecutors.directExecutor());
+            Futures.addCallback(submit, new TestFutureCallback<Integer>(afterLatch), DirectExecutor.INSTANCE);
             LOG.trace("Added callback");
 
             return submit;

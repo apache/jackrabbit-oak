@@ -23,18 +23,11 @@ import static java.util.Objects.requireNonNull;
 
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.FILE_NAME_FORMAT;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
 import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter.newBinaryReferencesIndexWriter;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.UUID;
-import java.util.zip.CRC32;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.conditions.Validate;
@@ -72,7 +65,7 @@ class TarWriter implements Closeable {
     /**
      * Graph of references between segments.
      */
-    private final Map<UUID, Set<UUID>> graph = new HashMap<>();
+    private final SegmentGraph graph = new SegmentGraph();
 
     private final SegmentArchiveManager archiveManager;
 
@@ -172,7 +165,7 @@ class TarWriter implements Closeable {
     }
 
     void addGraphEdge(UUID from, UUID to) {
-        graph.computeIfAbsent(from, k -> new HashSet<>()).add(to);
+        graph.addEdge(from, to);
     }
 
     /**
@@ -260,66 +253,7 @@ class TarWriter implements Closeable {
     }
 
     private void writeGraph() throws IOException {
-        int graphSize = 0;
-
-        // The following information are stored in the footer as meta-
-        // information about the entry.
-
-        // 4 bytes to store a magic number identifying this entry as containing
-        // references to binary values.
-        graphSize += 4;
-
-        // 4 bytes to store the CRC32 checksum of the data in this entry.
-        graphSize += 4;
-
-        // 4 bytes to store the length of this entry, without including the
-        // optional padding.
-        graphSize += 4;
-
-        // 4 bytes to store the number of entries in the graph map.
-        graphSize += 4;
-
-        // The following information are stored as part of the main content of
-        // this entry, after the optional padding.
-
-        for (Entry<UUID, Set<UUID>> entry : graph.entrySet()) {
-            // 16 bytes to store the key of the map.
-            graphSize += 16;
-
-            // 4 bytes for the number of entries in the adjacency list.
-            graphSize += 4;
-
-            // 16 bytes for every element in the adjacency list.
-            graphSize += 16 * entry.getValue().size();
-        }
-
-        Buffer buffer = Buffer.allocate(graphSize);
-
-        for (Entry<UUID, Set<UUID>> entry : graph.entrySet()) {
-            UUID from = entry.getKey();
-
-            buffer.putLong(from.getMostSignificantBits());
-            buffer.putLong(from.getLeastSignificantBits());
-
-            Set<UUID> adj = entry.getValue();
-
-            buffer.putInt(adj.size());
-
-            for (UUID to : adj) {
-                buffer.putLong(to.getMostSignificantBits());
-                buffer.putLong(to.getLeastSignificantBits());
-            }
-        }
-
-        CRC32 checksum = new CRC32();
-        checksum.update(buffer.array(), 0, buffer.position());
-
-        buffer.putInt((int) checksum.getValue());
-        buffer.putInt(graph.size());
-        buffer.putInt(graphSize);
-        buffer.putInt(GRAPH_MAGIC);
-
-        archive.writeGraph(buffer.array());
+        archive.writeGraph(graph.write());
     }
 
     synchronized long fileLength() {

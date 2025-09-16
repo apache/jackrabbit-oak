@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
 import org.bson.Document;
@@ -130,14 +130,14 @@ public class MongoFullGcNodeBinSumBsonSizeTest {
         
         // Verify query
         Bson query = queryCaptor.getValue();
-        Document queryDoc = Document.parse(query.toBsonDocument(Document.class, MongoClient.getDefaultCodecRegistry()).toJson());
+        Document queryDoc = Document.parse(query.toBsonDocument(Document.class, MongoClientSettings.getDefaultCodecRegistry()).toJson());
         assertEquals("versionGC", queryDoc.get("_id"));
         
         // Verify update
         Bson update = updateCaptor.getValue();
-        Document updateDoc = Document.parse(update.toBsonDocument(Document.class, MongoClient.getDefaultCodecRegistry()).toJson());
+        Document updateDoc = Document.parse(update.toBsonDocument(Document.class, MongoClientSettings.getDefaultCodecRegistry()).toJson());
         Document inc = updateDoc.get("$inc", Document.class);
-        assertEquals(Long.valueOf(50L), inc.getLong("fullGcRemovedTotalBsonSize"));
+        assertEquals(50, ((Number) inc.get("fullGcRemovedTotalBsonSize")).intValue());
     }
 
     @Test
@@ -220,14 +220,14 @@ public class MongoFullGcNodeBinSumBsonSizeTest {
         
         // Verify query
         Bson query = queryCaptor.getValue();
-        Document queryDoc = Document.parse(query.toBsonDocument(Document.class, MongoClient.getDefaultCodecRegistry()).toJson());
+        Document queryDoc = Document.parse(query.toBsonDocument(Document.class, MongoClientSettings.getDefaultCodecRegistry()).toJson());
         assertEquals("versionGC", queryDoc.get("_id"));
         
         // Verify update
         Bson update = updateCaptor.getValue();
-        Document updateDoc = Document.parse(update.toBsonDocument(Document.class, MongoClient.getDefaultCodecRegistry()).toJson());
+        Document updateDoc = Document.parse(update.toBsonDocument(Document.class, MongoClientSettings.getDefaultCodecRegistry()).toJson());
         Document inc = updateDoc.get("$inc", Document.class);
-        assertEquals(Long.valueOf(200L), inc.getLong("fullGcRemovedTotalBsonSize"));
+        assertEquals(200, ((Number) inc.get("fullGcRemovedTotalBsonSize")).intValue());
     }
 
     @Test
