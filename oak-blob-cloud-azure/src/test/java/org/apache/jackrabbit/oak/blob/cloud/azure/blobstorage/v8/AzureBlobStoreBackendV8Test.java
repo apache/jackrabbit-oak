@@ -16,28 +16,26 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
+package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.v8;
 
-import com.azure.core.util.BinaryData;
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.models.BlobItem;
-import com.azure.storage.blob.models.ListBlobsOptions;
-import com.azure.storage.blob.sas.BlobSasPermission;
-import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
@@ -47,6 +45,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.ADD;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.CREATE;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BlOB_META_DIR_NAME;
 import static org.junit.Assert.assertEquals;
@@ -57,7 +60,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNotNull;
 
-public class AzureBlobStoreBackendTest {
+public class AzureBlobStoreBackendV8Test {
     private static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
     private static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
     private static final String AZURE_CLIENT_ID = "AZURE_CLIENT_ID";
@@ -66,9 +69,11 @@ public class AzureBlobStoreBackendTest {
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
     private static final String CONTAINER_NAME = "blobstore";
+    private static final EnumSet<SharedAccessBlobPermissions> READ_ONLY = EnumSet.of(READ, LIST);
+    private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
     private static final Set<String> BLOBS = Set.of("blob1", "blob2");
 
-    private BlobContainerClient container;
+    private CloudBlobContainer container;
 
     @After
     public void tearDown() throws Exception {
@@ -79,16 +84,10 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void initWithSharedAccessSignature_readOnly() throws Exception {
-        BlobContainerClient container = createBlobContainer();
-        OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(7);
-        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true)
-                .setWritePermission(false)
-                .setListPermission(true);
+        CloudBlobContainer container = createBlobContainer();
+        String sasToken = container.generateSharedAccessSignature(policy(READ_ONLY), null);
 
-        BlobServiceSasSignatureValues sasValues = new BlobServiceSasSignatureValues(expiryTime, permissions);
-        String sasToken = container.generateSas(sasValues);
-
-        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
 
         azureBlobStoreBackend.init();
@@ -99,18 +98,10 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void initWithSharedAccessSignature_readWrite() throws Exception {
-        BlobContainerClient container = createBlobContainer();
-        OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(7);
-        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true)
-                .setListPermission(true)
-                .setAddPermission(true)
-                .setCreatePermission(true)
-                .setWritePermission(true);
+        CloudBlobContainer container = createBlobContainer();
+        String sasToken = container.generateSharedAccessSignature(policy(READ_WRITE), null);
 
-        BlobServiceSasSignatureValues sasValues = new BlobServiceSasSignatureValues(expiryTime, permissions);
-        String sasToken = container.generateSas(sasValues);
-
-        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
 
         azureBlobStoreBackend.init();
@@ -122,16 +113,11 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void connectWithSharedAccessSignatureURL_expired() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
+        SharedAccessBlobPolicy expiredPolicy = policy(READ_WRITE, yesterday());
+        String sasToken = container.generateSharedAccessSignature(expiredPolicy, null);
 
-        OffsetDateTime expiryTime = OffsetDateTime.now().minusDays(1);
-        BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true)
-                .setWritePermission(true);
-
-        BlobServiceSasSignatureValues sasValues = new BlobServiceSasSignatureValues(expiryTime, permissions);
-        String sasToken = container.generateSas(sasValues);
-
-        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
 
         azureBlobStoreBackend.init();
@@ -142,7 +128,7 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void initWithAccessKey() throws Exception {
-        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         azureBlobStoreBackend.setProperties(getConfigurationWithAccessKey());
 
         azureBlobStoreBackend.init();
@@ -153,7 +139,7 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void initWithConnectionURL() throws Exception {
-        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
 
         azureBlobStoreBackend.init();
@@ -164,7 +150,7 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void initSecret() throws Exception {
-        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
 
         azureBlobStoreBackend.init();
@@ -181,7 +167,7 @@ public class AzureBlobStoreBackendTest {
         assumeNotNull(getEnvironmentVariable(AZURE_CLIENT_ID));
         assumeNotNull(getEnvironmentVariable(AZURE_CLIENT_SECRET));
 
-        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         azureBlobStoreBackend.setProperties(getPropertiesWithServicePrincipals());
 
         azureBlobStoreBackend.init();
@@ -209,10 +195,10 @@ public class AzureBlobStoreBackendTest {
         return System.getenv(variableName);
     }
 
-    private BlobContainerClient createBlobContainer() throws Exception {
-        container = azurite.getContainer("blobstore", getConnectionString());
+    private CloudBlobContainer createBlobContainer() throws Exception {
+        container = azurite.getContainer("blobstore");
         for (String blob : BLOBS) {
-            container.getBlobClient(blob + ".txt").upload(BinaryData.fromString(blob), true);
+            container.getBlockBlobReference(blob + ".txt").uploadText(blob);
         }
         return container;
     }
@@ -261,11 +247,12 @@ public class AzureBlobStoreBackendTest {
         return policy(permissions, Instant.now().plus(Duration.ofDays(7)));
     }
 
-    private static void assertReadAccessGranted(AzureBlobStoreBackend backend, Set<String> expectedBlobs) throws Exception {
-        BlobContainerClient container = backend.getAzureContainer();
+    private static void assertReadAccessGranted(AzureBlobStoreBackendV8 backend, Set<String> expectedBlobs) throws Exception {
+        CloudBlobContainer container = backend.getAzureContainer();
         Set<String> actualBlobNames = StreamSupport.stream(container.listBlobs().spliterator(), false)
-                .map(blobItem -> container.getBlobClient(blobItem.getName()).getBlobName())
-                .filter(name -> !name.contains(AZURE_BlOB_META_DIR_NAME))
+                .map(blob -> blob.getUri().getPath())
+                .map(path -> path.substring(path.lastIndexOf('/') + 1))
+                .filter(path -> !path.isEmpty())
                 .collect(toSet());
 
         Set<String> expectedBlobNames = expectedBlobs.stream().map(name -> name + ".txt").collect(toSet());
@@ -275,8 +262,8 @@ public class AzureBlobStoreBackendTest {
         Set<String> actualBlobContent = actualBlobNames.stream()
                 .map(name -> {
                     try {
-                        return container.getBlobClient(name).getBlockBlobClient().downloadContent().toString();
-                    } catch (Exception e) {
+                        return container.getBlockBlobReference(name).downloadText();
+                    } catch (StorageException | IOException | URISyntaxException e) {
                         throw new RuntimeException("Error while reading blob " + name, e);
                     }
                 })
@@ -284,13 +271,12 @@ public class AzureBlobStoreBackendTest {
         assertEquals(expectedBlobs, actualBlobContent);
     }
 
-    private static void assertWriteAccessGranted(AzureBlobStoreBackend backend, String blob) throws Exception {
+    private static void assertWriteAccessGranted(AzureBlobStoreBackendV8 backend, String blob) throws Exception {
         backend.getAzureContainer()
-                .getBlobClient(blob + ".txt")
-                .upload(BinaryData.fromString(blob), true);
+                .getBlockBlobReference(blob + ".txt").uploadText(blob);
     }
 
-    private static void assertWriteAccessNotGranted(AzureBlobStoreBackend backend) {
+    private static void assertWriteAccessNotGranted(AzureBlobStoreBackendV8 backend) {
         try {
             assertWriteAccessGranted(backend, "test.txt");
             fail("Write access should not be granted, but writing to the storage succeeded.");
@@ -299,7 +285,7 @@ public class AzureBlobStoreBackendTest {
         }
     }
 
-    private static void assertReadAccessNotGranted(AzureBlobStoreBackend backend) {
+    private static void assertReadAccessNotGranted(AzureBlobStoreBackendV8 backend) {
         try {
             assertReadAccessGranted(backend, BLOBS);
             fail("Read access should not be granted, but reading from the storage succeeded.");
@@ -317,28 +303,28 @@ public class AzureBlobStoreBackendTest {
     }
 
     private static String getConnectionString() {
-        return Utils.getConnectionString(AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, azurite.getBlobEndpoint());
+        return UtilsV8.getConnectionString(AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, azurite.getBlobEndpoint());
     }
 
-    private static void assertReferenceSecret(AzureBlobStoreBackend AzureBlobStoreBackend)
-            throws DataStoreException {
+    private static void assertReferenceSecret(AzureBlobStoreBackendV8 azureBlobStoreBackend)
+            throws DataStoreException, IOException {
         // assert secret already created on init
-        DataRecord refRec = AzureBlobStoreBackend.getMetadataRecord("reference.key");
+        DataRecord refRec = azureBlobStoreBackend.getMetadataRecord("reference.key");
         assertNotNull("Reference data record null", refRec);
         assertTrue("reference key is empty", refRec.getLength() > 0);
     }
 
     @Test
-    public void testMetadataOperationsWithRenamedConstants() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+    public void testMetadataOperationsWithRenamedConstantsV8() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
         azureBlobStoreBackend.init();
 
-        // Test that metadata operations work correctly with the renamed constants
-        String testMetadataName = "test-metadata-record";
-        String testContent = "test metadata content";
+        // Test that metadata operations work correctly with the renamed constants in V8
+        String testMetadataName = "test-metadata-record-v8";
+        String testContent = "test metadata content for v8";
 
         // Add a metadata record
         azureBlobStoreBackend.addMetadataRecord(new ByteArrayInputStream(testContent.getBytes()), testMetadataName);
@@ -363,40 +349,43 @@ public class AzureBlobStoreBackendTest {
     }
 
     @Test
-    public void testMetadataDirectoryStructure() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+    public void testMetadataDirectoryStructureV8() throws Exception {
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 azureBlobStoreBackend = new AzureBlobStoreBackendV8();
         azureBlobStoreBackend.setProperties(getConfigurationWithConnectionString());
         azureBlobStoreBackend.init();
 
-        // Test that metadata records are stored in the correct directory structure
-        String testMetadataName = "directory-test-record";
-        String testContent = "directory test content";
+        // Test that metadata records are stored in the correct directory structure in V8
+        String testMetadataName = "directory-test-record-v8";
+        String testContent = "directory test content for v8";
 
         // Add a metadata record
         azureBlobStoreBackend.addMetadataRecord(new ByteArrayInputStream(testContent.getBytes()), testMetadataName);
 
         try {
-            // Verify the record is stored with the correct path prefix
-            BlobContainerClient azureContainer = azureBlobStoreBackend.getAzureContainer();
-            String expectedBlobName = AZURE_BlOB_META_DIR_NAME + "/" + testMetadataName;
+            // Verify the record is stored with the correct path prefix using V8 API
+            CloudBlobContainer azureContainer = azureBlobStoreBackend.getAzureContainer();
 
-            BlobClient blobClient = azureContainer.getBlobClient(expectedBlobName);
-            assertTrue("Blob should exist at expected path", blobClient.exists());
+            // In V8, metadata is stored in a directory structure
+            com.microsoft.azure.storage.blob.CloudBlobDirectory metaDir =
+                azureContainer.getDirectoryReference(AZURE_BlOB_META_DIR_NAME);
+            com.microsoft.azure.storage.blob.CloudBlockBlob blob = metaDir.getBlockBlobReference(testMetadataName);
 
-            // Verify the blob is in the META directory
-            ListBlobsOptions listOptions = new ListBlobsOptions();
-            listOptions.setPrefix(AZURE_BlOB_META_DIR_NAME);
+            assertTrue("Blob should exist at expected path in V8", blob.exists());
 
+            // Verify the blob is in the META directory by listing
             boolean foundBlob = false;
-            for (BlobItem blobItem : azureContainer.listBlobs(listOptions, null)) {
-                if (blobItem.getName().equals(expectedBlobName)) {
-                    foundBlob = true;
-                    break;
+            for (com.microsoft.azure.storage.blob.ListBlobItem item : metaDir.listBlobs()) {
+                if (item instanceof com.microsoft.azure.storage.blob.CloudBlob) {
+                    com.microsoft.azure.storage.blob.CloudBlob cloudBlob = (com.microsoft.azure.storage.blob.CloudBlob) item;
+                    if (cloudBlob.getName().endsWith(testMetadataName)) {
+                        foundBlob = true;
+                        break;
+                    }
                 }
             }
-            assertTrue("Blob should be found in META directory listing", foundBlob);
+            assertTrue("Blob should be found in META directory listing in V8", foundBlob);
 
         } finally {
             // Clean up
@@ -406,7 +395,7 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testInitWithNullProperties() throws Exception {
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         // Should not throw exception when properties is null - should use default config
         try {
             backend.init();
@@ -419,7 +408,7 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testInitWithInvalidConnectionString() throws Exception {
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         Properties props = new Properties();
         props.setProperty(AzureConstants.AZURE_CONNECTION_STRING, "invalid-connection-string");
         props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, "test-container");
@@ -438,10 +427,10 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testConcurrentRequestCountValidation() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
         // Test with too low concurrent request count
-        AzureBlobStoreBackend backend1 = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend1 = new AzureBlobStoreBackendV8();
         Properties props1 = getConfigurationWithConnectionString();
         props1.setProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "1"); // Too low
         backend1.setProperties(props1);
@@ -449,7 +438,7 @@ public class AzureBlobStoreBackendTest {
         // Should reset to default minimum
 
         // Test with too high concurrent request count
-        AzureBlobStoreBackend backend2 = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend2 = new AzureBlobStoreBackendV8();
         Properties props2 = getConfigurationWithConnectionString();
         props2.setProperty(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION, "100"); // Too high
         backend2.setProperties(props2);
@@ -459,9 +448,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testReadNonExistentBlob() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -475,9 +464,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testGetRecordNonExistent() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -491,9 +480,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testDeleteNonExistentRecord() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -504,9 +493,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testNullParameterValidation() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -553,9 +542,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testGetMetadataRecordNonExistent() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -565,9 +554,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testDeleteAllMetadataRecords() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -596,9 +585,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testDeleteAllMetadataRecordsWithNullPrefix() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -612,9 +601,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testGetAllMetadataRecordsWithNullPrefix() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -628,9 +617,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testCloseBackend() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -640,9 +629,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testWriteWithNullFile() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -656,9 +645,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testWriteWithNullIdentifier() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -675,9 +664,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testAddMetadataRecordWithFile() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -709,9 +698,9 @@ public class AzureBlobStoreBackendTest {
 
     @Test
     public void testAddMetadataRecordWithNullFile() throws Exception {
-        BlobContainerClient container = createBlobContainer();
+        CloudBlobContainer container = createBlobContainer();
 
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
+        AzureBlobStoreBackendV8 backend = new AzureBlobStoreBackendV8();
         backend.setProperties(getConfigurationWithConnectionString());
         backend.init();
 
@@ -721,31 +710,5 @@ public class AzureBlobStoreBackendTest {
         } catch (NullPointerException e) {
             assertEquals("input", e.getMessage());
         }
-    }
-
-    @Test
-    public void testGetAllIdentifiers() throws Exception {
-        BlobContainerClient container = createBlobContainer();
-
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
-        backend.setProperties(getConfigurationWithConnectionString());
-        backend.init();
-
-        // Should not throw exception even with empty container
-        java.util.Iterator<org.apache.jackrabbit.core.data.DataIdentifier> identifiers = backend.getAllIdentifiers();
-        assertNotNull("Identifiers iterator should not be null", identifiers);
-    }
-
-    @Test
-    public void testGetAllRecords() throws Exception {
-        BlobContainerClient container = createBlobContainer();
-
-        AzureBlobStoreBackend backend = new AzureBlobStoreBackend();
-        backend.setProperties(getConfigurationWithConnectionString());
-        backend.init();
-
-        // Should not throw exception even with empty container
-        java.util.Iterator<DataRecord> records = backend.getAllRecords();
-        assertNotNull("Records iterator should not be null", records);
     }
 }
