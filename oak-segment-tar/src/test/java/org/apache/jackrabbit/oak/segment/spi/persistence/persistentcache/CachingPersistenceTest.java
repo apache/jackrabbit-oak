@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -306,7 +307,6 @@ public class CachingPersistenceTest {
 
     @Test
     public void prefetchDisabledDoesNotScheduleOrWrite() throws Exception {
-        System.setProperty("oak.segment.cache.prefetch.enabled", "false");
 
         File dir = folder.newFolder();
         FileStore fs = fileStoreBuilder(dir).build();
@@ -369,7 +369,14 @@ public class CachingPersistenceTest {
             // Seed root; with prefetch disabled, reading root should not write r1 or r2
             cache.writeSegment(root.getMostSignificantBits(), root.getLeastSignificantBits(), rootBuffer);
 
+            String prev = System.getProperty("oak.segment.cache.prefetch.enabled");
+            System.setProperty("oak.segment.cache.prefetch.enabled", "false");
             CachingSegmentArchiveReader reader = new CachingSegmentArchiveReader(cache, archiveReader);
+            if (prev != null) {
+                System.setProperty("oak.segment.cache.prefetch.enabled", prev);
+            } else {
+                System.clearProperty("oak.segment.cache.prefetch.enabled");
+            }
 
             Buffer got = reader.readSegment(root.getMostSignificantBits(), root.getLeastSignificantBits());
             assertNotNull(got);
