@@ -34,12 +34,14 @@ import javax.jcr.Value;
 import javax.jcr.observation.Event;
 
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.collections.IterableUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
@@ -69,8 +71,8 @@ public class EventFactory {
     private final boolean external;
 
     EventFactory(@NotNull NamePathMapper mapper,
-                 @NotNull BlobAccessProvider blobAccessProvider,
-                 @NotNull CommitInfo commitInfo) {
+            @NotNull BlobAccessProvider blobAccessProvider,
+            @NotNull CommitInfo commitInfo) {
         this.mapper = mapper;
         this.valueFactory = new PartialValueFactory(mapper, blobAccessProvider);
         if (!commitInfo.isExternal()) {
@@ -110,7 +112,7 @@ public class EventFactory {
                 // for binary values just the binary information is logged
                 Map<Object, Object> builder = new HashMap<>();
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
-                builder.put("afterValue", "<binary>");
+                builder.put("afterValue", getSimpleBinaryReference(after));
                 return Collections.unmodifiableMap(builder);
             }
         };
@@ -141,8 +143,8 @@ public class EventFactory {
                 // for binary values just the binary information is logged
                 Map<Object, Object> builder = new HashMap<>();
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
-                builder.put("beforeValue", "<binary>");
-                builder.put("afterValue", "<binary>");
+                builder.put("beforeValue", getSimpleBinaryReference(before));
+                builder.put("afterValue", getSimpleBinaryReference(after));
                 return Collections.unmodifiableMap(builder);
             }
         };
@@ -171,7 +173,7 @@ public class EventFactory {
                 // for binary values just the binary information is logged
                 Map<Object, Object> builder = new HashMap<>();
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
-                builder.put("beforeValue", "<binary>");
+                builder.put("beforeValue", getSimpleBinaryReference(before));
                 return Collections.unmodifiableMap(builder);
             }
         };
@@ -343,7 +345,7 @@ public class EventFactory {
         public Map<?,?> getInfo_ToString() {
             return getInfo();
         }
-        
+
         @Override
         public boolean equals(Object object) {
             if (this == object) {
@@ -384,6 +386,19 @@ public class EventFactory {
                     .toString();
         }
 
+        /**
+         * Return a brief string which references a binary.
+         * @param property a binary property
+         * @return a string representation 
+         */
+        protected @NotNull String getSimpleBinaryReference(@NotNull PropertyState property) {
+            // property must be a binary property
+            if (property.getType().equals(Type.BINARY)) {
+                Blob b = property.getValue(Type.BINARY);
+                return String.format("Binary (reference=%s, length=%s bytes)", b.getReference(), b.length());
+            }
+            return "Not a binary, but " + property.getClass(); // should never happen
+        }
     }
 
 }
