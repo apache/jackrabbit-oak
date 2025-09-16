@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.segment.data.SegmentData;
 import org.apache.jackrabbit.oak.segment.file.tar.SegmentGraph;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
@@ -29,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -36,7 +38,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class CachingSegmentArchiveReader implements SegmentArchiveReader {
 
@@ -79,25 +80,22 @@ public class CachingSegmentArchiveReader implements SegmentArchiveReader {
         return buf;
     }
 
-    /**
-     * Extract direct references from a segment buffer. Subclasses may override for testing.
-     */
-    private java.util.List<java.util.UUID> extractReferences(Buffer buffer) {
-        var data = org.apache.jackrabbit.oak.segment.data.SegmentData.newSegmentData(buffer);
+    private List<UUID> extractReferences(Buffer buffer) {
+        var data = SegmentData.newSegmentData(buffer);
         int refs = data.getSegmentReferencesCount();
-        java.util.ArrayList<java.util.UUID> out = new java.util.ArrayList<>(refs);
+        ArrayList<UUID> out = new ArrayList<>(refs);
         for (int i = 0; i < refs; i++) {
-            out.add(new java.util.UUID(data.getSegmentReferenceMsb(i), data.getSegmentReferenceLsb(i)));
+            out.add(new UUID(data.getSegmentReferenceMsb(i), data.getSegmentReferenceLsb(i)));
         }
         return out;
     }
 
     private void schedulePrefetch(long msb, long lsb, Buffer buffer) {
         try {
-            java.util.List<java.util.UUID> refs = extractReferences(buffer);
+            List<UUID> refs = extractReferences(buffer);
             int limit = Math.min(refs.size(), prefetchMaxRefs);
             for (int i = 0; i < limit; i++) {
-                final java.util.UUID ref = refs.get(i);
+                final UUID ref = refs.get(i);
                 final long rMsb = ref.getMostSignificantBits();
                 final long rLsb = ref.getLeastSignificantBits();
 
@@ -123,9 +121,7 @@ public class CachingSegmentArchiveReader implements SegmentArchiveReader {
                                 }
                             }
                         } catch (Exception e) {
-                            if (LOG.isDebugEnabled()) {
-                                LOG.debug("Prefetch failed for segment {}", new java.util.UUID(rMsb, rLsb), e);
-                            }
+                            LOG.debug("Prefetch failed for segment {}", new java.util.UUID(rMsb, rLsb), e);
                         } finally {
                             inFlightPrefetch.remove(ref);
                         }
@@ -133,15 +129,12 @@ public class CachingSegmentArchiveReader implements SegmentArchiveReader {
                 } catch (Throwable t) {
                     // If task submission failed (e.g., executor shutting down), undo the registration
                     inFlightPrefetch.remove(ref);
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Prefetch submission failed for segment {}", new java.util.UUID(rMsb, rLsb), t);
-                    }
+                    LOG.debug("Prefetch submission failed for segment {}", new java.util.UUID(rMsb, rLsb), t);
+
                 }
             }
         } catch (Throwable t) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Prefetch scheduling failed for segment {}", new java.util.UUID(msb, lsb), t);
-            }
+            LOG.debug("Prefetch scheduling failed for segment {}", new java.util.UUID(msb, lsb), t);
         }
     }
 

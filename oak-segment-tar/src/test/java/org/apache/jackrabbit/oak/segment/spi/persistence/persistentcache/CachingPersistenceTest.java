@@ -131,8 +131,6 @@ public class CachingPersistenceTest {
 
     @Test
     public void prefetchOnCacheHitLoadsReferences() throws Exception {
-
-        // Create a tar-backed FileStore and build real segments with references
         File dir = getFileStoreFolder();
         FileStore fs = fileStoreBuilder(dir).build();
         SegmentArchiveReader archiveReader = null;
@@ -142,8 +140,10 @@ public class CachingPersistenceTest {
             SegmentReader sr = new CachingSegmentReader(() -> writer, null, 16, 2, NoopStats.INSTANCE);
 
             // Two referenced nodes in separate segments
-            RecordId a1 = writer.writeNode(EmptyNodeState.EMPTY_NODE); writer.flush();
-            RecordId a2 = writer.writeNode(EmptyNodeState.EMPTY_NODE); writer.flush();
+            RecordId a1 = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            writer.flush();
+            RecordId a2 = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            writer.flush();
 
             // Root node referencing both
             NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
@@ -194,10 +194,9 @@ public class CachingPersistenceTest {
             // seed root
             cache.writeSegment(root.getMostSignificantBits(), root.getLeastSignificantBits(), rootBuffer);
 
-            // Reader under test, delegate reads from real tar archive
             CachingSegmentArchiveReader reader = new CachingSegmentArchiveReader(cache, archiveReader);
 
-            // Act: read root. Since it's a cache hit, prefetch should be scheduled for r1 and r2.
+            // Read root. Since it's a cache hit, prefetch should be scheduled for r1 and r2.
             Buffer got = reader.readSegment(root.getMostSignificantBits(), root.getLeastSignificantBits());
             assertNotNull(got);
 
@@ -217,9 +216,7 @@ public class CachingPersistenceTest {
 
 
     @Test
-    public void skipAlreadyCachedReferencesAreNotPrefetched() throws Exception {
-
-        // Create a tar-backed FileStore and build segments with references
+    public void alreadyCachedReferencesAreNotPrefetched() throws Exception {
         File dir = getFileStoreFolder();
         FileStore fs = fileStoreBuilder(dir).build();
         try {
@@ -241,13 +238,10 @@ public class CachingPersistenceTest {
             UUID r2 = a2.getSegmentId().asUUID();
             UUID root = rootRec.getSegmentId().asUUID();
 
-
-            // Close the FileStore to ensure tar index is written and readable
             fs.close();
             fs = null;
 
 
-            // Open the tar archive and fetch buffers
             TarPersistence tar = new TarPersistence(dir);
             SegmentArchiveManager am = tar.createArchiveManager(false, false,
                     new IOMonitorAdapter(),
@@ -290,21 +284,17 @@ public class CachingPersistenceTest {
             cache.writeSegment(root.getMostSignificantBits(), root.getLeastSignificantBits(), rootBuffer);
             cache.writeSegment(r1.getMostSignificantBits(), r1.getLeastSignificantBits(), buf1);
 
-            // Reader under test, delegate reads from real tar archive
             CachingSegmentArchiveReader reader = new CachingSegmentArchiveReader(cache, archiveReader);
 
-            // Act
             Buffer got = reader.readSegment(root.getMostSignificantBits(), root.getLeastSignificantBits());
             assertNotNull(got);
 
             boolean completed = latch.await(5, TimeUnit.SECONDS);
             assertTrue("Prefetch for non-cached ref did not complete in time", completed);
 
-            // Assert r1 was not written again (still exactly the initial seed), r2 was written once by prefetch
             assertTrue(cache.containsSegment(r1.getMostSignificantBits(), r1.getLeastSignificantBits()));
             assertTrue(cache.containsSegment(r2.getMostSignificantBits(), r2.getLeastSignificantBits()));
-            // r1 write count includes the pre-seed; ensure no additional write happened via prefetch.
-            // Pre-seed performed exactly 1 write for r1, so count should remain 1.
+
             assertEquals(1, r1Writes.get());
             assertEquals(1, r2Writes.get());
 
@@ -325,8 +315,10 @@ public class CachingPersistenceTest {
             SegmentWriter writer = DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder("t").build(fs);
             SegmentReader sr = new CachingSegmentReader(() -> writer, null, 16, 2, NoopStats.INSTANCE);
 
-            RecordId a1 = writer.writeNode(EmptyNodeState.EMPTY_NODE); writer.flush();
-            RecordId a2 = writer.writeNode(EmptyNodeState.EMPTY_NODE); writer.flush();
+            RecordId a1 = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            writer.flush();
+            RecordId a2 = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            writer.flush();
 
             NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
             builder.setChildNode("ref1", sr.readNode(a1));
@@ -368,13 +360,8 @@ public class CachingPersistenceTest {
                     boolean isR1 = (msb == r1.getMostSignificantBits() && lsb == r1.getLeastSignificantBits());
                     boolean isR2 = (msb == r2.getMostSignificantBits() && lsb == r2.getLeastSignificantBits());
                     super.writeSegment(msb, lsb, buffer);
-                    if (isR1) {
-                        r1Writes.incrementAndGet();
-                    }
-                    if (isR2) {
-                        if (r2Writes.incrementAndGet() == 1) {
-                            latch.countDown();
-                        }
+                    if ((isR1 || isR2) && latch.getCount() > 0) {
+                        latch.countDown();
                     }
                 }
             };
@@ -403,7 +390,6 @@ public class CachingPersistenceTest {
 
     @Test
     public void concurrentCacheHitsDeduplicatePrefetchTasks() throws Exception {
-        // Build segments: root references a1 only, to focus on a single target UUID
         File dir = getFileStoreFolder();
         FileStore fs = fileStoreBuilder(dir).build();
         SegmentArchiveReader archiveReader = null;
@@ -411,7 +397,8 @@ public class CachingPersistenceTest {
             SegmentWriter writer = DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder("t").build(fs);
             SegmentReader sr = new CachingSegmentReader(() -> writer, null, 16, 2, NoopStats.INSTANCE);
 
-            RecordId a1 = writer.writeNode(EmptyNodeState.EMPTY_NODE); writer.flush();
+            RecordId a1 = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            writer.flush();
 
             NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
             builder.setChildNode("ref1", sr.readNode(a1));
@@ -506,7 +493,8 @@ public class CachingPersistenceTest {
             SegmentWriter writer = DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder("t").build(fs);
             SegmentReader sr = new CachingSegmentReader(() -> writer, null, 16, 2, NoopStats.INSTANCE);
 
-            RecordId a1 = writer.writeNode(EmptyNodeState.EMPTY_NODE); writer.flush();
+            RecordId a1 = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+            writer.flush();
 
             NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
             builder.setChildNode("ref1", sr.readNode(a1));
