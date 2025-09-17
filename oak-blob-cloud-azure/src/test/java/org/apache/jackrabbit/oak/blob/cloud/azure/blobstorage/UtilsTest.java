@@ -220,10 +220,19 @@ public class UtilsTest {
         properties.setProperty(AzureConstants.PROXY_PORT, "8080");
 
         com.azure.core.http.ProxyOptions proxyOptions = Utils.computeProxyOptions(properties);
-        // Due to bug in Utils.computeProxyOptions logic (line 80), this returns null
-        // The condition should be: !Strings.isNullOrEmpty(proxyHost) && !Strings.isNullOrEmpty(proxyPort)
-        // But it's: !Strings.isNullOrEmpty(proxyHost) && Strings.isNullOrEmpty(proxyPort)
-        assertNull("Proxy options should be null due to bug in logic", proxyOptions);
+        assertNotNull("Proxy options should not be null", proxyOptions);
+        assertEquals("Proxy host should match", "proxy.example.com", proxyOptions.getAddress().getHostName());
+        assertEquals("Proxy port should match", 8080, proxyOptions.getAddress().getPort());
+    }
+
+    @Test(expected = NumberFormatException.class)
+    public void testComputeProxyOptionsWithInvalidPort() {
+        Properties properties = new Properties();
+        properties.setProperty(AzureConstants.PROXY_HOST, "proxy.example.com");
+        properties.setProperty(AzureConstants.PROXY_PORT, "invalid");
+
+        com.azure.core.http.ProxyOptions proxyOptions = Utils.computeProxyOptions(properties);
+        fail("Expected NumberFormatException when port is invalid");
     }
 
     @Test
@@ -231,13 +240,8 @@ public class UtilsTest {
         Properties properties = new Properties();
         properties.setProperty(AzureConstants.PROXY_HOST, "proxy.example.com");
 
-        try {
-            com.azure.core.http.ProxyOptions proxyOptions = Utils.computeProxyOptions(properties);
-            fail("Expected NumberFormatException when port is null");
-        } catch (NumberFormatException e) {
-            // Expected - Integer.parseInt(null) throws NumberFormatException
-            assertTrue("Should contain parse error", e.getMessage().contains("Cannot parse null string"));
-        }
+        com.azure.core.http.ProxyOptions proxyOptions = Utils.computeProxyOptions(properties);
+        assertNull("Proxy options should be null when port is missing", proxyOptions);
     }
 
     @Test

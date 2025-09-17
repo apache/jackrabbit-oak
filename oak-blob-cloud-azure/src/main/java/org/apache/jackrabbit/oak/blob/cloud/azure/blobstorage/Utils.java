@@ -77,7 +77,7 @@ public final class Utils {
         String proxyHost = properties.getProperty(AzureConstants.PROXY_HOST);
         String proxyPort = properties.getProperty(AzureConstants.PROXY_PORT);
 
-        if(!Strings.isNullOrEmpty(proxyHost) && Strings.isNullOrEmpty(proxyPort)) {
+        if(!(Strings.isNullOrEmpty(proxyHost) || Strings.isNullOrEmpty(proxyPort))) {
             return new ProxyOptions(ProxyOptions.Type.HTTP,
                     new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort)));
         }
