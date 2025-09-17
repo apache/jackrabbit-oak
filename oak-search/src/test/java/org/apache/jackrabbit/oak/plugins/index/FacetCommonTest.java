@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS;
@@ -53,6 +54,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 public abstract class FacetCommonTest extends AbstractJcrTest {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJcrTest.class);
@@ -329,6 +331,46 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         facetsWithMultiValueProperty(PROP_SECURE_FACETS_VALUE_STATISTICAL);
     }
 
+    @Test
+    public void inaccessibleFacetsNotCounted() throws Exception {
+        Node node = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
+        Node doc1 = createDocumentNode(node, "doc1", "apple");
+        createDocumentNode(node, "doc2", "apple");
+        createDocumentNode(node, "doc3", "banana");
+
+        deny(doc1);
+        adminSession.save();
+
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals(2, facets.size());
+            assertEquals(Integer.valueOf(1), facets.get("apple"));
+            assertEquals(Integer.valueOf(1), facets.get("banana"));
+        });
+    }
+
+    @Test
+    public void inaccessibleFacetOutsideTopNAreIgnored() throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
+        facetConfig.setProperty(PROP_FACETS_TOP_CHILDREN, 1);
+        adminSession.save();
+        
+        Node node = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
+        createDocumentNode(node, "doc1", "apple");
+        createDocumentNode(node, "doc2", "apple");
+        Node doc3 = createDocumentNode(node, "doc3", "banana");
+
+        deny(doc3);
+        adminSession.save();
+
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets();
+            assertEquals(1, facets.size());
+            assertEquals(Integer.valueOf(2), facets.get("apple"));
+            assertFalse(facets.containsKey("banana"));
+        });
+    }
+
     public void facetsWithMultiValueProperty(String facetType) throws Exception {
         Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, facetType);
@@ -395,6 +437,13 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
             throw new RuntimeException(e);
         }
         return queryResult;
+    }
+
+    private Node createDocumentNode(Node parent, String docName, String fooValue) throws RepositoryException {
+        Node doc = parent.addNode(docName);
+        doc.setProperty("cons", "val");
+        doc.setProperty("foo", fooValue);
+        return doc;
     }
 
     protected void assertEventually(Runnable r) {
