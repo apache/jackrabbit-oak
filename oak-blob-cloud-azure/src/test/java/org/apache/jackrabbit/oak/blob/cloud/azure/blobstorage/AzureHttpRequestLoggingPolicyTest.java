@@ -43,16 +43,16 @@ public class AzureHttpRequestLoggingPolicyTest {
     @Before
     public void setUp() {
         // Save the original system property value
-        originalVerboseProperty = System.getProperty("blob.azure.http.verbose.enabled");
+        originalVerboseProperty = System.getProperty("blob.azure.v12.http.verbose.enabled");
     }
 
     @After
     public void tearDown() {
         // Restore the original system property value
         if (originalVerboseProperty != null) {
-            System.setProperty("blob.azure.http.verbose.enabled", originalVerboseProperty);
+            System.setProperty("blob.azure.v12.http.verbose.enabled", originalVerboseProperty);
         } else {
-            System.clearProperty("blob.azure.http.verbose.enabled");
+            System.clearProperty("blob.azure.v12.http.verbose.enabled");
         }
     }
 
@@ -65,7 +65,7 @@ public class AzureHttpRequestLoggingPolicyTest {
     @Test
     public void testProcessRequestWithVerboseDisabled() throws MalformedURLException {
         // Ensure verbose logging is disabled
-        System.clearProperty("blob.azure.http.verbose.enabled");
+        System.clearProperty("blob.azure.v12.http.verbose.enabled");
 
         AzureHttpRequestLoggingPolicy policy = new AzureHttpRequestLoggingPolicy();
 
@@ -99,7 +99,7 @@ public class AzureHttpRequestLoggingPolicyTest {
     @Test
     public void testProcessRequestWithVerboseEnabled() throws MalformedURLException {
         // Enable verbose logging
-        System.setProperty("blob.azure.http.verbose.enabled", "true");
+        System.setProperty("blob.azure.v12.http.verbose.enabled", "true");
 
         AzureHttpRequestLoggingPolicy policy = new AzureHttpRequestLoggingPolicy();
 
@@ -134,7 +134,7 @@ public class AzureHttpRequestLoggingPolicyTest {
 
     @Test
     public void testProcessRequestWithDifferentHttpMethods() throws MalformedURLException {
-        System.setProperty("blob.azure.http.verbose.enabled", "true");
+        System.setProperty("blob.azure.v12.http.verbose.enabled", "true");
 
         AzureHttpRequestLoggingPolicy policy = new AzureHttpRequestLoggingPolicy();
 
@@ -169,7 +169,7 @@ public class AzureHttpRequestLoggingPolicyTest {
 
     @Test
     public void testProcessRequestWithDifferentStatusCodes() throws MalformedURLException {
-        System.setProperty("blob.azure.http.verbose.enabled", "true");
+        System.setProperty("blob.azure.v12.http.verbose.enabled", "true");
 
         AzureHttpRequestLoggingPolicy policy = new AzureHttpRequestLoggingPolicy();
 
@@ -204,7 +204,7 @@ public class AzureHttpRequestLoggingPolicyTest {
 
     @Test
     public void testProcessRequestWithErrorInNextPolicy() throws MalformedURLException {
-        System.setProperty("blob.azure.http.verbose.enabled", "true");
+        System.setProperty("blob.azure.v12.http.verbose.enabled", "true");
 
         AzureHttpRequestLoggingPolicy policy = new AzureHttpRequestLoggingPolicy();
 
@@ -239,7 +239,7 @@ public class AzureHttpRequestLoggingPolicyTest {
     @Test
     public void testProcessRequestWithVerbosePropertySetToFalse() throws MalformedURLException {
         // Explicitly set verbose logging to false
-        System.setProperty("blob.azure.http.verbose.enabled", "false");
+        System.setProperty("blob.azure.v12.http.verbose.enabled", "false");
 
         AzureHttpRequestLoggingPolicy policy = new AzureHttpRequestLoggingPolicy();
 
@@ -272,7 +272,7 @@ public class AzureHttpRequestLoggingPolicyTest {
 
     @Test
     public void testProcessRequestWithComplexUrl() throws MalformedURLException {
-        System.setProperty("blob.azure.http.verbose.enabled", "true");
+        System.setProperty("blob.azure.v12.http.verbose.enabled", "true");
 
         AzureHttpRequestLoggingPolicy policy = new AzureHttpRequestLoggingPolicy();
 
@@ -349,7 +349,7 @@ public class AzureHttpRequestLoggingPolicyTest {
 
     @Test
     public void testProcessRequestWithSlowResponse() throws MalformedURLException {
-        System.setProperty("blob.azure.http.verbose.enabled", "true");
+        System.setProperty("blob.azure.v12.http.verbose.enabled", "true");
 
         AzureHttpRequestLoggingPolicy policy = new AzureHttpRequestLoggingPolicy();
 
@@ -382,7 +382,7 @@ public class AzureHttpRequestLoggingPolicyTest {
         String[] testValues = {"true", "TRUE", "True", "false", "FALSE", "False", "invalid", ""};
 
         for (String value : testValues) {
-            System.setProperty("blob.azure.http.verbose.enabled", value);
+            System.setProperty("blob.azure.v12.http.verbose.enabled", value);
             AzureHttpRequestLoggingPolicy policy = new AzureHttpRequestLoggingPolicy();
             assertNotNull("Policy should be created regardless of system property value", policy);
         }
