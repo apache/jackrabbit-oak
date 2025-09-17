@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.84.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.86.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.84.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.86.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,73 +15,69 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.84.0
+Changes in Oak 1.86.0
 ---------------------
+
+Sub-task
+
+    [OAK-11856] - oak-run-commons: remove usage of "old" Oak bloom filter, use oak-commons instead
+    [OAK-11858] - Remove remains of Oak bloom filter in oak-run-commons
+    [OAK-11881] - Remove usage of Guava Maps.map()
+    [OAK-11883] - Remove usage of Guava collect.Range
+    [OAK-11885] - Remove usage of Guava collect.ListMultiMap
+    [OAK-11887] - oak-it: exclude *db artefacts
+    [OAK-11888] - Remove usage of Guava ThreadBuilderFactory
 
 Technical task
 
-    [OAK-11748] - Remove usage of Guava Escapers
-    [OAK-11753] - Remove usage of Guava base.CaseFormat
-    [OAK-11771] - Remove usage of Guava's AtomicDouble
-    [OAK-11774] - Remove usage of Guava's Splitter
-    [OAK-11785] - Remove usage of Guava preconditions.checkPositionIndex
-    [OAK-11786] - Remove usage of Guava base.Strings
-    [OAK-11789] - Remove usage of Guava collect.Lists.newArrayList in segment-azure
-    [OAK-11793] - Remove usage of Guava common.hash.HashCode
-    [OAK-11801] - Remove usage of Guava FluentIterable
-    [OAK-11843] - Improve diagnostics for NPE in SecureNodeBuilder
+    [OAK-11656] - Remove usage of Guava Suppliers.memoize
+    [OAK-11832] - Remove usage of Guava's Tree Traverser
+    [OAK-11833] - Remove usage of Guava's Traverser
+    [OAK-11836] - Remove usage of Guava's AbstractIterator
+    [OAK-11842] - Copy Bloom Filter implementation from oak-run-commons to oak-commons for re-use
+    [OAK-11852] - Use new Bloom filter implementation in document store
+    [OAK-11855] - update oak-blob to use oak-commons bloom filter
+    [OAK-11869] - Remove usage of Guava's Hashing
+    [OAK-11886] - Remove usage of Guava's Futures.immediateFuture()
+    [OAK-11889] - Remove usage of Guava's Futures.successfulAsList()
+    [OAK-11890] - Remove usage of Guava's Futures.allAsList [Part 1]
+    [OAK-11893] - Remove usage of Guava's ListenableFuture [Part 1]
+    [OAK-11896] - Remove usage of Guava's SettableFuture [Part 1] [Test cases only]
+    [OAK-11903] - Remove usage of Guava's SettableFuture [Part 2] [Prod + Test]
+    [OAK-11906] - Remove usage of Guava's ListenableFutureTask [Part 1] [Test cases]
+    [OAK-11907] - Remove usage of Guava's MoreExecutors.directExecutor()
+    [OAK-11909] - Remove usage of Guava's MoreExecutors.newDirectExecutorService [Part 1] [Test cases]
 
 Bug
 
-    [OAK-11299] - Missing Segments With Oak Run Segment Copy
-    [OAK-11783] - Import fails for content not using namespace prefixes
-    [OAK-11787] - org.apache.jackrabbit.oak.plugins.index.elastic.ElasticRegexPropertyIndexTest.regexPropertyWithoutFlattened failure
-    [OAK-11794] - remove the unused commons-fileupload dependency from IT tests
-    [OAK-11807] - Duplicate header after failed SegmentBufferWriter.flush()
-    [OAK-11812] - Failure in running S3DataStoreServiceTest unit case
-    [OAK-11818] - Update Mockito dependency to 5.18.0
-    [OAK-11824] - oak-lucene: custom analyzer cannot load indirect filters
-    [OAK-11838] - DocumentNodeStoreService.registerNodeStore() ignores Mongo settings
-    [OAK-11839] - Implement oak background thread that reads throttle flag from settings collection
-    [OAK-11847] - AzureJournalFile fails to rotate journal
-
-New Feature
-
-    [OAK-11498] - Expose bound principals via JackrabbitSession
+    [OAK-9586] - SysViewImportHandler does not support expanded names in sv:name attributes
+    [OAK-9897] - SplitPersistence: FileReaper cannot finish cleanup
+    [OAK-11808] - Segment graph may need to be recomputed
+    [OAK-11846] - oak-segment-azure - recovery will recover from .bak
+    [OAK-11862] - oak-search-elastic: missing facets for multi-valued fields
+    [OAK-11864] - Create a new FullGC mode ALL_ORPHANS without empty properties
+    [OAK-11875] - FullGC.EMPTY_PROPS should not delete if there are previous documents with that property
+    [OAK-11884] - AzureArchiveManage.listArchives() should delete segments only if write acces is allowed
+    [OAK-11891] - Add metrics for documents Skipped due to FullGC.EMPTY_PROPS not deleting if there are previous documents with that property
+    [OAK-11905] - Update Mockito dependency to 5.19.0
 
 Improvement
 
-    [OAK-9447] - Upgrade Mongo java driver to 5.2
-    [OAK-11729] - If the indexing lane is behind, we should allow catch up of a non-failing lane
-    [OAK-11778] - Fix compilation warnings in classes related to Query handling
-    [OAK-11779] - Mongo downloader: in the progress messages, print the dates corresponding to the _modified values
-    [OAK-11780] - XML import: calculate prefixMap only when required
-    [OAK-11781] - Binary reference statistics are inaccurate for very large repositories
-    [OAK-11784] - new instance of NamespaceRegistry is created whenever an item is added via XML DocViewImporter
-    [OAK-11797] - indexing document store: start lucene writer pool only before indexing, not before download
-    [OAK-11800] - Simplify code of full text indexer
-    [OAK-11810] - UserImporter: Resolve the UserMonitor lazily
-    [OAK-11814] - NPE in ElasticResultRowAsyncIterator
-    [OAK-11823] - Code cleanups in Elastic search module
-    [OAK-11825] - Improve thread monitoring in the OutOfBandIndexer
-    [OAK-11837] - Update commons-csv version to 1.14.1
+    [OAK-11841] - Optimizations and additional logging of performance metrics to statistical facets
+    [OAK-11850] - Use MutableInt to compute facets to avoid boxing/unboxing between Int and Integer
+    [OAK-11857] - Improve path handling in oak-segment-azure
+    [OAK-11861] - segment store initialization should run in parallel
+    [OAK-11866] - Support for datastore files without length
+    [OAK-11878] - ClusterNodeStoreLock LOCK_TIMEOUT is too large
+    [OAK-11894] - DocViewImport: Resolve the IdentifierManager lazily
 
 Task
 
-    [OAK-10790] - FullTextBinaryTextExtractor fails to extract text from csv
-    [OAK-11617] - Provide oak-run commands to analyze and fix inconsistencies in the namespace registry
-    [OAK-11711] - oak-standalone: update dependencies
-    [OAK-11792] - mark commons.cache package as internal
-    [OAK-11795] - FullGC Audit Logging doesn't get enabled in oak-run revisions command
-    [OAK-11802] - update Tomcat dependency to 9.0.107
-    [OAK-11803] - Update commons-lang3 dependency to 3.18.0
-    [OAK-11804] - Update Oak trunk to Jackrabbit 2.22.1
-    [OAK-11819] - Update commons-codec dependency to 1.19.0
-    [OAK-11820] - Update commons-io dependency to 2.20.0
-    [OAK-11822] - Update commons-lang dependency to 1.14.0
-    [OAK-11831] - Update Oak trunk to Jackrabbit 2.22.2
-    [OAK-11834] - ClusterType can take longer during Mongo cluster initialization
-    [OAK-11835] - Expose Mongo connection pool parameters
+    [OAK-10674] - use Oak's Bloom filter instead Guava's
+    [OAK-11859] - update Tomcat dependency to 9.0.108
+    [OAK-11897] - Remove exports from oak-segment-azure
+    [OAK-11900] - SplitPersistenceTest: disable three tests on Windows platform
+    [OAK-11908] - Update Easymock dependency to 5.6.0
 
 
 In addition to the above-mentioned changes, this release contains all
