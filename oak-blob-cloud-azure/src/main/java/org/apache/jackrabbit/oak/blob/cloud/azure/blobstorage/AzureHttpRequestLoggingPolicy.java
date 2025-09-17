@@ -22,6 +22,8 @@ import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
 import com.azure.core.http.HttpResponse;
 import com.azure.core.http.policy.HttpPipelinePolicy;
+
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.commons.time.Stopwatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +45,7 @@ public class AzureHttpRequestLoggingPolicy implements HttpPipelinePolicy {
 
     private static final Logger log = LoggerFactory.getLogger(AzureHttpRequestLoggingPolicy.class);
 
-    private final boolean verboseEnabled = Boolean.getBoolean("blob.azure.http.verbose.enabled");
+    private final boolean verboseEnabled = SystemPropertySupplier.create("blob.azure.v12.http.verbose.enabled", false).get();
 
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
