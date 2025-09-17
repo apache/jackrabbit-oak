@@ -487,6 +487,7 @@ public class FileStore extends AbstractFileStore {
             closer.register(repositoryLock::unlock);
             closer.register(tarFiles) ;
             closer.register(revisions);
+            closer.register(segmentCache);
 
             closeAndLogOnFail(closer);
         }

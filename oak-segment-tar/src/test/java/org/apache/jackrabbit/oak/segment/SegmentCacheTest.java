@@ -23,13 +23,18 @@ import static org.apache.jackrabbit.oak.segment.SegmentCache.newSegmentCache;
 import static org.apache.jackrabbit.oak.segment.SegmentStore.EMPTY_STORE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.junit.Test;
@@ -238,6 +243,41 @@ public class SegmentCacheTest {
         assertEquals(0, stats.getMissCount());
         assertEquals(0, stats.getRequestCount());
         assertEquals(0, stats.getEvictionCount());
+    }
+
+    @Test
+    public void prefetchCache() throws Exception {
+        // let segment1 reference segment2 and segment3
+        when(segment1.getReferencedSegmentIdCount()).thenReturn(2);
+        when(segment1.getReferencedSegmentId(eq(0))).thenReturn(id2.asUUID());
+        when(segment1.getReferencedSegmentId(eq(1))).thenReturn(id3.asUUID());
+
+        try (SegmentCache segmentCache = new SegmentCache.Config()
+                .withCacheSizeMB(10)
+                .withPrefetchThreads(1)
+                .build(
+                        uuid -> Stream.of(id1, id2, id3).filter(id -> id.asUUID().equals(uuid)).findFirst().orElse(null),
+                        Map.of(
+                                id1, segment1,
+                                id2, segment2,
+                                id3, segment3
+                        )::get
+                )) {
+
+            segmentCache.getSegment(id1, () -> segment1);
+            long timeout = System.currentTimeMillis() + 5000;
+            while (segmentCache.getCacheStats().getLoadCount() < 3) {
+                // wait for prefetch to complete
+                TimeUnit.MILLISECONDS.sleep(1);
+                if (System.currentTimeMillis() > timeout) {
+                    fail("Timeout waiting for prefetch to complete");
+                }
+            }
+
+            Segment shouldNeverBeLoaded = mock(Segment.class);
+            assertSame(segment2, segmentCache.getSegment(id2, () -> shouldNeverBeLoaded));
+            assertSame(segment3, segmentCache.getSegment(id3, () -> shouldNeverBeLoaded));
+        }
     }
 
     private static void expect(Class<? extends Throwable> exceptionType, Callable<?> thunk) {

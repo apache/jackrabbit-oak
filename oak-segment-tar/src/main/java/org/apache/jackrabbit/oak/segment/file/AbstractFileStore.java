@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static org.apache.jackrabbit.oak.segment.SegmentCache.newSegmentCache;
 import static org.apache.jackrabbit.oak.segment.data.SegmentData.newSegmentData;
 
 import java.io.Closeable;
@@ -130,7 +129,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     protected final IOMonitor ioMonitor;
 
     protected final RemoteStoreMonitor remoteStoreMonitor;
-    
+
     protected final int binariesInlineThreshold;
 
     AbstractFileStore(final FileStoreBuilder builder) {
@@ -142,7 +141,10 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
             }
         });
         this.blobStore = builder.getBlobStore();
-        this.segmentCache = newSegmentCache(builder.getSegmentCacheSize());
+        this.segmentCache = builder.getSegmentCacheConfig().build(
+                uuid -> tracker.newSegmentId(uuid.getMostSignificantBits(), uuid.getLeastSignificantBits()),
+                segmentId -> readSegmentUncached(getTarFiles(), segmentId)
+        );
         this.segmentReader = new CachingSegmentReader(
             this::getWriter,
             blobStore,
