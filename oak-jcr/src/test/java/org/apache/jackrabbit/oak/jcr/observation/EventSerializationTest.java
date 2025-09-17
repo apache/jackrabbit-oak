@@ -26,7 +26,6 @@ import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -114,12 +113,11 @@ public class EventSerializationTest extends AbstractRepositoryTest {
 
             listener.expectEvent("check for added binary property",e -> {
                 try {
-                    assertEquals("/" + TEST_NODE+"/binary", e.getPath());
-                    assertEquals(Event.PROPERTY_ADDED, e.getType());
-                    assertEquals(BINARY_1, e.getInfo().get("afterValue").toString());
-                    assertFalse("Binary value should not be contained in the .toString() output", e.toString().contains(BINARY_1));
-                    return true;
-                } catch (Exception|AssertionError ex) {
+                    return isEqual("/" + TEST_NODE+"/binary", e.getPath())
+                           && isEqual(Event.PROPERTY_ADDED, e.getType()) 
+                           && isEqual(BINARY_1, e.getInfo().get("afterValue").toString())
+                           && isFalse(e.toString().contains(BINARY_1));
+                } catch (Exception ex) {
                     return false;
                 }
             });
@@ -130,14 +128,13 @@ public class EventSerializationTest extends AbstractRepositoryTest {
             // modify the property
             listener.expectEvent("check for modified binary property",e -> {
                 try {
-                    assertEquals("/" + TEST_NODE+"/binary", e.getPath());
-                    assertEquals(Event.PROPERTY_CHANGED, e.getType());
-                    assertEquals(BINARY_1, e.getInfo().get("beforeValue").toString());
-                    assertEquals(BINARY_2, e.getInfo().get("afterValue").toString());
-                    assertFalse("before binary value should not be contained in the .toString() output", e.toString().contains(BINARY_1));
-                    assertFalse("after binary value should not be contained in the .toString() output", e.toString().contains(BINARY_2));
-                    return true;
-                } catch (Exception|AssertionError ex) {
+                    return isEqual("/" + TEST_NODE+"/binary", e.getPath())
+                           && isEqual(Event.PROPERTY_CHANGED, e.getType())
+                           && isEqual(BINARY_1, e.getInfo().get("beforeValue").toString())
+                           && isEqual(BINARY_2, e.getInfo().get("afterValue").toString())
+                           && isFalse(e.toString().contains(BINARY_1))
+                           && isFalse(e.toString().contains(BINARY_2));
+                } catch (Exception ex) {
                     return false;
                 }
             });
@@ -148,11 +145,10 @@ public class EventSerializationTest extends AbstractRepositoryTest {
             // remove the property
             listener.expectEvent("check for removed binary property",e -> {
                 try {
-                    assertEquals("/" + TEST_NODE+"/binary", e.getPath());
-                    assertEquals(Event.PROPERTY_REMOVED, e.getType());
-                    assertEquals(BINARY_2, e.getInfo().get("beforeValue").toString());
-                    assertFalse("before binary value should not be contained in the .toString() output", e.toString().contains(BINARY_2));
-                    return true;
+                    return isEqual("/" + TEST_NODE+"/binary", e.getPath())
+                           && isEqual(Event.PROPERTY_REMOVED, e.getType())
+                           && isEqual(BINARY_2, e.getInfo().get("beforeValue").toString())
+                           && isFalse(e.toString().contains(BINARY_2));
                 } catch (Exception|AssertionError ex) {
                     return false;
                 }
@@ -210,6 +206,11 @@ public class EventSerializationTest extends AbstractRepositoryTest {
         }
     }
 
+    private static boolean isEqual(Object o1, Object o2) {
+        return o1.equals(o2);
+    }
 
-
+    private static boolean isFalse(boolean b) {
+        return b == false;
+    }
 }
