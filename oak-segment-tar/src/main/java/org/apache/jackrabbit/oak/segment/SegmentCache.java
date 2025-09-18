@@ -25,10 +25,13 @@ import static org.apache.jackrabbit.oak.segment.CacheWeights.segmentWeight;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -308,12 +311,11 @@ public abstract class SegmentCache implements Closeable {
          */
         private PrefetchCache(int cacheSizeMB, int prefetchThreads, int prefetchDepth, @NotNull Function<UUID, SegmentId> uuidToSegmentId, @NotNull Function<SegmentId, Segment> segmentLoader) {
             super(cacheSizeMB);
-            this.prefetchPool = new ThreadPoolExecutor(prefetchThreads, prefetchThreads,
+            this.prefetchPool = new ThreadPoolExecutor(Math.max(1, Math.round(prefetchThreads / 2f)), prefetchThreads,
                     30, TimeUnit.SECONDS,
-                    new LinkedBlockingQueue<>(prefetchThreads * 8),
+                    new LinkedBlockingQueue<>(prefetchThreads * 2), // TODO - increase queue size
                     r -> {
-                        String threadName = String.format("segment-prefetch-%s",
-                                Long.toHexString(System.nanoTime() & 0xFFFFF));
+                        String threadName = String.format("segment-prefetch-%s", Long.toHexString(System.nanoTime() & 0xFFFFF));
                         return new Thread(r, threadName) {
                             {
                                 setUncaughtExceptionHandler((t, e) -> {
@@ -324,7 +326,26 @@ public abstract class SegmentCache implements Closeable {
                             }
                         };
                     },
-                    new ThreadPoolExecutor.DiscardPolicy());
+                    new RejectedExecutionHandler() {
+                        @Override
+                        public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                            if (!executor.isShutdown() && r instanceof PrefetchRunnable && ((PrefetchRunnable) r).isExpedite()) {
+                                PrefetchRunnable prefetchRunnable = (PrefetchRunnable) r;
+                                // make space for the redispatch of the expedited prefetch task
+                                Runnable oldest = executor.getQueue().poll();
+                                // re-dispatch from a pool thread as un-expedited prefetch tasks,
+                                // takes the dispatching load off the critical path
+                                executor.execute(() -> {
+                                    if (oldest != null) {
+                                        executor.execute(oldest);
+                                    }
+                                    executor.execute(new PrefetchRunnable(prefetchRunnable.segment, prefetchRunnable.depth, false));
+                                });
+                            } else {
+                                LOG.info("The prefetch queue is full, dropping prefetch task {}", r);
+                            }
+                        }
+                    });
             this.prefetchPool.allowCoreThreadTimeOut(true);
             this.prefetchDepth = prefetchDepth;
             this.segmentLoader = segmentLoader;
@@ -334,9 +355,13 @@ public abstract class SegmentCache implements Closeable {
         @Override
         public @NotNull Segment getSegment(@NotNull SegmentId id, @NotNull Callable<Segment> loader) throws ExecutionException {
             return super.getSegment(id, () -> {
+                Instant start = Instant.now();
                 Segment s = loader.call();
+                LOG.info("Segment {} loaded on critical path ({}ms)", id, Instant.now().toEpochMilli() - start.toEpochMilli());
                 if (s != null && id.isDataSegmentId()) {
-                    prefetchPool.execute(new PrefetchRunnable(s, prefetchDepth));
+                    start = Instant.now();
+                    prefetchPool.execute(new PrefetchRunnable(s, prefetchDepth, true));
+                    LOG.info("Reference prefetch for segment {} enqueued on critical path ({}ms)", id, Instant.now().toEpochMilli() - start.toEpochMilli());
                 }
                 return s;
             });
@@ -357,12 +382,17 @@ public abstract class SegmentCache implements Closeable {
         }
 
         private class PrefetchRunnable implements Runnable {
+
             private final Segment segment;
+
             private final int depth;
 
-            PrefetchRunnable(Segment segment, int depth) {
+            private final boolean expedite;
+
+            PrefetchRunnable(Segment segment, int depth, boolean expedite) {
                 this.segment = segment;
                 this.depth = depth;
+                this.expedite = expedite;
             }
 
             @Override
@@ -384,7 +414,12 @@ public abstract class SegmentCache implements Closeable {
                                         throw e;
                                     } finally {
                                         if (s != null && depth > 0) {
-                                            prefetchPool.execute(new PrefetchRunnable(s, depth - 1));
+                                            BlockingQueue<Runnable> queue = prefetchPool.getQueue();
+                                            if (queue.remainingCapacity() < queue.size() / 4) {
+                                                // throttle the enqueuing of prefetch tasks
+                                                TimeUnit.SECONDS.sleep(5);
+                                            }
+                                            prefetchPool.execute(new PrefetchRunnable(s, depth - 1, false));
                                         }
                                     }
                                 });
@@ -399,6 +434,10 @@ public abstract class SegmentCache implements Closeable {
             @Override
             public String toString() {
                 return "PrefetchRunnable{segment=" + segment.getSegmentId() + '}';
+            }
+
+            public boolean isExpedite() {
+                return expedite;
             }
         }
     }

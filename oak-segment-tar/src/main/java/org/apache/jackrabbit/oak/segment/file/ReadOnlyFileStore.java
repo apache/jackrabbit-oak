@@ -171,6 +171,11 @@ public class ReadOnlyFileStore extends AbstractFileStore {
         return revisions;
     }
 
+    @Override
+    protected @NotNull TarFiles getTarFiles() {
+        return tarFiles;
+    }
+
     public Set<SegmentId> getReferencedSegmentIds() {
         return tracker.getReferencedSegmentIds();
     }

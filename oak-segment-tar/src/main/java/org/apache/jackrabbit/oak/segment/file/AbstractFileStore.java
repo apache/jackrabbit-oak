@@ -194,7 +194,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     public SegmentIdProvider getSegmentIdProvider() {
         return tracker;
     }
-    
+
     public int getBinariesInlineThreshold() {
         return binariesInlineThreshold;
     }
@@ -203,6 +203,13 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
      * @return the {@link Revisions} object bound to the current store.
      */
     public abstract Revisions getRevisions();
+
+    /**
+     * Access to the tar files managed by subclasses.
+     *
+     * @return the tar files
+     */
+    protected abstract @NotNull TarFiles getTarFiles();
 
     /**
      * Convenience method for accessing the root node for the current head.
