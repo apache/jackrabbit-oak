@@ -279,11 +279,12 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
             BlobUploadFromFileOptions options = new BlobUploadFromFileOptions(file.toString());
             options.setParallelTransferOptions(parallelTransferOptions);
             try {
-                BlobClient blobClient = client.getContainerClient().getBlobClient(file.getName());
+                BlobClient blobClient = client.getContainerClient().getBlobClient(key);
                 Response<BlockBlobItem> blockBlob = blobClient.uploadFromFileWithResponse(options, null, null);
                 LOG.debug("Upload status is {} for blob {}", blockBlob.getStatusCode(), key);
             } catch (UncheckedIOException ex) {
                 System.err.printf("Failed to upload from file: %s%n", ex.getMessage());
+                throw new IOException("Failed to upload blob: " + key, ex);
             }
             LOG.debug("Blob created. identifier={} length={} duration={} buffered={}", key, len, (System.currentTimeMillis() - start), useBufferedStream);
             if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {

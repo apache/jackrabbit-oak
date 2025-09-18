@@ -100,8 +100,8 @@ public final class UtilsV8 {
         String proxyHost = properties.getProperty(AzureConstants.PROXY_HOST);
         String proxyPort = properties.getProperty(AzureConstants.PROXY_PORT);
 
-        if (!Strings.isNullOrEmpty(proxyHost) &&
-            Strings.isNullOrEmpty(proxyPort)) {
+        if (!(Strings.isNullOrEmpty(proxyHost) ||
+            Strings.isNullOrEmpty(proxyPort))) {
             int port = Integer.parseInt(proxyPort);
             SocketAddress proxyAddr = new InetSocketAddress(proxyHost, port);
             Proxy proxy = new Proxy(Proxy.Type.HTTP, proxyAddr);
