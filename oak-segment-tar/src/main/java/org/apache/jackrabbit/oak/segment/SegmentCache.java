@@ -311,9 +311,9 @@ public abstract class SegmentCache implements Closeable {
          */
         private PrefetchCache(int cacheSizeMB, int prefetchThreads, int prefetchDepth, @NotNull Function<UUID, SegmentId> uuidToSegmentId, @NotNull Function<SegmentId, Segment> segmentLoader) {
             super(cacheSizeMB);
-            this.prefetchPool = new ThreadPoolExecutor(Math.max(1, Math.round(prefetchThreads / 2f)), prefetchThreads,
-                    30, TimeUnit.SECONDS,
-                    new LinkedBlockingQueue<>(prefetchThreads * 2), // TODO - increase queue size
+            this.prefetchPool = new ThreadPoolExecutor(prefetchThreads, prefetchThreads,
+                    10, TimeUnit.SECONDS,
+                    new LinkedBlockingQueue<>(prefetchThreads * 16),
                     r -> {
                         String threadName = String.format("segment-prefetch-%s", Long.toHexString(System.nanoTime() & 0xFFFFF));
                         return new Thread(r, threadName) {
@@ -332,17 +332,10 @@ public abstract class SegmentCache implements Closeable {
                             if (!executor.isShutdown() && r instanceof PrefetchRunnable && ((PrefetchRunnable) r).isExpedite()) {
                                 PrefetchRunnable prefetchRunnable = (PrefetchRunnable) r;
                                 // make space for the redispatch of the expedited prefetch task
-                                Runnable oldest = executor.getQueue().poll();
+                                executor.getQueue().poll();
                                 // re-dispatch from a pool thread as un-expedited prefetch tasks,
                                 // takes the dispatching load off the critical path
-                                executor.execute(() -> {
-                                    if (oldest != null) {
-                                        executor.execute(oldest);
-                                    }
-                                    executor.execute(new PrefetchRunnable(prefetchRunnable.segment, prefetchRunnable.depth, false));
-                                });
-                            } else {
-                                LOG.info("The prefetch queue is full, dropping prefetch task {}", r);
+                                executor.execute(new PrefetchRunnable(prefetchRunnable.segment, prefetchRunnable.depth, false));
                             }
                         }
                     });
@@ -355,13 +348,16 @@ public abstract class SegmentCache implements Closeable {
         @Override
         public @NotNull Segment getSegment(@NotNull SegmentId id, @NotNull Callable<Segment> loader) throws ExecutionException {
             return super.getSegment(id, () -> {
-                Instant start = Instant.now();
                 Segment s = loader.call();
-                LOG.info("Segment {} loaded on critical path ({}ms)", id, Instant.now().toEpochMilli() - start.toEpochMilli());
                 if (s != null && id.isDataSegmentId()) {
-                    start = Instant.now();
+                    long start = System.nanoTime();
                     prefetchPool.execute(new PrefetchRunnable(s, prefetchDepth, true));
-                    LOG.info("Reference prefetch for segment {} enqueued on critical path ({}ms)", id, Instant.now().toEpochMilli() - start.toEpochMilli());
+                    long micros = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start);
+                    if (micros > 10_000) { // log only if it took more than 10ms
+                        LOG.info("Reference prefetch for segment {} enqueued in {}µs", id, micros);
+                    } else if (LOG.isDebugEnabled()) {
+                        LOG.debug("Reference prefetch for segment {} enqueued in {}µs", id, micros);
+                    }
                 }
                 return s;
             });
@@ -414,11 +410,6 @@ public abstract class SegmentCache implements Closeable {
                                         throw e;
                                     } finally {
                                         if (s != null && depth > 0) {
-                                            BlockingQueue<Runnable> queue = prefetchPool.getQueue();
-                                            if (queue.remainingCapacity() < queue.size() / 4) {
-                                                // throttle the enqueuing of prefetch tasks
-                                                TimeUnit.SECONDS.sleep(5);
-                                            }
                                             prefetchPool.execute(new PrefetchRunnable(s, depth - 1, false));
                                         }
                                     }

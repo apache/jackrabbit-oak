@@ -252,6 +252,10 @@ public class SegmentCacheTest {
         when(segment1.getReferencedSegmentId(eq(0))).thenReturn(id2.asUUID());
         when(segment1.getReferencedSegmentId(eq(1))).thenReturn(id3.asUUID());
 
+        when(segment2.estimateMemoryUsage()).thenReturn(128 * 1024);
+        when(segment2.estimateMemoryUsage()).thenReturn(128 * 1024);
+        when(segment3.estimateMemoryUsage()).thenReturn(128 * 1024);
+
         try (SegmentCache segmentCache = new SegmentCache.Config()
                 .withCacheSizeMB(10)
                 .withPrefetchThreads(1)
