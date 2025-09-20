@@ -314,7 +314,7 @@ public class AzureBlobContainerProviderV8 implements Closeable {
                 StringUtils.isNoneBlank(accountName, tenantId, clientId, clientSecret);
     }
 
-    private class TokenRefresher implements Runnable {
+    class TokenRefresher implements Runnable {
         @Override
         public void run() {
             try {
