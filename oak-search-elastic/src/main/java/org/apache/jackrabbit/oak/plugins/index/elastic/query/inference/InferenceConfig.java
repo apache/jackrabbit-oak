@@ -19,8 +19,10 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.inference;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.json.JsonNodeBuilder;
 import org.apache.jackrabbit.oak.json.JsonUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -30,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -242,6 +245,25 @@ public class InferenceConfig {
         }
     }
 
+    /**
+    * Updates the inference configuration with the provided JSON in the node store and reInitializes this class.
+    *
+    * @param path The node path where the configuration should be stored.
+    * @param jsonConfig The inferenceConfig as a JSON sting.
+    */
+    public static void updateAndReInitializeConfigJson(String path, String jsonConfig) {
+        lock.writeLock().lock();
+        try {
+            LOG.debug("Setting new InferenceConfig to path='{}' with content={}", path, jsonConfig);
+            JsonNodeBuilder.addOrReplace(INSTANCE.nodeStore, path, TYPE, jsonConfig);
+            InferenceConfig.reInitialize(INSTANCE.nodeStore, INSTANCE.statisticsProvider, path, INSTANCE.isInferenceEnabled, true);
+        } catch (CommitFailedException | IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
     private @NotNull Map<String, InferenceIndexConfig> getIndexConfigs() {
         lock.readLock().lock();
         try {
@@ -296,4 +318,4 @@ public class InferenceConfig {
         builder.key(":enrich").encodedValue(enricherStatus.toString()).endObject();
         return JsopBuilder.prettyPrint(builder.toString());
     }
-} 
+}
