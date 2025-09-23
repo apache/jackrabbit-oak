@@ -342,7 +342,7 @@ public class EventFactory {
          * of data that is returned; no binary data should be logged.
          * This is not included in hash calculation and equality checks.
          * 
-         * @return
+         * @return a serialized version of getInfo
          */
         public Map<?,?> getInfo_ToString() {
             return getInfo();
