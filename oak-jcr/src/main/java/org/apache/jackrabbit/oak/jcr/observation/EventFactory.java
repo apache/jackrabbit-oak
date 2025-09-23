@@ -339,7 +339,7 @@ public class EventFactory {
 
         /** A custom version of getInfo(), which is only used
          * for the toString() implementation; the goal is to limit the amount
-         * of data, which is returned, no binary data should be logged
+         * of data that is returned; no binary data should be logged.
          * This is not included in hash calculation and equality checks.
          * 
          * @return
