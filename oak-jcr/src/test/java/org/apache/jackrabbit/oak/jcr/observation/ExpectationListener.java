@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static java.util.Collections.synchronizedList;
+
 import static java.util.Collections.synchronizedSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
@@ -52,6 +53,9 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ForwardingListenableFu
 import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
 import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
 import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
+
+import static org.apache.jackrabbit.oak.jcr.observation.EventFactory.AFTERVALUE;
+import static org.apache.jackrabbit.oak.jcr.observation.EventFactory.BEFOREVALUE;
 
 
 public class ExpectationListener implements EventListener {
@@ -138,8 +142,8 @@ public class ExpectationListener implements EventListener {
         expect(new Expectation("Before value " + before + " after value " + after) {
             @Override
             public boolean onEvent(Event event) throws Exception {
-                return Objects.equals(before, event.getInfo().get("beforeValue")) &&
-                        Objects.equals(after, event.getInfo().get("afterValue"));
+                return Objects.equals(before, event.getInfo().get(BEFOREVALUE)) &&
+                        Objects.equals(after, event.getInfo().get(AFTERVALUE));
             }
         });
     }
@@ -148,8 +152,8 @@ public class ExpectationListener implements EventListener {
         expect(new Expectation("Before valuse " + before + " after values " + after) {
             @Override
             public boolean onEvent(Event event) throws Exception {
-                return Arrays.equals(before, (Object[])event.getInfo().get("beforeValue")) &&
-                        Arrays.equals(after, (Object[]) event.getInfo().get("afterValue"));
+                return Arrays.equals(before, (Object[])event.getInfo().get(BEFOREVALUE)) &&
+                        Arrays.equals(after, (Object[]) event.getInfo().get(AFTERVALUE));
             }
         });
     }
@@ -167,7 +171,10 @@ public class ExpectationListener implements EventListener {
         return expect(new Expectation("path = " + path + ", type = " + type + ", beforeValue = " + beforeValue) {
             @Override
             public boolean onEvent(Event event) throws RepositoryException {
-                return type == event.getType() && Objects.equals(path, event.getPath()) && event.getInfo().containsKey("beforeValue") && beforeValue.equals(((Value)event.getInfo().get("beforeValue")).getString());
+                return type == event.getType() 
+                        && Objects.equals(path, event.getPath()) 
+                        && event.getInfo().containsKey(BEFOREVALUE) 
+                        && beforeValue.equals(((Value)event.getInfo().get(BEFOREVALUE)).getString());
             }
         });
     }

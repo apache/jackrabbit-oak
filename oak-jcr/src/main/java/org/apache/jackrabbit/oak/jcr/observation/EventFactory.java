@@ -56,6 +56,9 @@ import org.jetbrains.annotations.NotNull;
  */
 public class EventFactory {
     public static final String USER_DATA = "user-data";
+    
+    public static final String BEFOREVALUE = "beforeValue";
+    public static final String AFTERVALUE = "afterValue";
 
     private final NamePathMapper mapper;
 
