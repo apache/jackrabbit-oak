@@ -28,7 +28,7 @@
   <packaging>bundle</packaging>
 
   <properties>
-    <shaded.guava.version>33.5.0-jre</shaded.guava.version>
+    <shaded.guava.version>33.4.8-jre</shaded.guava.version>
     <pref>org.apache.jackrabbit.guava</pref>
   </properties>
 
@@ -97,12 +97,12 @@
                  Note that these should match the specifications from the MANIFEST.mf file of the guava jar this jar will be based on. -->
             <Export-Package>
               <!-- package versions as recommended by baseline -->
-              ${pref}.common.base;version="34.0.0",
-              ${pref}.common.cache;version="33.4.2";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent",
-              ${pref}.common.collect;version="34.0.1";uses:="${pref}.common.base",
+              ${pref}.common.base;version="33.5.0",
+              ${pref}.common.cache;version="33.4.1";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent",
+              ${pref}.common.collect;version="34.0.0";uses:="${pref}.common.base",
               ${pref}.common.graph;version="33.4.1";uses:="${pref}.common.collect",
               ${pref}.common.hash;version="33.5.0";uses:="${pref}.common.base",
-              ${pref}.common.util.concurrent;version="33.5.0";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent.internal,${pref}.common.primitives",
+              ${pref}.common.util.concurrent;version="33.4.1";uses:="${pref}.common.base,${pref}.common.collect,${pref}.common.util.concurrent.internal,${pref}.common.primitives",
             </Export-Package>
             <Import-Package>
               javax.crypto;resolution:=optional,
