@@ -730,6 +730,7 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
         }
     }
 
+    @Override
     protected URI createHttpDownloadURI(@NotNull DataIdentifier identifier,
                                         @NotNull DataRecordDownloadOptions downloadOptions) {
         URI uri = null;
