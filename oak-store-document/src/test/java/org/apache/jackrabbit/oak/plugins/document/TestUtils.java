@@ -38,7 +38,7 @@ public class TestUtils {
 
     public static final Predicate<UpdateOp> IS_LAST_REV_UPDATE = input ->input != null && isLastRevUpdate(input);
 
-    public static final Function<String, Long> NO_BINARY = Function.<String>identity().andThen(s -> -1L);
+    public static final Function<String, Long> NO_BINARY = s -> -1L;
 
     /**
      * Returns {@code true} if the given {@code update} performs a
