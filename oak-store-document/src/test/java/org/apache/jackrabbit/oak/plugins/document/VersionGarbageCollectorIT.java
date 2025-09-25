@@ -38,6 +38,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -102,7 +103,6 @@ import static org.junit.Assume.assumeTrue;
 
 import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.commons.collections.AbstractIterator;
-import org.apache.jackrabbit.guava.common.collect.Queues;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.InitialContent;
@@ -124,12 +124,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -3597,7 +3595,7 @@ public class VersionGarbageCollectorIT {
         // wait one hour
         clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
 
-        final BlockingQueue<NodeDocument> docs = Queues.newSynchronousQueue();
+        final BlockingQueue<NodeDocument> docs = new SynchronousQueue<>();
         VersionGCSupport gcSupport = new VersionGCSupport(store1.getDocumentStore()) {
             @Override
             public Iterable<NodeDocument> getPossiblyDeletedDocs(long fromModified, long toModified) {
