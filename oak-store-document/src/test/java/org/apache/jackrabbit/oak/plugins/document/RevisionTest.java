@@ -24,6 +24,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -200,7 +201,7 @@ public class RevisionTest {
     @Test
     public void uniqueRevision() throws Exception {
         //Revision.setClock(new Clock.Virtual());
-        final BlockingQueue<Revision> revisionQueue = Queues.newLinkedBlockingQueue();
+        final BlockingQueue<Revision> revisionQueue = new LinkedBlockingQueue<>();
         int noOfThreads = 60;
         final int noOfLoops = 1000;
         List<Thread> workers = new ArrayList<Thread>();
