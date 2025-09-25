@@ -71,6 +71,8 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -119,17 +121,12 @@ public class AzureBlobStoreBackend extends AbstractAzureBlobStoreBackend {
     public void setProperties(final Properties properties) {
         this.properties = properties;
     }
-    private volatile BlobContainerClient azureContainer = null;
+
+    private final AtomicReference<BlobContainerClient> azureContainerReference = new AtomicReference<>();
 
     protected BlobContainerClient getAzureContainer() throws DataStoreException {
-        if (azureContainer == null) {
-            synchronized (this) {
-                if (azureContainer == null) {
-                    azureContainer = azureBlobContainerProvider.getBlobContainer(retryOptions, properties);
-                }
-            }
-        }
-        return azureContainer;
+        azureContainerReference.compareAndSet(null, azureBlobContainerProvider.getBlobContainer(retryOptions, properties));
+        return azureContainerReference.get();
     }
 
     @Override

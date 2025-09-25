@@ -60,6 +60,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BlOB_META_DIR_NAME;
 import static org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION;
@@ -307,12 +308,15 @@ public class AzureBlobStoreBackendTest {
 
         try {
             // Reset azureContainer to null using reflection to test the null case
-            Field azureContainerField = AzureBlobStoreBackend.class.getDeclaredField("azureContainer");
-            azureContainerField.setAccessible(true);
-            azureContainerField.set(testBackend, null);
+            Field azureContainerReferenceField = AzureBlobStoreBackend.class.getDeclaredField("azureContainerReference");
+            azureContainerReferenceField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            AtomicReference<BlobContainerClient> azureContainerReference = (AtomicReference<BlobContainerClient>) azureContainerReferenceField.get(testBackend);
+            azureContainerReference.set(null);
 
             // Verify azureContainer is null
-            BlobContainerClient containerBeforeCall = (BlobContainerClient) azureContainerField.get(testBackend);
+            BlobContainerClient containerBeforeCall = azureContainerReference.get();
+
             assertNull("azureContainer should be null before getAzureContainer call", containerBeforeCall);
 
             // Call getAzureContainer - this should initialize the container
@@ -323,7 +327,8 @@ public class AzureBlobStoreBackendTest {
             assertTrue("Container should exist", container.exists());
 
             // Verify azureContainer field is now set
-            BlobContainerClient containerAfterCall = (BlobContainerClient) azureContainerField.get(testBackend);
+            BlobContainerClient containerAfterCall = azureContainerReference.get();
+
             assertNotNull("azureContainer field should be set after getAzureContainer call", containerAfterCall);
             assertSame("Returned container should be same as stored in field", container, containerAfterCall);
 
@@ -361,9 +366,11 @@ public class AzureBlobStoreBackendTest {
             assertEquals("Exception message should match", "Mock connection failure", e.getMessage());
 
             // Verify azureContainer field remains null after exception
-            Field azureContainerField = AzureBlobStoreBackend.class.getDeclaredField("azureContainer");
+            Field azureContainerField = AzureBlobStoreBackend.class.getDeclaredField("azureContainerReference");
             azureContainerField.setAccessible(true);
-            BlobContainerClient containerAfterException = (BlobContainerClient) azureContainerField.get(testBackend);
+            @SuppressWarnings("unchecked")
+            BlobContainerClient containerAfterException = ((AtomicReference<BlobContainerClient>) azureContainerField.get(testBackend)).get();
+
             assertNull("azureContainer should remain null after exception", containerAfterException);
         } finally {
             testBackend.close();

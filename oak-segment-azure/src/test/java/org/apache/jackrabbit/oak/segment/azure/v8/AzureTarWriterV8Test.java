@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.v8;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
@@ -29,14 +27,10 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 public class AzureTarWriterV8Test extends TarWriterTest {
-
-    private static final Logger LOG = LoggerFactory.getLogger(AzureTarWriterV8Test.class);
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
@@ -46,17 +40,6 @@ public class AzureTarWriterV8Test extends TarWriterTest {
     @Before
     public void setUp() throws Exception {
         container = azurite.getContainer("oak-test");
-        container.listBlobs().forEach(blob -> {
-            if (blob instanceof CloudBlob) {
-                CloudBlob cloudBlob = (CloudBlob) blob;
-                try {
-                    LOG.warn("Deleting blob {}", cloudBlob.getUri());
-                    cloudBlob.delete();
-                } catch (StorageException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
     }
 
     @NotNull
