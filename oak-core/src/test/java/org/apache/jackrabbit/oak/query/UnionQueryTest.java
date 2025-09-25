@@ -21,18 +21,22 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.commons.collections.ListUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
@@ -54,6 +58,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 
 public class UnionQueryTest extends AbstractQueryTest {
 
@@ -64,6 +69,8 @@ public class UnionQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         store = new MemoryNodeStore();
         qeSettings = new QueryEngineSettings();
+        Feature sortFeature = createFeature(true);
+        qeSettings.setSortUnionQueryByScoreFeature(sortFeature);
 
         return new Oak(store)
                 .with(new OpenSecurityProvider())
@@ -362,11 +369,202 @@ public class UnionQueryTest extends AbstractQueryTest {
         }
     }
 
+    @Test
+    public void testUnionMergingBothQueryHaveScores() throws Exception {
+        MockQueryBuilder leftQuery = new MockQueryBuilder(true)
+                .addResult("/left/doc1", 0.8)
+                .addResult("/left/doc2", 0.7);
+        MockQueryBuilder rightQuery = new MockQueryBuilder(true)
+                .addResult("/right/doc1", 0.9)
+                .addResult("/right/doc2", 0.6);
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+        assertPathOrder(results, new String[]{"/right/doc1", "/left/doc1", "/left/doc2", "/right/doc2"});
+    }
+
+    @Test
+    public void testUnionMergingOnlyRightQueryHasScores() throws Exception {
+        MockQueryBuilder leftQuery = new MockQueryBuilder(false)
+                .addResult("/left/doc1")
+                .addResult("/left/doc2");
+        MockQueryBuilder rightQuery = new MockQueryBuilder(true)
+                .addResult("/right/doc1", 0.9)
+                .addResult("/right/doc2", 0.6);
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+        assertPathOrder(results, new String[]{"/right/doc1", "/right/doc2", "/left/doc1", "/left/doc2"});
+    }
+
+    @Test
+    public void testUnionMergingOnlyLeftQueryHasScores() throws Exception {
+        MockQueryBuilder leftQuery = new MockQueryBuilder(true)
+            .addResult("/left/doc1", 0.8)
+            .addResult("/left/doc2", 0.7);
+        MockQueryBuilder rightQuery = new MockQueryBuilder(false)
+            .addResult("/right/doc1")
+            .addResult("/right/doc2");
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+        assertPathOrder(results, new String[]{"/left/doc1", "/left/doc2", "/right/doc1", "/right/doc2"});
+    }
+
+    @Test
+    public void testUnionMergingNeitherQueryHasScores() throws Exception {
+        MockQueryBuilder leftQuery = new MockQueryBuilder(false)
+            .addResult("/left/doc1")
+            .addResult("/left/doc2");
+        MockQueryBuilder rightQuery = new MockQueryBuilder(false)
+            .addResult("/right/doc1")
+            .addResult("/right/doc2");
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+        assertPathOrder(results, new String[]{"/left/doc1", "/left/doc2", "/right/doc1", "/right/doc2"});
+    }
+
+    @Test
+    public void testUnionMergingEmptyIterators() throws Exception {
+        MockQueryBuilder leftQuery = new MockQueryBuilder(true);
+        MockQueryBuilder rightQuery = new MockQueryBuilder(true)
+            .addResult("/right/doc1", 0.9);
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), qeSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+
+        assertEquals(1, results.size());
+        assertEquals("/right/doc1", results.get(0).path);
+    }
+
+    @Test
+    public void testSortUnionQueryScoreFlagDisabled() throws Exception {
+        QueryEngineSettings disabledSettings = new QueryEngineSettings();
+        Feature sortFeature = createFeature(false);
+        disabledSettings.setSortUnionQueryByScoreFeature(sortFeature);
+        MockQueryBuilder leftQuery = new MockQueryBuilder(true)
+                .addResult("/left/doc1", 0.8)
+                .addResult("/left/doc2", 0.7);
+        MockQueryBuilder rightQuery = new MockQueryBuilder(true)
+                .addResult("/right/doc1", 0.9)
+                .addResult("/right/doc2", 0.6);
+
+        UnionQueryImpl unionQuery = new UnionQueryImpl(true, leftQuery.build(), rightQuery.build(), disabledSettings);
+        List<ScoredResult> results = executeUnionAndGetScoredResults(unionQuery);
+        assertPathOrder(results, new String[]{"/left/doc1", "/left/doc2", "/right/doc1", "/right/doc2"});
+    }
+
     private QueryImpl createQuery (String statement, ConstraintImpl c, SourceImpl sImpl) throws Exception {
 
         NamePathMapper namePathMapper = new NamePathMapperImpl(new GlobalNameMapper(root));
         return new QueryImpl(statement, sImpl, c,
                 new ColumnImpl[]{new ColumnImpl("a", "jcr:path", "jcr:path")}, namePathMapper, qeSettings, new QueryStatsData("", "").new QueryExecutionStats());
 
+    }
+
+    /**
+     * Builder class for creating mock queries with controllable scores
+     */
+    private static class MockQueryBuilder {
+        private final boolean hasScore;
+        private final List<ResultRowImpl> results = new ArrayList<>();
+        private final QueryImpl mockQuery;
+        private final ColumnImpl[] columns;
+
+        public MockQueryBuilder(boolean hasScore) {
+            this.hasScore = hasScore;
+            this.mockQuery = Mockito.mock(QueryImpl.class);
+
+            if (hasScore) {
+                this.columns = new ColumnImpl[] {
+                        new ColumnImpl("a", "jcr:path", "jcr:path"),
+                        new ColumnImpl("a", "jcr:score", "jcr:score")
+                };
+                // return path at position 0, and score at 1
+                Mockito.when(mockQuery.getColumnIndex("jcr:path")).thenReturn(0);
+                Mockito.when(mockQuery.getColumnIndex("jcr:score")).thenReturn(1);
+            } else {
+                this.columns = new ColumnImpl[] {
+                        new ColumnImpl("a", "jcr:path", "jcr:path")
+                };
+                // return path at position 0, and score can't be found
+                Mockito.when(mockQuery.getColumnIndex("jcr:path")).thenReturn(0);
+                Mockito.when(mockQuery.getColumnIndex("jcr:score")).thenReturn(-1);
+            }
+            Mockito.when(mockQuery.getColumns()).thenReturn(columns);
+        }
+
+        public MockQueryBuilder addResult(String path, double score) {
+            if (!hasScore) {
+                throw new IllegalStateException("Cannot provide score");
+            }
+            PropertyValue[] values = new PropertyValue[] {
+                    PropertyValues.newString(path),
+                    PropertyValues.newDouble(score)
+            };
+            results.add(new ResultRowImpl(mockQuery, null, values, null, null));
+            return this;
+        }
+
+        public MockQueryBuilder addResult(String path) {
+            if (hasScore) {
+                throw new IllegalStateException("Must provide score");
+            }
+            PropertyValue[] values = new PropertyValue[] {
+                    PropertyValues.newString(path)
+            };
+            results.add(new ResultRowImpl(mockQuery, null, values, null, null));
+            return this;
+        }
+
+        public QueryImpl build() {
+            Mockito.when(mockQuery.getRows()).thenReturn(results.iterator());
+            return mockQuery;
+        }
+    }
+
+    /**
+     * Helper class to hold path and according score
+     */
+    private static class ScoredResult {
+        final String path;
+        final Double score;
+        ScoredResult(String path, Double score) {
+            this.path = path;
+            this.score = score;
+        }
+    }
+
+    private List<ScoredResult> executeUnionAndGetScoredResults(UnionQueryImpl unionQuery) throws Exception {
+        Iterator<ResultRowImpl> results = unionQuery.getRows();
+        List<ScoredResult> scoredResults = new ArrayList<>();
+
+        while (results.hasNext()) {
+            ResultRowImpl row = results.next();
+            String path = row.getValue("jcr:path").getValue(Type.STRING);
+            try {
+                PropertyValue scoreValue = row.getValue("jcr:score");
+                Double  score = scoreValue.getValue(Type.DOUBLE);
+                scoredResults.add(new ScoredResult(path, score));
+            } catch (Exception e) {
+                scoredResults.add(new ScoredResult(path, null));
+            }
+        }
+
+        return scoredResults;
+    }
+
+    private void assertPathOrder(List<ScoredResult> results, String[] expectedPaths) {
+        assertEquals(expectedPaths.length, results.size());
+        for (int i = 0; i < expectedPaths.length; i++) {
+            assertEquals(expectedPaths[i], results.get(i).path);
+        }
+    }
+
+    private static Feature createFeature(boolean enabled) {
+        Feature feature = Mockito.mock(Feature.class);
+        Mockito.when(feature.isEnabled()).thenReturn(enabled);
+        return feature;
     }
 }

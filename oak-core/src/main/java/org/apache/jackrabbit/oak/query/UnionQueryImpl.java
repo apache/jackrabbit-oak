@@ -313,7 +313,7 @@ public class UnionQueryImpl implements Query {
         FacetMerger facetMerger = new FacetMerger(left, right);
 
         Iterator<ResultRowImpl> it;
-        final Iterator<ResultRowImpl> leftRows = facetMerger.getLeftIterator();;
+        final Iterator<ResultRowImpl> leftRows = facetMerger.getLeftIterator();
         final Iterator<ResultRowImpl> rightRows = facetMerger.getRightIterator();
         Iterator<ResultRowImpl> leftIter = leftRows;
         Iterator<ResultRowImpl> rightIter = rightRows;
@@ -324,7 +324,21 @@ public class UnionQueryImpl implements Query {
             rightIter = ((MeasuringIterator) rightRows).getDelegate();
         }
         if (orderBy == null) {
-            it = IteratorUtils.chainedIterator(leftIter, rightIter);
+            boolean sortByScoreEnabled = settings.isSortUnionQueryByScoreEnabled();
+            boolean leftHasScore = isScorePresent(left);
+            boolean rightHasScore = isScorePresent(right);
+
+            if (sortByScoreEnabled && leftHasScore && rightHasScore) {
+                // Both sides have scores => merge
+                Comparator<ResultRowImpl> scoreComparator = createScoreBasedComparator();
+                it = IteratorUtils.mergeSorted(List.of(leftIter, rightIter), scoreComparator);
+            } else if (sortByScoreEnabled && rightHasScore) {
+                // Only right has score => start with right
+                it = IteratorUtils.chainedIterator(rightIter, leftIter);
+            } else {
+                // Default old behavior, only left has score, or neither has scores => start with left
+                it = IteratorUtils.chainedIterator(leftIter, rightIter);
+            }
         } else {
             // This would suggest either the sub queries are sorted by index or explicitly by QueryImpl (in case of traversing index)
             // So use mergeSorted here.
@@ -526,5 +540,42 @@ public class UnionQueryImpl implements Query {
     @Override
     public Optional<Long> getOffset() {
         return offset;
+    }
+
+    /**
+     * @param query the query to check.
+     * @return true if the query contains a jcr:score column, false otherwise.
+     */
+    private static boolean isScorePresent(Query query) {
+        return query.getColumnIndex("jcr:score") != -1;
+    }
+
+    /**
+     * @return a comparator to sort results by jcr:score in descending order.
+     * Precondition: {@link #isScorePresent(Query)} is true.
+     */
+    private Comparator<ResultRowImpl> createScoreBasedComparator() {
+        return new Comparator<ResultRowImpl>() {
+            @Override
+            public int compare(ResultRowImpl left, ResultRowImpl right) {
+                return Double.compare(getScoreFromRow(right), getScoreFromRow(left));
+            }
+        };
+    }
+
+    /**
+     * @param row the result row
+     * @return the jcr:score as a Double
+     * Precondition: {@link #isScorePresent(Query)} must be true. If the row lacks a jcr:score, 0.0 is returned and
+     * the issue is logged.
+     */
+    private Double getScoreFromRow(ResultRowImpl row) {
+        try {
+            PropertyValue scoreValue = row.getValue(QueryConstants.JCR_SCORE);
+            return scoreValue.getValue(Type.DOUBLE);
+        } catch (IllegalArgumentException e) {
+            LOG.warn("Failed to get jcr:score for path={}", row.getPath(), e);
+            return 0.0;
+        }
     }
 }
