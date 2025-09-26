@@ -103,18 +103,18 @@ public class EventFactory {
             public Map<?, ?> getInfo() {
                 Map<Object, Object> builder = new HashMap<>();
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
-                builder.put("afterValue", createValue(after));
+                builder.put(AFTERVALUE, createValue(after));
                 return Collections.unmodifiableMap(builder);
             }
             @Override
-            public Map<?,?> getInfo_ToString() {
+            public Map<?,?> getInfoToString() {
                 if (!after.getType().equals(Type.BINARY)) {
                     return getInfo();
                 }
                 // for binary values just the binary information is logged
                 Map<Object, Object> builder = new HashMap<>();
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
-                builder.put("afterValue", getSimpleBinaryReference(after));
+                builder.put(AFTERVALUE, getSimpleBinaryReference(after));
                 return Collections.unmodifiableMap(builder);
             }
         };
@@ -133,20 +133,20 @@ public class EventFactory {
             public Map<?, ?> getInfo() {
                 Map<Object, Object> builder = new HashMap<>();
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
-                builder.put("beforeValue", createValue(before));
-                builder.put("afterValue", createValue(after));
+                builder.put(BEFOREVALUE, createValue(before));
+                builder.put(AFTERVALUE, createValue(after));
                 return Collections.unmodifiableMap(builder);
             }
             @Override
-            public Map<?,?> getInfo_ToString() {
+            public Map<?,?> getInfoToString() {
                 if (!before.getType().equals(Type.BINARY)) {
                     return getInfo();
                 }
                 // for binary values just the binary information is logged
                 Map<Object, Object> builder = new HashMap<>();
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
-                builder.put("beforeValue", getSimpleBinaryReference(before));
-                builder.put("afterValue", getSimpleBinaryReference(after));
+                builder.put(BEFOREVALUE, getSimpleBinaryReference(before));
+                builder.put(AFTERVALUE, getSimpleBinaryReference(after));
                 return Collections.unmodifiableMap(builder);
             }
         };
@@ -164,18 +164,18 @@ public class EventFactory {
             public Map<?, ?> getInfo() {
                 Map<Object, Object> builder = new HashMap<>();
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
-                builder.put("beforeValue", createValue(before));
+                builder.put(BEFOREVALUE, createValue(before));
                 return Collections.unmodifiableMap(builder);
             }
             @Override
-            public Map<?,?> getInfo_ToString() {
+            public Map<?,?> getInfoToString() {
                 if (!before.getType().equals(Type.BINARY)) {
                     return getInfo();
                 }
                 // for binary values just the binary information is logged
                 Map<Object, Object> builder = new HashMap<>();
                 builder.putAll(createInfoMap(primaryType, mixinTypes));
-                builder.put("beforeValue", getSimpleBinaryReference(before));
+                builder.put(BEFOREVALUE, getSimpleBinaryReference(before));
                 return Collections.unmodifiableMap(builder);
             }
         };
@@ -344,7 +344,7 @@ public class EventFactory {
          * 
          * @return a serialized version of getInfo
          */
-        public Map<?,?> getInfo_ToString() {
+        public Map<?,?> getInfoToString() {
             return getInfo();
         }
 
@@ -380,7 +380,7 @@ public class EventFactory {
                     .add("type=" + getType())
                     .add("path=" + getPath())
                     .add("identifier=" + getIdentifier())
-                    .add("info=" + getInfo_ToString())
+                    .add("info=" + getInfoToString())
                     .add("userID=" + getUserID())
                     .add("userData=" + getUserData())
                     .add("date=" + getDate())

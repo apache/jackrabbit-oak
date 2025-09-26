@@ -280,6 +280,12 @@ public class ExpectationListener implements EventListener {
             }
         }
 
+        /**
+         * Handle the event
+         * @param event the event
+         * @return if the event should be handled
+         * @throws Exception
+         */
         public boolean onEvent(Event event) throws Exception {
             return true;
         }
