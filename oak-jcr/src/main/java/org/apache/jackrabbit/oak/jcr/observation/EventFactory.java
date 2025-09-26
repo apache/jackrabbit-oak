@@ -107,7 +107,7 @@ public class EventFactory {
                 return Collections.unmodifiableMap(builder);
             }
             @Override
-            public Map<?,?> getInfoToString() {
+            public Map<?, ?> getInfoToString() {
                 if (!after.getType().equals(Type.BINARY)) {
                     return getInfo();
                 }
@@ -138,7 +138,7 @@ public class EventFactory {
                 return Collections.unmodifiableMap(builder);
             }
             @Override
-            public Map<?,?> getInfoToString() {
+            public Map<?, ?> getInfoToString() {
                 if (!before.getType().equals(Type.BINARY)) {
                     return getInfo();
                 }
@@ -168,7 +168,7 @@ public class EventFactory {
                 return Collections.unmodifiableMap(builder);
             }
             @Override
-            public Map<?,?> getInfoToString() {
+            public Map<?, ?> getInfoToString() {
                 if (!before.getType().equals(Type.BINARY)) {
                     return getInfo();
                 }
@@ -344,7 +344,7 @@ public class EventFactory {
          * 
          * @return a serialized version of getInfo
          */
-        public Map<?,?> getInfoToString() {
+        public Map<?, ?> getInfoToString() {
             return getInfo();
         }
 
